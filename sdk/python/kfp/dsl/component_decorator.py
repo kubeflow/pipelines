@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 import functools
 from typing import Callable, List, Optional, Union
 import warnings
@@ -19,6 +20,19 @@ import warnings
 from kfp.dsl import component_factory
 from kfp.dsl.component_task_config import TaskConfigField
 from kfp.dsl.component_task_config import TaskConfigPassthrough
+
+
+class KubeflowPackageInstallMode(str, enum.Enum):
+    """Installation mode for the Kubeflow SDK package in components.
+
+    Attributes:
+        AUTO: Automatically detect and install if kubeflow is imported in the component function.
+        INSTALL: Always install the kubeflow package regardless of usage.
+        SKIP: Never install the kubeflow package, even if detected in the component function.
+    """
+    AUTO = 'auto'
+    INSTALL = 'install'
+    SKIP = 'skip'
 
 
 def component(
@@ -30,7 +44,8 @@ def component(
     pip_index_urls: Optional[List[str]] = None,
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
-    install_kubeflow_package: bool = True,
+    install_kubeflow_package:
+    KubeflowPackageInstallMode = KubeflowPackageInstallMode.AUTO,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
@@ -89,10 +104,13 @@ def component(
             This flag is ignored when ``target_image`` is specified, which implies
             a choice to build a containerized component. Containerized components
             will always install KFP as part of the build process.
-        install_kubeflow_package: If True (default), automatically detects kubeflow
-            imports in the component function and adds 'kubeflow' to packages_to_install.
-            Set to False if kubeflow is pre-installed in your base image to avoid
-            duplicate installation.
+        install_kubeflow_package: Controls whether the Kubeflow SDK is installed.
+            Can be KubeflowPackageInstallMode.AUTO (default), KubeflowPackageInstallMode.INSTALL,
+            or KubeflowPackageInstallMode.SKIP.
+            - AUTO: Detects kubeflow imports in the component function via AST parsing
+              and automatically adds 'kubeflow' to packages_to_install if detected.
+            - INSTALL: Always installs the kubeflow package regardless of whether it's used.
+            - SKIP: Never installs kubeflow, even if detected (useful if pre-installed in base_image).
         kfp_package_path: Specifies the location from which to install KFP. By
             default, this will try to install from PyPI using the same version
             as that used when this component was created. Component authors can

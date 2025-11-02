@@ -14,6 +14,7 @@
 import ast
 import base64
 import dataclasses
+import enum
 import gzip
 import inspect
 import io
@@ -46,6 +47,19 @@ from kfp.dsl.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.11'
 SINGLE_OUTPUT_NAME = 'Output'
+
+
+class KubeflowPackageInstallMode(str, enum.Enum):
+    """Installation mode for the Kubeflow SDK package in components.
+
+    Attributes:
+        AUTO: Automatically detect and install if kubeflow is imported in the component function.
+        INSTALL: Always install the kubeflow package regardless of usage.
+        SKIP: Never install the kubeflow package, even if detected in the component function.
+    """
+    AUTO = 'auto'
+    INSTALL = 'install'
+    SKIP = 'skip'
 
 
 def _detect_kubeflow_imports_in_function(func: Callable) -> bool:
@@ -97,46 +111,18 @@ def _detect_kubeflow_imports_in_function(func: Callable) -> bool:
         return False
 
 
-def _parse_package_name(package_spec: str) -> str:
-    """Extract base package name from package specification.
+def _is_kubeflow_package(package_spec: str) -> bool:
+    # Pattern 1: Standard package spec starting with 'kubeflow' followed by version operators, extras, or end of string
+    # Matches: kubeflow, kubeflow==1.0, kubeflow[extras], kubeflow>=1.5.0, etc.
+    standard_pattern = r'^kubeflow(?:\[|==|>=|<=|!=|~=|>|<|$)'
 
-    Args:
-        package_spec: Package specification like 'kubeflow==2.0.0', 'kubeflow>=1.5.0',
-                     'kubeflow[extras]', 'git+https://github.com/kubeflow/sdk.git', etc.
+    # Pattern 2: VCS URLs containing 'kubeflow' in the repository path
+    # Matches: git+https://github.com/kubeflow/sdk.git, git+ssh://git@github.com/kubeflow/training.git
+    vcs_pattern = r'(?:git\+|hg\+|svn\+|bzr\+).*://.*[/:]kubeflow[/:]'
 
-    Returns:
-        str: The base package name without version/extras/operators.
-
-    Examples:
-        'kubeflow==2.0.0' -> 'kubeflow'
-        'kubeflow>=1.5.0' -> 'kubeflow'
-        'kubeflow[extras]' -> 'kubeflow'
-        'git+https://github.com/kubeflow/sdk.git' -> 'kubeflow' (special case for kubeflow detection)
-    """
-    # Handle VCS URLs (git+https://, git+ssh://, etc.)
-    if '+' in package_spec and '://' in package_spec:
-        # Special case: if it's a kubeflow URL, return 'kubeflow' for auto-detection logic
-        if 'kubeflow' in package_spec.lower():
-            return 'kubeflow'
-        # For other VCS URLs, extract package name from URL path
-        # e.g., 'git+https://github.com/org/package.git' -> 'package'
-        match = re.search(r'/([^/]+?)(?:\.git)?(?:[#@].*)?$', package_spec)
-        if match:
-            return match.group(1)
-        return package_spec  # fallback
-
-    # Handle standard package specs: package[extras]==version, package>=version, etc.
-    package_name = package_spec
-
-    # Remove extras in brackets: package[extras] -> package
-    if '[' in package_name:
-        package_name = package_name.split('[')[0]
-
-    # Remove version operators: package>=1.0 -> package, package==2.0 -> package
-    package_name = re.split(r'[<>=!~]', package_name)[0]
-
-    # Remove any remaining whitespace
-    return package_name.strip()
+    return bool(
+        re.search(standard_pattern, package_spec) or
+        re.search(vcs_pattern, package_spec))
 
 
 @dataclasses.dataclass
@@ -249,26 +235,30 @@ def _get_packages_to_install_command(
     pip_index_urls: Optional[List[str]] = None,
     packages_to_install: Optional[List[str]] = None,
     install_kfp_package: bool = True,
-    install_kubeflow_package: bool = True,
+    install_kubeflow_package:
+    KubeflowPackageInstallMode = KubeflowPackageInstallMode.AUTO,
     target_image: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
 ) -> List[str]:
     packages_to_install = packages_to_install or []
 
-    # Auto-detect and add kubeflow if needed
-    if install_kubeflow_package and func is not None:
-        detected_kubeflow = _detect_kubeflow_imports_in_function(func)
-
-        if detected_kubeflow:
-            # Parse existing packages to check for kubeflow
-            existing_package_names = [
-                _parse_package_name(pkg) for pkg in packages_to_install
-            ]
-
-            # Only add if not already specified
-            if 'kubeflow' not in existing_package_names:
-                packages_to_install.append('kubeflow')
+    # Handle kubeflow installation based on the mode
+    if install_kubeflow_package == KubeflowPackageInstallMode.INSTALL:
+        # Always install kubeflow
+        if not any(_is_kubeflow_package(pkg) for pkg in packages_to_install):
+            packages_to_install.append('kubeflow')
+    elif install_kubeflow_package == KubeflowPackageInstallMode.AUTO:
+        # Auto-detect and add kubeflow if needed
+        if func is not None:
+            detected_kubeflow = _detect_kubeflow_imports_in_function(func)
+            if detected_kubeflow:
+                # Only add if not already specified using regex detection
+                if not any(
+                        _is_kubeflow_package(pkg)
+                        for pkg in packages_to_install):
+                    packages_to_install.append('kubeflow')
+    # If SKIP, do nothing
 
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
     # if the user doesn't say "don't install", they aren't building a
@@ -754,7 +744,8 @@ def create_notebook_component_from_func(
     pip_index_urls: Optional[List[str]] = None,
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
-    install_kubeflow_package: bool = True,
+    install_kubeflow_package:
+    KubeflowPackageInstallMode = KubeflowPackageInstallMode.AUTO,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
@@ -849,7 +840,8 @@ def create_component_from_func(
     pip_index_urls: Optional[List[str]] = None,
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
-    install_kubeflow_package: bool = True,
+    install_kubeflow_package:
+    KubeflowPackageInstallMode = KubeflowPackageInstallMode.AUTO,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
