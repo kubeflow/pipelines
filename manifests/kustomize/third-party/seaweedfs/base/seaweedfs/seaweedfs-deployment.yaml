@@ -27,7 +27,7 @@ spec:
         envFrom:
         - secretRef:
             name: mlpipeline-minio-artifact
-        image: "chrislusf/seaweedfs:3.98"
+        image: "chrislusf/seaweedfs:4.00"
         args:
         - "server"
         - "-dir=/data"
