@@ -2,6 +2,7 @@
 
 * Fix for dataproc batch components pipeline failure.
 * Add `autotuning_config` and `cohort` parameters to Dataproc v1 batch components.
+* Remove deprecated AutoML XGBoost trainer.
 
 ## Release 2.21.0
 
