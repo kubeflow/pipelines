@@ -66,6 +66,8 @@ from test_data.sdk_compiled_pipelines.valid.critical.flip_coin import \
     flipcoin_pipeline as flip_coin
 from test_data.sdk_compiled_pipelines.valid.critical.loop_consume_upstream import \
     loop_consume_upstream
+from test_data.sdk_compiled_pipelines.valid.critical.missing_kubernetes_optional_inputs import \
+    missing_kubernetes_optional_inputs_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import \
     crust as mixed_parameters_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.modelcar.modelcar import \
@@ -241,8 +243,6 @@ from test_data.sdk_compiled_pipelines.valid.two_step_pipeline import \
     my_pipeline as two_step_pipeline
 from test_data.sdk_compiled_pipelines.valid.xgboost_sample_pipeline import \
     xgboost_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.missing_kubernetes_optional_inputs import \
-    missing_kubernetes_optional_inputs_pipeline
 
 from ..test_utils.comparison_utils import ComparisonUtils
 from ..test_utils.file_utils import FileUtils
