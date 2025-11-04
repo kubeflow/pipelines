@@ -241,6 +241,8 @@ from test_data.sdk_compiled_pipelines.valid.two_step_pipeline import \
     my_pipeline as two_step_pipeline
 from test_data.sdk_compiled_pipelines.valid.xgboost_sample_pipeline import \
     xgboost_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.missing_kubernetes_optional_inputs import \
+    missing_kubernetes_optional_inputs_pipeline
 
 from ..test_utils.comparison_utils import ComparisonUtils
 from ..test_utils.file_utils import FileUtils
@@ -352,6 +354,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='parameter_oneof.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/parameter_oneof.yaml'
+            ),
+            TestData(
+                pipeline_name='missing-kubernetes-optional-inputs',
+                pipeline_func=missing_kubernetes_optional_inputs_pipeline,
+                pipline_func_args=None,
+                compiled_file_name='missing_kubernetes_optional_inputs.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/missing_kubernetes_optional_inputs.yaml'
             ),
             TestData(
                 pipeline_name='pipeline-with-env',
