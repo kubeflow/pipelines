@@ -20,42 +20,53 @@ def missing_kubernetes_optional_inputs_pipeline(
     task = log_message(message="baseline task")
     task.set_caching_options(enable_caching=False)
 
-    kubernetes.add_node_affinity_json(
-        task=task,
-        node_affinity_json=optional_affinity,
-    )
-    kubernetes.add_node_selector_json(
-        task=task,
-        node_selector_json=optional_selector,
-    )
-    kubernetes.use_secret_as_env(
-        task=task,
-        secret_name=optional_secret_name,
-        secret_key_to_env={"password": "PASSWORD"},
-    )
-    kubernetes.use_secret_as_volume(
-        task=task,
-        secret_name=optional_secret_name,
-        mount_path="/mnt/secret",
-    )
-    kubernetes.use_config_map_as_env(
-        task=task,
-        config_map_name=optional_config_map_name,
-        config_map_key_to_env={"setting": "SETTING"},
-    )
-    kubernetes.use_config_map_as_volume(
-        task=task,
-        config_map_name=optional_config_map_name,
-        mount_path="/mnt/config",
-    )
-    kubernetes.set_image_pull_secrets(
-        task=task,
-        secret_names=[optional_image_pull_secret_name],
-    )
-    kubernetes.add_toleration_json(
-        task=task,
-        toleration_json=optional_tolerations,
-    )
+    if optional_affinity is not None:
+        kubernetes.add_node_affinity_json(
+            task=task,
+            node_affinity_json=optional_affinity,
+        )
+
+    if optional_selector is not None:
+        kubernetes.add_node_selector_json(
+            task=task,
+            node_selector_json=optional_selector,
+        )
+
+    if optional_secret_name is not None:
+        kubernetes.use_secret_as_env(
+            task=task,
+            secret_name=optional_secret_name,
+            secret_key_to_env={"password": "PASSWORD"},
+        )
+        kubernetes.use_secret_as_volume(
+            task=task,
+            secret_name=optional_secret_name,
+            mount_path="/mnt/secret",
+        )
+
+    if optional_config_map_name is not None:
+        kubernetes.use_config_map_as_env(
+            task=task,
+            config_map_name=optional_config_map_name,
+            config_map_key_to_env={"setting": "SETTING"},
+        )
+        kubernetes.use_config_map_as_volume(
+            task=task,
+            config_map_name=optional_config_map_name,
+            mount_path="/mnt/config",
+        )
+
+    if optional_image_pull_secret_name is not None:
+        kubernetes.set_image_pull_secrets(
+            task=task,
+            secret_names=[optional_image_pull_secret_name],
+        )
+
+    if optional_tolerations is not None:
+        kubernetes.add_toleration_json(
+            task=task,
+            toleration_json=optional_tolerations,
+        )
 
 
 if __name__ == "__main__":

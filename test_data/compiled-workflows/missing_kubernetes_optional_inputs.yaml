@@ -7,20 +7,20 @@ spec:
   arguments:
     parameters:
     - name: kubernetes-comp-log-message
-      value: '{"configMapAsEnv":[{"configMapNameParameter":{"componentInputParameter":"optional_config_map_name"},"keyToEnv":[{"configMapKey":"setting","envVar":"SETTING"}]}],"configMapAsVolume":[{"configMapNameParameter":{"componentInputParameter":"optional_config_map_name"},"mountPath":"/mnt/config","optional":false}],"imagePullSecret":[{"secretNameParameter":{"componentInputParameter":"optional_image_pull_secret_name"}}],"nodeAffinity":[{"nodeAffinityJson":{"componentInputParameter":"optional_affinity"}}],"nodeSelector":{"nodeSelectorJson":{"componentInputParameter":"optional_selector"}},"secretAsEnv":[{"keyToEnv":[{"envVar":"PASSWORD","secretKey":"password"}],"secretNameParameter":{"componentInputParameter":"optional_secret_name"}}],"secretAsVolume":[{"mountPath":"/mnt/secret","optional":false,"secretNameParameter":{"componentInputParameter":"optional_secret_name"}}],"tolerations":[{"tolerationJson":{"componentInputParameter":"optional_tolerations"}}]}'
-    - name: components-c8c67f3fc917440660bebc9bdeebf74582aea2a34af0448b655b50197afff8f8
+      value: '{"configMapAsEnv":[{"configMapNameParameter":{"componentInputParameter":"optional_config_map_name"},"keyToEnv":[{"configMapKey":"setting","envVar":"SETTING"}],"optional":false}],"configMapAsVolume":[{"configMapNameParameter":{"componentInputParameter":"optional_config_map_name"},"mountPath":"/mnt/config","optional":false}],"imagePullSecret":[{"secretNameParameter":{"componentInputParameter":"optional_image_pull_secret_name"}}],"nodeAffinity":[{"nodeAffinityJson":{"componentInputParameter":"optional_affinity"}}],"nodeSelector":{"nodeSelectorJson":{"componentInputParameter":"optional_selector"}},"secretAsEnv":[{"keyToEnv":[{"envVar":"PASSWORD","secretKey":"password"}],"optional":false,"secretNameParameter":{"componentInputParameter":"optional_secret_name"}}],"secretAsVolume":[{"mountPath":"/mnt/secret","optional":false,"secretNameParameter":{"componentInputParameter":"optional_secret_name"}}],"tolerations":[{"tolerationJson":{"componentInputParameter":"optional_tolerations"}}]}'
+    - name: components-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35
       value: '{"executorLabel":"exec-log-message","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-c8c67f3fc917440660bebc9bdeebf74582aea2a34af0448b655b50197afff8f8
+    - name: implementations-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","log_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.4'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        log_message(message: str) -\u003e None:\n    print(message)\n\n"],"image":"python:3.9"}'
+        log_message(message: str) -\u003e None:\n    print(message)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"log-message":{"cachingOptions":{},"componentRef":{"name":"comp-log-message"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"baseline
         task"}}}},"taskInfo":{"name":"log-message"}}}},"inputDefinitions":{"parameters":{"optional_affinity":{"isOptional":true,"parameterType":"STRUCT"},"optional_config_map_name":{"isOptional":true,"parameterType":"STRING"},"optional_image_pull_secret_name":{"isOptional":true,"parameterType":"STRING"},"optional_secret_name":{"isOptional":true,"parameterType":"STRING"},"optional_selector":{"isOptional":true,"parameterType":"STRUCT"},"optional_tolerations":{"isOptional":true,"parameterType":"LIST"}}}}'
@@ -204,12 +204,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c8c67f3fc917440660bebc9bdeebf74582aea2a34af0448b655b50197afff8f8}}'
+            value: '{{workflow.parameters.components-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-log-message"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"baseline
               task"}}}},"taskInfo":{"name":"log-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c8c67f3fc917440660bebc9bdeebf74582aea2a34af0448b655b50197afff8f8}}'
+            value: '{{workflow.parameters.implementations-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35}}'
           - name: task-name
             value: log-message
           - name: parent-dag-id

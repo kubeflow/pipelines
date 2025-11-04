@@ -28,7 +28,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -43,7 +43,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: missing-kubernetes-optional-inputs-pipeline
 root:
@@ -94,6 +94,7 @@ platforms:
             keyToEnv:
             - configMapKey: setting
               envVar: SETTING
+            optional: false
           configMapAsVolume:
           - configMapNameParameter:
               componentInputParameter: optional_config_map_name
@@ -112,6 +113,7 @@ platforms:
           - keyToEnv:
             - envVar: PASSWORD
               secretKey: password
+            optional: false
             secretNameParameter:
               componentInputParameter: optional_secret_name
           secretAsVolume:
