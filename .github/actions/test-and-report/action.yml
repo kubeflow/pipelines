@@ -114,6 +114,7 @@ runs:
       with:
         files: |
           ${{ inputs.test_directory }}/reports/*.xml
+        check_run_annotations: 'none'
 
     - name: Install Junit2Html plugin and generate report
       if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
