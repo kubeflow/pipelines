@@ -74,8 +74,8 @@ spec:
           privileged: false
           runAsNonRoot: true
           # image defaults to root user
-          runAsUser: 1001
-          runAsGroup: 1001
+          runAsUser: 1000
+          runAsGroup: 1000
           capabilities:
             drop:
             - ALL
