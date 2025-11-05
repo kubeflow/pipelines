@@ -81,7 +81,7 @@ root:
         isOptional: true
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.4
+sdkVersion: kfp-2.14.6
 ---
 platforms:
   kubernetes:
@@ -94,12 +94,12 @@ platforms:
             keyToEnv:
             - configMapKey: setting
               envVar: SETTING
-            optional: false
+            optional: true
           configMapAsVolume:
           - configMapNameParameter:
               componentInputParameter: optional_config_map_name
             mountPath: /mnt/config
-            optional: false
+            optional: true
           imagePullSecret:
           - secretNameParameter:
               componentInputParameter: optional_image_pull_secret_name
@@ -113,12 +113,12 @@ platforms:
           - keyToEnv:
             - envVar: PASSWORD
               secretKey: password
-            optional: false
+            optional: true
             secretNameParameter:
               componentInputParameter: optional_secret_name
           secretAsVolume:
           - mountPath: /mnt/secret
-            optional: false
+            optional: true
             secretNameParameter:
               componentInputParameter: optional_secret_name
           tolerations:
