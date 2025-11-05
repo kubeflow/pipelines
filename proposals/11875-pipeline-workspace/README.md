@@ -392,10 +392,10 @@ index d986a048b..866696419 100644
  message PipelineConfig {
    // Time to live configuration after the pipeline run is completed for
    // ephemeral resources created by the pipeline run.
-   int32 resource_ttl = 3;
+   int32 resource_ttl = 1;
 
    // Configuration for the workspace
-   optional WorkspaceConfig workspace = 4;
+   optional WorkspaceConfig workspace = 2;
  }
 ```
 
