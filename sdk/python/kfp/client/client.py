@@ -1364,16 +1364,16 @@ class Client:
         self,
         run_id: str,
         component_name: Optional[str] = None,
-        namespace: Optional[str] = None,
     ) -> Union[str, Dict[str, str]]:
-        """Downloads logs from a pipeline run's components.
+        """Downloads logs from a pipeline run's components via artifacts.
+
+        This method retrieves logs that are automatically uploaded as artifacts
+        by the KFP launcher, making them available even after pod deletion.
 
         Args:
             run_id: ID of the pipeline run.
             component_name: Optional name of specific component to get logs from.
                            If None, returns logs from all components.
-            namespace: Kubernetes namespace to use. Used for multi-user deployments.
-                      For single-user deployments, this should be left as None.
 
         Returns:
             If component_name is specified: string containing the component logs.
@@ -1381,7 +1381,7 @@ class Client:
 
         Raises:
             ValueError: If the run_id doesn't exist or component_name is not found.
-            ApiException: If there's an error accessing Kubernetes API.
+            RuntimeError: If there's an error retrieving artifacts.
 
         Example:
           ::
@@ -1401,77 +1401,52 @@ class Client:
             for component, log_text in all_logs.items():
                 print(f"Component {component}: {log_text[:100]}...")
         """
-        try:
-            from kubernetes import client as k8s_client
-            from kubernetes import config as k8s_config
-            from kubernetes.client.rest import ApiException
-        except ImportError:
-            raise ImportError('Kubernetes package is not installed. '
-                              'Install it using: pip install kubernetes')
-
-        namespace = namespace or self.get_user_namespace()
-
+        # Get run details
         run = self.get_run(run_id=run_id)
         if run is None:
             raise ValueError(f"Run with ID '{run_id}' not found.")
 
-        try:
-            k8s_config.load_incluster_config()
-        except k8s_config.ConfigException:
-            try:
-                k8s_config.load_kube_config()
-            except k8s_config.ConfigException:
-                raise RuntimeError(
-                    'Could not configure Kubernetes client. '
-                    'Make sure you have access to a Kubernetes cluster.')
-
-        v1 = k8s_client.CoreV1Api()
-
-        workflow_name = self._get_workflow_name_from_run(run)
-
-        label_selector = f'workflows.argoproj.io/workflow={workflow_name}'
-
-        try:
-            pods = v1.list_namespaced_pod(
-                namespace=namespace, label_selector=label_selector)
-        except ApiException as e:
-            raise ApiException(f"Failed to list pods for run '{run_id}': {e}")
-
-        if not pods.items:
-            raise ValueError(
-                f"No pods found for run '{run_id}' in namespace '{namespace}'.")
+        # Check if run has task details
+        if not run.run_details or not run.run_details.task_details:
+            raise ValueError(f"No task details found for run '{run_id}'. "
+                             'The run may not have started yet.')
 
         logs_dict = {}
 
-        for pod in pods.items:
-            pod_name = pod.metadata.name
+        # Iterate through all task details to get logs
+        for task_detail in run.run_details.task_details:
+            # Get component/task name
+            task_name = (
+                task_detail.display_name or task_detail.name or
+                task_detail.task_id)
 
-            pod_component_name = self._extract_component_name_from_pod(pod)
-
-            if component_name and pod_component_name != component_name:
+            # Skip if we're looking for a specific component and this isn't it
+            if component_name and task_name != component_name:
                 continue
 
-            try:
-                log_text = v1.read_namespaced_pod_log(
-                    name=pod_name, namespace=namespace, container='main')
-                logs_dict[pod_component_name] = log_text
-            except ApiException:
-                if pod.spec.containers:
-                    container_name = pod.spec.containers[0].name
-                    try:
-                        log_text = v1.read_namespaced_pod_log(
-                            name=pod_name,
-                            namespace=namespace,
-                            container=container_name)
-                        logs_dict[pod_component_name] = log_text
-                    except ApiException as e:
-                        logs_dict[pod_component_name] = (
-                            f'Error retrieving logs: {e}')
-                else:
-                    logs_dict[pod_component_name] = (
-                        f'Error: No containers found in pod {pod_name}')
+            # Get node_id from task detail
+            node_id = task_detail.id or task_detail.task_id
+            if not node_id:
+                continue
 
-        # Return based on whether specific component was requested
+            # Try to read the main.log artifact
+            try:
+                log_content = self._read_artifact(
+                    run_id=run_id, node_id=node_id, artifact_name='main.log')
+                logs_dict[task_name] = log_content
+            except Exception as e:
+                logs_dict[task_name] = (f'Error retrieving logs: {str(e)}')
+
+        # Handle return value
+        if not logs_dict:
+            if component_name:
+                raise ValueError(
+                    f"Component '{component_name}' not found in run '{run_id}'."
+                )
+            else:
+                raise ValueError(f"No logs found for run '{run_id}'. "
+                                 'The run may not have any completed tasks.')
+
         if component_name:
             if component_name in logs_dict:
                 return logs_dict[component_name]
@@ -1482,6 +1457,48 @@ class Client:
                     f'Available components: {available_components}')
 
         return logs_dict
+
+    def _read_artifact(
+        self,
+        run_id: str,
+        node_id: str,
+        artifact_name: str,
+    ) -> str:
+        """Reads artifact content from KFP backend.
+
+        Args:
+            run_id: The run ID.
+            node_id: The node/task ID.
+            artifact_name: Name of the artifact (e.g., 'main.log').
+
+        Returns:
+            Artifact content as string.
+
+        Raises:
+            RuntimeError: If artifact cannot be retrieved.
+        """
+        try:
+            from kfp_server_api.models import ReadArtifactRequest
+        except ImportError:
+            raise ImportError(
+                'kfp_server_api package is required to read artifacts.')
+
+        # Construct the artifact request
+        artifact_request = ReadArtifactRequest(
+            run_id=run_id, node_id=node_id, artifact_name=artifact_name)
+
+        try:
+            # Use the API client to read the artifact
+            response = self._run_api.run_service_read_artifact(artifact_request)
+
+            # Decode bytes to string
+            if isinstance(response.data, bytes):
+                return response.data.decode('utf-8')
+            return str(response.data)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to read artifact '{artifact_name}' from node "
+                f"'{node_id}': {str(e)}")
 
     def wait_for_run_completion(
         self,
@@ -1889,56 +1906,6 @@ def _extract_pipeline_yaml(package_file: str) -> _PipelineDoc:
         raise ValueError(
             f'The package_file {package_file} should end with one of the '
             'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
-
-
-def _get_workflow_name_from_run(self, run: kfp_server_api.V2beta1Run) -> str:
-    """Extracts Argo workflow name from run details.
-
-        Args:
-            run: V2beta1Run object.
-
-        Returns:
-            Workflow name string.
-
-        Raises:
-            ValueError: If workflow name cannot be extracted.
-        """
-    if hasattr(run, 'run_id'):
-        return run.run_id
-
-    if hasattr(run, 'pipeline_runtime') and run.pipeline_runtime:
-        if hasattr(run.pipeline_runtime, 'workflow_manifest'):
-            manifest = json.loads(run.pipeline_runtime.workflow_manifest)
-            if 'metadata' in manifest and 'name' in manifest['metadata']:
-                return manifest['metadata']['name']
-
-    raise ValueError(
-        'Could not extract workflow name from run details. '
-        'The run may not have started yet or the run object is malformed.')
-
-
-def _extract_component_name_from_pod(self, pod: 'k8s_client.V1Pod') -> str:
-    """Extracts component/task name from pod metadata.
-
-        Args:
-            pod: Kubernetes V1Pod object.
-
-        Returns:
-            Component name string.
-        """
-    if pod.metadata.annotations:
-        if 'pipelines.kubeflow.org/task_display_name' in pod.metadata.annotations:
-            return pod.metadata.annotations[
-                'pipelines.kubeflow.org/task_display_name']
-
-        if 'workflows.argoproj.io/template' in pod.metadata.annotations:
-            return pod.metadata.annotations['workflows.argoproj.io/template']
-
-    if pod.metadata.labels:
-        if 'pipelines.kubeflow.org/task_name' in pod.metadata.labels:
-            return pod.metadata.labels['pipelines.kubeflow.org/task_name']
-
-    return pod.metadata.name
 
 
 def _override_caching_options(
