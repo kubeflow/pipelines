@@ -8,9 +8,5 @@ spec:
       containers:
         - name: ml-pipeline-api-server
           env:
-            - name: V2_DRIVER_IMAGE
-              value: kind-registry:5000/driver
-            - name: V2_LAUNCHER_IMAGE
-              value: kind-registry:5000/launcher
-            - name: LOG_LEVEL
-              value: "debug"
+            - name: OBJECTSTORECONFIG_HOST
+              value: "minio-service.kubeflow.svc.cluster.local"
