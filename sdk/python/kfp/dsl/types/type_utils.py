@@ -16,6 +16,18 @@
 import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Type, Union
+
+try:
+    from typing import get_args, get_origin
+except ImportError:  # pragma: no cover
+
+    def get_origin(tp):
+        return getattr(tp, '__origin__', None)
+
+    def get_args(tp):
+        return getattr(tp, '__args__', ())
+
+
 import warnings
 
 import kfp
@@ -572,6 +584,24 @@ def _annotation_to_type_struct(annotation):
         annotation = annotation.to_dict()
     if isinstance(annotation, dict):
         return annotation
+
+    origin = get_origin(annotation)
+    if origin in {list, dict}:
+        annotation_module = getattr(annotation, '__module__', None)
+        if annotation_module in ('typing', 'typing_extensions'):
+            return str(annotation)
+        origin_type = get_canonical_type_name_for_type(origin)
+        inner_annotations = get_args(annotation)
+        if inner_annotations:
+            inner_types = []
+            for inner_annotation in inner_annotations:
+                inner_type = _annotation_to_type_struct(inner_annotation)
+                inner_types.append(
+                    inner_type
+                    if inner_type is not None else str(inner_annotation))
+            return f"{origin_type}[{', '.join(inner_types)}]"
+        return origin_type
+
     if isinstance(annotation, type):
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:

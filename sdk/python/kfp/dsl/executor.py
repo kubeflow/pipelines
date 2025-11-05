@@ -23,6 +23,7 @@ from kfp.dsl import task_final_status
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
+from kfp.dsl.types import type_utils
 
 
 class Executor:
@@ -460,11 +461,16 @@ def get_short_type_name(type_name: str) -> str:
 
 # TODO: merge with type_utils.is_parameter_type
 def is_parameter(annotation: Any) -> bool:
-    if type(annotation) == type:
-        return annotation in [str, int, float, bool, dict, list]
+    if isinstance(annotation, type):
+        if annotation in [str, int, float, bool, dict, list]:
+            return True
+        annotation_name = getattr(annotation, '__name__', '')
+        if type_utils.is_task_final_status_type(annotation_name):
+            return True
+        if type_utils.is_task_config_type(annotation_name):
+            return True
 
-    # Annotation could be, for instance `typing.Dict[str, str]`, etc.
-    return get_short_type_name(str(annotation)) in ['Dict', 'List']
+    return type_utils.is_parameter_type(str(annotation))
 
 
 def is_artifact(annotation: Any) -> bool:

@@ -237,6 +237,26 @@ class TypeUtilsTest(parameterized.TestCase):
         self.assertEqual(expected_result,
                          type_utils.is_task_final_status_type(given_type))
 
+    def test_pipeline_compile_with_builtin_generic_annotations(self):
+
+        @dsl.component
+        def produce_list(a: int, b: int) -> list[int]:
+            return [a, b]
+
+        @dsl.component
+        def consume_list(values: list[int]) -> int:
+            return values[0]
+
+        @dsl.pipeline
+        def typed_pipeline(x: int = 1):
+            outputs = produce_list(a=x, b=x)
+            consume_list(values=outputs.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'typed_pipeline.json')
+            compiler.Compiler().compile(typed_pipeline, package_path)
+            self.assertTrue(os.path.exists(package_path))
+
 
 class TestGetArtifactTypeSchema(parameterized.TestCase):
 
