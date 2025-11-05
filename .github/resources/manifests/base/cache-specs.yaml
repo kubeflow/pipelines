@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-server
+spec:
+  template:
+    spec:
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        searches:
+        - NAMESPACE.svc.cluster.local
+        - svc.cluster.local
+        - cluster.local
+        options:
+        - name: timeout
+          value: "5"
+        - name: attempts
+          value: "3"
+        - name: ndots
+          value: "2"
+      containers:
+      - name: server
+        env:
+        - name: DBCONFIG_HOST_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: dns-config
+              key: dbHost
