@@ -148,7 +148,7 @@ message GetRunRequest {
 }
 
 message ListRunsRequest {
-  // A page token to request the next page of results. The token is acquried
+  // A page token to request the next page of results. The token is acquired
   // from the nextPageToken field of the response from the previous
   // ListRuns call or can be omitted when fetching the first page.
   string page_token = 1;
@@ -288,7 +288,7 @@ message RunMetric {
 
   // Required. The runtime node ID which reports the metric. The node ID can be
   // found in the RunDetail.workflow.Status. Metric with same (node_id, name)
-  // are considerd as duplicate. Only the first reporting will be recorded. Max
+  // are considered as duplicate. Only the first reporting will be recorded. Max
   // length is 128.
   string node_id = 2;
 

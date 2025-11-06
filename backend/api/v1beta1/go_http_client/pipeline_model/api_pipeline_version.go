@@ -40,7 +40,7 @@ type APIPipelineVersion struct {
 	Name string `json:"name,omitempty"`
 
 	// Input. Required. The URL to the source of the pipeline version.
-	// This is required when creating the pipeine version through
+	// This is required when creating the pipeline version through
 	// CreatePipelineVersion API.
 	PackageURL *APIURL `json:"package_url,omitempty"`
 

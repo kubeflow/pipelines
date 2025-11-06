@@ -184,7 +184,7 @@ message GetPipelineRequest {
 }
 
 message ListPipelinesRequest {
-  // A page token to request the next page of results. The token is acquried
+  // A page token to request the next page of results. The token is acquired
   // from the nextPageToken field of the response from the previous
   // ListPipelines call.
   string page_token = 1;
@@ -269,7 +269,7 @@ message ListPipelineVersionsRequest {
   // nextPageToken field you can use to fetch the next page.
   int32 page_size = 2;
 
-  // A page token to request the next page of results. The token is acquried
+  // A page token to request the next page of results. The token is acquired
   // from the nextPageToken field of the response from the previous
   // ListPipelineVersions call or can be omitted when fetching the first page.
   string page_token = 3;
@@ -318,7 +318,7 @@ message Pipeline {
   repeated Parameter parameters = 5;
 
   // Input. Required. The URL to the source of the pipeline.
-  // This is required when creating the pipeine through CreatePipeline API.
+  // This is required when creating the pipeline through CreatePipeline API.
   Url url = 7;
 
   // In case any error happens retrieving a pipeline field, only pipeline ID
@@ -356,7 +356,7 @@ message PipelineVersion {
   string code_source_url = 5;
 
   // Input. Required. The URL to the source of the pipeline version.
-  // This is required when creating the pipeine version through
+  // This is required when creating the pipeline version through
   // CreatePipelineVersion API.
   Url package_url = 6;
 

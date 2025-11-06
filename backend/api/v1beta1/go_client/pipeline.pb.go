@@ -232,7 +232,7 @@ func (x *GetPipelineRequest) GetId() string {
 
 type ListPipelinesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// A page token to request the next page of results. The token is acquried
+	// A page token to request the next page of results. The token is acquired
 	// from the nextPageToken field of the response from the previous
 	// ListPipelines call.
 	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
@@ -718,7 +718,7 @@ type ListPipelineVersionsRequest struct {
 	// pipeline versions than this number, the response message will contain a
 	// nextPageToken field you can use to fetch the next page.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// A page token to request the next page of results. The token is acquried
+	// A page token to request the next page of results. The token is acquired
 	// from the nextPageToken field of the response from the previous
 	// ListPipelineVersions call or can be omitted when fetching the first page.
 	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
@@ -921,7 +921,7 @@ type Pipeline struct {
 	// the latter.
 	Parameters []*Parameter `protobuf:"bytes,5,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	// Input. Required. The URL to the source of the pipeline.
-	// This is required when creating the pipeine through CreatePipeline API.
+	// This is required when creating the pipeline through CreatePipeline API.
 	Url *Url `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
 	// In case any error happens retrieving a pipeline field, only pipeline ID
 	// and the error message is returned. Client has the flexibility of choosing
@@ -1047,7 +1047,7 @@ type PipelineVersion struct {
 	// the pipeline YAML was created.
 	CodeSourceUrl string `protobuf:"bytes,5,opt,name=code_source_url,json=codeSourceUrl,proto3" json:"code_source_url,omitempty"`
 	// Input. Required. The URL to the source of the pipeline version.
-	// This is required when creating the pipeine version through
+	// This is required when creating the pipeline version through
 	// CreatePipelineVersion API.
 	PackageUrl *Url `protobuf:"bytes,6,opt,name=package_url,json=packageUrl,proto3" json:"package_url,omitempty"`
 	// Input field. Specify which resource this pipeline version belongs to.

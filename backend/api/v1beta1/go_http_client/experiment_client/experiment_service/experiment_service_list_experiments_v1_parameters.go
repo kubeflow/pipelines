@@ -81,7 +81,7 @@ type ExperimentServiceListExperimentsV1Params struct {
 
 	/* PageToken.
 
-	     A page token to request the next page of results. The token is acquried
+	     A page token to request the next page of results. The token is acquired
 	from the nextPageToken field of the response from the previous
 	ListExperiment call or can be omitted when fetching the first page.
 	*/

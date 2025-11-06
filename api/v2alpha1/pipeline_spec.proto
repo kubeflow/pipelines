@@ -355,7 +355,7 @@ message TaskInputsSpec {
   }
 
   // A map of input parameters which are small values, stored by the system and
-  // can be queriable.
+  // can be queryable.
   map<string, InputParameterSpec> parameters = 1;
   // A map of input artifacts.
   map<string, InputArtifactSpec> artifacts = 2;
@@ -384,7 +384,7 @@ message TaskOutputsSpec {
   }
 
   // A map of output parameters which are small values, stored by the system and
-  // can be queriable. The output key is used
+  // can be queryable. The output key is used
   // by [TaskInputsSpec.InputParameterSpec][] of the downstream task to specify
   // the data dependency. The same key will also be used by
   // [ExecutorInput.Inputs][] to reference the output parameter.

@@ -163,7 +163,7 @@ type PipelineVersion struct {
 	// Output. Creation time of the pipeline version.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Input. Required. The URL to the source of the pipeline version.
-	// This is required when creating the pipeine version through
+	// This is required when creating the pipeline version through
 	// CreatePipelineVersion or CreatePipelineAndVersion API.
 	PackageUrl *Url `protobuf:"bytes,6,opt,name=package_url,json=packageUrl,proto3" json:"package_url,omitempty"`
 	// Input. Optional. The URL to the code source of the pipeline version.

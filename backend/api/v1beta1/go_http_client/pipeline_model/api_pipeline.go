@@ -56,7 +56,7 @@ type APIPipeline struct {
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
 
 	// Input. Required. The URL to the source of the pipeline.
-	// This is required when creating the pipeine through CreatePipeline API.
+	// This is required when creating the pipeline through CreatePipeline API.
 	URL *APIURL `json:"url,omitempty"`
 }
 
