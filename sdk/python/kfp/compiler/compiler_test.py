@@ -1007,6 +1007,49 @@ implementation:
                 self.assertTrue('base_image' in input_parameters)
                 self.assertTrue('pipelinechannel--img' in input_parameters)
 
+    def test_pipeline_with_parameterized_container_image_inside_parallel_for(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            @dsl.component(base_image='docker.io/python:3.11.17')
+            def empty_component(idx: int):
+                del idx
+
+            @dsl.pipeline()
+            def simple_pipeline(img: str):
+                with dsl.ParallelFor(items=[1, 2]) as item:
+                    task = empty_component(idx=item)
+                    task.set_container_image(img)
+
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline,
+                package_path=output_yaml,
+                pipeline_parameters={'img': 'someimage'})
+
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            loop_components = {
+                name: comp
+                for name, comp in pipeline_spec['components'].items()
+                if name.startswith('comp-for-loop')
+            }
+            self.assertTrue(
+                loop_components,
+                'Expected to find at least one ParallelFor component in the pipeline spec'
+            )
+
+            loop_component = next(iter(loop_components.values()))
+            input_parameters = loop_component['inputDefinitions']['parameters']
+            self.assertIn('pipelinechannel--img', input_parameters)
+
+            loop_tasks = loop_component['dag']['tasks']
+            self.assertIn('empty-component', loop_tasks)
+            loop_task_inputs = loop_tasks['empty-component']['inputs']['parameters']
+            self.assertIn('base_image', loop_task_inputs)
+            self.assertIn('pipelinechannel--img', loop_task_inputs)
+
     def test_pipeline_with_constant_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
