@@ -66,6 +66,8 @@ from test_data.sdk_compiled_pipelines.valid.critical.flip_coin import \
     flipcoin_pipeline as flip_coin
 from test_data.sdk_compiled_pipelines.valid.critical.loop_consume_upstream import \
     loop_consume_upstream
+from test_data.sdk_compiled_pipelines.valid.critical.missing_kubernetes_optional_inputs import \
+    missing_kubernetes_optional_inputs_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import \
     crust as mixed_parameters_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.modelcar.modelcar import \
@@ -352,6 +354,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='parameter_oneof.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/parameter_oneof.yaml'
+            ),
+            TestData(
+                pipeline_name='missing-kubernetes-optional-inputs',
+                pipeline_func=missing_kubernetes_optional_inputs_pipeline,
+                pipline_func_args=None,
+                compiled_file_name='missing_kubernetes_optional_inputs.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/missing_kubernetes_optional_inputs.yaml'
             ),
             TestData(
                 pipeline_name='pipeline-with-env',
