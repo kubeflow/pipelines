@@ -629,6 +629,25 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
+
+	// Apply driver pod labels and annotations if configured
+	if c.driverPodConfig != nil {
+		if len(c.driverPodConfig.Labels) > 0 || len(c.driverPodConfig.Annotations) > 0 {
+			if t.Metadata.Labels == nil {
+				t.Metadata.Labels = make(map[string]string)
+			}
+			if t.Metadata.Annotations == nil {
+				t.Metadata.Annotations = make(map[string]string)
+			}
+			for k, v := range c.driverPodConfig.Labels {
+				t.Metadata.Labels[k] = v
+			}
+			for k, v := range c.driverPodConfig.Annotations {
+				t.Metadata.Annotations[k] = v
+			}
+		}
+	}
+
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(t)
