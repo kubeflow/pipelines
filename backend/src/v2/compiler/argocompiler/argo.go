@@ -166,7 +166,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		job:             job,
 		spec:            spec,
 		executors:       deploy.GetExecutors(),
-		driverPodConfig: loadDriverPodConfig(),
+		driverPodConfig: getDriverPodConfig(),
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled

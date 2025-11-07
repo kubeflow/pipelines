@@ -1,18 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# ConfigMap generator for driver configuration
-configMapGenerator:
-  - name: kfp-driver-config
-    literals:
-      - driver-config={}
-      - driverResourceLimitsCpu=500m
-      - driverResourceLimitsMemory=512Mi
-      - driverResourceRequestsCpu=100m
-      - driverResourceRequestsMemory=128Mi
-    options:
-      disableNameSuffixHash: true
-
 resources:
   - metadata-writer
   - ml-pipeline-apiserver-deployment.yaml

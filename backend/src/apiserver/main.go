@@ -411,6 +411,10 @@ func initConfig() {
 	})
 
 	proxy.InitializeConfigWithEnv()
+
+	// Initialize driver pod configuration after Viper config is loaded
+	// This loads and caches the configuration to catch errors at startup
+	common.InitDriverPodConfig()
 }
 
 // getPVCSpec retrieves the default workspace PersistentVolumeClaimSpec from the config.

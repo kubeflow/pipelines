@@ -15,7 +15,6 @@
 package argocompiler
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -24,6 +23,7 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -146,27 +146,12 @@ func GetPipelineRunAsUser() *int64 {
 	return &runAsUser
 }
 
-// loadDriverPodConfig loads driver pod labels and annotations from environment variables
-func loadDriverPodConfig() *driverPodConfig {
-	config := &driverPodConfig{}
-
-	// Load labels from DRIVER_POD_LABELS env var (JSON format)
-	if labelsStr := os.Getenv("DRIVER_POD_LABELS"); labelsStr != "" {
-		var labels map[string]string
-		if err := json.Unmarshal([]byte(labelsStr), &labels); err == nil {
-			config.Labels = labels
-		}
+// getDriverPodConfig loads driver pod labels and annotations from Viper configuration
+func getDriverPodConfig() *driverPodConfig {
+	return &driverPodConfig{
+		Labels:      common.GetDriverPodLabels(),
+		Annotations: common.GetDriverPodAnnotations(),
 	}
-
-	// Load annotations from DRIVER_POD_ANNOTATIONS env var (JSON format)
-	if annotationsStr := os.Getenv("DRIVER_POD_ANNOTATIONS"); annotationsStr != "" {
-		var annotations map[string]string
-		if err := json.Unmarshal([]byte(annotationsStr), &annotations); err == nil {
-			config.Annotations = annotations
-		}
-	}
-
-	return config
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
