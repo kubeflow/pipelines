@@ -61,3 +61,19 @@ patches:
                 secretKeyRef:
                   name: mlpipeline-minio-artifact
                   key: secretkey
+            - name: AWS_ENDPOINT_URL
+              value: http://minio-service.kubeflow:9000
+            - name: S3_ENDPOINT_URL
+              value: http://minio-service.kubeflow:9000
+- target:
+    group: ""
+    version: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+  patch: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: pipeline-install-config
+    data:
+      defaultPipelineRoot: minio://mlpipeline/v2/artifacts

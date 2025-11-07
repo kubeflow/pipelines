@@ -24,16 +24,16 @@ import (
 func TestValidateFieldLength_Valid(t *testing.T) {
 	// Exact max length should pass
 	value := strings.Repeat("a", 191)
-	err := ValidateFieldLength("Task", "RunId", value)
+	err := ValidateFieldLength("Task", "RunID", value)
 	assert.Nil(t, err)
 }
 
 func TestValidateFieldLength_TooLong(t *testing.T) {
 	// Length exceeding max should return error
 	value := strings.Repeat("a", 192)
-	err := ValidateFieldLength("Task", "RunId", value)
+	err := ValidateFieldLength("Task", "RunID", value)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Task.RunId length cannot exceed 191")
+	assert.Contains(t, err.Error(), "Task.RunID length cannot exceed 191")
 }
 
 func TestValidateFieldLength_NoSpec(t *testing.T) {

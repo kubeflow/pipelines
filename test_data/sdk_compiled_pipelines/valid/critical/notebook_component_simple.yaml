@@ -155,7 +155,7 @@ deploymentSpec:
           \n    with open(\"/tmp/kfp_nb_outputs/log.txt\", \"r\", encoding=\"utf-8\"\
           ) as f:\n        log = f.read()\n\n    assert log == text + \" \" + \"default2\"\
           \n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: nb-simple
 root:

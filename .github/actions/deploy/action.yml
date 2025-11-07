@@ -27,6 +27,10 @@ inputs:
     description: "If KFP should be deployed in multi-user mode"
     required: false
     default: 'false'
+  artifact_proxy:
+    description: "Enables artifact proxy"
+    required: false
+    default: 'false'
   storage_backend:
     description: "Storage backend to use (minio or seaweedfs)"
     required: false
@@ -38,6 +42,10 @@ inputs:
     required: false
     default: 'true'
     description: "If you want to forward API server port to localhost:8888"
+  pod_to_pod_tls_enabled:
+    description: "If KFP should be deployed with TLS pod-to-pod communication."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -56,7 +64,7 @@ runs:
     - name: Load Docker Images
       shell: bash
       run: |
-        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend")
+        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer")
         for app in "${APPS[@]}"; do
           docker image load -i ${{ inputs.image_path }}/$app/$app.tar
           docker push ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
@@ -90,6 +98,11 @@ runs:
           ARGS="${ARGS} --multi-user"
         fi
 
+        if [ "${{ inputs.artifact_proxy }}" = "true" ]; then
+          echo "Enabling artifact proxy"
+          ARGS="${ARGS} --artifact-proxy"
+        fi
+
         if [ "${{ inputs.storage_backend }}" != "seaweedfs" ] && [ -n "${{ inputs.storage_backend }}" ]; then
           echo "Deploying with artifact storage ${{ inputs.storage_backend }}"
           ARGS="${ARGS} --storage ${{ inputs.storage_backend }}"
@@ -99,7 +112,10 @@ runs:
           echo "Deploying with argo version ${{ inputs.argo_version }}"
           ARGS="${ARGS} --argo-version ${{ inputs.argo_version }}"
         fi
-        echo "ARGS=$ARGS" >> $GITHUB_OUTPUT
+        if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
+          ARGS="${ARGS} --tls-enabled"
+        fi
+        echo "ARGS=$ARGS" >> "$GITHUB_OUTPUT"
 
     - name: Deploy KFP
       id: deploy-kfp

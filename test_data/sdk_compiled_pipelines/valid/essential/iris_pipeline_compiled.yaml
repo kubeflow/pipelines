@@ -108,7 +108,7 @@ deploymentSpec:
           , \"Sepal_Width\", \"Petal_Length\", \"Petal_Width\", \"Labels\"]\n    df\
           \ = pd.read_csv(StringIO(data), names=col_names)\n\n    with open(iris_dataset.path,\
           \ \"w\") as f:\n        df.to_csv(f)\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-normalize-dataset:
       container:
         args:
@@ -146,7 +146,7 @@ deploymentSpec:
           \    normalized_iris_dataset.metadata[\"state\"] = \"Normalized\"\n    with\
           \ open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\
           \n"
-        image: python:3.9
+        image: python:3.11
     exec-train-model:
       container:
         args:
@@ -190,7 +190,7 @@ deploymentSpec:
           \ predictions).tolist(),  # .tolist() to convert np array to list.\n   \
           \ )\n\n    model.metadata[\"framework\"] = \"scikit-learn\"\n    with open(model.path,\
           \ \"wb\") as f:\n        pickle.dump(clf, f)\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: iris-training-pipeline
 root:

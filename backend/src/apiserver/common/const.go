@@ -53,6 +53,8 @@ const (
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 
+const DefaultMetadataTLSEnabled = false
+
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
@@ -63,4 +65,9 @@ const (
 const (
 	MaxFileNameLength = 100
 	MaxFileLength     = 32 << 20 // 32Mb
+)
+
+const (
+	TLSCertCAPath = "/kfp/certs/ca.crt"
+	CABundleDir   = "/kfp/certs"
 )

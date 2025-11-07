@@ -41,7 +41,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef consumer() -> None:\n    with open('/data/file.txt', 'r') as\
           \ f:\n        print(f.read())\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-producer:
       container:
         args:
@@ -71,7 +71,7 @@ deploymentSpec:
           \ *\n\ndef producer() -> str:\n    with open('/data/file.txt', 'w') as f:\n\
           \        f.write('hello')\n    with open('/data/file.txt', 'r') as f:\n\
           \        return f.read()\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: pvc-mount-pipeline
 root:

@@ -24,14 +24,25 @@ spec:
           type: RuntimeDefault
       containers:
       - name: seaweedfs
-        image: 'chrislusf/seaweedfs:3.92'
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: accesskey
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: secretkey
+        image: "chrislusf/seaweedfs:4.00"
         args:
-        - 'server'
-        - '-dir=/data'
-        - '-s3'
-        - '-iam'
-        - '-filer'
-        - '-master.volumePreallocate=false'
+        - "server"
+        - "-dir=/data"
+        - "-s3"
+        - "-iam"
+        - "-filer"
+        - "-master.volumePreallocate=false"
         ports:
         - containerPort: 8333
         - containerPort: 8111
@@ -48,13 +59,13 @@ spec:
           successThreshold: 1
           failureThreshold: 100
           timeoutSeconds: 10
-        securityContext:  # Using restricted profile
+        securityContext: # Using restricted profile
           allowPrivilegeEscalation: false
           privileged: false
           runAsNonRoot: true
           # image defaults to root user
-          runAsUser: 1001
-          runAsGroup: 1001
+          runAsUser: 1000
+          runAsGroup: 1000
           capabilities:
             drop:
             - ALL

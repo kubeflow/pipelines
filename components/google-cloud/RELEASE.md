@@ -1,5 +1,10 @@
 ## Upcoming release
 
+* Fix for dataproc batch components pipeline failure.
+* Add `autotuning_config` and `cohort` parameters to Dataproc v1 batch components.
+* Remove deprecated AutoML XGBoost trainer.
+* Bump image for Structured Data pipelines.
+
 ## Release 2.21.0
 
 * Add psc_interface_config to v1 GCPC custom job components/utils

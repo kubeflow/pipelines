@@ -15,6 +15,7 @@ package component
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -100,6 +101,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 				"namespace",
 				fakeKubernetesClientset,
 				"false",
+				"",
 			)
 
 			if test.wantErr {
@@ -161,6 +163,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				"namespace",
 				fakeKubernetesClientset,
 				"false",
+				"",
 			)
 
 			if test.wantErr {
@@ -317,7 +320,7 @@ func Test_get_log_Writer(t *testing.T) {
 func Test_NewLauncherV2(t *testing.T) {
 	var testCmdArgs = []string{"sh", "-c", "echo \"hello world\""}
 
-	disabledCacheClient, _ := cacheutils.NewClient(true)
+	disabledCacheClient, _ := cacheutils.NewClient(true, &tls.Config{})
 	var testLauncherV2Deps = client_manager.NewFakeClientManager(
 		fake.NewSimpleClientset(),
 		metadata.NewFakeClient(),
@@ -412,6 +415,39 @@ func Test_NewLauncherV2(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func Test_retrieve_artifact_path(t *testing.T) {
+	customPath := "/var/lib/kubelet/pods/pod-uid/volumes/kubernetes.io~csi/pvc-uuid/mount"
+	tests := []struct {
+		name         string
+		artifact     *pipelinespec.RuntimeArtifact
+		expectedPath string
+	}{
+		{
+			"Artifact with no custom path",
+			&pipelinespec.RuntimeArtifact{
+				Uri: "gs://bucket/path/to/artifact",
+			},
+			"/gcs/bucket/path/to/artifact",
+		},
+		{
+			"Artifact with custom path",
+			&pipelinespec.RuntimeArtifact{
+				Uri:        "gs://bucket/path/to/artifact",
+				CustomPath: &customPath,
+			},
+			customPath,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path, err := retrieveArtifactPath(test.artifact)
+			assert.Nil(t, err)
+			assert.Equal(t, path, test.expectedPath)
 		})
 	}
 }

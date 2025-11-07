@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-grpc-deployment
+  labels:
+    component: metadata-grpc-server
+spec:
+  template:
+    spec:
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert
+        - name: grpc-tls-config
+          emptyDir: { }
+        - name: mysql-secret
+          secret:
+            secretName: mysql-secret
+
+      initContainers:
+        - name: generate-config
+          image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+          imagePullPolicy: IfNotPresent
+          command: [ "/bin/sh", "-ec" ]
+          args:
+            - |
+              escape() { sed ':a;N;$!ba;s/\n/\\n/g' "$1"; }
+              cat <<EOF >/etc/grpc/config.proto
+              connection_config {
+                mysql {
+                  host: "${MYSQL_HOST}"
+                  port: ${MYSQL_PORT}
+                  database: "${MYSQL_DATABASE}"
+                  user: "${DBCONFIG_USER}"
+                  password: "${DBCONFIG_PASSWORD}"
+                }
+              }
+              ssl_config {
+                server_key: "$(escape /etc/pki/tls/certs/tls.key)"
+                server_cert: "$(escape /etc/pki/tls/certs/tls.crt)"
+                custom_ca: "$(escape /etc/pki/tls/certs/ca.crt)"
+                client_verify: false
+              }
+              EOF
+          env:
+            - name: DBCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: username
+            - name: DBCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: mlmdDb
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbHost
+            - name: MYSQL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbPort
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/pki/tls/certs
+            - name: grpc-tls-config
+              mountPath: /etc/grpc
+            - name: mysql-secret
+              mountPath: /etc/mysql-secret
+
+      containers:
+        - name: container
+          args:
+            - "--grpc_port=8080"
+            - "--metadata_store_server_config_file=/etc/grpc/config.proto"
+            - "--enable_database_upgrade=true"
+            - "--grpc_channel_arguments=grpc.max_metadata_size=16384"
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/pki/tls/certs
+              readOnly: true
+            - name: grpc-tls-config
+              mountPath: /etc/grpc

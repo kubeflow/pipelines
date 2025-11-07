@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-scheduledworkflow
+          command:
+            - "/bin/controller"
+          args:
+            - "-logtostderr=true"
+            - "-logLevel=info"
+            - "-mlPipelineServiceTLSEnabled=true"
+            - "-caCertPath=/etc/pki/tls/certs/ca.crt"
+            - "-namespace=kubeflow"
+          volumeMounts:
+          - name: tls-certs
+            mountPath: /etc/pki/tls/certs
+            readOnly: true
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert

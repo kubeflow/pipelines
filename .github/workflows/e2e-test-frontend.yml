@@ -7,7 +7,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/e2e-test-frontend.yml'
-      - '.github/actions/create-cluster/**'
       - 'frontend/**'
       - 'manifests/kustomize/**'
       - '!**/*.md'
@@ -22,14 +21,15 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
-    name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
+        k8s_version: [ "v1.29.2", "v1.34.0" ]
+        pod_to_pod_tls_enabled: [ "true", "false" ]
+    name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
 
@@ -49,6 +49,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
 
       - name: Forward Frontend port
         id: forward-frontend-port
@@ -76,5 +77,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }}
+          name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
           path: /tmp/tmp*/*

@@ -42,7 +42,7 @@ deploymentSpec:
           \    import time  # noqa: PLC0415\n\n    t_end = time.time() + 60\n    while\
           \ time.time() < t_end:\n        print(message + \" (\" + str(datetime.datetime.now())\
           \ + \")\")\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   description: Pipeline that prints a hello message in a loop to test log streaming
     in Dashboard

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92
+    - name: components-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5
       value: '{"executorLabel":"exec-run-train-notebook","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}}}'
-    - name: implementations-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92
+    - name: implementations-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","run_train_notebook"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -116,7 +116,7 @@ spec:
         = kfp_run_notebook\n\n\ndef run_train_notebook(text: str):\n    # text is
         not defined in the notebook but text2 is defined\n    dsl.run_notebook(text=text)\n\n    with
         open(\"/tmp/kfp_nb_outputs/log.txt\", \"r\", encoding=\"utf-8\") as f:\n        log
-        = f.read()\n\n    assert log == text + \" \" + \"default2\"\n\n"],"image":"python:3.9"}'
+        = f.read()\n\n    assert log == text + \" \" + \"default2\"\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"run-train-notebook":{"cachingOptions":{},"componentRef":{"name":"comp-run-train-notebook"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"run-train-notebook"}}}},"inputDefinitions":{"parameters":{"text":{"defaultValue":"hello","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -299,11 +299,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92}}'
+            value: '{{workflow.parameters.components-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-run-train-notebook"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"run-train-notebook"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92}}'
+            value: '{{workflow.parameters.implementations-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5}}'
           - name: task-name
             value: run-train-notebook
           - name: parent-dag-id

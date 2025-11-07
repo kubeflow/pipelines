@@ -26,7 +26,8 @@ session = botocore.session.get_session()
 # To interact with seaweedfs user management. Region does not matter.
 iam = session.create_client('iam', region_name='foobar')
 # S3 client for lifecycle policy management
-s3 = session.create_client('s3', region_name='foobar')
+s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
+s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
 def main():
@@ -36,8 +37,11 @@ def main():
 
 
 def get_settings_from_env(controller_port=None,
-                          visualization_server_image=None, frontend_image=None,
-                          visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None):
+                          frontend_image=None,
+                          frontend_tag=None,
+                          disable_istio_sidecar=None,
+                          artifacts_proxy_enabled=None,
+                          artifact_retention_days=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -46,35 +50,30 @@ def get_settings_from_env(controller_port=None,
     Settings are pulled from the all-caps version of the setting name.  The
     following defaults are used if those environment variables are not set
     to enable backwards compatibility with previous versions of this script:
-        visualization_server_image: ghcr.io/kubeflow/kfp-visualization-server
-        visualization_server_tag: value of KFP_VERSION environment variable
         frontend_image: ghcr.io/kubeflow/kfp-frontend
         frontend_tag: value of KFP_VERSION environment variable
         disable_istio_sidecar: Required (no default)
-        minio_access_key: Required (no default)
-        minio_secret_key: Required (no default)
     """
     settings = dict()
     settings["controller_port"] = \
         controller_port or \
         os.environ.get("CONTROLLER_PORT", "8080")
 
-    settings["visualization_server_image"] = \
-        visualization_server_image or \
-        os.environ.get("VISUALIZATION_SERVER_IMAGE", "ghcr.io/kubeflow/kfp-visualization-server")
-
     settings["frontend_image"] = \
         frontend_image or \
         os.environ.get("FRONTEND_IMAGE", "ghcr.io/kubeflow/kfp-frontend")
 
+    settings["artifacts_proxy_enabled"] = \
+        artifacts_proxy_enabled or \
+        os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+    
+    settings["artifact_retention_days"] = \
+        artifact_retention_days or \
+        os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
-    settings["visualization_server_tag"] = \
-        visualization_server_tag or \
-        os.environ.get("VISUALIZATION_SERVER_TAG") or \
-        os.environ["KFP_VERSION"]
-
     settings["frontend_tag"] = \
         frontend_tag or \
         os.environ.get("FRONTEND_TAG") or \
@@ -87,34 +86,67 @@ def get_settings_from_env(controller_port=None,
     return settings
 
 
-def server_factory(visualization_server_image,
-                   visualization_server_tag, frontend_image, frontend_tag,
-                   disable_istio_sidecar, url="", controller_port=8080):
+def server_factory(frontend_image,
+                   frontend_tag,
+                   disable_istio_sidecar,
+                   artifacts_proxy_enabled,
+                   artifact_retention_days,
+                   url="",
+                   controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
     class Controller(BaseHTTPRequestHandler):
-        def upsert_lifecycle_policy(self, bucket_name):
-            """Configure TTL lifecycle policy for SeaweedFS using S3 API"""
-            lfc = {
+        def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
+            """Configures or deletes the lifecycle policy based on the artifact_retention_days string."""
+            try:
+                retention_days = int(artifact_retention_days)
+            except ValueError:
+                print(f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update.")
+                return
+            
+            # To disable lifecycle policy we need to delete it
+            if retention_days <= 0:
+                print(f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.")
+                try:
+                    response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
+                    # Check if there are any enabled rules
+                    has_enabled_rules = any(rule.get('Status') == 'Enabled' for rule in response.get('Rules', []))
+                    
+                    if has_enabled_rules:
+                        s3.delete_bucket_lifecycle(Bucket=bucket_name)
+                        print("Successfully deleted lifecycle policy.")
+                    else:
+                        print("No enabled lifecycle rules found to delete.")
+                except Exception:
+                    print(f"Warning: No lifecycle policy exists")
+                return
+            
+            # Create/update lifecycle policy
+            life_cycle_policy = {
                 "Rules": [
                     {
                         "Status": "Enabled",
-                        "Filter": {"Prefix": "private-artifacts/"},
-                        "Expiration": {"Days": 183},
+                        "Filter": {"Prefix": "private-artifacts"},
+                        "Expiration": {"Days": retention_days},
                         "ID": "private-artifacts",
                     },
                 ]
             }
-            print('upsert_lifecycle_policy:', lfc)
+            print('upsert_lifecycle_policy:', life_cycle_policy)
+            
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
                     Bucket=bucket_name,
-                    LifecycleConfiguration=lfc
+                    LifecycleConfiguration = life_cycle_policy
                 )
                 print('Lifecycle policy configured successfully:', api_response)
-            except Exception as e:
-                print(f'Warning: Failed to configure lifecycle policy: {e}')
+            except Exception as exception:
+                if hasattr(exception, 'response') and 'Error' in exception.response:
+                    print(f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}")
+                else:
+                    print(f"ERROR: Failed to configure lifecycle policy: {exception}")
+
 
         def sync(self, parent, attachments):
             # parent is a namespace
@@ -131,10 +163,8 @@ def server_factory(visualization_server_image,
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
                     len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == 2 and
-                    len(attachments["Service.v1"]) == 2 and
-                    len(attachments["DestinationRule.networking.istio.io/v1alpha3"]) == 1 and
-                    len(attachments["AuthorizationPolicy.security.istio.io/v1beta1"]) == 1 and
+                    len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
+                    len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     "True" or "False"
             }
 
@@ -195,6 +225,119 @@ def server_factory(visualization_server_image,
                     }
                 },
             ]
+            
+            # Add artifact fetcher related resources if enabled
+            if artifacts_proxy_enabled.lower() == "true":
+                desired_resources.extend([
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "Deployment",
+                        "metadata": {
+                            "labels": {
+                                "app": "ml-pipeline-ui-artifact"
+                            },
+                            "name": "ml-pipeline-ui-artifact",
+                            "namespace": namespace,
+                        },
+                        "spec": {
+                            "selector": {
+                                "matchLabels": {
+                                    "app": "ml-pipeline-ui-artifact"
+                                }
+                            },
+                            "template": {
+                                "metadata": {
+                                    "labels": {
+                                        "app": "ml-pipeline-ui-artifact"
+                                    },
+                                    "annotations": disable_istio_sidecar and {
+                                        "sidecar.istio.io/inject": "false"
+                                    } or {},
+                                },
+                                "spec": {
+                                    "containers": [{
+                                        "name":
+                                            "ml-pipeline-ui-artifact",
+                                        "image": f"{frontend_image}:{frontend_tag}",
+                                        "imagePullPolicy":
+                                            "IfNotPresent",
+                                        "ports": [{
+                                            "containerPort": 3000
+                                        }],
+                                        "env": [
+                                            {
+                                                "name": "MINIO_ACCESS_KEY",
+                                                "valueFrom": {
+                                                    "secretKeyRef": {
+                                                        "key": "accesskey",
+                                                        "name": "mlpipeline-minio-artifact"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "name": "MINIO_SECRET_KEY",
+                                                "valueFrom": {
+                                                    "secretKeyRef": {
+                                                        "key": "secretkey",
+                                                        "name": "mlpipeline-minio-artifact"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "name": "ML_PIPELINE_SERVICE_HOST",
+                                                "value": "ml-pipeline.kubeflow.svc.cluster.local"
+                                            },
+                                            {
+                                                "name": "ML_PIPELINE_SERVICE_PORT",
+                                                "value": "8888"
+                                            },
+                                            {
+                                                "name": "FRONTEND_SERVER_NAMESPACE",
+                                                "value": namespace,
+                                            }
+                                        ],
+                                        "resources": {
+                                            "requests": {
+                                                "cpu": "10m",
+                                                "memory": "70Mi"
+                                            },
+                                            "limits": {
+                                                "cpu": "100m",
+                                                "memory": "500Mi"
+                                            },
+                                        }
+                                    }],
+                                    "serviceAccountName":
+                                        "default-editor"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "apiVersion": "v1",
+                        "kind": "Service",
+                        "metadata": {
+                            "name": "ml-pipeline-ui-artifact",
+                            "namespace": namespace,
+                            "labels": {
+                                "app": "ml-pipeline-ui-artifact"
+                            }
+                        },
+                        "spec": {
+                            "ports": [{
+                                "name":
+                                    "http",  # name is required to let istio understand request protocol
+                                "port": 80,
+                                "protocol": "TCP",
+                                "targetPort": 3000
+                            }],
+                            "selector": {
+                                "app": "ml-pipeline-ui-artifact"
+                            }
+                        }
+                    },
+                ])
+            
             print('Received request:\n', json.dumps(parent, sort_keys=True))
             print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
 
@@ -233,7 +376,7 @@ def server_factory(visualization_server_image,
                         })
                 )
                 
-                self.upsert_lifecycle_policy(S3_BUCKET_NAME)
+                self.upsert_lifecycle_policy(S3_BUCKET_NAME, artifact_retention_days)
                 
                 desired_resources.insert(
                     0,

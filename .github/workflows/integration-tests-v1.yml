@@ -27,14 +27,14 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.34.0" ]
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
 

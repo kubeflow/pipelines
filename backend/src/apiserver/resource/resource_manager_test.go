@@ -97,7 +97,7 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 	}
 	paramsJSON := "[{\"name\":\"param1\"}]"
 	spec := pipelineSpec
-	tmpl, err := template.New([]byte(pipelineSpec), false, nil)
+	tmpl, err := template.New([]byte(pipelineSpec), template.TemplateOptions{})
 	if err != nil {
 		spec = pipelineSpec
 	} else {
@@ -674,13 +674,13 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err := manager.GetPipelineVersionTemplate(version.UUID)
 			require.Nil(t, err)
-			tmpl, err := template.New(bytes, true, nil)
+			tmpl, err := template.New(bytes, template.TemplateOptions{CacheDisabled: true})
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 
 			bytes, err = manager.GetPipelineLatestTemplate(createdPipeline.UUID)
 			require.Nil(t, err)
-			tmpl, err = template.New(bytes, true, nil)
+			tmpl, err = template.New(bytes, template.TemplateOptions{CacheDisabled: true})
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 		})
@@ -3479,7 +3479,7 @@ spec:
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.9'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.11'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
           "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
           {"output_parameter_one": {"type": "INT", "path": "/tmp/outputs/output_parameter_one/data"}},
@@ -3487,7 +3487,7 @@ spec:
           "instanceSchema": "", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.9
+      image: python:3.11
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
     inputs:
@@ -3581,7 +3581,7 @@ spec:
       - name: ENABLE_CACHING
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.9'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.11'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
           "schemaTitle": "system.Dataset", "instanceSchema": ""}}, "outputParameters":
@@ -3589,7 +3589,7 @@ spec:
           "", "metadataPath": "/tmp/outputs/model/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.9
+      image: python:3.11
       volumeMounts:
       - {mountPath: /kfp-launcher, name: kfp-launcher}
     inputs:
@@ -4054,7 +4054,7 @@ func TestCreateTask(t *testing.T) {
 	task := &model.Task{
 		Namespace:         "",
 		PipelineName:      "pipeline/my-pipeline",
-		RunId:             runDetail.UUID,
+		RunID:             runDetail.UUID,
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1462875553,
 		FinishedTimestamp: 1462875663,
@@ -4064,7 +4064,7 @@ func TestCreateTask(t *testing.T) {
 	expectedTask := &model.Task{
 		UUID:              DefaultFakeUUID,
 		PipelineName:      "pipeline/my-pipeline",
-		RunId:             runDetail.UUID,
+		RunID:             runDetail.UUID,
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1462875553,
 		FinishedTimestamp: 1462875663,
@@ -4113,7 +4113,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-world
 root:
@@ -4146,7 +4146,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: pipelines/p1/versions/v1
 root:

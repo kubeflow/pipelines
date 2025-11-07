@@ -80,7 +80,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str) -> str:\n    print(message)\n    return\
           \ message\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-print-op-2:
       container:
         args:
@@ -109,7 +109,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str) -> str:\n    print(message)\n    return\
           \ message\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-print-op-3:
       container:
         args:
@@ -138,7 +138,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op(message: str) -> str:\n    print(message)\n    return\
           \ message\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: loop-with-after-dependency-set
 root:

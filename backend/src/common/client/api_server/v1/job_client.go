@@ -47,7 +47,7 @@ type JobClient struct {
 func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*JobClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}
@@ -63,7 +63,7 @@ func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterJobClient(namespace string, debug bool) (
 	*JobClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -209,7 +209,7 @@ func (c *JobClient) List(parameters *params.JobServiceListJobsParams) (
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list jobs"))
+			"Failed to list jobs")
 	}
 
 	return response.Payload.Jobs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil

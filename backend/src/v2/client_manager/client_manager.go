@@ -1,7 +1,10 @@
 package client_manager
 
 import (
+	"crypto/tls"
 	"fmt"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -29,6 +32,8 @@ type Options struct {
 	MLMDServerAddress string
 	MLMDServerPort    string
 	CacheDisabled     bool
+	CaCertPath        string
+	MLMDTLSEnabled    bool
 }
 
 // NewClientManager creates and Init a new instance of ClientManager.
@@ -55,15 +60,23 @@ func (cm *ClientManager) CacheClient() cacheutils.Client {
 }
 
 func (cm *ClientManager) init(opts *Options) error {
+	var tlsCfg *tls.Config
+	var err error
+	if opts.MLMDTLSEnabled {
+		tlsCfg, err = util.GetTLSConfig(opts.CaCertPath)
+		if err != nil {
+			return err
+		}
+	}
 	k8sClient, err := initK8sClient()
 	if err != nil {
 		return err
 	}
-	metadataClient, err := initMetadataClient(opts.MLMDServerAddress, opts.MLMDServerPort)
+	metadataClient, err := initMetadataClient(opts.MLMDServerAddress, opts.MLMDServerPort, tlsCfg)
 	if err != nil {
 		return err
 	}
-	cacheClient, err := initCacheClient(opts.CacheDisabled)
+	cacheClient, err := initCacheClient(opts.CacheDisabled, tlsCfg)
 	if err != nil {
 		return err
 	}
@@ -85,10 +98,10 @@ func initK8sClient() (kubernetes.Interface, error) {
 	return k8sClient, nil
 }
 
-func initMetadataClient(address string, port string) (metadata.ClientInterface, error) {
-	return metadata.NewClient(address, port)
+func initMetadataClient(address string, port string, tlsCfg *tls.Config) (metadata.ClientInterface, error) {
+	return metadata.NewClient(address, port, tlsCfg)
 }
 
-func initCacheClient(cacheDisabled bool) (cacheutils.Client, error) {
-	return cacheutils.NewClient(cacheDisabled)
+func initCacheClient(cacheDisabled bool, tlsCfg *tls.Config) (cacheutils.Client, error) {
+	return cacheutils.NewClient(cacheDisabled, tlsCfg)
 }

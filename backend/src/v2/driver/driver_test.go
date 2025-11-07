@@ -59,7 +59,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - nvidia.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -100,7 +100,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - amd.com/gpu",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -141,7 +141,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v3",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -182,7 +182,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - cloud-tpus.google.com/v2",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -223,7 +223,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"Valid - custom string",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -277,6 +277,9 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.publishLogs,
 				"false",
 				taskConfig,
+				false,
+				false,
+				"",
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -297,7 +300,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 
 func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "python:3.11",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -393,6 +396,9 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -410,7 +416,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 
 func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "python:3.11",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -440,6 +446,9 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -457,7 +466,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 
 func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "python:3.11",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 	}
@@ -489,6 +498,9 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 
@@ -533,6 +545,9 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"true",
 		"false",
 		nil,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -568,7 +583,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - with requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -606,7 +621,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			"Valid - zero requests",
 			args{
 				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 					Args:    []string{"--function_to_execute", "add"},
 					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -657,6 +672,9 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.publishLogs,
 				"false",
 				taskConfig,
+				false,
+				false,
+				"",
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -679,7 +697,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "python:3.11",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -712,6 +730,9 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 		"false",
 		"false",
 		taskCfg,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
@@ -731,7 +752,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "python:3.11",
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Args:    []string{"--executor-input", "{{$}}", "--function_to_execute", "exit-op"},
 	}
@@ -773,6 +794,9 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		"false",
 		"false",
 		nil,
+		false,
+		false,
+		"",
 	)
 	require.Nil(t, err)
 
@@ -948,7 +972,7 @@ func TestGetWorkspaceMount(t *testing.T) {
 
 // Ensure that when workspace is used, missing RunName leads to an error during pod spec init.
 func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
 	componentSpec := &pipelinespec.ComponentSpec{}
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: &pipelinespec.ExecutorInput_Inputs{
@@ -970,6 +994,9 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		"false",
 		"false",
 		taskCfg,
+		false,
+		false,
+		"",
 	)
 	require.NotNil(t, err)
 }
@@ -1064,7 +1091,7 @@ func TestValidateVolumeMounts(t *testing.T) {
 }
 
 func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
 	componentSpec := &pipelinespec.ComponentSpec{
 		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
 			{
@@ -1083,7 +1110,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "",
 	)
 	assert.Nil(t, err)
 
@@ -1107,7 +1134,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 }
 
 func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
 	componentSpec := &pipelinespec.ComponentSpec{
 		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
 			{
@@ -1126,7 +1153,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "",
 	)
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
@@ -1165,7 +1192,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image: "python:3.9",
+		Image: "python:3.11",
 		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
 			Name:  "FOO",
 			Value: "bar",
@@ -1190,6 +1217,9 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 		"false",
 		"false",
 		taskCfg,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 
@@ -1205,7 +1235,7 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image:   "python:3.9",
+		Image:   "python:3.11",
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
@@ -1234,6 +1264,9 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 		"false",
 		"false",
 		taskCfg,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 	// Resources should be both on pod and in TaskConfig
@@ -1258,7 +1291,7 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthrough(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
 	componentSpec := &pipelinespec.ComponentSpec{
 		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
 			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY, ApplyToTask: false},
@@ -1309,6 +1342,9 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		"false",
 		"false",
 		taskCfg,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 
@@ -1353,7 +1389,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAndCapture(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"}
 	componentSpec := &pipelinespec.ComponentSpec{
 		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
 			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY, ApplyToTask: true},
@@ -1405,6 +1441,9 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		"false",
 		"false",
 		taskCfg,
+		false,
+		false,
+		"",
 	)
 	assert.Nil(t, err)
 

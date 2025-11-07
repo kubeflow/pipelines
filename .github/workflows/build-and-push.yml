@@ -10,7 +10,6 @@ on:
         required: false
       target_tag:
         type: string
-        default: 'X.Y.Z'
         description: 'Target Image Tag'
         required: true
       overwrite_imgs:
@@ -30,17 +29,14 @@ on:
         required: false
       app_to_build:
         type: string
-        default: ''
         description: 'Provide the app name to build'
         required: true
       image_context:
         type: string
-        default: ''
         description: 'Provide the docker file path'
         required: true
       docker_file:
         type: string
-        default: ''
         description: 'Provide the docker file name'
         required: true
       push:
@@ -139,7 +135,7 @@ jobs:
           IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}:${{env.TARGET_IMAGE_TAG}}
           OVERWRITE: ${{ env.OVERWRITE_IMAGES }}
         run: |
-          if docker manifest inspect ${IMAGE} > /dev/null 2>&1; then
+          if docker manifest inspect "${IMAGE}" > /dev/null 2>&1; then
             echo "Image tag already exists!"
             if [ "$OVERWRITE" == "false" ]; then
               echo "Overwrite is set to false, exiting."

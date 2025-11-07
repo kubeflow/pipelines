@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -121,6 +122,10 @@ type PipelineServerV1 struct {
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *BasePipelineServer) createPipeline(ctx context.Context, pipeline *model.Pipeline) (*model.Pipeline, error) {
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
+	err := validation.ValidateNamespaceRequired(pipeline.Namespace)
+	if err != nil {
+		return nil, err
+	}
 
 	if pipeline.Name == "" {
 		return nil, util.NewInvalidInputError("name is required")
@@ -132,7 +137,7 @@ func (s *BasePipelineServer) createPipeline(ctx context.Context, pipeline *model
 		Name:      pipeline.Name,
 		Verb:      common.RbacResourceVerbCreate,
 	}
-	err := s.canAccessPipeline(ctx, "", resourceAttributes)
+	err = s.canAccessPipeline(ctx, "", resourceAttributes)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a pipeline due to authorization error. Check if you have write permissions to namespace %s", pipeline.Namespace)
 	}
@@ -151,6 +156,10 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 	}
 
 	pipeline.Namespace = s.resourceManager.ReplaceNamespace(pipeline.Namespace)
+	err := validation.ValidateNamespaceRequired(pipeline.Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -158,7 +167,7 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 		Name:      pipeline.Name,
 		Verb:      common.RbacResourceVerbCreate,
 	}
-	err := s.canAccessPipeline(ctx, "", resourceAttributes)
+	err = s.canAccessPipeline(ctx, "", resourceAttributes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -328,6 +337,9 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.Ge
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *BasePipelineServer) getPipelineByName(ctx context.Context, name string, namespace string, apiRequestVersion string) (*model.Pipeline, *model.PipelineVersion, error) {
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
+	if err := validation.ValidateNamespaceRequired(namespace); err != nil {
+		return nil, nil, err
+	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Name:      name,
@@ -389,6 +401,9 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2be
 func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, opts *list.Options, apiRequestVersion string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
 	// Fill in the default namespace
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
+	if err := validation.ValidateNamespaceRequired(namespace); err != nil {
+		return nil, nil, 0, "", err
+	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      common.RbacResourceVerbList,

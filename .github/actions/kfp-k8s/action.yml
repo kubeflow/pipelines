@@ -1,4 +1,5 @@
 name: "Install kfp & kfp-kubernetes"
+description: "Install kfp & kfp-kubernetes"
 inputs:
   build_version:
     required: true
@@ -45,3 +46,12 @@ runs:
       if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
       run: |
         pip install -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
+
+    # testing reinstalling kfp package from source with no deps
+    - name: Reinstall kfp from source with no deps
+      id: reinstall-kfp
+      shell: bash
+      if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
+      working-directory: ./sdk/python
+      run: |
+        pip install . -I --no-deps

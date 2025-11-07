@@ -10,9 +10,9 @@ spec:
       value: '{"executorLabel":"exec-importer-2","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer-2
       value: '{"artifactUri":{"runtimeParameter":"uri"},"reimport":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-af321da91af730e40295efe7bfd4833eb55c7f74f04f43f373927c69fb74e9ad
+    - name: components-3fe46efe149977fb8647a792ff4ac104e78f0aacef1094c802f8cdaf3f3034b0
       value: '{"executorLabel":"exec-train-2","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}},"parameters":{"scalar":{"parameterType":"STRING"}}}}'
-    - name: implementations-af321da91af730e40295efe7bfd4833eb55c7f74f04f43f373927c69fb74e9ad
+    - name: implementations-3fe46efe149977fb8647a792ff4ac104e78f0aacef1094c802f8cdaf3f3034b0
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","train"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -27,7 +27,7 @@ spec:
         open(dataset.path) as f:\n        data = f.read()\n    print(''Dataset:'',
         data)\n\n    scalar = ''123''\n    model = f''My model trained using data:
         {data}''\n\n    from collections import namedtuple\n    output = namedtuple(''Outputs'',
-        [''scalar'', ''model''])\n    return output(scalar, model)\n\n"],"image":"python:3.9"}'
+        [''scalar'', ''model''])\n    return output(scalar, model)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"importer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"componentInputParameter":"pipelinechannel--dataset2"}}},"taskInfo":{"name":"importer-2"}},"train-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train-2"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"train-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--dataset2":{"parameterType":"STRING"},"pipelinechannel--train-scalar":{"parameterType":"STRING"}}}}'
     - name: components-comp-importer
@@ -286,11 +286,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-af321da91af730e40295efe7bfd4833eb55c7f74f04f43f373927c69fb74e9ad}}'
+            value: '{{workflow.parameters.components-3fe46efe149977fb8647a792ff4ac104e78f0aacef1094c802f8cdaf3f3034b0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train-2"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"train-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-af321da91af730e40295efe7bfd4833eb55c7f74f04f43f373927c69fb74e9ad}}'
+            value: '{{workflow.parameters.implementations-3fe46efe149977fb8647a792ff4ac104e78f0aacef1094c802f8cdaf3f3034b0}}'
           - name: task-name
             value: train-2
           - name: parent-dag-id
@@ -432,11 +432,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-af321da91af730e40295efe7bfd4833eb55c7f74f04f43f373927c69fb74e9ad}}'
+            value: '{{workflow.parameters.components-3fe46efe149977fb8647a792ff4ac104e78f0aacef1094c802f8cdaf3f3034b0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"train"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-af321da91af730e40295efe7bfd4833eb55c7f74f04f43f373927c69fb74e9ad}}'
+            value: '{{workflow.parameters.implementations-3fe46efe149977fb8647a792ff4ac104e78f0aacef1094c802f8cdaf3f3034b0}}'
           - name: task-name
             value: train
           - name: parent-dag-id

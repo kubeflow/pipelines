@@ -24,7 +24,7 @@ add_op = components.load_component_from_file(
     str(os.path.join(test_data_dir, "sdk_compiled_pipelines", "valid", "critical",'add_numbers.yaml')))
 
 
-@dsl.pipeline(name='add-pipeline')
+@dsl.pipeline(name='pipeline-with-reused-component')
 def my_pipeline(
     a: int = 2,
     b: int = 5,

@@ -52,7 +52,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	workflow.OverrideParameters(parameters)
 
 	// Replace macros
-	formatter := util.NewRunParameterFormatter(options.RunId, options.RunAt)
+	formatter := util.NewRunParameterFormatter(options.RunID, options.RunAt)
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 
@@ -67,15 +67,15 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	}
 
 	// Add label to the workflow so it can be persisted by persistent agent later.
-	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
-	err = workflow.ReplaceUID(options.RunId)
+	err = workflow.ReplaceUID(options.RunID)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
-	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunID)
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -217,7 +217,7 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	if wf.Kind != argoK8sResource {
 		return nil, util.NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
 	}
-	err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
+	err = validate.ValidateWorkflow(nil, nil, &wf, nil, validate.ValidateOpts{
 		Lint:                       true,
 		IgnoreEntrypoint:           true,
 		WorkflowTemplateValidation: false, // not used by kubeflow
@@ -231,6 +231,6 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 func AddRuntimeMetadata(wf *workflowapi.Workflow) {
 	template := wf.Spec.Templates[0]
 	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
-	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
+	template.Metadata.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000", "pipelines.kubeflow.org/cache_enabled": "true"}
 	wf.Spec.Templates[0] = template
 }

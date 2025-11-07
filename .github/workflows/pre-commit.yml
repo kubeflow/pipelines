@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
       - name: Fetch base branch
         run: git fetch origin ${{ github.base_ref || github.ref_name }}
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v6
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
