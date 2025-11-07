@@ -16,8 +16,7 @@
 import copy
 import json
 import typing
-from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
-                    Union)
+from typing import Any, DefaultDict, Dict, List, Mapping, Optional, Tuple, Union
 import warnings
 
 from google.protobuf import json_format
@@ -184,6 +183,34 @@ def build_task_spec_for_task(
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
                     f'parseJson(string_value)["{input_value.subvar_name}"]')
+        elif isinstance(input_value, pipeline_channel.DictSubvariable):
+            # Handle dict subvariable (e.g., config['key'] or nested config['db']['host'])
+            # Build the key path by walking up the chain of DictSubvariables
+            keys = []
+            current = input_value
+            
+            # Collect all keys in reverse order (from leaf to root)
+            while isinstance(current, pipeline_channel.DictSubvariable):
+                keys.insert(0, current.key)
+                current = current.parent_channel
+            
+            # Now 'current' is the root channel (the original dict parameter)
+            component_input_parameter = current.full_name
+            assert component_input_parameter in parent_component_inputs.parameters, \
+                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+            
+            # Build the CEL expression with all keys
+            # Single: parseJson(string_value)["key"]
+            # Nested: parseJson(string_value)["database"]["host"]
+            cel_expression = 'parseJson(string_value)'
+            for key in keys:
+                cel_expression += f'["{key}"]'
+            
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    component_input_parameter)
+            pipeline_task_spec.inputs.parameters[
+                input_name].parameter_expression_selector = cel_expression
         elif isinstance(input_value,
                         pipeline_channel.PipelineArtifactChannel) or (
                             isinstance(input_value, dsl.Collected) and
@@ -1215,17 +1242,46 @@ def build_task_spec_for_group(
         if isinstance(channel, for_loop.LoopArgumentVariable):
             channel_full_name = channel.loop_argument.full_name
             subvar_name = channel.subvar_name
+        elif isinstance(channel, pipeline_channel.DictSubvariable):
+            # Handle dict subvariable in group context (with support for nested access)
+            # Walk up the chain to find the root and collect all keys
+            keys = []
+            current = channel
+            while isinstance(current, pipeline_channel.DictSubvariable):
+                keys.insert(0, current.key)
+                current = current.parent_channel
+            
+            # current is now the root channel
+            channel_full_name = current.full_name
+            # Build the CEL expression selector
+            subvar_name = None  # Will be set below
+            if keys:
+                # For consistency, we'll build the full CEL later
+                subvar_name = keys  # Store the list of keys
 
         input_name = compiler_utils.additional_input_name_for_pipeline_channel(
             channel)
 
         channel_name = channel.name
         if subvar_name:
-            pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{subvar_name}"]')
-            if not channel.is_with_items_loop_argument:
-                channel_name = channel.items_or_pipeline_channel.name
+            if isinstance(subvar_name, list):
+                # Handle DictSubvariable with potentially nested keys
+                cel_expression = 'parseJson(string_value)'
+                for key in subvar_name:
+                    cel_expression += f'["{key}"]'
+                pipeline_task_spec.inputs.parameters[
+                    input_name].parameter_expression_selector = cel_expression
+                # For DictSubvariable, walk up to find the root channel name
+                current = channel
+                while isinstance(current, pipeline_channel.DictSubvariable):
+                    current = current.parent_channel
+                channel_name = current.name
+            elif isinstance(channel, for_loop.LoopArgumentVariable):
+                pipeline_task_spec.inputs.parameters[
+                    input_name].parameter_expression_selector = (
+                        f'parseJson(string_value)["{subvar_name}"]')
+                if not channel.is_with_items_loop_argument:
+                    channel_name = channel.items_or_pipeline_channel.name
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             if channel.task_name and channel.task_name in tasks_in_current_dag:

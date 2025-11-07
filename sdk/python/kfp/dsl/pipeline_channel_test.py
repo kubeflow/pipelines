@@ -384,5 +384,100 @@ class TestOneOfRequiresSameType(unittest.TestCase):
                 print_and_return(text=dsl.OneOf(t1.output, t2.output))
 
 
+class DictSubvariableTest(unittest.TestCase):
+    """Tests for DictSubvariable class."""
+
+    def test_single_level_access(self):
+        """Test extracting a single value from a dict parameter."""
+        config = pipeline_channel.PipelineParameterChannel(
+            name='config',
+            channel_type='Dict',
+        )
+        
+        db_host = config['db_host']
+        
+        self.assertIsInstance(db_host, pipeline_channel.DictSubvariable)
+        self.assertEqual(db_host.parent_channel, config)
+        self.assertEqual(db_host.key, 'db_host')
+        self.assertIn('config-subvar-db_host', db_host.name)
+
+    def test_nested_access(self):
+        """Test extracting nested values from a dict parameter."""
+        config = pipeline_channel.PipelineParameterChannel(
+            name='config',
+            channel_type='Dict',
+        )
+        
+        # Test 2-level nesting
+        host = config['database']['host']
+        
+        self.assertIsInstance(host, pipeline_channel.DictSubvariable)
+        self.assertEqual(host.key, 'host')
+        self.assertIsInstance(host.parent_channel, pipeline_channel.DictSubvariable)
+        self.assertEqual(host.parent_channel.key, 'database')
+        
+        # Test 3-level nesting
+        username = config['database']['credentials']['username']
+        
+        self.assertIsInstance(username, pipeline_channel.DictSubvariable)
+        self.assertEqual(username.key, 'username')
+        self.assertIsInstance(username.parent_channel, pipeline_channel.DictSubvariable)
+        self.assertEqual(username.parent_channel.key, 'credentials')
+
+    def test_parent_must_be_pipeline_parameter_channel(self):
+        """Test that parent_channel must be a PipelineParameterChannel."""
+        with self.assertRaisesRegex(
+                TypeError,
+                'parent_channel must be a PipelineParameterChannel'):
+            pipeline_channel.DictSubvariable(
+                parent_channel="not_a_channel",
+                key='test_key'
+            )
+
+    def test_subvar_name_in_channel_name(self):
+        """Test that the subvar name is included in the channel name."""
+        config = pipeline_channel.PipelineParameterChannel(
+            name='my_config',
+            channel_type='Dict',
+        )
+        
+        value = config['my_key']
+        
+        self.assertIn('my_config', value.name)
+        self.assertIn('subvar', value.name)
+        self.assertIn('my_key', value.name)
+
+    def test_chained_access_creates_nested_subvariables(self):
+        """Test that chaining creates proper nested structure."""
+        config = pipeline_channel.PipelineParameterChannel(
+            name='config',
+            channel_type='Dict',
+        )
+        
+        # Create chained access
+        result = config['level1']['level2']['level3']
+        
+        # Walk up the chain and verify structure
+        self.assertEqual(result.key, 'level3')
+        self.assertEqual(result.parent_channel.key, 'level2')
+        self.assertEqual(result.parent_channel.parent_channel.key, 'level1')
+        self.assertEqual(result.parent_channel.parent_channel.parent_channel.name, 'config')
+
+    def test_getitem_returns_new_dictsubvariable(self):
+        """Test that __getitem__ returns a new DictSubvariable instance."""
+        config = pipeline_channel.PipelineParameterChannel(
+            name='config',
+            channel_type='Dict',
+        )
+        
+        first = config['key1']
+        second = config['key2']
+        
+        # Different keys should create different instances
+        self.assertIsNot(first, second)
+        self.assertEqual(first.key, 'key1')
+        self.assertEqual(second.key, 'key2')
+
+
 if __name__ == '__main__':
     unittest.main()

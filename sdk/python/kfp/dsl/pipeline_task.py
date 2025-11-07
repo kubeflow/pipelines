@@ -117,13 +117,18 @@ class PipelineTask:
 
             input_spec = component_spec.inputs[input_name]
 
-            type_utils.verify_type_compatibility(
-                given_value=argument_value,
-                expected_spec=input_spec,
-                error_message_prefix=(
-                    f'Incompatible argument passed to the input '
-                    f'{input_name!r} of component {component_spec.name!r}: '),
-            )
+            # Skip strict type checking for DictSubvariable since the actual type
+            # is determined at runtime by the CEL expression evaluator.
+            # The CEL expression parseJson(string_value)["key"] can return any JSON type
+            # (string, number, boolean, object, array) depending on the actual data.
+            if not isinstance(argument_value, pipeline_channel.DictSubvariable):
+                type_utils.verify_type_compatibility(
+                    given_value=argument_value,
+                    expected_spec=input_spec,
+                    error_message_prefix=(
+                        f'Incompatible argument passed to the input '
+                        f'{input_name!r} of component {component_spec.name!r}: '),
+                )
 
         self.component_spec = component_spec
 
