@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -48,6 +50,23 @@ var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
 var dummyImages = map[string]string{
 	"argostub/createpvc": "create PVC",
 	"argostub/deletepvc": "delete PVC",
+}
+
+func normalizeOptionalStringParam(value string) (string, bool) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", false
+	}
+	if unquoted, err := strconv.Unquote(trimmed); err == nil {
+		trimmed = unquoted
+	} else {
+		trimmed = strings.Trim(trimmed, "\"")
+	}
+	trimmed = strings.TrimSpace(trimmed)
+	if trimmed == "" {
+		return "", false
+	}
+	return trimmed, true
 }
 
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
@@ -249,15 +268,42 @@ func extendPodSpecPatch(
 					} else if isListToleration {
 						listVal := resolvedParam.GetListValue()
 						if listVal != nil && len(listVal.Values) > 0 {
-							paramJSON, err = resolvedParam.GetListValue().MarshalJSON()
-							if err != nil {
-								return err
+							for _, tolerationValue := range listVal.Values {
+								if tolerationValue == nil {
+									continue
+								}
+
+								appendToleration := func(data []byte) error {
+									var listToleration k8score.Toleration
+									if err := json.Unmarshal(data, &listToleration); err != nil {
+										return fmt.Errorf("failed to unmarshal toleration json: %w", err)
+									}
+									k8sTolerations = append(k8sTolerations, listToleration)
+									return nil
+								}
+
+								switch value := tolerationValue.GetKind().(type) {
+								case *structpb.Value_StructValue:
+									paramJSON, err = tolerationValue.GetStructValue().MarshalJSON()
+									if err != nil {
+										return err
+									}
+									if err := appendToleration(paramJSON); err != nil {
+										return err
+									}
+								case *structpb.Value_StringValue:
+									if value == nil || strings.TrimSpace(value.StringValue) == "" {
+										continue
+									}
+									if err := appendToleration([]byte(value.StringValue)); err != nil {
+										return err
+									}
+								case *structpb.Value_NullValue:
+									continue
+								default:
+									return fmt.Errorf("encountered unexpected toleration list value, must be struct or string type, got %T", tolerationValue.GetKind())
+								}
 							}
-							var k8sTolerationsList []k8score.Toleration
-							if err = json.Unmarshal(paramJSON, &k8sTolerationsList); err != nil {
-								return fmt.Errorf("failed to marshal list toleration to json: %w", err)
-							}
-							k8sTolerations = append(k8sTolerations, k8sTolerationsList...)
 						} else {
 							glog.V(4).Info("encountered empty tolerations list, ignoring.")
 						}
@@ -296,9 +342,13 @@ func extendPodSpecPatch(
 				}
 				return fmt.Errorf("failed to resolve secret name: %w", err)
 			}
-			secretName = resolvedSecretName.GetStringValue()
-		} else if secretAsVolume.SecretName != "" {
-			secretName = secretAsVolume.SecretName
+			if normalized, ok := normalizeOptionalStringParam(resolvedSecretName.GetStringValue()); ok {
+				secretName = normalized
+			} else {
+				continue
+			}
+		} else if normalized, ok := normalizeOptionalStringParam(secretAsVolume.SecretName); ok {
+			secretName = normalized
 		} else {
 			return fmt.Errorf("missing either SecretName or SecretNameParameter for secret volume in executor config")
 		}
@@ -358,9 +408,13 @@ func extendPodSpecPatch(
 					}
 					return fmt.Errorf("failed to resolve secret name: %w", err)
 				}
-				secretName = resolvedSecretName.GetStringValue()
-			} else if secretAsEnv.SecretName != "" {
-				secretName = secretAsEnv.SecretName
+				if normalized, ok := normalizeOptionalStringParam(resolvedSecretName.GetStringValue()); ok {
+					secretName = normalized
+				} else {
+					continue
+				}
+			} else if normalized, ok := normalizeOptionalStringParam(secretAsEnv.SecretName); ok {
+				secretName = normalized
 			} else {
 				return fmt.Errorf("missing either SecretName or SecretNameParameter for " +
 					"secret environment variable in executor config")
@@ -390,9 +444,13 @@ func extendPodSpecPatch(
 				}
 				return fmt.Errorf("failed to resolve configmap name: %w", err)
 			}
-			configMapName = resolvedConfigMapName.GetStringValue()
-		} else if configMapAsVolume.ConfigMapName != "" {
-			configMapName = configMapAsVolume.ConfigMapName
+			if normalized, ok := normalizeOptionalStringParam(resolvedConfigMapName.GetStringValue()); ok {
+				configMapName = normalized
+			} else {
+				continue
+			}
+		} else if normalized, ok := normalizeOptionalStringParam(configMapAsVolume.ConfigMapName); ok {
+			configMapName = normalized
 		} else {
 			return fmt.Errorf("missing either ConfigMapName or ConfigNameParameter for config volume in executor config")
 		}
@@ -454,9 +512,13 @@ func extendPodSpecPatch(
 					}
 					return fmt.Errorf("failed to resolve configmap name: %w", err)
 				}
-				configMapName = resolvedConfigMapName.GetStringValue()
-			} else if configMapAsEnv.ConfigMapName != "" {
-				configMapName = configMapAsEnv.ConfigMapName
+				if normalized, ok := normalizeOptionalStringParam(resolvedConfigMapName.GetStringValue()); ok {
+					configMapName = normalized
+				} else {
+					continue
+				}
+			} else if normalized, ok := normalizeOptionalStringParam(configMapAsEnv.ConfigMapName); ok {
+				configMapName = normalized
 			} else {
 				return fmt.Errorf("missing either ConfigMapName or ConfigNameParameter for " +
 					"configmap environment variable in executor config")
@@ -486,9 +548,13 @@ func extendPodSpecPatch(
 				}
 				return fmt.Errorf("failed to resolve image pull secret name: %w", err)
 			}
-			secretName = resolvedSecretName.GetStringValue()
-		} else if imagePullSecret.SecretName != "" {
-			secretName = imagePullSecret.SecretName
+			if normalized, ok := normalizeOptionalStringParam(resolvedSecretName.GetStringValue()); ok {
+				secretName = normalized
+			} else {
+				continue
+			}
+		} else if normalized, ok := normalizeOptionalStringParam(imagePullSecret.SecretName); ok {
+			secretName = normalized
 		} else {
 			return fmt.Errorf("missing either SecretName or SecretNameParameter " +
 				"for image pull secret in executor config")

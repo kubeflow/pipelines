@@ -1921,6 +1921,42 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 				"param_1": validListOfStructsOrPanic([]map[string]interface{}{}),
 			},
 		},
+		{
+			"Valid - toleration json - list of json strings",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				Tolerations: []*kubernetesplatform.Toleration{
+					{
+						TolerationJson: inputParamComponent("param_1"),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+				Tolerations: []k8score.Toleration{
+					{
+						Key:      "key1",
+						Operator: "Equal",
+						Value:    "value1",
+						Effect:   "NoSchedule",
+					},
+					{
+						Key:      "key2",
+						Operator: "Exists",
+						Effect:   "NoExecute",
+					},
+				},
+			},
+			map[string]*structpb.Value{
+				"param_1": validListOfJSONStringsOrPanic([]string{
+					`{"key":"key1","operator":"Equal","value":"value1","effect":"NoSchedule"}`,
+					`{"key":"key2","operator":"Exists","effect":"NoExecute"}`,
+				}),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2892,6 +2928,14 @@ func validListOfStructsOrPanic(data []map[string]interface{}) *structpb.Value {
 			panic(err)
 		}
 		listValues = append(listValues, structpb.NewStructValue(s))
+	}
+	return structpb.NewListValue(&structpb.ListValue{Values: listValues})
+}
+
+func validListOfJSONStringsOrPanic(data []string) *structpb.Value {
+	listValues := make([]*structpb.Value, 0, len(data))
+	for _, item := range data {
+		listValues = append(listValues, structpb.NewStringValue(item))
 	}
 	return structpb.NewListValue(&structpb.ListValue{Values: listValues})
 }
