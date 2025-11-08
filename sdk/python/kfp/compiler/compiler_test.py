@@ -1007,8 +1007,10 @@ implementation:
                 self.assertTrue('base_image' in input_parameters)
                 self.assertTrue('pipelinechannel--img' in input_parameters)
 
-    def test_pipeline_with_parameterized_container_image_inside_parallel_for(self):
+    def test_pipeline_with_parameterized_container_image_inside_parallel_for(
+            self):
         with tempfile.TemporaryDirectory() as tmpdir:
+
             @dsl.component(base_image='docker.io/python:3.11.17')
             def empty_component(idx: int):
                 del idx
@@ -1046,7 +1048,8 @@ implementation:
 
             loop_tasks = loop_component['dag']['tasks']
             self.assertIn('empty-component', loop_tasks)
-            loop_task_inputs = loop_tasks['empty-component']['inputs']['parameters']
+            loop_task_inputs = loop_tasks['empty-component']['inputs'][
+                'parameters']
             self.assertIn('base_image', loop_task_inputs)
             self.assertIn('pipelinechannel--img', loop_task_inputs)
 
