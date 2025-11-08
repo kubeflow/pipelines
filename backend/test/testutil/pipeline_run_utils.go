@@ -125,7 +125,7 @@ func GetPipelineRunTimeInputs(pipelineSpecFile string) map[string]interface{} {
 				if parameterSpec.DefaultValue != nil {
 					defaultValExists = true
 				}
-				if !defaultValExists || !parameterSpec.IsOptional {
+				if !defaultValExists && !parameterSpec.IsOptional {
 					switch parameterSpec.ParameterType {
 					case pipelinespec.ParameterType_NUMBER_INTEGER:
 						pipelineInputMap[name] = rand.Intn(1000)
