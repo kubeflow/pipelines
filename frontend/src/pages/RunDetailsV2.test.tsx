@@ -409,7 +409,7 @@ describe('RunDetailsV2', () => {
   });
 
   describe('topbar tabs', () => {
-    it('switches to Detail tab', async () => {
+    it('switches to Config tab', async () => {
       render(
         <CommonTestWrapper>
           <RunDetailsV2
@@ -420,7 +420,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Config'));
 
       screen.getByText('Run details');
       screen.getByText('Run ID');
@@ -433,7 +433,7 @@ describe('RunDetailsV2', () => {
       screen.getByText('Duration');
     });
 
-    it('shows content in Detail tab', async () => {
+    it('shows content in Config tab', async () => {
       render(
         <CommonTestWrapper>
           <RunDetailsV2
@@ -444,7 +444,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Config'));
 
       screen.getByText('test-run-id'); // 'Run ID'
       screen.getByText('test run'); // 'Workflow name'
@@ -476,7 +476,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Config'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // create time and duration are empty.
     });
@@ -502,7 +502,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Config'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
     });
@@ -518,7 +518,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Config'));
 
       screen.getByText('param1'); // 'Parameter name'
       screen.getByText('value1'); // 'Parameter value'

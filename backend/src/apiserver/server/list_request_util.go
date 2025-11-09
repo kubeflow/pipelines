@@ -232,3 +232,63 @@ func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
 	)
 	return replacer.Replace(jsonStr), nil
 }
+
+// validateFilterV2Beta1Artifact creates filter context for artifacts based on namespace
+func validateFilterV2Beta1Artifact(namespace string) (*model.FilterContext, error) {
+	filterContext := &model.FilterContext{}
+	if namespace != "" {
+		filterContext.ReferenceKey = &model.ReferenceKey{
+			Type: model.NamespaceResourceType,
+			ID:   namespace,
+		}
+	}
+	return filterContext, nil
+}
+
+// validateFilterV2Beta1ArtifactTask creates filter contexts for artifact-task relationships
+func validateFilterV2Beta1ArtifactTask(taskIds, runIds, artifactIds []string) ([]*model.FilterContext, error) {
+	var filterContexts []*model.FilterContext
+
+	// Add task ID filters
+	for _, taskID := range taskIds {
+		if taskID != "" {
+			filterContexts = append(filterContexts, &model.FilterContext{
+				ReferenceKey: &model.ReferenceKey{
+					Type: model.TaskResourceType,
+					ID:   taskID,
+				},
+			})
+		}
+	}
+
+	// Add run ID filters
+	for _, runID := range runIds {
+		if runID != "" {
+			filterContexts = append(filterContexts, &model.FilterContext{
+				ReferenceKey: &model.ReferenceKey{
+					Type: model.RunResourceType,
+					ID:   runID,
+				},
+			})
+		}
+	}
+
+	// Add artifact ID filters
+	for _, artifactID := range artifactIds {
+		if artifactID != "" {
+			filterContexts = append(filterContexts, &model.FilterContext{
+				ReferenceKey: &model.ReferenceKey{
+					Type: model.ArtifactResourceType,
+					ID:   artifactID,
+				},
+			})
+		}
+	}
+
+	// If no filters specified, return empty filter context
+	if len(filterContexts) == 0 {
+		filterContexts = append(filterContexts, &model.FilterContext{})
+	}
+
+	return filterContexts, nil
+}

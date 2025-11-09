@@ -68,46 +68,6 @@ spec:
               echo "Waiting for ${WAIT_HOST}:${WAIT_PORT} (attempt ${i}/${MAX_RETRIES})..."
               sleep 5
             done
-      - name: wait-for-metadata-grpc
-        image: docker.io/alpine:3.23
-        securityContext:
-          allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
-          runAsNonRoot: true
-          runAsUser: 1000
-          capabilities:
-            drop:
-            - ALL
-        resources:
-          requests:
-            cpu: 10m
-            memory: 16Mi
-          limits:
-            cpu: 100m
-            memory: 64Mi
-        env:
-        - name: WAIT_HOST
-          value: metadata-grpc-service
-        - name: WAIT_PORT
-          value: "8080"
-        command: ["/bin/sh", "-ec"]
-        args:
-          - |
-            if [ -z "${WAIT_HOST}" ] || [ -z "${WAIT_PORT}" ]; then
-              echo "ERROR: WAIT_HOST or WAIT_PORT is not set."
-              exit 1
-            fi
-            MAX_RETRIES=60; i=0
-            while ! nc -z -w 2 "${WAIT_HOST}" "${WAIT_PORT}"; do
-              i=$((i+1))
-              if [ "$i" -ge "$MAX_RETRIES" ]; then
-                echo "ERROR: Timed out waiting for ${WAIT_HOST}:${WAIT_PORT} after ${MAX_RETRIES} attempts."
-                exit 1
-              fi
-              echo "Waiting for ${WAIT_HOST}:${WAIT_PORT} (attempt ${i}/${MAX_RETRIES})..."
-              sleep 5
-            done
       containers:
         - env:
             # Whether or not to publish component logs to the object store.

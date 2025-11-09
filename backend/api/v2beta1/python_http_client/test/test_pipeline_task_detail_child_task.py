@@ -37,7 +37,7 @@ class TestPipelineTaskDetailChildTask(unittest.TestCase):
         if include_optional :
             return PipelineTaskDetailChildTask(
                 task_id = '0', 
-                pod_name = '0'
+                name = '0'
             )
         else :
             return PipelineTaskDetailChildTask(

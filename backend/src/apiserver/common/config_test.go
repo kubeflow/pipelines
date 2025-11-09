@@ -347,11 +347,6 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			expected: DefaultTokenReviewAudience,
 		},
 		{
-			name:     "GetMetadataTLSEnabled defaults to false",
-			getter:   func() interface{} { return GetMetadataTLSEnabled() },
-			expected: false,
-		},
-		{
 			name:     "GetCaBundleSecretName defaults to empty string",
 			getter:   func() interface{} { return GetCaBundleSecretName() },
 			expected: "",
@@ -469,13 +464,6 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "custom.audience.org",
 			getter:   func() interface{} { return GetTokenReviewAudience() },
 			expected: "custom.audience.org",
-		},
-		{
-			name:     "GetMetadataTLSEnabled with custom true",
-			envKey:   MetadataTLSEnabled,
-			envValue: "true",
-			getter:   func() interface{} { return GetMetadataTLSEnabled() },
-			expected: true,
 		},
 		{
 			name:     "GetCaBundleSecretName with custom value",

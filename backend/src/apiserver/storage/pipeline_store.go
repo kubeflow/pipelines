@@ -95,7 +95,7 @@ type PipelineStoreInterface interface {
 	GetPipelineWithStatus(pipelineId string, status model.PipelineStatus) (*model.Pipeline, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error)
-	ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error)
+	ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error)
 	UpdatePipelineStatus(pipelineId string, status model.PipelineStatus) error
 	UpdatePipelineFields(pipelineID string, displayName string, tags map[string]string) error
 	DeletePipeline(pipelineId string) error
@@ -107,7 +107,7 @@ type PipelineStoreInterface interface {
 	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionByName(name string) (*model.PipelineVersion, error)
 	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
-	ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) ([]*model.PipelineVersion, int, string, error)
+	ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) ([]*model.PipelineVersion, int, string, error)
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
 	UpdatePipelineVersionFields(pipelineVersionID string, displayName string, tags map[string]string) error
 	DeletePipelineVersion(pipelineVersionId string) error
@@ -316,7 +316,11 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 // total_size. The total_size does not reflect the page size.
 // This will not join with `pipeline_versions` table, hence, total_size is the size of pipelines, not pipeline_versions.
 // tagFilters is an optional map of tag key->value pairs to filter pipelines by. If nil or empty, no tag filtering is applied.
-func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
+func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	buildQuery := func(sqlBuilder sq.SelectBuilder) (sq.SelectBuilder, error) {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines")
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
@@ -330,7 +334,7 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 			sq.Eq{"pipelines.Status": model.PipelineReady},
 		)
 		// Apply tag filters: for each tag, add a subquery ensuring the pipeline has that tag.
-		for key, value := range tagFilters {
+		for key, value := range resolvedTagFilters {
 			subQuery := sq.Select("PipelineId").From("pipeline_tags").Where(sq.And{
 				sq.Eq{"TagKey": key},
 				sq.Eq{"TagValue": value},
@@ -1152,7 +1156,11 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 
 // Fetches pipeline versions for a specified pipeline id.
 // tagFilters is an optional map of tag key->value pairs to filter pipeline versions by. If nil or empty, no tag filtering is applied.
-func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	buildQuery := func(sqlBuilder sq.SelectBuilder) (sq.SelectBuilder, error) {
 		query := opts.AddFilterToSelect(sqlBuilder).
 			From("pipeline_versions").
@@ -1163,7 +1171,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Optio
 				},
 			)
 		// Apply tag filters: for each tag, add a subquery ensuring the pipeline version has that tag.
-		for key, value := range tagFilters {
+		for key, value := range resolvedTagFilters {
 			subQuery := sq.Select("PipelineVersionId").From("pipeline_version_tags").Where(sq.And{
 				sq.Eq{"TagKey": key},
 				sq.Eq{"TagValue": value},

@@ -15,19 +15,18 @@
 package driver
 
 import (
-	"context"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestResolvePipelineJobCreateTimePlaceholder(t *testing.T) {
-	ctx := context.Background()
-
 	paramSpec := &pipelinespec.TaskInputsSpec_InputParameterSpec{
 		Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue{
 			RuntimeValue: &pipelinespec.ValueOrRuntimeParameter{
@@ -38,27 +37,18 @@ func TestResolvePipelineJobCreateTimePlaceholder(t *testing.T) {
 		},
 	}
 
-	opts := Options{
+	opts := common.Options{
 		PipelineJobCreateTimeUTC: "2026-01-09T12:34:56Z",
+		ParentTask:               &apiv2beta1.PipelineTaskDetail{Name: "parent"},
+		Task:                     &pipelinespec.PipelineTaskSpec{Inputs: &pipelinespec.TaskInputsSpec{}},
 	}
 
-	val, err := resolveInputParameter(
-		ctx,
-		nil, // task
-		nil, // component spec
-		opts,
-		nil, // runtime config
-		paramSpec,
-		map[string]*structpb.Value{},
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, "2026-01-09T12:34:56Z", val.GetStringValue())
+	val, _, err := resolver.ResolveInputParameter(opts, paramSpec, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "2026-01-09T12:34:56Z", val.GetValue().GetStringValue())
 }
 
 func TestResolvePipelineJobScheduleTimePlaceholder(t *testing.T) {
-	ctx := context.Background()
-
 	paramSpec := &pipelinespec.TaskInputsSpec_InputParameterSpec{
 		Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue{
 			RuntimeValue: &pipelinespec.ValueOrRuntimeParameter{
@@ -69,71 +59,13 @@ func TestResolvePipelineJobScheduleTimePlaceholder(t *testing.T) {
 		},
 	}
 
-	opts := Options{
+	opts := common.Options{
 		PipelineJobScheduleTimeUTC: "2026-01-09T13:00:00Z",
+		ParentTask:                 &apiv2beta1.PipelineTaskDetail{Name: "parent"},
+		Task:                       &pipelinespec.PipelineTaskSpec{Inputs: &pipelinespec.TaskInputsSpec{}},
 	}
 
-	val, err := resolveInputParameter(
-		ctx,
-		nil,
-		nil,
-		opts,
-		nil,
-		paramSpec,
-		map[string]*structpb.Value{},
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, "2026-01-09T13:00:00Z", val.GetStringValue())
-}
-
-func Test_InferIndexedTaskName(t *testing.T) {
-	tests := []struct {
-		name             string
-		producerTaskName string
-		dag              *metadata.Execution
-		expected         string
-	}{
-		{
-			name:             "DAG with iteration_index returns indexed task name",
-			producerTaskName: "my-task",
-			dag: metadata.NewExecution(&pb.Execution{
-				CustomProperties: map[string]*pb.Value{
-					"iteration_index": {Value: &pb.Value_IntValue{IntValue: 3}},
-				},
-			}),
-			expected: "my-task_idx_3",
-		},
-		{
-			name:             "DAG with iteration_index 0 returns indexed task name",
-			producerTaskName: "my-task",
-			dag: metadata.NewExecution(&pb.Execution{
-				CustomProperties: map[string]*pb.Value{
-					"iteration_index": {Value: &pb.Value_IntValue{IntValue: 0}},
-				},
-			}),
-			expected: "my-task_idx_0",
-		},
-		{
-			name:             "DAG without iteration_index returns original task name",
-			producerTaskName: "my-task",
-			dag: metadata.NewExecution(&pb.Execution{
-				CustomProperties: map[string]*pb.Value{},
-			}),
-			expected: "my-task",
-		},
-		{
-			name:             "DAG with nil custom properties returns original task name",
-			producerTaskName: "my-task",
-			dag:              metadata.NewExecution(&pb.Execution{}),
-			expected:         "my-task",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			result := InferIndexedTaskName(test.producerTaskName, test.dag)
-			assert.Equal(t, test.expected, result)
-		})
-	}
+	val, _, err := resolver.ResolveInputParameter(opts, paramSpec, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "2026-01-09T13:00:00Z", val.GetValue().GetStringValue())
 }
