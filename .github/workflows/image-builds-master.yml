@@ -39,12 +39,6 @@ jobs:
           - image: kfp-cache-server
             dockerfile: backend/Dockerfile.cacheserver
             context: .
-          - image: kfp-metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
-            context: .
-          - image: kfp-metadata-envoy
-            dockerfile: third_party/metadata_envoy/Dockerfile
-            context: .
           - image: kfp-inverse-proxy-agent
             dockerfile: proxy/Dockerfile
             context: ./proxy

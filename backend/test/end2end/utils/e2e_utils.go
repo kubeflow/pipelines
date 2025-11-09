@@ -14,6 +14,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
+	"github.com/onsi/ginkgo/v2/dsl/core"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/onsi/ginkgo/v2"
@@ -61,6 +62,7 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, testC
 	logger.Log("Create run for pipeline with id: '%s' and name: '%s'", pipelineID, pipelineDisplayName)
 	uploadedPipelineRun := CreatePipelineRun(runClient, testContext, &pipelineID, pipelineVersionID, experimentID, runTimeParams)
 	logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID)
+	core.GinkgoWriter.Println(fmt.Sprintf("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID))
 	timeout := time.Duration(maxPipelineWaitTime)
 	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeout)
 	return uploadedPipelineRun.RunID
@@ -70,25 +72,16 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, testC
 func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kubernetes.Clientset, testContext *apitests.TestContext, runID string, compiledWorkflow *v1alpha1.Workflow) {
 	logger.Log("Fetching updated pipeline run details for run with id=%s", runID)
 	updatedRun := testutil.GetPipelineRun(runClient, &runID)
-	actualTaskDetails := updatedRun.RunDetails.TaskDetails
+	actualTaskDetails := updatedRun.Tasks
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
-	if *updatedRun.State == run_model.V2beta1RuntimeStateRUNNING {
-		logger.Log("Pipeline run did not finish, checking workflow controller logs")
-		podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
-		logger.Log("Attaching Workflow Controller logs to the report")
-		ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
-		ginkgo.Fail("Pipeline run did not complete, it stayed in RUNNING state")
-
+	if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+		logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
+		CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTaskDetails)
+		ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
 	} else {
-		if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
-			logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
-			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTaskDetails)
-			ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
-		} else {
-			logger.Log("Pipeline run succeeded, checking if the number of tasks are what is expected")
-			gomega.Expect(len(actualTaskDetails)).To(gomega.BeNumerically(">=", len(expectedTaskDetails)), "Number of created DAG tasks should be >= number of expected tasks")
-		}
+		logger.Log("Pipeline run succeeded, checking if the number of tasks are what is expected")
+		gomega.Expect(len(actualTaskDetails)).To(gomega.BeNumerically(">=", len(expectedTaskDetails)), "Number of created DAG tasks should be >= number of expected tasks")
 	}
 
 }
@@ -102,42 +95,42 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 	for _, task := range taskDetails {
 		if task.State != nil {
 			switch *task.State {
-			case run_model.V2beta1RuntimeStateSUCCEEDED:
+			case run_model.PipelineTaskDetailTaskStateSUCCEEDED:
 				{
-					logger.Log("SUCCEEDED - Task %s for run %s has finished successfully", task.DisplayName, task.RunID)
+					logger.Log("SUCCEEDED - Task %s for run %s has finished successfully", task.Name, task.RunID)
 				}
-			case run_model.V2beta1RuntimeStateRUNNING:
+			case run_model.PipelineTaskDetailTaskStateRUNNING:
 				{
-					logger.Log("RUNNING - Task %s for Run %s is running", task.DisplayName, task.RunID)
+					logger.Log("RUNNING - Task %s for Run %s is running", task.Name, task.RunID)
 
 				}
-			case run_model.V2beta1RuntimeStateSKIPPED:
+			case run_model.PipelineTaskDetailTaskStateSKIPPED:
 				{
-					logger.Log("SKIPPED - Task %s for Run %s skipped", task.DisplayName, task.RunID)
+					logger.Log("SKIPPED - Task %s for Run %s skipped", task.Name, task.RunID)
 				}
-			case run_model.V2beta1RuntimeStateCANCELED:
+			case run_model.PipelineTaskDetailTaskStateCACHED:
 				{
-					logger.Log("CANCELED - Task %s for Run %s canceled", task.DisplayName, task.RunID)
+					logger.Log("CACHED - Task %s for Run %s cached", task.Name, task.RunID)
 				}
-			case run_model.V2beta1RuntimeStateFAILED:
+			case run_model.PipelineTaskDetailTaskStateFAILED:
 				{
-					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
-					for _, childTask := range task.ChildTasks {
-						podName := childTask.PodName
+					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.Name, task.RunID)
+					for _, pod := range task.Pods {
+						podName := pod.Name
 						if podName != "" {
-							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
+							logger.Log("Capturing pod logs for task %s, with pod name %s", task.Name, podName)
 							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
-							logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
+							logger.Log("Pod logs captured for task %s in pod %s", task.Name, podName)
 							logger.Log("Attaching pod logs to the report")
-							ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.DisplayName), podLog)
+							ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.Name), podLog)
 							logger.Log("Attached pod logs to the report")
 						}
 					}
-					failedTasks[task.DisplayName] = string(*task.State)
+					failedTasks[task.Name] = string(*task.State)
 				}
 			default:
 				{
-					logger.Log("UNKNOWN state - Task %s for Run %s has an UNKNOWN state", task.DisplayName, task.RunID)
+					logger.Log("UNKNOWN state - Task %s for Run %s has an UNKNOWN state", task.Name, task.RunID)
 				}
 			}
 		}

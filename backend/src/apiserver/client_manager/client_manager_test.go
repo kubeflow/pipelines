@@ -97,12 +97,3 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
-
-func TestFieldMeta_TaskRunId(t *testing.T) {
-	// FieldMeta only inspects schema; sqlite driver is sufficient.
-	db := getTestSQLite(t)
-	table, dbCol, err := FieldMeta(db, &model.Task{}, "RunID")
-	require.NoError(t, err)
-	assert.Equal(t, "tasks", table)
-	assert.Equal(t, "RunUUID", dbCol)
-}

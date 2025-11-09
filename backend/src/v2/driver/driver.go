@@ -21,73 +21,16 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
-
-// Driver options
-type Options struct {
-	// required, pipeline context name
-	PipelineName string
-	// required, KFP run ID
-	RunID string
-	// required, Component spec
-	Component *pipelinespec.ComponentSpec
-	// optional, iteration index. -1 means not an iteration.
-	IterationIndex int
-
-	// optional, required only by root DAG driver
-	RuntimeConfig *pipelinespec.PipelineJob_RuntimeConfig
-	Namespace     string
-
-	// optional, required by non-root drivers
-	Task           *pipelinespec.PipelineTaskSpec
-	DAGExecutionID int64
-
-	// optional, required only by container driver
-	Container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-
-	// optional, allows to specify kubernetes-specific executor config
-	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
-
-	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used or the run uses a workspace
-	RunName string
-	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
-	RunDisplayName string
-
-	PipelineLogLevel string
-
-	PublishLogs string
-
-	CacheDisabled bool
-
-	DriverType string
-
-	TaskName string // the original name of the task, used for input resolution
-
-	// set to true if ml pipeline server is serving over tls
-	MLPipelineTLSEnabled bool
-
-	// set to true if metadata server is serving over tls
-	MLMDTLSEnabled bool
-
-	MLPipelineServerAddress string
-
-	MLPipelineServerPort string
-
-	MLMDServerAddress string
-
-	MLMDServerPort string
-
-	CaCertPath string
-}
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
 type TaskConfig struct {
@@ -100,38 +43,8 @@ type TaskConfig struct {
 	Resources    k8score.ResourceRequirements `json:"resources"`
 }
 
-// Identifying information used for error messages
-func (o Options) info() string {
-	msg := fmt.Sprintf("pipelineName=%v, runID=%v", o.PipelineName, o.RunID)
-	if o.Task.GetTaskInfo().GetName() != "" {
-		msg = msg + fmt.Sprintf(", taskDisplayName=%q", o.Task.GetTaskInfo().GetName())
-	}
-	if o.TaskName != "" {
-		msg = msg + fmt.Sprintf(", taskName=%q", o.TaskName)
-	}
-	if o.Task.GetComponentRef().GetName() != "" {
-		msg = msg + fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())
-	}
-	if o.DAGExecutionID != 0 {
-		msg = msg + fmt.Sprintf(", dagExecutionID=%v", o.DAGExecutionID)
-	}
-	if o.IterationIndex >= 0 {
-		msg = msg + fmt.Sprintf(", iterationIndex=%v", o.IterationIndex)
-	}
-	if o.RuntimeConfig != nil {
-		msg = msg + ", runtimeConfig" // this only means runtimeConfig is not empty
-	}
-	if o.Component.GetImplementation() != nil {
-		msg = msg + ", componentSpec" // this only means componentSpec is not empty
-	}
-	if o.KubernetesExecutorConfig != nil {
-		msg = msg + ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
-	}
-	return msg
-}
-
 type Execution struct {
-	ID             int64
+	TaskID         string
 	ExecutorInput  *pipelinespec.ExecutorInput
 	IterationCount *int  // number of iterations, -1 means not an iterator
 	Condition      *bool // true -> trigger the task, false -> not trigger the task, nil -> the task is unconditional
@@ -156,16 +69,17 @@ func getPodResource(
 ) (*k8sres.Quantity, error) {
 	var resolved string
 
-	if new != "" {
+	switch {
+	case new != "":
 		var err error
 
-		resolved, err = resolvePodSpecInputRuntimeParameter(new, executorInput)
+		resolved, err = resolver.ResolveParameterOrPipelineChannel(new, executorInput)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve executor input when retrieving pod resource: %w", err)
 		}
-	} else if old != 0 {
+	case old != 0:
 		resolved = fmt.Sprintf(oldFmtStr, old)
-	} else {
+	default:
 		return nil, nil
 	}
 
@@ -220,15 +134,16 @@ func getTaskConfigOptions(
 	return passthroughEnabled, setOnPod
 }
 
-// initPodSpecPatch generates a strategic merge patch for pod spec, it is merged
-// to container base template generated in compiler/container.go. Therefore, only
+// initPodSpecPatch generates a strategic merge patch for pod spec; it is merged
+// to the container base template generated in compiler/container.go. Therefore, only
 // dynamic values are patched here. The volume mounts / configmap mounts are
-// defined in compiler, because they are static.
+// defined in the compiler because they are static.
 func initPodSpecPatch(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
 	executorInput *pipelinespec.ExecutorInput,
-	executionID int64,
+	taskID string,
+	parentTaskID string,
 	pipelineName string,
 	runID string,
 	runName string,
@@ -236,19 +151,15 @@ func initPodSpecPatch(
 	publishLogs string,
 	cacheDisabled string,
 	taskConfig *TaskConfig,
+	fingerPrint string,
+	iterationIndex *int,
+	taskName string,
 	mlPipelineTLSEnabled bool,
-	metadataTLSEnabled bool,
 	caCertPath string,
 	mlPipelineServerAddress string,
 	mlPipelineServerPort string,
-	mlmdServerAddress string,
-	mlmdServerPort string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
-	}
-	componentJSON, err := protojson.Marshal(componentSpec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
@@ -273,27 +184,23 @@ func initPodSpecPatch(
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
-		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
 		"--run_id", runID,
-		"--execution_id", fmt.Sprintf("%v", executionID),
+		"--task_id", fmt.Sprintf("%v", taskID),
+		"--parent_task_id", fmt.Sprintf("%v", parentTaskID),
 		"--executor_input", string(executorInputJSON),
-		"--component_spec", string(componentJSON),
 		"--pod_name",
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
 		"--ml_pipeline_server_address", mlPipelineServerAddress,
 		"--ml_pipeline_server_port", mlPipelineServerPort,
-		"--mlmd_server_address", mlmdServerAddress,
-		"--mlmd_server_port", mlmdServerPort,
 		"--publish_logs", publishLogs,
+		"--fingerprint", fingerPrint,
+		"--task_name", taskName,
 	}
 	if mlPipelineTLSEnabled {
 		launcherCmd = append(launcherCmd, "--ml_pipeline_tls_enabled")
-	}
-	if metadataTLSEnabled {
-		launcherCmd = append(launcherCmd, "--metadata_tls_enabled")
 	}
 	if caCertPath != "" {
 		launcherCmd = append(launcherCmd, "--ca_cert_path", caCertPath)
@@ -308,7 +215,10 @@ func initPodSpecPatch(
 	if publishLogs == "true" {
 		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
 	}
-	launcherCmd = append(launcherCmd, "--") // separater before user command and args
+	if iterationIndex != nil {
+		launcherCmd = append(launcherCmd, "--iteration_index", fmt.Sprintf("%v", *iterationIndex))
+	}
+	launcherCmd = append(launcherCmd, "--") // separate before user command and args
 	res := k8score.ResourceRequirements{
 		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
 		Requests: map[k8score.ResourceName]k8sres.Quantity{},
@@ -370,7 +280,7 @@ func initPodSpecPatch(
 	if accelerator != nil {
 		var acceleratorType string
 		if accelerator.GetResourceType() != "" {
-			acceleratorType, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceType(), executorInput)
+			acceleratorType, err = resolver.ResolveParameterOrPipelineChannel(accelerator.GetResourceType(), executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
@@ -383,7 +293,7 @@ func initPodSpecPatch(
 		if accelerator.GetResourceCount() != "" {
 			var err error
 
-			acceleratorCount, err = resolvePodSpecInputRuntimeParameter(accelerator.GetResourceCount(), executorInput)
+			acceleratorCount, err = resolver.ResolveParameterOrPipelineChannel(accelerator.GetResourceCount(), executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 			}
@@ -400,7 +310,7 @@ func initPodSpecPatch(
 		}
 	}
 
-	containerImage, err := resolvePodSpecInputRuntimeParameter(container.Image, executorInput)
+	containerImage, err := resolver.ResolveParameterOrPipelineChannel(container.Image, executorInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
@@ -414,6 +324,35 @@ func initPodSpecPatch(
 		}},
 	}
 
+	// Always add KFP_POD_NAME and KFP_POD_UID environment variables using downward API
+	// These are required for the launcher to function properly
+	kfpEnvVars := []k8score.EnvVar{
+		{
+			Name: component.EnvPodName,
+			ValueFrom: &k8score.EnvVarSource{
+				FieldRef: &k8score.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name: component.EnvPodUID,
+			ValueFrom: &k8score.EnvVarSource{
+				FieldRef: &k8score.ObjectFieldSelector{
+					FieldPath: "metadata.uid",
+				},
+			},
+		},
+		{
+			Name: "NAMESPACE",
+			ValueFrom: &k8score.EnvVarSource{
+				FieldRef: &k8score.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+	}
+
 	if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
 		taskConfig.Env = userEnvVar
 	}
@@ -421,6 +360,9 @@ func initPodSpecPatch(
 	if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
 		podSpec.Containers[0].Env = userEnvVar
 	}
+
+	// Always append KFP environment variables to the pod spec
+	podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, kfpEnvVars...)
 
 	if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_RESOURCES] {
 		taskConfig.Resources = res
@@ -640,29 +582,16 @@ func addModelcarsToPodSpec(
 	}
 }
 
-func validateNonRoot(opts Options) error {
-	if opts.PipelineName == "" {
-		return fmt.Errorf("pipeline name is required")
-	}
-	if opts.RunID == "" {
-		return fmt.Errorf("KFP run ID is required")
-	}
-	if opts.Component == nil {
-		return fmt.Errorf("component spec is required")
-	}
-	if opts.Task.GetTaskInfo().GetName() == "" {
-		return fmt.Errorf("task spec is required")
-	}
-	if opts.RuntimeConfig != nil {
-		return fmt.Errorf("runtime config is unnecessary")
-	}
-	if opts.DAGExecutionID == 0 {
-		return fmt.Errorf("DAG execution ID is required")
-	}
-	return nil
-}
-
-// provisionOutputs prepares output references that will get saved to MLMD.
+// provisionOutputs prepares the executorInputs.Outputs field for the executor.
+// This is done by computing the executor output file path and setting the
+// executorInputs.Outputs fields to point to it.
+//
+// The executor output file is a JSON file that contains the executor output
+// parameters and artifacts.
+//
+// The executor output file is written to the executor output directory, which
+// is a directory under the task root. The executor output directory is
+// determined by the executor output file path.
 func provisionOutputs(
 	pipelineRoot,
 	taskName string,
@@ -697,7 +626,7 @@ func provisionOutputs(
 	// artifacts (dsl.get_uri) by allowing the SDK to infer the task root from
 	// the executor output file's directory (set below) and convert it back to
 	// a remote URI at runtime.
-	taskRootRemote := metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt}, false)
+	taskRootRemote := util.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt}, false)
 
 	// Set per-artifact output URIs under the task root.
 	for name, artifact := range artifacts {
@@ -708,7 +637,7 @@ func provisionOutputs(
 					Name: name,
 					// Do not preserve the query string for output artifacts, as otherwise
 					// they'd appear in file and artifact names.
-					Uri:      metadata.GenerateOutputURI(taskRootRemote, []string{name}, false),
+					Uri:      util.GenerateOutputURI(taskRootRemote, []string{name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},

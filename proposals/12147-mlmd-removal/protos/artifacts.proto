@@ -76,6 +76,32 @@ service ArtifactService {
     };
   }
 
+  // Creates a new artifact.
+  rpc CreateArtifact(CreateArtifactRequest) returns (Artifact) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/artifacts"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "create_artifact"
+      summary: "Creates a new artifact."
+      tags: "ArtifactService"
+    };
+  }
+
+  rpc CreateArtifactsBulk(CreateArtifactsBulkRequest) returns (CreateArtifactsBulkResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/artifacts:batchCreate"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "batch_create_artifacts"
+      summary: "Creates multiple artifacts in bulk."
+      tags: "ArtifactService"
+    };
+  }
+
+  // List ArtifactTasks.
   rpc ListArtifactTasks(ListArtifactTasksRequest) returns (ListArtifactTasksResponse) {
     option (google.api.http) = {
       get: "/apis/v2beta1/artifact_tasks"
@@ -103,15 +129,15 @@ service ArtifactService {
     };
   }
 
-  // Creates a new artifact.
-  rpc CreateArtifact(CreateArtifactRequest) returns (Artifact) {
+  // Creates multiple artifact-task relationships in bulk.
+  rpc CreateArtifactTasksBulk(CreateArtifactTasksBulkRequest) returns (CreateArtifactTasksBulkResponse) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/artifacts"
+      post: "/apis/v2beta1/artifact_tasks:batchCreate"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      operation_id: "create_artifact"
-      summary: "Creates a new artifact."
+      operation_id: "batch_create_artifact_tasks"
+      summary: "Creates multiple artifact-task relationships in bulk."
       tags: "ArtifactService"
     };
   }
@@ -124,10 +150,32 @@ message CreateArtifactRequest {
   // An artifact is always created in the context of a
   // run.
   string run_id = 2;
+  // The Task that is associated with the creation of this artifact.
   string task_id = 3;
-  ArtifactTaskType type = 4;
-  string producer_task_name = 5;
-  string producer_key = 6;
+
+  // The outgoing parameter name of this Artifact within this task's component spec.
+  // For example:
+  // def preprocess(my_output: dsl.Outputs[dsl.Artifact]):
+  //   ...
+  // here the producer_key == "my_output"
+  // Note that producer_task_name == task_name
+  string producer_key = 5;
+
+  // If the producing task is in a parallelFor iteration
+  // this field designates the iteration index
+  optional int64 iteration_index = 6;
+
+  IOType type = 7;
+}
+
+message CreateArtifactsBulkRequest {
+  // Required. The list of artifacts to create.
+  repeated CreateArtifactRequest artifacts = 1;
+}
+
+message CreateArtifactsBulkResponse {
+  // The list of created artifacts.
+  repeated Artifact artifacts = 1;
 }
 
 message GetArtifactRequest {
@@ -180,7 +228,7 @@ message ListArtifactTasksRequest {
   repeated string artifact_ids = 3;
 
   // Optional. Only list artifact tasks that have artifacts of this type.
-  ArtifactTaskType type = 4;
+  IOType type = 4;
 
   string page_token = 5;
   int32 page_size = 6;
@@ -200,11 +248,62 @@ message CreateArtifactTaskRequest {
   ArtifactTask artifact_task = 1;
 }
 
+message CreateArtifactTasksBulkRequest {
+  // Required. The list of artifact-task relationships to create.
+  repeated ArtifactTask artifact_tasks = 1;
+}
+
+message CreateArtifactTasksBulkResponse {
+  // The list of created artifact-task relationships.
+  repeated ArtifactTask artifact_tasks = 1;
+}
+
 // Describes the I/O relationship between
-// this Artifact and Task
-enum ArtifactTaskType {
-  INPUT = 0;
-  OUTPUT = 1;
+// this Artifacts & Parameters and Task
+// There are a couple of instances where
+// input/outputs have special types such
+// as in the case of LoopArguments or
+// dsl.Collected outputs.
+enum IOType {
+  // For validation
+  UNSPECIFIED = 0;
+  // This is used for inputs that are
+  // provided via default parameters in
+  // the component input definitions
+  COMPONENT_DEFAULT_INPUT = 1;
+  // The name seems convoluted, but this aligns with the
+  // sdk naming in TaskInputsSpec.kind.task_output_parameter
+  // and TaskInputsSpec.kind.task_output_artifact
+  TASK_OUTPUT_INPUT = 2;
+  COMPONENT_INPUT = 3;
+  RUNTIME_VALUE_INPUT = 4;
+  // Used for dsl.Collected
+  // Usage of this type indicates that all
+  // Artifacts within the IOArtifact.artifacts
+  // are inputs collected from sub tasks with
+  // ITERATOR_OUTPUT outputs.
+  COLLECTED_INPUTS = 5;
+  // In a for loop task, introduced via ParallelFor, this type
+  // is used to indicate whether this resolved input belongs
+  // to a parameterIterator or artifactIterator.
+  // In such a case the "artifacts" field for IOArtifact.artifacts
+  // is the list of resolved items for this parallelFor.
+  ITERATOR_INPUT = 6;
+  // Raw Iterator inputs have no producer
+  ITERATOR_INPUT_RAW = 7;
+  // When an output is produced by a Runtime Iteration Task
+  // This value is use to differentiate between standard inputs
+  ITERATOR_OUTPUT = 8;
+  OUTPUT = 9;
+  ONE_OF_OUTPUT = 10;
+  TASK_FINAL_STATUS_OUTPUT = 11;
+}
+
+message IOProducer {
+  string task_name = 1;
+  // When a source is from an iteration Runtime
+  // task type inside a ParallelFor
+  optional int64 iteration = 2;
 }
 
 message ArtifactTask {
@@ -213,37 +312,9 @@ message ArtifactTask {
   string artifact_id = 2;
   string run_id = 3;
   string task_id = 4;
-  ArtifactTaskType type = 5;
-
-  // The task that produced this artifact
-  // For example in the case of a pipeline channel
-  // that is an output artifact you might have as
-  // input something like the following in the IR:
-  //   taskOutputArtifact:
-  //     outputArtifactKey: output_dataset
-  //     producerTask: create-dataset
-  // These fields are used to track this lineage.
-  //
-  // For outputs, the producer task is the component name
-  // of the task that produced the artifact.
-  string producer_task_name = 6;
-  // The key is often the parameter name used
-  // as input/output on the component, but
-  // can also take on the value of other values.
-  // For example:
-  //  * "param-#" when using parameters in a ParallelFor
-  //  * "Output" when using Pythonic Artifacts
-  //
-  // For outputs, the key is the name of the parameter
-  // in the component spec (found in OutputDefinitions)
-  // used to output the artifact.
-  string producer_key = 7;
-
-  // The parameter name for the input/output artifact
-  // This maybe the same as the Artifact name if the
-  // artifact name is not specified. It is used to
-  // resolve artifact pipeline channels.
-  string artifact_key = 8;
+  IOType type = 5;
+  IOProducer producer = 6;
+  string key = 7;
 }
 
 // Note to be confused with RuntimeArtifact in pipelinespec

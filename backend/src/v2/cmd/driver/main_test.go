@@ -52,9 +52,11 @@ func TestSpecParsing(t *testing.T) {
 }
 
 func Test_handleExecutionContainer(t *testing.T) {
-	execution := &driver.Execution{}
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
 
-	executionPaths := &ExecutionPaths{
+	executionPaths := &TaskPaths{
 		Condition: "condition.txt",
 	}
 
@@ -70,9 +72,11 @@ func Test_handleExecutionContainer(t *testing.T) {
 }
 
 func Test_handleExecutionRootDAG(t *testing.T) {
-	execution := &driver.Execution{}
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
 
-	executionPaths := &ExecutionPaths{
+	executionPaths := &TaskPaths{
 		IterationCount: "iteration_count.txt",
 		Condition:      "condition.txt",
 	}
@@ -89,9 +93,9 @@ func Test_handleExecutionRootDAG(t *testing.T) {
 	cleanup(t, executionPaths)
 }
 
-func cleanup(t *testing.T, executionPaths *ExecutionPaths) {
+func cleanup(t *testing.T, executionPaths *TaskPaths) {
 	removeIfExists(t, executionPaths.IterationCount)
-	removeIfExists(t, executionPaths.ExecutionID)
+	removeIfExists(t, executionPaths.TaskID)
 	removeIfExists(t, executionPaths.Condition)
 	removeIfExists(t, executionPaths.PodSpecPatch)
 	removeIfExists(t, executionPaths.CachedDecision)

@@ -278,13 +278,13 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	ReportServerV1 := server.NewReportServerV1(resourceManager)
 	ReportServer := server.NewReportServer(resourceManager)
 
+	ArtifactServer := server.NewArtifactServer(resourceManager)
+
 	apiv1beta1.RegisterExperimentServiceServer(s, ExperimentServerV1)
 	apiv1beta1.RegisterPipelineServiceServer(s, PipelineServerV1)
 	apiv1beta1.RegisterJobServiceServer(s, JobServerV1)
 	apiv1beta1.RegisterRunServiceServer(s, RunServerV1)
-	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
 	apiv1beta1.RegisterReportServiceServer(s, ReportServerV1)
-
 	apiv1beta1.RegisterVisualizationServiceServer(
 		s,
 		server.NewVisualizationServer(
@@ -293,12 +293,12 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 			common.GetStringConfig(cm.VisualizationServicePort),
 		))
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
-
 	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
 	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
 	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
 	apiv2beta1.RegisterRunServiceServer(s, RunServer)
 	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
+	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -341,6 +341,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService", ctx, runtimeMux, tlsCfg)
 	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux, tlsCfg)
 	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux, tlsCfg)
+	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService", ctx, runtimeMux, tlsCfg)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := mux.NewRouter()
@@ -492,7 +493,10 @@ func initConfig() {
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		// Read in config again
-		viper.ReadInConfig()
+		err := viper.ReadInConfig()
+		if err != nil {
+			return
+		}
 	})
 
 	proxy.InitializeConfigWithEnv()

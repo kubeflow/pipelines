@@ -6,6 +6,7 @@ run:
 issues:
   max-same-issues: 0
 
+
 linters:
   default: none
   enable:
@@ -27,6 +28,8 @@ linters:
     staticcheck:
       checks:
         - "all"
+        # Ignore failures on deprecated usage
+        - "-SA1019"
 
 formatters:
   enable:

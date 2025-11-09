@@ -47,9 +47,6 @@ jobs:
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .
-          - image: metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
-            context: .
           - image: viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
@@ -62,9 +59,7 @@ jobs:
           - image: cache-server
             dockerfile: backend/Dockerfile.cacheserver
             context: .
-          - image: metadata-envoy
-            dockerfile: third_party/metadata_envoy/Dockerfile
-            context: .
+
     env:
       ARTIFACT_NAME: "${{ matrix.image }}"
       ARTIFACTS_PATH: "images_${{ github.sha }}"

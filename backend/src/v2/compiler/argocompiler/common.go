@@ -37,21 +37,52 @@ var metadataEnvFrom = k8score.EnvFromSource{
 	},
 }
 
-var commonEnvs = []k8score.EnvVar{{
-	Name: "KFP_POD_NAME",
-	ValueFrom: &k8score.EnvVarSource{
-		FieldRef: &k8score.ObjectFieldSelector{
-			FieldPath: "metadata.name",
+// KFP service account token configuration for authentication with API server
+const (
+	// kfpTokenExpirationSeconds is the expiration time for the projected service account token.
+	// Set to 7200 seconds (2 hours) to provide enough buffer while kubelet auto-rotates tokens.
+	kfpTokenExpirationSeconds = 7200
+	// kfpTokenVolumeName is the name of the volume containing the KFP service account token
+	kfpTokenVolumeName = "kfp-launcher-token"
+	// kfpTokenMountPath is the path where the KFP token is mounted
+	kfpTokenMountPath = "/var/run/secrets/kfp"
+	// kfpTokenAudience is the audience for the projected service account token
+	kfpTokenAudience = "pipelines.kubeflow.org"
+)
+
+// kfpTokenExpirationSecondsPtr returns a pointer to the KFP token expiration seconds constant.
+// This is used for the ServiceAccountTokenProjection ExpirationSeconds field which requires *int64.
+func kfpTokenExpirationSecondsPtr() *int64 {
+	seconds := int64(kfpTokenExpirationSeconds)
+	return &seconds
+}
+
+var commonEnvs = []k8score.EnvVar{
+	{
+		Name: "KFP_POD_NAME",
+		ValueFrom: &k8score.EnvVarSource{
+			FieldRef: &k8score.ObjectFieldSelector{
+				FieldPath: "metadata.name",
+			},
 		},
 	},
-}, {
-	Name: "KFP_POD_UID",
-	ValueFrom: &k8score.EnvVarSource{
-		FieldRef: &k8score.ObjectFieldSelector{
-			FieldPath: "metadata.uid",
+	{
+		Name: "KFP_POD_UID",
+		ValueFrom: &k8score.EnvVarSource{
+			FieldRef: &k8score.ObjectFieldSelector{
+				FieldPath: "metadata.uid",
+			},
 		},
 	},
-}}
+	{
+		Name: "NAMESPACE",
+		ValueFrom: &k8score.EnvVarSource{
+			FieldRef: &k8score.ObjectFieldSelector{
+				FieldPath: "metadata.namespace",
+			},
+		},
+	},
+}
 
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
 func ConfigureCustomCABundle(tmpl *wfapi.Template) {
@@ -110,7 +141,7 @@ func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {
 		wfapi.ExitLifecycleEvent: wfapi.LifecycleHook{
 			Template: exitTemplate,
 			Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
-				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(parentDagID)},
+				{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(parentDagID)},
 			}},
 		},
 	}

@@ -973,6 +973,9 @@ message RuntimeArtifact {
 
   // Custom path for output artifact.
   optional string custom_path = 7;
+
+  // The unique server generated id of the artifact.
+  string artifact_id = 8;
 }
 
 // Message that represents a list of artifacts.

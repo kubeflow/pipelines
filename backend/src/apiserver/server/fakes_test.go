@@ -349,6 +349,73 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	return clientManager, manager, runDetail
 }
 
+// initWithOneTimeRunV2 is the same as initWithOneTimeRun, but uses the V2 fake client manager
+// that generates unique UUIDs to avoid unique constraint violations in tests that create
+// multiple entities.
+func initWithOneTimeRunV2(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Run) {
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+
+	// Create an experiment depending on multi-user mode
+	var apiExperiment *apiv1beta1.Experiment
+	if common.IsMultiUserMode() {
+		apiExperiment = &apiv1beta1.Experiment{
+			Name: "exp1",
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
+		}
+	} else {
+		apiExperiment = &apiv1beta1.Experiment{
+			Name: "exp1",
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
+					Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
+		}
+	}
+	modelExperiment, err := toModelExperiment(apiExperiment)
+	assert.Nil(t, err)
+	exp, err := resourceManager.CreateExperiment(modelExperiment)
+	assert.Nil(t, err)
+
+	ctx := context.Background()
+	if common.IsMultiUserMode() {
+		md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+		ctx = metadata.NewIncomingContext(context.Background(), md)
+	}
+	apiRun := &apiv1beta1.Run{
+		Name: "run1",
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*apiv1beta1.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*apiv1beta1.ResourceReference{
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: exp.Namespace},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+		},
+	}
+	modelRun, err := toModelRun(apiRun)
+	assert.Nil(t, err)
+	runDetail, err := resourceManager.CreateRun(ctx, modelRun)
+	assert.Nil(t, err)
+	return clientManager, resourceManager, runDetail
+}
+
 func AssertUserError(t *testing.T, err error, expectedCode codes.Code) {
 	userError, ok := err.(*util.UserError)
 	assert.True(t, ok)

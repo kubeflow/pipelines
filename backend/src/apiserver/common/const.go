@@ -27,21 +27,21 @@ const (
 	RbacResourceTypeVisualizations     = "visualizations"
 	RbacResourceTypeScheduledWorkflows = "scheduledworkflows"
 	RbacResourceTypeWorkflows          = "workflows"
-
-	RbacResourceVerbArchive       = "archive"
-	RbacResourceVerbUpdate        = "update"
-	RbacResourceVerbCreate        = "create"
-	RbacResourceVerbDelete        = "delete"
-	RbacResourceVerbDisable       = "disable"
-	RbacResourceVerbEnable        = "enable"
-	RbacResourceVerbGet           = "get"
-	RbacResourceVerbList          = "list"
-	RbacResourceVerbRetry         = "retry"
-	RbacResourceVerbTerminate     = "terminate"
-	RbacResourceVerbUnarchive     = "unarchive"
-	RbacResourceVerbReportMetrics = "reportMetrics"
-	RbacResourceVerbReadArtifact  = "readArtifact"
-	RbacResourceVerbReport        = "report"
+	RbacResourceTypeArtifacts          = "artifacts"
+	RbacResourceVerbArchive            = "archive"
+	RbacResourceVerbUpdate             = "update"
+	RbacResourceVerbCreate             = "create"
+	RbacResourceVerbDelete             = "delete"
+	RbacResourceVerbDisable            = "disable"
+	RbacResourceVerbEnable             = "enable"
+	RbacResourceVerbGet                = "get"
+	RbacResourceVerbList               = "list"
+	RbacResourceVerbRetry              = "retry"
+	RbacResourceVerbTerminate          = "terminate"
+	RbacResourceVerbUnarchive          = "unarchive"
+	RbacResourceVerbReportMetrics      = "reportMetrics"
+	RbacResourceVerbReadArtifact       = "readArtifact"
+	RbacResourceVerbReport             = "report"
 )
 
 const (
@@ -52,8 +52,6 @@ const (
 )
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
-
-const DefaultMetadataTLSEnabled = false
 
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
