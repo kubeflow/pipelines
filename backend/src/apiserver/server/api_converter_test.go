@@ -806,9 +806,9 @@ func TestToModelRunMetric(t *testing.T) {
 		Format: apiv1beta1.RunMetric_RAW,
 	}
 
-	actualModelRunMetric, err := toModelRunMetric(apiRunMetric, "run-1")
+	actualModelRunMetric, err := toModelRunMetricV1(apiRunMetric, "run-1")
 	assert.Nil(t, err)
-	expectedModelRunMetric := &model.RunMetric{
+	expectedModelRunMetric := &model.RunMetricV1{
 		RunUUID:     "run-1",
 		Name:        "metric-1",
 		NodeID:      "node-1",
@@ -826,9 +826,9 @@ func TestToModelRunMetric(t *testing.T) {
 			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
 			Format: apiv1beta1.RunMetric_RAW,
 		}
-		_, err := toModelRunMetric(apiRunMetric, "run-1")
+		_, err := toModelRunMetricV1(apiRunMetric, "run-1")
 		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "RunMetric.Name length cannot exceed 191")
+		assert.Contains(t, err.Error(), "RunMetricV1.Name length cannot exceed 191")
 	}
 
 	// Test NodeID length overflow
@@ -840,9 +840,9 @@ func TestToModelRunMetric(t *testing.T) {
 			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
 			Format: apiv1beta1.RunMetric_RAW,
 		}
-		_, err := toModelRunMetric(apiRunMetric, "run-1")
+		_, err := toModelRunMetricV1(apiRunMetric, "run-1")
 		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "RunMetric.NodeID length cannot exceed 191")
+		assert.Contains(t, err.Error(), "RunMetricV1.NodeID length cannot exceed 191")
 	}
 }
 
@@ -1443,13 +1443,13 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 }
 
 func TestToApiRunsV1(t *testing.T) {
-	metric1 := &model.RunMetric{
+	metric1 := &model.RunMetricV1{
 		Name:        "metric-1",
 		NodeID:      "node-1",
 		NumberValue: 0.88,
 		Format:      "RAW",
 	}
-	metric2 := &model.RunMetric{
+	metric2 := &model.RunMetricV1{
 		Name:        "metric-2",
 		NodeID:      "node-2",
 		NumberValue: 0.99,
@@ -1482,7 +1482,7 @@ func TestToApiRunsV1(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		RecurringRunId: "job1",
-		Metrics:        []*model.RunMetric{metric1, metric2},
+		Metrics:        []*model.RunMetricV1{metric1, metric2},
 	}
 	modelRun2 := model.Run{
 		UUID:         "run2",
@@ -1499,7 +1499,7 @@ func TestToApiRunsV1(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		RecurringRunId: "job2",
-		Metrics:        []*model.RunMetric{metric2},
+		Metrics:        []*model.RunMetricV1{metric2},
 	}
 	apiRuns := toApiRunsV1([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*apiv1beta1.Run{
@@ -1551,80 +1551,6 @@ func TestToApiRunsV1(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedApiRun, apiRuns)
-}
-
-func TestToApiTask(t *testing.T) {
-	modelTask := &model.Task{
-		UUID:              DefaultFakeUUID,
-		Namespace:         "",
-		PipelineName:      "pipeline/my-pipeline",
-		RunID:             NonDefaultFakeUUID,
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1,
-		FinishedTimestamp: 2,
-		Fingerprint:       "123",
-	}
-	apiTask := toApiTaskV1(modelTask)
-	expectedApiTask := &apiv1beta1.Task{
-		Id:              DefaultFakeUUID,
-		Namespace:       "",
-		PipelineName:    "pipeline/my-pipeline",
-		RunId:           NonDefaultFakeUUID,
-		MlmdExecutionID: "1",
-		CreatedAt:       timestamppb.New(time.Unix(1, 0)),
-		FinishedAt:      timestamppb.New(time.Unix(2, 0)),
-		Fingerprint:     "123",
-	}
-
-	assert.Equal(t, expectedApiTask, apiTask)
-}
-
-func TestToApiTasks(t *testing.T) {
-	modelTask1 := model.Task{
-		UUID:              "123e4567-e89b-12d3-a456-426655440000",
-		Namespace:         "ns1",
-		PipelineName:      "namespace/ns1/pipeline/my-pipeline-1",
-		RunID:             "123e4567-e89b-12d3-a456-426655440001",
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1,
-		FinishedTimestamp: 2,
-		Fingerprint:       "123",
-	}
-	modelTask2 := model.Task{
-		UUID:              "123e4567-e89b-12d3-a456-426655440002",
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns1/pipeline/my-pipeline-2",
-		RunID:             "123e4567-e89b-12d3-a456-426655440003",
-		MLMDExecutionID:   "2",
-		CreatedTimestamp:  3,
-		FinishedTimestamp: 4,
-		Fingerprint:       "124",
-	}
-
-	apiTasks := toApiTasksV1([]*model.Task{&modelTask1, &modelTask2})
-	expectedApiTasks := []*apiv1beta1.Task{
-		{
-			Id:              "123e4567-e89b-12d3-a456-426655440000",
-			Namespace:       "ns1",
-			PipelineName:    "namespace/ns1/pipeline/my-pipeline-1",
-			RunId:           "123e4567-e89b-12d3-a456-426655440001",
-			MlmdExecutionID: "1",
-			CreatedAt:       timestamppb.New(time.Unix(1, 0)),
-			FinishedAt:      timestamppb.New(time.Unix(2, 0)),
-			Fingerprint:     "123",
-		},
-		{
-			Id:              "123e4567-e89b-12d3-a456-426655440002",
-			Namespace:       "ns2",
-			PipelineName:    "namespace/ns1/pipeline/my-pipeline-2",
-			RunId:           "123e4567-e89b-12d3-a456-426655440003",
-			MlmdExecutionID: "2",
-			CreatedAt:       &timestamppb.Timestamp{Seconds: 3, Nanos: 0},
-			FinishedAt:      &timestamppb.Timestamp{Seconds: 4, Nanos: 0},
-			Fingerprint:     "124",
-		},
-	}
-	assert.Equal(t, expectedApiTasks, apiTasks)
 }
 
 func TestCronScheduledJobtoApiJob(t *testing.T) {
@@ -1986,14 +1912,14 @@ func TestToApiJobs(t *testing.T) {
 }
 
 func TestToApiRunMetric(t *testing.T) {
-	modelRunMetric := &model.RunMetric{
+	modelRunMetric := &model.RunMetricV1{
 		Name:        "metric-1",
 		NodeID:      "node-1",
 		NumberValue: 0.88,
 		Format:      "RAW",
 	}
 
-	actualAPIRunMetric := toApiRunMetricV1(modelRunMetric)
+	actualAPIRunMetric := toAPIRunMetricV1(modelRunMetric)
 
 	expectedAPIRunMetric := &apiv1beta1.RunMetric{
 		Name:   "metric-1",
@@ -2008,14 +1934,14 @@ func TestToApiRunMetric(t *testing.T) {
 
 func TestToApiRunMetric_UnknownFormat(t *testing.T) {
 	// This can happen if we accidentally remove an existing format value from proto.
-	modelRunMetric := &model.RunMetric{
+	modelRunMetric := &model.RunMetricV1{
 		Name:        "metric-1",
 		NodeID:      "node-1",
 		NumberValue: 0.88,
 		Format:      "NotExistValue",
 	}
 
-	actualAPIRunMetric := toApiRunMetricV1(modelRunMetric)
+	actualAPIRunMetric := toAPIRunMetricV1(modelRunMetric)
 
 	expectedAPIRunMetric := &apiv1beta1.RunMetric{
 		Name:   "metric-1",
@@ -3106,748 +3032,6 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 	assert.Equal(t, expected, got)
 }
 
-func Test_toModelTask(t *testing.T) {
-	tests := []struct {
-		name    string
-		apiTask interface{}
-		want    *model.Task
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			"V1 full spec",
-			&apiv1beta1.Task{
-				Id:              "1",
-				Namespace:       "ns1",
-				PipelineName:    "namespaces/ns1/pipelines/p1",
-				RunId:           "2",
-				MlmdExecutionID: "3",
-				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-				FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
-				Fingerprint:     "6",
-			},
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "3",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Fingerprint:       "6",
-				Name:              "",
-				ParentTaskId:      "",
-				State:             model.RuntimeStateUnspecified,
-				StateHistory:      nil,
-				MLMDInputs:        "",
-				MLMDOutputs:       "",
-				ChildrenPods:      nil,
-			},
-			false,
-			"",
-		},
-		{
-			"V2 full spec",
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:       "2",
-				TaskId:      "1",
-				DisplayName: "task",
-				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-				StartTime:   &timestamppb.Timestamp{Seconds: 5},
-				EndTime:     &timestamppb.Timestamp{Seconds: 6},
-				State:       apiv2beta1.RuntimeState_CANCELING,
-				ExecutionId: 7,
-				Inputs: map[string]*apiv2beta1.ArtifactList{
-					"a1": {
-						ArtifactIds: []int64{1, 2, 3},
-					},
-				},
-				Outputs: map[string]*apiv2beta1.ArtifactList{
-					"b2": {
-						ArtifactIds: []int64{4, 5, 6},
-					},
-				},
-				ParentTaskId: "8",
-				StateHistory: []*apiv2beta1.RuntimeStatus{
-					{
-						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-						State:      apiv2beta1.RuntimeState_PAUSED,
-					},
-				},
-				ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-					},
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-					},
-				},
-			},
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "",
-				PipelineName:      "",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			false,
-			"",
-		},
-		{
-			"argo node status",
-			util.NodeStatus{
-				ID:          "1",
-				DisplayName: "node_1",
-				State:       "Pending",
-				Children:    []string{"node3", "node4"},
-				StartTime:   4,
-				CreateTime:  4,
-				FinishTime:  5,
-			},
-			&model.Task{
-				PodName:           "1",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Name:              "node_1",
-				State:             model.RuntimeStatePending,
-				ChildrenPods:      []string{"node3", "node4"},
-			},
-			false,
-			"",
-		},
-		{
-			"invalid type",
-			apiv2beta1.Run{},
-			nil,
-			true,
-			"UnknownApiVersionError: Error using Task with go_client.Run",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := toModelTask(tt.apiTask)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-				assert.Nil(t, got)
-			} else {
-				assert.Nil(t, err)
-				assert.Equal(t, tt.want, got)
-			}
-		})
-	}
-}
-
-func Test_toModelTasks_v2(t *testing.T) {
-	argV2 := []*apiv2beta1.PipelineTaskDetail{
-		{
-			RunId:       "2",
-			TaskId:      "1",
-			DisplayName: "task",
-			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-			StartTime:   &timestamppb.Timestamp{Seconds: 5},
-			EndTime:     &timestamppb.Timestamp{Seconds: 6},
-			State:       apiv2beta1.RuntimeState_FAILED,
-			ExecutionId: 7,
-			Inputs: map[string]*apiv2beta1.ArtifactList{
-				"a1": {
-					ArtifactIds: []int64{1, 2, 3},
-				},
-			},
-			Outputs: map[string]*apiv2beta1.ArtifactList{
-				"b2": {
-					ArtifactIds: []int64{4, 5, 6},
-				},
-			},
-			ParentTaskId: "8",
-			StateHistory: []*apiv2beta1.RuntimeStatus{
-				{
-					UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-					State:      apiv2beta1.RuntimeState_FAILED,
-					Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-				},
-			},
-			ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-				},
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-				},
-			},
-		},
-	}
-	expectedV2 := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "",
-			PipelineName:      "",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateFailed,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStateFailed,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	gotV2, err := toModelTasks(argV2)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedV2, gotV2)
-}
-
-func Test_toModelTasks_wf(t *testing.T) {
-	expectedWf := []*model.Task{
-		{
-			PodName:           "run1-file-passing-pipelines-node0",
-			Namespace:         "kubeflow",
-			RunID:             "run1_uid_true",
-			CreatedTimestamp:  -62135596800,
-			StartedTimestamp:  1675734919,
-			FinishedTimestamp: 1675735118,
-			Name:              "boudary_exec_id",
-			State:             model.RuntimeStateSucceeded,
-			ChildrenPods:      []string{"boudary_exec_id-node1"},
-		},
-		{
-			PodName:           "run1-print-text-node1",
-			Namespace:         "kubeflow",
-			RunID:             "run1_uid_true",
-			CreatedTimestamp:  -62135596800,
-			StartedTimestamp:  1675735015,
-			FinishedTimestamp: 1675735041,
-			Name:              "print-text",
-			State:             model.RuntimeStateSucceeded,
-		},
-	}
-	argWf, err := util.NewWorkflowFromBytes([]byte(`{  "kind": "Workflow",  "apiVersion": "argoproj.io/v1alpha1",  "metadata": {    "name": "run1",    "namespace": "kubeflow",    "uid": "run1_uid",	"labels": {	  "pipeline/runid": "run1_uid_true"	 }  },  "status": {    "phase": "Succeeded",    "startedAt": "2023-02-07T01:55:19Z",    "finishedAt": "2023-02-07T01:58:38Z",    "progress": "9/9",    "nodes": {      "boudary_exec_id-node0": {        "id": "boudary_exec_id-node0",        "name": "boudary_exec_id",        "displayName": "boudary_exec_id",        "type": "DAG",        "templateName": "file-passing-pipelines",        "templateScope": "local/boudary_exec_id",        "phase": "Succeeded",        "startedAt": "2023-02-07T01:55:19Z",        "finishedAt": "2023-02-07T01:58:38Z",        "progress": "9/9",        "resourcesDuration": {"cpu": 53,"memory": 19},        "children": ["boudary_exec_id-node1"],        "outboundNodes": ["boudary_exec_id-node1"]      },      "boudary_exec_id-node1": {        "id": "boudary_exec_id-node1",        "name": "boudary_exec_id.print-text",        "displayName": "print-text",        "type": "Pod",        "templateName": "print-text",        "templateScope": "local/boudary_exec_id",        "phase": "Succeeded",        "boundaryID": "boudary_exec_id",        "startedAt": "2023-02-07T01:56:55Z",        "finishedAt": "2023-02-07T01:57:21Z",        "progress": "1/1",        "resourcesDuration": {"cpu": 15,"memory": 7},        "inputs": {"artifacts": [{"name": "repeat-line-output_text",              "path": "/tmp/inputs/text/data",              "s3": {"key": "art1.tgz"}}]},        "outputs": {"artifacts": [{"name": "main-logs",              "s3": {"key": "art1.log"}}],          "exitCode": "0"},        "hostNodeName": "gke-kfp-node1"      }    }  }}`))
-	assert.Nil(t, err)
-
-	gotWf, err := toModelTasks(argWf)
-	assert.Nil(t, err)
-	if !cmp.Equal(expectedWf, gotWf) {
-		t.Errorf("toModelTasks() diff: %v", cmp.Diff(gotWf, expectedWf))
-	}
-}
-
-func Test_toApiTaskV1(t *testing.T) {
-	tests := []struct {
-		name string
-		args *model.Task
-		want *apiv1beta1.Task
-	}{
-		{
-			"v1 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "3",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Fingerprint:       "6",
-				Name:              "",
-				ParentTaskId:      "",
-				State:             model.RuntimeStateUnspecified,
-				StateHistory:      nil,
-				MLMDInputs:        "",
-				MLMDOutputs:       "",
-				ChildrenPods:      nil,
-			},
-			&apiv1beta1.Task{
-				Id:              "1",
-				Namespace:       "ns1",
-				PipelineName:    "namespaces/ns1/pipelines/p1",
-				RunId:           "2",
-				MlmdExecutionID: "3",
-				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-				FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
-				Fingerprint:     "6",
-			},
-		},
-		{
-			"v2 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv1beta1.Task{
-				Id:              "1",
-				Namespace:       "ns1",
-				PipelineName:    "namespaces/ns1/pipelines/p1",
-				RunId:           "2",
-				MlmdExecutionID: "7",
-				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-				FinishedAt:      &timestamppb.Timestamp{Seconds: 6},
-				Fingerprint:     "fp",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := toApiTaskV1(tt.args)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func Test_toApiTasksV1(t *testing.T) {
-	arg := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "3",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  4,
-			FinishedTimestamp: 5,
-			Fingerprint:       "6",
-			Name:              "",
-			ParentTaskId:      "",
-			State:             model.RuntimeStateUnspecified,
-			StateHistory:      nil,
-			MLMDInputs:        "",
-			MLMDOutputs:       "",
-			ChildrenPods:      nil,
-		},
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	expected := []*apiv1beta1.Task{
-		{
-			Id:              "1",
-			Namespace:       "ns1",
-			PipelineName:    "namespaces/ns1/pipelines/p1",
-			RunId:           "2",
-			MlmdExecutionID: "3",
-			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-			FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
-			Fingerprint:     "6",
-		},
-		{
-			Id:              "1",
-			Namespace:       "ns1",
-			PipelineName:    "namespaces/ns1/pipelines/p1",
-			RunId:           "2",
-			MlmdExecutionID: "7",
-			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-			FinishedAt:      &timestamppb.Timestamp{Seconds: 6},
-			Fingerprint:     "fp",
-		},
-	}
-	got := toApiTasksV1(arg)
-	assert.Equal(t, expected, got)
-}
-
-func Test_toApiPipelineTaskDetail(t *testing.T) {
-	tests := []struct {
-		name    string
-		args    *model.Task
-		want    *apiv2beta1.PipelineTaskDetail
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			"v1 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "3",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Fingerprint:       "6",
-				State:             model.RuntimeStateUnspecified,
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:       "2",
-				TaskId:      "1",
-				DisplayName: "",
-				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-				StartTime:   &timestamppb.Timestamp{Seconds: 4},
-				EndTime:     &timestamppb.Timestamp{Seconds: 5},
-				State:       apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
-				ExecutionId: 3,
-			},
-			false,
-			"",
-		},
-		{
-			"v2 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:       "2",
-				TaskId:      "1",
-				DisplayName: "task",
-				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-				StartTime:   &timestamppb.Timestamp{Seconds: 5},
-				EndTime:     &timestamppb.Timestamp{Seconds: 6},
-				State:       apiv2beta1.RuntimeState_CANCELING,
-				ExecutionId: 7,
-				Inputs: map[string]*apiv2beta1.ArtifactList{
-					"a1": {
-						ArtifactIds: []int64{1, 2, 3},
-					},
-				},
-				Outputs: map[string]*apiv2beta1.ArtifactList{
-					"b2": {
-						ArtifactIds: []int64{4, 5, 6},
-					},
-				},
-				ParentTaskId: "8",
-				StateHistory: []*apiv2beta1.RuntimeStatus{
-					{
-						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-						State:      apiv2beta1.RuntimeState_PAUSED,
-						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
-					},
-				},
-				ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-					},
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-					},
-				},
-			},
-			false,
-			"",
-		},
-		{
-			"v2 wrong inputs",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:  "2",
-				TaskId: "1",
-			},
-			true,
-			"Failed to convert task's internal representation to its API counterpart due to error parsing inputs",
-		},
-		{
-			"v2 wrong outputs",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:  "2",
-				TaskId: "1",
-			},
-			true,
-			"Failed to convert task's internal representation to its API counterpart due to error parsing outputs",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := toApiPipelineTaskDetail(tt.args)
-			if tt.wantErr {
-				assert.Equal(t, tt.want.GetRunId(), got.GetRunId())
-				assert.Equal(t, tt.want.GetTaskId(), got.GetTaskId())
-				assert.Contains(t, got.Error.Message, tt.errMsg)
-			} else {
-				assert.Equal(t, tt.want, got)
-			}
-		})
-	}
-}
-
-func Test_toApiPipelineTaskDetails(t *testing.T) {
-	args := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "3",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  4,
-			FinishedTimestamp: 5,
-			Fingerprint:       "6",
-			State:             model.RuntimeStateUnspecified,
-		},
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	expected := []*apiv2beta1.PipelineTaskDetail{
-		{
-			RunId:       "2",
-			TaskId:      "1",
-			DisplayName: "",
-			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-			StartTime:   &timestamppb.Timestamp{Seconds: 4},
-			EndTime:     &timestamppb.Timestamp{Seconds: 5},
-			State:       apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
-			ExecutionId: 3,
-		},
-		{
-			RunId:       "2",
-			TaskId:      "1",
-			DisplayName: "task",
-			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-			StartTime:   &timestamppb.Timestamp{Seconds: 5},
-			EndTime:     &timestamppb.Timestamp{Seconds: 6},
-			State:       apiv2beta1.RuntimeState_CANCELING,
-			ExecutionId: 7,
-			Inputs: map[string]*apiv2beta1.ArtifactList{
-				"a1": {
-					ArtifactIds: []int64{1, 2, 3},
-				},
-			},
-			Outputs: map[string]*apiv2beta1.ArtifactList{
-				"b2": {
-					ArtifactIds: []int64{4, 5, 6},
-				},
-			},
-			ParentTaskId: "8",
-			StateHistory: []*apiv2beta1.RuntimeStatus{
-				{
-					UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-					State:      apiv2beta1.RuntimeState_PAUSED,
-					Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
-				},
-			},
-			ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-				},
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-				},
-			},
-		},
-	}
-	got := toApiPipelineTaskDetails(args)
-	assert.Equal(t, expected, got)
-
-	args2 := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	got2 := toApiPipelineTaskDetails(args2)
-	assert.Contains(t, got2[0].Error.Message, "Failed to convert task's internal representation to its API counterpart due to error parsing inputs")
-	assert.Contains(t, got2[1].Error.Message, "Failed to convert task's internal representation to its API counterpart due to error parsing outputs")
-	expected2 := &apiv2beta1.PipelineTaskDetail{
-		RunId:  "2",
-		TaskId: "1",
-	}
-	expected2.Error = got2[0].GetError()
-	assert.Equal(t, expected2, got2[0])
-	expected2.Error = got2[1].GetError()
-	assert.Equal(t, expected2, got2[1])
-}
-
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -3884,61 +3068,6 @@ func TestToModelRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run1",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_FAILED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-								},
-							},
-							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task2"},
-								},
-							},
-						},
-						{
-							RunId:          "run1",
-							TaskId:         "task2",
-							DisplayName:    "this is task 2",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_CANCELED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							ParentTaskId: "task1",
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_CANCELED,
-								},
-							},
-						},
-					},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -3979,56 +3108,8 @@ func TestToModelRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    0,
 					PipelineRunContextId: 0,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run1",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateFailed,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
-								},
-							},
-							ChildrenPods: []string{"task2"},
-						},
-						{
-							UUID:              "task2",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run1",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task 2",
-							ParentTaskId:      "task1",
-							State:             model.RuntimeStateCanceled,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateCanceled,
-								},
-							},
-						},
-					},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
@@ -4080,31 +3161,6 @@ func TestToModelRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run2",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_RUNNING,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_RUNNING,
-								},
-							},
-						},
-					},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -4141,32 +3197,8 @@ func TestToModelRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    0,
 					PipelineRunContextId: 0,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateRunning,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateRunning,
-								},
-							},
-						},
-					},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
@@ -4201,61 +3233,7 @@ func TestToModelRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run1",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_FAILED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-								},
-							},
-							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task2"},
-								},
-							},
-						},
-						{
-							RunId:          "run1",
-							TaskId:         "task2",
-							DisplayName:    "this is task 2",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_CANCELED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							ParentTaskId: "task1",
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_CANCELED,
-								},
-							},
-						},
-					},
+					TaskDetails:          []*apiv2beta1.PipelineTaskDetail{},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -4446,33 +3424,8 @@ func Test_toApiRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateFailed,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
-								},
-							},
-						},
-					},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
@@ -4519,32 +3472,6 @@ func Test_toApiRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run2",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_FAILED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-								},
-							},
-						},
-					},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -4587,33 +3514,9 @@ func Test_toApiRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateCancelling,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateCancelling,
-								},
-							},
-							ChildrenPods: []string{"task3", "task4"},
-						},
-					},
+					TaskDetails:          []*model.Task{},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
@@ -4649,30 +3552,7 @@ func Test_toApiRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStatePaused,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStatePaused,
-								},
-							},
-							ChildrenPods: []string{"task3", "task4"},
-						},
-					},
+					TaskDetails:          []*model.Task{},
 				},
 				ResourceReferences: nil,
 				Metrics:            nil,

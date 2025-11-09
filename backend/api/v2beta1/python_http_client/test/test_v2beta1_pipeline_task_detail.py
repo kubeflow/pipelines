@@ -36,46 +36,28 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
         # model = kfp_server_api.models.v2beta1_pipeline_task_detail.V2beta1PipelineTaskDetail()  # noqa: E501
         if include_optional :
             return V2beta1PipelineTaskDetail(
-                run_id = '0', 
-                task_id = '0', 
+                name = '0', 
                 display_name = '0', 
+                task_id = '0', 
+                run_id = '0', 
+                pods = [
+                    kfp_server_api.models.pipeline_task_detail_task_pod.PipelineTaskDetailTaskPod(
+                        name = '0', 
+                        uid = '0', 
+                        type = 'UNSPECIFIED', )
+                    ], 
+                cache_fingerprint = '0', 
                 create_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 start_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 end_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                executor_detail = kfp_server_api.models.v2beta1_pipeline_task_executor_detail.v2beta1PipelineTaskExecutorDetail(
-                    main_job = '0', 
-                    pre_caching_check_job = '0', 
-                    failed_main_jobs = [
-                        '0'
-                        ], 
-                    failed_pre_caching_check_jobs = [
-                        '0'
-                        ], ), 
                 state = 'RUNTIME_STATE_UNSPECIFIED', 
-                execution_id = '0', 
-                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
-                    code = 56, 
+                status_metadata = kfp_server_api.models.pipeline_task_detail_status_metadata.PipelineTaskDetailStatusMetadata(
                     message = '0', 
-                    details = [
-                        {
-                            'key' : None
-                            }
-                        ], ), 
-                inputs = {
-                    'key' : kfp_server_api.models.v2beta1_artifact_list.v2beta1ArtifactList(
-                        artifact_ids = [
-                            '0'
-                            ], )
-                    }, 
-                outputs = {
-                    'key' : kfp_server_api.models.v2beta1_artifact_list.v2beta1ArtifactList(
-                        artifact_ids = [
-                            '0'
-                            ], )
-                    }, 
-                parent_task_id = '0', 
+                    custom_properties = {
+                        'key' : None
+                        }, ), 
                 state_history = [
-                    kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
+                    kfp_server_api.models.pipeline_task_detail_task_status.PipelineTaskDetailTaskStatus(
                         update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         state = 'RUNTIME_STATE_UNSPECIFIED', 
                         error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
@@ -87,11 +69,54 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                                     }
                                 ], ), )
                     ], 
-                pod_name = '0', 
+                type = 'ROOT', 
+                type_attributes = kfp_server_api.models.pipeline_task_detail_type_attributes.PipelineTaskDetailTypeAttributes(
+                    iteration_index = '0', 
+                    iteration_count = '0', ), 
+                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                    code = 56, 
+                    message = '0', 
+                    details = [
+                        {
+                            'key' : None
+                            }
+                        ], ), 
+                parent_task_id = '0', 
                 child_tasks = [
                     kfp_server_api.models.pipeline_task_detail_child_task.PipelineTaskDetailChildTask(
                         task_id = '0', 
-                        pod_name = '0', )
+                        name = '0', )
+                    ], 
+                inputs = kfp_server_api.models.pipeline_task_detail_input_outputs.PipelineTaskDetailInputOutputs(
+                    parameters = [
+                        kfp_server_api.models.input_outputs_io_parameter.InputOutputsIOParameter(
+                            value = kfp_server_api.models.value.value(), 
+                            type = 'UNSPECIFIED', 
+                            parameter_key = '0', 
+                            producer = kfp_server_api.models.v2beta1_io_producer.v2beta1IOProducer(
+                                task_name = '0', 
+                                iteration = '0', ), )
+                        ], 
+                    artifacts = [
+                        kfp_server_api.models.align_structure_with_executor_input.Align structure with Executor Input(
+                            artifact_key = '0', )
+                        ], ), 
+                outputs = kfp_server_api.models.pipeline_task_detail_input_outputs.PipelineTaskDetailInputOutputs(
+                    parameters = [
+                        kfp_server_api.models.input_outputs_io_parameter.InputOutputsIOParameter(
+                            value = kfp_server_api.models.value.value(), 
+                            type = 'UNSPECIFIED', 
+                            parameter_key = '0', 
+                            producer = kfp_server_api.models.v2beta1_io_producer.v2beta1IOProducer(
+                                task_name = '0', 
+                                iteration = '0', ), )
+                        ], 
+                    artifacts = [
+                        kfp_server_api.models.align_structure_with_executor_input.Align structure with Executor Input(
+                            artifact_key = '0', )
+                        ], ), 
+                scope_path = [
+                    '0'
                     ]
             )
         else :

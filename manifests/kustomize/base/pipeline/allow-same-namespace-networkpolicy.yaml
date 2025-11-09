@@ -8,5 +8,14 @@ spec:
   ingress:
     - from:
         - podSelector: {}
+    # Allow pods in profile namespace (namely launcher/driver) pods to communicate with
+    # the API server.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: kubeflow-profile
+      ports:
+        - protocol: TCP
+          port: 8887
   policyTypes:
     - Ingress

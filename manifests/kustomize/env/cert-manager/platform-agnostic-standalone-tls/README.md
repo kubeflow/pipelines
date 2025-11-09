@@ -9,9 +9,5 @@ The Scheduledworkflow Controller is mounted with the TLS cert CA and sends HTTPS
 The Persistence Agent is mounted with the TLS cert CA and sends HTTPS requests to the API server.
 ### KFP UI
 The UI deployment is mounted with the TLS cert CA and sends HTTPS requests to the metadata-envoy deployment and the API server.
-### Metadata-Envoy
-The Metadata Envoy deployment is mounted with TLS key/cert and serves requests over TLS
-### Metadata-gRPC
-The Metadata gRPC deployment is mounted with TLS key/cert and serves requests over TLS
 ### Driver & Launcher
 The driver and launcher pods are configured with the TLS cert CA in addition to system CAs in  order to send HTTPS requests to the both the API server and metadata-gRPC deployment.
