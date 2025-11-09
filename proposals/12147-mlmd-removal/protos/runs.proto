@@ -105,13 +105,14 @@ message PipelineTaskDetail {
   // Name of the corresponding pod assigned by the orchestration engine.
   // Also known as node_id.
   enum TaskPodType {
-    DRIVER = 0;
-    EXECUTOR = 1;
+    UNSPECIFIED = 0;
+    DRIVER = 1;
+    EXECUTOR = 2;
   }
   message TaskPod {
     string name = 1;
     string uid = 2;
-    string type = 3;
+    TaskPodType type = 3;
   }
   repeated TaskPod pods = 5;
 
@@ -127,25 +128,63 @@ message PipelineTaskDetail {
   google.protobuf.Timestamp end_time = 9;
 
   // Runtime state of a Task
-  RuntimeState status = 10;
+  enum TaskState {
+    // Default value. This value is not used.
+    RUNTIME_STATE_UNSPECIFIED = 0;
 
-  // Custom status metadata, this can be used to provide
-  // additional status info for a given task during runtime
-  map<string, google.protobuf.Value> status_metadata = 11;
+    // Entity execution is in progress.
+    RUNNING = 1;
+
+    // Entity completed successfully.
+    SUCCEEDED = 2;
+
+    // Entity has been skipped. For example, due to caching.
+    SKIPPED = 3;
+
+    // Entity execution has failed.
+    FAILED = 4;
+
+    CACHED = 5;
+  }
+  TaskState state = 10;
+
+
+  message StatusMetadata {
+    // KFP Backend will populate this field with error messages
+    // if any are available on a Failed task.
+    string message = 1;
+    // Custom status metadata, this can be used to provide
+    // additional status info for a given task during runtime
+    // This is currently not utilized by KFP backend.
+    map<string, google.protobuf.Value> custom_properties = 2;
+  }
+  StatusMetadata status_metadata = 11;
+
+  // Timestamped representation of a Task state with an optional error.
+  message TaskStatus {
+    google.protobuf.Timestamp update_time = 1;
+    TaskState state = 2;
+    google.rpc.Status error = 3;
+  }
 
   // A sequence of task statuses. This field keeps a record
   // of state transitions.
-  repeated RuntimeStatus state_history = 12;
+  repeated TaskStatus state_history = 12;
 
   enum TaskType {
     // Root task replaces Root Execution, it is the top ancestor task to all tasks in the pipeline run
     ROOT = 0;
     RUNTIME = 1;
+    // Condition Branch is the wrapper If block
     CONDITION_BRANCH = 2;
+    // Condition is an individual if branch (this feels counter intuitive but this is how it's named in the SDK IR)
+    // and we are consistent with the naming here.
     CONDITION = 3;
+    // Task Group for Condition Branches
+    // Task Group for Loop Iterations
     LOOP = 4;
-    LOOP_ITERATION = 5;
-    EXIT_HANDLER = 6;
+    EXIT_HANDLER = 5;
+    IMPORTER = 6;
     // Generic DAG task type for types like Nested Pipelines
     // where there is no declarative way to detect this within
     // a driver.
@@ -154,10 +193,10 @@ message PipelineTaskDetail {
   TaskType type = 13;
 
   message TypeAttributes {
-    // Optional. Applies to type LOOP_ITERATION
-    int64 iteration_index = 1;
+    // Optional. Applies to type Runtime that is an iteration
+    optional int64 iteration_index = 1;
     // Optional. Applies to type LOOP
-    int64 iteration_count = 2;
+    optional int64 iteration_count = 2;
   }
 
   TypeAttributes type_attributes = 14;
@@ -168,63 +207,55 @@ message PipelineTaskDetail {
 
   // ID of the parent task if the task is within a component scope.
   // Empty if the task is at the root level.
-  string parent_task_id = 16;
+  optional string parent_task_id = 16;
 
   // A dependent task that requires this one to succeed.
   // Represented by either task_id or pod_name.
+  // TODO(HumairAK): Do we need this if we have parent_task_id?
   message ChildTask {
     // System-generated ID of a task.
     string task_id = 1;
-
     string name = 2;
-
-    // Name of the corresponding pod assigned by the orchestration engine.
-    // Also known as node_id.
-    repeated TaskPod pods = 3;
   }
 
   // Sequence of dependent tasks.
   repeated ChildTask child_tasks = 17;
 
   message InputOutputs {
-
-    message IOProducer {
-      string task_name = 1;
-      // This would be the equivalent of output_parameter_key from the upstream task
-      // when it's a parameter input, or output_artifact_key when it is an Artifact.
-      string key = 2;
+    message IOParameter {
+      google.protobuf.Value value = 1;
+      IOType type = 2;
+      string parameter_key = 3;
+      // This field is optional because in the case of
+      // Input RuntimeValues, ComponentDefaultInputs,
+      // and Raw Iterator Input there are no producers.
+      optional IOProducer producer = 4;
     }
 
-    message Parameter {
-      string value = 1;
-      // Optional, this is only included on Runtime Tasks when the parameter name is known.
-      optional string name = 2;
-      // Not all Parameters have task producers,
-      // For example they can also be Runtime Constants.
-      // Whereas in the case of a PipelineChannel, they
-      // do have a producer.
-      optional IOProducer producer = 3;
-    }
+    // Align structure with Executor Input
     message IOArtifact {
-      // Optional, this is only included on Runtime Tasks when the parameter name is known.
-      string parameter_name = 1;
-
-      Artifact value = 2;
-
-      // All IO artifacts have a producer, so the following
-      // fields are required. In the case of importer
-      // where the artifact is set to reimport = true
-      // the name & key are importer-[0-9]+ and "artifact"
-      IOProducer producer = 3;
+      repeated Artifact artifacts = 1;
+      IOType type = 2;
+      string artifact_key = 3;
+      IOProducer producer = 4;
     }
-    repeated Parameter parameters = 1;
-    // Output Only. To create Artifacts for a task are created
-    // via ArtifactTasks.
+    // For Loops parameters are filled with resolved
+    // parameterIterator.items
+    repeated IOParameter parameters = 1;
+
+    // Output Only. To create Artifacts for a task use
+    // ArtifactTasks to link artifacts to tasks.
     repeated IOArtifact artifacts = 2;
   }
-
   InputOutputs inputs = 18;
   InputOutputs outputs = 19;
+
+  // The scope of this task within the
+  // pipeline spec. Each entry represents
+  // either a Dag Task or a Container task.
+  // Note that Container task will are
+  // always the last entry in a scope_path.
+  repeated string scope_path = 20;
 }
 
 
@@ -236,7 +267,6 @@ message Run {
   // output only
   string pipeline_version_id = 19;
   repeated PipelineTaskDetail tasks = 20;
-
 
   // Either remove or deprecate this
   RunDetails run_details = 15;

@@ -26,4 +26,4 @@ export UPDATE_EXPECTED=false
 go test . # verify your changes
 ```
 
-Note that it is very unlikely you should need to update this code, if you do then it is a good sign you are introducing breaking changes, so use it wisely. 
+Take care when updating these files, as they are used to verify backwards compatibility.

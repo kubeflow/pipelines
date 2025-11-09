@@ -26,12 +26,15 @@ RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:master
 CONTAINER_ENGINE ?= docker
 
 # Generate clients using a pre-built api-generator image.
+# Note that:
+# :Z is the standard SELinux-friendly way to run containers against your dev tree.
+# :Z will set the repo on disk being SE labeled container_file_t while you’re working
 .PHONY: generate
 generate: fetch-dependencies hack/generator.sh $(API_VERSION)/*.proto
 	${CONTAINER_ENGINE} run --interactive --rm \
 		-e API_VERSION=$(API_VERSION) \
 		--user $$(id -u):$$(id -g) \
-		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
+		-v "$$(pwd)/../..":/go/src/github.com/kubeflow/pipelines:Z \
 		$(PREBUILT_REMOTE_IMAGE) /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh
 
 # Use the release image since it has some additional dependencies

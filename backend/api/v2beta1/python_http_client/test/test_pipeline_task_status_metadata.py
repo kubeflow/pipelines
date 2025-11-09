@@ -16,11 +16,19 @@ import unittest
 import datetime
 
 import kfp_server_api
+<<<<<<<< HEAD:backend/api/v2beta1/python_http_client/test/test_pipeline_task_status_metadata.py
 from kfp_server_api.models.pipeline_task_status_metadata import PipelineTaskStatusMetadata  # noqa: E501
 from kfp_server_api.rest import ApiException
 
 class TestPipelineTaskStatusMetadata(unittest.TestCase):
     """PipelineTaskStatusMetadata unit test stubs"""
+========
+from kfp_server_api.models.pipeline_task_detail_status_metadata import PipelineTaskDetailStatusMetadata  # noqa: E501
+from kfp_server_api.rest import ApiException
+
+class TestPipelineTaskDetailStatusMetadata(unittest.TestCase):
+    """PipelineTaskDetailStatusMetadata unit test stubs"""
+>>>>>>>> 3be92f4dc (feat(backend): replace MLMD with native artifact and task storage):backend/api/v2beta1/python_http_client/test/test_pipeline_task_detail_status_metadata.py
 
     def setUp(self):
         pass
@@ -29,6 +37,7 @@ class TestPipelineTaskStatusMetadata(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
+<<<<<<<< HEAD:backend/api/v2beta1/python_http_client/test/test_pipeline_task_status_metadata.py
         """Test PipelineTaskStatusMetadata
             include_option is a boolean, when False only required
             params are included, when True both required and
@@ -36,17 +45,34 @@ class TestPipelineTaskStatusMetadata(unittest.TestCase):
         # model = kfp_server_api.models.pipeline_task_status_metadata.PipelineTaskStatusMetadata()  # noqa: E501
         if include_optional :
             return PipelineTaskStatusMetadata(
+========
+        """Test PipelineTaskDetailStatusMetadata
+            include_option is a boolean, when False only required
+            params are included, when True both required and
+            optional params are included """
+        # model = kfp_server_api.models.pipeline_task_detail_status_metadata.PipelineTaskDetailStatusMetadata()  # noqa: E501
+        if include_optional :
+            return PipelineTaskDetailStatusMetadata(
+>>>>>>>> 3be92f4dc (feat(backend): replace MLMD with native artifact and task storage):backend/api/v2beta1/python_http_client/test/test_pipeline_task_detail_status_metadata.py
                 message = '0', 
                 custom_properties = {
                     'key' : None
                     }
             )
         else :
+<<<<<<<< HEAD:backend/api/v2beta1/python_http_client/test/test_pipeline_task_status_metadata.py
             return PipelineTaskStatusMetadata(
         )
 
     def testPipelineTaskStatusMetadata(self):
         """Test PipelineTaskStatusMetadata"""
+========
+            return PipelineTaskDetailStatusMetadata(
+        )
+
+    def testPipelineTaskDetailStatusMetadata(self):
+        """Test PipelineTaskDetailStatusMetadata"""
+>>>>>>>> 3be92f4dc (feat(backend): replace MLMD with native artifact and task storage):backend/api/v2beta1/python_http_client/test/test_pipeline_task_detail_status_metadata.py
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

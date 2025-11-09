@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
 - ../../base/installs/generic
-- ../../base/metadata/base
 - ../../third-party/argo/installs/namespace
 - ../../third-party/seaweedfs/base
 - ../../third-party/mysql/base

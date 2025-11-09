@@ -14,29 +14,25 @@
 package component
 
 import (
+	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/stretchr/testify/assert"
-	"gocloud.dev/blob"
-	_ "gocloud.dev/blob/memblob"
 	"google.golang.org/protobuf/types/known/structpb"
-	k8score "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -55,8 +51,299 @@ var addNumbersComponent = &pipelinespec.ComponentSpec{
 	},
 }
 
+// Example_launcherV2WithMocks demonstrates how to test LauncherV2.Execute with all dependencies mocked.
+// This example shows the complete pattern for component-level testing.
+func TestExample_launcherV2WithMocks(t *testing.T) {
+	// Step 1: Create mock KFP API
+	mockAPI := kfpapi.NewMockAPI()
+
+	// Step 2: Create test run and task
+	runID := "test-run-123"
+	taskID := "test-task-456"
+
+	run := &apiv2beta1.Run{
+		RunId:       runID,
+		DisplayName: "test-run",
+		State:       apiv2beta1.RuntimeState_RUNNING,
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+		Tasks: []*apiv2beta1.PipelineTaskDetail{},
+	}
+	mockAPI.AddRun(run)
+
+	task := &apiv2beta1.PipelineTaskDetail{
+		TaskId:  taskID,
+		RunId:   runID,
+		Name:    "test-task",
+		State:   apiv2beta1.PipelineTaskDetail_RUNNING,
+		Type:    apiv2beta1.PipelineTaskDetail_RUNTIME,
+		Inputs:  &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+		Outputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+	}
+
+	// Step 3: Create executor input with inputs and outputs
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input_param": structpb.NewStringValue("test_value"),
+			},
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"input_data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Name: "dataset",
+							Uri:  "s3://bucket/input/data.csv",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+									SchemaTitle: "system.Dataset",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
+				"output_metric": {
+					OutputFile: "/tmp/outputs/output_metric",
+				},
+			},
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Name: "trained-model",
+							Uri:  "s3://bucket/output/model.pkl",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+									SchemaTitle: "system.Model",
+								},
+							},
+						},
+					},
+				},
+			},
+			OutputFile: "/tmp/kfp_outputs/output_metadata.json",
+		},
+	}
+
+	executorInputJSON, _ := protojson.Marshal(executorInput)
+
+	// Step 4: Create component spec
+	componentSpec := &pipelinespec.ComponentSpec{
+		InputDefinitions: &pipelinespec.ComponentInputsSpec{
+			Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+				"input_param": {
+					ParameterType: pipelinespec.ParameterType_STRING,
+				},
+			},
+		},
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+			Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+				"output_metric": {
+					ParameterType: pipelinespec.ParameterType_NUMBER_DOUBLE,
+				},
+			},
+		},
+	}
+
+	// Step 5: Create task spec
+	taskSpec := &pipelinespec.PipelineTaskSpec{
+		TaskInfo: &pipelinespec.PipelineTaskInfo{
+			Name: "train-model",
+		},
+	}
+
+	// Step 6: Create launcher options
+	opts := &LauncherV2Options{
+		Namespace:     "default",
+		PodName:       "train-model-pod",
+		PodUID:        "pod-uid-123",
+		PipelineName:  "training-pipeline",
+		PublishLogs:   "false",
+		ComponentSpec: componentSpec,
+		TaskSpec:      taskSpec,
+		ScopePath:     util.ScopePath{},
+		Run:           run,
+		Task:          task,
+		PipelineSpec:  &structpb.Struct{},
+	}
+
+	// Step 7: Create launcher with client manager
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+	launcher, err := NewLauncherV2(
+		string(executorInputJSON),
+		[]string{"python", "train.py", "--data", "{{$.inputs.artifacts['input_data'].path}}"},
+		opts,
+		clientManager,
+	)
+	require.NoError(t, err)
+
+	// Step 8: Setup mocks for dependencies
+	mockFS := NewMockFileSystem()
+	mockCmd := NewMockCommandExecutor()
+	mockObjStore := NewMockObjectStoreClient()
+
+	// Configure file system with output data
+	mockFS.SetFileContent("/tmp/outputs/output_metric", []byte("0.95"))
+	mockFS.SetFileContent("/tmp/kfp_outputs/output_metadata.json", []byte("{}"))
+
+	// Configure object store with input data
+	mockObjStore.SetArtifact("s3://bucket/input/data.csv", []byte("col1,col2\n1,2\n"))
+
+	// Configure command executor to succeed
+	mockCmd.RunError = nil
+
+	// Step 9: Inject mocks into launcher
+	launcher.WithFileSystem(mockFS).
+		WithCommandExecutor(mockCmd).
+		WithObjectStore(mockObjStore)
+
+	// Step 10: Execute the launcher's internal execute method
+	ctx := context.Background()
+	executorOutput, err := launcher.execute(ctx, "python", []string{"train.py"})
+	require.NotNil(t, executorOutput)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output: Test passed - launcher executed successfully with mocked dependencies
+	println("Test passed - launcher executed successfully with mocked dependencies")
+}
+
+// TestLauncherV2_ArtifactHandling demonstrates testing artifact download and upload
+func TestLauncherV2_ArtifactHandling(t *testing.T) {
+	// Setup
+	ctx := context.Background()
+	mockObjStore := NewMockObjectStoreClient()
+
+	// Simulate pre-existing input artifact
+	mockObjStore.SetArtifact("s3://bucket/input/dataset.csv", []byte("training,data"))
+
+	// Test download
+	err := mockObjStore.DownloadArtifact(ctx, "s3://bucket/input/dataset.csv", "/local/dataset.csv", "input_data")
+	require.NoError(t, err)
+
+	// Verify download was called with correct parameters
+	assert.Len(t, mockObjStore.DownloadCalls, 1)
+	assert.Equal(t, "input_data", mockObjStore.DownloadCalls[0].ArtifactKey)
+	assert.Equal(t, "s3://bucket/input/dataset.csv", mockObjStore.DownloadCalls[0].RemoteURI)
+	assert.Equal(t, "/local/dataset.csv", mockObjStore.DownloadCalls[0].LocalPath)
+
+	// Test upload
+	err = mockObjStore.UploadArtifact(ctx, "/local/model.pkl", "s3://bucket/output/model.pkl", "model_output")
+	require.NoError(t, err)
+
+	// Verify upload was called
+	assert.Len(t, mockObjStore.UploadCalls, 1)
+	assert.Equal(t, "model_output", mockObjStore.UploadCalls[0].ArtifactKey)
+
+	// Verify artifact can be queried
+	modelUploads := mockObjStore.GetUploadCallsForKey("model_output")
+	assert.Len(t, modelUploads, 1)
+	assert.Equal(t, "s3://bucket/output/model.pkl", modelUploads[0].RemoteURI)
+}
+
+// TestLauncherV2_CommandExecution demonstrates testing command execution
+func TestLauncherV2_CommandExecution(t *testing.T) {
+	mockCmd := NewMockCommandExecutor()
+
+	// Setup custom behavior to write to stdout
+	mockCmd.RunFunc = func(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
+		// Simulate successful execution
+		stdout.Write([]byte("Training completed successfully\n"))
+		stdout.Write([]byte("Accuracy: 0.95\n"))
+		return nil
+	}
+
+	// Execute command
+	ctx := context.Background()
+	var stdout, stderr bytes.Buffer
+	err := mockCmd.Run(ctx, "python", []string{"train.py"}, nil, &stdout, &stderr)
+
+	// Verify
+	require.NoError(t, err)
+	assert.Contains(t, stdout.String(), "Training completed successfully")
+	assert.Contains(t, stdout.String(), "Accuracy: 0.95")
+
+	// Verify command was called correctly
+	assert.Equal(t, 1, mockCmd.CallCount())
+	assert.Equal(t, "python", mockCmd.RunCalls[0].Cmd)
+	assert.Equal(t, []string{"train.py"}, mockCmd.RunCalls[0].Args)
+}
+
+// TestLauncherV2_FileSystemOperations demonstrates testing file system operations
+func TestLauncherV2_FileSystemOperations(t *testing.T) {
+	mockFS := NewMockFileSystem()
+
+	// Test directory creation
+	err := mockFS.MkdirAll("/tmp/outputs", 0755)
+	require.NoError(t, err)
+
+	// Test file writing
+	err = mockFS.WriteFile("/tmp/outputs/metrics.json", []byte(`{"accuracy": 0.95}`), 0644)
+	require.NoError(t, err)
+
+	// Test file reading
+	content, err := mockFS.ReadFile("/tmp/outputs/metrics.json")
+	require.NoError(t, err)
+	assert.Equal(t, `{"accuracy": 0.95}`, string(content))
+
+	// Verify all operations were tracked
+	assert.Len(t, mockFS.MkdirAllCalls, 1)
+	assert.Equal(t, "/tmp/outputs", mockFS.MkdirAllCalls[0].Path)
+
+	assert.Len(t, mockFS.WriteFileCalls, 1)
+	assert.Equal(t, "/tmp/outputs/metrics.json", mockFS.WriteFileCalls[0].Name)
+
+	assert.Len(t, mockFS.ReadFileCalls, 1)
+	assert.Equal(t, "/tmp/outputs/metrics.json", mockFS.ReadFileCalls[0])
+}
+
+// TestLauncherV2_TaskStatusUpdates demonstrates testing KFP API task updates
+func TestLauncherV2_TaskStatusUpdates(t *testing.T) {
+	// Create mock API
+	mockAPI := kfpapi.NewMockAPI()
+
+	// Create test run
+	run := &apiv2beta1.Run{
+		RunId:       "run-123",
+		DisplayName: "test-run",
+		State:       apiv2beta1.RuntimeState_RUNNING,
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+	}
+	mockAPI.AddRun(run)
+
+	// Create test task
+	task := &apiv2beta1.PipelineTaskDetail{
+		TaskId: "task-456",
+		RunId:  "run-123",
+		Name:   "test-task",
+		State:  apiv2beta1.PipelineTaskDetail_RUNNING,
+	}
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task})
+	require.NoError(t, err)
+
+	// Update task status
+	task.State = apiv2beta1.PipelineTaskDetail_SUCCEEDED
+	_, err = mockAPI.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+		TaskId: "task-456",
+		Task:   task,
+	})
+	require.NoError(t, err)
+
+	// Verify task was updated
+	updatedTask, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: "task-456"})
+	require.NoError(t, err)
+	assert.Equal(t, apiv2beta1.PipelineTaskDetail_SUCCEEDED, updatedTask.State)
+}
+
 // Tests that launcher correctly executes the user component and successfully writes output parameters to file.
-func Test_executeV2_Parameters(t *testing.T) {
+func Test_execute_Parameters(t *testing.T) {
 	tests := []struct {
 		name          string
 		executorInput *pipelinespec.ExecutorInput
@@ -87,359 +374,82 @@ func Test_executeV2_Parameters(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fakeKubernetesClientset := &fake.Clientset{}
-			fakeMetadataClient := metadata.NewFakeClient()
-			bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
+			// Setup executor input with outputs section
+			test.executorInput.Outputs = &pipelinespec.ExecutorInput_Outputs{
+				OutputFile: "/tmp/kfp_outputs/output_metadata.json",
+			}
+
+			// Marshal executor input
+			executorInputJSON, err := protojson.Marshal(test.executorInput)
 			assert.Nil(t, err)
-			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
-			assert.Nil(t, err)
-			_, _, err = executeV2(
-				context.Background(),
-				test.executorInput,
-				addNumbersComponent,
-				"sh",
-				test.executorArgs,
-				bucket,
-				bucketConfig,
-				fakeMetadataClient,
-				"namespace",
-				fakeKubernetesClientset,
-				"false",
-				"",
-				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
+
+			// Create mock dependencies
+			mockAPI := kfpapi.NewMockAPI()
+			clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+
+			// Create test run and task
+			run := &apiv2beta1.Run{
+				RunId:       "test-run",
+				DisplayName: "test-run",
+				State:       apiv2beta1.RuntimeState_RUNNING,
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{},
+				},
+			}
+			mockAPI.AddRun(run)
+
+			task := &apiv2beta1.PipelineTaskDetail{
+				TaskId:  "test-task",
+				RunId:   "test-run",
+				Name:    "test-task",
+				State:   apiv2beta1.PipelineTaskDetail_RUNNING,
+				Inputs:  &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+				Outputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+			}
+
+			// Create launcher options
+			opts := &LauncherV2Options{
+				Namespace:     "namespace",
+				PodName:       "test-pod",
+				PodUID:        "test-uid",
+				PipelineName:  "test-pipeline",
+				ComponentSpec: addNumbersComponent,
+				Run:           run,
+				Task:          task,
+				PipelineSpec:  &structpb.Struct{},
+			}
+
+			// Create launcher
+			launcher, err := NewLauncherV2(
+				string(executorInputJSON),
+				append([]string{"sh"}, test.executorArgs...),
+				opts,
+				clientManager,
 			)
+			assert.Nil(t, err)
+
+			// Setup mocks
+			mockFS := NewMockFileSystem()
+			mockCmd := NewMockCommandExecutor()
+			mockObjStore := NewMockObjectStoreClient()
+
+			mockFS.SetFileContent("/tmp/kfp_outputs/output_metadata.json", []byte("{}"))
+			mockCmd.RunError = nil
+
+			launcher.WithFileSystem(mockFS).
+				WithCommandExecutor(mockCmd).
+				WithObjectStore(mockObjStore)
+
+			// Execute
+			_, err = launcher.execute(context.Background(), "sh", test.executorArgs)
 
 			if test.wantErr {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-
 			}
 		})
 	}
-}
-
-func Test_executeV2_publishLogs(t *testing.T) {
-	tests := []struct {
-		name          string
-		executorInput *pipelinespec.ExecutorInput
-		executorArgs  []string
-		retryIndex    string
-		wantErr       bool
-		uploadFailure bool
-	}{
-		{
-			"happy pass",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
-				},
-			},
-			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
-			"",
-			false,
-			false,
-		},
-		{
-			"use default value",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
-				},
-			},
-			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
-			"",
-			false,
-			false,
-		},
-		{
-			"sad fail",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
-				},
-			},
-			[]string{"-c", "echo testoutput && exit 1"},
-			"",
-			true,
-			false,
-		},
-		{
-			"retry required - component success",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
-				},
-			},
-			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
-			"",
-			false,
-			true,
-		},
-		{
-			"retry required - component failure",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
-				},
-			},
-			[]string{"-c", "echo testoutput && exit 1"},
-			"",
-			true,
-			true,
-		},
-		{
-			// KFP_RETRY_INDEX is injected by the Argo compiler via "{{retries}}".
-			// The executor-logs URI must be qualified with the retry index so each
-			// attempt writes to a distinct, human-readable path (executor-logs-0,
-			// executor-logs-1, …).
-			"retry index qualifies executor-logs URI",
-			&pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
-				},
-			},
-			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1"},
-			"3",
-			false,
-			false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			fakeKubernetesClientset := &fake.Clientset{}
-			var fakeMetadataClient metadata.ClientInterface
-			var countingFakeMetadataClient *metadata.RecordArtifactFailureFakeClient
-			// Use a fake client that will fail the RecordArtifact call in uploadArtifactLogs the first time,
-			// and succeed the second time, to test retry behavior
-			if test.uploadFailure {
-				countingFakeMetadataClient = metadata.NewRecordArtifactFailureFakeClient(1)
-				fakeMetadataClient = countingFakeMetadataClient
-			} else {
-				fakeMetadataClient = metadata.NewFakeClient()
-			}
-			bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
-			assert.Nil(t, err)
-			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
-			assert.Nil(t, err)
-			// Add executor-logs and output artifact to outputs
-			if test.executorInput.Outputs == nil {
-				test.executorInput.Outputs = &pipelinespec.ExecutorInput_Outputs{}
-			}
-			if test.executorInput.Outputs.Artifacts == nil {
-				test.executorInput.Outputs.Artifacts = make(map[string]*pipelinespec.ArtifactList)
-			}
-			// Use a temp directory for CustomPath to avoid writing to filesystem
-			tempDir := t.TempDir()
-			customPath := filepath.Join(tempDir, "executor-logs")
-			test.executorInput.Outputs.Artifacts["executor-logs"] = &pipelinespec.ArtifactList{
-				Artifacts: []*pipelinespec.RuntimeArtifact{
-					{
-						Uri:        "mem://test-bucket/pipeline-root/executor-logs",
-						Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
-						CustomPath: &customPath,
-					},
-				},
-			}
-			outputDataPath := filepath.Join(tempDir, "output-data")
-			test.executorInput.Outputs.Artifacts["output-data"] = &pipelinespec.ArtifactList{
-				Artifacts: []*pipelinespec.RuntimeArtifact{
-					{
-						Uri:        "mem://test-bucket/pipeline-root/output-data",
-						Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"}},
-						CustomPath: &outputDataPath,
-					},
-				},
-			}
-
-			// Simulate Argo injecting KFP_RETRY_INDEX into the pod env.
-			if test.retryIndex != "" {
-				t.Setenv(EnvRetryIndex, test.retryIndex)
-			}
-
-			_, outputArtifacts, err := executeV2(
-				context.Background(),
-				test.executorInput,
-				addNumbersComponent,
-				"sh",
-				test.executorArgs,
-				bucket,
-				bucketConfig,
-				fakeMetadataClient,
-				"namespace",
-				fakeKubernetesClientset,
-				"true",
-				"",
-				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
-			)
-
-			if test.wantErr {
-				assert.NotNil(t, err)
-				assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
-				if test.uploadFailure {
-					// Only logs uploaded - first call fails, second call succeeds
-					assert.Equal(t, 2, countingFakeMetadataClient.RecordArtifactCalls)
-				}
-			} else {
-				assert.Nil(t, err)
-				assert.Len(t, outputArtifacts, 2, "Expected 2 output artifacts (executor-logs and output-data)")
-				if test.uploadFailure {
-					// First call fails and returns early, then both artifacts succeed on retry
-					assert.Equal(t, 3, countingFakeMetadataClient.RecordArtifactCalls)
-				}
-			}
-
-			// When a retry index is set, the executor-logs URI (and therefore the
-			// object-store key) must be suffixed with the index so retries don't
-			// overwrite each other (e.g. executor-logs-3).
-			effectiveIndex := test.retryIndex
-			if effectiveIndex == "" {
-				effectiveIndex = "0"
-			}
-			logKey := "executor-logs-" + effectiveIndex
-			logArt := test.executorInput.Outputs.Artifacts["executor-logs"].Artifacts[0]
-			assert.Contains(t, logArt.Uri, effectiveIndex,
-				"executor-logs URI should contain the retry index for attempt isolation")
-			if assert.NotNil(t, logArt.CustomPath) {
-				assert.Contains(t, *logArt.CustomPath, effectiveIndex,
-					"executor-logs CustomPath should contain the retry index for attempt isolation")
-				_, err = os.Stat(*logArt.CustomPath)
-				assert.NoError(t, err, "Expected executor-logs file to exist at the qualified custom path")
-			}
-
-			outputLog, err := bucket.ReadAll(context.TODO(), logKey)
-			assert.Nil(t, err, "Expected executor-logs to be readable at key %q", logKey)
-			assert.Equal(t, "testoutput\n", string(outputLog))
-		})
-	}
-}
-
-func Test_executeV2_publishLogs_skipsArtifactWhenSetupFailsBeforeLogsExist(t *testing.T) {
-	fakeKubernetesClientset := &fake.Clientset{}
-	fakeMetadataClient := metadata.NewFakeClient()
-	bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
-	assert.Nil(t, err)
-	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
-	assert.Nil(t, err)
-
-	tempDir := t.TempDir()
-	customPath := filepath.Join(tempDir, "executor-logs")
-	executorInput := &pipelinespec.ExecutorInput{
-		Inputs: &pipelinespec.ExecutorInput_Inputs{
-			ParameterValues: map[string]*structpb.Value{},
-		},
-		Outputs: &pipelinespec.ExecutorInput_Outputs{
-			Artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {
-					Artifacts: []*pipelinespec.RuntimeArtifact{
-						{
-							Uri:        "mem://test-bucket/pipeline-root/executor-logs",
-							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
-							CustomPath: &customPath,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	_, outputArtifacts, err := executeV2(
-		context.Background(),
-		executorInput,
-		addNumbersComponent,
-		"sh",
-		[]string{"-c", "echo testoutput"},
-		bucket,
-		bucketConfig,
-		fakeMetadataClient,
-		"namespace",
-		fakeKubernetesClientset,
-		"true",
-		filepath.Join(tempDir, "missing-ca.pem"),
-		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
-	)
-
-	assert.Error(t, err)
-	assert.Empty(t, outputArtifacts, "Expected no output artifacts when logs were never created")
-
-	_, err = bucket.ReadAll(context.TODO(), "executor-logs-0")
-	assert.Error(t, err, "Expected no qualified executor-logs blob to be uploaded")
-}
-
-func Test_executeV2_publishLogs_qualifiesExecutorInputBeforeCommandCompilation(t *testing.T) {
-	fakeKubernetesClientset := &fake.Clientset{}
-	fakeMetadataClient := metadata.NewFakeClient()
-	bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
-	assert.Nil(t, err)
-	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
-	assert.Nil(t, err)
-
-	tempDir := t.TempDir()
-	logPath := filepath.Join(tempDir, "executor-logs")
-	outputMetadataFile := filepath.Join(tempDir, "output_metadata.json")
-	executorInput := &pipelinespec.ExecutorInput{
-		Inputs: &pipelinespec.ExecutorInput_Inputs{
-			ParameterValues: map[string]*structpb.Value{
-				"a": structpb.NewNumberValue(1),
-				"b": structpb.NewNumberValue(2),
-			},
-		},
-		Outputs: &pipelinespec.ExecutorInput_Outputs{
-			OutputFile: outputMetadataFile,
-			Artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {
-					Artifacts: []*pipelinespec.RuntimeArtifact{
-						{
-							Name:       "executor-logs",
-							Uri:        "mem://test-bucket/pipeline-root/executor-logs",
-							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
-							CustomPath: &logPath,
-						},
-					},
-				},
-			},
-		},
-	}
-	t.Setenv(EnvRetryIndex, "0")
-
-	script := fmt.Sprintf(`echo testoutput && mkdir -p %q && cat <<'EOF' > %q
-{"artifacts":{"executor-logs":{"artifacts":[{"name":"executor-logs","uri":"{{$.outputs.artifacts['executor-logs'].uri}}","customPath":"{{$.outputs.artifacts['executor-logs'].path}}","type":{"schemaTitle":"system.Artifact"}}]}}}
-EOF`, filepath.Dir(outputMetadataFile), outputMetadataFile)
-
-	_, outputArtifacts, err := executeV2(
-		context.Background(),
-		executorInput,
-		addNumbersComponent,
-		"sh",
-		[]string{"-c", script},
-		bucket,
-		bucketConfig,
-		fakeMetadataClient,
-		"namespace",
-		fakeKubernetesClientset,
-		"true",
-		"",
-		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
-	)
-
-	assert.Nil(t, err)
-	assert.Len(t, outputArtifacts, 1, "Expected executor-logs to be uploaded")
-
-	logArtifact := executorInput.Outputs.Artifacts["executor-logs"].Artifacts[0]
-	assert.Contains(t, logArtifact.Uri, "-0")
-	if assert.NotNil(t, logArtifact.CustomPath) {
-		assert.Contains(t, *logArtifact.CustomPath, "-0")
-	}
-
-	outputMetadata, err := os.ReadFile(outputMetadataFile)
-	assert.Nil(t, err)
-	assert.Contains(t, string(outputMetadata), "executor-logs-0",
-		"Expected compiled executor input placeholders to use the retry-qualified log location")
-
-	outputLog, err := bucket.ReadAll(context.TODO(), "executor-logs-0")
-	assert.Nil(t, err)
-	assert.Equal(t, "testoutput\n", string(outputLog))
 }
 
 func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
@@ -507,8 +517,7 @@ func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 		"--executor_input", "{{$}}",
 		"--function_to_execute", "sayHello",
 	}
-	cmd, args, err = compileCmdAndArgs(executorInput, cmd, args)
-
+	_, args, err = compileCmdAndArgs(executorInput, cmd, args)
 	assert.NoError(t, err)
 
 	var actualExecutorInput string
@@ -532,6 +541,181 @@ func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 	assert.Equal(t, "dump_filename_test.txt", config["dump_filename"])
 	assert.Equal(t, "sphinx-default-host.ru", config["sphinx_host"])
 	assert.Equal(t, "9312", config["sphinx_port"])
+}
+
+// Tests executeV2 flow including parameter collection, artifact uploads, and task updates
+func Test_executeV2(t *testing.T) {
+	// Create component spec with input/output parameters and artifacts
+	componentSpec := &pipelinespec.ComponentSpec{
+		InputDefinitions: &pipelinespec.ComponentInputsSpec{
+			Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+				"input_param": {
+					ParameterType: pipelinespec.ParameterType_STRING,
+				},
+				"optional_param": {
+					ParameterType: pipelinespec.ParameterType_NUMBER_INTEGER,
+					DefaultValue:  structpb.NewNumberValue(42),
+				},
+			},
+		},
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+			Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+				"output_metric": {
+					ParameterType: pipelinespec.ParameterType_NUMBER_DOUBLE,
+				},
+				"output_message": {
+					ParameterType: pipelinespec.ParameterType_STRING,
+				},
+			},
+			Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+				"model": {
+					ArtifactType: &pipelinespec.ArtifactTypeSchema{
+						Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+							SchemaTitle: "system.Model",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Create executor input with parameters (intentionally omitting optional_param to test defaults)
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input_param": structpb.NewStringValue("test_value"),
+			},
+		},
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
+				"output_metric": {
+					OutputFile: "/tmp/outputs/output_metric",
+				},
+				"output_message": {
+					OutputFile: "/tmp/outputs/output_message",
+				},
+			},
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Name: "trained-model",
+							Uri:  "s3://bucket/output/model.pkl",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+									SchemaTitle: "system.Model",
+								},
+							},
+						},
+					},
+				},
+			},
+			OutputFile: "/tmp/kfp_outputs/output_metadata.json",
+		},
+	}
+
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	assert.NoError(t, err)
+
+	// Create mock dependencies
+	mockAPI := kfpapi.NewMockAPI()
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+
+	// Create test run
+	run := &apiv2beta1.Run{
+		RunId:       "test-run-123",
+		DisplayName: "test-run",
+		State:       apiv2beta1.RuntimeState_RUNNING,
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+		Tasks: []*apiv2beta1.PipelineTaskDetail{},
+	}
+	mockAPI.AddRun(run)
+
+	// Create test task
+	task := &apiv2beta1.PipelineTaskDetail{
+		TaskId:  "test-task-456",
+		RunId:   "test-run-123",
+		Name:    "train-model",
+		State:   apiv2beta1.PipelineTaskDetail_RUNNING,
+		Type:    apiv2beta1.PipelineTaskDetail_RUNTIME,
+		Inputs:  &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+		Outputs: &apiv2beta1.PipelineTaskDetail_InputOutputs{},
+	}
+
+	// Add task to mock API so it can be updated during execution
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task})
+	assert.NoError(t, err)
+
+	// Create task spec
+	taskSpec := &pipelinespec.PipelineTaskSpec{
+		TaskInfo: &pipelinespec.PipelineTaskInfo{
+			Name: "train-model",
+		},
+	}
+
+	// Create launcher options
+	opts := &LauncherV2Options{
+		Namespace:     "default",
+		PodName:       "train-model-pod",
+		PodUID:        "pod-uid-123",
+		PipelineName:  "training-pipeline",
+		ComponentSpec: componentSpec,
+		TaskSpec:      taskSpec,
+		Run:           run,
+		Task:          task,
+		PipelineSpec:  &structpb.Struct{},
+	}
+
+	// Create launcher
+	launcher, err := NewLauncherV2(
+		string(executorInputJSON),
+		[]string{"python", "train.py"},
+		opts,
+		clientManager,
+	)
+	assert.NoError(t, err)
+
+	// Setup mocks
+	mockFS := NewMockFileSystem()
+	mockCmd := NewMockCommandExecutor()
+	mockObjStore := NewMockObjectStoreClient()
+
+	// Configure file system with output parameter values
+	mockFS.SetFileContent("/tmp/outputs/output_metric", []byte("0.95"))
+	mockFS.SetFileContent("/tmp/outputs/output_message", []byte("Training completed successfully"))
+	mockFS.SetFileContent("/tmp/kfp_outputs/output_metadata.json", []byte("{}"))
+
+	// Configure command executor to succeed
+	mockCmd.RunError = nil
+
+	// Inject mocks
+	launcher.WithFileSystem(mockFS).
+		WithCommandExecutor(mockCmd).
+		WithObjectStore(mockObjStore)
+
+	// Execute executeV2 via ExecuteForTesting
+	ctx := context.Background()
+	executorOutput, err := launcher.ExecuteForTesting(ctx)
+
+	// Verify execution succeeded
+	assert.NoError(t, err)
+	assert.NotNil(t, executorOutput)
+
+	// Verify output parameters were collected
+	assert.Contains(t, executorOutput.ParameterValues, "output_metric")
+	assert.Contains(t, executorOutput.ParameterValues, "output_message")
+	assert.Equal(t, 0.95, executorOutput.ParameterValues["output_metric"].GetNumberValue())
+	assert.Equal(t, "Training completed successfully", executorOutput.ParameterValues["output_message"].GetStringValue())
+
+	// Verify artifact was uploaded to object store
+	assert.True(t, mockObjStore.WasUploaded("s3://bucket/output/model.pkl"), "Expected model artifact to be uploaded")
+
+	// Verify batch updater queued artifact creation and task updates
+	metrics := launcher.batchUpdater.GetMetrics()
+	assert.Greater(t, metrics["queued_artifacts"], 0, "Expected artifacts to be queued for creation")
+	assert.Greater(t, metrics["queued_task_updates"], 0, "Expected task updates to be queued")
 }
 
 func Test_get_log_Writer(t *testing.T) {
@@ -605,209 +789,26 @@ func Test_get_log_Writer(t *testing.T) {
 	}
 }
 
-func Test_qualifyExecutorLogsURI(t *testing.T) {
-	baseURI := "minio://mlpipeline/v2/artifacts/my-pipeline/run-id/always-fail/salt123/executor-logs"
-	baseCustomPath := "/minio/mlpipeline/v2/artifacts/my-pipeline/run-id/always-fail/salt123/executor-logs"
-	stringPtr := func(s string) *string { return &s }
-
-	tests := []struct {
-		name           string
-		artifacts      map[string]*pipelinespec.ArtifactList
-		retryIndex     string
-		wantURI        string
-		wantCustomPath *string
-	}{
-		{
-			name: "appends retry index to executor-logs URI",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: baseURI}}},
-			},
-			retryIndex:     "2",
-			wantURI:        baseURI + "-2",
-			wantCustomPath: nil,
-		},
-		{
-			name: "appends retry index to executor-logs CustomPath",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{
-					Uri:        baseURI,
-					CustomPath: stringPtr(baseCustomPath),
-				}}},
-			},
-			retryIndex:     "2",
-			wantURI:        baseURI + "-2",
-			wantCustomPath: stringPtr(baseCustomPath + "-2"),
-		},
-		{
-			name: "no-op when retry index already applied",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{
-					Uri:        baseURI + "-2",
-					CustomPath: stringPtr(baseCustomPath + "-2"),
-				}}},
-			},
-			retryIndex:     "2",
-			wantURI:        baseURI + "-2",
-			wantCustomPath: stringPtr(baseCustomPath + "-2"),
-		},
-		{
-			name: "no-op when retry index is empty",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: baseURI}}},
-			},
-			retryIndex:     "",
-			wantURI:        baseURI,
-			wantCustomPath: nil,
-		},
-		{
-			name:           "no-op when executor-logs key is absent",
-			artifacts:      map[string]*pipelinespec.ArtifactList{},
-			retryIndex:     "1",
-			wantURI:        "", // no artifact to check
-			wantCustomPath: nil,
-		},
-		{
-			name: "no-op when executor-logs list is empty",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{}},
-			},
-			retryIndex:     "1",
-			wantURI:        "", // no artifact to check
-			wantCustomPath: nil,
-		},
-		{
-			name: "no-op when executor-logs list has multiple artifacts",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{
-					{Uri: baseURI},
-					{Uri: baseURI + "-2"},
-				}},
-			},
-			retryIndex: "1",
-			// list len != 1: guard should skip, original URIs unchanged
-			wantURI:        baseURI,
-			wantCustomPath: nil,
-		},
-		{
-			name:           "no-op when ArtifactList value is nil",
-			artifacts:      map[string]*pipelinespec.ArtifactList{"executor-logs": nil},
-			retryIndex:     "1",
-			wantURI:        "", // nil list: no artifact to check
-			wantCustomPath: nil,
-		},
-		{
-			name: "no-op when first artifact is nil",
-			artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{nil}},
-			},
-			retryIndex:     "1",
-			wantURI:        "", // nil artifact: no URI to check
-			wantCustomPath: nil,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.NotPanics(t, func() {
-				qualifyExecutorLogsURI(tc.artifacts, tc.retryIndex)
-			})
-			list, ok := tc.artifacts["executor-logs"]
-			if !ok || list == nil || len(list.Artifacts) == 0 || list.Artifacts[0] == nil {
-				// Cases where there is nothing to assert on
-				return
-			}
-			assert.Equal(t, tc.wantURI, list.Artifacts[0].Uri)
-			if tc.wantCustomPath == nil {
-				assert.Nil(t, list.Artifacts[0].CustomPath)
-			} else if assert.NotNil(t, list.Artifacts[0].CustomPath) {
-				assert.Equal(t, *tc.wantCustomPath, *list.Artifacts[0].CustomPath)
-			}
-		})
-	}
-}
-
-func Test_retryIndexFromPodAnnotation(t *testing.T) {
-	tests := []struct {
-		name       string
-		annotation string
-		wantIndex  string
-		wantErr    bool
-	}{
-		{
-			name:       "parses first attempt (0)",
-			annotation: "my-pipeline-abc.root.always-fail.executor(0)",
-			wantIndex:  "0",
-		},
-		{
-			name:       "parses fourth retry (4)",
-			annotation: "retry-e2e-pzhkb.root.always-fail.executor(4)",
-			wantIndex:  "4",
-		},
-		{
-			name:       "no annotation",
-			annotation: "",
-			wantErr:    true,
-		},
-		{
-			name:       "annotation without parenthesised suffix",
-			annotation: "my-pipeline-abc.root.always-fail.executor",
-			wantErr:    true,
-		},
-		{
-			name:       "annotation with non-integer index",
-			annotation: "my-pipeline-abc.root.always-fail.executor(abc)",
-			wantErr:    true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			clientset := fake.NewClientset()
-			if tc.annotation != "" {
-				pod := &k8score.Pod{}
-				pod.Name = "test-pod"
-				pod.Namespace = "test-ns"
-				pod.Annotations = map[string]string{
-					"workflows.argoproj.io/node-name": tc.annotation,
-				}
-				_, err := clientset.CoreV1().Pods("test-ns").Create(context.Background(), pod, metav1.CreateOptions{})
-				assert.NoError(t, err)
-			}
-
-			idx, err := retryIndexFromPodAnnotation(context.Background(), clientset, "test-ns", "test-pod")
-			if tc.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.wantIndex, idx)
-			}
-		})
-	}
-}
-
 // Tests happy and unhappy paths for constructing a new LauncherV2
 func Test_NewLauncherV2(t *testing.T) {
 	var testCmdArgs = []string{"sh", "-c", "echo \"hello world\""}
 
-	disabledCacheClient, _ := cacheutils.NewClient("ml-pipeline.kubeflow", "8887", true, &tls.Config{})
+	mockAPI := kfpapi.NewMockAPI()
 	var testLauncherV2Deps = client_manager.NewFakeClientManager(
-		fake.NewClientset(),
-		metadata.NewFakeClient(),
-		disabledCacheClient,
+		fake.NewSimpleClientset(),
+		mockAPI,
 	)
 
 	var testValidLauncherV2Opts = LauncherV2Options{
-		Namespace:         "my-namespace",
-		PodName:           "my-pod",
-		PodUID:            "abcd",
-		MLMDServerAddress: "example.com",
-		MLMDServerPort:    "1234",
+		Namespace:    "my-namespace",
+		PodName:      "my-pod",
+		PodUID:       "abcd",
+		PipelineName: "test-pipeline",
+		PipelineSpec: &structpb.Struct{},
 	}
 
 	type args struct {
-		executionID       int64
 		executorInputJSON string
-		componentSpecJSON string
 		cmdArgs           []string
 		opts              LauncherV2Options
 		cm                client_manager.ClientManagerInterface
@@ -820,9 +821,7 @@ func Test_NewLauncherV2(t *testing.T) {
 		{
 			name: "happy path",
 			args: &args{
-				executionID:       1,
 				executorInputJSON: "{}",
-				componentSpecJSON: "{}",
 				cmdArgs:           testCmdArgs,
 				opts:              testValidLauncherV2Opts,
 				cm:                testLauncherV2Deps,
@@ -830,47 +829,32 @@ func Test_NewLauncherV2(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "missing executionID",
-			args: &args{
-				executionID: 0,
-			},
-			expectedErr: errors.New("must specify execution ID"),
-		},
-		{
 			name: "invalid executorInput",
 			args: &args{
-				executionID:       1,
 				executorInputJSON: "{",
+				cmdArgs:           testCmdArgs,
+				opts:              testValidLauncherV2Opts,
+				cm:                testLauncherV2Deps,
 			},
 			expectedErr: errors.New("unexpected EOF"),
 		},
 		{
-			name: "invalid componentSpec",
-			args: &args{
-				executionID:       1,
-				executorInputJSON: "{}",
-				componentSpecJSON: "{",
-			},
-			expectedErr: errors.New("unexpected EOF\ncomponentSpec: {"),
-		},
-		{
 			name: "missing cmdArgs",
 			args: &args{
-				executionID:       1,
 				executorInputJSON: "{}",
-				componentSpecJSON: "{}",
 				cmdArgs:           []string{},
+				opts:              testValidLauncherV2Opts,
+				cm:                testLauncherV2Deps,
 			},
 			expectedErr: errors.New("command and arguments are empty"),
 		},
 		{
 			name: "invalid opts",
 			args: &args{
-				executionID:       1,
 				executorInputJSON: "{}",
-				componentSpecJSON: "{}",
 				cmdArgs:           testCmdArgs,
 				opts:              LauncherV2Options{},
+				cm:                testLauncherV2Deps,
 			},
 			expectedErr: errors.New("invalid launcher options: must specify Namespace"),
 		},
@@ -878,7 +862,7 @@ func Test_NewLauncherV2(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			args := test.args
-			_, err := NewLauncherV2(context.Background(), args.executionID, args.executorInputJSON, args.componentSpecJSON, args.cmdArgs, &args.opts, args.cm)
+			_, err := NewLauncherV2(args.executorInputJSON, args.cmdArgs, &args.opts, args.cm)
 			if test.expectedErr != nil {
 				assert.ErrorContains(t, err, test.expectedErr.Error())
 			} else {

@@ -24,7 +24,7 @@ import (
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/interpreter/functions"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -95,7 +95,7 @@ func (e *Expr) Select(v *structpb.Value, expr string) (*structpb.Value, error) {
 	if v != nil {
 		// TODO(Bobgy): discuss whether we need to remove this.
 		// We always allow accessing the value as string_value, it gets JSON serialized version of the value.
-		text, err := metadata.PbValueToText(v)
+		text, err := util.PBValueToText(v)
 		if err != nil {
 			return nil, err
 		}
