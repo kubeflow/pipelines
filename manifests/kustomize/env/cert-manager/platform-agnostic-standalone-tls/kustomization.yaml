@@ -5,7 +5,6 @@ resources:
   - ../../../base/crds
   - ../../platform-agnostic
   - ../base-tls-certs/
-  - patches/metadata-envoy-configmap.yaml
 
 namespace: kubeflow
 
@@ -22,22 +21,6 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline-scheduledworkflow
-  - path: patches/metadata-envoy-deployment.yaml
-    target:
-      kind: Deployment
-      name: metadata-envoy-deployment
-  - path: patches/metadata-envoy-service.yaml
-    target:
-      kind: Service
-      name: metadata-envoy-service
-  - path: patches/metadata-grpc-deployment.yaml
-    target:
-      kind: Deployment
-      name: metadata-grpc-deployment
-  - path: patches/metadata-writer-deployment.yaml
-    target:
-      kind: Deployment
-      name: metadata-writer
   - path: patches/ml-pipeline-persistenceagent-deployment.yaml
     target:
       kind: Deployment

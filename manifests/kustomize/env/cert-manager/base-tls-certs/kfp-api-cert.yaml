@@ -9,10 +9,6 @@ spec:
     - ml-pipeline
     - ml-pipeline.kubeflow
     - ml-pipeline-scheduledworkflow
-    - metadata-envoy
-    - metadata-envoy-service
-    - metadata-grpc-service
-    - metadata-grpc-service.kubeflow
     - localhost
   ipAddresses:
     # Necessary for running TLS-enabled cluster locally.

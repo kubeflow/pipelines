@@ -33,11 +33,7 @@ func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.Com
 	return c.saveComponentImpl(name, importer)
 }
 
-func (c *workflowCompiler) importerTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string) (*wfapi.DAGTask, error) {
-	componentPlaceholder, err := c.useComponentSpec(task.GetComponentRef().GetName())
-	if err != nil {
-		return nil, err
-	}
+func (c *workflowCompiler) importerTask(name string, task *pipelinespec.PipelineTaskSpec, taskName string, parentDagID string) (*wfapi.DAGTask, error) {
 	importerPlaceholder, err := c.useComponentImpl(task.GetComponentRef().GetName())
 	if err != nil {
 		return nil, err
@@ -45,19 +41,18 @@ func (c *workflowCompiler) importerTask(name string, task *pipelinespec.Pipeline
 	return &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addImporterTemplate(),
-		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{{
-			Name:  paramTask,
-			Value: wfapi.AnyStringPtr(taskJSON),
-		}, {
-			Name:  paramComponent,
-			Value: wfapi.AnyStringPtr(componentPlaceholder),
-		}, {
-			Name:  paramImporter,
-			Value: wfapi.AnyStringPtr(importerPlaceholder),
-		}, {
-			Name:  paramParentDagID,
-			Value: wfapi.AnyStringPtr(parentDagID),
-		}}},
+		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
+			{
+				Name:  paramTaskName,
+				Value: wfapi.AnyStringPtr(taskName),
+			},
+			{
+				Name:  paramImporter,
+				Value: wfapi.AnyStringPtr(importerPlaceholder),
+			}, {
+				Name:  paramParentDagTaskID,
+				Value: wfapi.AnyStringPtr(parentDagID),
+			}}},
 	}, nil
 }
 
@@ -68,20 +63,15 @@ func (c *workflowCompiler) addImporterTemplate() string {
 	}
 	args := []string{
 		"--executor_type", "importer",
-		"--task_spec", inputValue(paramTask),
-		"--component_spec", inputValue(paramComponent),
+		"--task_name", inputValue(paramTaskName),
 		"--importer_spec", inputValue(paramImporter),
 		"--pipeline_name", c.spec.PipelineInfo.GetName(),
 		"--run_id", runID(),
-		"--parent_dag_id", inputValue(paramParentDagID),
+		"--parent_task_id", inputValue(paramParentDagTaskID),
 		"--pod_name",
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
-		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
@@ -89,12 +79,9 @@ func (c *workflowCompiler) addImporterTemplate() string {
 	if c.mlPipelineTLSEnabled {
 		args = append(args, "--ml_pipeline_tls_enabled")
 	}
-	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
-	}
 
 	setCABundle := false
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+	if common.GetCaBundleSecretName() != "" && c.mlPipelineTLSEnabled {
 		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
 		setCABundle = true
 	}
@@ -109,10 +96,9 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		Name: name,
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramTask},
-				{Name: paramComponent},
+				{Name: paramTaskName},
 				{Name: paramImporter},
-				{Name: paramParentDagID},
+				{Name: paramParentDagTaskID},
 			},
 		},
 		Container: &k8score.Container{
@@ -122,6 +108,31 @@ func (c *workflowCompiler) addImporterTemplate() string {
 			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
 			Env:       commonEnvs,
 			Resources: driverResources,
+			VolumeMounts: []k8score.VolumeMount{
+				{
+					Name:      kfpTokenVolumeName,
+					MountPath: kfpTokenMountPath,
+					ReadOnly:  true,
+				},
+			},
+		},
+		Volumes: []k8score.Volume{
+			{
+				Name: kfpTokenVolumeName,
+				VolumeSource: k8score.VolumeSource{
+					Projected: &k8score.ProjectedVolumeSource{
+						Sources: []k8score.VolumeProjection{
+							{
+								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
+									Path:              "token",
+									Audience:          kfpTokenAudience,
+									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 

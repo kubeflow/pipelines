@@ -24,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 		componentSpec    *pipelinespec.ComponentSpec
 		executorInput    *pipelinespec.ExecutorInput
-		executionID      int64
+		executionID      string
 		pipelineName     string
 		runID            string
 		pipelineLogLevel string
@@ -86,7 +87,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -127,7 +128,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -168,7 +169,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -209,7 +210,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -250,7 +251,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -270,6 +271,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.componentSpec,
 				tt.args.executorInput,
 				tt.args.executionID,
+				"",
 				tt.args.pipelineName,
 				tt.args.runID,
 				"my-run-name",
@@ -277,10 +279,11 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.publishLogs,
 				"false",
 				taskConfig,
-				false,
-				false,
 				"",
-			)
+				nil,
+				"",
+				false,
+				"")
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
 				assert.NotNil(t, err)
@@ -388,7 +391,8 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		containerSpec,
 		componentSpec,
 		executorInput,
-		27,
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
@@ -396,10 +400,11 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
-		false,
-		false,
 		"",
-	)
+		nil,
+		"",
+		false,
+		"")
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
 
@@ -434,22 +439,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskConfig := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"0254beba-0be4-4065-8d97-7dc5e3adf300",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskConfig,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskConfig, "", nil, "", false, "")
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
 
@@ -486,22 +476,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	}
 	taskConfig := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"0254beba-0be4-4065-8d97-7dc5e3adf300",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskConfig,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskConfig, "", nil, "", false, "")
 	assert.Nil(t, err)
 
 	assert.Len(t, podSpec.InitContainers, 1)
@@ -532,23 +507,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 // Validate that setting publishLogs to true propagates to the driver container
 // commands in the podSpec.
 func Test_initPodSpecPatch_publishLogs(t *testing.T) {
-	podSpec, err := initPodSpecPatch(
-		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
-		&pipelinespec.ComponentSpec{},
-		&pipelinespec.ExecutorInput{},
-		// executorInput,
-		27,
-		"test",
-		"0254beba-0be4-4065-8d97-7dc5e3adf300",
-		"my-run-name",
-		"1",
-		"true",
-		"false",
-		nil,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}, &pipelinespec.ComponentSpec{}, &pipelinespec.ExecutorInput{}, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "true", "false", nil, "", nil, "", false, "")
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
 	assert.Contains(t, cmd, "--publish_logs")
@@ -567,7 +526,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 		componentSpec    *pipelinespec.ComponentSpec
 		executorInput    *pipelinespec.ExecutorInput
-		executionID      int64
+		executionID      string
 		pipelineName     string
 		runID            string
 		pipelineLogLevel string
@@ -608,7 +567,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -646,7 +605,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -660,22 +619,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			taskConfig := &TaskConfig{}
 
-			podSpec, err := initPodSpecPatch(
-				tt.args.container,
-				tt.args.componentSpec,
-				tt.args.executorInput,
-				tt.args.executionID,
-				tt.args.pipelineName,
-				tt.args.runID,
-				"my-run-name",
-				tt.args.pipelineLogLevel,
-				tt.args.publishLogs,
-				"false",
-				taskConfig,
-				false,
-				false,
-				"",
-			)
+			podSpec, err := initPodSpecPatch(tt.args.container, tt.args.componentSpec, tt.args.executorInput, tt.args.executionID, "", tt.args.pipelineName, tt.args.runID, "my-run-name", tt.args.pipelineLogLevel, tt.args.publishLogs, "false", taskConfig, "", nil, "", false, "")
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
 			podSpecString, err := json.Marshal(podSpec)
@@ -718,22 +662,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"0254beba-0be4-4065-8d97-7dc5e3adf300",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
 	assert.Len(t, podSpec.Containers, 1)
@@ -781,23 +710,9 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 			},
 		},
 	}
+	require.NoError(t, err)
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"0254beba-0be4-4065-8d97-7dc5e3adf300",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		nil,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", nil, "", nil, "", false, "")
 	require.Nil(t, err)
 
 	expectedExecutorInput := map[string]interface{}{
@@ -812,18 +727,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 			},
 		},
 	}
-	expectedComponentSpec := map[string]interface{}{
-		"executorLabel": "exec-exit-op",
-		"inputDefinitions": map[string]interface{}{
-			"parameters": map[string]interface{}{
-				"status": map[string]interface{}{
-					"parameterType": "TASK_FINAL_STATUS",
-				},
-			},
-		},
-	}
 	actualExecutorInput := map[string]interface{}{}
-	actualComponentSpec := map[string]interface{}{}
 
 	for i, arg := range podSpec.Containers[0].Command {
 		if arg == "--executor_input" {
@@ -831,14 +735,14 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 			fmt.Println(podSpec.Containers[0].Command[i+1])
 			require.Nil(t, err)
 		}
-		if arg == "--component_spec" {
-			err := json.Unmarshal([]byte(podSpec.Containers[0].Command[i+1]), &actualComponentSpec)
-			require.Nil(t, err)
-		}
 	}
 
 	assert.Equal(t, expectedExecutorInput, actualExecutorInput)
-	assert.Equal(t, expectedComponentSpec, actualComponentSpec)
+
+	// Verify component spec is not passed to the launcher (it's not needed in current implementation)
+	for _, arg := range podSpec.Containers[0].Command {
+		assert.NotEqual(t, "--component_spec", arg, "component_spec should not be in launcher command")
+	}
 }
 
 func TestNeedsWorkspaceMount(t *testing.T) {
@@ -982,22 +886,7 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	_, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run-id",
-		"", // runName intentionally empty
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-	)
+	_, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run-id", "", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	require.NotNil(t, err)
 }
 
@@ -1108,10 +997,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	assert.Nil(t, err)
 
 	// Should not mount workspace to pod (no volumes on pod), only capture to TaskConfig
@@ -1151,10 +1037,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
 	assert.NotEmpty(t, podSpec.Volumes)
@@ -1205,27 +1088,26 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	assert.Nil(t, err)
 
-	// Env should be captured to TaskConfig only, not applied to pod
-	assert.Empty(t, podSpec.Containers[0].Env)
+	// User-defined env should be captured to TaskConfig only, not applied to pod
+	// However, KFP env vars (KFP_POD_NAME, KFP_POD_UID, NAMESPACE) are always added to pod
+	assert.Len(t, podSpec.Containers[0].Env, 3)
 
+	// Verify KFP env vars are present in pod
+	kfpEnvVars := make(map[string]bool)
+	for _, env := range podSpec.Containers[0].Env {
+		kfpEnvVars[env.Name] = true
+	}
+	assert.True(t, kfpEnvVars["KFP_POD_NAME"])
+	assert.True(t, kfpEnvVars["KFP_POD_UID"])
+	assert.True(t, kfpEnvVars["NAMESPACE"])
+
+	// Verify user-defined FOO env is NOT in pod spec
+	assert.False(t, kfpEnvVars["FOO"])
+
+	// Verify user-defined env is captured in TaskConfig
 	if assert.Len(t, taskCfg.Env, 1) {
 		assert.Equal(t, "FOO", taskCfg.Env[0].Name)
 		assert.Equal(t, "bar", taskCfg.Env[0].Value)
@@ -1252,22 +1134,7 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	assert.Nil(t, err)
 	// Resources should be both on pod and in TaskConfig
 	assert.NotEmpty(t, podSpec.Containers[0].Resources.Requests)
@@ -1318,9 +1185,8 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		}},
 	}
 
-	opts := Options{
+	opts := common.Options{
 		PipelineName:             "p",
-		RunID:                    "r",
 		Component:                componentSpec,
 		Container:                containerSpec,
 		KubernetesExecutorConfig: k8sExecCfg,
@@ -1330,32 +1196,14 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 
 	taskCfg := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
 		context.Background(),
 		podSpec,
 		opts,
-		nil,
-		nil,
-		nil,
-		map[string]*structpb.Value{},
+		mapToIOParameters(map[string]*structpb.Value{}),
 		taskCfg,
 	)
 	assert.Nil(t, err)
@@ -1418,9 +1266,8 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		}},
 	}
 
-	opts := Options{
+	opts := common.Options{
 		PipelineName:             "p",
-		RunID:                    "r",
 		Component:                componentSpec,
 		Container:                containerSpec,
 		KubernetesExecutorConfig: k8sExecCfg,
@@ -1429,32 +1276,14 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 	executorInput := &pipelinespec.ExecutorInput{Inputs: &pipelinespec.ExecutorInput_Inputs{ParameterValues: map[string]*structpb.Value{}}}
 	taskCfg := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "")
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
 		context.Background(),
 		podSpec,
 		opts,
-		nil,
-		nil,
-		nil,
-		map[string]*structpb.Value{},
+		mapToIOParameters(map[string]*structpb.Value{}),
 		taskCfg,
 	)
 	assert.Nil(t, err)
