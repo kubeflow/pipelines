@@ -94,7 +94,7 @@ class Artifact:
         self._set_custom_path(path)
 
     def _get_path(self) -> Optional[str]:
-        if self.custom_path is not '':
+        if self.custom_path:
             return self._get_custom_path()
         if self.uri.startswith(RemotePrefix.GCS.value):
             return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS.value

@@ -53,7 +53,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		logger.Log("Test Context: %p", testContext)
 		randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
 		testContext.Pipeline.UploadParams = upload_params.NewUploadPipelineParams()
-		testContext.Pipeline.PipelineGeneratedName = "e2e_test-" + randomName
+		testContext.Pipeline.PipelineGeneratedName = "e2e-test-" + randomName
 		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
 		testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 		testContext.Pipeline.ExpectedPipeline = new(pipeline_upload_model.V2beta1Pipeline)
