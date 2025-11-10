@@ -322,10 +322,10 @@ class DictSubvariable(PipelineParameterChannel):
         def my_pipeline(config: dict):
             # Extract individual keys
             component1(param=config['db_host'])
-            
+
             # Extract nested values
             component2(host=config['database']['host'])
-            
+
             # Pass sub-dicts
             component3(db_config=config['database'])
 

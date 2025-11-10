@@ -430,7 +430,7 @@ class DictSubvariableTest(unittest.TestCase):
                 TypeError,
                 'parent_channel must be a PipelineParameterChannel'):
             pipeline_channel.DictSubvariable(
-                parent_channel="not_a_channel",
+                parent_channel='not_a_channel',
                 key='test_key'
             )
 
