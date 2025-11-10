@@ -91,6 +91,10 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest
@@ -313,6 +317,10 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest

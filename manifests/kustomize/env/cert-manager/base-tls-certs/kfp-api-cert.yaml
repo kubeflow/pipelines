@@ -13,6 +13,7 @@ spec:
     - metadata-envoy-service
     - metadata-grpc-service
     - metadata-grpc-service.kubeflow
+    - metadata-grpc-service.$(kfp-namespace).svc.cluster.local
     - localhost
   ipAddresses:
     # Necessary for running TLS-enabled cluster locally.
