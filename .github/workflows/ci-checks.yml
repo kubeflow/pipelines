@@ -4,6 +4,10 @@ name: CI Check
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, labeled]
+  workflow_run:
+    workflows: [ "Stable Merge Integration Test Check" ] # Triggers when "Stable Merge Integration Test Check" succeeds
+    types: [completed]
+    branches: [stable]
 
 jobs:
   check_ci_status:
@@ -34,7 +38,7 @@ jobs:
 
       - name: Check if all CI checks passed
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
-        with:                                 
+        with:
           delay: '5'
           retries: '8'
           polling_interval: '5'
