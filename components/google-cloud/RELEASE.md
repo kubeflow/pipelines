@@ -7,6 +7,7 @@
 * Remove deprecated AutoML XGBoost trainer.
 * Bump image for Structured Data pipelines.
 * Enforce mutual exclusivity between `network` and `psc_interface_config` in custom job spec.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.21.0
 
