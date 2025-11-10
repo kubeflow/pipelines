@@ -189,24 +189,24 @@ def build_task_spec_for_task(
             # Build the key path by walking up the chain of DictSubvariables
             keys = []
             current = input_value
-            
+
             # Collect all keys in reverse order (from leaf to root)
             while isinstance(current, pipeline_channel.DictSubvariable):
                 keys.insert(0, current.key)
                 current = current.parent_channel
-            
+
             # Now 'current' is the root channel (the original dict parameter)
             component_input_parameter = current.full_name
             assert component_input_parameter in parent_component_inputs.parameters, \
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-            
+
             # Build the CEL expression with all keys
             # Single: parseJson(string_value)["key"]
             # Nested: parseJson(string_value)["database"]["host"]
             cel_expression = 'parseJson(string_value)'
             for key in keys:
                 cel_expression += f'["{key}"]'
-            
+
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
                     component_input_parameter)
@@ -1251,7 +1251,7 @@ def build_task_spec_for_group(
             while isinstance(current, pipeline_channel.DictSubvariable):
                 keys.insert(0, current.key)
                 current = current.parent_channel
-            
+
             # current is now the root channel
             channel_full_name = current.full_name
             # Build the CEL expression selector

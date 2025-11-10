@@ -127,7 +127,8 @@ class PipelineTask:
                     expected_spec=input_spec,
                     error_message_prefix=(
                         f'Incompatible argument passed to the input '
-                        f'{input_name!r} of component {component_spec.name!r}: '),
+                        f'{input_name!r} of component {component_spec.name!r}: '
+                    ),
                 )
 
         self.component_spec = component_spec
