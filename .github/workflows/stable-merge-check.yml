@@ -1,0 +1,122 @@
+name: Stable Merge Integration Test Check
+
+on:
+  pull_request:
+    branches:
+      - stable
+    types: [opened, synchronize, reopened, edited]
+  issue_comment:
+    types: [created]
+
+env:
+  DEFAULT_BRANCH: master
+
+jobs:
+  # Job to handle /integration-tests-ok command
+  process-integration-command:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    if: contains(github.event.comment.body, '/integration-tests-ok') && github.event.issue.pull_request
+    steps:
+      - name: Check if the author is a member or Owner
+        id: check-condition
+        run: |
+          if [[ "${{ github.event.comment.author_association }}" == "MEMBER" || "${{ github.event.comment.author_association }}" == "OWNER" ]]; then
+            echo "condition_met=true" >> $GITHUB_ENV
+          else
+            echo "User does not have permission to trigger this command."
+            echo "condition_met=false" >> $GITHUB_ENV
+          fi
+
+      - name: Leave a Comment on Permission Fail
+        if: env.condition_met == 'false'
+        env:
+          message: 🚫 This command cannot be processed. Only organization members or owners can use the `/integration-tests-ok` command.
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
+          echo ${message}
+          exit 1
+
+      - name: Check if PR target
+        if: env.condition_met == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL="${{ github.event.issue.pull_request.url }}"
+          PR_DATA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$PR_URL")
+          BASE_BRANCH=$(echo "$PR_DATA" | jq -r '.base.ref')
+          HEAD_BRANCH=$(echo "$PR_DATA" | jq -r '.head.ref')
+
+          echo "Base branch: $BASE_BRANCH"
+          echo "Head branch: $HEAD_BRANCH"
+
+          if [[ "$BASE_BRANCH" == "stable" ]]; then
+            echo "valid_target=true" >> $GITHUB_ENV
+          else
+            echo "valid_target=false" >> $GITHUB_ENV
+            echo "This command only works for PRs against stable branch"
+          fi
+
+      - name: Leave a Comment on Invalid Target
+        if: env.condition_met == 'true' && env.valid_target == 'false'
+        env:
+          message: ⚠️ This command only works for pull requests to `stable` branches.
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
+          echo ${message}
+          exit 1
+
+      - name: Add integration-tests-verified label
+        if: env.condition_met == 'true' && env.valid_target == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh issue edit ${{ github.event.issue.number }} --add-label "integration-tests-verified" --repo "${{ github.repository }}"
+          echo "✅ Added integration-tests-verified label"
+
+      - name: Leave success comment
+        if: env.condition_met == 'true' && env.valid_target == 'true'
+        env:
+          message: |
+            ✅ **Integration Tests Verified**
+
+            The `integration-tests-verified` label has been added to this PR. The merge check will now pass.
+
+            **Note**: This label will be automatically removed if new commits are pushed to ensure tests are re-run with the latest changes.
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
+
+  # Job to remove label on new commits and check for label presence
+  integration-test-check:
+    name: Integration Test Verification
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || contains(github.event.comment.body, '/integration-tests-ok')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install PyGithub
+
+      - name: Check integration test label
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          python .github/scripts/check_integration_test_label.py
