@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +25,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -326,24 +328,34 @@ func TestStreamArtifactV1_MissingParameters(t *testing.T) {
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
 	testCases := []struct {
-		name        string
-		vars        map[string]string
-		expectedMsg string
+		name               string
+		vars               map[string]string
+		checkSpecificError bool
+		expectedMsg        string
 	}{
 		{
-			name:        "Missing run_id",
-			vars:        map[string]string{"node_id": "node-1", "artifact_name": "artifact-1"},
-			expectedMsg: "missing path parameter: 'run_id'",
+			name:               "Missing all parameters",
+			vars:               map[string]string{},
+			checkSpecificError: false,
+			expectedMsg:        "", // Don't check specific message when all params are missing
 		},
 		{
-			name:        "Missing node_id",
-			vars:        map[string]string{"run_id": "run-1", "artifact_name": "artifact-1"},
-			expectedMsg: "missing path parameter: 'node_id'",
+			name:               "Missing run_id",
+			vars:               map[string]string{"node_id": "node-1", "artifact_name": "artifact-1"},
+			checkSpecificError: true,
+			expectedMsg:        "missing path parameter: 'run_id'",
 		},
 		{
-			name:        "Missing artifact_name",
-			vars:        map[string]string{"run_id": "run-1", "node_id": "node-1"},
-			expectedMsg: "missing path parameter: 'artifact_name'",
+			name:               "Missing node_id",
+			vars:               map[string]string{"run_id": "run-1", "artifact_name": "artifact-1"},
+			checkSpecificError: true,
+			expectedMsg:        "missing path parameter: 'node_id'",
+		},
+		{
+			name:               "Missing artifact_name",
+			vars:               map[string]string{"run_id": "run-1", "node_id": "node-1"},
+			checkSpecificError: true,
+			expectedMsg:        "missing path parameter: 'artifact_name'",
 		},
 	}
 
@@ -357,6 +369,19 @@ func TestStreamArtifactV1_MissingParameters(t *testing.T) {
 			runArtifactServer.StreamArtifactV1(rr, req)
 
 			require.Equal(t, http.StatusBadRequest, rr.Code)
+
+			var errorResponse api.Error
+			err := json.Unmarshal(rr.Body.Bytes(), &errorResponse)
+			require.NoError(t, err)
+
+			if tc.checkSpecificError {
+				// For specific parameter tests, check the exact error message
+				require.Equal(t, tc.expectedMsg, errorResponse.ErrorMessage)
+			} else {
+				// For "Missing all parameters", just verify we get a missing parameter error
+				// without depending on which specific parameter is checked first
+				require.Contains(t, errorResponse.ErrorMessage, "missing path parameter:")
+			}
 		})
 	}
 }
