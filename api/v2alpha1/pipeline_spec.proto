@@ -1166,17 +1166,11 @@ message KubernetesWorkspaceConfig {
 
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 message PipelineConfig {
-  // Name of the semaphore key to control pipeline concurrency
-  string semaphore_key = 1;
-
-  // Name of the mutex to ensure mutual exclusion
-  string mutex_name = 2;
-
   // Time to live configuration after the pipeline run is completed for
   // ephemeral resources created by the pipeline run.
-  int32 resource_ttl = 3;
+  int32 resource_ttl = 1;
 
   // Configuration for a shared storage workspace that persists for the duration of the pipeline run.
   // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
-  optional WorkspaceConfig workspace = 4;
+  optional WorkspaceConfig workspace = 2;
 }
