@@ -945,6 +945,10 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 			}
 		}
 	}
+
+	if src.CustomPath != nil && *src.CustomPath != "" {
+		dst.CustomPath = src.CustomPath
+	}
 }
 
 func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
