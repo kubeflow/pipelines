@@ -79,8 +79,6 @@ const (
 
 	clientQPS   = "ClientQPS"
 	clientBurst = "ClientBurst"
-
-	defaultRegion = "us-east-1"
 )
 
 var scheme *runtime.Scheme
@@ -1030,7 +1028,11 @@ func buildConfigFromEnvVars() *blobStorageConfig {
 	if region != "" {
 		os.Setenv("AWS_REGION", region)
 	} else if isMinIO {
-		os.Setenv("AWS_REGION", defaultRegion)
+		// MinIO implements AWS S3's API and uses "us-east-1" as its default region.
+		// This aligns with AWS S3's standard practice and ensures compatibility with
+		// S3 SDKs and clients. Region is required by the AWS SDK but MinIO treats
+		// it as a logical partition rather than a geographic location.
+		os.Setenv("AWS_REGION", "us-east-1")
 	}
 
 	secretNamespace := common.GetPodNamespace()
@@ -1086,7 +1088,8 @@ func buildConfigFromEnvVars() *blobStorageConfig {
 		params["region"] = region
 	}
 
-	// Provider is always "s3" for both AWS S3 and MinIO (S3-compatible)
+	// Provider is "s3" since MinIO implements the S3 API and is fully compatible
+	// with AWS SDK operations, authentication, and request signing
 	sessionInfo := &objectstore.SessionInfo{
 		Provider: "s3",
 		Params:   params,
