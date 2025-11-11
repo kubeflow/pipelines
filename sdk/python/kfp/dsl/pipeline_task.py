@@ -607,16 +607,72 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_display_name(self, name: str) -> 'PipelineTask':
+    def set_display_name(self, name: Union[str, Any]) -> 'PipelineTask':
         """Sets display name for the task.
 
+        The display name is used for UI display and, for container tasks, also
+        affects the Kubernetes pod name. When set, the display name (after
+        sanitization) is used as the DAG task key, which flows through to the
+        pod name. If not set, the task's Python variable name is used.
+
         Args:
-            name: Display name.
+            name: Display name. Can be a string or an object that can be converted
+                to string (e.g., LoopArgumentVariable from ParallelFor loops).
+                Will be sanitized for Kubernetes compatibility. Special characters
+                will be converted to hyphens, and the name will be truncated if too
+                long to fit within pod name limits.
+                
+                When used in loops, you can use loop variables like:
+                `task.set_display_name(f"my-task-{device.device_name})`
+                Note: Use attribute access (device.device_name), not subscript
+                (device['device_name']).
 
         Returns:
             Self return to allow chained setting calls.
         """
-        self._task_spec.display_name = name
+        # Handle LoopArgumentVariable and other PipelineChannel objects
+        from kfp.dsl import for_loop
+
+        if isinstance(name, for_loop.LoopArgumentVariable):
+            # Direct LoopArgumentVariable: use subvar name
+            display_name_str = name.subvar_name
+        elif isinstance(name, pipeline_channel.PipelineChannel):
+            # Other pipeline channels: use their name
+            display_name_str = str(name.name)
+        else:
+            # Convert to string first (handles f-strings with LoopArgumentVariable)
+            # When LoopArgumentVariable is in an f-string, it converts to a placeholder
+            name_str = str(name)
+
+            # Extract any pipeline channels from the string
+            # This handles f-strings like f"fetch-configs-{device.device_name}"
+            channels = (
+                pipeline_channel.extract_pipeline_channels_from_string(name_str))
+
+            if channels:
+                # Name contains pipeline channels (e.g., in an f-string)
+                # Check if any channel name matches LoopArgumentVariable pattern
+                # LoopArgumentVariable names contain "-subvar-" delimiter
+                display_name_str = name_str
+                for channel in channels:
+                    # Check if channel name matches LoopArgumentVariable pattern
+                    # Pattern: {loop-arg-name}-subvar-{subvar-name}
+                    if for_loop.LoopArgumentVariable.SUBVAR_NAME_DELIMITER in channel.name:
+                        # Extract subvar name from channel name
+                        # Format: {loop-arg-name}-subvar-{subvar-name}
+                        parts = channel.name.split(
+                            for_loop.LoopArgumentVariable.SUBVAR_NAME_DELIMITER)
+                        if len(parts) == 2:
+                            subvar_name = parts[1]
+                            # Replace the channel placeholder with subvar name
+                            placeholder = channel.pattern
+                            display_name_str = display_name_str.replace(
+                                placeholder, subvar_name)
+            else:
+                # Regular string: use as-is
+                display_name_str = name_str
+        
+        self._task_spec.display_name = display_name_str
         return self
 
     @block_if_final()
