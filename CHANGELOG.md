@@ -1,5 +1,18 @@
 # Changelog
 
+### [2.14.4](https://github.com/kubeflow/pipelines/compare/2.14.3...2.14.4) (2025-11-11)
+
+
+### Bug Fixes
+
+* **manifests:** update minio image ref ([\#12424](https://github.com/kubeflow/pipelines/issues/12424)) ([\#12427](https://github.com/kubeflow/pipelines/issues/12427)) ([932d613](https://github.com/kubeflow/pipelines/commit/932d613ccc15dd2c0e5180f6b6db7b3d8bf410c4))
+
+
+### Other Pull Requests
+
+* fix visualization docker build failures by bumping python ([\#12429](https://github.com/kubeflow/pipelines/issues/12429)) ([1e2ae2b](https://github.com/kubeflow/pipelines/commit/1e2ae2bd2a7200523f1362ea24123be4b9084ae6))
+* Release 2.14 ([\#12336](https://github.com/kubeflow/pipelines/issues/12336)) ([360bd09](https://github.com/kubeflow/pipelines/commit/360bd092d2d61498799ff4d90c742e522f82812d))
+
 ### [2.14.3](https://github.com/kubeflow/pipelines/compare/2.14.0...2.14.3) (2025-08-28)
 
 
