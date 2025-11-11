@@ -959,19 +959,25 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 		return nil, fmt.Errorf("failed to open blob storage bucket: %w", err)
 	}
 
-	// For MinIO, ensure the bucket exists (create if it doesn't)
-	// This is needed because MinIO doesn't auto-create buckets like SeaweedFS does
-	if bucketName != "" && config.SessionInfo != nil {
-		switch config.SessionInfo.Provider {
-		case "minio", "s3":
-			if err := ensureMinioBucketExists(ctx, config, bucketName, blobConfig.accessKey, blobConfig.secretKey, k8sClient); err != nil {
-				glog.Warningf("Failed to ensure MinIO bucket exists (may already exist): %v", err)
-			}
+	if shouldEnsureObjectBucket(bucketName, config) {
+		if err := ensureMinioBucketExists(ctx, config, bucketName, blobConfig.accessKey, blobConfig.secretKey, k8sClient); err != nil {
+			glog.Warningf("Failed to ensure MinIO bucket exists (may already exist): %v", err)
 		}
 	}
 
 	glog.Infof("Successfully initialized blob storage for bucket: %s", bucketName)
 	return storage.NewBlobObjectStore(bucket, pipelinePath), nil
+}
+
+// shouldEnsureObjectBucket determines whether we should proactively ensure the
+// object bucket exists. We do this for S3-compatible providers (e.g., MinIO)
+// when a bucket name is configured and SessionInfo is available.
+func shouldEnsureObjectBucket(bucketName string, config *objectstore.Config) bool {
+	if bucketName == "" || config == nil || config.SessionInfo == nil {
+		return false
+	}
+	provider := strings.ToLower(strings.TrimSpace(config.SessionInfo.Provider))
+	return provider == "minio" || provider == "s3"
 }
 
 // blobStorageConfig holds both the objectstore config and credentials
