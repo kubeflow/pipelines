@@ -79,6 +79,10 @@ const (
 
 	clientQPS   = "ClientQPS"
 	clientBurst = "ClientBurst"
+
+	minioArtifactSecretName   = "mlpipeline-minio-artifact"
+	minioArtifactAccessKeyKey = "accesskey"
+	minioArtifactSecretKeyKey = "secretkey"
 )
 
 var scheme *runtime.Scheme
@@ -1011,11 +1015,6 @@ func buildConfigFromEnvVars() *blobStorageConfig {
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 
-	// Constants for MinIO secret (consistent with v2 config)
-	const minioArtifactSecretName = "mlpipeline-minio-artifact"
-	const minioArtifactAccessKeyKey = "accesskey"
-	const minioArtifactSecretKeyKey = "secretkey"
-
 	// Set AWS environment variables
 	if accessKey != "" {
 		os.Setenv("AWS_ACCESS_KEY_ID", accessKey)
@@ -1185,7 +1184,7 @@ func ensureMinioBucketExists(ctx context.Context, config *objectstore.Config, bu
 
 		secretName := config.SessionInfo.Params["secretName"]
 		if secretName == "" {
-			secretName = "mlpipeline-minio-artifact"
+			secretName = minioArtifactSecretName
 		}
 		secretNamespace := config.SessionInfo.Params["namespace"]
 		if secretNamespace == "" {
