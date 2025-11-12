@@ -290,15 +290,15 @@ func (s *UpgradeTests) PreparePipelines() {
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/arguments.pipeline.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+		"../resources/arguments_parameters.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
 	require.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL = "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip"
+	pipelineURL = "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments_parameters.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments_parameters.zip", pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)
@@ -310,7 +310,7 @@ func (s *UpgradeTests) PreparePipelines() {
 		},
 	})
 	require.Nil(t, err)
-	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
+	assert.Equal(t, "arguments_parameters.zip", argumentUrlPipeline.Name)
 
 	time.Sleep(1 * time.Second)
 }
@@ -328,7 +328,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].Name)
 	assert.Equal(t, "sequential", pipelines[1].Name)
 	assert.Equal(t, "zip-arguments-parameters", pipelines[2].Name)
-	assert.Equal(t, "arguments.pipeline.zip", pipelines[3].Name)
+	assert.Equal(t, "arguments_parameters.zip", pipelines[3].Name)
 
 	verifyPipeline(t, pipelines[0])
 

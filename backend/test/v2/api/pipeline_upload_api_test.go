@@ -35,8 +35,8 @@ import (
 // ################## CLASS VARIABLES ##################
 
 const (
-	helloWorldPipelineFileName = "hello-world.yaml"
-	pipelineWithArgsFileName   = "arguments-parameters.yaml"
+	helloWorldPipelineFileName = "hello_world.yaml"
+	pipelineWithArgsFileName   = "arguments_parameters.yaml"
 )
 
 // ################## SET AND TEARDOWN ##################

@@ -22,10 +22,10 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
-          \  python3 -m pip install --quiet --no-warn-script-location 'codeflare-sdk==v0.28.1'\
-          \ && \"$0\" \"$@\"\n"
+          \ python3 -m pip install --quiet --no-warn-script-location 'codeflare-sdk==0.32.2'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -45,7 +45,8 @@ deploymentSpec:
           \      head_cpu_limits=1,\n            head_memory_requests=4,\n       \
           \     head_memory_limits=4,\n            worker_cpu_requests=1,\n      \
           \      worker_cpu_limits=1,\n            worker_memory_requests=1,\n   \
-          \         worker_memory_limits=2,\n            image=\"quay.io/modh/ray@sha256:a5b7c04a14f180d7ca6d06a5697f6bb684e40a26b95a0c872cac23b552741707\"\
+          \         worker_memory_limits=2,\n            # Corresponds to quay.io/modh/ray:2.47.1-py311-cu121\n\
+          \            image=\"quay.io/modh/ray@sha256:6d076aeb38ab3c34a6a2ef0f58dc667089aa15826fa08a73273c629333e12f1e\"\
           ,\n            verify_tls=False\n        )\n    )\n\n    # always clean\
           \ the resources\n    cluster.down()\n    print(cluster.status())\n    cluster.up()\n\
           \    cluster.wait_ready()\n    print(cluster.status())\n    print(cluster.details())\n\
@@ -62,7 +63,7 @@ deploymentSpec:
           \    @ray.remote\n    def train_fn():\n        return 100\n\n    result\
           \ = ray.get(train_fn.remote())\n    assert 100 == result\n    ray.shutdown()\n\
           \    cluster.down()\n    return result\n\n"
-        image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   description: Ray Integration Test
   name: ray-integration-test
@@ -76,4 +77,4 @@ root:
         taskInfo:
           name: ray-fn
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.14.6
