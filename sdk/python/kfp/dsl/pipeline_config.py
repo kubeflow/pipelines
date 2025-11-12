@@ -96,5 +96,25 @@ class WorkspaceConfig:
 class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
-    def __init__(self, workspace: Optional[WorkspaceConfig] = None):
+    def __init__(self,
+                 workspace: Optional[WorkspaceConfig] = None,
+                 pipeline_run_parallelism: Optional[int] = None):
         self.workspace = workspace
+        self.pipeline_run_parallelism = pipeline_run_parallelism
+
+    @property
+    def pipeline_run_parallelism(self) -> Optional[int]:
+        return self._pipeline_run_parallelism
+
+    @pipeline_run_parallelism.setter
+    def pipeline_run_parallelism(self, value: Optional[int]) -> None:  # pylint: disable=attribute-defined-outside-init
+        if value is None:
+            self._pipeline_run_parallelism = None
+            return
+        if not isinstance(value, int):
+            raise ValueError(
+                'pipeline_run_parallelism must be an integer if specified.')
+        if value <= 0:
+            raise ValueError(
+                'pipeline_run_parallelism must be a positive integer.')
+        self._pipeline_run_parallelism = value

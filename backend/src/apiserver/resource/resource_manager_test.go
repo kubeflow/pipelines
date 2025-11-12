@@ -1936,6 +1936,66 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
+func TestCreateRun_PipelineRunParallelismConfigMap(t *testing.T) {
+	initEnvVars()
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipeline, err := manager.CreatePipeline(createPipeline("parallelism-pipeline", "", "kubeflow"))
+	assert.NoError(t, err)
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+
+	pv := createPipelineVersion(
+		pipeline.UUID,
+		"parallelism-version",
+		"",
+		"",
+		v2SpecHelloWorldWithParallelism,
+		"",
+		"kubeflow",
+	)
+	version, err := manager.CreatePipelineVersion(pv)
+	assert.NoError(t, err)
+
+	run := &model.Run{
+		DisplayName: "run-with-parallelism",
+		Namespace:   "kubeflow",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:        pipeline.UUID,
+			PipelineVersionId: version.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"hello\"}",
+			},
+		},
+	}
+
+	createdRun, err := manager.CreateRun(context.Background(), run)
+	assert.NoError(t, err)
+	assert.NotNil(t, createdRun)
+
+	configMap, err := store.k8sCoreClientFake.ConfigMapClient("kubeflow").Get(
+		context.Background(), pipelineParallelismConfigMapName, v1.GetOptions{})
+	assert.NoError(t, err)
+	if assert.NotNil(t, configMap.Data) {
+		assert.Equal(t, "5", configMap.Data[version.UUID])
+	}
+
+	execSpec, err := store.ExecClientFake.Execution("kubeflow").Get(
+		context.Background(), createdRun.K8SName, v1.GetOptions{})
+	assert.NoError(t, err)
+	workflow, ok := execSpec.(*util.Workflow)
+	assert.True(t, ok)
+	if assert.NotNil(t, workflow.Spec.Parallelism) {
+		assert.Equal(t, int64(5), *workflow.Spec.Parallelism)
+	}
+}
+
 func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	// Create experiment, pipeline, and pipeline version.
 	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
@@ -4045,6 +4105,14 @@ root:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldWithParallelism = v2SpecHelloWorld + `
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      pipelineRunParallelism: 5
 `
 
 var v2SpecHelloWorldMutated = `

@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3
+    - name: components-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50
       value: '{"executorLabel":"exec-read-from-workspace","inputDefinitions":{"parameters":{"file_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3
+    - name: implementations-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_from_workspace"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -25,13 +25,13 @@ spec:
         {content}\")\n        assert content == \"Hello from workspace!\"\n        return
         content\n    else:\n        print(f\"File not found at: {file_path}\")\n        return
         \"File not found\"\n\n"],"image":"python:3.11"}'
-    - name: components-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081
+    - name: components-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad
       value: '{"executorLabel":"exec-write-to-workspace","inputDefinitions":{"parameters":{"workspace_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081
+    - name: implementations-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","write_to_workspace"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -46,6 +46,7 @@ spec:
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-from-workspace"}}}},"tasks":{"read-from-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}},"write-to-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
+  parallelism: 3
   podMetadata:
     annotations:
       pipelines.kubeflow.org/v2_component: "true"
@@ -229,11 +230,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3}}'
+            value: '{{workflow.parameters.components-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3}}'
+            value: '{{workflow.parameters.implementations-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50}}'
           - name: task-name
             value: read-from-workspace
           - name: parent-dag-id
@@ -254,11 +255,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081}}'
+            value: '{{workflow.parameters.components-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081}}'
+            value: '{{workflow.parameters.implementations-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad}}'
           - name: task-name
             value: write-to-workspace
           - name: parent-dag-id
