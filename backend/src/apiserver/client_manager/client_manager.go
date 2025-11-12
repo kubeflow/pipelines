@@ -953,7 +953,10 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 
-	blobConfig := buildConfigFromEnvVars()
+	blobConfig, err := buildConfigFromEnvVars()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build config from environment variables: %w", err)
+	}
 	config := blobConfig.config
 
 	bucket, err := openBucketWithRetry(ctx, config, blobConfig.useDirectBucket, initConnectionTimeout, k8sClient)
@@ -1006,7 +1009,7 @@ func ensureProtocol(endpoint string, secure bool) string {
 // This bridges the gap between API server's environment variable configuration
 // and the v2 objectstore package's expected configuration format.
 // Returns both the config and credentials to avoid re-reading them.
-func buildConfigFromEnvVars() *blobStorageConfig {
+func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
 	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
@@ -1017,21 +1020,29 @@ func buildConfigFromEnvVars() *blobStorageConfig {
 
 	// Set AWS environment variables
 	if accessKey != "" {
-		os.Setenv("AWS_ACCESS_KEY_ID", accessKey)
+		if err := os.Setenv("AWS_ACCESS_KEY_ID", accessKey); err != nil {
+			return nil, fmt.Errorf("failed to set AWS_ACCESS_KEY_ID: %w", err)
+		}
 	}
 	if secretKey != "" {
-		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey); err != nil {
+			return nil, fmt.Errorf("failed to set AWS_SECRET_ACCESS_KEY: %w", err)
+		}
 	}
 	// Set region - use default for MinIO if not specified
 	isMinIO := host != ""
 	if region != "" {
-		os.Setenv("AWS_REGION", region)
+		if err := os.Setenv("AWS_REGION", region); err != nil {
+			return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
+		}
 	} else if isMinIO {
 		// MinIO implements AWS S3's API and uses "us-east-1" as its default region.
 		// This aligns with AWS S3's standard practice and ensures compatibility with
 		// S3 SDKs and clients. Region is required by the AWS SDK but MinIO treats
 		// it as a logical partition rather than a geographic location.
-		os.Setenv("AWS_REGION", "us-east-1")
+		if err := os.Setenv("AWS_REGION", "us-east-1"); err != nil {
+			return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
+		}
 	}
 
 	secretNamespace := common.GetPodNamespace()
@@ -1104,7 +1115,7 @@ func buildConfigFromEnvVars() *blobStorageConfig {
 		accessKey:       accessKey,
 		secretKey:       secretKey,
 		useDirectBucket: useDirectBucket,
-	}
+	}, nil
 }
 
 // openBucketWithRetry opens a blob bucket using v2's objectstore.OpenBucket with retry logic
