@@ -36,11 +36,11 @@ type RunArtifactServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-// ReadArtifactV1 is an artifact reading endpoint that streams artifacts directly from object storage
+// ReadArtifact is an artifact reading endpoint that streams artifacts directly from object storage
 // to the HTTP response without buffering the entire content in memory.
 // No size limits are imposed - the streaming approach itself provides the security benefit.
-func (s *RunArtifactServer) ReadArtifactV1(response http.ResponseWriter, r *http.Request) {
-	glog.Infof("Read artifact v1 called")
+func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.Request) {
+	glog.Infof("Read artifact v2 called")
 
 	vars := mux.Vars(r)
 
@@ -111,10 +111,10 @@ func (s *RunArtifactServer) artifactFileExists(ctx context.Context, runID string
 	return true, nil
 }
 
-// ReadArtifact handles v2beta1 artifact reading (same implementation as v1)
-func (s *RunArtifactServer) ReadArtifact(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("Read artifact v2 called")
-	s.ReadArtifactV1(w, r)
+// ReadArtifactV1 handles v1 artifact reading (delegates to v2 implementation)
+func (s *RunArtifactServer) ReadArtifactV1(w http.ResponseWriter, r *http.Request) {
+	glog.Infof("Read artifact v1 called")
+	s.ReadArtifact(w, r)
 }
 
 func (s *RunArtifactServer) writeErrorToResponse(response http.ResponseWriter, code int, err error) {
