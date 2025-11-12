@@ -1173,4 +1173,8 @@ message PipelineConfig {
   // Configuration for a shared storage workspace that persists for the duration of the pipeline run.
   // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
   optional WorkspaceConfig workspace = 2;
+
+  // Maximum number of tasks that can be scheduled simultaneously for a single
+  // pipeline run.
+  optional int32 pipeline_run_parallelism = 3;
 }
