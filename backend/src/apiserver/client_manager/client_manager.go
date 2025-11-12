@@ -959,7 +959,7 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	}
 	config := blobConfig.config
 
-	bucket, err := openBucketWithRetry(ctx, config, blobConfig.useDirectBucket, initConnectionTimeout, k8sClient)
+	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open blob storage bucket: %w", err)
 	}
@@ -987,10 +987,9 @@ func shouldEnsureObjectBucket(bucketName string, config *objectstore.Config) boo
 
 // blobStorageConfig holds both the objectstore config and credentials
 type blobStorageConfig struct {
-	config          *objectstore.Config
-	accessKey       string
-	secretKey       string
-	useDirectBucket bool // indicates if direct blob.OpenBucket should be used (S3-compatible storage with env credentials)
+	config    *objectstore.Config
+	accessKey string
+	secretKey string
 }
 
 // ensureProtocol adds http:// or https:// protocol if not present
@@ -1018,17 +1017,9 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 
-	if bucketName == "" {
-		return nil, fmt.Errorf("ObjectStoreConfig.BucketName is required")
-	}
-	if host == "" {
-		return nil, fmt.Errorf("ObjectStoreConfig.Host is required")
-	}
-	if accessKey == "" {
-		return nil, fmt.Errorf("ObjectStoreConfig.AccessKey is required")
-	}
-	if secretKey == "" {
-		return nil, fmt.Errorf("ObjectStoreConfig.SecretAccessKey is required")
+	err := validateRequiredConfig(bucketName, host, accessKey, secretKey)
+	if err != nil {
+		return nil, err
 	}
 
 	// Set AWS environment variables
@@ -1059,39 +1050,22 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 
 	// Build SessionInfo that v2/objectstore.OpenBucket expects
 	// The v2 package will use these parameters to configure the S3 client
-	params := map[string]string{}
-
-	// Detect if using AWS S3 vs S3-compatible storage
-	// S3-compatible storage requires special handling as fromEnv=true causes fallback to AWS endpoints
-	isAwsS3 := strings.Contains(host, "amazonaws.com")
-
-	queryString := ""
-	useDirectBucket := false
-
-	// Set base parameters
-	if !isAwsS3 {
-		// S3-compatible storage: use fromEnv=false to ensure proper endpoint configuration
-		params["fromEnv"] = "false"
-		params["endpoint"] = endpoint
-		params["disableSSL"] = fmt.Sprintf("%t", !secure)
-		params["forcePathStyle"] = "true"
-
-		// Build query string for direct blob.OpenBucket
-		endpointWithProtocol := ensureProtocol(endpoint, secure)
-		// Path-style URLs required for S3-compatible storage
-		queryString = fmt.Sprintf("endpoint=%s&use_path_style=true", url.QueryEscape(endpointWithProtocol))
-		if region != "" {
-			queryString += "&region=" + region
-		}
-		// Mark that we should use direct bucket opening
-		useDirectBucket = true
-	} else {
-		// AWS S3: credentials are provided via environment variables
-		params["fromEnv"] = "true"
+	params := map[string]string{
+		"fromEnv":        "false",
+		"endpoint":       endpoint,
+		"disableSSL":     fmt.Sprintf("%t", !secure),
+		"forcePathStyle": "true",
 	}
 
 	if region != "" {
 		params["region"] = region
+	}
+
+	// Build query string for direct blob.OpenBucket
+	endpointWithProtocol := ensureProtocol(endpoint, secure)
+	queryString := fmt.Sprintf("endpoint=%s&use_path_style=true", url.QueryEscape(endpointWithProtocol))
+	if region != "" {
+		queryString += "&region=" + region
 	}
 
 	// Provider is "s3" since S3-compatible storage implements the S3 API and is fully compatible
@@ -1108,34 +1082,38 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 			QueryString: queryString,
 			SessionInfo: sessionInfo,
 		},
-		accessKey:       accessKey,
-		secretKey:       secretKey,
-		useDirectBucket: useDirectBucket,
+		accessKey: accessKey,
+		secretKey: secretKey,
 	}, nil
 }
 
-// openBucketWithRetry opens a blob bucket using v2's objectstore.OpenBucket with retry logic
-func openBucketWithRetry(ctx context.Context, config *objectstore.Config, useDirectBucket bool, timeout time.Duration, k8sClient kubernetes.Interface) (*blob.Bucket, error) {
+func validateRequiredConfig(bucketName string, host string, accessKey string, secretKey string) error {
+	if bucketName == "" {
+		return fmt.Errorf("ObjectStoreConfig.BucketName is required")
+	}
+	if host == "" {
+		return fmt.Errorf("ObjectStoreConfig.Host is required")
+	}
+	if accessKey == "" {
+		return fmt.Errorf("ObjectStoreConfig.AccessKey is required")
+	}
+	if secretKey == "" {
+		return fmt.Errorf("ObjectStoreConfig.SecretAccessKey is required")
+	}
+	return nil
+}
+
+// openBucketWithRetry opens a blob bucket using direct blob.OpenBucket with retry logic
+func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeout time.Duration) (*blob.Bucket, error) {
 	var bucket *blob.Bucket
 	var err error
 
-	namespace := common.GetPodNamespace()
-
 	operation := func() error {
-		if useDirectBucket {
-			// S3-compatible storage with environment credentials - use direct blob.OpenBucket
-			bucketURL := config.Scheme + config.BucketName
-			if config.QueryString != "" {
-				bucketURL += "?" + config.QueryString
-			}
-			bucket, err = blob.OpenBucket(ctx, bucketURL)
-		} else {
-			// Standard path through v2/objectstore
-			bucket, err = objectstore.OpenBucket(ctx, k8sClient, namespace, config)
-			if err != nil {
-				glog.Warningf("Failed to open blob bucket, retrying: %v", err)
-			}
+		bucketURL := config.Scheme + config.BucketName
+		if config.QueryString != "" {
+			bucketURL += "?" + config.QueryString
 		}
+		bucket, err = blob.OpenBucket(ctx, bucketURL)
 		return err
 	}
 
