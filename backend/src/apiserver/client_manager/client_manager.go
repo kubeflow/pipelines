@@ -76,10 +76,6 @@ const (
 
 	clientQPS   = "ClientQPS"
 	clientBurst = "ClientBurst"
-
-	minioArtifactSecretName   = "mlpipeline-minio-artifact"
-	minioArtifactAccessKeyKey = "accesskey"
-	minioArtifactSecretKeyKey = "secretkey"
 )
 
 var scheme *runtime.Scheme
