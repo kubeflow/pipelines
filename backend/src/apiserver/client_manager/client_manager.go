@@ -990,7 +990,7 @@ type blobStorageConfig struct {
 	config          *objectstore.Config
 	accessKey       string
 	secretKey       string
-	useDirectBucket bool // indicates if direct blob.OpenBucket should be used (MinIO with env credentials)
+	useDirectBucket bool // indicates if direct blob.OpenBucket should be used (S3-compatible storage with env credentials)
 }
 
 // ensureProtocol adds http:// or https:// protocol if not present
@@ -1018,34 +1018,39 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 
+	if bucketName == "" {
+		return nil, fmt.Errorf("ObjectStoreConfig.BucketName is required")
+	}
+	if host == "" {
+		return nil, fmt.Errorf("ObjectStoreConfig.Host is required")
+	}
+	if accessKey == "" {
+		return nil, fmt.Errorf("ObjectStoreConfig.AccessKey is required")
+	}
+	if secretKey == "" {
+		return nil, fmt.Errorf("ObjectStoreConfig.SecretAccessKey is required")
+	}
+
 	// Set AWS environment variables
-	if accessKey != "" {
-		if err := os.Setenv("AWS_ACCESS_KEY_ID", accessKey); err != nil {
-			return nil, fmt.Errorf("failed to set AWS_ACCESS_KEY_ID: %w", err)
-		}
+	if err := os.Setenv("AWS_ACCESS_KEY_ID", accessKey); err != nil {
+		return nil, fmt.Errorf("failed to set AWS_ACCESS_KEY_ID: %w", err)
 	}
-	if secretKey != "" {
-		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey); err != nil {
-			return nil, fmt.Errorf("failed to set AWS_SECRET_ACCESS_KEY: %w", err)
-		}
+	if err := os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey); err != nil {
+		return nil, fmt.Errorf("failed to set AWS_SECRET_ACCESS_KEY: %w", err)
 	}
-	// Set region - use default for MinIO if not specified
-	isMinIO := host != ""
+	// Set region - use default if not specified
 	if region != "" {
 		if err := os.Setenv("AWS_REGION", region); err != nil {
 			return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
 		}
-	} else if isMinIO {
-		// MinIO implements AWS S3's API and uses "us-east-1" as its default region.
+	} else {
+		// Use "us-east-1" as the default region.
 		// This aligns with AWS S3's standard practice and ensures compatibility with
-		// S3 SDKs and clients. Region is required by the AWS SDK but MinIO treats
-		// it as a logical partition rather than a geographic location.
+		// S3 SDKs and clients.
 		if err := os.Setenv("AWS_REGION", "us-east-1"); err != nil {
 			return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
 		}
 	}
-
-	secretNamespace := common.GetPodNamespace()
 
 	endpoint := host
 	if port != "" {
@@ -1056,49 +1061,40 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	// The v2 package will use these parameters to configure the S3 client
 	params := map[string]string{}
 
-	// Configure credential handling based on endpoint type.
-	// MinIO requires special handling as fromEnv=true causes fallback to AWS endpoints.
+	// Detect if using AWS S3 vs S3-compatible storage
+	// S3-compatible storage requires special handling as fromEnv=true causes fallback to AWS endpoints
+	isAwsS3 := strings.Contains(host, "amazonaws.com")
+
 	queryString := ""
-	hasCredentials := accessKey != "" && secretKey != ""
 	useDirectBucket := false
 
 	// Set base parameters
-	if isMinIO {
-		// MinIO always uses fromEnv=false to ensure proper endpoint configuration
+	if !isAwsS3 {
+		// S3-compatible storage: use fromEnv=false to ensure proper endpoint configuration
 		params["fromEnv"] = "false"
 		params["endpoint"] = endpoint
 		params["disableSSL"] = fmt.Sprintf("%t", !secure)
 		params["forcePathStyle"] = "true"
 
-		if hasCredentials {
-			// Build query string for direct blob.OpenBucket
-			endpointWithProtocol := ensureProtocol(endpoint, secure)
-			// Path-style URLs required for MinIO
-			queryString = fmt.Sprintf("endpoint=%s&use_path_style=true", url.QueryEscape(endpointWithProtocol))
-			if region != "" {
-				queryString += "&region=" + region
-			}
-			// Mark that we should use direct bucket opening
-			useDirectBucket = true
+		// Build query string for direct blob.OpenBucket
+		endpointWithProtocol := ensureProtocol(endpoint, secure)
+		// Path-style URLs required for S3-compatible storage
+		queryString = fmt.Sprintf("endpoint=%s&use_path_style=true", url.QueryEscape(endpointWithProtocol))
+		if region != "" {
+			queryString += "&region=" + region
 		}
+		// Mark that we should use direct bucket opening
+		useDirectBucket = true
 	} else {
-		// AWS S3: use fromEnv based on credential availability
-		params["fromEnv"] = fmt.Sprintf("%t", hasCredentials)
-	}
-
-	// Configure K8s secret parameters if no credentials in environment
-	if !hasCredentials || (isMinIO && queryString == "") {
-		params["secretName"] = minioArtifactSecretName
-		params["namespace"] = secretNamespace
-		params["accessKeyKey"] = minioArtifactAccessKeyKey
-		params["secretKeyKey"] = minioArtifactSecretKeyKey
+		// AWS S3: credentials are provided via environment variables
+		params["fromEnv"] = "true"
 	}
 
 	if region != "" {
 		params["region"] = region
 	}
 
-	// Provider is "s3" since MinIO implements the S3 API and is fully compatible
+	// Provider is "s3" since S3-compatible storage implements the S3 API and is fully compatible
 	// with AWS SDK operations, authentication, and request signing
 	sessionInfo := &objectstore.SessionInfo{
 		Provider: "s3",
@@ -1127,7 +1123,7 @@ func openBucketWithRetry(ctx context.Context, config *objectstore.Config, useDir
 
 	operation := func() error {
 		if useDirectBucket {
-			// MinIO with environment credentials - use direct blob.OpenBucket
+			// S3-compatible storage with environment credentials - use direct blob.OpenBucket
 			bucketURL := config.Scheme + config.BucketName
 			if config.QueryString != "" {
 				bucketURL += "?" + config.QueryString
