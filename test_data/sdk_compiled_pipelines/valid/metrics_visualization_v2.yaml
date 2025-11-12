@@ -120,7 +120,7 @@ deploymentSpec:
           \ = '<!DOCTYPE html><html><body><h1>Hello world</h1></body></html>'\n  \
           \  with open(html_artifact.path, 'w') as f:\n        f.write(html_content)\n\
           \n"
-        image: python:3.11
+        image: python:3.9
     exec-iris-sgdclassifier:
       container:
         args:
@@ -192,7 +192,7 @@ deploymentSpec:
           \    markdown_content = '## Hello world \\n\\n Markdown content'\n    with\
           \ open(markdown_artifact.path, 'w') as f:\n        f.write(markdown_content)\n\
           \n"
-        image: python:3.11
+        image: python:3.9
     exec-wine-classification:
       container:
         args:

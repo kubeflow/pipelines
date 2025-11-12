@@ -167,7 +167,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Upload pipeline version zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
-		"../resources/arguments.pipeline.zip", &uploadParams.UploadPipelineVersionParams{
+		"../resources/arguments_parameters.zip", &uploadParams.UploadPipelineVersionParams{
 			Name:       util.StringPointer("zip-arguments-parameters"),
 			Pipelineid: util.StringPointer(pipelineId),
 		})
@@ -176,10 +176,10 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/backend/test/resources/arguments.pipeline.zip", s.repoName)
+	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/backend/test/resources/arguments_parameters.zip", s.repoName)
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/backend/test/resources/arguments.pipeline.zip", s.repoName, pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/backend/test/resources/arguments_parameters.zip", s.repoName, pullNumber)
 	}
 
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{

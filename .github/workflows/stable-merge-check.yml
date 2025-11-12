@@ -1,4 +1,4 @@
-name: Stable Merge Integration Test Check
+name: PR Merge Integration Test Check
 
 on:
   pull_request:
@@ -6,19 +6,18 @@ on:
       - stable
     types: [opened, synchronize, reopened, edited]
   issue_comment:
-    types: [created]
+    types: [created, edited]
 
-env:
-  DEFAULT_BRANCH: master
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
 
 jobs:
   # Job to handle /integration-tests-ok command
   process-integration-command:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-    if: contains(github.event.comment.body, '/integration-tests-ok') && github.event.issue.pull_request
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/integration-tests-ok') }}
     steps:
       - name: Check if the author is a member or Owner
         id: check-condition
@@ -53,17 +52,17 @@ jobs:
           echo "Base branch: $BASE_BRANCH"
           echo "Head branch: $HEAD_BRANCH"
 
-          if [[ "$BASE_BRANCH" == "stable" ]]; then
+          if [[ "$BASE_BRANCH" == "stable" || "$BASE_BRANCH" == "master" ]]; then
             echo "valid_target=true" >> $GITHUB_ENV
           else
             echo "valid_target=false" >> $GITHUB_ENV
-            echo "This command only works for PRs against stable branch"
+            echo "This command only works for PRs against master/stable branch"
           fi
 
       - name: Leave a Comment on Invalid Target
         if: env.condition_met == 'true' && env.valid_target == 'false'
         env:
-          message: ⚠️ This command only works for pull requests to `stable` branches.
+          message: ⚠️ This command only works for pull requests to `master/stable` branches.
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"

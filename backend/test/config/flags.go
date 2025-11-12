@@ -38,9 +38,10 @@ var (
 )
 
 var (
-	REPO_NAME   = flag.String("repoName", "kubeflow/pipelines", "The name of the repository")
+	REPO_NAME   = flag.String("repoName", "opendatahub-io/data-science-pipelines", "The name of the repository")
 	PULL_NUMBER = flag.String("pullNumber", "", "The pull number")
 	BRANCH_NAME = flag.String("branchName", "master", "The branch name")
+	BaseImage   = flag.String("baseImage", "", "The base image for components to override with")
 )
 
 var DebugMode = flag.Bool("debugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")

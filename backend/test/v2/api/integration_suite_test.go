@@ -24,8 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/test/v2"
-
 	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
@@ -76,7 +74,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
 	var tlsCfg *tls.Config
 	if *config.TLSEnabled {
-		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		tlsCfg, err = testutil.GetTLSConfig(*config.CaCertPath)
 		if err != nil {
 			log.Fatalf("Error getting TLS Config: %v", err)
 		}
@@ -136,6 +134,7 @@ var _ = BeforeSuite(func() {
 		*config.UploadPipelinesWithKubernetes,
 		*config.KubeflowMode,
 		*config.DebugMode,
+		*config.AuthToken,
 		*config.Namespace,
 		clientConfig,
 		tlsCfg,

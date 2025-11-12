@@ -32,9 +32,9 @@ spec:
         random_state=seed)\n    #fit model\n    model.fit(X_train, y_train)\n\n    #accuracy
         on test set\n    result = model.score(X_test, y_test)\n    metrics.log_metric(''accuracy'',
         (result * 100.0))\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
-    - name: components-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9
+    - name: components-9526946080c15ac91d54a253202c07824a527a15c78b91b10e9b1985244f05e3
       value: '{"executorLabel":"exec-html-visualization","outputDefinitions":{"artifacts":{"html_artifact":{"artifactType":{"schemaTitle":"system.HTML","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9
+    - name: implementations-9526946080c15ac91d54a253202c07824a527a15c78b91b10e9b1985244f05e3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","html_visualization"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -46,7 +46,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         html_visualization(html_artifact: Output[HTML]):\n    html_content = ''\u003c!DOCTYPE
         html\u003e\u003chtml\u003e\u003cbody\u003e\u003ch1\u003eHello world\u003c/h1\u003e\u003c/body\u003e\u003c/html\u003e''\n    with
-        open(html_artifact.path, ''w'') as f:\n        f.write(html_content)\n\n"],"image":"python:3.11"}'
+        open(html_artifact.path, ''w'') as f:\n        f.write(html_content)\n\n"],"image":"python:3.9"}'
     - name: components-bc39e66a757a311925530cb3cd83e853de7b0e184293aef072b5b7373bb54737
       value: '{"executorLabel":"exec-iris-sgdclassifier","inputDefinitions":{"parameters":{"test_samples_fraction":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-bc39e66a757a311925530cb3cd83e853de7b0e184293aef072b5b7373bb54737
@@ -70,9 +70,9 @@ spec:
         cv=3)\n    metrics.log_confusion_matrix(\n        [''Setosa'', ''Versicolour'',
         ''Virginica''],\n        confusion_matrix(\n            train_y,\n            predictions).tolist()  #
         .tolist() to convert np array to list.\n    )\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
-    - name: components-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2
+    - name: components-7333214f53390b9852a98882c4e9f7a957f3f48ec26f6bee87cfe1902b49ff46
       value: '{"executorLabel":"exec-markdown-visualization","outputDefinitions":{"artifacts":{"markdown_artifact":{"artifactType":{"schemaTitle":"system.Markdown","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2
+    - name: implementations-7333214f53390b9852a98882c4e9f7a957f3f48ec26f6bee87cfe1902b49ff46
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","markdown_visualization"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -84,7 +84,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         markdown_visualization(markdown_artifact: Output[Markdown]):\n    markdown_content
         = ''## Hello world \\n\\n Markdown content''\n    with open(markdown_artifact.path,
-        ''w'') as f:\n        f.write(markdown_content)\n\n"],"image":"python:3.11"}'
+        ''w'') as f:\n        f.write(markdown_content)\n\n"],"image":"python:3.9"}'
     - name: components-604e27807fd7ae86d7bc5f843ad162238727d4c7b293d7bd4f12829300b5f6f6
       value: '{"executorLabel":"exec-wine-classification","outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-604e27807fd7ae86d7bc5f843ad162238727d4c7b293d7bd4f12829300b5f6f6
@@ -317,11 +317,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9}}'
+            value: '{{workflow.parameters.components-9526946080c15ac91d54a253202c07824a527a15c78b91b10e9b1985244f05e3}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-html-visualization"},"taskInfo":{"name":"html-visualization"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9}}'
+            value: '{{workflow.parameters.implementations-9526946080c15ac91d54a253202c07824a527a15c78b91b10e9b1985244f05e3}}'
           - name: task-name
             value: html-visualization
           - name: parent-dag-id
@@ -365,11 +365,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2}}'
+            value: '{{workflow.parameters.components-7333214f53390b9852a98882c4e9f7a957f3f48ec26f6bee87cfe1902b49ff46}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-markdown-visualization"},"taskInfo":{"name":"markdown-visualization"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2}}'
+            value: '{{workflow.parameters.implementations-7333214f53390b9852a98882c4e9f7a957f3f48ec26f6bee87cfe1902b49ff46}}'
           - name: task-name
             value: markdown-visualization
           - name: parent-dag-id

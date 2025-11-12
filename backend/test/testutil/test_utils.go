@@ -16,6 +16,8 @@
 package testutil
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"math/rand"
 	"os"
@@ -24,11 +26,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/onsi/gomega"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
@@ -104,7 +107,7 @@ func getPackagePath(subdir string) string {
 	return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, *config.BRANCH_NAME, subdir)
 }
 
-func ReplaceSDKInPipelineSpec(pipelineFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) []byte {
+func ReplaceSDKInPipelineSpec(pipelineFilePath string) []byte {
 	pipelineFileBytes, err := os.ReadFile(pipelineFilePath)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to read pipeline file: "+pipelineFilePath)
 	pipelineFileString := string(pipelineFileBytes)
@@ -117,4 +120,63 @@ func ReplaceSDKInPipelineSpec(pipelineFilePath string, cacheDisabled bool, defau
 	modifiedPipelineSpec := kfpPattern.ReplaceAllString(pipelineFileString, newPackagePath)
 
 	return []byte(modifiedPipelineSpec)
+}
+
+func ReplaceBaseImageInPipelineSpec(pipelineFilePath string) []byte {
+	pipelineFileBytes, err := os.ReadFile(pipelineFilePath)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to read pipeline file: "+pipelineFilePath)
+	pipelineFileString := string(pipelineFileBytes)
+
+	// Define regex pattern to match image: python:3.9
+	imagePattern := regexp.MustCompile(`image: python:[0-9]+\.[0-9]+`)
+
+	// Replace all occurrences with the new package path
+	newBaseImage := fmt.Sprintf("image: %s", *config.BaseImage)
+	modifiedPipelineSpec := imagePattern.ReplaceAllString(pipelineFileString, newBaseImage)
+
+	return []byte(modifiedPipelineSpec)
+}
+
+func GetPipelineUploadClient(
+	uploadPipelinesWithKubernetes bool,
+	isKubeflowMode bool,
+	isDebugMode bool,
+	userToken string,
+	namespace string,
+	clientConfig clientcmd.ClientConfig,
+	tlsCfg *tls.Config,
+) (api_server.PipelineUploadInterface, error) {
+	if uploadPipelinesWithKubernetes {
+		return api_server.NewPipelineUploadClientKubernetes(clientConfig, namespace)
+	}
+
+	if isKubeflowMode {
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode, tlsCfg)
+	}
+	if userToken != "" {
+		return api_server.NewMultiUserPipelineUploadClient(clientConfig, userToken, isDebugMode, tlsCfg)
+	}
+
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode, tlsCfg)
+}
+
+// GetTLSConfig returns TLS config set with system CA certs as well as custom CA stored at input caCertPath if provided.
+func GetTLSConfig(caCertPath string) (*tls.Config, error) {
+	caCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, err
+	}
+	if caCertPath != "" {
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, err
+		}
+		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+			return nil, err
+		}
+	}
+	return &tls.Config{
+		RootCAs:    caCertPool,
+		MinVersion: tls.VersionTLS13,
+	}, nil
 }

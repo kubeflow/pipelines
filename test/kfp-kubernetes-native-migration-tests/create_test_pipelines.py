@@ -50,7 +50,7 @@ def to_json_for_comparison(obj):
 PIPELINE_FILES = [
     {
         "name": "hello-world", 
-        "path": "test_data/sdk_compiled_pipelines/valid/hello-world.yaml",
+        "path": "test_data/sdk_compiled_pipelines/valid/hello_world.yaml",
         "description": "Simple hello world pipeline for migration testing"
     },
     {

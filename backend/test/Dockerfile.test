@@ -1,0 +1,51 @@
+# Copyright 2021-2022 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM golang:1.24-bookworm AS builder
+
+# Update package repo and install required libraries
+RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
+
+ENV KUBECONFIG=/dspa/backend/test/.kube/config
+
+# Declare working directory
+WORKDIR /dspa
+
+# Download the latest OpenShift CLI binary
+RUN wget -q https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/sha256sum.txt -P oc-client && \
+    wget -q https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/openshift-client-linux.tar.gz -P oc-client && \
+    sha256sum -c oc-client/sha256sum.txt | grep openshift-client-linux.tar.gz && \
+    tar -xf oc-client/openshift-client-linux.tar.gz -C oc-client && \
+    cp oc-client/oc /usr/local/bin && \
+    rm -rf oc-client/
+
+# Copy all required go files from the project
+COPY ./go.mod ./
+COPY ./go.sum ./
+COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
+COPY ./api/go.mod ./api/go.mod
+
+# Download all go modules
+RUN GO111MODULE=on go mod download
+
+# Copy project files
+COPY ./backend ./backend
+COPY ./api ./api
+COPY ./kubernetes_platform ./kubernetes_platform
+COPY ./test_data ./test_data
+
+WORKDIR /dspa/backend/test
+
+# Command to run the tests
+ENTRYPOINT ["bash", "test-run.sh"]
