@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - ../../../../../manifests/kustomize/env/platform-agnostic
+  - ../../../../../manifests/kustomize/env/platform-agnostic-minio
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server

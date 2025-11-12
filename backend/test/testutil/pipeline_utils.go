@@ -15,7 +15,6 @@
 package testutil
 
 import (
-	"crypto/tls"
 	"fmt"
 	"os"
 
@@ -25,31 +24,12 @@ import (
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	test_config "github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"k8s.io/client-go/tools/clientcmd"
 )
-
-func GetPipelineUploadClient(
-	uploadPipelinesWithKubernetes bool,
-	isKubeflowMode bool,
-	isDebugMode bool,
-	namespace string,
-	clientConfig clientcmd.ClientConfig,
-	tlsCfg *tls.Config,
-) (api_server.PipelineUploadInterface, error) {
-	if uploadPipelinesWithKubernetes {
-		return api_server.NewPipelineUploadClientKubernetes(clientConfig, namespace)
-	}
-
-	if isKubeflowMode {
-		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode, tlsCfg)
-	}
-
-	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode, tlsCfg)
-}
 
 func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipeline_model.V2beta1Pipeline {
 	parameters := &pipeline_params.PipelineServiceListPipelinesParams{}
@@ -70,8 +50,12 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 		uploadParams.SetDisplayName(pipelineDisplayName)
 	}
 	logger.Log("Creating temp pipeline file with overridden SDK Version")
-	overriddenPipelineFileWithSDKVersion := ReplaceSDKInPipelineSpec(pipelineFilePath, false, nil)
+	overriddenPipelineFileWithSDKVersion := ReplaceSDKInPipelineSpec(pipelineFilePath)
 	tempPipelineFile := CreateTempFile(overriddenPipelineFileWithSDKVersion)
+	if *test_config.BaseImage != "" {
+		overridenBaseImageFile := ReplaceBaseImageInPipelineSpec(tempPipelineFile.Name())
+		tempPipelineFile = CreateTempFile(overridenBaseImageFile)
+	}
 	defer func() {
 		// Ensure the temporary file is removed when the function exits
 		if err := os.Remove(tempPipelineFile.Name()); err != nil {

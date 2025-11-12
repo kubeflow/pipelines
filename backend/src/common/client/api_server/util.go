@@ -70,10 +70,13 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls
 		}
 		host := parsedUrl.Host
 		if parsedUrl.Scheme != "" {
-			scheme = append(scheme, parsedUrl.Scheme)
-		}
-		if testconfig.ApiScheme != nil {
-			scheme = append(scheme, *testconfig.ApiScheme)
+			scheme = []string{parsedUrl.Scheme}
+		} else {
+			if testconfig.ApiScheme != nil {
+				scheme = []string{*testconfig.ApiScheme}
+			} else {
+				scheme = []string{"http"}
+			}
 		}
 		if *testconfig.DisableTLSCheck {
 			tr := &http.Transport{
