@@ -10,7 +10,7 @@ deploymentSpec:
         command:
         - echo
         - hello world
-        image: python:3.9
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   name: v2-container-component-no-input
 root:
@@ -24,4 +24,4 @@ root:
         taskInfo:
           name: hello-world-container
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.14.6

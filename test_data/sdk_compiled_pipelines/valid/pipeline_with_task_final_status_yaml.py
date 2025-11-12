@@ -24,7 +24,7 @@ inputs:
 - {name: status, type: PipelineTaskFinalStatus}
 implementation:
   container:
-    image: python:3.9
+    image: registry.access.redhat.com/ubi9/python-311:latest
     command:
     - echo
     - "user input:"
@@ -39,7 +39,7 @@ inputs:
 - {name: message, type: String}
 implementation:
   container:
-    image: python:3.9
+    image: registry.access.redhat.com/ubi9/python-311:latest
     command:
     - echo
     - {inputValue: message}
