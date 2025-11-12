@@ -21,9 +21,8 @@ import (
 	"strconv"
 	"strings"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -156,7 +155,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
 				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
 				{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
-				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
+				{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
 			},
 		},
 	}
@@ -193,7 +192,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--run_id", runID(),
 		"--run_name", runResourceName(),
 		"--run_display_name", c.job.DisplayName,
-		"--dag_execution_id", inputValue(paramParentDagID),
+		"--parent_task_id", inputValue(paramParentDagTaskID),
 		"--component", inputValue(paramComponent),
 		"--task", inputValue(paramTask),
 		"--task_name", inputValue(paramTaskName),
@@ -213,12 +212,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if c.mlPipelineTLSEnabled {
 		args = append(args, "--ml_pipeline_tls_enabled")
 	}
-	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
-	}
 
 	setCABundle := false
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+	if common.GetCaBundleSecretName() != "" && c.mlPipelineTLSEnabled {
 		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
 		setCABundle = true
 	}
@@ -238,7 +234,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramTask},
 				{Name: paramContainer},
 				{Name: paramTaskName},
-				{Name: paramParentDagID},
+				{Name: paramParentDagTaskID},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 				{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
 			},
@@ -255,7 +251,32 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
+			VolumeMounts: []k8score.VolumeMount{
+				{
+					Name:      kfpTokenVolumeName,
+					MountPath: kfpTokenMountPath,
+					ReadOnly:  true,
+				},
+			},
+		},
+		Volumes: []k8score.Volume{
+			{
+				Name: kfpTokenVolumeName,
+				VolumeSource: k8score.VolumeSource{
+					Projected: &k8score.ProjectedVolumeSource{
+						Sources: []k8score.VolumeProjection{
+							{
+								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
+									Path:              "token",
+									Audience:          kfpTokenAudience,
+									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
@@ -450,6 +471,22 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				},
 			},
 			{
+				Name: kfpTokenVolumeName,
+				VolumeSource: k8score.VolumeSource{
+					Projected: &k8score.ProjectedVolumeSource{
+						Sources: []k8score.VolumeProjection{
+							{
+								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
+									Path:              "token",
+									Audience:          kfpTokenAudience,
+									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
+								},
+							},
+						},
+					},
+				},
+			},
+			{
 				Name: gcsScratchName,
 				VolumeSource: k8score.VolumeSource{
 					EmptyDir: &k8score.EmptyDirVolumeSource{},
@@ -516,6 +553,11 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 					MountPath: component.VolumePathKFPLauncher,
 				},
 				{
+					Name:      kfpTokenVolumeName,
+					MountPath: kfpTokenMountPath,
+					ReadOnly:  true,
+				},
+				{
 					Name:      gcsScratchName,
 					MountPath: gcsScratchLocation,
 				},
@@ -545,7 +587,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		},
 	}
 	// If the apiserver is TLS-enabled, add the custom CA bundle to the executor.
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+	if common.GetCaBundleSecretName() != "" && c.mlPipelineTLSEnabled {
 		ConfigureCustomCABundle(executor)
 	}
 

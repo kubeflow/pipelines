@@ -1,0 +1,7 @@
+{
+  "type":  "ROC_CURVE",
+  "source":  "gs://my-bucket/data/visualization.csv",
+  "arguments":  "{\"param1\": \"value1\", \"param2\": \"value2\"}",
+  "html":  "<div>Generated Visualization</div>",
+  "error":  ""
+}

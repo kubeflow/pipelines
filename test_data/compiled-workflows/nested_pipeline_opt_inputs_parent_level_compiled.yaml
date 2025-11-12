@@ -124,8 +124,8 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
@@ -152,6 +152,19 @@ spec:
       - ""
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -161,13 +174,17 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
       - name: component
       - name: task
       - name: container
       - name: task-name
-      - name: parent-dag-id
+      - name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: ""
@@ -189,6 +206,14 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
@@ -218,6 +243,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -228,6 +257,9 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -267,6 +299,13 @@ spec:
     volumes:
     - emptyDir: {}
       name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -291,8 +330,8 @@ spec:
             value: '{{workflow.parameters.implementations-3fb1a1c38ece9fdf50975220e7cfae8f23547ef21522393d7e590333a4dbfd75}}'
           - name: task-name
             value: component-nil-bool-default
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: component-nil-bool-default-driver
         template: system-container-driver
       - arguments:
@@ -315,8 +354,8 @@ spec:
             value: '{{workflow.parameters.implementations-22fb7cbea158fa49c81562ab2996be3fe3b07c161e8979367050d728d411e29c}}'
           - name: task-name
             value: component-nil-int-default
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: component-nil-int-default-driver
         template: system-container-driver
       - arguments:
@@ -339,8 +378,8 @@ spec:
             value: '{{workflow.parameters.implementations-af9421038bc7cb5eeb32efd4d2a0c050a4d7988646bac55e6aaaa06cabc9304d}}'
           - name: task-name
             value: component-nil-str-default
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: component-nil-str-default-driver
         template: system-container-driver
       - arguments:
@@ -355,7 +394,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-nested-pipeline-nil-defaults
     outputs: {}
@@ -371,8 +410,8 @@ spec:
             value: '{{workflow.parameters.implementations-0471bffb66a33e2f351040cca3cec0486ec93f968cc8eae19f63a7c81e9f5916}}'
           - name: task-name
             value: component-bool-default
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: component-bool-default-driver
         template: system-container-driver
       - arguments:
@@ -395,8 +434,8 @@ spec:
             value: '{{workflow.parameters.implementations-0f1bb762821e1923f608b9b5c75f9fb3e4a628508c2343e9cc383eff2bc0ae3e}}'
           - name: task-name
             value: component-int-default
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: component-int-default-driver
         template: system-container-driver
       - arguments:
@@ -419,8 +458,8 @@ spec:
             value: '{{workflow.parameters.implementations-fb41f663306ed858f33b40f076339dd4af802def6164ef138a8c278c8dd2647e}}'
           - name: task-name
             value: component-str-default
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
         name: component-str-default-driver
         template: system-container-driver
       - arguments:
@@ -435,7 +474,7 @@ spec:
         template: system-container-executor
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: comp-nested-pipeline-non-nil-defaults
     outputs: {}
@@ -451,8 +490,8 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
@@ -463,8 +502,8 @@ spec:
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
+      - --parent_task_id_path
+      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
@@ -477,6 +516,19 @@ spec:
       - ""
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -486,6 +538,10 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
     inputs:
       parameters:
       - name: component
@@ -495,8 +551,8 @@ spec:
         name: task
       - default: ""
         name: task-name
-      - default: "0"
-        name: parent-dag-id
+      - default: ""
+        name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
       - default: DAG
@@ -505,9 +561,9 @@ spec:
     name: system-dag-driver
     outputs:
       parameters:
-      - name: execution-id
+      - name: parent-dag-task-id-path
         valueFrom:
-          path: /tmp/outputs/execution-id
+          path: /tmp/outputs/task-id
       - name: iteration-count
         valueFrom:
           default: "0"
@@ -516,14 +572,22 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org
+            expirationSeconds: 7200
+            path: token
   - dag:
       tasks:
       - arguments:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-nested-pipeline-nil-defaults}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-nested-pipeline-nil-defaults"},"inputs":{"parameters":{"nestedInputBool":{"componentInputParameter":"inputBool"},"nestedInputInt":{"componentInputParameter":"inputInt"},"nestedInputStr":{"componentInputParameter":"inputStr"}}},"taskInfo":{"name":"nested-pipeline-nil-defaults"}}'
           - name: task-name
@@ -532,8 +596,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.nested-pipeline-nil-defaults-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.nested-pipeline-nil-defaults-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.nested-pipeline-nil-defaults-driver.outputs.parameters.condition}}'
         depends: nested-pipeline-nil-defaults-driver.Succeeded
@@ -543,8 +607,8 @@ spec:
           parameters:
           - name: component
             value: '{{workflow.parameters.components-comp-nested-pipeline-non-nil-defaults}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-nested-pipeline-non-nil-defaults"},"inputs":{"parameters":{"nestedInputBool":{"componentInputParameter":"inputBool"},"nestedInputInt":{"componentInputParameter":"inputInt"},"nestedInputStr":{"componentInputParameter":"inputStr"}}},"taskInfo":{"name":"nested-pipeline-non-nil-defaults"}}'
           - name: task-name
@@ -553,8 +617,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.nested-pipeline-non-nil-defaults-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.nested-pipeline-non-nil-defaults-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: '{{tasks.nested-pipeline-non-nil-defaults-driver.outputs.parameters.condition}}'
         depends: nested-pipeline-non-nil-defaults-driver.Succeeded
@@ -562,7 +626,7 @@ spec:
         template: comp-nested-pipeline-non-nil-defaults
     inputs:
       parameters:
-      - name: parent-dag-id
+      - name: parent-dag-task-id
     metadata: {}
     name: root
     outputs: {}
@@ -581,8 +645,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded

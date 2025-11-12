@@ -1,0 +1,33 @@
+{
+  "recurring_run_id":  "recurring-run-789",
+  "display_name":  "Daily Data Processing",
+  "description":  "Scheduled pipeline for daily data processing tasks",
+  "pipeline_version_reference":  {
+    "pipeline_id":  "9b187b86-7c0a-42ae-a0bc-2a746b6eb7a3",
+    "pipeline_version_id":  "e15dc3ec-b45e-4cc7-bb07-e76b5dbce99a"
+  },
+  "runtime_config":  {
+    "parameters":  {
+      "batch_size":  500,
+      "processing_date":  "${system.date}"
+    },
+    "pipeline_root":  ""
+  },
+  "service_account":  "sa3",
+  "max_concurrency":  "0",
+  "trigger":  {
+    "periodic_schedule":  {
+      "start_time":  "2024-01-01T12:00:00Z",
+      "end_time":  null,
+      "interval_second":  "86400"
+    }
+  },
+  "mode":  "ENABLE",
+  "created_at":  "2024-01-01T12:00:00Z",
+  "updated_at":  "2024-01-01T12:00:00Z",
+  "status":  "ENABLED",
+  "error":  null,
+  "no_catchup":  false,
+  "namespace":  "namespace1",
+  "experiment_id":  ""
+}

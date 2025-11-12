@@ -74,6 +74,9 @@ jobs:
           pip install pytest
           pip install pytest-cov
 
+      - name: Install kfp-server-api from source
+        run: pip install -e backend/api/v2beta1/python_http_client
+
       - name: Run tests
         id: tests
         if: ${{ steps.forward-api-port.outcome == 'success' }}

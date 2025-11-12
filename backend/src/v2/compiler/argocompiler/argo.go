@@ -379,11 +379,10 @@ const (
 	paramContainer               = "container"      // container spec
 	paramImporter                = "importer"       // importer spec
 	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID             = "parent-dag-id"
-	paramExecutionID             = "execution-id"
+	paramParentDagTaskID         = "parent-dag-task-id"
+	paramParentDagTaskIDPath     = "parent-dag-task-id-path"
 	paramIterationCount          = "iteration-count"
 	paramIterationIndex          = "iteration-index"
-	paramExecutorInput           = "executor-input"
 	paramDriverType              = "driver-type"
 	paramCachedDecision          = "cached-decision"             // indicate hit cache or not
 	paramPodSpecPatch            = "pod-spec-patch"              // a strategic patch merged with the pod spec

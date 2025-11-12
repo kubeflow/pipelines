@@ -152,6 +152,7 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
+	require.NoError(t, err1)
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "Test Pipeline 3", "Pagination failed")
@@ -189,6 +190,7 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
+	require.NoError(t, err1)
 	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "Test Pipeline 1", "Pagination failed")

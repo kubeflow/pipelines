@@ -5,7 +5,6 @@ kind: Kustomization
 
 resources:
 - ../../base/installs/generic
-- ../../base/metadata/base
 - ../../third-party/argo/installs/namespace
 - ../../third-party/minio/base
 - ../../third-party/mysql/base
