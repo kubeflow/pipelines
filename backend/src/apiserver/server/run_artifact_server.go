@@ -36,11 +36,11 @@ type RunArtifactServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-// StreamArtifactV1 is an artifact streaming endpoint that streams artifacts directly from object storage
+// ReadArtifactV1 is an artifact reading endpoint that streams artifacts directly from object storage
 // to the HTTP response without buffering the entire content in memory.
 // No size limits are imposed - the streaming approach itself provides the security benefit.
-func (s *RunArtifactServer) StreamArtifactV1(response http.ResponseWriter, r *http.Request) {
-	glog.Infof("Stream artifact v1 called")
+func (s *RunArtifactServer) ReadArtifactV1(response http.ResponseWriter, r *http.Request) {
+	glog.Infof("Read artifact v1 called")
 
 	vars := mux.Vars(r)
 
@@ -77,7 +77,7 @@ func (s *RunArtifactServer) StreamArtifactV1(response http.ResponseWriter, r *ht
 	response.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", artifactName))
 	response.WriteHeader(http.StatusOK)
 
-	err = s.resourceManager.StreamArtifact(r.Context(), runID, nodeID, artifactName, response)
+	err = s.resourceManager.ReadArtifact(r.Context(), runID, nodeID, artifactName, response)
 	if err != nil {
 		glog.Errorf("Failed to stream artifact: %v", err)
 		// Since we've already started writing the response, we can't change the status code
@@ -111,14 +111,14 @@ func (s *RunArtifactServer) artifactFileExists(ctx context.Context, runID string
 	return true, nil
 }
 
-// StreamArtifact handles v2beta1 artifact streaming (same implementation as v1)
-func (s *RunArtifactServer) StreamArtifact(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("Stream artifact v2 called")
-	s.StreamArtifactV1(w, r)
+// ReadArtifact handles v2beta1 artifact reading (same implementation as v1)
+func (s *RunArtifactServer) ReadArtifact(w http.ResponseWriter, r *http.Request) {
+	glog.Infof("Read artifact v2 called")
+	s.ReadArtifactV1(w, r)
 }
 
 func (s *RunArtifactServer) writeErrorToResponse(response http.ResponseWriter, code int, err error) {
-	glog.Errorf("Failed to stream artifact. Error: %+v", err)
+	glog.Errorf("Failed to read artifact. Error: %+v", err)
 	response.WriteHeader(code)
 	response.Header().Set("Content-Type", "application/json")
 	errorResponse := &api.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}

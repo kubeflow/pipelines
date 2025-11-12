@@ -282,7 +282,7 @@ func TestBlobObjectStore_GetFileReader_ChunkedStreaming(t *testing.T) {
 		require.NoError(t, err)
 		defer reader.Close()
 
-		// Use io.Copy to simulate what happens in StreamArtifact
+		// Use io.Copy to simulate what happens in ReadArtifact
 		var buf bytes.Buffer
 		n, err := io.Copy(&buf, reader)
 		require.NoError(t, err)

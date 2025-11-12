@@ -110,7 +110,7 @@ func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *toke
 // - Returns CUSTOM_CODE_TRANSIENT for retryable errors (401, 500, network issues)
 // - Automatically refreshes tokens on expiry; callers should retry transient errors
 func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error) {
-	url := fmt.Sprintf("%s/apis/v1beta1/runs/%s/nodes/%s/artifacts/%s:stream",
+	url := fmt.Sprintf("%s/apis/v1beta1/runs/%s/nodes/%s/artifacts/%s:read",
 		a.httpBaseURL, request.RunID, request.NodeID, request.ArtifactName)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)

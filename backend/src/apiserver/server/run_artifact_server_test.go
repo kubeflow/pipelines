@@ -36,7 +36,7 @@ import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 )
 
-func TestStreamArtifactV1_Succeed(t *testing.T) {
+func TestReadArtifactV1_Succeed(t *testing.T) {
 	expectedContent := "test artifact content"
 	filePath := "test/artifact.txt"
 
@@ -89,7 +89,7 @@ func TestStreamArtifactV1_Succeed(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:stream", run.UUID)
+	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -100,7 +100,7 @@ func TestStreamArtifactV1_Succeed(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	runArtifactServer.StreamArtifactV1(rr, req)
+	runArtifactServer.ReadArtifactV1(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "application/octet-stream", rr.Header().Get("Content-Type"))
@@ -111,14 +111,14 @@ func TestStreamArtifactV1_Succeed(t *testing.T) {
 	require.Equal(t, expectedContent, string(responseBody))
 }
 
-func TestStreamArtifactV1_RunNotFound(t *testing.T) {
+func TestReadArtifactV1_RunNotFound(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer clientManager.Close()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
-	url := "/apis/v1beta1/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:stream"
+	url := "/apis/v1beta1/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:read"
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -129,15 +129,15 @@ func TestStreamArtifactV1_RunNotFound(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	runArtifactServer.StreamArtifactV1(rr, req)
+	runArtifactServer.ReadArtifactV1(rr, req)
 
 	require.NotEqual(t, http.StatusOK, rr.Code)
 }
 
-// TestStreamArtifactV1_ChunkedResponse validates that the HTTP endpoint
+// TestReadArtifactV1_ChunkedResponse validates that the HTTP endpoint
 // actually streams the response in chunks, not loading it all into memory.
 // This is the critical test that proves the endpoint prevents OOM errors.
-func TestStreamArtifactV1_ChunkedResponse(t *testing.T) {
+func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 	// Create a 1GB test file to prove streaming works with truly large files
 	largeFileSize := 1024 * 1024 * 1024 // 1GB
 	t.Logf("Creating 1GB test file for HTTP endpoint streaming test...")
@@ -199,7 +199,7 @@ func TestStreamArtifactV1_ChunkedResponse(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/large-artifact:stream", run.UUID)
+	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/large-artifact:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -215,7 +215,7 @@ func TestStreamArtifactV1_ChunkedResponse(t *testing.T) {
 		ChunkSizes:       []int{},
 	}
 
-	runArtifactServer.StreamArtifactV1(rr, req)
+	runArtifactServer.ReadArtifactV1(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "application/octet-stream", rr.Header().Get("Content-Type"))
@@ -258,7 +258,7 @@ func (r *ChunkedResponseRecorder) Write(p []byte) (int, error) {
 	return r.ResponseRecorder.Write(p)
 }
 
-func TestStreamArtifactV1_ArtifactNotFound(t *testing.T) {
+func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 	resourceManager, manager, run := initWithOneTimeRun(t)
 	defer resourceManager.Close()
 
@@ -304,7 +304,7 @@ func TestStreamArtifactV1_ArtifactNotFound(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:stream", run.UUID)
+	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -315,12 +315,12 @@ func TestStreamArtifactV1_ArtifactNotFound(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	runArtifactServer.StreamArtifactV1(rr, req)
+	runArtifactServer.ReadArtifactV1(rr, req)
 
 	require.NotEqual(t, http.StatusOK, rr.Code)
 }
 
-func TestStreamArtifactV1_MissingParameters(t *testing.T) {
+func TestReadArtifactV1_MissingParameters(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer clientManager.Close()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
@@ -366,7 +366,7 @@ func TestStreamArtifactV1_MissingParameters(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			runArtifactServer.StreamArtifactV1(rr, req)
+			runArtifactServer.ReadArtifactV1(rr, req)
 
 			require.Equal(t, http.StatusBadRequest, rr.Code)
 

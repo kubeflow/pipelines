@@ -1649,8 +1649,8 @@ func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artif
 	return artifactPath, nil
 }
 
-// StreamArtifact safely streams artifact content from object storage to the provided writer.
-func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, nodeID string, artifactName string, writer io.Writer) error {
+// ReadArtifact streams artifact content from object storage to the provided writer.
+func (r *ResourceManager) ReadArtifact(ctx context.Context, runID string, nodeID string, artifactName string, writer io.Writer) error {
 	artifactPath, err := r.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
 		return err
