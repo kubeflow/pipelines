@@ -41,13 +41,10 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	_ "gocloud.dev/blob/s3blob"
@@ -307,7 +304,7 @@ func (c *ClientManager) init(options *Options) error {
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	glog.Info("Initializing Object store client...")
-	objectStore, err := initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout), c.k8sCoreClient.GetClientSet())
+	objectStore, err := initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout))
 	if err != nil {
 		return fmt.Errorf("failed to initialize object store: %w", err)
 	}
@@ -949,47 +946,36 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 	})
 }
 
-func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) (storage.ObjectStore, error) {
-	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
+func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration) (storage.ObjectStore, error) {
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 
 	blobConfig, err := buildConfigFromEnvVars()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build config from environment variables: %w", err)
 	}
-	config := blobConfig.config
 
-	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout)
+	bucket, err := openBucketWithRetry(ctx, blobConfig.bucketURL, initConnectionTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open blob storage bucket: %w", err)
 	}
 
-	if shouldEnsureObjectBucket(bucketName, config) {
-		if err := ensureMinioBucketExists(ctx, config, bucketName, blobConfig.accessKey, blobConfig.secretKey, k8sClient); err != nil {
-			glog.Warningf("Failed to ensure MinIO bucket exists (may already exist): %v", err)
-		}
+	if err := ensureBucketExists(ctx, blobConfig); err != nil {
+		glog.Warningf("Failed to ensure bucket exists (may already exist): %v", err)
 	}
 
-	glog.Infof("Successfully initialized blob storage for bucket: %s", bucketName)
+	glog.Infof("Successfully initialized blob storage for bucket: %s", blobConfig.bucketName)
 	return storage.NewBlobObjectStore(bucket, pipelinePath), nil
 }
 
-// shouldEnsureObjectBucket determines whether we should proactively ensure the
-// object bucket exists. We do this for S3-compatible providers (e.g., MinIO)
-// when a bucket name is configured and SessionInfo is available.
-func shouldEnsureObjectBucket(bucketName string, config *objectstore.Config) bool {
-	if bucketName == "" || config == nil || config.SessionInfo == nil {
-		return false
-	}
-	provider := strings.ToLower(strings.TrimSpace(config.SessionInfo.Provider))
-	return provider == "minio" || provider == "s3"
-}
-
-// blobStorageConfig holds both the objectstore config and credentials
+// blobStorageConfig holds the bucket URL and credentials
 type blobStorageConfig struct {
-	config    *objectstore.Config
-	accessKey string
-	secretKey string
+	bucketURL  string
+	bucketName string
+	endpoint   string
+	secure     bool
+	region     string
+	accessKey  string
+	secretKey  string
 }
 
 // ensureProtocol adds http:// or https:// protocol if not present
@@ -1004,10 +990,7 @@ func ensureProtocol(endpoint string, secure bool) string {
 	return protocol + endpoint
 }
 
-// buildConfigFromEnvVars creates objectstore.Config from environment variables
-// This bridges the gap between API server's environment variable configuration
-// and the v2 objectstore package's expected configuration format.
-// Returns both the config and credentials to avoid re-reading them.
+// buildConfigFromEnvVars creates a bucket URL from environment variables
 func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
@@ -1029,18 +1012,13 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	if err := os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey); err != nil {
 		return nil, fmt.Errorf("failed to set AWS_SECRET_ACCESS_KEY: %w", err)
 	}
+
 	// Set region - use default if not specified
-	if region != "" {
-		if err := os.Setenv("AWS_REGION", region); err != nil {
-			return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
-		}
-	} else {
-		// Use "us-east-1" as the default region.
-		// This aligns with AWS S3's standard practice and ensures compatibility with
-		// S3 SDKs and clients.
-		if err := os.Setenv("AWS_REGION", "us-east-1"); err != nil {
-			return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
-		}
+	if region == "" {
+		region = "us-east-1"
+	}
+	if err := os.Setenv("AWS_REGION", region); err != nil {
+		return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
 	}
 
 	endpoint := host
@@ -1048,42 +1026,19 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 		endpoint = fmt.Sprintf("%s:%s", host, port)
 	}
 
-	// Build SessionInfo that v2/objectstore.OpenBucket expects
-	// The v2 package will use these parameters to configure the S3 client
-	params := map[string]string{
-		"fromEnv":        "false",
-		"endpoint":       endpoint,
-		"disableSSL":     fmt.Sprintf("%t", !secure),
-		"forcePathStyle": "true",
-	}
-
-	if region != "" {
-		params["region"] = region
-	}
-
-	// Build query string for direct blob.OpenBucket
+	// Build bucket URL for direct blob.OpenBucket
 	endpointWithProtocol := ensureProtocol(endpoint, secure)
-	queryString := fmt.Sprintf("endpoint=%s&use_path_style=true", url.QueryEscape(endpointWithProtocol))
-	if region != "" {
-		queryString += "&region=" + region
-	}
-
-	// Provider is "s3" since S3-compatible storage implements the S3 API and is fully compatible
-	// with AWS SDK operations, authentication, and request signing
-	sessionInfo := &objectstore.SessionInfo{
-		Provider: "s3",
-		Params:   params,
-	}
+	bucketURL := fmt.Sprintf("s3://%s?endpoint=%s&use_path_style=true&region=%s",
+		bucketName, url.QueryEscape(endpointWithProtocol), region)
 
 	return &blobStorageConfig{
-		config: &objectstore.Config{
-			Scheme:      "s3://",
-			BucketName:  bucketName,
-			QueryString: queryString,
-			SessionInfo: sessionInfo,
-		},
-		accessKey: accessKey,
-		secretKey: secretKey,
+		bucketURL:  bucketURL,
+		bucketName: bucketName,
+		endpoint:   endpoint,
+		secure:     secure,
+		region:     region,
+		accessKey:  accessKey,
+		secretKey:  secretKey,
 	}, nil
 }
 
@@ -1104,15 +1059,11 @@ func validateRequiredConfig(bucketName string, host string, accessKey string, se
 }
 
 // openBucketWithRetry opens a blob bucket using direct blob.OpenBucket with retry logic
-func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeout time.Duration) (*blob.Bucket, error) {
+func openBucketWithRetry(ctx context.Context, bucketURL string, timeout time.Duration) (*blob.Bucket, error) {
 	var bucket *blob.Bucket
 	var err error
 
 	operation := func() error {
-		bucketURL := config.Scheme + config.BucketName
-		if config.QueryString != "" {
-			bucketURL += "?" + config.QueryString
-		}
 		bucket, err = blob.OpenBucket(ctx, bucketURL)
 		return err
 	}
@@ -1125,7 +1076,6 @@ func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeou
 		return nil, fmt.Errorf("failed to open blob bucket after retries: %w", err)
 	}
 
-	glog.Infof("Successfully opened bucket: %s", config.BucketName)
 	return bucket, nil
 }
 
@@ -1147,73 +1097,17 @@ func createMinioBucket(ctx context.Context, minioClient *minio.Client, bucketNam
 	glog.Infof("Successfully created bucket %s\n", bucketName)
 }
 
-// ensureMinioBucketExists creates a MinIO bucket if it doesn't exist, using the provided config and credentials
-func ensureMinioBucketExists(ctx context.Context, config *objectstore.Config, bucketName string, accessKey, secretKey string, k8sClient kubernetes.Interface) error {
-	if config.SessionInfo == nil {
-		return fmt.Errorf("SessionInfo not available in config")
-	}
-
-	endpoint, ok := config.SessionInfo.Params["endpoint"]
-	if !ok || endpoint == "" {
-		return fmt.Errorf("MinIO endpoint not configured")
-	}
-
-	disableSSL := config.SessionInfo.Params["disableSSL"] == "true"
-	secure := !disableSSL
-
-	// If credentials weren't provided, try reading from Kubernetes secret
-	if accessKey == "" || secretKey == "" {
-		if k8sClient == nil {
-			return fmt.Errorf("MinIO credentials not available and no Kubernetes client")
-		}
-
-		secretName := config.SessionInfo.Params["secretName"]
-		if secretName == "" {
-			secretName = minioArtifactSecretName
-		}
-		secretNamespace := config.SessionInfo.Params["namespace"]
-		if secretNamespace == "" {
-			secretNamespace = common.GetPodNamespace()
-			if secretNamespace == "" {
-				secretNamespace = "kubeflow"
-			}
-		}
-
-		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to read MinIO credentials from secret: %w", err)
-		}
-
-		accessKeyKey := config.SessionInfo.Params["accessKeyKey"]
-		if accessKeyKey == "" {
-			accessKeyKey = "accesskey"
-		}
-		secretKeyKey := config.SessionInfo.Params["secretKeyKey"]
-		if secretKeyKey == "" {
-			secretKeyKey = "secretkey"
-		}
-
-		if accessKeyBytes, ok := secret.Data[accessKeyKey]; ok {
-			accessKey = string(accessKeyBytes)
-		}
-		if secretKeyBytes, ok := secret.Data[secretKeyKey]; ok {
-			secretKey = string(secretKeyBytes)
-		}
-	}
-
-	if accessKey == "" || secretKey == "" {
-		return fmt.Errorf("MinIO credentials not available")
-	}
-
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: secure,
+// ensureBucketExists creates a bucket if it doesn't exist
+func ensureBucketExists(ctx context.Context, config *blobStorageConfig) error {
+	minioClient, err := minio.New(config.endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.accessKey, config.secretKey, ""),
+		Secure: config.secure,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create MinIO client: %w", err)
 	}
 
-	createMinioBucket(ctx, minioClient, bucketName, config.SessionInfo.Params["region"])
+	createMinioBucket(ctx, minioClient, config.bucketName, config.region)
 	return nil
 }
 
