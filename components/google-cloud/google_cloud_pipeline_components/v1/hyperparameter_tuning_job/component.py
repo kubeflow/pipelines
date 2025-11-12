@@ -16,7 +16,7 @@ from typing import List
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
-from kfp.dsl import ConcatPlaceholder
+from google_cloud_pipeline_components import utils
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import OutputPath
@@ -96,48 +96,27 @@ def hyperparameter_tuning_job(
           '--type',
           'HyperparameterTuningJob',
           '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"display_name": "',
-              display_name,
-              '"',
-              ', "study_spec": {',
-              '"metrics": ',
-              study_spec_metrics,
-              ', "parameters": ',
-              study_spec_parameters,
-              ', "algorithm": "',
-              study_spec_algorithm,
-              '"',
-              ', "measurement_selection_type": "',
-              study_spec_measurement_selection_type,
-              '"',
-              '}',
-              ', "max_trial_count": ',
-              max_trial_count,
-              ', "parallel_trial_count": ',
-              parallel_trial_count,
-              ', "max_failed_trial_count": ',
-              max_failed_trial_count,
-              ', "trial_job_spec": {',
-              '"worker_pool_specs": ',
-              worker_pool_specs,
-              ', "service_account": "',
-              service_account,
-              '"',
-              ', "network": "',
-              network,
-              '"',
-              ', "base_output_directory": {',
-              '"output_uri_prefix": "',
-              base_output_directory,
-              '"}',
-              '}',
-              ', "encryption_spec": {"kms_key_name":"',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
+          utils.container_component_dumps({
+              'display_name': display_name,
+              'study_spec': {
+                  'metrics': study_spec_metrics,
+                  'parameters': study_spec_parameters,
+                  'algorithm': study_spec_algorithm,
+                  'measurement_selection_type': study_spec_measurement_selection_type,
+              },
+              'max_trial_count': max_trial_count,
+              'parallel_trial_count': parallel_trial_count,
+              'max_failed_trial_count': max_failed_trial_count,
+              'trial_job_spec': {
+                  'worker_pool_specs': worker_pool_specs,
+                  'service_account': service_account,
+                  'network': network,
+                  'base_output_directory': {
+                      'output_uri_prefix': base_output_directory
+                  },
+              },
+              'encryption_spec': {'kms_key_name': encryption_spec_key_name},
+          }),
           '--project',
           project,
           '--location',
