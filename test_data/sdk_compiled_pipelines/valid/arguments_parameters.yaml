@@ -20,7 +20,7 @@ deploymentSpec:
         - '{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}'
         command:
         - echo
-        image: public.ecr.aws/docker/library/python:3.12
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   name: echo
 root:
@@ -47,4 +47,4 @@ root:
       param2:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.14.6
