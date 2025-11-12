@@ -25,7 +25,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifact"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/tokenrefresher"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -41,7 +41,7 @@ type PipelineClientInterface interface {
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
-	ArtifactClient() artifact.Client
+	ArtifactClient() artifactclient.Client
 }
 
 type PipelineClient struct {
@@ -50,7 +50,7 @@ type PipelineClient struct {
 	reportServiceClient api.ReportServiceClient
 	runServiceClient    api.RunServiceClient
 	tokenRefresher      *tokenrefresher.TokenRefresher
-	artifactClient      artifact.Client
+	artifactClient      artifactclient.Client
 }
 
 func NewPipelineClient(
@@ -86,7 +86,7 @@ func NewPipelineClient(
 	}
 
 	httpBaseURL := fmt.Sprintf("%s://%s%s", scheme, httpAddress, basePath)
-	artifactClient := artifact.NewClient(httpBaseURL, httpClient, tokenRefresher)
+	artifactClient := artifactclient.NewClient(httpBaseURL, httpClient, tokenRefresher)
 
 	return &PipelineClient{
 		initializeTimeout:   initializeTimeout,
@@ -225,6 +225,6 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) 
 }
 
 // ArtifactClient returns the artifact client for dependency injection
-func (p *PipelineClient) ArtifactClient() artifact.Client {
+func (p *PipelineClient) ArtifactClient() artifactclient.Client {
 	return p.artifactClient
 }

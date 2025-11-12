@@ -16,7 +16,7 @@ package client
 
 import (
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifact"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
@@ -25,7 +25,7 @@ type PipelineClientFake struct {
 	workflows                 map[string]util.ExecutionSpec
 	scheduledWorkflows        map[string]*util.ScheduledWorkflow
 	err                       error
-	artifactClient            *artifact.ClientFake
+	artifactClient            *artifactclient.ClientFake
 	reportedMetricsRequest    *api.ReportRunMetricsRequest
 	reportMetricsResponseStub *api.ReportRunMetricsResponse
 	reportMetricsErrorStub    error
@@ -36,7 +36,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 		workflows:                 make(map[string]util.ExecutionSpec),
 		scheduledWorkflows:        make(map[string]*util.ScheduledWorkflow),
 		err:                       nil,
-		artifactClient:            artifact.NewClientFake(),
+		artifactClient:            artifactclient.NewClientFake(),
 		reportMetricsResponseStub: &api.ReportRunMetricsResponse{},
 	}
 }
@@ -74,11 +74,11 @@ func (p *PipelineClientFake) GetScheduledWorkflow(namespace string, name string)
 	return p.scheduledWorkflows[getKey(namespace, name)]
 }
 
-func (p *PipelineClientFake) StubArtifact(request *artifact.ReadArtifactRequest, response *artifact.ReadArtifactResponse) {
+func (p *PipelineClientFake) StubArtifact(request *artifactclient.ReadArtifactRequest, response *artifactclient.ReadArtifactResponse) {
 	p.artifactClient.StubArtifact(request, response)
 }
 
-func (p *PipelineClientFake) GetReadArtifactRequest() *artifact.ReadArtifactRequest {
+func (p *PipelineClientFake) GetReadArtifactRequest() *artifactclient.ReadArtifactRequest {
 	return p.artifactClient.GetReadArtifactRequest()
 }
 
@@ -91,6 +91,6 @@ func (p *PipelineClientFake) GetReportedMetricsRequest() *api.ReportRunMetricsRe
 	return p.reportedMetricsRequest
 }
 
-func (p *PipelineClientFake) ArtifactClient() artifact.Client {
+func (p *PipelineClientFake) ArtifactClient() artifactclient.Client {
 	return p.artifactClient
 }

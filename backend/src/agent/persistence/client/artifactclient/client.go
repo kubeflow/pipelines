@@ -14,7 +14,7 @@
 
 // Package artifact provides client functionality for reading pipeline artifacts
 // using HTTP streaming.
-package artifact
+package artifactclient
 
 import (
 	"context"
