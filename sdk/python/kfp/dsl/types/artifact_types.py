@@ -91,7 +91,7 @@ class Artifact:
 
     @path.setter
     def path(self, path: str) -> None:
-        self._set_custom_path(path)
+        self._set_path(path)
 
     def _get_path(self) -> Optional[str]:
         if self.custom_path:
@@ -114,7 +114,7 @@ class Artifact:
 
     @property
     def custom_path(self) -> str:
-        return self._custom_path
+        return self._get_custom_path()
 
     def _get_custom_path(self) -> str:
         return self._custom_path
@@ -128,6 +128,10 @@ class Artifact:
     @custom_path.setter
     def custom_path(self, value: str):
         self._custom_path = value
+
+    def set_path(self, path: str) -> None:
+        # If user specified a custom path, use it instead of the default path.
+        self._custom_path = path
 
 
 def convert_local_path_to_remote_path(path: str) -> str:
