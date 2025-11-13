@@ -25,7 +25,7 @@ deploymentSpec:
         command:
         - sh
         - -c
-        image: library/bash
+        image: registry.access.redhat.com/ubi9/python-311:latest
     exec-echo-2:
       container:
         args:
@@ -33,7 +33,7 @@ deploymentSpec:
         command:
         - sh
         - -c
-        image: library/bash
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   name: sequential
 root:
@@ -68,4 +68,4 @@ root:
       param2:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.3
+sdkVersion: kfp-2.14.6

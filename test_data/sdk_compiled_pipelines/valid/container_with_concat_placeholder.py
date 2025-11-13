@@ -23,7 +23,7 @@ from kfp.dsl import OutputPath
 def container_with_concat_placeholder(text1: str, text2: Output[Dataset],
                                       output_path: OutputPath(str)):
     return ContainerSpec(
-        image='python:3.11',
+        image='registry.access.redhat.com/ubi9/python-311:latest',
         command=[
             'my_program',
             ConcatPlaceholder(['prefix-', text1, text2.uri])

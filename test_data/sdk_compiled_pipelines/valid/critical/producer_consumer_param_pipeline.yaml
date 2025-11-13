@@ -32,7 +32,7 @@ deploymentSpec:
 
           '
         - '{{$.inputs.parameters[''input_value'']}}'
-        image: google/cloud-sdk:latest
+        image: registry.access.redhat.com/ubi9/python-311:latest
     exec-producer:
       container:
         command:
@@ -40,12 +40,14 @@ deploymentSpec:
         - -c
         - 'set -e -x
 
-          echo "$0, this is an output parameter" | gsutil cp - "$1"
+          mkdir -p "$(dirname "$1")"
+
+          echo "$0, this is an output parameter" > "$1"
 
           '
         - '{{$.inputs.parameters[''input_text'']}}'
         - '{{$.outputs.parameters[''output_value''].output_file}}'
-        image: google/cloud-sdk:latest
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   name: producer-consumer-param-pipeline
 root:
@@ -84,4 +86,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.2
+sdkVersion: kfp-2.14.6

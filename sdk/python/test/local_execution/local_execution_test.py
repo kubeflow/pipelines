@@ -12,13 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
+import functools
 import os
 from pathlib import Path
 import shutil
 from typing import Any, Callable, Optional
 
+from kfp import dsl
 from kfp import local
 import pytest
+
+base_image = "registry.access.redhat.com/ubi9/python-311:latest"
+dsl.component = functools.partial(dsl.component, base_image=base_image)
+
 
 from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
     echo as arguments_echo

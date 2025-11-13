@@ -18,7 +18,7 @@ from kfp import dsl, compiler
 @dsl.container_component
 def echo(param1: str, param2: str):
     return dsl.ContainerSpec(
-        image='public.ecr.aws/docker/library/python:3.12',
+        image='registry.access.redhat.com/ubi9/python-311:latest',
         command=['echo'],
         args=[f'{param1}-{param2}'],
     )

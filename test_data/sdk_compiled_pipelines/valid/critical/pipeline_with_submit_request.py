@@ -1,7 +1,7 @@
 import kfp.dsl as dsl
 from kfp import compiler
 
-@dsl.component(base_image='python:3.11', packages_to_install=["requests"])
+@dsl.component(base_image='registry.access.redhat.com/ubi9/python-311:latest', packages_to_install=["requests"])
 def submit_request(url: str):
     import requests
     import os

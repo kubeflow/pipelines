@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-d97b94290cc248e70e263031ba3a32938896cb7df7937b14caf50d8967631256
+    - name: components-502206b7d3a41c997ec283e01d80608bbba6df6ed21b45c64a70b4797c28830a
       value: '{"executorLabel":"exec-container-with-if-placeholder","inputDefinitions":{"parameters":{"optional_input":{"defaultValue":"default","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"output_path":{"parameterType":"STRING"}}}}'
-    - name: implementations-d97b94290cc248e70e263031ba3a32938896cb7df7937b14caf50d8967631256
+    - name: implementations-502206b7d3a41c997ec283e01d80608bbba6df6ed21b45c64a70b4797c28830a
       value: '{"args":["--output_path","{{$.outputs.parameters[''output_path''].output_file}}"],"command":["my_program","{\"IfPresent\":
         {\"InputName\": \"optional_input\", \"Then\": [\"{{$.inputs.parameters[''optional_input'']}}\"],
         \"Else\": [\"bye\"]}}","--dataset","{\"IfPresent\": {\"InputName\": \"optional_input\",
-        \"Then\": [\"{{$.outputs.artifacts[''dataset''].uri}}\"], \"Else\": [\"bye\"]}}"],"image":"python:3.11"}'
+        \"Then\": [\"{{$.outputs.artifacts[''dataset''].uri}}\"], \"Else\": [\"bye\"]}}"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-root
       value: '{"dag":{"outputs":{"artifacts":{"dataset":{"artifactSelectors":[{"outputArtifactKey":"dataset","producerSubtask":"container-with-if-placeholder"}]}},"parameters":{"output_path":{"valueFromParameter":{"outputParameterKey":"output_path","producerSubtask":"container-with-if-placeholder"}}}},"tasks":{"container-with-if-placeholder":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-with-if-placeholder"},"inputs":{"parameters":{"optional_input":{"componentInputParameter":"optional_input"}}},"taskInfo":{"name":"container-with-if-placeholder"}}}},"inputDefinitions":{"parameters":{"optional_input":{"defaultValue":"default","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"output_path":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -195,11 +195,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d97b94290cc248e70e263031ba3a32938896cb7df7937b14caf50d8967631256}}'
+            value: '{{workflow.parameters.components-502206b7d3a41c997ec283e01d80608bbba6df6ed21b45c64a70b4797c28830a}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-with-if-placeholder"},"inputs":{"parameters":{"optional_input":{"componentInputParameter":"optional_input"}}},"taskInfo":{"name":"container-with-if-placeholder"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d97b94290cc248e70e263031ba3a32938896cb7df7937b14caf50d8967631256}}'
+            value: '{{workflow.parameters.implementations-502206b7d3a41c997ec283e01d80608bbba6df6ed21b45c64a70b4797c28830a}}'
           - name: task-name
             value: container-with-if-placeholder
           - name: parent-dag-id

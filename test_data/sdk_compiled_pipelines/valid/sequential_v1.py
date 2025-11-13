@@ -17,7 +17,7 @@ from kfp import dsl, compiler
 @dsl.container_component
 def echo(message: str):
     return dsl.ContainerSpec(
-        image='library/bash',
+        image='registry.access.redhat.com/ubi9/python-311:latest',
         command=['sh', '-c'],
         args=[f'echo {message}'],
     )

@@ -6,16 +6,16 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-2de1cef765955c7d3216c1e98967e2fec098b8f68d6ee6836a324944ade35ee2
+    - name: components-a377c19bea9db33a1e7dd33f9155797f884f064eb9103efc0c41a8fd237b61a3
       value: '{"executorLabel":"exec-consumer","inputDefinitions":{"parameters":{"input_value":{"parameterType":"STRING"}}}}'
-    - name: implementations-2de1cef765955c7d3216c1e98967e2fec098b8f68d6ee6836a324944ade35ee2
+    - name: implementations-a377c19bea9db33a1e7dd33f9155797f884f064eb9103efc0c41a8fd237b61a3
       value: '{"command":["sh","-c","set -e -x\necho \"Read from an input parameter:
-        \" \u0026\u0026 echo \"$0\"\n","{{$.inputs.parameters[''input_value'']}}"],"image":"google/cloud-sdk:latest"}'
-    - name: components-3111b7872fff0cb1b5ac026c55d212223c3295efb99dee1efb0ab793c8883ca6
+        \" \u0026\u0026 echo \"$0\"\n","{{$.inputs.parameters[''input_value'']}}"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
+    - name: components-743b3896369866b2f854dd92b123f6f3498bb66f64ad975ba825d0e7031625e4
       value: '{"executorLabel":"exec-producer","inputDefinitions":{"parameters":{"input_text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"output_value":{"parameterType":"STRING"}}}}'
-    - name: implementations-3111b7872fff0cb1b5ac026c55d212223c3295efb99dee1efb0ab793c8883ca6
-      value: '{"command":["sh","-c","set -e -x\necho \"$0, this is an output parameter\"
-        | gsutil cp - \"$1\"\n","{{$.inputs.parameters[''input_text'']}}","{{$.outputs.parameters[''output_value''].output_file}}"],"image":"google/cloud-sdk:latest"}'
+    - name: implementations-743b3896369866b2f854dd92b123f6f3498bb66f64ad975ba825d0e7031625e4
+      value: '{"command":["sh","-c","set -e -x\nmkdir -p \"$(dirname \"$1\")\"\necho
+        \"$0, this is an output parameter\" \u003e \"$1\"\n","{{$.inputs.parameters[''input_text'']}}","{{$.outputs.parameters[''output_value''].output_file}}"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-root
       value: '{"dag":{"tasks":{"consumer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["producer"],"inputs":{"parameters":{"input_value":{"taskOutputParameter":{"outputParameterKey":"output_value","producerTask":"producer"}}}},"taskInfo":{"name":"consumer"}},"producer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"inputs":{"parameters":{"input_text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"producer"}}}},"inputDefinitions":{"parameters":{"text":{"defaultValue":"Hello
         world","isOptional":true,"parameterType":"STRING"}}}}'
@@ -199,11 +199,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-2de1cef765955c7d3216c1e98967e2fec098b8f68d6ee6836a324944ade35ee2}}'
+            value: '{{workflow.parameters.components-a377c19bea9db33a1e7dd33f9155797f884f064eb9103efc0c41a8fd237b61a3}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["producer"],"inputs":{"parameters":{"input_value":{"taskOutputParameter":{"outputParameterKey":"output_value","producerTask":"producer"}}}},"taskInfo":{"name":"consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-2de1cef765955c7d3216c1e98967e2fec098b8f68d6ee6836a324944ade35ee2}}'
+            value: '{{workflow.parameters.implementations-a377c19bea9db33a1e7dd33f9155797f884f064eb9103efc0c41a8fd237b61a3}}'
           - name: task-name
             value: consumer
           - name: parent-dag-id
@@ -224,11 +224,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-3111b7872fff0cb1b5ac026c55d212223c3295efb99dee1efb0ab793c8883ca6}}'
+            value: '{{workflow.parameters.components-743b3896369866b2f854dd92b123f6f3498bb66f64ad975ba825d0e7031625e4}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"inputs":{"parameters":{"input_text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-3111b7872fff0cb1b5ac026c55d212223c3295efb99dee1efb0ab793c8883ca6}}'
+            value: '{{workflow.parameters.implementations-743b3896369866b2f854dd92b123f6f3498bb66f64ad975ba825d0e7031625e4}}'
           - name: task-name
             value: producer
           - name: parent-dag-id

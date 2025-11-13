@@ -23,13 +23,14 @@ outputs:
 - {name: output_value, type: String, description: 'Represents an output paramter.'}
 implementation:
   container:
-    image: google/cloud-sdk:latest
+    image: registry.access.redhat.com/ubi9/python-311:latest
     command:
     - sh
     - -c
     - |
       set -e -x
-      echo "$0, this is an output parameter" | gsutil cp - "$1"
+      mkdir -p "$(dirname "$1")"
+      echo "$0, this is an output parameter" > "$1"
     - {inputValue: input_text}
     - {outputPath: output_value}
 """)
@@ -40,7 +41,7 @@ inputs:
 - {name: input_value, type: String, description: 'Represents an input parameter. It connects to an upstream output parameter.'}
 implementation:
   container:
-    image: google/cloud-sdk:latest
+    image: registry.access.redhat.com/ubi9/python-311:latest
     command:
     - sh
     - -c
@@ -61,4 +62,4 @@ if __name__ == "__main__":
     # execute only if run as a script
     compiler.Compiler().compile(
         pipeline_func=producer_consumer_param_pipeline,
-        package_path='producer_consumer_param_pipeline.json')
+        package_path='producer_consumer_param_pipeline.yaml')

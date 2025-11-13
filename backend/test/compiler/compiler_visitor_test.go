@@ -63,7 +63,7 @@ var _ = Describe("Verify iteration over the pipeline components >", Label(POSITI
 			expectedVisited  []string
 		}{
 			{
-				pipelineSpecPath: "hello-world.yaml",
+				pipelineSpecPath: "hello_world.yaml",
 				expectedVisited: []string{
 					"container(name=\"comp-echo\")",
 					"DAG(name=\"root\")",

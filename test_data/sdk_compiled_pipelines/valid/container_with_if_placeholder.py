@@ -24,7 +24,7 @@ def container_with_if_placeholder(output_path: OutputPath(str),
                                   dataset: Output[Dataset],
                                   optional_input: str = 'default'):
     return ContainerSpec(
-        image='python:3.11',
+        image='registry.access.redhat.com/ubi9/python-311:latest',
         command=[
             'my_program',
             IfPresentPlaceholder(
