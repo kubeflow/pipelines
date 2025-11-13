@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -13,9 +18,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"google.golang.org/protobuf/encoding/protojson"
-	"io"
-	"net/http"
-	"strconv"
 )
 
 func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
@@ -155,11 +157,16 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := newMlmdClient()
+	var tlsCfg *tls.Config
+	if args.MetadataTLSEnabled {
+		tlsCfg, err = util.GetTLSConfig(args.CACertPath)
+		return nil, fmt.Errorf("unable to drive driver: failed to load TLS configuration: %v", err)
+	}
+	client, err := newMlmdClient(tlsCfg)
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient(args.CacheDisabledFlag)
+	cacheClient, err := cacheutils.NewClient(args.CacheDisabledFlag, tlsCfg)
 	if err != nil {
 		return nil, err
 	}
