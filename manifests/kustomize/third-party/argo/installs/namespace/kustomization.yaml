@@ -16,3 +16,9 @@ patches:
     kind: Deployment
     name: workflow-controller
     version: v1
+- path: workflow-controller-argo-role-patch.json
+  target:
+    group: rbac.authorization.k8s.io
+    version: v1
+    kind: Role
+    name: argo-role
