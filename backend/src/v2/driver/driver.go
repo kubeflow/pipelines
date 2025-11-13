@@ -235,6 +235,8 @@ func initPodSpecPatch(
 	mlPipelineTLSEnabled bool,
 	metadataTLSEnabled bool,
 	caCertPath string,
+	mlmdServerAddress string,
+	mlmdServerPort string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -275,10 +277,8 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
-		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--mlmd_server_address", mlmdServerAddress,
+		"--mlmd_server_port", mlmdServerPort,
 		"--publish_logs", publishLogs,
 	}
 	if mlPipelineTLSEnabled {

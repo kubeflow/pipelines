@@ -32,9 +32,8 @@ def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
 
 
 def connect_to_mlmd() -> metadata_store.MetadataStore:
-    metadata_service_host = os.environ.get("METADATA_GRPC_SERVICE_SERVICE_HOST", "metadata-grpc-service.kubeflow")
-    metadata_service_port = int(os.environ.get("METADATA_GRPC_SERVICE_SERVICE_PORT", 8080))
-    metadata_service_host = "metadata-grpc-service.kubeflow"
+    pod_namespace = os.environ.get("POD_NAMESPACE", "kubeflow")
+    metadata_service_host = "metadata-grpc-service." + pod_namespace + ".svc.cluster.local"
     metadata_service_port = 8080
 
     mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
