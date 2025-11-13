@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: large-artifact-memory-test-v1-1gb-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2025-10-27T11:53:19.484130',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "V1 pipeline that generates
+      a large artifact for testing streaming endpoint", "name": "large-artifact-memory-test-v1-1gb"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22}
+spec:
+  entrypoint: large-artifact-memory-test-v1-1gb
+  templates:
+  - name: generate-large-artifact
+    container:
+      args:
+      - |2
+
+        import os
+
+        size_mb = 10  # 10MB
+        chunk_size = 1024 * 1024  # 1MB chunks
+
+        # Create a file that will be saved as an artifact
+        artifact_path = "/tmp/large_artifact.bin"
+
+        print(f"Generating {size_mb}MB test file at {artifact_path}")
+
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
+
+        with open(artifact_path, 'wb') as f:
+            for i in range(size_mb):
+                data = f"CHUNK_{i:04d}_" + "X" * (chunk_size - 20) + f"_END_{i:04d}\n"
+                f.write(data[:chunk_size].encode('utf-8'))
+
+        file_size = os.path.getsize(artifact_path)
+        print(f"Generated file size: {file_size / (1024 * 1024):.2f}MB")
+        print(f"Artifact saved at: {artifact_path}")
+      command: [python3, -c]
+      image: python:3.9-slim
+    outputs:
+      artifacts:
+      - {name: generate-large-artifact-large_file, path: /tmp/large_artifact.bin}
+    metadata:
+      annotations: {pipelines.kubeflow.org/task_display_name: Generate Large Artifact
+          V1 - 1GB}
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: large-artifact-memory-test-v1-1gb
+    dag:
+      tasks:
+      - {name: generate-large-artifact, template: generate-large-artifact}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
