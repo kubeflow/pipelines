@@ -8,10 +8,6 @@ spec:
       containers:
         - name: main
           env:
-            - name: METADATA_GRPC_SERVICE_SERVICE_HOST
-              value: "metadata-grpc-service.kubeflow"
-            - name: METADATA_GRPC_SERVICE_SERVICE_PORT
-              value: "8080"
             - name: METADATA_TLS_ENABLED
               value: "true"
             - name: CA_CERT_PATH

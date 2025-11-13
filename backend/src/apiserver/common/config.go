@@ -112,7 +112,7 @@ func IsMultiUserSharedReadMode() bool {
 }
 
 func GetPodNamespace() string {
-	return GetStringConfig(PodNamespace)
+	return GetStringConfigWithDefault(PodNamespace, DefaultPodNamespace)
 }
 
 func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
