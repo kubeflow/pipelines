@@ -172,8 +172,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		// TODO(chensun): release process and update the images.
 		launcherImage:   GetLauncherImage(),
 		launcherCommand: GetLauncherCommand(),
-		driverImage:     GetDriverImage(),
-		driverCommand:   GetDriverCommand(),
 		job:             job,
 		spec:            spec,
 		executors:       deploy.GetExecutors(),

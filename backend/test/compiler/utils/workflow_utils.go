@@ -36,6 +36,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+type driverPlugin map[string]map[string]map[string]interface{}
+
 // LoadPipelineSpecsFromIR - Unmarshall Pipeline Spec IR into a tuple of (pipelinespec.PipelineJob, pipelinespec.SinglePlatformSpec)
 func LoadPipelineSpecsFromIR(pipelineIRFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
 	pipelineSpecsFromFile := testutil.ParseFileToSpecs(pipelineIRFilePath, cacheDisabled, defaultWorkspace)
@@ -89,6 +91,31 @@ func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWork
 	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }
 
+func ConfigurePluginSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
+	configuredWorkflow := workflow.DeepCopy()
+	for i, template := range configuredWorkflow.Spec.Templates {
+		if template.Plugin != nil {
+			var pluginMap driverPlugin
+			if err := json.Unmarshal(template.Plugin.Value, &pluginMap); err == nil {
+				if driverPlugin, ok := pluginMap["driver-plugin"]; ok {
+					if args, ok := driverPlugin["args"]; ok {
+						if remove {
+							args["cache_disabled"] = false
+						} else {
+							args["cache_disabled"] = true
+						}
+					}
+				}
+				jsonPlugin, err := json.Marshal(pluginMap)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to marshal plugin map")
+				configuredWorkflow.Spec.Templates[i].Plugin.Value = jsonPlugin
+			}
+		}
+	}
+
+	return configuredWorkflow
+}
+
 // ConfigureCacheSettings - Add/Remove cache_disabled args in the workflow
 func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
 	cacheDisabledArg := "--cache_disabled"
@@ -138,5 +165,5 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 			}
 		}
 	}
-	return configuredWorkflow
+	return ConfigurePluginSettings(configuredWorkflow, remove)
 }
