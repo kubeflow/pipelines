@@ -18,12 +18,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsv2cfg "github.com/aws/aws-sdk-go-v2/config"
+	awsv2creds "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cenkalti/backoff"
 	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
@@ -47,7 +49,7 @@ import (
 
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
-	_ "gocloud.dev/blob/s3blob"
+	"gocloud.dev/blob/s3blob"
 )
 
 const (
@@ -950,7 +952,7 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 		return nil, fmt.Errorf("failed to build config from environment variables: %w", err)
 	}
 
-	bucket, err := openBucketWithRetry(ctx, blobConfig.bucketURL, initConnectionTimeout)
+	bucket, err := openBucketWithRetry(ctx, blobConfig, initConnectionTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open blob storage bucket: %w", err)
 	}
@@ -963,9 +965,8 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	return storage.NewBlobObjectStore(bucket, pipelinePath), nil
 }
 
-// blobStorageConfig holds the bucket URL and credentials
+// blobStorageConfig holds the bucket configuration and credentials
 type blobStorageConfig struct {
-	bucketURL  string
 	bucketName string
 	endpoint   string
 	secure     bool
@@ -986,7 +987,7 @@ func ensureProtocol(endpoint string, secure bool) string {
 	return protocol + endpoint
 }
 
-// buildConfigFromEnvVars creates a bucket URL from environment variables
+// buildConfigFromEnvVars creates a bucket config from environment variables
 func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
@@ -1001,20 +1002,8 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 		return nil, err
 	}
 
-	// Set AWS environment variables
-	if err := os.Setenv("AWS_ACCESS_KEY_ID", accessKey); err != nil {
-		return nil, fmt.Errorf("failed to set AWS_ACCESS_KEY_ID: %w", err)
-	}
-	if err := os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey); err != nil {
-		return nil, fmt.Errorf("failed to set AWS_SECRET_ACCESS_KEY: %w", err)
-	}
-
-	// Set region - use default if not specified
 	if region == "" {
 		region = "us-east-1"
-	}
-	if err := os.Setenv("AWS_REGION", region); err != nil {
-		return nil, fmt.Errorf("failed to set AWS_REGION: %w", err)
 	}
 
 	endpoint := host
@@ -1022,13 +1011,7 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 		endpoint = fmt.Sprintf("%s:%s", host, port)
 	}
 
-	// Build bucket URL for direct blob.OpenBucket
-	endpointWithProtocol := ensureProtocol(endpoint, secure)
-	bucketURL := fmt.Sprintf("s3://%s?endpoint=%s&use_path_style=true&region=%s",
-		bucketName, url.QueryEscape(endpointWithProtocol), region)
-
 	return &blobStorageConfig{
-		bucketURL:  bucketURL,
 		bucketName: bucketName,
 		endpoint:   endpoint,
 		secure:     secure,
@@ -1054,13 +1037,31 @@ func validateRequiredConfig(bucketName string, host string, accessKey string, se
 	return nil
 }
 
-// openBucketWithRetry opens a blob bucket using direct blob.OpenBucket with retry logic
-func openBucketWithRetry(ctx context.Context, bucketURL string, timeout time.Duration) (*blob.Bucket, error) {
+// openBucketWithRetry opens a blob bucket using AWS SDK v2 with explicit credentials and retry logic
+func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout time.Duration) (*blob.Bucket, error) {
 	var bucket *blob.Bucket
 	var err error
 
 	operation := func() error {
-		bucket, err = blob.OpenBucket(ctx, bucketURL)
+		cfg, err := awsv2cfg.LoadDefaultConfig(ctx,
+			awsv2cfg.WithRegion(config.region),
+			awsv2cfg.WithCredentialsProvider(awsv2creds.NewStaticCredentialsProvider(
+				config.accessKey,
+				config.secretKey,
+				"",
+			)),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create AWS config: %w", err)
+		}
+
+		endpointWithProtocol := ensureProtocol(config.endpoint, config.secure)
+		s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+			o.BaseEndpoint = awsv2.String(endpointWithProtocol)
+			o.UsePathStyle = true
+		})
+
+		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, nil)
 		return err
 	}
 
