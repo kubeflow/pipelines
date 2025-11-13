@@ -15,6 +15,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -168,11 +169,11 @@ func writeFile(path string, data []byte) (err error) {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func newMlmdClient() (*metadata.Client, error) {
+func newMlmdClient(tlsCfg *tls.Config) (*metadata.Client, error) {
 	mlmdConfig := metadata.DefaultConfig()
 	if *mlmdServerAddress != "" && *mlmdServerPort != "" {
 		mlmdConfig.Address = *mlmdServerAddress
 		mlmdConfig.Port = *mlmdServerPort
 	}
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port)
+	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsCfg)
 }
