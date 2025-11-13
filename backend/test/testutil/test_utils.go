@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -178,4 +179,45 @@ func GetTLSConfig(caCertPath string) (*tls.Config, error) {
 	return &tls.Config{
 		RootCAs: caCertPool,
 	}, nil
+}
+
+func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
+	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
+
+	pullNumber := os.Getenv("PULL_NUMBER")
+	if pullNumber != "" {
+		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
+	}
+
+	// Verify the URL exists
+	resp, err := http.Head(url)
+	if err != nil {
+		return url, fmt.Errorf("failed to verify URL exists: %s\n"+
+			"Error: %v\n"+
+			"This may indicate network issues or the file doesn't exist at the specified location.\n"+
+			"Repository: %s, Branch/PR: %s, Path: %s",
+			url, err, repoName, getBranchOrPR(pullNumber, branch), path)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			logger.Log("Warning: failed to close response body: %v", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		msg := "URL verification failed with status %d: %s, " +
+			"the file does not exist at the specified location, " +
+			"repository: %s, Branch/PR: %s, Path: %s"
+		return url, fmt.Errorf(msg, resp.StatusCode, url, repoName, getBranchOrPR(pullNumber, branch), path)
+	}
+
+	return url, nil
+}
+
+// getBranchOrPR returns a human-readable string indicating whether we're using a branch or PR
+func getBranchOrPR(pullNumber, branch string) string {
+	if pullNumber != "" {
+		return fmt.Sprintf("PR #%s", pullNumber)
+	}
+	return fmt.Sprintf("branch '%s'", branch)
 }
