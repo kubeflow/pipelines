@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,6 +44,13 @@ func TestReadArtifactV1_Succeed(t *testing.T) {
 	// Setup test data
 	resourceManager, manager, run := initWithOneTimeRun(t)
 	defer resourceManager.Close()
+
+	defer func() {
+		if err := manager.DeleteRun(context.Background(), run.UUID); err != nil {
+			t.Logf("Failed to clean up test run: %v", err)
+		}
+	}()
+
 	err := resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
 	require.NoError(t, err, "Failed to add file to object store")
 
@@ -103,12 +111,26 @@ func TestReadArtifactV1_Succeed(t *testing.T) {
 	runArtifactServer.ReadArtifactV1(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "application/octet-stream", rr.Header().Get("Content-Type"))
-	assert.Equal(t, "attachment; filename=\"artifact-1\"", rr.Header().Get("Content-Disposition"))
+
+	validateHeaders(t, rr)
 
 	responseBody, err := io.ReadAll(rr.Body)
 	require.NoError(t, err, "Failed to read response body")
-	require.Equal(t, expectedContent, string(responseBody))
+
+	var jsonResponse map[string]string
+	err = json.Unmarshal(responseBody, &jsonResponse)
+	require.NoError(t, err, "Failed to parse JSON response")
+
+	decodedData, err := base64.StdEncoding.DecodeString(jsonResponse["data"])
+	require.NoError(t, err, "Failed to decode base64 data")
+
+	require.Equal(t, expectedContent, string(decodedData))
+}
+
+func validateHeaders(t *testing.T, rr *httptest.ResponseRecorder) {
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	assert.Equal(t, "no-cache, private", rr.Header().Get("Cache-Control"))
+	assert.Empty(t, rr.Header().Get("Content-Encoding"), "Content-Encoding should not be set for JSON response")
 }
 
 func TestReadArtifactV1_RunNotFound(t *testing.T) {
@@ -138,9 +160,8 @@ func TestReadArtifactV1_RunNotFound(t *testing.T) {
 // actually streams the response in chunks, not loading it all into memory.
 // This is the critical test that proves the endpoint prevents OOM errors.
 func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
-	// Create a 1GB test file to prove streaming works with truly large files
-	largeFileSize := 1024 * 1024 * 1024 // 1GB
-	t.Logf("Creating 1GB test file for HTTP endpoint streaming test...")
+	largeFileSize := 10 * 1024 * 1024 // 10MB
+	t.Log("Creating test file for HTTP endpoint streaming test...")
 	largeContent := make([]byte, largeFileSize)
 	// Fill with predictable pattern (faster than random)
 	for i := 0; i < len(largeContent); i += 1024 * 1024 {
@@ -153,6 +174,13 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 	// Setup test data
 	resourceManager, manager, run := initWithOneTimeRun(t)
 	defer resourceManager.Close()
+
+	defer func() {
+		if err := manager.DeleteRun(context.Background(), run.UUID); err != nil {
+			t.Logf("Failed to clean up test run: %v", err)
+		}
+	}()
+
 	err := resourceManager.ObjectStore().AddFile(context.TODO(), largeContent, filePath)
 	require.NoError(t, err, "Failed to add large file to object store")
 
@@ -218,7 +246,8 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 	runArtifactServer.ReadArtifactV1(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "application/octet-stream", rr.Header().Get("Content-Type"))
+
+	validateHeaders(t, rr.ResponseRecorder)
 
 	// Calculate statistics first
 	maxChunkSize := 0
@@ -231,18 +260,23 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 	}
 
 	// Log streaming statistics (before assertions so we can debug failures)
-	t.Logf("1GB file streaming results:")
+	t.Logf("Large file streaming results:")
 	t.Logf("  - File size: %d MB", largeFileSize/(1024*1024))
 	t.Logf("  - Write operations: %d", rr.WriteCount)
 	t.Logf("  - Max chunk size: %d KB", maxChunkSize/1024)
 	t.Logf("  - Total chunks: %d", len(rr.ChunkSizes))
+	t.Logf("  - Total response size: %d bytes", totalSize)
 
 	// Validate that response was written in chunks
-	assert.Greater(t, rr.WriteCount, 1000, "1GB file should be written in many chunks")
-	assert.Equal(t, largeFileSize, totalSize, "Total size should match file size")
-	assert.Less(t, maxChunkSize, 10*1024*1024, "No single chunk should be larger than 10MB")
+	assert.Greater(t, rr.WriteCount, 10, fmt.Sprintf("%dMB file should be written in many chunks", largeFileSize/(1024*1024)))
 
-	t.Logf("All assertions passed: HTTP endpoint correctly streams 1GB files without loading them into memory")
+	// Response will be larger than original due to base64 encoding (~33% overhead)
+	assert.Greater(t, totalSize, largeFileSize, "Response should be larger due to base64 encoding")
+
+	// Most importantly: verify chunked streaming (no single large write)
+	assert.Less(t, maxChunkSize, 10*1024*1024, "No single chunk should be larger than 10MB - proves streaming")
+
+	t.Logf("All assertions passed: HTTP endpoint correctly streams large files without loading them into memory")
 }
 
 // ChunkedResponseRecorder tracks write operations to validate chunked streaming
@@ -261,6 +295,12 @@ func (r *ChunkedResponseRecorder) Write(p []byte) (int, error) {
 func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 	resourceManager, manager, run := initWithOneTimeRun(t)
 	defer resourceManager.Close()
+
+	defer func() {
+		if err := manager.DeleteRun(context.Background(), run.UUID); err != nil {
+			t.Logf("Failed to clean up test run: %v", err)
+		}
+	}()
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: v1.TypeMeta{

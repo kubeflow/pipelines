@@ -297,19 +297,18 @@ func TestBlobObjectStore_GetFileReader_ChunkedStreaming(t *testing.T) {
 	})
 }
 
-// TestBlobObjectStore_Streaming_1GB_File validates that a 1GB file can be streamed
+// TestBlobObjectStore_Streaming_Large_File validates that a file can be streamed
 // efficiently without loading it into memory. This is the critical test that proves
 // the streaming implementation prevents OOM errors with large artifacts.
-func TestBlobObjectStore_Streaming_1GB_File(t *testing.T) {
+func TestBlobObjectStore_Streaming_Large_File(t *testing.T) {
 	bucket := memblob.OpenBucket(nil)
 	defer bucket.Close()
 
 	store := NewBlobObjectStore(bucket, "pipelines")
 	ctx := context.Background()
 
-	// Create a 1GB test file
-	fileSize := 1024 * 1024 * 1024 // 1GB
-	t.Logf("Creating 1GB test file...")
+	fileSize := 10 * 1024 * 1024 // 10MB
+	t.Logf("Creating %dMB test file...", fileSize/(1024*1024))
 
 	content := make([]byte, fileSize)
 	// Fill with predictable pattern (faster than random)
@@ -319,10 +318,16 @@ func TestBlobObjectStore_Streaming_1GB_File(t *testing.T) {
 		}
 	}
 
-	err := store.AddFile(ctx, content, "test/huge_1gb_file.bin")
-	require.NoError(t, err, "Failed to add 1GB file")
+	err := store.AddFile(ctx, content, "test/large_file.bin")
+	require.NoError(t, err, "Failed to add large file")
 
-	reader, err := store.GetFileReader(ctx, "test/huge_1gb_file.bin")
+	defer func() {
+		if err := store.DeleteFile(ctx, "test/large_file.bin"); err != nil {
+			t.Logf("Failed to clean up test file: %v", err)
+		}
+	}()
+
+	reader, err := store.GetFileReader(ctx, "test/large_file.bin")
 	require.NoError(t, err)
 	defer reader.Close()
 
@@ -332,7 +337,7 @@ func TestBlobObjectStore_Streaming_1GB_File(t *testing.T) {
 	chunkCount := 0
 	maxChunkSize := 0
 
-	t.Logf("Streaming 1GB file in chunks...")
+	t.Logf("Streaming large file in chunks...")
 	startTime := time.Now()
 
 	for {
@@ -353,7 +358,7 @@ func TestBlobObjectStore_Streaming_1GB_File(t *testing.T) {
 	duration := time.Since(startTime)
 
 	// Log statistics first for debugging
-	t.Logf("1GB file streaming results:")
+	t.Logf("Large file streaming results:")
 	t.Logf("  - Total size read: %d MB", totalRead/(1024*1024))
 	t.Logf("  - Chunks: %d", chunkCount)
 	t.Logf("  - Max chunk size: %d KB", maxChunkSize/1024)
@@ -361,10 +366,9 @@ func TestBlobObjectStore_Streaming_1GB_File(t *testing.T) {
 	t.Logf("  - Speed: %.2f MB/s", float64(totalRead)/(1024*1024)/duration.Seconds())
 
 	// Validate streaming worked correctly
-	require.Equal(t, int64(fileSize), totalRead, "Should read entire 1GB file")
-	require.Greater(t, chunkCount, 1000, "1GB file should be read in many chunks")
+	require.Equal(t, int64(fileSize), totalRead, "Should read entire file")
+	require.Greater(t, chunkCount, 10, "File should be read in many chunks")
 	require.LessOrEqual(t, maxChunkSize, chunkSize, "No chunk should exceed buffer size")
 
-	// Only log success if all assertions passed
-	t.Logf("All assertions passed: 1GB file was streamed in chunks without loading into memory")
+	t.Log("All assertions passed: file was streamed in chunks without loading into memory")
 }

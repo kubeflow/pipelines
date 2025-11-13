@@ -16,8 +16,10 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -36,9 +38,9 @@ type RunArtifactServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-// ReadArtifact is an artifact reading endpoint that streams artifacts directly from object storage
-// to the HTTP response without buffering the entire content in memory.
-// No size limits are imposed - the streaming approach itself provides the security benefit.
+// ReadArtifact is an artifact reading endpoint that streams artifacts from object storage,
+// encodes them to base64 on-the-fly, and returns them as JSON.
+// The streaming approach allows handling large artifacts without buffering everything in memory.
 func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.Request) {
 	glog.Infof("Read artifact v2 called")
 
@@ -72,16 +74,46 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 		return
 	}
 
-	response.Header().Set("Content-Type", "application/octet-stream")
-	response.Header().Set("Cache-Control", "no-cache, private")
-	response.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", artifactName))
-	response.WriteHeader(http.StatusOK)
-
-	err = s.resourceManager.ReadArtifact(r.Context(), runID, nodeID, artifactName, response)
+	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
-		glog.Errorf("Failed to stream artifact: %v", err)
-		// Since we've already started writing the response, we can't change the status code
-		// Just log the error and close the connection
+		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
+		return
+	}
+
+	reader, err := s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
+	if err != nil {
+		s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
+		return
+	}
+	defer reader.Close()
+
+	response.Header().Set("Content-Type", "application/json")
+	response.Header().Set("Cache-Control", "no-cache, private")
+
+	// Write the opening JSON structure
+	response.WriteHeader(http.StatusOK)
+	if _, err := response.Write([]byte(`{"data":"`)); err != nil {
+		glog.Errorf("Failed to write JSON opening: %v", err)
+		return
+	}
+
+	// Create a base64 encoder that writes directly to the response
+	encoder := base64.NewEncoder(base64.StdEncoding, response)
+
+	// Stream the content through the base64 encoder
+	if _, err := io.Copy(encoder, reader); err != nil {
+		glog.Errorf("Failed to stream and encode artifact: %v", err)
+		// We've already started writing the response, so we can't change the status code
+		return
+	}
+
+	if err := encoder.Close(); err != nil {
+		glog.Errorf("Failed to close base64 encoder: %v", err)
+		return
+	}
+
+	if _, err := response.Write([]byte(`"}`)); err != nil {
+		glog.Errorf("Failed to write JSON closing: %v", err)
 		return
 	}
 }
