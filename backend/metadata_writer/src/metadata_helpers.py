@@ -41,6 +41,16 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
         port=metadata_service_port,
     )
 
+    # Configure gRPC channel options
+    max_receive_message_length = os.environ.get("METADATA_GRPC_MAX_RECEIVE_MESSAGE_LENGTH")
+    if max_receive_message_length:
+        try:
+            max_length = int(max_receive_message_length)
+            mlmd_connection_config.channel_arguments.max_receive_message_length = max_length
+            print('Configured gRPC max_receive_message_length to {} bytes'.format(max_length))
+        except ValueError:
+            print('Warning: Invalid METADATA_GRPC_MAX_RECEIVE_MESSAGE_LENGTH value: {}. Using default.'.format(max_receive_message_length), file=sys.stderr)
+
     tls_enabled = os.environ.get("METADATA_TLS_ENABLED", "false").lower() in ("1", "true", "yes")
 
     if tls_enabled:
