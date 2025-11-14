@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
@@ -125,19 +126,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
-				testutil.CheckIfSkipping(pipelineFile)
-				pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
-				logger.Log("Uploading pipeline file %s", pipelineFile)
-				uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
-				Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
-				testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
-				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
-				uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
-				pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
-				createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
-				logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
-				compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
-				e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
 			})
 		}
 	})
@@ -147,21 +136,51 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		var pipelineDir = "valid/critical"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
-				testutil.CheckIfSkipping(pipelineFile)
-				pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
-				logger.Log("Uploading pipeline file %s", pipelineFile)
-				uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
-				Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
-				testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
-				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
-				uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
-				pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
-				createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
-				logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
-				compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
-				e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+			})
+		}
+	})
 
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds Smoke >", FlakeAttempts(2), Label(Smoke), func() {
+		var pipelineDir = "valid"
+		pipelineFiles := []string{
+			"essential/iris_pipeline_compiled.yaml",
+			"essential/component_with_pip_index_urls.yaml",
+			"critical/flip_coin.yaml",
+			"critical/pipeline_with_artifact_upload_download.yaml",
+			"critical/parallel_for_after_dependency.yaml",
+		}
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+			})
+		}
+	})
+
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label(Sanity), func() {
+		var pipelineDir = "valid"
+		pipelineFiles := []string{
+			"essential/component_with_pip_index_urls.yaml",
+			"essential/lightweight_python_functions_pipeline.yaml",
+			"essential/pipeline_in_pipeline.yaml",
+			"critical/pipeline_with_secret_as_env.yaml",
+			"critical/pipeline_with_input_status_state.yaml",
+			"critical/notebook_component_simple.yaml",
+		}
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+			})
+		}
+	})
+
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds Smoke >", FlakeAttempts(1), Label(Integration), func() {
+		var pipelineDir = "valid/integration"
+		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
 			})
 		}
 	})
@@ -220,3 +239,23 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		}
 	})
 })
+
+func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {
+	testutil.CheckIfSkipping(pipelineFile)
+	pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+	logger.Log("Uploading pipeline file %s", pipelineFile)
+	uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+	Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
+	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+	logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
+	uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+	pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
+	createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+	logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
+	if strings.Contains(pipelineFile, "/") {
+		pipelineFile = strings.Split(pipelineFile, "/")[1]
+	}
+	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
+	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
+
+}

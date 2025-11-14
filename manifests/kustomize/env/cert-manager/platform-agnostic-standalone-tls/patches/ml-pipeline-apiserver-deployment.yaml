@@ -20,8 +20,6 @@ spec:
               value: "kfp-api-tls-cert"
             - name: METADATA_TLS_ENABLED
               value: "true"
-            - name: METADATA_GRPC_SERVICE_SERVICE_HOST
-              value: "metadata-grpc-service.kubeflow"
             - name: ML_PIPELINE_SERVICE_HOST
               value: "ml-pipeline.kubeflow.svc.cluster.local"
           readinessProbe:
