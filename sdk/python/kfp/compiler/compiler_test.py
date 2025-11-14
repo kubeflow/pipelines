@@ -4334,6 +4334,62 @@ class TestPlatformConfig(unittest.TestCase):
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=output_yaml)
 
+    def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
+            self):
+        """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        # No PipelineConfig provided (i.e., no workspace configured)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'dsl\.importer\(download_to_workspace=True\) requires PipelineConfig\(workspace=\.\.\.\) on the pipeline\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                dsl.importer(
+                    artifact_uri='gs://bucket/file.txt',
+                    artifact_class=dsl.Dataset,
+                    download_to_workspace=True,
+                )
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
+            self):
+        """Tests that compilation succeeds with both download_to_workspace and workspace config."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                workspace=dsl.WorkspaceConfig(size='1Gi')))
+        def my_pipeline():
+            dsl.importer(
+                artifact_uri='gs://bucket/file.txt',
+                artifact_class=dsl.Dataset,
+                download_to_workspace=True,
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            # Should not raise an error
+            self.assertTrue(os.path.exists(output_yaml))
+
 
 class ExtractInputOutputDescription(unittest.TestCase):
 

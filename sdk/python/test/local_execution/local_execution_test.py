@@ -37,6 +37,8 @@ from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import \
     crust as mixed_parameters_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple import \
     crust as namedtuple_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import \
+    pipeline_with_importer_workspace as importer_workspace_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param import \
     producer_consumer_param_pipeline
 from test_data.sdk_compiled_pipelines.valid.dict_input import dict_input
@@ -170,6 +172,12 @@ pipeline_func_data = [
     TestData(
         name='NamedTuple Pipeline',
         pipeline_func=namedtuple_pipeline,
+        pipeline_func_args=None,
+        expected_output=None,
+    ),
+    TestData(
+        name='Importer Workspace',
+        pipeline_func=importer_workspace_pipeline,
         pipeline_func_args=None,
         expected_output=None,
     ),

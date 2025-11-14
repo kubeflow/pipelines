@@ -1,0 +1,680 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: pipeline-with-importer-workspace-
+spec:
+  arguments:
+    parameters:
+    - name: components-2b628cf1bbf8b078860182989444f41ee4b6d622ca01c0c3a141b24e47528200
+      value: '{"executorLabel":"exec-get-uri","inputDefinitions":{"artifacts":{"d":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-2b628cf1bbf8b078860182989444f41ee4b6d622ca01c0c3a141b24e47528200
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","get_uri"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        get_uri(d: dsl.Input[dsl.Dataset]) -\u003e str:\n    print(f\"Artifact URI:
+        {d.uri}\")\n    return d.uri\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
+    - name: components-comp-importer
+      value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-comp-importer
+      value: '{"artifactUri":{"runtimeParameter":"uri"},"downloadToWorkspace":true,"metadata":{"key":"value"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+    - name: components-comp-importer-2
+      value: '{"executorLabel":"exec-importer-2","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-comp-importer-2
+      value: '{"artifactUri":{"runtimeParameter":"uri"},"downloadToWorkspace":true,"metadata":{"source":"directory"},"reimport":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+    - name: components-3bcddb027f2989803f573a96a8276aa92dafce532445692e84684a59fbade9d0
+      value: '{"executorLabel":"exec-read-dir","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-3bcddb027f2989803f573a96a8276aa92dafce532445692e84684a59fbade9d0
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_dir"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        read_dir(data: dsl.Input[dsl.Dataset]) -\u003e str:\n    \"\"\"Walk the directory
+        and return a summary of file names.\"\"\"\n    import os\n    path = data.path\n\n    if
+        not os.path.exists(path):\n        raise FileNotFoundError(f\"Path does not
+        exist: {path}\")\n\n    if os.path.isdir(path):\n        names = []\n        for
+        root, _, files in os.walk(path):\n            for name in files:\n                names.append(os.path.relpath(os.path.join(root,
+        name), path))\n        names.sort()\n        result = \",\".join(names) if
+        names else \"EMPTY_DIRECTORY\"\n        print(f\"Found {len(names)} files:
+        {result}\")\n        return result\n\n    raise ValueError(f\"Not a directory:
+        {path}\")\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
+    - name: components-5280d86f7e6e728edad8560318d1b1dbaecae0175dc50cc0101d214bcdbdb157
+      value: '{"executorLabel":"exec-train","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"message":{"parameterType":"STRING"},"scalar":{"parameterType":"STRING"}}}}'
+    - name: implementations-5280d86f7e6e728edad8560318d1b1dbaecae0175dc50cc0101d214bcdbdb157
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","train"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        train(\n    dataset: dsl.Input[dsl.Dataset]\n) -\u003e NamedTuple(''Outputs'',
+        [\n    (''scalar'', str),\n    (''message'', str),\n]):\n    \"\"\"Dummy Training
+        step.\"\"\"\n    with open(dataset.path, encoding=\"utf-8\") as f:\n        data
+        = f.read()\n    print(''Dataset:'', data)\n\n    scalar = ''123''\n    message
+        = f''My model trained using data: {data}''\n\n    from collections import
+        namedtuple\n    output = namedtuple(''Outputs'', [''scalar'', ''message''])\n    return
+        output(scalar, message)\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
+    - name: components-comp-import-stage
+      value: '{"dag":{"outputs":{"parameters":{"dir_result":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-dir"}},"train_result":{"valueFromParameter":{"outputParameterKey":"scalar","producerSubtask":"train"}}}},"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"componentInputParameter":"file_uri"}}},"taskInfo":{"name":"importer"}},"importer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"componentInputParameter":"dir_uri"}}},"taskInfo":{"name":"importer-2"}},"read-dir":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-dir"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"read-dir"}},"train":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"train"}}}},"inputDefinitions":{"parameters":{"dir_uri":{"parameterType":"STRING"},"file_uri":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"dir_result":{"parameterType":"STRING"},"train_result":{"parameterType":"STRING"}}}}'
+    - name: components-f12dedf1695f84ba76d85e222901aff7b854f31e4e01e21fb11991b72fa4e98c
+      value: '{"executorLabel":"exec-write-dir-artifact","outputDefinitions":{"artifacts":{"out_ds":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-f12dedf1695f84ba76d85e222901aff7b854f31e4e01e21fb11991b72fa4e98c
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","write_dir_artifact"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        write_dir_artifact(out_ds: Output[dsl.Dataset]):\n    import os\n    os.makedirs(out_ds.path,
+        exist_ok=True)\n    with open(os.path.join(out_ds.path, \"part-000.txt\"),
+        \"w\", encoding=\"utf-8\") as f:\n        f.write(\"First file in directory.\\n\")\n    with
+        open(os.path.join(out_ds.path, \"part-001.txt\"), \"w\", encoding=\"utf-8\")
+        as f:\n        f.write(\"Second file in directory.\\n\")\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
+    - name: components-d39dc06dd18c0e79de6863a8ecb0e12cb73b623496a42b59cae4fbcbfcfed4bd
+      value: '{"executorLabel":"exec-write-file-artifact","outputDefinitions":{"artifacts":{"out_ds":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-d39dc06dd18c0e79de6863a8ecb0e12cb73b623496a42b59cae4fbcbfcfed4bd
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","write_file_artifact"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        write_file_artifact(out_ds: Output[dsl.Dataset]):\n    import os\n    os.makedirs(os.path.dirname(out_ds.path),
+        exist_ok=True)\n    with open(out_ds.path, \"w\", encoding=\"utf-8\") as f:\n        f.write(\"Hello
+        from producer file\\n\")\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
+    - name: components-root
+      value: '{"dag":{"outputs":{"parameters":{"dir_result":{"valueFromParameter":{"outputParameterKey":"dir_result","producerSubtask":"import-stage"}},"train_result":{"valueFromParameter":{"outputParameterKey":"train_result","producerSubtask":"import-stage"}}}},"tasks":{"get-uri":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-uri"},"dependentTasks":["write-file-artifact"],"inputs":{"artifacts":{"d":{"taskOutputArtifact":{"outputArtifactKey":"out_ds","producerTask":"write-file-artifact"}}}},"taskInfo":{"name":"get-uri"}},"get-uri-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-uri-2"},"dependentTasks":["write-dir-artifact"],"inputs":{"artifacts":{"d":{"taskOutputArtifact":{"outputArtifactKey":"out_ds","producerTask":"write-dir-artifact"}}}},"taskInfo":{"name":"get-uri-2"}},"import-stage":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-import-stage"},"dependentTasks":["get-uri","get-uri-2"],"inputs":{"parameters":{"dir_uri":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-uri-2"}},"file_uri":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-uri"}}}},"taskInfo":{"name":"import-stage"}},"write-dir-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-dir-artifact"},"taskInfo":{"name":"write-dir-artifact"}},"write-file-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-file-artifact"},"taskInfo":{"name":"write-file-artifact"}}}},"outputDefinitions":{"parameters":{"dir_result":{"parameterType":"STRING"},"train_result":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --executor_type
+      - importer
+      - --task_spec
+      - '{{inputs.parameters.task}}'
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --importer_spec
+      - '{{inputs.parameters.importer}}'
+      - --pipeline_name
+      - pipeline-with-importer-workspace
+      - --run_id
+      - '{{workflow.uid}}'
+      - --parent_dag_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - launcher-v2
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      volumeMounts:
+      - mountPath: /kfp-workspace
+        name: kfp-workspace
+    inputs:
+      parameters:
+      - name: task
+      - name: component
+      - name: importer
+      - name: parent-dag-id
+    metadata: {}
+    name: system-importer-workspace
+    outputs: {}
+    volumes:
+    - name: kfp-workspace
+      persistentVolumeClaim:
+        claimName: '{{workflow.name}}-kfp-workspace'
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-importer-workspace
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"componentInputParameter":"file_uri"}}},"taskInfo":{"name":"importer"}}'
+          - name: component
+            value: '{{workflow.parameters.components-comp-importer}}'
+          - name: importer
+            value: '{{workflow.parameters.implementations-comp-importer}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: importer
+        template: system-importer-workspace
+      - arguments:
+          parameters:
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"componentInputParameter":"dir_uri"}}},"taskInfo":{"name":"importer-2"}}'
+          - name: component
+            value: '{{workflow.parameters.components-comp-importer-2}}'
+          - name: importer
+            value: '{{workflow.parameters.implementations-comp-importer-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: importer-2
+        template: system-importer-workspace
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-3bcddb027f2989803f573a96a8276aa92dafce532445692e84684a59fbade9d0}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-dir"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"read-dir"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-3bcddb027f2989803f573a96a8276aa92dafce532445692e84684a59fbade9d0}}'
+          - name: task-name
+            value: read-dir
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: importer-2.Succeeded
+        name: read-dir-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.read-dir-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.read-dir-driver.outputs.parameters.cached-decision}}'
+        depends: read-dir-driver.Succeeded
+        name: read-dir
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-5280d86f7e6e728edad8560318d1b1dbaecae0175dc50cc0101d214bcdbdb157}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"train"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-5280d86f7e6e728edad8560318d1b1dbaecae0175dc50cc0101d214bcdbdb157}}'
+          - name: task-name
+            value: train
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: importer.Succeeded
+        name: train-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.train-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.train-driver.outputs.parameters.cached-decision}}'
+        depends: train-driver.Succeeded
+        name: train
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-import-stage
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline-with-importer-workspace
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: ""
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-2b628cf1bbf8b078860182989444f41ee4b6d622ca01c0c3a141b24e47528200}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-uri"},"dependentTasks":["write-file-artifact"],"inputs":{"artifacts":{"d":{"taskOutputArtifact":{"outputArtifactKey":"out_ds","producerTask":"write-file-artifact"}}}},"taskInfo":{"name":"get-uri"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-2b628cf1bbf8b078860182989444f41ee4b6d622ca01c0c3a141b24e47528200}}'
+          - name: task-name
+            value: get-uri
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: write-file-artifact.Succeeded
+        name: get-uri-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.get-uri-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.get-uri-driver.outputs.parameters.cached-decision}}'
+        depends: get-uri-driver.Succeeded
+        name: get-uri
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-2b628cf1bbf8b078860182989444f41ee4b6d622ca01c0c3a141b24e47528200}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-uri-2"},"dependentTasks":["write-dir-artifact"],"inputs":{"artifacts":{"d":{"taskOutputArtifact":{"outputArtifactKey":"out_ds","producerTask":"write-dir-artifact"}}}},"taskInfo":{"name":"get-uri-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-2b628cf1bbf8b078860182989444f41ee4b6d622ca01c0c3a141b24e47528200}}'
+          - name: task-name
+            value: get-uri-2
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: write-dir-artifact.Succeeded
+        name: get-uri-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.get-uri-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.get-uri-2-driver.outputs.parameters.cached-decision}}'
+        depends: get-uri-2-driver.Succeeded
+        name: get-uri-2
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-import-stage}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-import-stage"},"dependentTasks":["get-uri","get-uri-2"],"inputs":{"parameters":{"dir_uri":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-uri-2"}},"file_uri":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-uri"}}}},"taskInfo":{"name":"import-stage"}}'
+          - name: task-name
+            value: import-stage
+        depends: get-uri.Succeeded && get-uri-2.Succeeded
+        name: import-stage-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.import-stage-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.import-stage-driver.outputs.parameters.condition}}'
+        depends: import-stage-driver.Succeeded
+        name: import-stage
+        template: comp-import-stage
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-f12dedf1695f84ba76d85e222901aff7b854f31e4e01e21fb11991b72fa4e98c}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-dir-artifact"},"taskInfo":{"name":"write-dir-artifact"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-f12dedf1695f84ba76d85e222901aff7b854f31e4e01e21fb11991b72fa4e98c}}'
+          - name: task-name
+            value: write-dir-artifact
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: write-dir-artifact-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.write-dir-artifact-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.write-dir-artifact-driver.outputs.parameters.cached-decision}}'
+        depends: write-dir-artifact-driver.Succeeded
+        name: write-dir-artifact
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-d39dc06dd18c0e79de6863a8ecb0e12cb73b623496a42b59cae4fbcbfcfed4bd}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-file-artifact"},"taskInfo":{"name":"write-file-artifact"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-d39dc06dd18c0e79de6863a8ecb0e12cb73b623496a42b59cae4fbcbfcfed4bd}}'
+          - name: task-name
+            value: write-file-artifact
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: write-file-artifact-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.write-file-artifact-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.write-file-artifact-driver.outputs.parameters.cached-decision}}'
+        depends: write-file-artifact-driver.Succeeded
+        name: write-file-artifact
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+  volumeClaimTemplates:
+  - metadata:
+      creationTimestamp: null
+      name: kfp-workspace
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: standard
+    status: {}
+status:
+  finishedAt: null
+  startedAt: null
