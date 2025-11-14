@@ -105,6 +105,7 @@ func (s *UpgradeTests) SetupSuite() {
 	}
 	s.namespace = *config.Namespace
 	s.repoName = *config.REPO_NAME
+	s.branchName = *config.BRANCH_NAME
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
