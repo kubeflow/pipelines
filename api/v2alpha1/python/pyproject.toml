@@ -1,0 +1,53 @@
+# Copyright 2022 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[build-system]
+requires = ['setuptools>=61.0', 'wheel']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'kfp-pipeline-spec'
+version = '2.14.6'
+description = 'Kubeflow Pipelines pipeline spec'
+authors = [
+    {name = 'google', email = 'kubeflow-pipelines@google.com'},
+]
+readme = 'README.md'
+requires-python = '>=3.9.0'
+license = 'Apache-2.0'
+license-files = ['LICENSE']
+dependencies = [
+    # Typically we can't support multiple major versions of protobuf
+    # The runtime protobuf package MUST be aligned with the protobuf
+    # libraries used to generate the code (protoc, protoc-gen-go, etc.)
+    # For example protobuf 5.x aligns with protoc 26.x-29.x but
+    # 6.x aligns with 30.x+.
+    # See for support tiers:
+    # https://protobuf.dev/support/version-support/#python
+    'protobuf>=6.31.1,<7.0',
+]
+
+[project.optional-dependencies]
+dev = []
+
+[project.urls]
+Github = 'https://github.com/kubeflow/pipelines'
+
+
+[tool.setuptools]
+include-package-data = true
+
+
+[tool.setuptools.packages.find]
+include = ['kfp.*']
