@@ -364,7 +364,7 @@ An example of overriding the PVC configuration defaults set on the API server:
 )
 ```
 
-This will lead to protocol buffer changes similar to the following:
+This will lead to protocol buffer changes similar to the following. In addition to the workspace-related fields, a new `pipeline_run_parallelism` option allows authors to cap the number of concurrent tasks for a run:
 
 ```diff
 diff --git a/api/v2alpha1/pipeline_spec.proto b/api/v2alpha1/pipeline_spec.proto
@@ -394,8 +394,12 @@ index d986a048b..866696419 100644
    // ephemeral resources created by the pipeline run.
    int32 resource_ttl = 1;
 
-   // Configuration for the workspace
+  // Configuration for the workspace
    optional WorkspaceConfig workspace = 2;
+
+  // Maximum number of tasks that can be scheduled simultaneously for a single
+  // pipeline run.
+  optional int32 pipeline_run_parallelism = 3;
  }
 ```
 
