@@ -17,7 +17,7 @@
     "grpc-web": "^1.2.1",
     "http-proxy-middleware": "^2.0.7",
     "immer": "^9.0.6",
-    "js-yaml": "^3.14.1",
+    "js-yaml": "^4.1.1",
     "lodash": "^4.17.21",
     "lodash.debounce": "^4.0.8",
     "lodash.flatten": "^4.4.0",
