@@ -2,8 +2,7 @@ name: KFP upgrade tests
 
 env:
   TESTS_DIR: "./backend/test/v2/api"
-  TESTS_LABEL: "ApiServerTests"
-  NUMBER_OF_PARALLEL_NODES: 15
+  NUMBER_OF_PARALLEL_NODES: 10
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   PYTHON_VERSION: "3.9"
@@ -92,6 +91,11 @@ jobs:
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
         continue-on-error: true
 
+      - name: Stop port forwarding
+        run: |
+          pkill -f "port-forward"
+        continue-on-error: true
+
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
@@ -100,16 +104,15 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-          forward_port: 'false'
+          forward_port: 'true'
 
-# The step below has been temporarily removed as it consistently fails.
-#      - name: Verify Upgrade
-#        uses: ./.github/actions/test-and-report
-#        if: ${{ steps.deploy.outcome == 'success' }}
-#        with:
-#          test_directory: ${{ env.TESTS_DIR }}
-#          test_label: "UpgradeVerification"
-#          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
-#          default_namespace: ${{ env.NAMESPACE }}
-#          python_version: ${{ env.PYTHON_VERSION }}
-#          report_name: "Upgrade Verification"
+      - name: Verify Upgrade
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.deploy.outcome == 'success' }}
+        with:
+          test_directory: ${{ env.TESTS_DIR }}
+          test_label: "UpgradeVerification"
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "Upgrade Verification"
