@@ -16,6 +16,7 @@ package util
 
 import (
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/common"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,8 +31,6 @@ type NodeStatus struct {
 	FinishTime  int64
 	Children    []string
 }
-
-type RetrieveArtifact func(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error)
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically
 // for status information. This interface is mainly to access the status related information
@@ -61,7 +60,7 @@ type ExecutionStatus interface {
 	// This function was in metrics_reporter.go. Moved to here because it
 	// accesses the orchestration engine specific data struct. encapsulate the
 	// specific data struct and provide a abstract function here.
-	CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.RunMetric, []error)
+	CollectionMetrics(readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error)) ([]*api.RunMetric, []error)
 
 	// does ExecutionStatus contain any finished node or not
 	HasMetrics() bool

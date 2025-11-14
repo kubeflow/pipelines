@@ -259,52 +259,6 @@
         ]
       }
     },
-    "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
-      "get": {
-        "summary": "Finds a run's artifact data.",
-        "operationId": "RunService_ReadArtifactV1",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiReadArtifactResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "run_id",
-            "description": "The ID of the run.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "node_id",
-            "description": "The ID of the running node.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "artifact_name",
-            "description": "The name of the artifact.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      }
-    },
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
         "summary": "Re-initiates a failed or terminated run.",
@@ -559,16 +513,6 @@
         "runtime_config": {
           "$ref": "#/definitions/PipelineSpecRuntimeConfig",
           "title": "Runtime config of the pipeline. V2 only"
-        }
-      }
-    },
-    "apiReadArtifactResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "string",
-          "format": "byte",
-          "description": "The bytes of the artifact content."
         }
       }
     },

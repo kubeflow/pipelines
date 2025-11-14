@@ -368,6 +368,11 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runLogServer := server.NewRunLogServer(resourceManager)
 	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLogV1)
 
+	// Artifact reading endpoints (implemented with streaming for memory efficiency)
+	runArtifactServer := server.NewRunArtifactServer(resourceManager)
+	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifactV1).Methods(http.MethodGet)
+	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifact).Methods(http.MethodGet)
+
 	topMux.PathPrefix("/apis/").Handler(runtimeMux)
 
 	// Register a handler for Prometheus to poll.
