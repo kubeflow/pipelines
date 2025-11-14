@@ -9,11 +9,6 @@ on:
       - master
       - 'v*'
       - stable
-  pull_request:
-    paths:
-      - 'backend/test/Dockerfile.test'
-      - 'backend/test/**'
-      - '.github/workflows/build-and-push-test-image.yml'
   workflow_dispatch:
     inputs:
       branch_name:

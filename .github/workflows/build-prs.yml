@@ -80,6 +80,8 @@ jobs:
             dockerfile: backend/Dockerfile.driver
           - image: ds-pipelines-launcher
             dockerfile: backend/Dockerfile.launcher
+          - image: ds-pipelines-tests
+            dockerfile: backend/test/Dockerfile.test
     steps:
       - uses: actions/checkout@v3
       - name: Build Image
@@ -123,6 +125,7 @@ jobs:
           FULLIMG_METADATA_GRPC: quay.io/opendatahub/mlmd-grpc-server:latest
           FULLIMG_DRIVER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-driver:${{ env.TARGET_IMAGE_TAG }}
           FULLIMG_LAUNCHER: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-launcher:${{ env.TARGET_IMAGE_TAG }}
+          FULLIMG_TESTS: quay.io/${{ env.QUAY_ORG }}/ds-pipelines-tests:${{ env.TARGET_IMAGE_TAG }}
         run: |
           git config user.email "${{ env.GH_USER_EMAIL }}"
           git config user.name "${{ env.GH_USER_NAME }}"
@@ -147,6 +150,7 @@ jobs:
             **MLMD Server**: `${{ env.FULLIMG_METADATA_GRPC }}`
             **MLMD Envoy Proxy**: `${{ env.FULLIMG_METADATA_ENVOY }}`
             **UI**: `${{ env.FULLIMG_FRONTEND }}`
+            **TESTS**: `${{ env.FULLIMG_TESTS }}`
           EOF
 
           gh pr comment ${{ needs.fetch-data.outputs.pr_number }} --body-file /tmp/body-file.txt
@@ -223,6 +227,7 @@ jobs:
           - ds-pipelines-driver
           - ds-pipelines-metadata-grpc
           - ds-pipelines-metadata-envoy
+          - ds-pipelines-tests
     steps:
       - name: Delete PR image
         shell: bash
