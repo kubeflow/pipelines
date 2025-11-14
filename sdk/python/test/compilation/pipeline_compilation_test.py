@@ -281,7 +281,7 @@ class TestPipelineCompilation:
                 pipeline_func=echo,
                 pipline_func_args=None,
                 compiled_file_name='hello_world.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/hello-world.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/hello_world.yaml'
             ),
             TestData(
                 pipeline_name='simple-two-step-pipeline',
@@ -909,7 +909,7 @@ class TestPipelineCompilation:
                     'param2': 'world'
                 },
                 compiled_file_name='arguments_parameters.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/arguments-parameters.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/arguments_parameters.yaml'
             ),
             TestData(
                 pipeline_name='container-no-input',

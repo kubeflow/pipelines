@@ -28,7 +28,7 @@ def add(in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]):
 def add_container(in_datasets: Input[List[Dataset]],
                   out_dataset: Output[Dataset]):
     return dsl.ContainerSpec(
-        image='python:3.9',
+        image='registry.access.redhat.com/ubi9/python-311:latest',
         command=['python', '-c'],
         args=[
             textwrap.dedent("""

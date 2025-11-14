@@ -18,7 +18,7 @@ def _extract_argo_versions_from_e2e(e2e_yaml_text: str) -> List[str]:
     yaml = YAML(typ='safe')
     data = yaml.load(e2e_yaml_text) or {}
     jobs = data.get('jobs') or {}
-    return jobs.get('end-to-end-critical-scenario-tests', {}).get('strategy', {}).get('matrix', {}).get('argo_version',[])
+    return jobs.get('end-to-end-scenario-tests', {}).get('strategy', {}).get('matrix', {}).get('argo_version',[])
 
 
 def main() -> int:

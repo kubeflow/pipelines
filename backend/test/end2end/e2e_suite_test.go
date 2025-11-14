@@ -28,8 +28,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
-	"github.com/kubeflow/pipelines/backend/test/v2"
-
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
@@ -71,7 +69,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
 	var tlsCfg *tls.Config
 	if *config.TLSEnabled {
-		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		tlsCfg, err = testutil.GetTLSConfig(*config.CaCertPath)
 		if err != nil {
 			log.Fatalf("Error getting TLS Config: %v", err)
 		}
@@ -117,10 +115,11 @@ var _ = BeforeSuite(func() {
 		}
 	}
 
-	pipelineUploadClient, err = test.GetPipelineUploadClient(
+	pipelineUploadClient, err = testutil.GetPipelineUploadClient(
 		*config.UploadPipelinesWithKubernetes,
 		*config.KubeflowMode,
 		*config.DebugMode,
+		*config.AuthToken,
 		*config.Namespace,
 		clientConfig,
 		tlsCfg,

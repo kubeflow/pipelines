@@ -1,0 +1,96 @@
+name: Build and Push Test Image
+
+# This workflow builds and pushes the backend/test/Dockerfile.test image to quay.io
+# The image is tagged with the branch name to allow for branch-specific testing
+
+on:
+  push:
+    branches:
+      - master
+      - 'v*'
+      - stable
+  pull_request:
+    paths:
+      - 'backend/test/Dockerfile.test'
+      - 'backend/test/**'
+      - '.github/workflows/build-and-push-test-image.yml'
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Branch name to use for image tag'
+        required: false
+        default: ''
+
+env:
+  QUAY_ORG: opendatahub
+  QUAY_ID: ${{ secrets.QUAY_ROBOT_USERNAME }}
+  QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+  IMAGE_REPO: ds-pipelines-tests
+  DOCKERFILE_PATH: backend/test/Dockerfile.test
+
+jobs:
+  build-test-image:
+    name: Build and Push Test Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine image tag
+        id: determine_tag
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.branch_name }}" ]]; then
+            # Use manually provided branch name
+            BRANCH_NAME="${{ inputs.branch_name }}"
+          else
+            # Use the current branch name, sanitizing it for use as a Docker tag
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
+
+          # Sanitize branch name for Docker tag (replace / with -, remove invalid chars)
+          TAG_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | tr '[:upper:]' '[:lower:]')
+
+          echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "full_image=quay.io/${{ env.QUAY_ORG }}/${{ env.IMAGE_REPO }}:${TAG_NAME}" >> $GITHUB_OUTPUT
+
+          echo "Building image for branch: $BRANCH_NAME"
+          echo "Docker tag will be: $TAG_NAME"
+          echo "Full image name: quay.io/${{ env.QUAY_ORG }}/${{ env.IMAGE_REPO }}:${TAG_NAME}"
+
+      - name: Login to Quay.io
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ env.QUAY_ID }}
+          password: ${{ env.QUAY_TOKEN }}
+          registry: quay.io
+
+      - name: Build and push test image
+        shell: bash
+        env:
+          FULL_IMAGE: ${{ steps.determine_tag.outputs.full_image }}
+        run: |
+          echo "Building and pushing test image: $FULL_IMAGE"
+
+          # Build the image using podman
+          podman build . -f ${{ env.DOCKERFILE_PATH }} -t "$FULL_IMAGE"
+
+          # Push the image to quay.io
+          podman push "$FULL_IMAGE"
+
+          echo "Successfully built and pushed: $FULL_IMAGE"
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "### Test Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ steps.determine_tag.outputs.branch_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** ${{ steps.determine_tag.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Full Image:** \`${{ steps.determine_tag.outputs.full_image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Built and pushed successfully" >> $GITHUB_STEP_SUMMARY

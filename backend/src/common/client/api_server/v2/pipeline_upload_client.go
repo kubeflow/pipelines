@@ -80,6 +80,23 @@ func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool, tlsC
 	}, nil
 }
 
+func NewMultiUserPipelineUploadClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
+	PipelineUploadInterface, error,
+) {
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
+	if err != nil {
+		return nil, fmt.Errorf("error occurred when creating pipeline upload client: %w", err)
+	}
+
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating upload client
+	return &PipelineUploadClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
+	}, nil
+}
+
 func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.UploadPipelineParams) (
 	*model.V2beta1Pipeline, error) {
 	file, err := os.Open(filePath)

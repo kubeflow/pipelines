@@ -27,6 +27,7 @@ on:
       - 'backend/**'
       - 'proxy/**'
       - 'manifests/kustomize/**'
+      - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -53,7 +54,7 @@ jobs:
   build:
     uses: ./.github/workflows/image-builds-with-cache.yml
 
-  end-to-end-critical-scenario-tests:
+  end-to-end-scenario-tests:
     runs-on: ubuntu-latest
     needs: build
     strategy:

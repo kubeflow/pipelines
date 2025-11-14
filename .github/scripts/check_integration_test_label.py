@@ -36,10 +36,19 @@ This pull request is merging **main** → **stable** and requires integration te
 Comment `/integration-tests-ok` on this PR **only after** running the integration tests.
 
 ### 📝 Steps:
+
 1. Run integration tests in OpenShift cluster with latest ODH nightly
-    1. Fetch nightly ODH build information from **#odh-nightlies-notifications** slack channel
-    2. Follow the instructions on [this](https://spaces.redhat.com/spaces/RHODS/pages/512757017/02+-+Jira+testing+and+Verification) page to create a cluster and deploy latest ODH
-    3. Once the deployment is DONE and your cluster is available:
+    1. Go to [this](https://jenkins-csb-rhods-opendatascience.dno.corp.redhat.com/job/devops/job/rhoai-test-flow/build?delay=0sec) Jenkins job
+    2. Provide Cluster Name
+    3. Check Install_Cluster checkbox
+    4. Check "DEPROVISION_AFTER_INSTALL_FAILURE" if you want to destroy the cluster on job failure automatically
+    5. Check "ADD_ICSP" is not checked
+    6. Enter ODS_BUILD_URL=odh-nightly
+    7. Enter UPDATE_CHANNEL=odh-nightlies
+    8. Uncheck RUN_TESTS
+    9. Enter RUN_DASHBOARD_TESTS=SmokeSet1 (this will run cypress Dashboard Tests Job as a downstream job)
+    10. Run the job
+    11. Once the deployment is DONE and your cluster is available, and you have updates in master after the ODH nightly build time:
          * Login to openshift console
          * Go to Operator > Installed Operators > Open Data Hub Operator > Data Science Cluster > default-dsc
          * Open the yaml spec
@@ -54,9 +63,10 @@ Comment `/integration-tests-ok` on this PR **only after** running the integratio
                 managementState: Managed
          ```
          * Save and wait for DSPO to update
-         * Deploy DSPA
-         * Run [Iris Pipeline](https://github.com/red-hat-data-services/ods-ci/blob/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/cache-disabled/iris_pipeline_compiled.yaml), [Flip Coin](https://github.com/red-hat-data-services/ods-ci/blob/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/cache-disabled/flip_coin_compiled.yaml) pipelines
-         * Make sure the pipeline runs Succeeds
+    12. Deploy DSPA
+    13. Run [Iris Pipeline](https://github.com/red-hat-data-services/ods-ci/blob/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/cache-disabled/iris_pipeline_compiled.yaml), [Flip Coin](https://github.com/red-hat-data-services/ods-ci/blob/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/cache-disabled/flip_coin_compiled.yaml) pipelines
+    14. Make sure the pipeline runs Succeeds
+    15. Repeat the above steps but this time check `ENABLE_FIPS_IN_CLUSTER` checkbox to create a FIPS cluster
 2. Comment `/integration-tests-ok` on this PR to add the verification label
 3. This workflow check will automatically pass once the label is added
 
@@ -171,7 +181,6 @@ Once you comment `/integration-tests-ok`, the label will be re-added and this wo
             print("\n🚫 WORKFLOW FAILED: Label was automatically removed due to new commits")
             print("📋 TO PASS THIS CHECK:")
             print("   1. Re-run integration tests in OpenShift cluster with latest ODH nightly")
-            print("   2. Fetch nightly build info from #odh-nightlies-notifications Slack channel")
             print("   3. Comment '/integration-tests-ok' on this PR after tests pass")
             print("   4. This workflow will automatically re-run and pass")
         else:

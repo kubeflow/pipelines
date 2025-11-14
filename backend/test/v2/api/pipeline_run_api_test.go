@@ -139,7 +139,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 	})
 
 	Context("Archive pipeline run(s) >", func() {
-		pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "hello-world.yaml")
+		pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "hello_world.yaml")
 		It("Create a pipeline run, archive it and verify that the run state does not change on archiving", func() {
 			createdExperiment := createExperiment(experimentName)
 			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
@@ -148,7 +148,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
 			archivePipelineRun(&createdPipelineRun.RunID)
 			pipelineRunAfterArchive := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
-			Expect(createdPipelineRun.State).To(Equal(pipelineRunAfterArchive.State))
+			Expect(*pipelineRunAfterArchive.State).To(Not(BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateCANCELED, run_model.V2beta1RuntimeStateCANCELING, run_model.V2beta1RuntimeStateRUNTIMESTATEUNSPECIFIED})))
 			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
 
 		})
@@ -169,7 +169,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 	})
 
 	Context("Unarchive pipeline run(s) >", func() {
-		pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "hello-world.yaml")
+		pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "hello_world.yaml")
 		It("Create a pipeline run, archive it and unarchive it and verify the storage state", func() {
 			createdExperiment := createExperiment(experimentName)
 			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)

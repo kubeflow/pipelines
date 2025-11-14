@@ -6,10 +6,10 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
+    - name: components-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93
       value: '{"executorLabel":"exec-container-no-input"}'
-    - name: implementations-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
-      value: '{"command":["echo","hello world"],"image":"python:3.9"}'
+    - name: implementations-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93
+      value: '{"command":["echo","hello world"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-root
       value: '{"dag":{"tasks":{"container-no-input":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-no-input"},"taskInfo":{"name":"container-no-input"}}}}}'
   entrypoint: entrypoint
@@ -192,11 +192,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d}}'
+            value: '{{workflow.parameters.components-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-no-input"},"taskInfo":{"name":"container-no-input"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d}}'
+            value: '{{workflow.parameters.implementations-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93}}'
           - name: task-name
             value: container-no-input
           - name: parent-dag-id

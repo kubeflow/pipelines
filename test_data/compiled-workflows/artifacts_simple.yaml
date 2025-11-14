@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1
+    - name: components-30ffba3456b197a41e398d9ec70483402edc60fb68c81eca4b54f9a21aaac840
       value: '{"executorLabel":"exec-add","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1
+    - name: implementations-30ffba3456b197a41e398d9ec70483402edc60fb68c81eca4b54f9a21aaac840
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -22,23 +22,23 @@ spec:
         = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
         f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
         ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.9"}'
-    - name: components-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279
+    - name: components-f4f4561b18f8a84ad84a3caf869976153405421ba33d00f4e21888cf11602cb1
       value: '{"executorLabel":"exec-add-container","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279
+    - name: implementations-f4f4561b18f8a84ad84a3caf869976153405421ba33d00f4e21888cf11602cb1
       value: '{"args":["\nimport argparse\nimport json\nimport os\n\ndef main(in_datasets,
         out_dataset_uri):\n    in_dicts = json.loads(in_datasets)\n    uris = [d[''uri'']
         for d in in_dicts]\n    total = 0\n    for uri in uris:\n        with open(uri.replace(''gs://'',
         ''/gcs/'')) as f:\n            total += int(f.read())\n\n    outpath = out_dataset_uri.replace(''gs://'',
         ''/gcs/'')\n    os.makedirs(os.path.dirname(outpath), exist_ok=True)\n    with
         open(outpath, ''w'') as f:\n        f.write(str(total))\n\nparser = argparse.ArgumentParser()\nparser.add_argument(''in_datasets'')\nparser.add_argument(''out_dataset_uri'')\nargs
-        = parser.parse_args()\n\nmain(args.in_datasets, args.out_dataset_uri)\n","{{$.inputs.artifacts[''in_datasets'']}}","{{$.outputs.artifacts[''out_dataset''].uri}}"],"command":["python","-c"],"image":"python:3.9"}'
-    - name: components-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
+        = parser.parse_args()\n\nmain(args.in_datasets, args.out_dataset_uri)\n","{{$.inputs.artifacts[''in_datasets'']}}","{{$.outputs.artifacts[''out_dataset''].uri}}"],"command":["python","-c"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
+    - name: components-7fe5978aab41830c501ab76eaca7903103fdd9e16e46c69ae06187803efa31c0
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
+    - name: implementations-7fe5978aab41830c501ab76eaca7903103fdd9e16e46c69ae06187803efa31c0
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -231,11 +231,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b}}'
+            value: '{{workflow.parameters.components-7fe5978aab41830c501ab76eaca7903103fdd9e16e46c69ae06187803efa31c0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b}}'
+            value: '{{workflow.parameters.implementations-7fe5978aab41830c501ab76eaca7903103fdd9e16e46c69ae06187803efa31c0}}'
           - name: task-name
             value: double
           - name: parent-dag-id
@@ -401,11 +401,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1}}'
+            value: '{{workflow.parameters.components-30ffba3456b197a41e398d9ec70483402edc60fb68c81eca4b54f9a21aaac840}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1}}'
+            value: '{{workflow.parameters.implementations-30ffba3456b197a41e398d9ec70483402edc60fb68c81eca4b54f9a21aaac840}}'
           - name: task-name
             value: add
           - name: parent-dag-id
@@ -426,11 +426,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279}}'
+            value: '{{workflow.parameters.components-f4f4561b18f8a84ad84a3caf869976153405421ba33d00f4e21888cf11602cb1}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-container"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-container"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279}}'
+            value: '{{workflow.parameters.implementations-f4f4561b18f8a84ad84a3caf869976153405421ba33d00f4e21888cf11602cb1}}'
           - name: task-name
             value: add-container
           - name: parent-dag-id
