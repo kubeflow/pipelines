@@ -331,6 +331,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 {...this.props}
                 title='Choose a pipeline version'
                 filterLabel='Filter pipeline versions'
+                isV1={true}
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelineVersions(
                     'PIPELINE',
@@ -402,6 +403,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 {...this.props}
                 title='Choose an experiment'
                 filterLabel='Filter experiments'
+                isV1={true}
                 listApi={async (
                   page_token?: string,
                   page_size?: number,
