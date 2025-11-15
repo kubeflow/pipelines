@@ -9,16 +9,25 @@ env:
   USER_NAMESPACE: "kubeflow-user-example-com"
   PYTHON_VERSION: "3.9"
   CA_CERT_PATH: ""
+  # PostgreSQL environment variables
+  POSTGRES_NAMESPACE: "kubeflow"
+  DB_PORT: "5432"
+  DB_FORWARD_IP: "127.0.0.1"
+  DB_USER: "user"
+  DB_PASSWORD: "password"
+  DB_NAME: "mlpipeline"
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - feature/postgres-integration # temp for trigger CI on  my fork
 
   workflow_dispatch:
     inputs:
       test_label:
         description: "Test label that you want to filter on and run"
-        default: 'ApiServerTests'
+        default: "ApiServerTests"
         required: true
         type: string
       number_of_parallel_tests:
@@ -34,17 +43,17 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/api-server-tests.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/resources/**'
-      - 'backend/api/v2beta1/**'
-      - 'backend/src/**'
-      - 'backend/metadata_writer/**'
-      - 'backend/test/v2/api/**'
-      - 'manifests/kustomize/**'
-      - 'test_data/sdk_compiled_pipelines/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/api-server-tests.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/resources/**"
+      - "backend/api/v2beta1/**"
+      - "backend/src/**"
+      - "backend/metadata_writer/**"
+      - "backend/test/v2/api/**"
+      - "manifests/kustomize/**"
+      - "test_data/sdk_compiled_pipelines/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   build:
@@ -55,24 +64,35 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.34.0" ]
-        cache_enabled: [ "true", "false" ]
-        proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.3", "v3.6.7" ]
-        pipeline_store: [ "database" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        k8s_version: ["v1.34.0"]
+        cache_enabled: ["true", "false"]
+        proxy: ["true", "false"]
+        argo_version: ["v3.7.3", "v3.6.7"]
+        pipeline_store: ["database"]
+        pod_to_pod_tls_enabled: ["false"]
+        db_type: ["mysql", "pgx"]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
             argo_version: "v3.6.7"
+            db_type: "mysql"
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
             argo_version: "v3.5.14"
+            db_type: "mysql"
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
+            db_type: "mysql"
+        exclude:
+          # PostgreSQL doesn't work with proxy (no proxy manifests for PostgreSQL)
+          - db_type: "pgx"
+            proxy: "true"
+          # PostgreSQL doesn't work with TLS (yet)
+          - db_type: "pgx"
+            pod_to_pod_tls_enabled: "true"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
-    name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
 
     steps:
       - name: Checkout code
@@ -98,6 +118,7 @@ jobs:
           proxy: ${{ matrix.proxy }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          db_type: ${{ matrix.db_type }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
@@ -109,6 +130,17 @@ jobs:
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
+      - name: Port-forward PostgreSQL Database
+        shell: bash
+        if: ${{ matrix.db_type == 'pgx' && steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl -n "${{ env.POSTGRES_NAMESPACE }}" port-forward svc/postgres-service ${{ env.DB_PORT }}:${{ env.DB_PORT }} --address=${{ env.DB_FORWARD_IP }} &
+
+      - name: Port-forward ML Metadata service
+        shell: bash
+        if: ${{ matrix.db_type == 'pgx' && steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl -n "${{ env.NAMESPACE }}" port-forward svc/metadata-grpc-service 8080:8080 &
 
       - name: Configure Input Variables
         shell: bash
@@ -128,13 +160,12 @@ jobs:
           if [ -z "${PROXY:-}" ]; then
             PROXY=false
           fi
-          
+
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
             echo "TEST_LABEL=$TEST_LABEL"
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
-
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -149,7 +180,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_argoVersion=${{ matrix.argo_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}"
+          report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_argoVersion=${{ matrix.argo_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}_dbType=${{ matrix.db_type }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
@@ -160,18 +191,17 @@ jobs:
         run: |
           echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
 
-
   api-test-k8s-native:
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.34.0", "v1.29.2" ]
-        cache_enabled: [ "true" ]
-        uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.3", "v3.6.7" ]
-        pipeline_store: [ "kubernetes" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        k8s_version: ["v1.34.0", "v1.29.2"]
+        cache_enabled: ["true"]
+        uploadPipelinesWithKubernetesClient: ["true", "false"]
+        argo_version: ["v3.7.3", "v3.6.7"]
+        pipeline_store: ["kubernetes"]
+        pod_to_pod_tls_enabled: ["false"]
         include:
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
@@ -228,15 +258,14 @@ jobs:
         run: |
           echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
 
-
   api-test-multi-user:
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.34.0"]
-        cache_enabled: [ "true", "false" ]
-        multi_user: [ "true" ]
+        k8s_version: ["v1.34.0"]
+        cache_enabled: ["true", "false"]
+        multi_user: ["true"]
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
 
