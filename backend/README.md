@@ -76,6 +76,33 @@ Run
 docker build . -f backend/Dockerfile.conformance -t <tag>
 ```
 
+## API Server Configuration
+
+### Driver Pod Labels and Annotations
+
+The API server supports configuring custom labels and annotations for driver pods through configuration or environment variables. This is useful for integration with service mesh (Istio), monitoring systems, or other infrastructure requirements.
+
+**Configuration via config.json:**
+```json
+{
+  "DriverPodLabels": {
+    "sidecar.istio.io/inject": "true",
+    "app": "ml-pipeline-driver"
+  },
+  "DriverPodAnnotations": {
+    "proxy.istio.io/config": "{\"holdApplicationUntilProxyStarts\":true}"
+  }
+}
+```
+
+**Configuration via environment variables:**
+```bash
+export DRIVERPODLABELS='{"sidecar.istio.io/inject":"true"}'
+export DRIVERPODANNOTATIONS='{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}"}'
+```
+
+Note: Labels with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system labels.
+
 ## API Server Development
 
 ### Run the KFP Backend Locally With a Kind Cluster
