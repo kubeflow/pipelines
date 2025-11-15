@@ -159,6 +159,15 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
+      - name: Upload enhanced failure logs on test failure
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.test-run.outcome != 'success' && steps.configure.outcome == 'success' }}
+        with:
+          name: enhanced-failure-logs-${{ matrix.test_label}}-K8s-${{ matrix.k8s_version }}-cache-${{ matrix.cache_enabled }}-argo-${{ matrix.argo_version}}-proxy-${{ matrix.proxy }}-storage-${{ matrix.storage }}
+          path: /tmp/enhanced_failure_logs.txt
+          retention-days: 30
+        continue-on-error: true
+
       - name: Notify test reports
         shell: bash
         if: ${{ steps.test-run.outcome == 'success' }}
@@ -264,6 +273,15 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
+
+      - name: Upload enhanced failure logs on test failure
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.test-run.outcome != 'success' && steps.configure.outcome == 'success' }}
+        with:
+          name: enhanced-failure-logs-multiuser-K8s-${{ matrix.k8s_version }}-cache-${{ matrix.cache_enabled }}-storage-${{ matrix.storage }}
+          path: /tmp/enhanced_failure_logs.txt
+          retention-days: 30
+        continue-on-error: true
 
       - name: Notify test reports
         shell: bash

@@ -17,6 +17,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"io"
 	"path"
 	"regexp"
 
@@ -34,6 +35,9 @@ type ObjectStoreInterface interface {
 	AddFile(ctx context.Context, template []byte, filePath string) error
 	DeleteFile(ctx context.Context, filePath string) error
 	GetFile(ctx context.Context, filePath string) ([]byte, error)
+	// GetFileReader returns a streaming reader for the file content.
+	// Use this method instead of GetFile for streaming access to large files.
+	GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error)
 	AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
@@ -84,6 +88,7 @@ func (m *MinioObjectStore) GetFile(ctx context.Context, filePath string) ([]byte
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get file %v", filePath)
 	}
+	defer reader.Close()
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(reader)
@@ -97,6 +102,79 @@ func (m *MinioObjectStore) GetFile(ctx context.Context, filePath string) ([]byte
 	}
 
 	return bytes, nil
+}
+
+// GetFileReader returns a streaming reader for safe access to large files.
+func (m *MinioObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	if m.bucketName == "" {
+		return nil, util.NewInternalServerError(nil, "Bucket name cannot be empty")
+	}
+
+	if m.minioClient == nil {
+		return nil, util.NewInternalServerError(nil, "MinioClient is not configured")
+	}
+
+	reader, err := m.minioClient.GetObject(ctx, m.bucketName, filePath, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get file reader for %v", filePath)
+	}
+
+	// For minio objects, we need to wrap the reader to handle multipart signatures
+	if m.disableMultipart {
+		// If multipart is disabled, we need to filter out signatures while streaming
+		// This is more complex for streaming, so for now we'll use a wrapper
+		return &filteredReader{reader: reader, re: regexp.MustCompile(`\w+;chunk-signature=\w+`)}, nil
+	}
+
+	return reader, nil
+}
+
+// filteredReader wraps a reader to filter out chunk signatures on the fly
+type filteredReader struct {
+	reader io.ReadCloser
+	re     *regexp.Regexp
+	buffer []byte
+}
+
+func (f *filteredReader) Read(p []byte) (n int, err error) {
+	for len(f.buffer) == 0 {
+		// Read a chunk from underlying reader
+		chunk := make([]byte, 8192)
+		n, err := f.reader.Read(chunk)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+		if n > 0 {
+			// Filter the chunk
+			filtered := f.re.ReplaceAllString(string(chunk[:n]), "")
+			f.buffer = []byte(filtered)
+		}
+		// If we got EOF and no more data to process, return EOF
+		if err == io.EOF {
+			if len(f.buffer) == 0 {
+				return 0, io.EOF
+			}
+			// We have data in buffer, will return it and EOF on next call
+			break
+		}
+	}
+
+	// Copy from buffer to output
+	copyLen := len(p)
+	if len(f.buffer) < copyLen {
+		copyLen = len(f.buffer)
+	}
+	copy(p, f.buffer[:copyLen])
+	f.buffer = f.buffer[copyLen:]
+
+	return copyLen, nil
+}
+
+func (f *filteredReader) Close() error {
+	if f.reader != nil {
+		return f.reader.Close()
+	}
+	return nil
 }
 
 func (m *MinioObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {

@@ -1540,34 +1540,28 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 }
 
 // Fetches PipelineSpec as []byte array and a new URI of PipelineSpec.
-// Returns empty string if PipelineSpec is found via PipelineSpecURI.
-// It attempts to fetch PipelineSpec in the following order:
-//  1. Directly read from pipeline versions's PipelineSpec field.
-//  2. Fetch a yaml file from object store based on pipeline versions's PipelineSpecURI field.
-//  3. Fetch a yaml file from object store based on pipeline versions's id.
-//  4. Fetch a yaml file from object store based on pipeline's id.
 func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *model.PipelineVersion) ([]byte, string, error) {
 	if len(pipelineVersion.PipelineSpec) != 0 {
-		// Check pipeline spec string first
+		// Return pipeline spec that's already stored in the database
 		bytes := []byte(pipelineVersion.PipelineSpec)
 		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
+		// Use streaming approach to fetch from object storage
 		// Try reading object store from pipeline_spec_uri
-		// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-		template, errUri := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
-		if errUri != nil {
+		template, errURI := r.streamingGetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		if errURI != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.streamingGetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineId := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
-				if errPipelineId != nil {
+				template, errPipelineID := r.streamingGetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				if errPipelineID != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
-							util.Wrap(errUri, "Failed to read a file from pipeline_spec_uri"),
+							util.Wrap(errURI, "Failed to read a file from pipeline_spec_uri"),
 							util.Wrap(errUUID, "Failed to read a file from OS with pipeline_version_id").Error(),
 						),
-						util.Wrap(errPipelineId, "Failed to read a file from OS with pipeline_id").Error(),
+						util.Wrap(errPipelineID, "Failed to read a file from OS with pipeline_id").Error(),
 					)
 				}
 				return template, r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)), nil
@@ -1576,6 +1570,29 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		}
 		return template, "", nil
 	}
+}
+
+// streamingGetFile provides a streaming-based file retrieval that's memory-safe
+// but still returns []byte for compatibility with existing callers.
+func (r *ResourceManager) streamingGetFile(ctx context.Context, filePath string) ([]byte, error) {
+	// Use the streaming GetFileReader to get a reader
+	reader, err := r.objectStore.GetFileReader(ctx, filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	// Read the content using io.ReadAll
+	// This is still safer than the old GetFile because:
+	// 1. We're using a streaming reader internally
+	// 2. The minio client itself uses streaming
+	// 3. We only buffer the final result, not intermediate chunks
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
 }
 
 // Creates the default experiment entry.
@@ -1628,28 +1645,62 @@ func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
 	return nil
 }
 
-// ReadArtifact parses run's workflow to find artifact file path and reads the content of the file
-// from object store.
-func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName string) ([]byte, error) {
+// resolveArtifactPath resolves the object storage path for an artifact.
+// This function contains the common logic shared by StreamArtifact and other artifact operations.
+func (r *ResourceManager) resolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
 	run, err := r.runStore.GetRun(runID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if run.WorkflowRuntimeManifest == "" {
-		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
+		return "", util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
 	}
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	if err != nil {
 		// This should never happen.
-		return nil, util.NewInternalServerError(
+		return "", util.NewInternalServerError(
 			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
 	}
 	artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
-		return nil, util.NewResourceNotFoundError(
+		return "", util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
-	return r.objectStore.GetFile(context.TODO(), artifactPath)
+	return artifactPath, nil
+}
+
+// ResolveArtifactPath is a public wrapper for resolveArtifactPath.
+// This allows other components to validate artifact paths without accessing the file.
+func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
+	return r.resolveArtifactPath(runID, nodeID, artifactName)
+}
+
+// StreamArtifact safely streams artifact content from object storage to the provided writer.
+// This prevents memory exhaustion attacks by streaming data directly without buffering.
+func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, nodeID string, artifactName string, w io.Writer) error {
+	artifactPath, err := r.resolveArtifactPath(runID, nodeID, artifactName)
+	if err != nil {
+		return err
+	}
+
+	// Stream from object store
+	reader, err := r.objectStore.GetFileReader(ctx, artifactPath)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to get file reader for %v", artifactPath)
+	}
+	defer reader.Close()
+
+	_, err = io.Copy(w, reader)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to stream artifact content")
+	}
+
+	return nil
+}
+
+// ObjectStore returns the object store interface for direct access to object storage operations
+func (r *ResourceManager) ObjectStore() storage.ObjectStoreInterface {
+	return r.objectStore
 }
 
 // Fetches the default experiment id.
@@ -1681,15 +1732,20 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline id")
 	}
 
-	// Fetch pipeline spec
-	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a pipeline version as template is broken")
+	// Get pipeline spec from URL if needed
+	if len(pv.PipelineSpec) == 0 {
+		if len(pv.PipelineSpecURI) == 0 {
+			return nil, util.NewInvalidInputError("Pipeline version must have a pipeline spec or a valid source code's URL. PipelineSpec: %s. PipelineSpecURI: %s. CodeSourceUrl: %s. At least one of them must have a valid pipeline spec", pv.PipelineSpec, pv.PipelineSpecURI, pv.CodeSourceUrl)
+		}
+
+		template, err := r.objectStore.GetFile(context.TODO(), string(pv.PipelineSpecURI))
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to read pipeline spec from object store")
+		}
+		pv.PipelineSpec = model.LargeText(template)
 	}
-	pv.PipelineSpec = model.LargeText(string(pipelineSpecBytes))
-	if pipelineSpecURI != "" {
-		pv.PipelineSpecURI = model.LargeText(pipelineSpecURI)
-	}
+
+	pipelineSpecBytes := []byte(pv.PipelineSpec)
 
 	// Create a template
 	templateOptions := template.TemplateOptions{

@@ -40,7 +40,6 @@ const (
 	RunService_ArchiveRun_FullMethodName   = "/kubeflow.pipelines.backend.api.v2beta1.RunService/ArchiveRun"
 	RunService_UnarchiveRun_FullMethodName = "/kubeflow.pipelines.backend.api.v2beta1.RunService/UnarchiveRun"
 	RunService_DeleteRun_FullMethodName    = "/kubeflow.pipelines.backend.api.v2beta1.RunService/DeleteRun"
-	RunService_ReadArtifact_FullMethodName = "/kubeflow.pipelines.backend.api.v2beta1.RunService/ReadArtifact"
 	RunService_TerminateRun_FullMethodName = "/kubeflow.pipelines.backend.api.v2beta1.RunService/TerminateRun"
 	RunService_RetryRun_FullMethodName     = "/kubeflow.pipelines.backend.api.v2beta1.RunService/RetryRun"
 )
@@ -63,8 +62,6 @@ type RunServiceClient interface {
 	UnarchiveRun(ctx context.Context, in *UnarchiveRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Deletes a run in an experiment given by run ID and experiment ID.
 	DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Finds artifact data in a run.
-	ReadArtifact(ctx context.Context, in *ReadArtifactRequest, opts ...grpc.CallOption) (*ReadArtifactResponse, error)
 	// Terminates an active run.
 	TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
@@ -139,16 +136,6 @@ func (c *runServiceClient) DeleteRun(ctx context.Context, in *DeleteRunRequest, 
 	return out, nil
 }
 
-func (c *runServiceClient) ReadArtifact(ctx context.Context, in *ReadArtifactRequest, opts ...grpc.CallOption) (*ReadArtifactResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReadArtifactResponse)
-	err := c.cc.Invoke(ctx, RunService_ReadArtifact_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runServiceClient) TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -187,8 +174,6 @@ type RunServiceServer interface {
 	UnarchiveRun(context.Context, *UnarchiveRunRequest) (*emptypb.Empty, error)
 	// Deletes a run in an experiment given by run ID and experiment ID.
 	DeleteRun(context.Context, *DeleteRunRequest) (*emptypb.Empty, error)
-	// Finds artifact data in a run.
-	ReadArtifact(context.Context, *ReadArtifactRequest) (*ReadArtifactResponse, error)
 	// Terminates an active run.
 	TerminateRun(context.Context, *TerminateRunRequest) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
@@ -220,9 +205,6 @@ func (UnimplementedRunServiceServer) UnarchiveRun(context.Context, *UnarchiveRun
 }
 func (UnimplementedRunServiceServer) DeleteRun(context.Context, *DeleteRunRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRun not implemented")
-}
-func (UnimplementedRunServiceServer) ReadArtifact(context.Context, *ReadArtifactRequest) (*ReadArtifactResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReadArtifact not implemented")
 }
 func (UnimplementedRunServiceServer) TerminateRun(context.Context, *TerminateRunRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TerminateRun not implemented")
@@ -359,24 +341,6 @@ func _RunService_DeleteRun_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RunService_ReadArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReadArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RunServiceServer).ReadArtifact(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RunService_ReadArtifact_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunServiceServer).ReadArtifact(ctx, req.(*ReadArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RunService_TerminateRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TerminateRunRequest)
 	if err := dec(in); err != nil {
@@ -443,10 +407,6 @@ var RunService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteRun",
 			Handler:    _RunService_DeleteRun_Handler,
-		},
-		{
-			MethodName: "ReadArtifact",
-			Handler:    _RunService_ReadArtifact_Handler,
 		},
 		{
 			MethodName: "TerminateRun",

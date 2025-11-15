@@ -44,11 +44,20 @@ func (c *FakeMinioClient) PutObject(ctx context.Context, bucketName, objectName 
 
 func (c *FakeMinioClient) GetObject(ctx context.Context, bucketName, objectName string,
 	opts minio.GetObjectOptions,
-) (io.Reader, error) {
+) (io.ReadCloser, error) {
 	if _, ok := c.minioClient[objectName]; !ok {
 		return nil, errors.New("object not found")
 	}
-	return bytes.NewReader(c.minioClient[objectName]), nil
+	return &fakeReadCloser{Reader: bytes.NewReader(c.minioClient[objectName])}, nil
+}
+
+// fakeReadCloser wraps a bytes.Reader to implement io.ReadCloser
+type fakeReadCloser struct {
+	io.Reader
+}
+
+func (f *fakeReadCloser) Close() error {
+	return nil
 }
 
 func (c *FakeMinioClient) DeleteObject(ctx context.Context, bucketName, objectName string) error {
