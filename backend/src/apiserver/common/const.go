@@ -79,3 +79,7 @@ const (
 	TLSCertCAPath = "/kfp/certs/ca.crt"
 	CABundleDir   = "/kfp/certs"
 )
+
+const (
+	DefaultPodNamespace string = "kubeflow"
+)

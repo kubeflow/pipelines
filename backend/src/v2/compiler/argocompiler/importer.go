@@ -22,6 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -78,10 +79,8 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
-		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		"--mlmd_server_address", metadata.DefaultConfig().Address,
+		"--mlmd_server_port", metadata.DefaultConfig().Port,
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
