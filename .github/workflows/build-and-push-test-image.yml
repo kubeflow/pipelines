@@ -29,11 +29,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Determine image tag
         id: determine_tag
         shell: bash
@@ -57,27 +52,16 @@ jobs:
           echo "Docker tag will be: $TAG_NAME"
           echo "Full image name: quay.io/${{ env.QUAY_ORG }}/${{ env.IMAGE_REPO }}:${TAG_NAME}"
 
-      - name: Login to Quay.io
-        uses: redhat-actions/podman-login@v1
-        with:
-          username: ${{ env.QUAY_ID }}
-          password: ${{ env.QUAY_TOKEN }}
-          registry: quay.io
-
       - name: Build and push test image
-        shell: bash
+        uses: ./.github/actions/build
         env:
-          FULL_IMAGE: ${{ steps.determine_tag.outputs.full_image }}
-        run: |
-          echo "Building and pushing test image: $FULL_IMAGE"
-
-          # Build the image using podman
-          podman build . -f ${{ env.DOCKERFILE_PATH }} -t "$FULL_IMAGE"
-
-          # Push the image to quay.io
-          podman push "$FULL_IMAGE"
-
-          echo "Successfully built and pushed: $FULL_IMAGE"
+          TARGET_IMAGE_TAG: ${{ steps.determine_tag.outputs.tag_name }}
+          SOURCE_BRANCH: ${{ steps.determine_tag.outputs.branch_name }}
+        with:
+          OVERWRITE: true
+          IMAGE_REPO: ${{ env.IMAGE_REPO }}
+          DOCKERFILE: ${{ env.DOCKERFILE_PATH }}
+          GH_REPO: ${{ github.repository }}
 
       - name: Summary
         shell: bash
