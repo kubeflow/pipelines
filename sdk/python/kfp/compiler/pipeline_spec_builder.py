@@ -199,8 +199,8 @@ def build_task_spec_for_task(
                         internal_name_to_dag_key.get(
                             input_value.task_name,
                             utils.sanitize_task_name(input_value.task_name))
-                        if internal_name_to_dag_key
-                        else utils.sanitize_task_name(input_value.task_name))
+                        if internal_name_to_dag_key else
+                        utils.sanitize_task_name(input_value.task_name))
                     pipeline_task_spec.inputs.artifacts[
                         input_name].task_output_artifact.producer_task = (
                             producer_task_name)
@@ -241,8 +241,8 @@ def build_task_spec_for_task(
                         internal_name_to_dag_key.get(
                             input_value.task_name,
                             utils.sanitize_task_name(input_value.task_name))
-                        if internal_name_to_dag_key
-                        else utils.sanitize_task_name(input_value.task_name))
+                        if internal_name_to_dag_key else
+                        utils.sanitize_task_name(input_value.task_name))
                     pipeline_task_spec.inputs.parameters[
                         input_name].task_output_parameter.producer_task = (
                             producer_task_name)
@@ -312,8 +312,8 @@ def build_task_spec_for_task(
                             internal_name_to_dag_key.get(
                                 channel.task_name,
                                 utils.sanitize_task_name(channel.task_name))
-                            if internal_name_to_dag_key
-                            else utils.sanitize_task_name(channel.task_name))
+                            if internal_name_to_dag_key else
+                            utils.sanitize_task_name(channel.task_name))
                         pipeline_task_spec.inputs.parameters[
                             additional_input_name].task_output_parameter.producer_task = (
                                 producer_task_name)
@@ -1260,8 +1260,8 @@ def build_task_spec_for_group(
                     internal_name_to_dag_key.get(
                         channel.task_name,
                         utils.sanitize_task_name(channel.task_name))
-                    if internal_name_to_dag_key
-                    else utils.sanitize_task_name(channel.task_name))
+                    if internal_name_to_dag_key else utils.sanitize_task_name(
+                        channel.task_name))
                 pipeline_task_spec.inputs.artifacts[
                     input_name].task_output_artifact.producer_task = (
                         producer_task_name)
@@ -1279,8 +1279,8 @@ def build_task_spec_for_group(
                 internal_name_to_dag_key.get(
                     channel.task_name,
                     utils.sanitize_task_name(channel.task_name))
-                if internal_name_to_dag_key
-                else utils.sanitize_task_name(channel.task_name))
+                if internal_name_to_dag_key else utils.sanitize_task_name(
+                    channel.task_name))
             pipeline_task_spec.inputs.parameters[
                 input_name].task_output_parameter.producer_task = (
                     producer_task_name)
@@ -1460,7 +1460,7 @@ def build_spec_by_group(
             task_dag_key = utils.sanitize_task_name(subgroup.name)
             existing_dag_keys.add(task_dag_key)
             internal_name_to_dag_key[subgroup.name] = task_dag_key
-    
+
     for subgroup in subgroups:
 
         subgroup_input_channels = [

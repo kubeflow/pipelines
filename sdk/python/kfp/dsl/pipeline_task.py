@@ -22,7 +22,6 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, Union
 import warnings
 
-from kfp.dsl import constants
 from kfp.dsl import pipeline_channel
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -621,7 +620,7 @@ class PipelineTask:
                 Will be sanitized for Kubernetes compatibility. Special characters
                 will be converted to hyphens, and the name will be truncated if too
                 long to fit within pod name limits.
-                
+
                 When used in loops, you can use loop variables like:
                 `task.set_display_name(f"my-task-{device.device_name})`
                 Note: Use attribute access (device.device_name), not subscript
@@ -647,7 +646,8 @@ class PipelineTask:
             # Extract any pipeline channels from the string
             # This handles f-strings like f"fetch-configs-{device.device_name}"
             channels = (
-                pipeline_channel.extract_pipeline_channels_from_string(name_str))
+                pipeline_channel.extract_pipeline_channels_from_string(name_str)
+            )
 
             if channels:
                 # Name contains pipeline channels (e.g., in an f-string)
@@ -671,7 +671,7 @@ class PipelineTask:
             else:
                 # Regular string: use as-is
                 display_name_str = name_str
-        
+
         self._task_spec.display_name = display_name_str
         return self
 
