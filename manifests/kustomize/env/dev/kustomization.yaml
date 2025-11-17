@@ -9,8 +9,8 @@ resources:
 - ../gcp/inverse-proxy
 
 images:
-- name: ntny/kfp-driver
-  newTag: central-driver-poc
+- name: ghcr.io/kubeflow/kfp-driver
+  newTag: master
 - name: ghcr.io/kubeflow/kfp-frontend
   newTag: master
 - name: ghcr.io/kubeflow/kfp-persistence-agent

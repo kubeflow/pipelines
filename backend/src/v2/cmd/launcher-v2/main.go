@@ -79,15 +79,16 @@ func run() error {
 	}
 
 	launcherV2Opts := &component.LauncherV2Options{
-		Namespace:            namespace,
-		PodName:              *podName,
-		PodUID:               *podUID,
-		MLMDServerAddress:    *mlmdServerAddress,
-		MLMDServerPort:       *mlmdServerPort,
-		PipelineName:         *pipelineName,
-		RunID:                *runID,
-		PublishLogs:          *publishLogs,
-		CacheDisabled:        *cacheDisabledFlag,
+		Namespace:         namespace,
+		PodName:           *podName,
+		PodUID:            *podUID,
+		MLMDServerAddress: *mlmdServerAddress,
+		MLMDServerPort:    *mlmdServerPort,
+		PipelineName:      *pipelineName,
+		RunID:             *runID,
+		PublishLogs:       *publishLogs,
+		CacheDisabled:     *cacheDisabledFlag,
+
 		MLPipelineTLSEnabled: *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:       *metadataTLSEnabled,
 		CaCertPath:           *caCertPath,
