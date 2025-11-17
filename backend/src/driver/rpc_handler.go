@@ -1,3 +1,17 @@
+// Copyright 2025 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -94,13 +108,14 @@ func parseDriverRequestArgs(r *http.Request) (*api.DriverPluginArgs, error) {
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return nil, fmt.Errorf("failed to parse driver request body: %v", err)
 	}
-	if body.Template == nil {
+	switch {
+	case body.Template == nil:
 		return nil, fmt.Errorf("driver request body.Template is empty")
-	} else if body.Template.Plugin == nil {
+	case body.Template.Plugin == nil:
 		return nil, fmt.Errorf("driver request body.Template.Plugin is empty")
-	} else if body.Template.Plugin.DriverPlugin == nil {
+	case body.Template.Plugin.DriverPlugin == nil:
 		return nil, fmt.Errorf("driver request body.Template.Plugin.DriverPlugin is empty")
-	} else if body.Template.Plugin.DriverPlugin.Args == nil {
+	case body.Template.Plugin.DriverPlugin.Args == nil:
 		return nil, fmt.Errorf("driver request body.Template.Plugin.Args is empty")
 	}
 	args := body.Template.Plugin.DriverPlugin.Args
@@ -118,7 +133,7 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 	}()
 	ctx := context.Background()
 
-	proxy.InitializeConfig(args.HttpProxy, args.HttpsProxy, args.NoProxy)
+	proxy.InitializeConfig(args.HTTPProxy, args.HTTPSProxy, args.NoProxy)
 
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(args.Component))
 	componentSpec := &pipelinespec.ComponentSpec{}
@@ -149,7 +164,7 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 			return nil, fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, args.RuntimeConfig)
 		}
 	}
-	k8sExecCfg, err := parseExecConfigJson(&args.KubernetesConfig)
+	k8sExecCfg, err := parseExecConfigJSON(&args.KubernetesConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +175,9 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 	var tlsCfg *tls.Config
 	if args.MetadataTLSEnabled {
 		tlsCfg, err = util.GetTLSConfig(args.CACertPath)
-		return nil, fmt.Errorf("unable to drive driver: failed to load TLS configuration: %v", err)
+		if err != nil {
+			return nil, fmt.Errorf("unable to drive driver: failed to load TLS configuration: %v", err)
+		}
 	}
 	client, err := newMlmdClient(tlsCfg)
 	if err != nil {
@@ -180,23 +197,28 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 		return nil, fmt.Errorf("failed to parse iteration index, error: %w", err)
 	}
 	options := driver.Options{
-		PipelineName:   args.PipelineName,
-		RunID:          args.RunID,
-		RunName:        args.RunName,
-		RunDisplayName: args.RunDisplayName,
-		Namespace:      namespace,
-		Component:      componentSpec,
-		Task:           taskSpec,
-		DAGExecutionID: dagExecutionID,
-		IterationIndex: iterationIndex,
-		PublishLogs:    args.PublishLogs,
-		CacheDisabled:  args.CacheDisabledFlag,
-		DriverType:     args.Type,
-		TaskName:       args.TaskName,
+		PipelineName:         args.PipelineName,
+		RunID:                args.RunID,
+		RunName:              args.RunName,
+		RunDisplayName:       args.RunDisplayName,
+		Namespace:            namespace,
+		Component:            componentSpec,
+		Task:                 taskSpec,
+		DAGExecutionID:       dagExecutionID,
+		IterationIndex:       iterationIndex,
+		PublishLogs:          args.PublishLogs,
+		CacheDisabled:        args.CacheDisabledFlag,
+		DriverType:           args.Type,
+		TaskName:             args.TaskName,
+		MLPipelineTLSEnabled: args.MlPipelineTLSEnabled,
+		MLMDServerAddress:    *mlmdServerAddress,
+		MLMDServerPort:       *mlmdServerPort,
+		CaCertPath:           args.CACertPath,
 	}
+
 	var driverErr error
 	switch args.Type {
-	case ROOT_DAG:
+	case RootDag:
 		options.RuntimeConfig = runtimeConfig
 		execution, driverErr = driver.RootDAG(ctx, options, client)
 	case DAG:
@@ -224,19 +246,16 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 }
 
 func validate(args api.DriverPluginArgs) error {
-	if args.Type == "" {
+	switch {
+	case args.Type == "":
 		return fmt.Errorf("argument type must be specified")
-	}
-	if args.HttpProxy == unsetProxyArgValue {
+	case args.HTTPProxy == unsetProxyArgValue:
 		return fmt.Errorf("argument http_proxy is required but can be an empty value")
-	}
-	if args.HttpsProxy == unsetProxyArgValue {
+	case args.HTTPSProxy == unsetProxyArgValue:
 		return fmt.Errorf("argument https_proxy is required but can be an empty value")
-	}
-	if args.NoProxy == unsetProxyArgValue {
+	case args.NoProxy == unsetProxyArgValue:
 		return fmt.Errorf("argument no_proxy is required but can be an empty value")
 	}
-	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
 }
 
@@ -251,18 +270,17 @@ func extractOutputParameters(execution *driver.Execution, driverType string) []a
 			Value: fmt.Sprint(execution.ID),
 		})
 	}
-	if execution.IterationCount != nil {
+	switch {
+	case execution.IterationCount != nil:
 		outputs = append(outputs, api.Parameter{
 			Name:  "iteration-count",
-			Value: fmt.Sprint(execution.IterationCount),
+			Value: fmt.Sprint(*execution.IterationCount),
 		})
-	} else {
-		if driverType == ROOT_DAG {
-			outputs = append(outputs, api.Parameter{
-				Name:  "iteration-count",
-				Value: fmt.Sprint(0),
-			})
-		}
+	case driverType == RootDag:
+		outputs = append(outputs, api.Parameter{
+			Name:  "iteration-count",
+			Value: "0",
+		})
 	}
 	if execution.Cached != nil {
 		outputs = append(outputs, api.Parameter{
