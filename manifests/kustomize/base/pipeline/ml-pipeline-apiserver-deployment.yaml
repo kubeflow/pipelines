@@ -132,7 +132,7 @@ spec:
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"
-          image: ntny/kfp-api-server:central-driver-beta
+          image: ntny/kfp-api-server:beta-poc
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
           ports:
