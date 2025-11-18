@@ -16,6 +16,7 @@ import functools
 from ipaddress import ip_address
 from ipaddress import IPv4Address
 import json
+import logging
 import os
 import sys
 from time import sleep
@@ -23,6 +24,8 @@ from time import sleep
 from ml_metadata.metadata_store import metadata_store
 from ml_metadata.metadata_store.metadata_store import ListOptions
 from ml_metadata.proto import metadata_store_pb2
+
+logger = logging.getLogger(__name__)
 
 
 def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
@@ -200,60 +203,56 @@ def get_context_by_name(
     store,
     context_name: str,
 ) -> metadata_store_pb2.Context:
-    # Use paginated listing to avoid fetching all contexts in a single RPC,
+    # Use server-side filtering to avoid fetching all contexts in a single RPC,
     # which can exceed gRPC max_receive_message_length limits in large
     # installations.
 
-    # Use the ListOptions class from ml_metadata.metadata_store.metadata_store
-    # Set a reasonable limit to avoid large responses
-    page_size = 1000
-    list_options = ListOptions(limit=page_size)
+    try:
+        # Escape any quotes in the context name to prevent SQL injection
+        escaped_name = context_name.replace('"', '\\"')
 
-    # Initial fetch with pagination
-    contexts = store.get_contexts(list_options=list_options)
+        # Use MLMD's filter_query to fetch only contexts with matching name
+        # This keeps the response tiny (usually just 0 or 1 contexts)
+        logger.debug('filter_query: ', f'name = "{escaped_name}"')
+        filter_query = f'name = "{escaped_name}"'
+        list_options = ListOptions(filter_query=filter_query, limit=2)
 
-    # Process first page
-    matching_contexts = [
-        context for context in contexts if context.name == context_name
-    ]
-    assert len(matching_contexts) <= 1
-    if matching_contexts:
-        return matching_contexts[0]
-
-    # If we have less than page_size results, we've seen everything
-    if len(contexts) < page_size:
-        raise ValueError(
-            'Context with name "{}" was not found'.format(context_name))
-
-    # Otherwise, we need to fetch more pages
-    # Since MLMD 1.17.0 doesn't have next_page_token in ListOptions,
-    # we'll use offset-based pagination
-    offset = page_size
-    while True:
-        # Update list_options with new offset
-        list_options = ListOptions(limit=page_size, offset=offset)
         contexts = store.get_contexts(list_options=list_options)
+        logger.debug('contexts: ', contexts)
 
-        # If no more results, we're done
-        if not contexts:
-            break
+        # Double-check the result (defensive programming)
+        matching_contexts = [
+            context for context in contexts if context.name == context_name
+        ]
+        logger.debug('matching_contexts: ', matching_contexts)
+        assert len(matching_contexts) <= 1
+
+        if not matching_contexts:
+            raise ValueError(
+                f'Context with name "{context_name}" was not found')
+
+        return matching_contexts[0]
+    except Exception as e:
+        # If server-side filtering fails for any reason (e.g., syntax error),
+        # fall back to client-side filtering with a reasonable page size
+        print(
+            f'Server-side filtering failed: {str(e)}. Falling back to client-side filtering.',
+            file=sys.stderr)
+
+        # Use a reasonable page size to avoid large responses
+        list_options = ListOptions(limit=1000)
+        contexts = store.get_contexts(list_options=list_options)
 
         matching_contexts = [
             context for context in contexts if context.name == context_name
         ]
         assert len(matching_contexts) <= 1
-        if matching_contexts:
-            return matching_contexts[0]
 
-        # If we got fewer results than page_size, we've seen everything
-        if len(contexts) < page_size:
-            break
+        if not matching_contexts:
+            raise ValueError(
+                f'Context with name "{context_name}" was not found')
 
-        # Move to next page
-        offset += page_size
-
-    raise ValueError(
-        'Context with name "{}" was not found'.format(context_name))
+        return matching_contexts[0]
 
 
 def get_or_create_context_with_type(
