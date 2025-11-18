@@ -928,7 +928,7 @@ func (x *ComponentOutputsSpec) GetParameters() map[string]*ComponentOutputsSpec_
 type TaskInputsSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A map of input parameters which are small values, stored by the system and
-	// can be queriable.
+	// can be queryable.
 	Parameters map[string]*TaskInputsSpec_InputParameterSpec `protobuf:"bytes,1,rep,name=parameters,proto3" json:"parameters,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// A map of input artifacts.
 	Artifacts     map[string]*TaskInputsSpec_InputArtifactSpec `protobuf:"bytes,2,rep,name=artifacts,proto3" json:"artifacts,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -984,7 +984,7 @@ func (x *TaskInputsSpec) GetArtifacts() map[string]*TaskInputsSpec_InputArtifact
 type TaskOutputsSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A map of output parameters which are small values, stored by the system and
-	// can be queriable. The output key is used
+	// can be queryable. The output key is used
 	// by [TaskInputsSpec.InputParameterSpec][] of the downstream task to specify
 	// the data dependency. The same key will also be used by
 	// [ExecutorInput.Inputs][] to reference the output parameter.
