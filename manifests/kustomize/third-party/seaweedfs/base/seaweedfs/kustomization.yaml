@@ -3,10 +3,6 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- seaweedfs-deployment.yaml
-- seaweedfs-pvc.yaml
-- seaweedfs-networkpolicy.yaml
-- seaweedfs-service.yaml
 - seaweedfs-service-account.yaml
 - minio-service.yaml
 - mlpipeline-minio-artifact-secret.yaml

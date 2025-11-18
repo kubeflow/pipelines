@@ -33,10 +33,23 @@ spec:
       serviceAccountName: seaweedfs
       terminationGracePeriodSeconds: 60
       securityContext:
-        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 1000
       containers:
       - name: seaweedfs-filer
-        image: 'chrislusf/seaweedfs:3.92'
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: accesskey
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: secretkey
+        image: 'chrislusf/seaweedfs'
         args:
         - 'filer'
         - '-port=8888'
@@ -75,8 +88,8 @@ spec:
           privileged: false
           runAsNonRoot: true
           # image defaults to root user
-          runAsUser: 1001
-          runAsGroup: 1001
+          runAsUser: 1000
+          runAsGroup: 1000
           capabilities:
             drop:
             - ALL
@@ -88,4 +101,4 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: 25Gi
+            storage: 20Gi

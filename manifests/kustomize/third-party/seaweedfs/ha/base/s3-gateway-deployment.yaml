@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: seaweedfs-s3
-  namespace: kubeflow
   labels:
     app: seaweedfs
     component: s3
@@ -18,11 +17,22 @@ spec:
         app: seaweedfs
         component: s3
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: seaweedfs
+                component: s3
+            topologyKey: kubernetes.io/hostname
       terminationGracePeriodSeconds: 10
       serviceAccountName: seaweedfs
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: seaweedfs
-        image: chrislusf/seaweedfs:3.92
+        image: chrislusf/seaweedfs
         env:
           - name: POD_IP
             valueFrom:
@@ -64,8 +74,8 @@ spec:
           privileged: false
           runAsNonRoot: true
           # image defaults to root user
-          runAsUser: 1001
-          runAsGroup: 1001
+          runAsUser: 1000
+          runAsGroup: 1000
           capabilities:
             drop:
             - ALL
