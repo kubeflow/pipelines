@@ -349,6 +349,124 @@ Run the following to delete the cluster (once you are finished):
 kind delete clusters dev-pipelines-api
 ```
 
+## TLS Certificate Rotation (Pod-to-Pod TLS)
+
+### Context
+
+When pod-to-pod TLS is enabled, backend components (API server, launcher, persistence agent, metadata writer, and other pipeline-related deployments) use TLS certificates stored in Kubernetes Secret(s). These certificates expire and must be rotated periodically.
+
+
+Important operational behaviour: updating a Kubernetes Secret does not cause running pods to read the updated secret automatically. Pods mount Secrets as files or reference them via environment variables at container start time. To pick up rotated certificates, you must restart the pods that read those secrets (a rolling restart of the affected deployments).
+
+This section documents a recommended, minimal process for safely renewing TLS certificates and applying them to a cluster that runs Kubeflow Pipelines.
+
+### Which secrets and components are impacted
+
+TLS certificates are commonly stored in a Kubernetes TLS Secret (for example: `kfp-pod-tls`) in the KFP namespace (commonly `kubeflow`).
+
+Which secrets and components are impacted:
+
+* `ml-pipeline-apiserver`
+* `ml-pipeline-persistenceagent`
+* `metadata-writer`
+* `metadata-envoy-deployment`
+* `metadata-grpc-deployment`
+* `ml-pipeline-scheduledworkflow`
+* `ml-pipeline-ui`
+
+> **Note**
+> The `pipelines-cache` / cache deployment generally does **not** require the CA cert for inbound TLS from pipeline components; confirm whether your deployment references the TLS secret before restarting it.
+
+*`(Any other pipeline-related deployments that reference the TLS secret)`*
+
+> **Note**
+> Confirm the exact secret name(s) and deployments used in your cluster before running commands. Example discovery commands:
+
+```bash
+kubectl get secrets -n <namespace>
+
+# Find deployments referencing the secret (recommended by reviewer)
+kubectl -n <namespace> get deploy -o name \
+  | xargs -n1 kubectl -n <namespace> get deploy -o yaml \
+  | grep -C3 "name: <secret-name>" || true
+```
+
+### Recommended rotation procedure (example)
+
+#### Prepare/obtain new cert and key
+Generate or obtain new cert files: `server.crt` and `server.key` (PEM encoded).
+
+#### Update the Kubernetes TLS secret
+
+Replace <namespace> and <secret-name> with your cluster's values:
+
+   ```bash
+   kubectl create secret tls <secret-name> \
+      --cert=server.crt \
+      --key=server.key \
+      --dry-run=client -o yaml | kubectl apply -f -
+   ```
+```
+Example:
+
+   ```bash
+   kubectl create secret tls kfp-pod-tls \
+      --cert=server.crt \
+      --key=server.key \
+      --dry-run=client -o yaml | kubectl apply -f -
+   ```
+
+#### Restart affected deployments (rolling restart)
+
+Restart the deployments so they mount/read the updated secret:
+
+   ```bash
+  kubectl rollout restart deploy -n <namespace> ml-pipeline-apiserver
+  kubectl rollout restart deploy -n <namespace> ml-pipeline-persistenceagent
+  kubectl rollout restart deploy -n <namespace> metadata-writer
+  kubectl rollout restart deploy -n <namespace> metadata-envoy-deployment
+  kubectl rollout restart deploy -n <namespace> metadata-grpc-deployment
+  kubectl rollout restart deploy -n <namespace> ml-pipeline-scheduledworkflow
+  kubectl rollout restart deploy -n <namespace> ml-pipeline-ui
+   ```
+
+Or restart all pipeline-related deployments discovered earlier.
+
+#### Verify rollout and pod readiness
+
+   ```bash
+   kubectl get pods -n <namespace>
+   kubectl rollout status deploy/pipelines-api-server -n <namespace>
+   ```
+
+Check logs for errors:
+
+   ```bash
+   kubectl describe secret <secret-name> -n <namespace>
+   ```
+
+Optional: connect to the API server over TLS (from inside cluster or via port-forward) to confirm certificate in use.
+
+## Best practices & notes
+
+* Rotation interval: rotate certificates before they expire; recommended: track expiry via:
+
+   ```bash
+   openssl x509 -enddate -noout -in server.crt
+   ```
+
+* **Automation**: if using `cert-manager`, automate issuance and renewal, and consider automating rollout restarts (see below).
+* **Minimize disruption**: perform rollouts during maintenance windows or low activity windows.
+* **Auditing**: record rotation times and certificate fingerprints for traceability.
+* **Validate**: after restarts, verify connectivity between components and watch logs for TLS handshake issues.
+
+## Optional: automate restart after secret update
+
+Kubernetes does not automatically restart pods when a Secret changes. Options:
+
+* Use an operator or controller that watches the Secret and triggers kubectl `rollout restart` on dependent deployments.
+* Use `cert-manager` and the common checksum/annotation pattern to trigger a redeploy when the Secret changes. For example, add an annotation that contains a checksum of the secret; updating the annotation forces a rolling update:
+
 ## Contributing
 ### Code Style
 
