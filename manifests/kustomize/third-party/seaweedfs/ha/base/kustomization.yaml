@@ -32,3 +32,7 @@ patches:
     - op: add
       path: /spec/selector/component
       value: s3
+
+images:
+- name: chrislusf/seaweedfs
+  newTag: '4.00'

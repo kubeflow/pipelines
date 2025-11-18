@@ -33,14 +33,16 @@ spec:
       serviceAccountName: seaweedfs
       terminationGracePeriodSeconds: 60
       securityContext:
-        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 1000
       containers:
       - name: seaweedfs-master
-        image: 'chrislusf/seaweedfs:3.92'
+        image: 'chrislusf/seaweedfs'
         args:
         - 'master'
         - '-mdir=/data'
-        - '-defaultReplication=001'
+        - '-defaultReplication=001'  # replicate data to at least another volume (same "rack" and "datacenter")
         - '-volumePreallocate=false'
         - '-ip=$(POD_NAME).seaweedfs-master.$(NAMESPACE)'
         - '-ip.bind=0.0.0.0'
@@ -84,8 +86,8 @@ spec:
           privileged: false
           runAsNonRoot: true
           # image defaults to root user
-          runAsUser: 1001
-          runAsGroup: 1001
+          runAsUser: 1000
+          runAsGroup: 1000
           capabilities:
             drop:
             - ALL

@@ -29,7 +29,6 @@ metadata:
     app: seaweedfs
     component: filer
   name: seaweedfs-filer
-  namespace: kubeflow
 spec:
   ports:
   - name: http-iam

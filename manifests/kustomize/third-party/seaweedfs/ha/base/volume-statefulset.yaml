@@ -33,20 +33,22 @@ spec:
       serviceAccountName: seaweedfs
       terminationGracePeriodSeconds: 150
       securityContext:
-        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 1000
       containers:
       - name: seaweedfs
-        image: chrislusf/seaweedfs:3.92
+        image: chrislusf/seaweedfs
         args:
         - volume                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
         - -port=8080                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
-        - -dir /data1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+        - -dir /data
         - -ip.bind=0.0.0.0                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
         - -ip=$(POD_NAME).seaweedfs-volume.$(NAMESPACE)
         - -mserver=seaweedfs-master-0.seaweedfs-master.$(NAMESPACE):9333,seaweedfs-master-1.seaweedfs-master.$(NAMESPACE):9333,seaweedfs-master-2.seaweedfs-master.$(NAMESPACE):9333
         volumeMounts:
-        - mountPath: /data1/
-          name: swfs-vol1
+        - mountPath: /data/
+          name: swfs-vol
         ports:
         - containerPort: 8080
           name: swfs-vol
@@ -90,8 +92,8 @@ spec:
           privileged: false
           runAsNonRoot: true
           # image defaults to root user
-          runAsUser: 1001
-          runAsGroup: 1001
+          runAsUser: 1000
+          runAsGroup: 1000
           capabilities:
             drop:
             - ALL
@@ -99,7 +101,7 @@ spec:
   - apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
-      name: swfs-vol1
+      name: swfs-vol
     spec:
       accessModes:
       - ReadWriteOnce
