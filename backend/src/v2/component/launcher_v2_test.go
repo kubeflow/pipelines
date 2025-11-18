@@ -28,7 +28,7 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/internal/objectstore"
 	"github.com/stretchr/testify/assert"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/memblob"
