@@ -13,13 +13,17 @@
 # limitations under the License.
 
 import functools
+from ipaddress import ip_address
+from ipaddress import IPv4Address
 import json
 import os
 import sys
 from time import sleep
-from ml_metadata.proto import metadata_store_pb2
+
 from ml_metadata.metadata_store import metadata_store
-from ipaddress import ip_address, IPv4Address 
+from ml_metadata.metadata_store.metadata_store import ListOptions
+from ml_metadata.proto import metadata_store_pb2
+
 
 def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
     if value is None:
@@ -32,26 +36,29 @@ def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
 
 
 def connect_to_mlmd() -> metadata_store.MetadataStore:
-    pod_namespace = os.environ.get("POD_NAMESPACE", "kubeflow")
-    metadata_service_host = "metadata-grpc-service." + pod_namespace + ".svc.cluster.local"
+    pod_namespace = os.environ.get('POD_NAMESPACE', 'kubeflow')
+    metadata_service_host = 'metadata-grpc-service.' + pod_namespace + '.svc.cluster.local'
     metadata_service_port = 8080
 
     mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
-        host="[{}]".format(metadata_service_host) if isIPv6(metadata_service_host) else metadata_service_host,
+        host='[{}]'.format(metadata_service_host)
+        if isIPv6(metadata_service_host) else metadata_service_host,
         port=metadata_service_port,
     )
 
-    tls_enabled = os.environ.get("METADATA_TLS_ENABLED", "false").lower() in ("1", "true", "yes")
+    tls_enabled = os.environ.get('METADATA_TLS_ENABLED',
+                                 'false').lower() in ('1', 'true', 'yes')
 
     if tls_enabled:
         ca_pem = None
-        ca_cert_path = os.environ.get("CA_CERT_PATH")
+        ca_cert_path = os.environ.get('CA_CERT_PATH')
 
         if ca_cert_path and os.path.exists(ca_cert_path):
-            with open(ca_cert_path, "r", encoding="utf-8") as f:
+            with open(ca_cert_path, 'r', encoding='utf-8') as f:
                 ca_pem = f.read()
 
-        ssl_cfg = metadata_store_pb2.MetadataStoreClientConfig.SSLConfig(custom_ca=ca_pem)
+        ssl_cfg = metadata_store_pb2.MetadataStoreClientConfig.SSLConfig(
+            custom_ca=ca_pem)
         mlmd_connection_config.ssl_config.CopyFrom(ssl_cfg)
 
     # Checking the connection to the Metadata store.
@@ -61,14 +68,20 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
             _ = mlmd_store.get_context_types()
             return mlmd_store
         except Exception as e:
-            print('Failed to access the Metadata store. Exception: "{}"'.format(str(e)), file=sys.stderr)
+            print(
+                'Failed to access the Metadata store. Exception: "{}"'.format(
+                    str(e)),
+                file=sys.stderr)
             sys.stderr.flush()
             sleep(1)
 
     raise RuntimeError('Could not connect to the Metadata store.')
 
 
-def get_or_create_artifact_type(store, type_name, properties: dict = None) -> metadata_store_pb2.ArtifactType:
+def get_or_create_artifact_type(
+        store,
+        type_name,
+        properties: dict = None) -> metadata_store_pb2.ArtifactType:
     try:
         artifact_type = store.get_artifact_type(type_name=type_name)
         return artifact_type
@@ -77,11 +90,14 @@ def get_or_create_artifact_type(store, type_name, properties: dict = None) -> me
             name=type_name,
             properties=properties,
         )
-        artifact_type.id = store.put_artifact_type(artifact_type) # Returns ID
+        artifact_type.id = store.put_artifact_type(artifact_type)  # Returns ID
         return artifact_type
 
 
-def get_or_create_execution_type(store, type_name, properties: dict = None) -> metadata_store_pb2.ExecutionType:
+def get_or_create_execution_type(
+        store,
+        type_name,
+        properties: dict = None) -> metadata_store_pb2.ExecutionType:
     try:
         execution_type = store.get_execution_type(type_name=type_name)
         return execution_type
@@ -90,11 +106,15 @@ def get_or_create_execution_type(store, type_name, properties: dict = None) -> m
             name=type_name,
             properties=properties,
         )
-        execution_type.id = store.put_execution_type(execution_type) # Returns ID
+        execution_type.id = store.put_execution_type(
+            execution_type)  # Returns ID
         return execution_type
 
 
-def get_or_create_context_type(store, type_name, properties: dict = None) -> metadata_store_pb2.ContextType:
+def get_or_create_context_type(
+        store,
+        type_name,
+        properties: dict = None) -> metadata_store_pb2.ContextType:
     try:
         context_type = store.get_context_type(type_name=type_name)
         return context_type
@@ -103,7 +123,7 @@ def get_or_create_context_type(store, type_name, properties: dict = None) -> met
             name=type_name,
             properties=properties,
         )
-        context_type.id = store.put_context_type(context_type) # Returns ID
+        context_type.id = store.put_context_type(context_type)  # Returns ID
         return context_type
 
 
@@ -180,11 +200,60 @@ def get_context_by_name(
     store,
     context_name: str,
 ) -> metadata_store_pb2.Context:
-    matching_contexts = [context for context in store.get_contexts() if context.name == context_name]
+    # Use paginated listing to avoid fetching all contexts in a single RPC,
+    # which can exceed gRPC max_receive_message_length limits in large
+    # installations.
+
+    # Use the ListOptions class from ml_metadata.metadata_store.metadata_store
+    # Set a reasonable limit to avoid large responses
+    page_size = 1000
+    list_options = ListOptions(limit=page_size)
+
+    # Initial fetch with pagination
+    contexts = store.get_contexts(list_options=list_options)
+
+    # Process first page
+    matching_contexts = [
+        context for context in contexts if context.name == context_name
+    ]
     assert len(matching_contexts) <= 1
-    if len(matching_contexts) == 0:
-        raise ValueError('Context with name "{}" was not found'.format(context_name))
-    return matching_contexts[0]
+    if matching_contexts:
+        return matching_contexts[0]
+
+    # If we have less than page_size results, we've seen everything
+    if len(contexts) < page_size:
+        raise ValueError(
+            'Context with name "{}" was not found'.format(context_name))
+
+    # Otherwise, we need to fetch more pages
+    # Since MLMD 1.17.0 doesn't have next_page_token in ListOptions,
+    # we'll use offset-based pagination
+    offset = page_size
+    while True:
+        # Update list_options with new offset
+        list_options = ListOptions(limit=page_size, offset=offset)
+        contexts = store.get_contexts(list_options=list_options)
+
+        # If no more results, we're done
+        if not contexts:
+            break
+
+        matching_contexts = [
+            context for context in contexts if context.name == context_name
+        ]
+        assert len(matching_contexts) <= 1
+        if matching_contexts:
+            return matching_contexts[0]
+
+        # If we got fewer results than page_size, we've seen everything
+        if len(contexts) < page_size:
+            break
+
+        # Move to next page
+        offset += page_size
+
+    raise ValueError(
+        'Context with name "{}" was not found'.format(context_name))
 
 
 def get_or_create_context_with_type(
@@ -212,7 +281,9 @@ def get_or_create_context_with_type(
     context_types = store.get_context_types_by_id([context.type_id])
     assert len(context_types) == 1
     if context_types[0].name != type_name:
-        raise RuntimeError('Context "{}" was found, but it has type "{}" instead of "{}"'.format(context_name, context_types[0].name, type_name))
+        raise RuntimeError(
+            'Context "{}" was found, but it has type "{}" instead of "{}"'
+            .format(context_name, context_types[0].name, type_name))
     return context
 
 
@@ -240,19 +311,19 @@ def create_new_execution_in_existing_context(
     return execution
 
 
-RUN_CONTEXT_TYPE_NAME = "KfpRun"
+RUN_CONTEXT_TYPE_NAME = 'KfpRun'
 KFP_EXECUTION_TYPE_NAME_PREFIX = 'components.'
 
-ARTIFACT_IO_NAME_PROPERTY_NAME = "name"
-EXECUTION_COMPONENT_ID_PROPERTY_NAME = "component_id"# ~= Task ID
+ARTIFACT_IO_NAME_PROPERTY_NAME = 'name'
+EXECUTION_COMPONENT_ID_PROPERTY_NAME = 'component_id'  # ~= Task ID
 
 #TODO: Get rid of these when https://github.com/tensorflow/tfx/issues/905 and https://github.com/kubeflow/pipelines/issues/2562 are fixed
-ARTIFACT_PIPELINE_NAME_PROPERTY_NAME = "pipeline_name"
-EXECUTION_PIPELINE_NAME_PROPERTY_NAME = "pipeline_name"
-CONTEXT_PIPELINE_NAME_PROPERTY_NAME = "pipeline_name"
-ARTIFACT_RUN_ID_PROPERTY_NAME = "run_id"
-EXECUTION_RUN_ID_PROPERTY_NAME = "run_id"
-CONTEXT_RUN_ID_PROPERTY_NAME = "run_id"
+ARTIFACT_PIPELINE_NAME_PROPERTY_NAME = 'pipeline_name'
+EXECUTION_PIPELINE_NAME_PROPERTY_NAME = 'pipeline_name'
+CONTEXT_PIPELINE_NAME_PROPERTY_NAME = 'pipeline_name'
+ARTIFACT_RUN_ID_PROPERTY_NAME = 'run_id'
+EXECUTION_RUN_ID_PROPERTY_NAME = 'run_id'
+CONTEXT_RUN_ID_PROPERTY_NAME = 'run_id'
 
 KFP_POD_NAME_EXECUTION_PROPERTY_NAME = 'kfp_pod_name'
 
@@ -272,8 +343,10 @@ def get_or_create_run_context(
             CONTEXT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
         },
         properties={
-            CONTEXT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
-            CONTEXT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
+            CONTEXT_PIPELINE_NAME_PROPERTY_NAME:
+                metadata_store_pb2.Value(string_value=run_id),
+            CONTEXT_RUN_ID_PROPERTY_NAME:
+                metadata_store_pb2.Value(string_value=run_id),
         },
     )
     return context
@@ -288,15 +361,18 @@ def create_new_execution_in_existing_run_context(
     pipeline_name: str = None,
     run_id: str = None,
     instance_id: str = None,
-    custom_properties = None,
+    custom_properties=None,
 ) -> metadata_store_pb2.Execution:
     pipeline_name = pipeline_name or 'Context_' + str(context_id) + '_pipeline'
     run_id = run_id or 'Context_' + str(context_id) + '_run'
     instance_id = instance_id or execution_type_name
     mlmd_custom_properties = {}
     for property_name, property_value in (custom_properties or {}).items():
-        mlmd_custom_properties[property_name] = value_to_mlmd_value(property_value)
-    mlmd_custom_properties[KFP_POD_NAME_EXECUTION_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=pod_name)
+        mlmd_custom_properties[property_name] = value_to_mlmd_value(
+            property_value)
+    mlmd_custom_properties[
+        KFP_POD_NAME_EXECUTION_PROPERTY_NAME] = metadata_store_pb2.Value(
+            string_value=pod_name)
     return create_new_execution_in_existing_context(
         store=store,
         execution_type_name=execution_type_name,
@@ -308,9 +384,16 @@ def create_new_execution_in_existing_run_context(
         },
         # TODO: Remove when UX stops relying on thsese properties
         properties={
-            EXECUTION_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=pipeline_name), # Mistakenly used for grouping in the UX
-            EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
-            EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=instance_id), # should set to task ID, not component ID
+            EXECUTION_PIPELINE_NAME_PROPERTY_NAME:
+                metadata_store_pb2.Value(
+                    string_value=pipeline_name
+                ),  # Mistakenly used for grouping in the UX
+            EXECUTION_RUN_ID_PROPERTY_NAME:
+                metadata_store_pb2.Value(string_value=run_id),
+            EXECUTION_COMPONENT_ID_PROPERTY_NAME:
+                metadata_store_pb2.Value(
+                    string_value=instance_id
+                ),  # should set to task ID, not component ID
         },
         custom_properties=mlmd_custom_properties,
     )
@@ -363,10 +446,15 @@ def link_execution_to_input_artifact(
 ) -> metadata_store_pb2.Artifact:
     artifacts = store.get_artifacts_by_uri(uri)
     if len(artifacts) == 0:
-        print('Error: Not found upstream artifact with URI={}.'.format(uri), file=sys.stderr)
+        print(
+            'Error: Not found upstream artifact with URI={}.'.format(uri),
+            file=sys.stderr)
         return None
     if len(artifacts) > 1:
-        print('Error: Found multiple artifacts with the same URI. {} Using the last one..'.format(artifacts), file=sys.stderr)
+        print(
+            'Error: Found multiple artifacts with the same URI. {} Using the last one..'
+            .format(artifacts),
+            file=sys.stderr)
 
     artifact = artifacts[-1]
 
@@ -374,13 +462,9 @@ def link_execution_to_input_artifact(
         execution_id=execution_id,
         artifact_id=artifact.id,
         type=metadata_store_pb2.Event.INPUT,
-        path=metadata_store_pb2.Event.Path(
-            steps=[
-                metadata_store_pb2.Event.Path.Step(
-                    key=input_name,
-                ),
-            ]
-        ),
+        path=metadata_store_pb2.Event.Path(steps=[
+            metadata_store_pb2.Event.Path.Step(key=input_name,),
+        ]),
     )
     store.put_events([event])
     return artifact
@@ -397,13 +481,20 @@ def create_new_output_artifact(
     argo_artifact: dict = None,
 ) -> metadata_store_pb2.Artifact:
     custom_properties = {
-        ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=output_name),
+        ARTIFACT_IO_NAME_PROPERTY_NAME:
+            metadata_store_pb2.Value(string_value=output_name),
     }
     if run_id:
-        custom_properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
-        custom_properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+        custom_properties[
+            ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(
+                string_value=str(run_id))
+        custom_properties[
+            ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(
+                string_value=str(run_id))
     if argo_artifact:
-        custom_properties[ARTIFACT_ARGO_ARTIFACT_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=json.dumps(argo_artifact, sort_keys=True))
+        custom_properties[
+            ARTIFACT_ARGO_ARTIFACT_PROPERTY_NAME] = metadata_store_pb2.Value(
+                string_value=json.dumps(argo_artifact, sort_keys=True))
     return create_new_artifact_event_and_attribution(
         store=store,
         execution_id=execution_id,
@@ -411,23 +502,19 @@ def create_new_output_artifact(
         uri=uri,
         type_name=type_name,
         event_type=metadata_store_pb2.Event.OUTPUT,
-        artifact_name_path=metadata_store_pb2.Event.Path(
-            steps=[
-                metadata_store_pb2.Event.Path.Step(
-                    key=output_name,
-                    #index=0,
-                ),
-            ]
-        ),
+        artifact_name_path=metadata_store_pb2.Event.Path(steps=[
+            metadata_store_pb2.Event.Path.Step(key=output_name,
+                                               #index=0,
+                                              ),
+        ]),
         custom_properties=custom_properties,
         #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )
 
-def isIPv6(ip: str) -> bool: 
-    try: 
+
+def isIPv6(ip: str) -> bool:
+    try:
         return False if type(ip_address(ip)) is IPv4Address else True
-    except Exception as e: 
+    except Exception as e:
         print('Error: Exception:{}'.format(str(e)), file=sys.stderr)
         sys.stderr.flush()
-
-
