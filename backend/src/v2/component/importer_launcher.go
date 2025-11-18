@@ -8,7 +8,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/internal/objectstore"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 

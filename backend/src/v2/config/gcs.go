@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/internal/objectstore"
 )
 
 type GCSProviderConfig struct {

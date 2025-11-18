@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/internal/objectstore"
 	"sigs.k8s.io/yaml"
 
 	"github.com/golang/glog"

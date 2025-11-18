@@ -19,7 +19,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/internal/objectstore"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )

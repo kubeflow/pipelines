@@ -31,7 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gopkg.in/yaml.v3"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/internal/objectstore"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
