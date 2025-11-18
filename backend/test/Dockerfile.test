@@ -23,9 +23,7 @@ ENV KUBECONFIG=/dspa/backend/test/.kube/config
 WORKDIR /dspa
 
 # Download the latest OpenShift CLI binary
-RUN wget -q https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/sha256sum.txt -P oc-client && \
-    wget -q https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/openshift-client-linux.tar.gz -P oc-client && \
-    sha256sum -c oc-client/sha256sum.txt | grep openshift-client-linux.tar.gz && \
+RUN wget -q https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/openshift-client-linux.tar.gz -P oc-client && \
     tar -xf oc-client/openshift-client-linux.tar.gz -C oc-client && \
     cp oc-client/oc /usr/local/bin && \
     rm -rf oc-client/
