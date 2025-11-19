@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"sigs.k8s.io/yaml"
 
@@ -41,6 +42,10 @@ const (
 	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
 	minioArtifactSecretKeyKey = "secretkey"
 	minioArtifactAccessKeyKey = "accesskey"
+)
+
+const (
+	mlPipelineGrpcServicePort = "8887"
 )
 
 type BucketProviders struct {
@@ -180,4 +185,16 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 		},
 	}
 	return sess, nil
+}
+
+type ServerConfig struct {
+	Address string
+	Port    string
+}
+
+func GetMLPipelineServerConfig() *ServerConfig {
+	return &ServerConfig{
+		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace(),
+		Port:    mlPipelineGrpcServicePort,
+	}
 }

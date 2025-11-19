@@ -26,7 +26,6 @@ const (
 	MaxClientGRPCMessageSize = 100 * 1024 * 1024
 	// The endpoint uses Kubernetes service DNS name with namespace:
 	// https://kubernetes.io/docs/concepts/services-networking/service/#dns
-	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8887"
 )
 
 type Client interface {
@@ -77,7 +76,7 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient creates a Client.
-func NewClient(cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
+func NewClient(mlPipelineServerAddress string, mlPipelineServerPort string, cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
 	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}
@@ -86,9 +85,10 @@ func NewClient(cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
 	if tlsCfg != nil {
 		creds = credentials.NewTLS(tlsCfg)
 	}
-	glog.Infof("Connecting to cache endpoint %s", defaultKfpApiEndpoint)
+	cacheEndPoint := mlPipelineServerAddress + ":" + mlPipelineServerPort
+	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
 	conn, err := grpc.NewClient(
-		defaultKfpApiEndpoint,
+		cacheEndPoint,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
 		grpc.WithTransportCredentials(creds),
 	)
@@ -101,6 +101,25 @@ func NewClient(cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
 		svc: api.NewTaskServiceClient(conn),
 	}, nil
 }
+
+//func getCacheEndpoint(mlPipelineServerAddress string, mlPipelineServerPort string) string {
+// Discover ml-pipeline in the same namespace by env var.
+// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
+//cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
+//glog.Infof("cacheHost: %s", cacheHost)
+//cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT_GRPC")
+//glog.Infof("cachePort: %s", cachePort)
+//if cacheHost != "" && cachePort != "" {
+//	// If there is a ml-pipeline Kubernetes service in the same namespace,
+//	// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should
+//	// exist by default, so we use it as default.
+//	return cacheHost + ":" + cachePort
+//}
+//// If the env vars do not exist, use default ml-pipeline grpc endpoint `ml-pipeline.kubeflow:8887`.
+//defaultAddress := defaultKfpApiEndpointHost + "." + common.GetPodNamespace() + ":" + defaultKfpApiEndpointPort
+//glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultAddress)
+//return mlPipelineServerAddress + ":" + mlPipelineServerPort
+//}
 
 func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
 	fingerPrintPredicate := &api.Predicate{
