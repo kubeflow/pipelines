@@ -41,7 +41,6 @@ const (
 	RunService_UnarchiveRunV1_FullMethodName     = "/api.RunService/UnarchiveRunV1"
 	RunService_DeleteRunV1_FullMethodName        = "/api.RunService/DeleteRunV1"
 	RunService_ReportRunMetricsV1_FullMethodName = "/api.RunService/ReportRunMetricsV1"
-	RunService_ReadArtifactV1_FullMethodName     = "/api.RunService/ReadArtifactV1"
 	RunService_TerminateRunV1_FullMethodName     = "/api.RunService/TerminateRunV1"
 	RunService_RetryRunV1_FullMethodName         = "/api.RunService/RetryRunV1"
 )
@@ -67,8 +66,6 @@ type RunServiceClient interface {
 	// uniquely identified by (run_id, node_id, name). Duplicate reporting will be
 	// ignored by the API. First reporting wins.
 	ReportRunMetricsV1(ctx context.Context, in *ReportRunMetricsRequest, opts ...grpc.CallOption) (*ReportRunMetricsResponse, error)
-	// Finds a run's artifact data.
-	ReadArtifactV1(ctx context.Context, in *ReadArtifactRequest, opts ...grpc.CallOption) (*ReadArtifactResponse, error)
 	// Terminates an active run.
 	TerminateRunV1(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
@@ -153,16 +150,6 @@ func (c *runServiceClient) ReportRunMetricsV1(ctx context.Context, in *ReportRun
 	return out, nil
 }
 
-func (c *runServiceClient) ReadArtifactV1(ctx context.Context, in *ReadArtifactRequest, opts ...grpc.CallOption) (*ReadArtifactResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReadArtifactResponse)
-	err := c.cc.Invoke(ctx, RunService_ReadArtifactV1_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runServiceClient) TerminateRunV1(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -204,8 +191,6 @@ type RunServiceServer interface {
 	// uniquely identified by (run_id, node_id, name). Duplicate reporting will be
 	// ignored by the API. First reporting wins.
 	ReportRunMetricsV1(context.Context, *ReportRunMetricsRequest) (*ReportRunMetricsResponse, error)
-	// Finds a run's artifact data.
-	ReadArtifactV1(context.Context, *ReadArtifactRequest) (*ReadArtifactResponse, error)
 	// Terminates an active run.
 	TerminateRunV1(context.Context, *TerminateRunRequest) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
@@ -240,9 +225,6 @@ func (UnimplementedRunServiceServer) DeleteRunV1(context.Context, *DeleteRunRequ
 }
 func (UnimplementedRunServiceServer) ReportRunMetricsV1(context.Context, *ReportRunMetricsRequest) (*ReportRunMetricsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportRunMetricsV1 not implemented")
-}
-func (UnimplementedRunServiceServer) ReadArtifactV1(context.Context, *ReadArtifactRequest) (*ReadArtifactResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReadArtifactV1 not implemented")
 }
 func (UnimplementedRunServiceServer) TerminateRunV1(context.Context, *TerminateRunRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TerminateRunV1 not implemented")
@@ -397,24 +379,6 @@ func _RunService_ReportRunMetricsV1_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RunService_ReadArtifactV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReadArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RunServiceServer).ReadArtifactV1(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RunService_ReadArtifactV1_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunServiceServer).ReadArtifactV1(ctx, req.(*ReadArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RunService_TerminateRunV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TerminateRunRequest)
 	if err := dec(in); err != nil {
@@ -485,10 +449,6 @@ var RunService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportRunMetricsV1",
 			Handler:    _RunService_ReportRunMetricsV1_Handler,
-		},
-		{
-			MethodName: "ReadArtifactV1",
-			Handler:    _RunService_ReadArtifactV1_Handler,
 		},
 		{
 			MethodName: "TerminateRunV1",

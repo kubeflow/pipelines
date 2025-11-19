@@ -130,7 +130,6 @@ Class | Method | HTTP request | Description
 *RunServiceApi* | [**run_service_delete_run**](docs/RunServiceApi.md#run_service_delete_run) | **DELETE** /apis/v2beta1/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
 *RunServiceApi* | [**run_service_get_run**](docs/RunServiceApi.md#run_service_get_run) | **GET** /apis/v2beta1/runs/{run_id} | Finds a specific run by ID.
 *RunServiceApi* | [**run_service_list_runs**](docs/RunServiceApi.md#run_service_list_runs) | **GET** /apis/v2beta1/runs | Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
-*RunServiceApi* | [**run_service_read_artifact**](docs/RunServiceApi.md#run_service_read_artifact) | **GET** /apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds artifact data in a run.
 *RunServiceApi* | [**run_service_retry_run**](docs/RunServiceApi.md#run_service_retry_run) | **POST** /apis/v2beta1/runs/{run_id}:retry | Re-initiates a failed or terminated run.
 *RunServiceApi* | [**run_service_terminate_run**](docs/RunServiceApi.md#run_service_terminate_run) | **POST** /apis/v2beta1/runs/{run_id}:terminate | Terminates an active run.
 *RunServiceApi* | [**run_service_unarchive_run**](docs/RunServiceApi.md#run_service_unarchive_run) | **POST** /apis/v2beta1/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
@@ -169,7 +168,6 @@ Class | Method | HTTP request | Description
  - [V2beta1PipelineVersionReference](docs/V2beta1PipelineVersionReference.md)
  - [V2beta1Predicate](docs/V2beta1Predicate.md)
  - [V2beta1PredicateOperation](docs/V2beta1PredicateOperation.md)
- - [V2beta1ReadArtifactResponse](docs/V2beta1ReadArtifactResponse.md)
  - [V2beta1RecurringRun](docs/V2beta1RecurringRun.md)
  - [V2beta1RecurringRunStatus](docs/V2beta1RecurringRunStatus.md)
  - [V2beta1Run](docs/V2beta1Run.md)
