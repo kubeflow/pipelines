@@ -22,6 +22,7 @@ from kfp.dsl import Input
 from kfp.dsl import Output
 from kfp.dsl import structures
 from kfp.dsl.component_decorator import component
+from kfp.dsl.types import type_utils
 from kfp.dsl.types.artifact_types import Artifact
 from kfp.dsl.types.artifact_types import Model
 from kfp.dsl.types.type_annotations import OutputPath
@@ -301,6 +302,41 @@ class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
                         default=None,
                         is_artifact_list=True)
             })
+
+
+class TestBuiltinGenericParameterAnnotations(unittest.TestCase):
+
+    def test_builtin_list_parameter_annotations(self):
+
+        @dsl.component
+        def comp(nums: list[int]) -> list[int]:
+            return nums
+
+        spec = comp.component_spec
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.inputs['nums'].type), 'List')
+        self.assertFalse(spec.inputs['nums'].is_artifact_list)
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.outputs['Output'].type), 'List')
+        self.assertFalse(spec.outputs['Output'].is_artifact_list)
+
+    def test_builtin_dict_parameter_annotations(self):
+
+        @dsl.component
+        def comp(mapping: dict[str, int]) -> dict[str, int]:
+            return mapping
+
+        spec = comp.component_spec
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.inputs['mapping'].type), 'Dict')
+        self.assertFalse(spec.inputs['mapping'].is_artifact_list)
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.outputs['Output'].type), 'Dict')
+        self.assertFalse(spec.outputs['Output'].is_artifact_list)
 
 
 class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
