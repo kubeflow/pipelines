@@ -1,0 +1,71 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-run-parallelism
+# Outputs:
+#    Output: str
+components:
+  comp-produce-message:
+    executorLabel: exec-produce-message
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-produce-message:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - produce_message
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef produce_message() -> str:\n    return 'hello parallel world'\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  name: pipeline-with-run-parallelism
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: produce-message
+    tasks:
+      produce-message:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-produce-message
+        taskInfo:
+          name: produce-message
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      pipelineRunParallelism: 7

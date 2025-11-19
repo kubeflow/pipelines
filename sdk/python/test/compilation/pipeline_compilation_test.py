@@ -154,6 +154,8 @@ from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_params_conta
     my_pipeline as pipeline_with_params_containing_format
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_reused_component import \
     my_pipeline as reused_component_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_run_parallelism import \
+    pipeline_with_run_parallelism
 from test_data.sdk_compiled_pipelines.valid.failing.pipeline_with_exit_handler import \
     my_pipeline as exit_handler_pipeline
 from test_data.sdk_compiled_pipelines.valid.failing.pipeline_with_multiple_exit_handlers import \
@@ -310,6 +312,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='outputs_pipeline.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_outputs.yaml'
+            ),
+            TestData(
+                pipeline_name='pipeline-with-run-parallelism',
+                pipeline_func=pipeline_with_run_parallelism,
+                pipline_func_args=None,
+                compiled_file_name='pipeline_with_run_parallelism.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_run_parallelism.yaml'
             ),
             TestData(
                 pipeline_name='collected-param-pipeline',
