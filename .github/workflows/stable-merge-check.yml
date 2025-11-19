@@ -13,6 +13,9 @@ permissions:
   pull-requests: write
   contents: read
 
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   # Job to handle /integration-tests-ok command
   process-integration-command:
@@ -34,18 +37,15 @@ jobs:
         env:
           message: 🚫 This command cannot be processed. Only organization members or owners can use the `/integration-tests-ok` command.
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
           echo ${message}
           exit 1
 
       - name: Check if PR target
         if: env.condition_met == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_URL="${{ github.event.issue.pull_request.url }}"
-          PR_DATA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$PR_URL")
+          PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.v3+json" "$PR_URL")
           BASE_BRANCH=$(echo "$PR_DATA" | jq -r '.base.ref')
           HEAD_BRANCH=$(echo "$PR_DATA" | jq -r '.head.ref')
 
@@ -64,17 +64,13 @@ jobs:
         env:
           message: ⚠️ This command only works for pull requests to `master/stable` branches.
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
           echo ${message}
           exit 1
 
       - name: Add integration-tests-verified label
         if: env.condition_met == 'true' && env.valid_target == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh issue edit ${{ github.event.issue.number }} --add-label "integration-tests-verified" --repo "${{ github.repository }}"
           echo "✅ Added integration-tests-verified label"
 
@@ -88,7 +84,6 @@ jobs:
 
             **Note**: This label will be automatically removed if new commits are pushed to ensure tests are re-run with the latest changes.
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
 
   # Job to remove label on new commits and check for label presence
@@ -98,7 +93,7 @@ jobs:
     if: github.event_name == 'pull_request' || contains(github.event.comment.body, '/integration-tests-ok')
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -118,4 +113,6 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_EVENT_ACTION: ${{ github.event.action }}
         run: |
+          echo "Waiting for 10 sec for label to get added in case it does get added"
+          sleep 10
           python .github/scripts/check_integration_test_label.py
