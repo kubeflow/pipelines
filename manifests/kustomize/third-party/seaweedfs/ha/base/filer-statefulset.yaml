@@ -24,12 +24,14 @@ spec:
     spec:
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app: seaweedfs
-                component: filer
-            topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: seaweedfs
+                  component: filer
+              topologyKey: kubernetes.io/hostname
       serviceAccountName: seaweedfs
       terminationGracePeriodSeconds: 60
       securityContext:
