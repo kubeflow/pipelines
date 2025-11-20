@@ -9,7 +9,7 @@ resources:
 - ../gcp/inverse-proxy
 
 images:
-- name: ghcr.io/kubeflow/kfp-api-server
+- name: ghcr.io/kubeflow/kfp-driver
   newTag: master
 - name: ghcr.io/kubeflow/kfp-frontend
   newTag: master
