@@ -62,11 +62,14 @@ type V2beta1PipelineTaskDetail struct {
 	RunID string `json:"run_id,omitempty"`
 
 	// The scope of this task within the
-	// pipeline spec. Each entry represents
-	// either a Dag Task or a Container task.
+	// pipeline spec. Each entry (delimited by
+	// a dot "."), represents either a Dag
+	// Task or a Container task.
 	// Note that Container task will are
 	// always the last entry in a scope_path.
-	ScopePath []string `json:"scope_path"`
+	// Example of a scope_path:
+	// "root.primary-pipeline.secondary-pipeline.task"
+	ScopePath string `json:"scope_path,omitempty"`
 
 	// state
 	State *PipelineTaskDetailTaskState `json:"state,omitempty"`

@@ -24,6 +24,7 @@ package util
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -74,12 +75,13 @@ func NewScopePathFromStruct(spec *structpb.Struct) (ScopePath, error) {
 	return newScopePath(pipelineSpec, spec), nil
 }
 
-// ScopePathFromStringPathWithNewTask builds a ScopePath from a string path and pushes the newTask to the end of the path.
-func ScopePathFromStringPathWithNewTask(rawPipelineSpec *structpb.Struct, path []string, newTask string) (ScopePath, error) {
+// ScopePathFromStringPathWithNewTask builds a ScopePath from a dot notation path and pushes the newTask to the end of the path.
+// Example: ScopePathFromStringPathWithNewTask(spec, "root.pipeline", "task") creates path "root.pipeline.task"
+func ScopePathFromStringPathWithNewTask(rawPipelineSpec *structpb.Struct, dotNotationPath string, newTask string) (ScopePath, error) {
 	if rawPipelineSpec == nil {
 		return ScopePath{}, fmt.Errorf("PipelineSpec is nil")
 	}
-	scopePath, err := ScopePathFromStringPath(rawPipelineSpec, path)
+	scopePath, err := ScopePathFromDotNotation(rawPipelineSpec, dotNotationPath)
 	if err != nil {
 		return ScopePath{}, fmt.Errorf("failed to build scope path: %w", err)
 	}
@@ -91,8 +93,10 @@ func ScopePathFromStringPathWithNewTask(rawPipelineSpec *structpb.Struct, path [
 	return scopePath, nil
 }
 
-// ScopePathFromStringPath builds a ScopePath from a string path.
-func ScopePathFromStringPath(rawPipelineSpec *structpb.Struct, path []string) (ScopePath, error) {
+// ScopePathFromDotNotation builds a ScopePath from a dot notation string.
+// Example: ScopePathFromDotNotation(spec, "root.pipeline.task") creates a scope path with three entries.
+// An empty string creates an empty scope path (useful for root).
+func ScopePathFromDotNotation(rawPipelineSpec *structpb.Struct, dotNotationPath string) (ScopePath, error) {
 	if rawPipelineSpec == nil {
 		return ScopePath{}, fmt.Errorf("PipelineSpec is nil")
 	}
@@ -100,7 +104,10 @@ func ScopePathFromStringPath(rawPipelineSpec *structpb.Struct, path []string) (S
 	if err != nil {
 		return ScopePath{}, fmt.Errorf("failed to build scope path: %w", err)
 	}
-	for _, taskName := range path {
+
+	// Convert dot notation to string array
+	pathArray := DotNotationToStringPath(dotNotationPath)
+	for _, taskName := range pathArray {
 		if err := scopePath.Push(taskName); err != nil {
 			return ScopePath{}, fmt.Errorf("failed to build scope path at task %q: %w", taskName, err)
 		}
@@ -190,6 +197,30 @@ func (s *ScopePath) StringPath() []string {
 		path = append(path, n.Value.taskName)
 	}
 	return path
+}
+
+// DotNotation returns the scope path as a dot-separated string.
+// Example: "root.primary-pipeline.secondary-pipeline.task"
+func (s *ScopePath) DotNotation() string {
+	return StringPathToDotNotation(s.StringPath())
+}
+
+// StringPathToDotNotation converts a string array path to dot notation.
+// Example: ["root", "pipeline", "task"] -> "root.pipeline.task"
+func StringPathToDotNotation(path []string) string {
+	if len(path) == 0 {
+		return ""
+	}
+	return strings.Join(path, ".")
+}
+
+// DotNotationToStringPath converts a dot notation string to a string array path.
+// Example: "root.pipeline.task" -> ["root", "pipeline", "task"]
+func DotNotationToStringPath(dotNotation string) []string {
+	if dotNotation == "" {
+		return []string{}
+	}
+	return strings.Split(dotNotation, ".")
 }
 
 // Node represents one element in the list.

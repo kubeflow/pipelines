@@ -93,7 +93,7 @@ func validateNonRoot(opts common.Options) error {
 	if opts.ParentTask != nil && opts.ParentTask.GetTaskId() == "" {
 		return fmt.Errorf("parent task is required")
 	}
-	if opts.ParentTask.GetScopePath() == nil {
+	if opts.ParentTask.GetScopePath() == "" {
 		return fmt.Errorf("parent task scope path is required for DAG")
 	}
 	return nil

@@ -235,7 +235,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// task count within it's component spec.
 		// We need to use the parent task's scope path, not the current task's scope path
 		// Note this doesn't factor in the number of iterations of these child tasks when in a loop.
-		getScopePath, err := util.ScopePathFromStringPath(pipelineSpec, parentTask.GetScopePath())
+		getScopePath, err := util.ScopePathFromDotNotation(pipelineSpec, parentTask.GetScopePath())
 		if err != nil {
 			return fmt.Errorf("failed to get scope path for parent task %s: %w", parentTask.GetTaskId(), err)
 		}

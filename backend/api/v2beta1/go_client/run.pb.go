@@ -958,11 +958,14 @@ type PipelineTaskDetail struct {
 	Inputs     *PipelineTaskDetail_InputOutputs `protobuf:"bytes,17,opt,name=inputs,proto3" json:"inputs,omitempty"`
 	Outputs    *PipelineTaskDetail_InputOutputs `protobuf:"bytes,18,opt,name=outputs,proto3" json:"outputs,omitempty"`
 	// The scope of this task within the
-	// pipeline spec. Each entry represents
-	// either a Dag Task or a Container task.
+	// pipeline spec. Each entry (delimited by
+	// a dot "."), represents either a Dag
+	// Task or a Container task.
 	// Note that Container task will are
 	// always the last entry in a scope_path.
-	ScopePath     []string `protobuf:"bytes,19,rep,name=scope_path,json=scopePath,proto3" json:"scope_path,omitempty"`
+	// Example of a scope_path:
+	// "root.primary-pipeline.secondary-pipeline.task"
+	ScopePath     string `protobuf:"bytes,19,opt,name=scope_path,json=scopePath,proto3" json:"scope_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1123,11 +1126,11 @@ func (x *PipelineTaskDetail) GetOutputs() *PipelineTaskDetail_InputOutputs {
 	return nil
 }
 
-func (x *PipelineTaskDetail) GetScopePath() []string {
+func (x *PipelineTaskDetail) GetScopePath() string {
 	if x != nil {
 		return x.ScopePath
 	}
-	return nil
+	return ""
 }
 
 // Runtime information of a pipeline task executor.
@@ -2820,7 +2823,7 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\x06inputs\x18\x11 \x01(\v2G.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetail.InputOutputsR\x06inputs\x12a\n" +
 	"\aoutputs\x18\x12 \x01(\v2G.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetail.InputOutputsR\aoutputs\x12\x1d\n" +
 	"\n" +
-	"scope_path\x18\x13 \x03(\tR\tscopePath\x1a\x8b\x01\n" +
+	"scope_path\x18\x13 \x01(\tR\tscopePath\x1a\x8b\x01\n" +
 	"\aTaskPod\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03uid\x18\x02 \x01(\tR\x03uid\x12Z\n" +

@@ -499,11 +499,14 @@ message PipelineTaskDetail {
   InputOutputs outputs = 18;
 
   // The scope of this task within the
-  // pipeline spec. Each entry represents
-  // either a Dag Task or a Container task.
+  // pipeline spec. Each entry (delimited by
+  // a dot "."), represents either a Dag
+  // Task or a Container task.
   // Note that Container task will are
   // always the last entry in a scope_path.
-  repeated string scope_path = 19;
+  // Example of a scope_path:
+  // "root.primary-pipeline.secondary-pipeline.task"
+  string scope_path = 19;
 }
 
 // Runtime information of a pipeline task executor.

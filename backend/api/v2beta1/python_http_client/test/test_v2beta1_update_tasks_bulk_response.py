@@ -101,9 +101,7 @@ class TestV2beta1UpdateTasksBulkResponse(unittest.TestCase):
                                     value = kfp_server_api.models.value.value(), 
                                     parameter_key = '0', )
                                 ], ), 
-                        scope_path = [
-                            '0'
-                            ], )
+                        scope_path = '0', )
                     }
             )
         else :

@@ -2456,16 +2456,8 @@ func toModelTask(apiTask *apiv2beta1.PipelineTaskDetail) (*model.Task, error) {
 	}
 
 	// Convert scope_path - validate it's not empty if provided
-	if apiTask.GetScopePath() != nil {
-		if len(apiTask.GetScopePath()) == 0 {
-			return nil, util.NewInvalidInputError("scope_path cannot be empty when provided")
-		}
-		// Convert []string to JSONSlice
-		scopePathSlice := make(model.JSONSlice, len(apiTask.GetScopePath()))
-		for i, path := range apiTask.GetScopePath() {
-			scopePathSlice[i] = path
-		}
-		task.ScopePath = scopePathSlice
+	if apiTask.GetScopePath() != "" {
+		task.ScopePath = apiTask.GetScopePath()
 	}
 
 	return task, nil
@@ -2710,15 +2702,9 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 		apiTask.ChildTasks = apiChildTasks
 	}
 
-	// Convert scope_path from JSONSlice to []string
-	if modelTask.ScopePath != nil {
-		scopePath := make([]string, 0, len(modelTask.ScopePath))
-		for _, path := range modelTask.ScopePath {
-			if pathStr, ok := path.(string); ok {
-				scopePath = append(scopePath, pathStr)
-			}
-		}
-		apiTask.ScopePath = scopePath
+	// Convert scope_path from model string to API string (both use dot notation)
+	if modelTask.ScopePath != "" {
+		apiTask.ScopePath = modelTask.ScopePath
 	}
 
 	return apiTask, nil

@@ -140,7 +140,7 @@ type Task struct {
 	OutputParameters JSONSlice  `gorm:"column:OutputParameters; type:json;"`
 	Type             TaskType   `gorm:"column:Type; not null; index:idx_task_type;"`
 	TypeAttrs        JSONData   `gorm:"column:TypeAttrs; not null; type:json;"`
-	ScopePath        JSONSlice  `gorm:"column:ScopePath; type:json; default:null;"`
+	ScopePath        string     `gorm:"column:ScopePath; type:text; default:null;"`
 
 	// Transient fields populated during hydration (not stored in DB)
 	InputArtifactsHydrated  []TaskArtifactHydrated `gorm:"-"`
