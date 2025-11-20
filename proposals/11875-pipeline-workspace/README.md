@@ -364,7 +364,7 @@ An example of overriding the PVC configuration defaults set on the API server:
 )
 ```
 
-This will lead to protocol buffer changes similar to the following. In addition to the workspace-related fields, a new `pipeline_run_parallelism` option allows authors to cap the number of concurrent tasks for a run:
+This will lead to protocol buffer changes similar to the following:
 
 ```diff
 diff --git a/api/v2alpha1/pipeline_spec.proto b/api/v2alpha1/pipeline_spec.proto
