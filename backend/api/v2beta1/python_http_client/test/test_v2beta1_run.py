@@ -81,7 +81,6 @@ class TestV2beta1Run(unittest.TestCase):
                                 ], 
                             cache_fingerprint = '0', 
                             create_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                            start_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                             end_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                             state = 'RUNTIME_STATE_UNSPECIFIED', 
                             status_metadata = kfp_server_api.models.pipeline_task_detail_status_metadata.PipelineTaskDetailStatusMetadata(
@@ -169,7 +168,6 @@ class TestV2beta1Run(unittest.TestCase):
                             ], 
                         cache_fingerprint = '0', 
                         create_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
-                        start_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         end_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         state = 'RUNTIME_STATE_UNSPECIFIED', 
                         status_metadata = kfp_server_api.models.pipeline_task_detail_status_metadata.PipelineTaskDetailStatusMetadata(
