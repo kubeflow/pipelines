@@ -372,11 +372,8 @@ message PipelineTaskDetail {
   // Creation time of a task.
   google.protobuf.Timestamp create_time = 7;
 
-  // Starting time of a task.
-  google.protobuf.Timestamp start_time = 8;
-
   // Completion time of a task.
-  google.protobuf.Timestamp end_time = 9;
+  google.protobuf.Timestamp end_time = 8;
 
   // Runtime state of a Task
   enum TaskState {
@@ -397,7 +394,7 @@ message PipelineTaskDetail {
 
     CACHED = 5;
   }
-  TaskState state = 10;
+  TaskState state = 9;
 
 
   message StatusMetadata {
@@ -409,7 +406,7 @@ message PipelineTaskDetail {
     // This is currently not utilized by KFP backend.
     map<string, google.protobuf.Value> custom_properties = 2;
   }
-  StatusMetadata status_metadata = 11;
+  StatusMetadata status_metadata = 10;
 
   // Timestamped representation of a Task state with an optional error.
   message TaskStatus {
@@ -420,7 +417,7 @@ message PipelineTaskDetail {
 
   // A sequence of task statuses. This field keeps a record
   // of state transitions.
-  repeated TaskStatus state_history = 12;
+  repeated TaskStatus state_history = 11;
 
   enum TaskType {
     // Root task is the top ancestor task to all tasks in the pipeline run
@@ -445,7 +442,7 @@ message PipelineTaskDetail {
     // a driver.
     DAG = 7;
   }
-  TaskType type = 13;
+  TaskType type = 12;
 
   message TypeAttributes {
     // Optional. Applies to type Runtime that is an iteration
@@ -454,15 +451,15 @@ message PipelineTaskDetail {
     optional int64 iteration_count = 2;
   }
 
-  TypeAttributes type_attributes = 14;
+  TypeAttributes type_attributes = 13;
 
   // The error that occurred during task execution.
   // Only populated when the task is in FAILED or CANCELED state.
-  google.rpc.Status error = 15;
+  google.rpc.Status error = 14;
 
   // ID of the parent task if the task is within a component scope.
   // Empty if the task is at the root level.
-  optional string parent_task_id = 16;
+  optional string parent_task_id = 15;
 
   // A dependent task that requires this one to succeed.
   // Represented by either task_id or pod_name.
@@ -473,7 +470,7 @@ message PipelineTaskDetail {
   }
 
   // Sequence of dependent tasks.
-  repeated ChildTask child_tasks = 17;
+  repeated ChildTask child_tasks = 16;
 
   message InputOutputs {
     message IOParameter {
@@ -501,15 +498,15 @@ message PipelineTaskDetail {
     // ArtifactTasks to link artifacts to tasks.
     repeated IOArtifact artifacts = 2;
   }
-  InputOutputs inputs = 18;
-  InputOutputs outputs = 19;
+  InputOutputs inputs = 17;
+  InputOutputs outputs = 18;
 
   // The scope of this task within the
   // pipeline spec. Each entry represents
   // either a Dag Task or a Container task.
   // Note that Container task will are
   // always the last entry in a scope_path.
-  repeated string scope_path = 20;
+  repeated string scope_path = 19;
 }
 
 // Runtime information of a pipeline task executor.
@@ -653,7 +650,6 @@ message DeleteRunRequest {
   // The ID of the run to be deleted.
   string run_id = 2;
 }
-
 
 message RetryRunRequest {
  // The ID of the parent experiment.

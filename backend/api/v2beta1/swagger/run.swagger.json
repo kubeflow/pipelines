@@ -989,11 +989,6 @@
           "format": "date-time",
           "description": "Creation time of a task."
         },
-        "start_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Starting time of a task."
-        },
         "end_time": {
           "type": "string",
           "format": "date-time",

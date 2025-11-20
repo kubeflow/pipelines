@@ -116,9 +116,6 @@ func (b *BatchUpdater) QueueTaskUpdate(task *apiV2beta1.PipelineTaskDetail) {
 		if task.EndTime != nil {
 			existingTask.EndTime = task.EndTime
 		}
-		if task.StartTime != nil {
-			existingTask.StartTime = task.StartTime
-		}
 	} else {
 		// First update for this task
 		b.taskUpdates[task.TaskId] = task

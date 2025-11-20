@@ -82,7 +82,6 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		State:        apiV2beta1.PipelineTaskDetail_RUNNING,
 		ParentTaskId: util.StringPointer(opts.ParentTask.TaskId),
 		ScopePath:    opts.ScopePath.StringPath(),
-		StartTime:    timestamppb.Now(),
 		CreateTime:   timestamppb.Now(),
 		Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
 			{

@@ -63,7 +63,6 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 			Type:         apiV2beta1.PipelineTaskDetail_IMPORTER,
 			State:        apiV2beta1.PipelineTaskDetail_RUNNING,
 			ScopePath:    l.opts.ScopePath.StringPath(),
-			StartTime:    timestamppb.Now(),
 			CreateTime:   timestamppb.Now(),
 			TypeAttributes: &apiV2beta1.PipelineTaskDetail_TypeAttributes{
 				DownloadToWorkspace: downloadToWorkspace,
