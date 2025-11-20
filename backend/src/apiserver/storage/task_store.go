@@ -424,13 +424,6 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to marshal type attributes in a new task")
 	}
 
-	scopePathStr := ""
-	if b, err := json.Marshal(newTask.ScopePath); err == nil {
-		scopePathStr = string(b)
-	} else {
-		return nil, util.NewInternalServerError(err, "Failed to marshal scope path in a new task")
-	}
-
 	sql, args, err := sq.
 		Insert(tableName).
 		SetMap(
@@ -445,7 +438,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"Fingerprint":      newTask.Fingerprint,
 				"Name":             newTask.Name,
 				"ParentTaskUUID":   newTask.ParentTaskUUID,
-				"ScopePath":        scopePathStr,
+				"ScopePath":        newTask.ScopePath,
 				"State":            newTask.State,
 				"StateHistory":     stateHistoryString,
 				"InputParameters":  inputParamsString,
