@@ -117,14 +117,106 @@ func TestBuildFromStringPath(t *testing.T) {
 	err = protojson.Unmarshal(b, &st)
 	require.NoError(t, err)
 
-	// Test successful path construction
-	path := []string{"root", "secondary-pipeline"}
-	scopePath, err := ScopePathFromStringPathWithNewTask(&st, path, "for-loop-2")
+	// Test successful path construction using dot notation
+	dotNotationPath := "root.secondary-pipeline"
+	scopePath, err := ScopePathFromStringPathWithNewTask(&st, dotNotationPath, "for-loop-2")
 	require.NoError(t, err)
 	require.Equal(t, []string{"root", "secondary-pipeline", "for-loop-2"}, scopePath.StringPath())
+	require.Equal(t, "root.secondary-pipeline.for-loop-2", scopePath.DotNotation())
 
-	// Test invalid path
-	invalidPath := []string{"root", "non-existent-task"}
-	_, err = ScopePathFromStringPathWithNewTask(&st, invalidPath, "")
+	// Test invalid path using dot notation
+	invalidDotPath := "root.non-existent-task"
+	_, err = ScopePathFromStringPathWithNewTask(&st, invalidDotPath, "")
 	require.Error(t, err)
+
+	// Test building from dot notation directly
+	scopePath2, err := ScopePathFromDotNotation(&st, "root.secondary-pipeline.for-loop-2")
+	require.NoError(t, err)
+	require.Equal(t, "root.secondary-pipeline.for-loop-2", scopePath2.DotNotation())
+
+	// Test empty path
+	scopePath3, err := ScopePathFromDotNotation(&st, "")
+	require.NoError(t, err)
+	require.Equal(t, "", scopePath3.DotNotation())
+	require.Equal(t, 0, scopePath3.GetSize())
+}
+
+func TestDotNotationConversion(t *testing.T) {
+	// Test conversion from array to dot notation
+	tests := []struct {
+		name     string
+		input    []string
+		expected string
+	}{
+		{
+			name:     "simple path",
+			input:    []string{"root", "pipeline", "task"},
+			expected: "root.pipeline.task",
+		},
+		{
+			name:     "single element",
+			input:    []string{"root"},
+			expected: "root",
+		},
+		{
+			name:     "empty array",
+			input:    []string{},
+			expected: "",
+		},
+		{
+			name:     "path with hyphens",
+			input:    []string{"root", "primary-pipeline", "secondary-pipeline", "task"},
+			expected: "root.primary-pipeline.secondary-pipeline.task",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := StringPathToDotNotation(tt.input)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+
+	// Test conversion from dot notation to array
+	reverseTests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "simple path",
+			input:    "root.pipeline.task",
+			expected: []string{"root", "pipeline", "task"},
+		},
+		{
+			name:     "single element",
+			input:    "root",
+			expected: []string{"root"},
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: []string{},
+		},
+		{
+			name:     "path with hyphens",
+			input:    "root.primary-pipeline.secondary-pipeline.task",
+			expected: []string{"root", "primary-pipeline", "secondary-pipeline", "task"},
+		},
+	}
+
+	for _, tt := range reverseTests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DotNotationToStringPath(tt.input)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+
+	// Test round-trip conversion
+	t.Run("round-trip conversion", func(t *testing.T) {
+		original := []string{"root", "primary-pipeline", "secondary-pipeline", "task"}
+		dotNotation := StringPathToDotNotation(original)
+		backToArray := DotNotationToStringPath(dotNotation)
+		require.Equal(t, original, backToArray)
+	})
 }

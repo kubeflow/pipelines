@@ -114,9 +114,7 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                         kfp_server_api.models.align_structure_with_executor_input.Align structure with Executor Input(
                             artifact_key = '0', )
                         ], ), 
-                scope_path = [
-                    '0'
-                    ]
+                scope_path = '0'
             )
         else :
             return V2beta1PipelineTaskDetail(

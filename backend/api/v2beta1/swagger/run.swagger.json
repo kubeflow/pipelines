@@ -1037,11 +1037,8 @@
           "$ref": "#/definitions/PipelineTaskDetailInputOutputs"
         },
         "scope_path": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The scope of this task within the\npipeline spec. Each entry represents\neither a Dag Task or a Container task.\nNote that Container task will are\nalways the last entry in a scope_path."
+          "type": "string",
+          "title": "The scope of this task within the\npipeline spec. Each entry (delimited by\na dot \".\"), represents either a Dag\nTask or a Container task.\nNote that Container task will are\nalways the last entry in a scope_path.\nExample of a scope_path:\n\"root.primary-pipeline.secondary-pipeline.task\""
         }
       },
       "description": "Runtime information of a task execution."

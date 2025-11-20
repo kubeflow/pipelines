@@ -156,11 +156,9 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 			return nil, err
 		}
 	}
-	var scopePathData model.JSONSlice
+	var scopePathStr string
 	if scopePath.Valid {
-		if err := json.Unmarshal([]byte(scopePath.String), &scopePathData); err != nil {
-			return nil, err
-		}
+		scopePathStr = scopePath.String
 	}
 	var parentTaskIDNew *string
 	if parentTaskID.Valid {
@@ -185,7 +183,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		OutputParameters: outputParameters,
 		Type:             model.TaskType(taskType),
 		TypeAttrs:        typeAttrsData,
-		ScopePath:        scopePathData,
+		ScopePath:        scopePathStr,
 	}, nil
 }
 

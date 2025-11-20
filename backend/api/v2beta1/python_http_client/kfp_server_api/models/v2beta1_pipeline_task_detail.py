@@ -51,7 +51,7 @@ class V2beta1PipelineTaskDetail(object):
         'child_tasks': 'list[PipelineTaskDetailChildTask]',
         'inputs': 'PipelineTaskDetailInputOutputs',
         'outputs': 'PipelineTaskDetailInputOutputs',
-        'scope_path': 'list[str]'
+        'scope_path': 'str'
     }
 
     attribute_map = {
@@ -540,10 +540,9 @@ class V2beta1PipelineTaskDetail(object):
     def scope_path(self):
         """Gets the scope_path of this V2beta1PipelineTaskDetail.  # noqa: E501
 
-        The scope of this task within the pipeline spec. Each entry represents either a Dag Task or a Container task. Note that Container task will are always the last entry in a scope_path.  # noqa: E501
 
         :return: The scope_path of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :rtype: list[str]
+        :rtype: str
         """
         return self._scope_path
 
@@ -551,10 +550,9 @@ class V2beta1PipelineTaskDetail(object):
     def scope_path(self, scope_path):
         """Sets the scope_path of this V2beta1PipelineTaskDetail.
 
-        The scope of this task within the pipeline spec. Each entry represents either a Dag Task or a Container task. Note that Container task will are always the last entry in a scope_path.  # noqa: E501
 
         :param scope_path: The scope_path of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :type scope_path: list[str]
+        :type scope_path: str
         """
 
         self._scope_path = scope_path

@@ -22,7 +22,7 @@ Name | Type | Description | Notes
 **child_tasks** | [**list[PipelineTaskDetailChildTask]**](PipelineTaskDetailChildTask.md) | Sequence of dependent tasks. | [optional] 
 **inputs** | [**PipelineTaskDetailInputOutputs**](PipelineTaskDetailInputOutputs.md) |  | [optional] 
 **outputs** | [**PipelineTaskDetailInputOutputs**](PipelineTaskDetailInputOutputs.md) |  | [optional] 
-**scope_path** | **list[str]** | The scope of this task within the pipeline spec. Each entry represents either a Dag Task or a Container task. Note that Container task will are always the last entry in a scope_path. | [optional] 
+**scope_path** | **str** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

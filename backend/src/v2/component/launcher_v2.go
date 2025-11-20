@@ -786,7 +786,7 @@ func (l *LauncherV2) propagateOutputsUpDAG(ctx context.Context) error {
 
 	for parentTask != nil {
 		// Get the parent's component spec to check outputDefinitions
-		parentScopePath, err := util.ScopePathFromStringPath(l.pipelineSpec, parentTask.GetScopePath())
+		parentScopePath, err := util.ScopePathFromDotNotation(l.pipelineSpec, parentTask.GetScopePath())
 		if err != nil {
 			return fmt.Errorf("failed to get scope path for parent task %s: %w", parentTask.GetTaskId(), err)
 		}

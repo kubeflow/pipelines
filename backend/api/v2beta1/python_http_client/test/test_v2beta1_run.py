@@ -132,9 +132,7 @@ class TestV2beta1Run(unittest.TestCase):
                                         value = kfp_server_api.models.value.value(), 
                                         parameter_key = '0', )
                                     ], ), 
-                            scope_path = [
-                                '0'
-                                ], )
+                            scope_path = '0', )
                         ], ), 
                 recurring_run_id = '0', 
                 state_history = [
@@ -219,9 +217,7 @@ class TestV2beta1Run(unittest.TestCase):
                                     value = kfp_server_api.models.value.value(), 
                                     parameter_key = '0', )
                                 ], ), 
-                        scope_path = [
-                            '0'
-                            ], )
+                        scope_path = '0', )
                     ]
             )
         else :
