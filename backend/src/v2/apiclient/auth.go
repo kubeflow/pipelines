@@ -19,77 +19,83 @@ import (
 	"context"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"k8s.io/client-go/transport"
 )
 
 const (
 	// KFPTokenPath is the path where the projected service account token is mounted
 	KFPTokenPath = "/var/run/secrets/kfp/token"
-	// TokenCacheTTL is how long we cache the token before re-reading from disk
-	TokenCacheTTL = 5 * time.Minute
 )
 
-// tokenCache holds a cached token and its expiry time
-type tokenCache struct {
-	mu        sync.RWMutex
-	token     string
-	expiresAt time.Time
+var (
+	// tokenSource is initialized once and reused for the lifetime of the process.
+	// It automatically watches the token file and reloads when kubelet rotates it.
+	// Uses client-go's NewCachedFileTokenSource which periodically re-reads the file
+	// (every minute by default) to pick up token rotations.
+	tokenSource     oauth2.TokenSource
+	tokenSourceOnce sync.Once
+)
+
+// initTokenSource initializes the token source that watches the token file.
+// This is called once lazily when the first request needs authentication.
+func initTokenSource() {
+	tokenSourceOnce.Do(func() {
+		// Check if token file exists before creating the token source
+		if _, err := os.Stat(KFPTokenPath); err != nil {
+			if os.IsNotExist(err) {
+				glog.V(2).Infof("KFP token file not found at %s, proceeding without authentication", KFPTokenPath)
+				tokenSource = &emptyTokenSource{}
+				return
+			}
+			// Other errors - log but continue
+			glog.Warningf("Error checking KFP token file at %s: %v", KFPTokenPath, err)
+		}
+
+		// Create a cached file token source that automatically reloads when the file changes.
+		// This uses client-go's implementation which:
+		// - Periodically re-reads the token file (every minute by default)
+		// - Handles token rotation seamlessly
+		// - Caches the token to avoid excessive disk I/O
+		// This is the same approach used by client-go for in-cluster authentication.
+		tokenSource = transport.NewCachedFileTokenSource(KFPTokenPath)
+		glog.V(2).Infof("Initialized KFP token source from %s with automatic reload", KFPTokenPath)
+	})
 }
 
-var cache = &tokenCache{}
+// emptyTokenSource returns an empty token (for dev/test environments without token files)
+type emptyTokenSource struct{}
 
-// getToken reads the KFP service account token from the projected volume.
-// It caches the token for TokenCacheTTL to avoid reading from disk on every request.
+func (e *emptyTokenSource) Token() (*oauth2.Token, error) {
+	return &oauth2.Token{}, nil
+}
+
+// getToken retrieves the current KFP service account token.
+// The token is automatically reloaded when kubelet rotates it (no manual cache TTL).
 // Returns empty string if the token file doesn't exist (e.g., dev environments).
 func getToken() string {
-	cache.mu.RLock()
-	// Check if we have a valid cached token
-	if cache.token != "" && time.Now().Before(cache.expiresAt) {
-		token := cache.token
-		cache.mu.RUnlock()
-		return token
-	}
-	cache.mu.RUnlock()
+	initTokenSource()
 
-	// Need to refresh the token
-	cache.mu.Lock()
-	defer cache.mu.Unlock()
-
-	// Double-check after acquiring write lock
-	if cache.token != "" && time.Now().Before(cache.expiresAt) {
-		return cache.token
-	}
-
-	// Read token from file
-	tokenBytes, err := os.ReadFile(KFPTokenPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Token file doesn't exist - likely dev/test environment
-			// Log once per cache refresh cycle to avoid spam
-			if cache.token == "" {
-				glog.V(2).Infof("KFP token file not found at %s, proceeding without authentication", KFPTokenPath)
-			}
-			cache.token = ""
-			cache.expiresAt = time.Now().Add(TokenCacheTTL)
-			return ""
-		}
-		// Other errors (permissions, I/O) - log warning but don't fail
-		glog.Warningf("Failed to read KFP token from %s: %v, proceeding without authentication", KFPTokenPath, err)
-		cache.token = ""
-		cache.expiresAt = time.Now().Add(1 * time.Minute) // Retry sooner on errors
+	if tokenSource == nil {
 		return ""
 	}
 
-	token := string(tokenBytes)
-	cache.token = token
-	cache.expiresAt = time.Now().Add(TokenCacheTTL)
+	tok, err := tokenSource.Token()
+	if err != nil {
+		glog.V(4).Infof("Failed to get token from token source: %v", err)
+		return ""
+	}
 
-	glog.V(3).Infof("Successfully loaded KFP token from %s", KFPTokenPath)
-	return token
+	// oauth2.Token.AccessToken contains the actual token string
+	if tok == nil || tok.AccessToken == "" {
+		return ""
+	}
+
+	return tok.AccessToken
 }
 
 // authUnaryInterceptor is a gRPC unary interceptor that adds the Authorization header
