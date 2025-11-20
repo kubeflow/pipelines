@@ -94,6 +94,8 @@ from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_artifact_uplo
     my_pipeline as artifact_upload_download_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_env import \
     my_pipeline as env_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import \
+    pipeline_with_importer_workspace
 from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_input_status_state import \
     status_state_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_placeholders import \
@@ -478,6 +480,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='pipeline_with_workspace.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/pipeline_with_workspace.yaml'
+            ),
+            TestData(
+                pipeline_name='pipeline-with-importer-workspace',
+                pipeline_func=pipeline_with_importer_workspace,
+                pipline_func_args=None,
+                compiled_file_name='pipeline_with_importer_workspace.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/pipeline_with_importer_workspace.yaml'
             ),
             TestData(
                 pipeline_name='containerized-two-step-pipeline',
