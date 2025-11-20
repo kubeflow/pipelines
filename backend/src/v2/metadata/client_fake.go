@@ -20,7 +20,7 @@ package metadata
 import (
 	"context"
 
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/internal/objectstore"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
