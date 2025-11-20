@@ -1,4 +1,3 @@
-import functools
 from typing import List
 
 from kfp import dsl
@@ -9,9 +8,6 @@ from kfp.dsl import (
     Dataset,
     component
 )
-
-base_image="quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0"
-dsl.component = functools.partial(dsl.component, base_image=base_image)
 
 @component
 def create_dataset(output_dataset: Output[Dataset]):

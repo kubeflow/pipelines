@@ -50,9 +50,7 @@ deploymentSpec:
           \ *\n\ndef echo_state(status: dsl.PipelineTaskFinalStatus):\n    print(status)\n\
           \    assert(status.state == 'SUCCEEDED')\n    assert('status-state-pipeline'\
           \ in status.pipeline_job_resource_name)\n    assert(status.pipeline_task_name\
-          \ == 'exit-handler-1')\n    #TODO: Add assert statements to validate status.error_code\
-          \ and status.error_message values once those fields have been implemented.\n\
-          \n"
+          \ == 'exit-handler-1')\n\n"
         image: python:3.11
     exec-some-task:
       container:

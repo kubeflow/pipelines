@@ -53,17 +53,15 @@ const (
 	RuntimeState_RUNNING RuntimeState = 2
 	// Entity completed successfully.
 	RuntimeState_SUCCEEDED RuntimeState = 3
-	// Entity has been skipped. For example, due to caching.
-	RuntimeState_SKIPPED RuntimeState = 4
 	// Entity execution has failed.
-	RuntimeState_FAILED RuntimeState = 5
+	RuntimeState_FAILED RuntimeState = 6
 	// Entity is being canceled. From this state, an entity may only
 	// change its state to SUCCEEDED, FAILED or CANCELED.
-	RuntimeState_CANCELING RuntimeState = 6
+	RuntimeState_CANCELING RuntimeState = 7
 	// Entity has been canceled.
-	RuntimeState_CANCELED RuntimeState = 7
+	RuntimeState_CANCELED RuntimeState = 8
 	// Entity has been paused. It can be resumed.
-	RuntimeState_PAUSED RuntimeState = 8
+	RuntimeState_PAUSED RuntimeState = 9
 )
 
 // Enum value maps for RuntimeState.
@@ -73,22 +71,20 @@ var (
 		1: "PENDING",
 		2: "RUNNING",
 		3: "SUCCEEDED",
-		4: "SKIPPED",
-		5: "FAILED",
-		6: "CANCELING",
-		7: "CANCELED",
-		8: "PAUSED",
+		6: "FAILED",
+		7: "CANCELING",
+		8: "CANCELED",
+		9: "PAUSED",
 	}
 	RuntimeState_value = map[string]int32{
 		"RUNTIME_STATE_UNSPECIFIED": 0,
 		"PENDING":                   1,
 		"RUNNING":                   2,
 		"SUCCEEDED":                 3,
-		"SKIPPED":                   4,
-		"FAILED":                    5,
-		"CANCELING":                 6,
-		"CANCELED":                  7,
-		"PAUSED":                    8,
+		"FAILED":                    6,
+		"CANCELING":                 7,
+		"CANCELED":                  8,
+		"PAUSED":                    9,
 	}
 )
 
@@ -2974,19 +2970,18 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\x05tasks\x18\x01 \x03(\v2:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetailR\x05tasks\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\ttotalSize*\x98\x01\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize*\x8b\x01\n" +
 	"\fRuntimeState\x12\x1d\n" +
 	"\x19RUNTIME_STATE_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aPENDING\x10\x01\x12\v\n" +
 	"\aRUNNING\x10\x02\x12\r\n" +
-	"\tSUCCEEDED\x10\x03\x12\v\n" +
-	"\aSKIPPED\x10\x04\x12\n" +
+	"\tSUCCEEDED\x10\x03\x12\n" +
 	"\n" +
-	"\x06FAILED\x10\x05\x12\r\n" +
-	"\tCANCELING\x10\x06\x12\f\n" +
-	"\bCANCELED\x10\a\x12\n" +
+	"\x06FAILED\x10\x06\x12\r\n" +
+	"\tCANCELING\x10\a\x12\f\n" +
+	"\bCANCELED\x10\b\x12\n" +
 	"\n" +
-	"\x06PAUSED\x10\b2\xa0\x12\n" +
+	"\x06PAUSED\x10\t2\xa0\x12\n" +
 	"\n" +
 	"RunService\x12\x93\x01\n" +
 	"\tCreateRun\x128.kubeflow.pipelines.backend.api.v2beta1.CreateRunRequest\x1a+.kubeflow.pipelines.backend.api.v2beta1.Run\"\x1f\x82\xd3\xe4\x93\x02\x19:\x03run\"\x12/apis/v2beta1/runs\x12\x91\x01\n" +

@@ -1,10 +1,5 @@
-import functools
-
 from kfp import compiler
 from kfp import dsl
-
-base_image="quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0"
-dsl.component = functools.partial(dsl.component, base_image=base_image)
 
 @dsl.component()
 def component_a_str(componentInputStr: str = None):

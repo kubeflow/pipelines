@@ -1,6 +1,3 @@
-import functools
-
-from kfp import dsl
 from kfp.dsl import (
     Input,
     Output,
@@ -9,9 +6,6 @@ from kfp.dsl import (
     component,
     pipeline
 )
-
-base_image="quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0"
-dsl.component = functools.partial(dsl.component, base_image=base_image)
 
 @component
 def a(situation: str, output_dataset: Output[Dataset]):

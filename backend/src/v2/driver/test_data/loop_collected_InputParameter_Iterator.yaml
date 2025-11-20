@@ -255,9 +255,8 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef read_values(values: List[str]) -> str:\n    collect = []\n  \
           \  for v in values:\n        collect.append(v)\n    print(collect)\n   \
-          \ # TODO(HumairAK): These should not be required to be sorted to maintain\
-          \ backwards compatibility\n    assert sorted(collect) == sorted(['s1', 's2',\
-          \ 's3', 's4'])\n    return 'values read'\n\n"
+          \ assert sorted(collect) == sorted(['s1', 's2', 's3', 's4'])\n    return\
+          \ 'values read'\n\n"
         image: python:3.11
     exec-read-values-2:
       container:
@@ -287,9 +286,8 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef read_values(values: List[str]) -> str:\n    collect = []\n  \
           \  for v in values:\n        collect.append(v)\n    print(collect)\n   \
-          \ # TODO(HumairAK): These should not be required to be sorted to maintain\
-          \ backwards compatibility\n    assert sorted(collect) == sorted(['s1', 's2',\
-          \ 's3', 's4'])\n    return 'values read'\n\n"
+          \ assert sorted(collect) == sorted(['s1', 's2', 's3', 's4'])\n    return\
+          \ 'values read'\n\n"
         image: python:3.11
     exec-split-ids:
       container:

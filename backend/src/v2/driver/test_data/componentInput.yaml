@@ -69,7 +69,7 @@ deploymentSpec:
           \ *\n\ndef analyze_inputs(input_text: Input[Dataset]):\n    with open(input_text.path,\
           \ 'r') as f:\n        data = f.read()\n    assert data == \"[default_name,\
           \ 42, 0.5, True]\"\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
     exec-process-inputs:
       container:
         args:
@@ -105,7 +105,7 @@ deploymentSpec:
           \ threshold == 0.5\n    assert active == True\n    assert a_runtime_string\
           \ == \"foo\"\n    assert a_runtime_number == 10\n    assert a_runtime_bool\
           \ == True\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
 pipelineInfo:
   name: primary-pipeline
 root:

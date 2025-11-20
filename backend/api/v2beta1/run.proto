@@ -297,21 +297,18 @@ enum RuntimeState {
   // Entity completed successfully.
   SUCCEEDED = 3;
 
-  // Entity has been skipped. For example, due to caching.
-  SKIPPED = 4;
-
   // Entity execution has failed.
-  FAILED = 5;
+  FAILED = 6;
 
   // Entity is being canceled. From this state, an entity may only
   // change its state to SUCCEEDED, FAILED or CANCELED.
-  CANCELING = 6;
+  CANCELING = 7;
 
   // Entity has been canceled.
-  CANCELED = 7;
+  CANCELED = 8;
 
   // Entity has been paused. It can be resumed.
-  PAUSED = 8;
+  PAUSED = 9;
 }
 
 // Timestamped representation of a runtime state with an optional error.

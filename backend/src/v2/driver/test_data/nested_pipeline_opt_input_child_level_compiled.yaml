@@ -163,7 +163,7 @@ deploymentSpec:
           \ *\n\ndef component_a_bool(componentInputBool: bool = None):\n    if componentInputBool\
           \ != True:\n        raise ValueError(f\"componentInputBool should be True\
           \ but is {componentInputBool}\")\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
     exec-component-a-int:
       container:
         args:
@@ -193,7 +193,7 @@ deploymentSpec:
           \ *\n\ndef component_a_int(componentInputInt: int = None):\n    if componentInputInt\
           \ != 1:\n        raise ValueError(f\"componentInputInt should be 1 but is\
           \ {componentInputInt}\")\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
     exec-component-a-str:
       container:
         args:
@@ -223,7 +223,7 @@ deploymentSpec:
           \ *\n\ndef component_a_str(componentInputStr: str = None):\n    if componentInputStr\
           \ != 'Input - pipeline':\n        raise ValueError(f\"componentInputStr\
           \ should be 'Input - pipeline' but is {componentInputStr}\")\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
     exec-component-b-bool:
       container:
         args:
@@ -253,7 +253,7 @@ deploymentSpec:
           \ *\n\ndef component_b_bool(componentInputBool: bool = None):\n    if componentInputBool\
           \ != False:\n        raise ValueError(f\"componentInputBool should be False\
           \ but is {componentInputBool}\")\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
     exec-component-b-int:
       container:
         args:
@@ -283,7 +283,7 @@ deploymentSpec:
           \ *\n\ndef component_b_int(componentInputInt: int = None):\n    if componentInputInt\
           \ != 0:\n        raise ValueError(f\"componentInputInt should be 0 but is\
           \ {componentInputInt}\")\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
     exec-component-b-str:
       container:
         args:
@@ -313,7 +313,7 @@ deploymentSpec:
           \ *\n\ndef component_b_str(componentInputStr: str = None):\n    if componentInputStr\
           \ != 'Input 2 - nested pipeline':\n        raise ValueError(f\"componentInputStr\
           \ should be 'Input 2 - nested pipeline' but is {componentInputStr}\")\n\n"
-        image: quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0
+        image: python:3.11
 pipelineInfo:
   name: nested-pipeline-opt-input-child-level
 root:
