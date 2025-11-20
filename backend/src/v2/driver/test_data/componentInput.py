@@ -1,11 +1,5 @@
-import functools
-import os
-
 from kfp import dsl
-from kfp.dsl import Input, Output, Dataset, Model, Artifact
-
-base_image="quay.io/opendatahub/ds-pipelines-ci-executor-image:v1.0"
-dsl.component = functools.partial(dsl.component, base_image=base_image)
+from kfp.dsl import Input, Output, Dataset
 
 @dsl.component
 def process_inputs(

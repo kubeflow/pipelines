@@ -14,7 +14,7 @@ components:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
   comp-a-2:
-    executorLabel: exec-a-2
+    executorLabel: exec-a-2-2
     inputDefinitions:
       parameters:
         situation:
@@ -25,8 +25,8 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
-  comp-a-3:
-    executorLabel: exec-a-3
+  comp-a-2-2:
+    executorLabel: exec-a-2-2
     inputDefinitions:
       parameters:
         situation:
@@ -91,7 +91,7 @@ components:
         a:
           cachingOptions: {}
           componentRef:
-            name: comp-a-3
+            name: comp-a-2
           inputs:
             parameters:
               situation:
@@ -152,7 +152,7 @@ components:
         a:
           cachingOptions: {}
           componentRef:
-            name: comp-a-2
+            name: comp-a-2-2
           inputs:
             parameters:
               situation:
@@ -272,7 +272,7 @@ deploymentSpec:
           \ *\n\ndef a(situation: str, output_dataset: Output[Dataset]):\n    with\
           \ open(output_dataset.path, \"w\") as f:\n        f.write(situation)\n\n"
         image: python:3.11
-    exec-a-3:
+    exec-a-2-2:
       container:
         args:
         - --executor_input

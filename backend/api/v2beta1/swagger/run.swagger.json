@@ -1216,14 +1216,13 @@
         "PENDING",
         "RUNNING",
         "SUCCEEDED",
-        "SKIPPED",
         "FAILED",
         "CANCELING",
         "CANCELED",
         "PAUSED"
       ],
       "default": "RUNTIME_STATE_UNSPECIFIED",
-      "description": "Describes the runtime state of an entity.\n\n - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - SKIPPED: Entity has been skipped. For example, due to caching.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
+      "description": "Describes the runtime state of an entity.\n\n - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
     },
     "v2beta1RuntimeStatus": {
       "type": "object",
