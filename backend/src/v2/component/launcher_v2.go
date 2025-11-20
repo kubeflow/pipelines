@@ -48,6 +48,8 @@ type LauncherV2Options struct {
 	Namespace,
 	PodName,
 	PodUID,
+	MLPipelineServerAddress,
+	MLPipelineServerPort,
 	MLMDServerAddress,
 	MLMDServerPort,
 	PipelineName,

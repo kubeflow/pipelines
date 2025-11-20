@@ -58,9 +58,13 @@ spec:
       - ""
       - --no_proxy
       - ""
-      - "--mlmd_server_address"
-      - "metadata-grpc-service.kubeflow.svc.cluster.local"
-      - "--mlmd_server_port"
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
       - "8080"
       command:
       - driver
@@ -259,9 +263,13 @@ spec:
       - ""
       - --no_proxy
       - ""
-      - "--mlmd_server_address"
-      - "metadata-grpc-service.kubeflow.svc.cluster.local"
-      - "--mlmd_server_port"
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
       - "8080"
       command:
       - driver
