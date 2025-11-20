@@ -83,6 +83,10 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
       - --mlmd_server_address
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
@@ -309,6 +313,10 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
       - --mlmd_server_address
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
