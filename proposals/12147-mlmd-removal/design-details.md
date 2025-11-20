@@ -243,6 +243,32 @@ This is a good opportunity to also replace the endpoints used in `cacheDefaultEn
 
 Other changes that will be required in Launcher are mentioned elsewhere in the proposal (see [Caching](#caching), and [Metrics](#metrics) sections).
 
+#### Importer
+
+##### Matching artifacts
+Consider the following example:
+* An artifact is imported via the dsl 
+* ReImport is set to false
+
+Then previously the launcher would search for a matching artifact, and artifact would match if: 
+
+* All the artifact's fields (except the artifact ID) are equal
+* The artifact is attributed to the same PipelineContext that the launcher is running in
+
+Once MLMD is removed and Artifacts hold a namespace property, instead of filtering on the context, the 
+Artifact will match if: 
+
+* All the artifact's fields (except the artifact ID) are equal
+* The artifact is in the same namespace as the launcher is running in
+
+##### Artifact names 
+
+Artifacts will be provided a new name as part of the artifact model. This will serve as the artifact's canonical name. 
+In the future the user will be able to specify the artifact name in the pipeline definition via the KFP sdk. 
+
+For now the artifact name is inferred via the output artifact names when it is uploaded. 
+When the artifact is imported, we infer the name using the base file name of the artifact URI.
+
 ### Nested Pipelines
 
 There is no direct way to infer whether a Driver run is for a Nested execution, to accommodate this, there is a generic `DAG` task type provided to fit such cases.
@@ -403,9 +429,13 @@ StorageStates
 
 ### Auth Considerations
 
-The Driver/Launcher will be introducing a new `RunServerClient` and `ArtifactServerClient` using the `v2beta1`. All calls to this endpoint must be protected via SubjectAccessReview. The new server implementations can simply use `resourceManager.IsAuthorized(ctx, resourceAttributes)`, which is the standard everywhere else in KFP. All tasks/artifacts/metrics endpoints will be doing SAR on the `run` resource. If a user makes a REST request with a `verb` that matches their permissions on the `Run` KFP resource, they will be authorized to perform that action.
+The Driver/Launcher will be introducing a new `RunServerClient` and `ArtifactServerClient` using the `v2beta1`. All calls to this endpoint must be protected via SubjectAccessReview. The new server implementations can simply use `resourceManager.IsAuthorized(ctx, resourceAttributes)`, which is the standard everywhere else in KFP. 
+With Regards to Artifacts authorization will be handled in this way:
 
-For example, if a user makes a request to `ListArtifactRequest`, they require `list` verb on the `Run` resource for that particular namespace.
+* Artifacts in Runs: Users only need RBAC on the associated Run resource to access artifacts within a run.
+* Get/List Artifacts: To perform Get or List operations on artifacts, users require RBAC on the “artifacts” resource.
+* Reimport = false: For artifacts where Reimport is set to false, users need to get RBAC on the “artifacts” resource within the artifact's originating namespace. Note that the pipeline runner SA will still require creds from the users’ namespace to actually download and upload artifacts from/to objectstore.
+* UI Artifact Downloading: The UI will no longer directly download artifacts. Instead, a KFP server API endpoint will provide pre-signed URL download links. Authorization for these links will be handled via RBAC. Users will require to get the artifact via resource name or can get the run the artifact is a part of, then you can generate a presigned URL to download it.
 
 A few more notes: 
 * the Driver/Launcher communicates with the KFP API Server via the CacheClient. This has no auth mechanism today and will need to be updated.

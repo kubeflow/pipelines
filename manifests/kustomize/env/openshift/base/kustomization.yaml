@@ -41,24 +41,6 @@ patches:
     target:
       group: apps
       kind: Deployment
-      name: metadata-envoy-deployment
-      version: v1
-  - path: patches/remove-sc.json
-    target:
-      group: apps
-      kind: Deployment
-      name: metadata-grpc-deployment
-      version: v1
-  - path: patches/remove-sc.json
-    target:
-      group: apps
-      kind: Deployment
-      name: metadata-writer
-      version: v1
-  - path: patches/remove-sc.json
-    target:
-      group: apps
-      kind: Deployment
       name: minio
       version: v1
   - path: patches/remove-sc.json

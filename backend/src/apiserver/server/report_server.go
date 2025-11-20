@@ -25,7 +25,6 @@ import (
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -48,18 +47,6 @@ type ReportServerV1 struct {
 	apiv1beta1.UnimplementedReportServiceServer
 }
 
-// Extracts task details from an execution spec and reports them to storage.
-func (s *BaseReportServer) reportTasksFromExecution(execSpec util.ExecutionSpec, runId string) ([]*model.Task, error) {
-	if !execSpec.ExecutionStatus().HasNodes() {
-		return nil, nil
-	}
-	tasks, err := toModelTasks(execSpec)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to report tasks of an execution")
-	}
-	return s.resourceManager.CreateOrUpdateTasks(tasks)
-}
-
 // Reports a workflow.
 func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) (*emptypb.Empty, error) {
 	execSpec, err := validateReportWorkflowRequest(workflow)
@@ -77,16 +64,11 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 		return nil, err
 	}
 
-	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	_, err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report workflow")
 	}
 
-	runId := newExecSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
-	_, err = s.reportTasksFromExecution(newExecSpec, runId)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to report task details")
-	}
 	return &emptypb.Empty{}, nil
 }
 

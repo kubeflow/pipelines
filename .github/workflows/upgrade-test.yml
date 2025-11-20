@@ -19,7 +19,6 @@ on:
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
-      - 'backend/metadata_writer/**'
       - 'backend/test/v2/api/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'

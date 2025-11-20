@@ -106,6 +106,20 @@ type RunServiceListRunsParams struct {
 	*/
 	SortBy *string
 
+	/* View.
+
+	     Optional view mode. This field can be used to adjust
+	how detailed the Run object that is returned will be.
+
+	 - DEFAULT: By default `tasks` field is omitted.
+	This provides a faster and leaner run object.
+	 - FULL: This view mode displays all the tasks for this run
+	with all its fields populated.
+
+	     Default: "DEFAULT"
+	*/
+	View *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -123,7 +137,18 @@ func (o *RunServiceListRunsParams) WithDefaults() *RunServiceListRunsParams {
 //
 // All values with no default are reset to their zero value.
 func (o *RunServiceListRunsParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		viewDefault = string("DEFAULT")
+	)
+
+	val := RunServiceListRunsParams{
+		View: &viewDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the run service list runs params
@@ -223,6 +248,17 @@ func (o *RunServiceListRunsParams) WithSortBy(sortBy *string) *RunServiceListRun
 // SetSortBy adds the sortBy to the run service list runs params
 func (o *RunServiceListRunsParams) SetSortBy(sortBy *string) {
 	o.SortBy = sortBy
+}
+
+// WithView adds the view to the run service list runs params
+func (o *RunServiceListRunsParams) WithView(view *string) *RunServiceListRunsParams {
+	o.SetView(view)
+	return o
+}
+
+// SetView adds the view to the run service list runs params
+func (o *RunServiceListRunsParams) SetView(view *string) {
+	o.View = view
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -330,6 +366,23 @@ func (o *RunServiceListRunsParams) WriteToRequest(r runtime.ClientRequest, reg s
 		if qSortBy != "" {
 
 			if err := r.SetQueryParam("sort_by", qSortBy); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.View != nil {
+
+		// query param view
+		var qrView string
+
+		if o.View != nil {
+			qrView = *o.View
+		}
+		qView := qrView
+		if qView != "" {
+
+			if err := r.SetQueryParam("view", qView); err != nil {
 				return err
 			}
 		}
