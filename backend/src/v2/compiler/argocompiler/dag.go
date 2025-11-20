@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -572,8 +573,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--mlmd_server_address", metadata.DefaultConfig().Address,
-		"--mlmd_server_port", metadata.DefaultConfig().Port,
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
