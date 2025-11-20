@@ -61,7 +61,6 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 		TypeAttributes: &apiV2beta1.PipelineTaskDetail_TypeAttributes{},
 		State:          apiV2beta1.PipelineTaskDetail_RUNNING,
 		ScopePath:      scopePath,
-		StartTime:      timestamppb.Now(),
 		CreateTime:     timestamppb.Now(),
 		Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
 			{
