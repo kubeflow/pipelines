@@ -11,7 +11,6 @@ Name | Type | Description | Notes
 **pods** | [**list[PipelineTaskDetailTaskPod]**](PipelineTaskDetailTaskPod.md) |  | [optional] 
 **cache_fingerprint** | **str** |  | [optional] 
 **create_time** | **datetime** | Creation time of a task. | [optional] 
-**start_time** | **datetime** | Starting time of a task. | [optional] 
 **end_time** | **datetime** | Completion time of a task. | [optional] 
 **state** | [**PipelineTaskDetailTaskState**](PipelineTaskDetailTaskState.md) |  | [optional] 
 **status_metadata** | [**PipelineTaskDetailStatusMetadata**](PipelineTaskDetailStatusMetadata.md) |  | [optional] 

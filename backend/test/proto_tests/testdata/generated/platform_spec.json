@@ -1,21 +1,21 @@
 {
-  "platforms": {
-    "kubernetes": {
-      "deployment_spec": {
-        "executors": {
-          "root-executor": {
-            "container": {
-              "image": "test-image"
+  "platforms":  {
+    "kubernetes":  {
+      "deployment_spec":  {
+        "executors":  {
+          "root-executor":  {
+            "container":  {
+              "image":  "test-image"
             }
           }
         }
       },
-      "platform": "kubernetes",
-      "config": {
-        "project": "test-project"
+      "platform":  "kubernetes",
+      "config":  {
+        "project":  "test-project"
       },
-      "pipelineConfig": {
-        "resource_ttl": 24
+      "pipelineConfig":  {
+        "resource_ttl":  24
       }
     }
   }
