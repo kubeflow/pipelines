@@ -108,7 +108,6 @@ env:
 
 jobs:
   build-and-push-images:
-    if: inputs.push && inputs.src_branch
     continue-on-error: false
     runs-on: ubuntu-latest
     permissions:
@@ -172,7 +171,7 @@ jobs:
         with:
           context: ${{ inputs.image_context }}
           file: ${{ inputs.docker_file }}
-          push: true
+          push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -183,7 +182,7 @@ jobs:
       # Ref: https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
-        if: steps.check_tag.outcome == 'success'
+        if: steps.check_tag.outcome == 'success' && inputs.push
         with:
           subject-name: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
           subject-digest: ${{ steps.push.outputs.digest }}
