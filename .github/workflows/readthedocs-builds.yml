@@ -26,23 +26,10 @@ jobs:
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
-        with:
-          generate_golang_proto: "false"
 
-      - name: Install setuptools
-        run: |
-          pip3 install setuptools
-          pip3 freeze
-          pip3 install build
-
-      - name: Build & install kfp-server-api dist
-        id: install-kfp-server-api
-        shell: bash
-        working-directory: backend/api/v2beta1/python_http_client
-        run: |
-          rm -rf dist/
-          python -m build .
-          pip install dist/*.whl
+      - name: Install kfp & kfp-kubernetes from source
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
 
       - name: Install Dependencies
         run: |
