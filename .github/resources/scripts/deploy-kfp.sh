@@ -167,8 +167,12 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
+  if $ARTIFACT_PROXY_ENABLED; then
+    if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+      TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy/seaweed-single-pod"
+    elif [ "${STORAGE_BACKEND}" == "seaweedfs-ha" ]; then
+      TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy/seaweed-ha"
+    fi
   elif [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then

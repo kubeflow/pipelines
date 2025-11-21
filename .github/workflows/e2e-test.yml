@@ -181,7 +181,12 @@ jobs:
           storage: "seaweedfs"
           k8s_version: "v1.34.0"
           cache_enabled: "true"
-          test_label: "E2ECritical" 
+          test_label: "E2ECritical"
+        - multi_user: "true"
+          artifact_proxy: "true"
+          storage: "seaweedfs-ha"
+          k8s_version: "v1.34.0"
+          test_label: "E2ECritical"
       fail-fast: false
     name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} storage=${{ matrix.storage }} artifactProxy=${{ matrix.artifact_proxy }}
     steps:
