@@ -89,6 +89,7 @@ def build_task_spec_for_task(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str],
+    internal_name_to_dag_key: Optional[Dict[str, str]] = None,
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
     """Builds PipelineTaskSpec for a pipeline task.
 
@@ -193,9 +194,16 @@ def build_task_spec_for_task(
                 # Value is produced by an upstream task.
                 if input_value.task_name in tasks_in_current_dag:
                     # Dependent task within the same DAG.
+                    # Use DAG key if available, otherwise sanitized internal name
+                    producer_task_name = (
+                        internal_name_to_dag_key.get(
+                            input_value.task_name,
+                            utils.sanitize_task_name(input_value.task_name))
+                        if internal_name_to_dag_key else
+                        utils.sanitize_task_name(input_value.task_name))
                     pipeline_task_spec.inputs.artifacts[
                         input_name].task_output_artifact.producer_task = (
-                            utils.sanitize_task_name(input_value.task_name))
+                            producer_task_name)
                     pipeline_task_spec.inputs.artifacts[
                         input_name].task_output_artifact.output_artifact_key = (
                             input_value.name)
@@ -228,9 +236,16 @@ def build_task_spec_for_task(
                 # Value is produced by an upstream task.
                 if input_value.task_name in tasks_in_current_dag:
                     # Dependent task within the same DAG.
+                    # Use DAG key if available, otherwise sanitized internal name
+                    producer_task_name = (
+                        internal_name_to_dag_key.get(
+                            input_value.task_name,
+                            utils.sanitize_task_name(input_value.task_name))
+                        if internal_name_to_dag_key else
+                        utils.sanitize_task_name(input_value.task_name))
                     pipeline_task_spec.inputs.parameters[
                         input_name].task_output_parameter.producer_task = (
-                            utils.sanitize_task_name(input_value.task_name))
+                            producer_task_name)
                     pipeline_task_spec.inputs.parameters[
                         input_name].task_output_parameter.output_parameter_key = (
                             input_value.name)
@@ -292,9 +307,16 @@ def build_task_spec_for_task(
                     # Value is produced by an upstream task.
                     if channel.task_name in tasks_in_current_dag:
                         # Dependent task within the same DAG.
+                        # Use DAG key if available, otherwise sanitized internal name
+                        producer_task_name = (
+                            internal_name_to_dag_key.get(
+                                channel.task_name,
+                                utils.sanitize_task_name(channel.task_name))
+                            if internal_name_to_dag_key else
+                            utils.sanitize_task_name(channel.task_name))
                         pipeline_task_spec.inputs.parameters[
                             additional_input_name].task_output_parameter.producer_task = (
-                                utils.sanitize_task_name(channel.task_name))
+                                producer_task_name)
                         pipeline_task_spec.inputs.parameters[
                             additional_input_name].task_output_parameter.output_parameter_key = (
                                 channel.name)
@@ -1175,6 +1197,7 @@ def build_task_spec_for_exit_task(
         task=task,
         parent_component_inputs=pipeline_inputs,
         tasks_in_current_dag=[],  # Does not matter for exit task
+        internal_name_to_dag_key=None,  # Exit tasks don't use display_name
     )
     pipeline_task_spec.dependent_tasks.extend([dependent_task])
     pipeline_task_spec.trigger_policy.strategy = (
@@ -1194,6 +1217,7 @@ def build_task_spec_for_group(
     pipeline_channels: List[pipeline_channel.PipelineChannel],
     tasks_in_current_dag: List[str],
     is_parent_component_root: bool,
+    internal_name_to_dag_key: Optional[Dict[str, str]] = None,
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
     """Builds PipelineTaskSpec for a group.
 
@@ -1203,6 +1227,8 @@ def build_task_spec_for_group(
         tasks_in_current_dag: The list of tasks names for tasks in the same dag.
         is_parent_component_root: Whether the parent component is the pipeline's
             root dag.
+        internal_name_to_dag_key: Optional mapping from internal task names to
+            DAG keys (which may use display_name).
 
     Returns:
         A PipelineTaskSpec object representing the group.
@@ -1233,9 +1259,16 @@ def build_task_spec_for_group(
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             if channel.task_name and channel.task_name in tasks_in_current_dag:
+                # Use DAG key if available, otherwise sanitized internal name
+                producer_task_name = (
+                    internal_name_to_dag_key.get(
+                        channel.task_name,
+                        utils.sanitize_task_name(channel.task_name))
+                    if internal_name_to_dag_key else utils.sanitize_task_name(
+                        channel.task_name))
                 pipeline_task_spec.inputs.artifacts[
                     input_name].task_output_artifact.producer_task = (
-                        utils.sanitize_task_name(channel.task_name))
+                        producer_task_name)
                 pipeline_task_spec.inputs.artifacts[
                     input_name].task_output_artifact.output_artifact_key = (
                         channel_name)
@@ -1245,9 +1278,16 @@ def build_task_spec_for_group(
                         channel_full_name
                         if is_parent_component_root else input_name)
         elif channel.task_name and channel.task_name in tasks_in_current_dag:
+            # Use DAG key if available, otherwise sanitized internal name
+            producer_task_name = (
+                internal_name_to_dag_key.get(
+                    channel.task_name,
+                    utils.sanitize_task_name(channel.task_name))
+                if internal_name_to_dag_key else utils.sanitize_task_name(
+                    channel.task_name))
             pipeline_task_spec.inputs.parameters[
                 input_name].task_output_parameter.producer_task = (
-                    utils.sanitize_task_name(channel.task_name))
+                    producer_task_name)
             pipeline_task_spec.inputs.parameters[
                 input_name].task_output_parameter.output_parameter_key = (
                     channel_name)
@@ -1371,6 +1411,60 @@ def build_spec_by_group(
 
     # Generate task specs and component specs for the dag.
     subgroups = group.groups + group.tasks
+
+    # Build mapping from internal task names to DAG keys for container
+    # tasks with display_name. This must be done before processing tasks
+    # to ensure tasks_in_current_dag uses correct keys.
+    internal_name_to_dag_key = {}
+    existing_dag_keys = set()
+
+    for subgroup in subgroups:
+        if (isinstance(subgroup, pipeline_task.PipelineTask) and
+                subgroup.container_spec is not None):
+            # Check if task has display_name set
+            if subgroup._task_spec.display_name:
+                # Use display_name for container tasks
+                task_dag_key = utils.sanitize_task_name(
+                    subgroup._task_spec.display_name)
+
+                # Handle empty string after sanitization
+                if not task_dag_key:
+                    task_dag_key = utils.sanitize_task_name(subgroup.name)
+                else:
+                    # Ensure uniqueness within the DAG
+                    task_dag_key = utils.make_name_unique_by_adding_index(
+                        name=task_dag_key,
+                        collection=list(existing_dag_keys),
+                        delimiter='-')
+                    # Validate length: pod name format is
+                    # {workflow-name}-{template-name}-{hash}
+                    # Kubernetes pod name limit is 63 chars total
+                    # Conservative estimate: workflow-name ~40, hash ~6,
+                    # dashes ~2, leaves ~15 for task name
+                    max_task_name_length = 15
+                    if len(task_dag_key) > max_task_name_length:
+                        # Truncate and ensure uniqueness
+                        truncated = task_dag_key[:max_task_name_length].rstrip(
+                            '-')
+                        if not truncated:
+                            truncated = task_dag_key[:max_task_name_length]
+                        task_dag_key = utils.make_name_unique_by_adding_index(
+                            name=truncated,
+                            collection=list(existing_dag_keys),
+                            delimiter='-')
+                existing_dag_keys.add(task_dag_key)
+                internal_name_to_dag_key[subgroup.name] = task_dag_key
+            else:
+                # Fallback to current behavior
+                task_dag_key = utils.sanitize_task_name(subgroup.name)
+                existing_dag_keys.add(task_dag_key)
+                internal_name_to_dag_key[subgroup.name] = task_dag_key
+        else:
+            # For non-container tasks or groups, use current behavior
+            task_dag_key = utils.sanitize_task_name(subgroup.name)
+            existing_dag_keys.add(task_dag_key)
+            internal_name_to_dag_key[subgroup.name] = task_dag_key
+
     for subgroup in subgroups:
 
         subgroup_input_channels = [
@@ -1380,16 +1474,23 @@ def build_spec_by_group(
 
         subgroup_component_name = (utils.sanitize_component_name(subgroup.name))
 
+        # Build tasks_in_current_dag using internal names for membership checks
+        # (PipelineChannels use internal task names)
         tasks_in_current_dag = [
             utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
         ]
         is_parent_component_root = (group_component_spec == pipeline_spec.root)
+
+        # Get the DAG key for this subgroup
+        task_dag_key = internal_name_to_dag_key.get(
+            subgroup.name, utils.sanitize_task_name(subgroup.name))
 
         if isinstance(subgroup, pipeline_task.PipelineTask):
             subgroup_task_spec = build_task_spec_for_task(
                 task=subgroup,
                 parent_component_inputs=group_component_spec.input_definitions,
                 tasks_in_current_dag=tasks_in_current_dag,
+                internal_name_to_dag_key=internal_name_to_dag_key,
             )
             task_name_to_task_spec[subgroup.name] = subgroup_task_spec
             subgroup_component_spec = build_component_spec_for_task(
@@ -1484,6 +1585,7 @@ def build_spec_by_group(
                 pipeline_channels=loop_subgroup_channels,
                 tasks_in_current_dag=tasks_in_current_dag,
                 is_parent_component_root=is_parent_component_root,
+                internal_name_to_dag_key=internal_name_to_dag_key,
             )
 
             _build_dag_outputs(subgroup_component_spec,
@@ -1508,6 +1610,7 @@ def build_spec_by_group(
                 pipeline_channels=condition_subgroup_channels,
                 tasks_in_current_dag=tasks_in_current_dag,
                 is_parent_component_root=is_parent_component_root,
+                internal_name_to_dag_key=internal_name_to_dag_key,
             )
 
             _build_dag_outputs(subgroup_component_spec,
@@ -1525,6 +1628,7 @@ def build_spec_by_group(
                 pipeline_channels=subgroup_input_channels,
                 tasks_in_current_dag=tasks_in_current_dag,
                 is_parent_component_root=is_parent_component_root,
+                internal_name_to_dag_key=internal_name_to_dag_key,
             )
 
         # handles the conditional group wrapping only
@@ -1539,6 +1643,7 @@ def build_spec_by_group(
                 pipeline_channels=subgroup_input_channels,
                 tasks_in_current_dag=tasks_in_current_dag,
                 is_parent_component_root=is_parent_component_root,
+                internal_name_to_dag_key=internal_name_to_dag_key,
             )
             # oneof is the only type of output a ConditionBranches group can have
             build_oneof_dag_outputs(subgroup_component_spec,
@@ -1550,11 +1655,16 @@ def build_spec_by_group(
                 f'{type(subgroup)}.')
 
         # Generate dependencies section for this task.
+        # Map dependencies from internal names to DAG keys
         if dependencies.get(subgroup.name, None):
             group_dependencies = list(dependencies[subgroup.name])
             group_dependencies.sort()
-            subgroup_task_spec.dependent_tasks.extend(
-                [utils.sanitize_task_name(dep) for dep in group_dependencies])
+            # Map dependency names to their DAG keys
+            dag_key_dependencies = [
+                internal_name_to_dag_key.get(dep, utils.sanitize_task_name(dep))
+                for dep in group_dependencies
+            ]
+            subgroup_task_spec.dependent_tasks.extend(dag_key_dependencies)
 
         # Modify the task inputs for PipelineTaskFinalStatus if ignore_upstream_failure is used
         # Must be done after dependencies are added
@@ -1571,8 +1681,9 @@ def build_spec_by_group(
         pipeline_spec.components[subgroup_component_name].CopyFrom(
             subgroup_component_spec)
 
-        # Add task spec
-        group_component_spec.dag.tasks[subgroup.name].CopyFrom(
+        # Add task spec using the DAG key (which may be display_name for
+        # container tasks)
+        group_component_spec.dag.tasks[task_dag_key].CopyFrom(
             subgroup_task_spec)
 
     pipeline_spec.deployment_spec.update(
