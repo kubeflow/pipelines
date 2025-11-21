@@ -25,17 +25,14 @@ echo "Installed latest KFP SDK version: $LATEST_KFP_SDK_RELEASE"
 # these packages are patch version aligned, and during releases they may be
 # unreleased in PyPi.
 
-# Build and install kfp-pipeline-spec
+# Build (to generate proto code) and install kfp-pipeline-spec
 pushd api
 make python
-python3 -m pip install v2alpha1/python/dist
+python3 -m pip install v2alpha1/python
 popd
 
-# Build and install kfp-server-api
-pushd backend/api/v2beta1/python_http_client
-python3 -m pip install dist
-python -m build .
-popd
+# Install kfp-server-api
+python3 -m pip install backend/api/v2beta1/python_http_client
 
 # install in normal mode, not editable mode, to emulate typical user upgrade behavior
 python3 -m pip install sdk/python
