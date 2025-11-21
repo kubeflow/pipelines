@@ -33,20 +33,27 @@ jobs:
 
       - name: Install Wheel
         run: pip3 install wheel==0.42.0
-      
-      - name: Install python sdk
-        run: pip install sdk/python
-
-      - name: Install google-cloud component
-        run: pip install components/google-cloud
 
       - name: Generate API proto files
         working-directory: ./api
         run: make clean python
 
       - name: Install kfp-pipeline-spec from source
-        run: | 
+        run: |
           python3 -m pip install -I api/v2alpha1/python
+
+      - name: Build kfp-server-api dist
+        id: install-kfp-server-api
+        shell: bash
+        working-directory: backend/api/v2beta1/python_http_client
+        run: |
+          python -m build .
+
+      - name: Install python sdk
+        run: pip install sdk/python --find-links=backend/api/v2beta1/python_http_client/dist --find-links=api/v2alpha1/python/dist
+
+      - name: Install google-cloud component
+        run: pip install components/google-cloud
 
       - name: Install Pytest
         run: pip install "$(grep 'pytest==' sdk/python/requirements-dev.txt)"

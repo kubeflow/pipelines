@@ -21,6 +21,22 @@ python3 -m pip install kfp
 LATEST_KFP_SDK_RELEASE=$(python3 -m pip show kfp | grep "Version:" | awk '{print $2}' | awk '{$1=$1};1')
 echo "Installed latest KFP SDK version: $LATEST_KFP_SDK_RELEASE"
 
+# Before installing KFP we need to install our kfp dependencies from source since
+# these packages are patch version aligned, and during releases they may be
+# unreleased in PyPi.
+
+# Build and install kfp-pipeline-spec
+pushd api
+make python
+python3 -m pip install v2alpha1/python/dist
+popd
+
+# Build and install kfp-server-api
+pushd backend/api/v2beta1/python_http_client
+python3 -m pip install dist
+python -m build .
+popd
+
 # install in normal mode, not editable mode, to emulate typical user upgrade behavior
 python3 -m pip install sdk/python
 # HEAD will only be different than latest for a release PR

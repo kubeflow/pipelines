@@ -16,6 +16,13 @@ runs:
       shell: bash
       run: pip install build==${{inputs.build_version}}
 
+    - name: Build kfp-server-api dist
+      id: install-kfp-server-api
+      shell: bash
+      working-directory: backend/api/v2beta1/python_http_client
+      run: |
+        python -m build .
+
     - name: Build kfp dist
       id: install-kfp
       shell: bash
@@ -26,14 +33,14 @@ runs:
     - name: Generate kfp-kubernetes python proto files from source
       id: generate-kfp-kubernetes-proto-files
       shell: bash
-      if: ${{ steps.install-kfp.outcome == 'success' }}
+      if: ${{ steps.install-kfp.outcome == 'success' && steps.install-kfp-server-api == 'success'  }}
       working-directory: ./kubernetes_platform
       run: make clean python USE_FIND_LINKS=true
 
     - name: Generate kfp-kubernetes golang proto files from source
       id: generate-kfp-kubernetes-go-proto-files
       shell: bash
-      if: ${{ steps.install-kfp.outcome == 'success' && inputs.generate_golang_proto == 'true' }}
+      if: ${{ steps.install-kfp.outcome == 'success' && steps.install-kfp-server-api == 'success'  && inputs.generate_golang_proto == 'true' }}
       working-directory: ./kubernetes_platform
       run: make golang
 
@@ -45,7 +52,7 @@ runs:
       shell: bash
       if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
       run: |
-        pip install -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
+        pip install -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist --find-links=backend/api/v2beta1/python_http_client/dist
 
     # testing reinstalling kfp package from source with no deps
     - name: Reinstall kfp from source with no deps
