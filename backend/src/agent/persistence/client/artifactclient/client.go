@@ -18,6 +18,8 @@ package artifactclient
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -146,12 +148,27 @@ func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		data, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, NewError(ErrorCodePermanent, err,
-				"Failed to read artifact data: %v", err.Error())
+				"Failed to read response body: %v", err.Error())
 		}
-		return &ReadArtifactResponse{Data: data}, nil
+
+		var jsonResponse struct {
+			Data string `json:"data"`
+		}
+		if err := json.Unmarshal(body, &jsonResponse); err != nil {
+			return nil, NewError(ErrorCodePermanent, err,
+				"Failed to parse JSON response: %v", err.Error())
+		}
+
+		decodedData, err := base64.StdEncoding.DecodeString(jsonResponse.Data)
+		if err != nil {
+			return nil, NewError(ErrorCodePermanent, err,
+				"Failed to decode base64 data: %v", err.Error())
+		}
+
+		return &ReadArtifactResponse{Data: decodedData}, nil
 
 	case http.StatusNotFound:
 		return nil, nil
