@@ -17,7 +17,7 @@ PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:release-2.15
 # Set USE_FIND_LINKS=true to use local sdk and pipeline_spec for buildling python builds rather than pulling from pypi
 # applies to `make python` and make pythone-dev` commands.
 # e.g. make python USE_FIND_LINKS=true FIND_LINKS_PATH="path1 path2 ..."
-FIND_LINKS_PATH := /go/src/github.com/kubeflow/pipelines/sdk/python/dist /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python/dist
+FIND_LINKS_PATH := /go/src/github.com/kubeflow/pipelines/sdk/python/dist /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python/dist /go/src/github.com/kubeflow/pipelines/backend/api/v2beta1/python_http_client/dist
 
 .PHONY: all
 all: golang python
