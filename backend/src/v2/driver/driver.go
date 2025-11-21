@@ -461,7 +461,7 @@ func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 				return true
 			}
 
-			if strings.HasPrefix(strVal.StringValue, component.WorkspaceMountPath) {
+			if strings.Contains(strVal.StringValue, component.WorkspaceMountPath) {
 				return true
 			}
 		}

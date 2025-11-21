@@ -1,0 +1,489 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-importer-workspace
+# Description: Importer downloads an artifact into workspace; downstream reads it
+# Outputs:
+#    dir_result: str
+#    train_result: str
+components:
+  comp-get-uri:
+    executorLabel: exec-get-uri
+    inputDefinitions:
+      artifacts:
+        d:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-get-uri-2:
+    executorLabel: exec-get-uri-2
+    inputDefinitions:
+      artifacts:
+        d:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-import-stage:
+    dag:
+      outputs:
+        parameters:
+          dir_result:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: read-dir
+          train_result:
+            valueFromParameter:
+              outputParameterKey: scalar
+              producerSubtask: train
+      tasks:
+        importer:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-importer
+          inputs:
+            parameters:
+              uri:
+                componentInputParameter: file_uri
+          taskInfo:
+            name: importer
+        importer-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-importer-2
+          inputs:
+            parameters:
+              uri:
+                componentInputParameter: dir_uri
+          taskInfo:
+            name: importer-2
+        read-dir:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-read-dir
+          dependentTasks:
+          - importer-2
+          inputs:
+            artifacts:
+              data:
+                taskOutputArtifact:
+                  outputArtifactKey: artifact
+                  producerTask: importer-2
+          taskInfo:
+            name: read-dir
+        train:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-train
+          dependentTasks:
+          - importer
+          inputs:
+            artifacts:
+              dataset:
+                taskOutputArtifact:
+                  outputArtifactKey: artifact
+                  producerTask: importer
+          taskInfo:
+            name: train
+    inputDefinitions:
+      parameters:
+        dir_uri:
+          parameterType: STRING
+        file_uri:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        dir_result:
+          parameterType: STRING
+        train_result:
+          parameterType: STRING
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-importer-2:
+    executorLabel: exec-importer-2
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-read-dir:
+    executorLabel: exec-read-dir
+    inputDefinitions:
+      artifacts:
+        data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-train:
+    executorLabel: exec-train
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+        scalar:
+          parameterType: STRING
+  comp-write-dir-artifact:
+    executorLabel: exec-write-dir-artifact
+    outputDefinitions:
+      artifacts:
+        out_ds:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-write-file-artifact:
+    executorLabel: exec-write-file-artifact
+    outputDefinitions:
+      artifacts:
+        out_ds:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-get-uri:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_uri
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_uri(d: dsl.Input[dsl.Dataset]) -> str:\n    print(f\"Artifact\
+          \ URI: {d.uri}\")\n    return d.uri\n\n"
+        image: registry.access.redhat.com/ubi9/python-311:latest
+    exec-get-uri-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_uri
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_uri(d: dsl.Input[dsl.Dataset]) -> str:\n    print(f\"Artifact\
+          \ URI: {d.uri}\")\n    return d.uri\n\n"
+        image: registry.access.redhat.com/ubi9/python-311:latest
+    exec-importer:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        downloadToWorkspace: true
+        metadata:
+          key: value
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-importer-2:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        downloadToWorkspace: true
+        metadata:
+          source: directory
+        reimport: true
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-read-dir:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_dir
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_dir(data: dsl.Input[dsl.Dataset]) -> str:\n    \"\"\"Walk\
+          \ the directory and return a summary of file names.\"\"\"\n    import os\n\
+          \    path = data.path\n\n    if not os.path.exists(path):\n        raise\
+          \ FileNotFoundError(f\"Path does not exist: {path}\")\n\n    if os.path.isdir(path):\n\
+          \        names = []\n        for root, _, files in os.walk(path):\n    \
+          \        for name in files:\n                names.append(os.path.relpath(os.path.join(root,\
+          \ name), path))\n        names.sort()\n        result = \",\".join(names)\
+          \ if names else \"EMPTY_DIRECTORY\"\n        print(f\"Found {len(names)}\
+          \ files: {result}\")\n        return result\n\n    raise ValueError(f\"\
+          Not a directory: {path}\")\n\n"
+        image: registry.access.redhat.com/ubi9/python-311:latest
+    exec-train:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train(\n    dataset: dsl.Input[dsl.Dataset]\n) -> NamedTuple('Outputs',\
+          \ [\n    ('scalar', str),\n    ('message', str),\n]):\n    \"\"\"Dummy Training\
+          \ step.\"\"\"\n    with open(dataset.path, encoding=\"utf-8\") as f:\n \
+          \       data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n\
+          \    message = f'My model trained using data: {data}'\n\n    from collections\
+          \ import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'message'])\n\
+          \    return output(scalar, message)\n\n"
+        image: registry.access.redhat.com/ubi9/python-311:latest
+    exec-write-dir-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - write_dir_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef write_dir_artifact(out_ds: Output[dsl.Dataset]):\n    import\
+          \ os\n    os.makedirs(out_ds.path, exist_ok=True)\n    with open(os.path.join(out_ds.path,\
+          \ \"part-000.txt\"), \"w\", encoding=\"utf-8\") as f:\n        f.write(\"\
+          First file in directory.\\n\")\n    with open(os.path.join(out_ds.path,\
+          \ \"part-001.txt\"), \"w\", encoding=\"utf-8\") as f:\n        f.write(\"\
+          Second file in directory.\\n\")\n\n"
+        image: registry.access.redhat.com/ubi9/python-311:latest
+    exec-write-file-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - write_file_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef write_file_artifact(out_ds: Output[dsl.Dataset]):\n    import\
+          \ os\n    os.makedirs(os.path.dirname(out_ds.path), exist_ok=True)\n   \
+          \ with open(out_ds.path, \"w\", encoding=\"utf-8\") as f:\n        f.write(\"\
+          Hello from producer file\\n\")\n\n"
+        image: registry.access.redhat.com/ubi9/python-311:latest
+pipelineInfo:
+  description: Importer downloads an artifact into workspace; downstream reads it
+  name: pipeline-with-importer-workspace
+root:
+  dag:
+    outputs:
+      parameters:
+        dir_result:
+          valueFromParameter:
+            outputParameterKey: dir_result
+            producerSubtask: import-stage
+        train_result:
+          valueFromParameter:
+            outputParameterKey: train_result
+            producerSubtask: import-stage
+    tasks:
+      get-uri:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-uri
+        dependentTasks:
+        - write-file-artifact
+        inputs:
+          artifacts:
+            d:
+              taskOutputArtifact:
+                outputArtifactKey: out_ds
+                producerTask: write-file-artifact
+        taskInfo:
+          name: get-uri
+      get-uri-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-uri-2
+        dependentTasks:
+        - write-dir-artifact
+        inputs:
+          artifacts:
+            d:
+              taskOutputArtifact:
+                outputArtifactKey: out_ds
+                producerTask: write-dir-artifact
+        taskInfo:
+          name: get-uri-2
+      import-stage:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-import-stage
+        dependentTasks:
+        - get-uri
+        - get-uri-2
+        inputs:
+          parameters:
+            dir_uri:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: get-uri-2
+            file_uri:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: get-uri
+        taskInfo:
+          name: import-stage
+      write-dir-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-write-dir-artifact
+        taskInfo:
+          name: write-dir-artifact
+      write-file-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-write-file-artifact
+        taskInfo:
+          name: write-file-artifact
+  outputDefinitions:
+    parameters:
+      dir_result:
+        parameterType: STRING
+      train_result:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      workspace:
+        kubernetes:
+          pvcSpecPatch:
+            accessModes:
+            - ReadWriteOnce
+            storageClassName: standard
+        size: 1Gi
