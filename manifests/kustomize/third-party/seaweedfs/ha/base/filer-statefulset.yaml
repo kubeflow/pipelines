@@ -91,7 +91,7 @@ spec:
         env:
         # These two env vars are needed to enable weed shell to discover the master server
         - name: WEED_CLUSTER_SW_MASTER
-          value: seaweedfs-master.swfs-test:9333
+          value: seaweedfs-master.kubeflow:9333
         - name: WEED_CLUSTER_DEFAULT
           value: sw
         readinessProbe:
