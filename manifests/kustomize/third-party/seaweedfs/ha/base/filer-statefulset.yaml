@@ -40,23 +40,42 @@ spec:
         fsGroup: 1000
       containers:
       - name: seaweedfs-filer
-        env:
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: accesskey
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: secretkey
         image: 'chrislusf/seaweedfs'
+        envFrom:
+        - secretRef:
+            name: mlpipeline-minio-artifact
         args:
         - 'filer'
         - '-port=8888'
         - '-iam'
         - '-master=seaweedfs-master-0.seaweedfs-master:9333,seaweedfs-master-1.seaweedfs-master:9333,seaweedfs-master-2.seaweedfs-master:9333'
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -ec
+              - |
+                # Only run this on one filer
+                if [[ $(hostname) == seaweedfs-filer-0 ]]; then
+                  exit 0
+                fi
+                # wait until seaweedfs filer is ready
+                # Filer will be ready only after masters are ready.
+                # We run this not directly on one of the masters, because that will not work for some reason.
+                # This is closer to the single pod setup, where we wait for the s3 endpoint to get ready, which also 
+                # directly depends on the filer.
+                echo "Wait for cluster ready"
+                for i in $(seq 1 120); do
+                  if wget -q --spider http://127.0.0.1:8888/ ; then
+                    break
+                  fi
+                  sleep 2
+                done
+                # create bucket if not exists (ignore error if exists)
+                echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell || true
+                # configure admin user using keys from secret
+                echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell
         volumeMounts:
           - name: data-filer
             mountPath: /data
@@ -69,6 +88,12 @@ spec:
             name: http-s3
           - containerPort: 8111
             name: http-iam
+        env:
+        # These two env vars are needed to enable weed shell to discover the master server
+        - name: WEED_CLUSTER_SW_MASTER
+          value: seaweedfs-master.swfs-test:9333
+        - name: WEED_CLUSTER_DEFAULT
+          value: sw
         readinessProbe:
           httpGet:
             path: /
