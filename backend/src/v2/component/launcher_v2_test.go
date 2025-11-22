@@ -89,6 +89,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
+
 			_, _, err = executeV2(
 				context.Background(),
 				test.executorInput,
@@ -101,14 +102,14 @@ func Test_executeV2_Parameters(t *testing.T) {
 				"namespace",
 				fakeKubernetesClientset,
 				"false",
-				"",
+				"",  // custom CA path
+				nil, // NEW: CACertEnvVars
 			)
 
 			if test.wantErr {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-
 			}
 		})
 	}
@@ -151,6 +152,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
+
 			_, _, err = executeV2(
 				context.Background(),
 				test.executorInput,
@@ -163,14 +165,14 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				"namespace",
 				fakeKubernetesClientset,
 				"false",
-				"",
+				"",  // custom CA path
+				nil, // NEW: CACertEnvVars
 			)
 
 			if test.wantErr {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-
 			}
 		})
 	}
@@ -210,7 +212,6 @@ func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 
 	executorInput := &pipelinespec.ExecutorInput{}
 	err := protojson.Unmarshal([]byte(executorInputJSON), executorInput)
-
 	assert.NoError(t, err)
 
 	cmd := "sh"
@@ -219,7 +220,6 @@ func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 		"--function_to_execute", "sayHello",
 	}
 	cmd, args, err = compileCmdAndArgs(executorInput, cmd, args)
-
 	assert.NoError(t, err)
 
 	var actualExecutorInput string

@@ -48,6 +48,8 @@ type LauncherV2Options struct {
 	Namespace,
 	PodName,
 	PodUID,
+	MLPipelineServerAddress,
+	MLPipelineServerPort,
 	MLMDServerAddress,
 	MLMDServerPort,
 	PipelineName,
@@ -59,6 +61,11 @@ type LauncherV2Options struct {
 	// Set to true if metadata server is serving over TLS
 	MLMDTLSEnabled bool
 	CaCertPath     string
+
+	// Optional: explicit list of CA-related env var names to set when CaCertPath is provided.
+	// If nil or empty, launcher will set the historical defaults:
+	//   REQUESTS_CA_BUNDLE, AWS_CA_BUNDLE, SSL_CERT_FILE
+	CACertEnvVars []string
 }
 
 type LauncherV2 struct {
@@ -236,7 +243,9 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		l.clientManager.K8sClient(),
 		l.options.PublishLogs,
 		l.options.CaCertPath,
+		l.options.CACertEnvVars,
 	)
+
 	if err != nil {
 		return err
 	}
@@ -359,6 +368,7 @@ func executeV2(
 	k8sClient kubernetes.Interface,
 	publishLogs string,
 	customCAPath string,
+	cacertEnvVars []string,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 
 	// Add parameter default values to executorInput, if there is not already a user input.
@@ -386,6 +396,7 @@ func executeV2(
 		k8sClient,
 		publishLogs,
 		customCAPath,
+		cacertEnvVars,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -500,6 +511,7 @@ func execute(
 	k8sClient kubernetes.Interface,
 	publishLogs string,
 	customCAPath string,
+	cacertEnvVars []string,
 ) (*pipelinespec.ExecutorOutput, error) {
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
@@ -524,19 +536,19 @@ func execute(
 			return nil, err
 		}
 
-		err = os.Setenv("REQUESTS_CA_BUNDLE", caBundleTmpPath)
-		if err != nil {
-			glog.Errorf("Error setting REQUESTS_CA_BUNDLE environment variable, %s", err.Error())
-		}
-		err = os.Setenv("AWS_CA_BUNDLE", caBundleTmpPath)
-		if err != nil {
-			glog.Errorf("Error setting AWS_CA_BUNDLE environment variable, %s", err.Error())
-		}
-		err = os.Setenv("SSL_CERT_FILE", caBundleTmpPath)
-		if err != nil {
-			glog.Errorf("Error setting SSL_CERT_FILE environment variable, %s", err.Error())
+		// Default envs historically set by the launcher
+		defaultEnvVars := []string{"REQUESTS_CA_BUNDLE", "AWS_CA_BUNDLE", "SSL_CERT_FILE"}
+		// If caller provided an explicit list, use it. Otherwise use defaults.
+		envsToSet := defaultEnvVars
+		if len(cacertEnvVars) > 0 {
+			envsToSet = cacertEnvVars
 		}
 
+		for _, ev := range envsToSet {
+			if err := os.Setenv(ev, caBundleTmpPath); err != nil {
+				glog.Errorf("Error setting %s environment variable: %v", ev, err)
+			}
+		}
 	}
 
 	// Prepare command that will execute end user code.

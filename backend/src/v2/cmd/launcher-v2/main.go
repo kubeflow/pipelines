@@ -91,6 +91,7 @@ func run() error {
 		MLPipelineTLSEnabled: *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:       *metadataTLSEnabled,
 		CaCertPath:           *caCertPath,
+		CACertEnvVars:        nil,
 	}
 
 	switch *executorType {
