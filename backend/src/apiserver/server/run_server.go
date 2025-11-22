@@ -460,27 +460,6 @@ func (s *RunServerV1) ReportRunMetricsV1(ctx context.Context, request *apiv1beta
 	return &apiv1beta1.ReportRunMetricsResponse{Results: apiResults}, nil
 }
 
-// Reads an artifact.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) ReadArtifactV1(ctx context.Context, request *apiv1beta1.ReadArtifactRequest) (*apiv1beta1.ReadArtifactResponse, error) {
-	if s.options.CollectMetrics {
-		readArtifactRequests.Inc()
-	}
-
-	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
-	}
-
-	content, err := s.resourceManager.ReadArtifact(
-		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
-	if err != nil {
-		return nil, util.Wrapf(err, "failed to read artifact '%+v'", request)
-	}
-	return &apiv1beta1.ReadArtifactResponse{
-		Data: content,
-	}, nil
-}
 
 // Terminates a run.
 // Applies common logic on v1beta1 and v2beta1 API.
@@ -626,27 +605,6 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRun
 	return &emptypb.Empty{}, nil
 }
 
-// Reads an artifact.
-// Supports v2beta1 behavior.
-func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadArtifactRequest) (*apiv2beta1.ReadArtifactResponse, error) {
-	if s.options.CollectMetrics {
-		readArtifactRequests.Inc()
-	}
-
-	err := s.canAccessRun(ctx, request.GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
-	}
-
-	content, err := s.resourceManager.ReadArtifact(
-		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
-	if err != nil {
-		return nil, util.Wrapf(err, "failed to read artifact '%+v'", request)
-	}
-	return &apiv2beta1.ReadArtifactResponse{
-		Data: content,
-	}, nil
-}
 
 // Terminates a run.
 // Supports v2beta1 behavior.

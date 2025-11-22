@@ -75,3 +75,8 @@ const (
 const (
 	DefaultPodNamespace string = "kubeflow"
 )
+
+const (
+	DefaultMLPipelineServiceName string = "ml-pipeline"
+	DefaultMetadataServiceName   string = "metadata-grpc-service"
+)

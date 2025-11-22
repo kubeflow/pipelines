@@ -25,6 +25,8 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/tokenrefresher"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -38,8 +40,8 @@ const (
 type PipelineClientInterface interface {
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
-	ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error)
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
+	ArtifactClient() artifactclient.Client
 }
 
 type PipelineClient struct {
@@ -47,13 +49,14 @@ type PipelineClient struct {
 	timeout             time.Duration
 	reportServiceClient api.ReportServiceClient
 	runServiceClient    api.RunServiceClient
-	tokenRefresher      TokenRefresherInterface
+	tokenRefresher      *tokenrefresher.TokenRefresher
+	artifactClient      artifactclient.Client
 }
 
 func NewPipelineClient(
 	initializeTimeout time.Duration,
 	timeout time.Duration,
-	tokenRefresher TokenRefresherInterface,
+	tokenRefresher *tokenrefresher.TokenRefresher,
 	basePath string,
 	mlPipelineServiceName string,
 	mlPipelineServiceHttpPort string,
@@ -82,12 +85,16 @@ func NewPipelineClient(
 			"Failed to get RPC connection. Error: %s", err.Error())
 	}
 
+	httpBaseURL := fmt.Sprintf("%s://%s%s", scheme, httpAddress, basePath)
+	artifactClient := artifactclient.NewClient(httpBaseURL, httpClient, tokenRefresher)
+
 	return &PipelineClient{
 		initializeTimeout:   initializeTimeout,
 		timeout:             timeout,
 		reportServiceClient: api.NewReportServiceClient(connection),
 		tokenRefresher:      tokenRefresher,
 		runServiceClient:    api.NewRunServiceClient(connection),
+		artifactClient:      artifactClient,
 	}, nil
 }
 
@@ -117,7 +124,10 @@ func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 				workflow.ToStringForStore())
 		} else if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
 			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
-			p.tokenRefresher.RefreshToken()
+			if refreshErr := p.tokenRefresher.RefreshToken(); refreshErr != nil {
+				return util.NewCustomError(refreshErr, util.CUSTOM_CODE_PERMANENT,
+					"Failed to refresh token: %v", refreshErr.Error())
+			}
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v, %+v",
 				statusCode.Code(),
@@ -162,7 +172,10 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 				swf.ScheduledWorkflow)
 		} else if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
 			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
-			p.tokenRefresher.RefreshToken()
+			if refreshErr := p.tokenRefresher.RefreshToken(); refreshErr != nil {
+				return util.NewCustomError(refreshErr, util.CUSTOM_CODE_PERMANENT,
+					"Failed to refresh token: %v", refreshErr.Error())
+			}
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v, %+v",
 				statusCode.Code(),
@@ -180,35 +193,6 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 		}
 	}
 	return nil
-}
-
-// ReadArtifact reads artifact content from run service. If the artifact is not present, returns
-// nil response.
-func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
-	pctx := context.Background()
-	pctx = metadata.AppendToOutgoingContext(pctx, "Authorization",
-		"Bearer "+p.tokenRefresher.GetToken())
-
-	ctx, cancel := context.WithTimeout(pctx, time.Minute)
-	defer cancel()
-
-	response, err := p.runServiceClient.ReadArtifactV1(ctx, request)
-	if err != nil {
-		statusCode, _ := status.FromError(err)
-		if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
-			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
-			p.tokenRefresher.RefreshToken()
-			return nil, util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
-				"Error while reporting workflow resource (code: %v, message: %v): %v",
-				statusCode.Code(),
-				statusCode.Message(),
-				err.Error())
-		}
-		// TODO(hongyes): check NotFound error code before skip the error.
-		return nil, nil
-	}
-
-	return response, nil
 }
 
 // ReportRunMetrics reports run metrics to run service.
@@ -238,4 +222,9 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) 
 			"Error while reporting metrics (%+v): %+v", request, err)
 	}
 	return response, nil
+}
+
+// ArtifactClient returns the artifact client for dependency injection
+func (p *PipelineClient) ArtifactClient() artifactclient.Client {
+	return p.artifactClient
 }

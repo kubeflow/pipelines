@@ -22,6 +22,10 @@ import (
 	"sync"
 	"time"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsv2cfg "github.com/aws/aws-sdk-go-v2/config"
+	awsv2creds "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cenkalti/backoff"
 	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
@@ -35,12 +39,17 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/gcsblob"
+	"gocloud.dev/blob/s3blob"
 )
 
 const (
@@ -94,7 +103,7 @@ type ClientManager struct {
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
-	objectStore               storage.ObjectStoreInterface
+	objectStore               storage.ObjectStore
 	execClient                util.ExecutionClient
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
@@ -156,7 +165,7 @@ func (c *ClientManager) DefaultExperimentStore() storage.DefaultExperimentStoreI
 	return c.defaultExperimentStore
 }
 
-func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
+func (c *ClientManager) ObjectStore() storage.ObjectStore {
 	return c.objectStore
 }
 
@@ -278,9 +287,7 @@ func (c *ClientManager) init(options *Options) error {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
-	glog.Info("Initializing Object store client...")
-	c.objectStore = initMinioClient(options.Context, common.GetDurationConfig(initConnectionTimeout))
-	glog.Info("Object store client initialized successfully")
+
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	clientParams := util.ClientParameters{
@@ -293,6 +300,14 @@ func (c *ClientManager) init(options *Options) error {
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	glog.Info("Initializing Object store client...")
+	objectStore, err := initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout))
+	if err != nil {
+		return fmt.Errorf("failed to initialize object store: %w", err)
+	}
+	c.objectStore = objectStore
+	glog.Info("Object store client initialized successfully")
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
@@ -929,23 +944,136 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 	})
 }
 
-func initMinioClient(ctx context.Context, initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
-	// Create minio client.
-	minioServiceHost := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
-	minioServicePort := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
-	minioServiceRegion := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
-	minioServiceSecure := common.GetBoolConfigWithDefault("ObjectStoreConfig.Secure", false)
+func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration) (storage.ObjectStore, error) {
+	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
+
+	blobConfig, err := buildConfigFromEnvVars()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build config from environment variables: %w", err)
+	}
+
+	bucket, err := openBucketWithRetry(ctx, blobConfig, initConnectionTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open blob storage bucket: %w", err)
+	}
+
+	if err := ensureBucketExists(ctx, blobConfig); err != nil {
+		glog.Warningf("Failed to ensure bucket exists (may already exist): %v", err)
+	}
+
+	glog.Infof("Successfully initialized blob storage for bucket: %s", blobConfig.bucketName)
+	return storage.NewBlobObjectStore(bucket, pipelinePath), nil
+}
+
+// blobStorageConfig holds the bucket configuration and credentials
+type blobStorageConfig struct {
+	bucketName string
+	endpoint   string
+	secure     bool
+	region     string
+	accessKey  string
+	secretKey  string
+}
+
+// ensureProtocol adds http:// or https:// protocol if not present
+func ensureProtocol(endpoint string, secure bool) string {
+	if strings.HasPrefix(endpoint, "http://") || strings.HasPrefix(endpoint, "https://") {
+		return endpoint
+	}
+	protocol := "http://"
+	if secure {
+		protocol = "https://"
+	}
+	return protocol + endpoint
+}
+
+// buildConfigFromEnvVars creates a bucket config from environment variables
+func buildConfigFromEnvVars() (*blobStorageConfig, error) {
+	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
+	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
+	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
+	secure := common.GetBoolConfigWithDefault("ObjectStoreConfig.Secure", false)
+	region := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
-	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
-	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
-	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
-	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
-	createMinioBucket(ctx, minioClient, bucketName, minioServiceRegion)
+	err := validateRequiredConfig(bucketName, host, accessKey, secretKey)
+	if err != nil {
+		return nil, err
+	}
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	endpoint := host
+	if port != "" {
+		endpoint = fmt.Sprintf("%s:%s", host, port)
+	}
+
+	return &blobStorageConfig{
+		bucketName: bucketName,
+		endpoint:   endpoint,
+		secure:     secure,
+		region:     region,
+		accessKey:  accessKey,
+		secretKey:  secretKey,
+	}, nil
+}
+
+func validateRequiredConfig(bucketName string, host string, accessKey string, secretKey string) error {
+	if bucketName == "" {
+		return fmt.Errorf("ObjectStoreConfig.BucketName is required")
+	}
+	if host == "" {
+		return fmt.Errorf("ObjectStoreConfig.Host is required")
+	}
+	if accessKey == "" {
+		return fmt.Errorf("ObjectStoreConfig.AccessKey is required")
+	}
+	if secretKey == "" {
+		return fmt.Errorf("ObjectStoreConfig.SecretAccessKey is required")
+	}
+	return nil
+}
+
+// openBucketWithRetry opens a blob bucket using AWS SDK v2 with explicit credentials and retry logic
+func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout time.Duration) (*blob.Bucket, error) {
+	var bucket *blob.Bucket
+	var err error
+
+	operation := func() error {
+		cfg, err := awsv2cfg.LoadDefaultConfig(ctx,
+			awsv2cfg.WithRegion(config.region),
+			awsv2cfg.WithCredentialsProvider(awsv2creds.NewStaticCredentialsProvider(
+				config.accessKey,
+				config.secretKey,
+				"",
+			)),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create AWS config: %w", err)
+		}
+
+		endpointWithProtocol := ensureProtocol(config.endpoint, config.secure)
+		s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+			o.BaseEndpoint = awsv2.String(endpointWithProtocol)
+			o.UsePathStyle = true
+		})
+
+		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, nil)
+		return err
+	}
+
+	expBackoff := backoff.NewExponentialBackOff()
+	expBackoff.MaxElapsedTime = timeout
+
+	err = backoff.Retry(operation, expBackoff)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open blob bucket after retries: %w", err)
+	}
+
+	return bucket, nil
 }
 
 func createMinioBucket(ctx context.Context, minioClient *minio.Client, bucketName, region string) {
@@ -964,6 +1092,20 @@ func createMinioBucket(ctx context.Context, minioClient *minio.Client, bucketNam
 		glog.Fatalf("Failed to create object store bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
+}
+
+// ensureBucketExists creates a bucket if it doesn't exist
+func ensureBucketExists(ctx context.Context, config *blobStorageConfig) error {
+	minioClient, err := minio.New(config.endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.accessKey, config.secretKey, ""),
+		Secure: config.secure,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create MinIO client: %w", err)
+	}
+
+	createMinioBucket(ctx, minioClient, config.bucketName, config.region)
+	return nil
 }
 
 func initLogArchive() (logArchive archive.LogArchiveInterface) {

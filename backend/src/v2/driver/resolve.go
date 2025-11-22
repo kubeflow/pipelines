@@ -33,6 +33,17 @@ import (
 
 var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
 
+// setWorkspaceFlag sets the _kfp_workspace metadata flag on the provided
+// runtime artifact when the producing execution is an ImporterWorkspace.
+func setWorkspaceFlag(execution *metadata.Execution, runtimeArtifact *pipelinespec.RuntimeArtifact) {
+	if execution.GetExecution().GetType() == string(metadata.ImporterWorkspaceExecutionTypeName) {
+		if runtimeArtifact.Metadata == nil {
+			runtimeArtifact.Metadata = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		}
+		runtimeArtifact.Metadata.Fields["_kfp_workspace"] = structpb.NewBoolValue(true)
+	}
+}
+
 // resolveUpstreamOutputsConfig is just a config struct used to store the input
 // parameters of the resolveUpstreamParameters and resolveUpstreamArtifacts
 // functions.
@@ -763,6 +774,8 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 			if err != nil {
 				cfg.err(err)
 			}
+			// If produced by workspace importer, Set _kfp_workspace=True
+			setWorkspaceFlag(currentTask, runtimeArtifact)
 			// Base case
 			return &pipelinespec.ArtifactList{
 				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
@@ -980,6 +993,8 @@ func collectContainerOutput(
 		if err != nil {
 			return nil, nil, cfg.err(err)
 		}
+		// If produced by workspace importer, Set _kfp_workspace=True
+		setWorkspaceFlag(currentTask, artifact)
 		glog.V(4).Infof("runtimeArtifact: %v", artifact)
 	} else {
 		_, outputParameters, err := currentTask.GetParameters()

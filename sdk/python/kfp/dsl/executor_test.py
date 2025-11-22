@@ -16,6 +16,7 @@
 import contextlib
 import json
 import os
+import sys
 import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
 import unittest
@@ -100,6 +101,50 @@ class ExecutorTest(parameterized.TestCase):
         self.assertEqual({'parameterValues': {
             'Output': 'Hello, KFP'
         }}, output_metadata)
+
+    def test_builtin_generic_list_parameter(self):
+        if sys.version_info < (3, 9):
+            self.skipTest('Built-in generics require Python >= 3.9')
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "num_list": [1, 2, 3]
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(num_list: list[int]) -> None:
+            self.assertEqual(num_list, [1, 2, 3])
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_builtin_generic_dict_parameter(self):
+        if sys.version_info < (3, 9):
+            self.skipTest('Built-in generics require Python >= 3.9')
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "mapping": {"a": 1, "b": 2}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(mapping: dict[str, int]) -> None:
+            self.assertEqual(mapping, {'a': 1, 'b': 2})
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_input_artifact_custom_type(self):
         executor_input = """\

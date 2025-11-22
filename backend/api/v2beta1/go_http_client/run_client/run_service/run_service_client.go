@@ -64,8 +64,6 @@ type ClientService interface {
 
 	RunServiceListRuns(params *RunServiceListRunsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceListRunsOK, error)
 
-	RunServiceReadArtifact(params *RunServiceReadArtifactParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceReadArtifactOK, error)
-
 	RunServiceRetryRun(params *RunServiceRetryRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceRetryRunOK, error)
 
 	RunServiceTerminateRun(params *RunServiceTerminateRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceTerminateRunOK, error)
@@ -262,44 +260,6 @@ func (a *Client) RunServiceListRuns(params *RunServiceListRunsParams, authInfo r
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*RunServiceListRunsDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-RunServiceReadArtifact finds artifact data in a run
-*/
-func (a *Client) RunServiceReadArtifact(params *RunServiceReadArtifactParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceReadArtifactOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewRunServiceReadArtifactParams()
-	}
-	op := &runtime.ClientOperation{
-		ID:                 "RunService_ReadArtifact",
-		Method:             "GET",
-		PathPattern:        "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &RunServiceReadArtifactReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*RunServiceReadArtifactOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*RunServiceReadArtifactDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
