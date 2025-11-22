@@ -116,6 +116,7 @@ jobs:
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
+
       - name: Configure Input Variables
         shell: bash
         id: configure
@@ -135,6 +136,7 @@ jobs:
             echo "TEST_LABEL=$TEST_LABEL"
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
+
 
       - name: Build and upload the sample Modelcar image to Kind
         id: build-sample-modelcar-image
@@ -165,6 +167,18 @@ jobs:
         run: |
           echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
 
+      - name: Collect Pod logs in case of Test Failures
+        id: collect-logs
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "=== Current disk usage ==="
+          df -h
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+          ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
 
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
