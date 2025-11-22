@@ -166,18 +166,6 @@ jobs:
           echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
 
 
-      - name: Collect Pod logs in case of Test Failures
-        id: collect-logs
-        shell: bash
-        run: |
-          echo "=== Current disk usage ==="
-          df -h
-          NAMESPACE=${{ env.NAMESPACE }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NAMESPACE=${{ inputs.namespace }}
-          fi
-          ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
-
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
     needs: build
