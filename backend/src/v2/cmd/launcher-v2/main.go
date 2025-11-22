@@ -64,8 +64,7 @@ func run() error {
 	ctx := context.Background()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
-	err := flag.Set("v", *logLevel)
-	if err != nil {
+	if err := flag.Set("v", *logLevel); err != nil {
 		glog.Warningf("Failed to set log level: %s", err.Error())
 	}
 
@@ -95,8 +94,8 @@ func run() error {
 		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:          *metadataTLSEnabled,
 		CaCertPath:              *caCertPath,
-		// If unset (nil/empty), launcher will preserve legacy behavior
-		// and set REQUESTS_CA_BUNDLE, AWS_CA_BUNDLE and SSL_CERT_FILE.
+		// If unset, the launcher will preserve historical behavior and set:
+		// REQUESTS_CA_BUNDLE, AWS_CA_BUNDLE, SSL_CERT_FILE.
 		CACertEnvVars: nil,
 	}
 
@@ -139,10 +138,8 @@ func run() error {
 		}
 
 		return nil
-
 	}
 	return fmt.Errorf("unsupported executor type %s", *executorType)
-
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.
