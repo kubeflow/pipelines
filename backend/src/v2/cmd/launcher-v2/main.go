@@ -94,7 +94,7 @@ func run() error {
 		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:          *metadataTLSEnabled,
 		CaCertPath:              *caCertPath,
-		// If unset, the launcher will preserve historical behavior and set:
+		// If unset (nil/empty), launcher will preserve historical behavior and set:
 		// REQUESTS_CA_BUNDLE, AWS_CA_BUNDLE, SSL_CERT_FILE.
 		CACertEnvVars: nil,
 	}
