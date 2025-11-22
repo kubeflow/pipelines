@@ -143,7 +143,6 @@ sdkVersion: kfp-2.14.6
 platforms:
   kubernetes:
     pipelineConfig:
-      pipelineRunParallelism: 3
       workspace:
         kubernetes:
           pvcSpecPatch:
