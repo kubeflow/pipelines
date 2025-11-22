@@ -42,6 +42,8 @@ See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pi
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
 
+> New in master: `dsl.PipelineConfig` now accepts an optional `pipeline_run_parallelism` integer to cap concurrent task execution for a run. The backend stores the requested limit in a shared ConfigMap and surfaces it to Argo Workflows via `spec.parallelism`.
+
 ## Deep Wiki
 Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines). 
 

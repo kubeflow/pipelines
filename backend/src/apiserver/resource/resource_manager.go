@@ -50,6 +50,8 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
+const pipelineParallelismConfigMapName = "kfp-pipeline-config"
+
 // Metric variables. Please prefix the metric names with resource_manager_.
 var (
 	extraLabels = []string{
@@ -150,6 +152,65 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		uuid:                      clientManager.UUID(),
 		authenticators:            clientManager.Authenticators(),
 		options:                   options,
+	}
+}
+
+func workflowParallelism(executionSpec util.ExecutionSpec) (int64, bool) {
+	if executionSpec == nil {
+		return 0, false
+	}
+	wf, ok := executionSpec.(*util.Workflow)
+	if !ok || wf == nil || wf.Spec.Parallelism == nil {
+		return 0, false
+	}
+	return *wf.Spec.Parallelism, true
+}
+
+func (r *ResourceManager) upsertPipelineParallelismConfigMap(ctx context.Context, namespace, key string, parallelism int64) error {
+	if key == "" {
+		return nil
+	}
+
+	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
+	value := strconv.FormatInt(parallelism, 10)
+
+	for {
+		current, err := configMaps.Get(ctx, pipelineParallelismConfigMapName, v1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			newConfigMap := &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      pipelineParallelismConfigMapName,
+					Namespace: namespace,
+				},
+				Data: map[string]string{
+					key: value,
+				},
+			}
+			if _, err := configMaps.Create(ctx, newConfigMap, v1.CreateOptions{}); apierrors.IsAlreadyExists(err) {
+				continue
+			} else if err != nil {
+				return util.Wrap(err, "failed to create pipeline parallelism ConfigMap entry")
+			}
+			return nil
+		}
+		if err != nil {
+			return util.Wrap(err, "failed to retrieve pipeline parallelism ConfigMap")
+		}
+
+		if current.Data == nil {
+			current.Data = map[string]string{}
+		}
+		if existing, ok := current.Data[key]; ok && existing == value {
+			return nil
+		}
+
+		current.Data[key] = value
+		if _, err := configMaps.Update(ctx, current, v1.UpdateOptions{}); apierrors.IsConflict(err) {
+			continue
+		} else if err != nil {
+			return util.Wrap(err, "failed to update pipeline parallelism ConfigMap entry")
+		}
+		return nil
 	}
 }
 
@@ -561,6 +622,17 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
+
+	if parallelism, ok := workflowParallelism(executionSpec); ok && parallelism > 0 && run.PipelineVersionId != "" {
+		if err := r.upsertPipelineParallelismConfigMap(
+			ctx, k8sNamespace, run.PipelineVersionId, parallelism); err != nil {
+			if apierrors.IsForbidden(errors.Cause(err)) {
+				glog.Warningf("Skipping pipeline_run_parallelism ConfigMap update in namespace %q: %v", k8sNamespace, err)
+			} else {
+				return nil, util.Wrap(err, "Failed to persist pipeline_run_parallelism configuration")
+			}
+		}
+	}
 
 	// assign OwnerReference to scheduledworkflow
 	if run.RecurringRunId != "" {
