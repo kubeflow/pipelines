@@ -26,8 +26,10 @@ jobs:
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
-        with:
-          generate_golang_proto: "false"
+
+      - name: Install kfp & kfp-kubernetes from source
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
 
       - name: Install Dependencies
         run: |

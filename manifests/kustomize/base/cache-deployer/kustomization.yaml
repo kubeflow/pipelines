@@ -6,7 +6,7 @@ resources:
   - cache-deployer-deployment.yaml
 images:
   - name: ghcr.io/kubeflow/kfp-cache-deployer
-    newTag: 2.14.3
+    newTag: 2.15.0
 labels:
   - includeSelectors: true
     pairs:

@@ -3,7 +3,7 @@ description: "Install kfp & kfp-kubernetes"
 inputs:
   build_version:
     required: true
-    default: "1.2.2"
+    default: "1.3.0"
     description: "build package version"
   generate_golang_proto:
     required: true
@@ -14,26 +14,39 @@ runs:
   steps:
     - name: Install build tool
       shell: bash
-      run: pip install build==${{inputs.build_version}}
+      run: |
+        pip install --upgrade pip
+        pip install build==${{inputs.build_version}}
+
+    - name: Build & install kfp-server-api dist
+      id: install-kfp-server-api
+      shell: bash
+      working-directory: backend/api/v2beta1/python_http_client
+      run: |
+        rm -rf dist/
+        python -m build .
+        pip install dist/*.whl
 
     - name: Build kfp dist
       id: install-kfp
       shell: bash
       working-directory: sdk/python
       run: |
+        rm -rf dist/
         python -m build .
+        pip install dist/*.whl
 
     - name: Generate kfp-kubernetes python proto files from source
       id: generate-kfp-kubernetes-proto-files
       shell: bash
-      if: ${{ steps.install-kfp.outcome == 'success' }}
+      if: ${{ steps.install-kfp.outcome == 'success' && steps.install-kfp-server-api.outcome == 'success'  }}
       working-directory: ./kubernetes_platform
       run: make clean python USE_FIND_LINKS=true
 
     - name: Generate kfp-kubernetes golang proto files from source
       id: generate-kfp-kubernetes-go-proto-files
       shell: bash
-      if: ${{ steps.install-kfp.outcome == 'success' && inputs.generate_golang_proto == 'true' }}
+      if: ${{ steps.install-kfp.outcome == 'success' && steps.install-kfp-server-api.outcome == 'success'  && inputs.generate_golang_proto == 'true' }}
       working-directory: ./kubernetes_platform
       run: make golang
 

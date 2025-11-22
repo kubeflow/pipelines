@@ -23,7 +23,10 @@ from kfp import local
 import pytest
 
 base_image = "registry.access.redhat.com/ubi9/python-311:latest"
-dsl.component = functools.partial(dsl.component, base_image=base_image)
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+
+dsl.component = functools.partial(
+    dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH)
 
 
 from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
