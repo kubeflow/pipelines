@@ -1,359 +1,194 @@
-# Kubeflow Pipelines Backend
+# Kubeflow Pipelines backend API
 
-## Overview
+## Before you begin
 
-This directory contains code for the components that comprise the Kubeflow
-Pipelines backend.
+Tools needed:
 
-This README will help you set up your coding environment in order to build and run the Kubeflow Pipelines backend. The KFP backend powers the core functionality of the KFP platform, handling API requests, workflow management, and data persistence.
+* [docker](https://docs.docker.com/get-docker/)
+* [make](https://www.gnu.org/software/make/)
+* [java](https://www.java.com/en/download/)
+* [python3](https://www.python.org/downloads/)
 
-## Prerequisites
-Before you begin, ensure you have:
-- [Go installed](https://go.dev/doc/install)
-- Docker or Podman installed (for building container images)
-
-Note that you may need to restart your shell after installing these resources in order for the changes to take effect.
-
-## Testing
-
-To run all unittests for backend:
-
-```
-go test -v -cover ./backend/...
-```
-
-If running a [local API server](#run-the-kfp-backend-locally-with-a-kind-cluster), you can run the integration tests
-with:
+Set the environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
 
 ```bash
-LOCAL_API_SERVER=true go test -v ./backend/test/v2/integration/... -namespace kubeflow -args -runIntegrationTests=true
+export API_VERSION="v2beta1"
 ```
 
-To run a specific test, you can use the `-run` flag. For example, to run the `TestCacheSingleRun` test in the
-`TestCache` suite, you can use the `-run 'TestCache/TestCacheSingleRun'` flag to the above command.
+## Compiling `.proto` files to Go client and swagger definitions
 
-## Build
-
-The API server itself can be built using:
-
-```
-go build -o /tmp/apiserver backend/src/apiserver/*.go
+Use `make generate` command to generate clients using a pre-built api-generator image:
+```bash
+make generate
 ```
 
-The API server image can be built from the root folder of the repo using:
-```
-export API_SERVER_IMAGE=api_server
-docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
-```
-### Deploying the APIServer (from the image you built) on Kubernetes
+Go client library will be placed into:
 
-First, push your image to a registry that is accessible from your Kubernetes cluster.
+* `./${API_VERSION}/go_client`
+* `./${API_VERSION}/go_http_client`
+* `./${API_VERSION}/swagger`
 
-Then, run:
-```
-kubectl edit deployment.v1.apps/ml-pipeline -n kubeflow
-```
-You'll see the field reference the api server container image (`spec.containers[0].image: gcr.io/ml-pipeline/api-server:<image-version>`).
-Change it to point to your own build, after saving and closing the file, apiserver will restart with your change.
+> **Note**
+> `./${API_VERSION}/swagger/pipeline.upload.swagger.json` is manually created, while the rest of `./${API_VERSION}/swagger/*.swagger.json` are compiled from `./${API_VERSION}/*.proto` files.
 
-### Building client library and swagger files
+## Compiling Python client
 
-After making changes to proto files, the Go client libraries, Python client libraries and swagger files
-need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) for details.
-
-### Updating python dependencies
-
-[pip-tools](https://github.com/jazzband/pip-tools) is used to manage python
-dependencies. To update dependencies, edit [requirements.in](requirements.in)
-and run `./update_requirements.sh` to update and pin the transitive
-dependencies.
-
-
-### Building conformance tests (WIP)
-
-Run
-```
-docker build . -f backend/Dockerfile.conformance -t <tag>
-```
-
-## API Server Development
-
-### Run the KFP Backend Locally With a Kind Cluster
-
-This deploys a local Kubernetes cluster leveraging [kind](https://kind.sigs.k8s.io/), with all the components required
-to run the Kubeflow Pipelines API server. Note that the `ml-pipeline` `Deployment` (API server) has its replicas set to
-0 so that the API server can be run locally for debugging and faster development. The local API server is available by
-pods on the cluster using the `ml-pipeline` `Service`.
-
-#### Prerequisites
-
-* The [kind CLI](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) is installed.
-* The following ports are available on your localhost: 3000, 3306, 8080, 9000, and 8889. If these are unavailable,
-  modify [kind-config.yaml](../tools/kind/kind-config.yaml) and configure the API server with alternative ports when
-  running locally.
-* If using a Mac, you will need to modify the
-  [Endpoints](../manifests/kustomize/env/dev-kind/forward-local-api-endpoint.yaml) manifest to leverage the bridge
-  network interface through Docker/Podman Desktop. See
-  [kind #1200](https://github.com/kubernetes-sigs/kind/issues/1200#issuecomment-1304855791) for an example manifest.
-* Optional: VSCode is installed to leverage a sample `launch.json` file.
-  * This relies on dlv: (go install -v github.com/go-delve/delve/cmd/dlv@latest)
-
-#### Provisioning the Cluster
-
-To provision the kind cluster, run the following from the Git repository's root directory:
+To generate the Python client, run the following bash script (requires `java` and `python3`).
 
 ```bash
-make -C backend dev-kind-cluster
+./build_kfp_server_api_python_package.sh
 ```
 
-This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
-all the pods have started.
+Python client will be placed into `./${API_VERSION}/python_http_client`.
 
-> [!NOTE]
-> The config in the `make` command above sets the `ml-pipeline` `Deployment` (api server) to have 0 replicas. The intent is to replace it with a locally running API server for debugging and faster development. See the following steps to run the API server locally, and connect it to the KFP backend on your Kind cluster. Note that other backend components (for example, the persistence agent) may show errors until the API server is brought up and connected to the cluster.
+## Updating of API reference documentation
 
-#### Launching the API Server With VSCode
+> **Note**
+> Whenever the API definition changes (i.e., the file `kfp_api_single_file.swagger.json` changes), the API reference documentation needs to be updated.
 
-After the cluster is provisioned, you may leverage the following sample `.vscode/launch.json` file to run the API
-server locally:
+API definitions in this folder are used to generate [`v1beta1`](https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec/) and [`v2beta1`](https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/) API reference documentation on kubeflow.org. Follow the steps below to update the documentation:
 
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Launch API Server (Kind)",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/backend/src/apiserver",
-      "env": {
-        "POD_NAMESPACE": "kubeflow",
-        "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
-        "OBJECTSTORECONFIG_HOST": "localhost",
-        "OBJECTSTORECONFIG_PORT": "9000",
-        "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
-        "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
-      },
-      "args": [
-        "--config",
-        "${workspaceFolder}/backend/src/apiserver/config",
-        "-logtostderr=true"
-      ]
-    }
-  ]
-}
-```
+1. Install [bootprint-openapi](https://github.com/bootprint/bootprint-monorepo/tree/master/packages/bootprint-openapi) and [html-inline](https://www.npmjs.com/package/html-inline) packages using `npm`:
+   ```bash
+   npm install -g bootprint
+   npm install -g bootprint-openapi
+   npm -g install html-inline
+   ```
 
-#### Using the Environment
+2. Generate *self-contained html file(s)* with API reference documentation from `./${API_VERSION}/swagger/kfp_api_single_file.swagger.json`:
 
-Once the cluster is provisioned and the API server is running, you can access the API server at
-[http://localhost:8888](http://localhost:8888)
-(e.g. [http://localhost:8888/apis/v2beta1/pipelines](http://localhost:8888/apis/v2beta1/pipelines)).
+   For `v1beta1`:
 
-You can also access the Kubeflow Pipelines web interface at [http://localhost:3000](http://localhost:3000).
+   ```bash
+   bootprint openapi ./v1beta1/swagger/kfp_api_single_file.swagger.json ./temp/v1
+   html-inline ./temp/v1/index.html > ./temp/v1/kubeflow-pipeline-api-spec.html
+   ```
 
-You can also directly connect to the MariaDB database server with:
+   For `v2beta1`:
 
-```bash
-mysql -h 127.0.0.1 -u root
-```
+   ```bash
+   bootprint openapi ./v2beta1/swagger/kfp_api_single_file.swagger.json ./temp/v2
+   html-inline ./temp/v2/index.html > ./temp/v2/kubeflow-pipeline-api-spec.html
+   ```
 
-### Scheduled Workflow Development
+3. Use the above generated html file(s) to replace the relevant section(s) on kubeflow.org. When copying the content, make sure to **preserve the original headers**.
+   - `v1beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec.html).
+   - `v2beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec.html).
 
-If you also want to run the Scheduled Workflow controller locally, stop the controller on the cluster with:
+4. Create a PR with the changes in [kubeflow.org website repository](https://github.com/kubeflow/website). See an example [here](https://github.com/kubeflow/website/pull/3444).
 
-```bash
-kubectl -n kubeflow scale deployment ml-pipeline-scheduledworkflow --replicas=0
-```
+## Updating API generator image (Manual)
 
-Then you may leverage the following sample `.vscode/launch.json` file to run the Scheduled Workflow controller locally:
+This is now automatic on pushes to GitHub branches, but the instructions are kept here in case you need to do it
+manually.
 
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch Scheduled Workflow controller (Kind)",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}/backend/src/crd/controller/scheduledworkflow",
-            "env": {
-                "CRON_SCHEDULE_TIMEZONE": "UTC"
-            },
-            "args": [
-                "-namespace=kubeflow",
-                "-kubeconfig=${workspaceFolder}/kubeconfig_dev-pipelines-api",
-                "-mlPipelineAPIServerName=localhost"
-            ]
-        }
-    ]
-}
-```
+API generator image is defined in [Dockerfile](`./Dockerfile`). If you need to update the container, follow these steps:
 
-### Remote Debug the Driver
+1. Login to GHCR container registry: `echo "<PAT>" | docker login ghcr.io -u <USERNAME> --password-stdin` 
+   * Replace `<PAT>` with a GitHub Personal Access Token (PAT) with the write:packages and `read:packages` scopes, as well as `delete:packages` if needed. 
+2. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$BRANCH .`
+3. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$BRANCH`.
+4. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image.
+5. Similarly, push a new version of the release tools image to `ghcr.io/kubeflow/kfp-release:$BRANCH` and run `make push` in [test/release/Makefile](../../test/release/Makefile).
 
-These instructions assume you are leveraging the Kind cluster in the
-[Run Locally With a Kind Cluster](#run-locally-with-a-kind-cluster) section.
+## TLS Certificate Rotation (Pod-to-Pod TLS)
 
-#### Build the Driver Image With Debug Prerequisites
+### Context
 
-Run the following to create the `backend/Dockerfile.driver-debug` file and build the container image
-tagged as `kfp-driver:debug`. This container image is based on `backend/Dockerfile.driver` but installs
-[Delve](https://github.com/go-delve/delve), builds the binary without compiler optimizations so the binary matches the
-source code (via `GCFLAGS="all=-N -l"`), and copies the source code to the destination container for the debugger.
-Any changes to the Driver code will require rebuilding this container image.
+When pod-to-pod TLS is enabled (see PR #12082), backend components (API server, launcher, persistence agent, cache, metadata writer, etc.) use TLS certificates stored in Kubernetes Secret(s). These certificates expire and must be rotated periodically. Updating the Secret object does not automatically make running pods load the new certificate: a restart (rolling restart) of the affected deployments is required so that they mount/read the new secret.
 
-```bash
-make -C backend image_driver_debug
-```
+This section documents a recommended, minimal process for renewing TLS certificates and applying them safely.
 
-Then load the container image in the Kind cluster.
+### Which secrets and components are typically impacted
 
-```bash
-make -C backend kind-load-driver-debug
-```
+TLS certificates are commonly stored in a Kubernetes TLS Secret (for example: kfp-pod-tls) in the KFP namespace (commonly kubeflow).
 
-Alternatively, you can use this Make target that does both.
+Which secrets and components are typically impacted:
 
-```bash
-make -C kind-build-and-load-driver-debug
-```
+* `pipelines-api-server`
+* `pipelines-persistenceagent`
+* `pipelines-metadata-writer`
+* `pipelines-cache`
+* `(Any other pipeline-related deployments that reference the TLS secret)`
 
-#### Run the API Server With Debug Configuration
+> **Note**
+> Confirm the exact secret name(s) and deployments used in your cluster before running commands:
 
-You may use the following VS Code `launch.json` file to run the API server which overrides the Driver
-command to use Delve and the Driver image to use debug image built previously.
+   ```bash
+   kubectl get secrets -n <namespace>
+   kubectl get deploy -n <namespace> | grep -i pipeline
+   ```
 
-VSCode configuration:
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch API server (Kind) (Debug Driver)",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}/backend/src/apiserver",
-            "env": {
-                "POD_NAMESPACE": "kubeflow",
-                "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
-                "OBJECTSTORECONFIG_HOST": "localhost",
-                "OBJECTSTORECONFIG_PORT": "9000",
-                "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
-                "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-                "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-                "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
-                "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-                "V2_DRIVER_IMAGE": "kfp-driver:debug",
-                "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
-            }
-        }
-    ]
-}
-```
+### Recommended rotation procedure (example)
 
-GoLand configuration:
-1. Create a new Go Build configuration
-2. Set **Run Kind** to Directory and set **Directory** to /backend/src/apiserver absolute path
-3. Set the following environment variables
+Prepare/obtain new cert and key
+Generate or obtain new cert files: `server.crt` and `server.key` (PEM encoded).
 
-   | Argument                                     | Value     |
-   |----------------------------------------------|-----------|
-   | POD_NAMESPACE                                | kubeflow  |
-   | DBCONFIG_MYSQLCONFIG_HOST                    | localhost |
-   | OBJECTSTORECONFIG_HOST                       | localhost |
-   | OBJECTSTORECONFIG_PORT                       | 9000      |
-   | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost |
-   | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080      |
-   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST | localhost |
-   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT | 8888      |
-   | V2_LAUNCHER_IMAGE                            | localhost |
-   | V2_DRIVER_IMAGE                              | localhost |
-   | V2_DRIVER_COMMAND                            | dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /bin/driver -- |
-4. Set the following program arguments: --config ./backend/src/apiserver/config -logtostderr=true --sampleconfig ./backend/src/apiserver/config/test_sample_config.json
+# Update the Kubernetes TLS secret
 
-#### Starting a Remote Debug Session
+Replace <namespace> and <secret-name> with your cluster's values:
 
-Start by launching a pipeline. This will eventually create a Driver pod that is waiting for a remote debug connection.
+   ```bash
+   kubectl create secret tls <secret-name> \
+      --cert=server.crt \
+      --key=server.key \
+      --dry-run=client -o yaml | kubectl apply -f -
+   ```
 
-You can see the pods with the following command.
+Example:
 
-```bash
-kubectl -n kubeflow get pods -w
-```
+   ```bash
+   kubectl create secret tls kfp-pod-tls \
+      --cert=server.crt \
+      --key=server.key \
+      --dry-run=client -o yaml | kubectl apply -f -
+   ```
 
-Once you see a pod with `-driver` in the name such as `hello-world-clph9-system-dag-driver-10974850`, port forward
-the Delve port in the pod to your localhost (replace `<driver pod name>` with the actual name).
+# Restart affected deployments (rolling restart)
 
-```bash
-kubectl -n kubeflow port-forward <driver pod name> 2345:2345
-```
+Restart the deployments so they mount/read the updated secret:
 
-Set a breakpoint on the Driver code in VS Code. Then remotely connect to the Delve debug session with the following VS
-Code `launch.json` file:
+   ```bash
+   kubectl rollout restart deploy -n <namespace> pipelines-api-server
+   kubectl rollout restart deploy -n <namespace> pipelines-persistenceagent
+   kubectl rollout restart deploy -n <namespace> pipelines-metadata-writer
+   kubectl rollout restart deploy -n <namespace> pipelines-cache
+   ```
 
-VSCode configuration:
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Connect to remote driver",
-            "type": "go",
-            "request": "attach",
-            "mode": "remote",
-            "remotePath": "/go/src/github.com/kubeflow/pipelines",
-            "port": 2345,
-            "host": "127.0.0.1",
-            "substitutePath": [
-                { "from": "${workspaceFolder}", "to": "/go/src/github.com/kubeflow/pipelines" }
-            ]
-        }
-    ]
-}
-```
+Or restart all pipeline-related deployments discovered earlier.
 
-GoLand configuration:
-1. Create a new Go Remote configuration and title it "Delve debug session"
-2. Set **Host** to localhost
-3. Set **Port** to 2345
+# Verify rollout and pod readiness
 
-Once the Driver pod succeeds, the remote debug session will close. Then repeat the process of forwarding the port
-of subsequent Driver pods and starting remote debug sessions in VS Code until the pipeline completes.
+   ```bash
+   kubectl get pods -n <namespace>
+   kubectl rollout status deploy/pipelines-api-server -n <namespace>
+   ```
 
-For debugging a specific Driver pod, you'll need to continuously port forward and connect to the remote debug session
-without a breakpoint so that Delve will continue execution until the Driver pod you are interested in starts up. At that
-point, you can set a break point, port forward, and connect to the remote debug session to debug that specific Driver
-pod.
+Check logs for errors:
 
-### Using a Webhook Proxy for Local Development in a Kind Cluster
+   ```bash
+   kubectl describe secret <secret-name> -n <namespace>
+   ```
 
-The Kubeflow Pipelines API server typically runs over HTTPS when deployed in a Kubernetes cluster. However, during local development, it operates over HTTP, which Kubernetes admission webhooks do not support (they require HTTPS). This incompatibility prevents webhooks from functioning correctly in a local Kind cluster.
+Optional: connect to the API server over TLS (from inside cluster or via port-forward) to confirm certificate in use.
 
-To resolve this, a webhook proxy acts as a bridge, allowing webhooks to communicate with the API server even when it runs over HTTP.
+## Best practices & notes
 
-This is used by default when using the `dev-kind-cluster` Make target.
+* Rotation interval: rotate certificates before they expire; recommended: track expiry via:
 
-### Deleting the Kind Cluster
+   ```bash
+   openssl x509 -enddate -noout -in server.crt
+   ```
 
-Run the following to delete the cluster (once you are finished):
+* Automation: if using cert-manager, automate issuance and renewal, and consider automating rollout restarts (see below).
+* Minimize disruption: perform rollouts during maintenance windows or low activity windows.
+* Errors to expect: expired certs usually lead to TLS handshake failures; check both client and server logs for diagnosis.
+* Auditing: record rotation times and certificate fingerprints for traceability.
 
-```bash
-kind delete clusters dev-pipelines-api
-```
+## Optional: automate restart after secret update
 
-## Contributing
-### Code Style
+Kubernetes does not automatically restart pods when a Secret changes. Options:
 
-Backend codebase follows the [Google's Go Style Guide](https://google.github.io/styleguide/go/). Please, take time to get familiar with the [best practices](https://google.github.io/styleguide/go/best-practices). It is not intended to be exhaustive, but it often helps minimizing guesswork among developers and keep codebase uniform and consistent.
-
-We use [golangci-lint](https://golangci-lint.run/) tool that can catch common mistakes locally (see detailed configuration [here](https://github.com/kubeflow/pipelines/blob/master/.golangci.yaml)). It can be [conveniently integrated](https://golangci-lint.run/usage/integrations/) with multiple popular IDEs such as VS Code or Vim.
-
-Finally, it is advised to install [pre-commit](https://pre-commit.com/) in order to automate linter checks (see configuration [here](https://github.com/kubeflow/pipelines/blob/master/.pre-commit-config.yaml))
+* Use an operator or controller that watches the Secret and triggers kubectl rollout restart on dependent deployments.
+* Use cert-manager and the common checksum/annotation pattern to trigger a redeploy when the Secret changes:
+   * Add an annotation to deployments like `kubectl.kubernetes.io/restartedAt` or a checksum of the secret in the deployment spec; update it after cert renewal to trigger a rolling update.
