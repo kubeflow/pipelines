@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/kfp-sdk-client-tests.yml.yml'
+      - '.github/workflows/kfp-sdk-client-tests.yml'
       - '.github/actions/create-cluster/**'
       - '.github/resources/**'
       - 'sdk/python/**'
