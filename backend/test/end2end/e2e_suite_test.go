@@ -162,5 +162,5 @@ func TestAPIs(t *testing.T) {
 	reporterConfigE2E.SilenceSkips = true
 	reporterConfigE2E.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
 	reporterConfigE2E.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
-	RunSpecs(t, "E2E Tests Suite", suiteConfigE2E, reporterConfigE2E)
+	RunSpecs(t, "E2ETestsSuite", suiteConfigE2E, reporterConfigE2E)
 }
