@@ -39,6 +39,8 @@ const (
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
 	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
 	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
+	MLPipelineServiceName                   string = "ML_PIPELINE_SERVICE_NAME"
+	MetadataServiceName                     string = "METADATA_SERVICE_NAME"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -113,6 +115,14 @@ func IsMultiUserSharedReadMode() bool {
 
 func GetPodNamespace() string {
 	return GetStringConfigWithDefault(PodNamespace, DefaultPodNamespace)
+}
+
+func GetMLPipelineServiceName() string {
+	return GetStringConfigWithDefault(MLPipelineServiceName, DefaultMLPipelineServiceName)
+}
+
+func GetMetadataServiceName() string {
+	return GetStringConfigWithDefault(MetadataServiceName, DefaultMetadataServiceName)
 }
 
 func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
