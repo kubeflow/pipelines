@@ -108,13 +108,13 @@ class PipelineConfig:
 
     @pipeline_run_parallelism.setter
     def pipeline_run_parallelism(self, value: Optional[int]) -> None:  # pylint: disable=attribute-defined-outside-init
-        if value is None:
+        if value is not None:
+            if not isinstance(value, int):
+                raise ValueError(
+                    'pipeline_run_parallelism must be an integer if specified.')
+            if value <= 0:
+                raise ValueError(
+                    'pipeline_run_parallelism must be a positive integer.')
+            self._pipeline_run_parallelism = value
+        else:
             self._pipeline_run_parallelism = None
-            return
-        if not isinstance(value, int):
-            raise ValueError(
-                'pipeline_run_parallelism must be an integer if specified.')
-        if value <= 0:
-            raise ValueError(
-                'pipeline_run_parallelism must be a positive integer.')
-        self._pipeline_run_parallelism = value

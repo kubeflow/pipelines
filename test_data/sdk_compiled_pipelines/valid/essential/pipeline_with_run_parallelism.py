@@ -17,17 +17,18 @@ from kfp import compiler, dsl
 
 
 @dsl.component
-def produce_message() -> str:
-    return 'hello parallel world'
+def produce_message(msg: str) -> str:
+    print(msg)
+    return msg
 
 
 @dsl.pipeline(
     name='pipeline-with-run-parallelism',
-    pipeline_config=dsl.PipelineConfig(pipeline_run_parallelism=7),
+    pipeline_config=dsl.PipelineConfig(pipeline_run_parallelism=2),
 )
-def pipeline_with_run_parallelism() -> str:
-    task = produce_message()
-    return task.output
+def pipeline_with_run_parallelism():
+    with dsl.ParallelFor(items=['one', 'two', 'three']) as item:
+        produce_message(msg=item)
 
 
 if __name__ == '__main__':

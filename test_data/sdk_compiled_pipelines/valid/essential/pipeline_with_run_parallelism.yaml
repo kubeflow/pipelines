@@ -1,10 +1,30 @@
 # PIPELINE DEFINITION
 # Name: pipeline-with-run-parallelism
-# Outputs:
-#    Output: str
 components:
+  comp-for-loop-2:
+    dag:
+      tasks:
+        produce-message:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-produce-message
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: produce-message
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
   comp-produce-message:
     executorLabel: exec-produce-message
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
     outputDefinitions:
       parameters:
         Output:
@@ -37,35 +57,27 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef produce_message() -> str:\n    return 'hello parallel world'\n\
-          \n"
+          \ *\n\ndef produce_message(msg: str) -> str:\n    print(msg)\n    return\
+          \ msg\n\n"
         image: python:3.11
 pipelineInfo:
   name: pipeline-with-run-parallelism
 root:
   dag:
-    outputs:
-      parameters:
-        Output:
-          valueFromParameter:
-            outputParameterKey: Output
-            producerSubtask: produce-message
     tasks:
-      produce-message:
-        cachingOptions:
-          enableCache: true
+      for-loop-2:
         componentRef:
-          name: comp-produce-message
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["one", "two", "three"]'
         taskInfo:
-          name: produce-message
-  outputDefinitions:
-    parameters:
-      Output:
-        parameterType: STRING
+          name: for-loop-2
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.14.6
 ---
 platforms:
   kubernetes:
     pipelineConfig:
-      pipelineRunParallelism: 7
+      pipelineRunParallelism: 2
