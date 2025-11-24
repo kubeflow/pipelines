@@ -46,26 +46,18 @@ Comment `/integration-tests-ok` on this PR **only after** running the integratio
     6. Enter ODS_BUILD_URL=odh-nightly
     7. Enter UPDATE_CHANNEL=odh-nightlies
     8. Uncheck RUN_TESTS
-    9. Enter RUN_DASHBOARD_TESTS=SmokeSet1 (this will run cypress Dashboard Tests Job as a downstream job)
     10. Run the job
-    11. Once the deployment is DONE and your cluster is available, and you have updates in master after the ODH nightly build time:
-         * Login to openshift console
-         * Go to Operator > Installed Operators > Open Data Hub Operator > Data Science Cluster > default-dsc
-         * Open the yaml spec
-         * Update the `aipipelines` section with:
-         ```
-           aipipelines:
-                devFlags:
-                    manifests:
-                      - uri: https://github.com/opendatahub-io/data-science-pipelines-operator/tarball/main
-                        contextDir: config
-                        sourcePath: base
-                managementState: Managed
-         ```
-         * Save and wait for DSPO to update
-    12. Deploy DSPA
-    13. Run [Iris Pipeline](https://github.com/red-hat-data-services/ods-ci/blob/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/cache-disabled/iris_pipeline_compiled.yaml), [Flip Coin](https://github.com/red-hat-data-services/ods-ci/blob/master/ods_ci/tests/Resources/Files/pipeline-samples/v2/cache-disabled/flip_coin_compiled.yaml) pipelines
-    14. Make sure the pipeline runs Succeeds
+    11. Once the deployment is DONE and your cluster is available, update the DSPO version by following the instructions [here](https://github.com/opendatahub-io/opendatahub-operator/blob/main/hack/component-dev/README.md)
+    12. Deploy DSPA using the instructions provided in the comments
+    13. On your local, run the Smoke tests via the following docker (or podman equivalent command):
+        ```
+        docker run -it -v /home/nsingla/.kube/config:/dspa/backend/test/.kube/config --rm --workdir=/dspa/backend/test --env AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" --env AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" --env NAMESPACE=$NAMESPACE_TO_CREATE --env DSPA_NAME=$SERVICE_NAME_OF_YOUR_CHOICE quay.io/opendatahub/ds-pipelines-tests::master --label-filter=smoke
+        ```
+    14. Now go back to Jenkins to run tests:
+        1. This time uncheck "Install Cluster" checkbox
+        2. Check RUN_TESTS checkbox
+        3. Enter RUN_DASHBOARD_TESTS=SmokeSet1 (this will run cypress Dashboard Tests Job as a downstream job)
+        4. Under "Components Tests Configuration", select "smoke" as quality gate and enable "ai-pipelines" tests (update the test image if you have any changes in the test code in this PR)
     15. Repeat the above steps but this time check `ENABLE_FIPS_IN_CLUSTER` checkbox to create a FIPS cluster
 2. Comment `/integration-tests-ok` on this PR to add the verification label
 3. This workflow check will automatically pass once the label is added
