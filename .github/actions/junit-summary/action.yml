@@ -1,0 +1,76 @@
+name: "JUnit Test Summary"
+description: "Parse JUnit XML reports and publish to GitHub step summary with custom data support"
+
+inputs:
+  xml_files:
+    description: "Path(s) to JUnit XML file(s) or directories (space-separated, supports glob patterns)"
+    required: true
+  custom_data:
+    description: "JSON string with custom data to include in the summary (e.g., '{\"Build\": \"1234\", \"Branch\": \"main\"}')"
+    required: false
+    default: ""
+  custom_data_file:
+    description: "Path to JSON file with custom data to include in the summary"
+    required: false
+    default: ""
+  fail_on_test_failures:
+    description: "Whether to fail the step if tests fail (default: true)"
+    required: false
+    default: "true"
+  python_version:
+    description: "Python version to use"
+    required: false
+    default: "3.11"
+
+outputs:
+  total_tests:
+    description: "Total number of tests"
+    value: ${{ steps.parse.outputs.total_tests }}
+  total_passed:
+    description: "Number of passed tests"
+    value: ${{ steps.parse.outputs.total_passed }}
+  total_failed:
+    description: "Number of failed tests"
+    value: ${{ steps.parse.outputs.total_failed }}
+  total_errors:
+    description: "Number of tests with errors"
+    value: ${{ steps.parse.outputs.total_errors }}
+  total_skipped:
+    description: "Number of skipped tests"
+    value: ${{ steps.parse.outputs.total_skipped }}
+  success_rate:
+    description: "Test success rate as a percentage"
+    value: ${{ steps.parse.outputs.success_rate }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Parse JUnit XML and Generate Summary
+      id: parse
+      shell: bash
+      run: |
+        # Build arguments array
+        args=()
+
+        # Add custom data if provided
+        if [[ -n "${{ inputs.custom_data }}" ]]; then
+          args+=(--custom-data "${{ inputs.custom_data }}")
+        fi
+
+        # Add custom data file if provided
+        if [[ -n "${{ inputs.custom_data_file }}" ]]; then
+          args+=(--custom-data-file "${{ inputs.custom_data_file }}")
+        fi
+
+        # Add fail_on_test_failures flag
+        if [[ "${{ inputs.fail_on_test_failures }}" != "true" ]]; then
+          args+=(--no-fail-on-test-failures)
+        fi
+
+        # Execute the Python script with XML files and arguments
+        python "${{ github.action_path }}/junit_to_summary.py" ${{ inputs.xml_files }} "${args[@]}"

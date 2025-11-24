@@ -107,15 +107,6 @@ runs:
         fi
         ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
 
-    - name: Publish Test Summary
-      id: publish
-      uses: EnricoMi/publish-unit-test-result-action@v2
-      if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
-      with:
-        files: |
-          ${{ inputs.test_directory }}/reports/*.xml
-        check_run_annotations: 'none'
-
     - name: Install Junit2Html plugin and generate report
       if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
       shell: bash
@@ -142,7 +133,24 @@ runs:
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
-        retention-days: 30
+        retention-days: 7
+      continue-on-error: true
+
+    - name: Publish Test Summary With HTML Report
+      id: publish
+      uses: ./.github/actions/junit-summary
+      if: (!cancelled()) && steps.upload.outcome != 'failure'
+      with:
+        xml_files: '${{ inputs.test_directory }}/reports'
+        custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
+      continue-on-error: true
+
+    - name: Publish Test Summary
+      id: summary
+      uses: ./.github/actions/junit-summary
+      if: (!cancelled()) && steps.upload.outcome == 'failure'
+      with:
+        xml_files: '${{ inputs.test_directory }}/reports'
       continue-on-error: true
 
     - name: Mark Workflow failure if test step failed
@@ -151,6 +159,6 @@ runs:
       run: exit 1
 
     - name: Mark Workflow failure if test reporting failed
-      if: (steps.publish.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
+      if: (steps.publish.outcome == 'failure' || steps.summary.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
       shell: bash
       run: exit 1
