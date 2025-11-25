@@ -8,6 +8,20 @@
 
 ## Bug fixes and other changes
 
+# 2.15.1
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
 ## Documentation updates
 
 # 2.15.0
