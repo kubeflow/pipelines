@@ -2,14 +2,33 @@
 
 ## Features
 
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.15.0
+
+## Features
+
 * Allow sharing utility functions across components via the `additional_funcs` argument to the `component` decorator;
   functions are embedded into the generated component code before the main function (#12178).
+* feat(backend, sdk): Add custom_path field to RuntimeArtifact (#12248)
+* feat(sdk): Add notebook components and embedded artifacts support (#12294)
+* feat(sdk): add compile-time validation for workspace size
 
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
+
+* fix(sdk): Add support for list and dict parameter type hints (#12410)
+* fix(CI/SDK): Fix tests for pipelines with optional input parameters and an SDK syntax error (#12420)
+* chore: update py image refs to 3.11 (#12383)
 
 ## Documentation updates
 
