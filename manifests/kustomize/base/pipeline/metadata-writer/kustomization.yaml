@@ -7,4 +7,4 @@ resources:
   - metadata-writer-sa.yaml
 images:
   - name: ghcr.io/kubeflow/kfp-metadata-writer
-    newTag: 2.14.3
+    newTag: 2.15.0
