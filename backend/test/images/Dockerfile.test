@@ -28,6 +28,12 @@ RUN wget -q https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.2
     cp oc-client/oc /usr/local/bin && \
     rm -rf oc-client/
 
+# Download latest Kustomize library
+RUN wget -q https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.0/kustomize_v5.8.0_linux_amd64.tar.gz -P kustomize && \
+    tar -xf kustomize/kustomize_v5.8.0_linux_amd64.tar.gz -C kustomize && \
+    cp kustomize/kustomize /usr/local/bin/kustomize && \
+    rm -rf kustomize
+
 # Copy all required go files from the project
 COPY ./go.mod ./
 COPY ./go.sum ./

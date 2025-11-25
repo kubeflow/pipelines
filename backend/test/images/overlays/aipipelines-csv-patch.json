@@ -1,0 +1,39 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/install/spec/deployments/0/spec/replicas",
+    "value": 1
+  },
+  {
+    "op": "replace",
+    "path": "/spec/install/spec/deployments/0/spec/strategy",
+    "value": {
+      "type": "Recreate"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/install/spec/deployments/0/spec/template/spec/securityContext",
+    "value": {
+      "fsGroup": 1001
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/volumeMounts/-",
+    "value": {
+      "mountPath": "/opt/manifests/datasciencepipelines",
+      "name": "aipipelines-manifests"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/install/spec/deployments/0/spec/template/spec/volumes/-",
+    "value": {
+      "name": "aipipelines-manifests",
+      "persistentVolumeClaim": {
+        "claimName": "aipipelines-component-manifests"
+      }
+    }
+  }
+]
