@@ -231,6 +231,8 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.MLPipelineTLSEnabled,
 		opts.MLMDTLSEnabled,
 		opts.CaCertPath,
+		opts.MLPipelineServerAddress,
+		opts.MLPipelineServerPort,
 		opts.MLMDServerAddress,
 		opts.MLMDServerPort,
 	)
