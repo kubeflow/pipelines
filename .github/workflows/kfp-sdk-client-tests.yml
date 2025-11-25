@@ -15,6 +15,8 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+env:
+  PYTHON_BUILD_PKG_VERSION: "1.3.0"
 jobs:
   build:
     uses: ./.github/workflows/image-builds-with-cache.yml
@@ -66,6 +68,21 @@ jobs:
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
+
+      - name: Install build tool
+        shell: bash
+        run: |
+          pip install --upgrade pip
+          pip install build==${{ env.PYTHON_BUILD_PKG_VERSION }}
+
+      - name: Build & install kfp-server-api dist
+        id: install-kfp-server-api
+        shell: bash
+        working-directory: backend/api/v2beta1/python_http_client
+        run: |
+          rm -rf dist/
+          python -m build .
+          pip install dist/*.whl
 
       - name: Install Test dependencies
         run: |
