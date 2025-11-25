@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Contact one of chensun, HumairAK if this remote image needs an update.
-PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:release-2.15
+PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 
 .PHONY: python
 python: python
