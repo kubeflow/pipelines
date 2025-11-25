@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kfp"
+dynamic = ["version"]
+description = "Kubeflow Pipelines SDK"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.9.0"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "The Kubeflow Authors"}
+]
+keywords = ["kubeflow", "pipelines", "machine-learning", "mlops"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education", 
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "click>=8.1.8",
+    "click-option-group==0.5.7", 
+    "docstring-parser>=0.7.3,<1",
+    "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
+    "google-auth>=1.6.1,<3",
+    "google-cloud-storage>=2.2.1,<4",
+    "kfp-pipeline-spec>=2.14.3,<3",
+    "kfp-server-api>=2.14.3,<3", 
+    "kubernetes>=8.0.0,<31",
+    "protobuf>=6.31.1,<7.0",
+    "PyYAML>=5.3,<7",
+    "requests-toolbelt>=0.8.0,<2",
+    "tabulate>=0.8.6,<1",
+    "urllib3<3.0.0",
+    'typing-extensions>=3.7.4,<5; python_version<"3.9"'
+]
+
+
+[project.optional-dependencies]
+all = [
+    "docker",
+    "kfp-kubernetes",
+    "nbclient>=0.10,<1", 
+    "ipykernel>=6,<7",
+    "jupyter_client>=7,<9"
+]
+kubernetes = ["kfp-kubernetes"]
+notebooks = [
+    "nbclient>=0.10,<1",
+    "ipykernel>=6,<7", 
+    "jupyter_client>=7,<9"
+]
+
+[project.urls]
+Documentation = "https://kubeflow-pipelines.readthedocs.io/en/stable/"
+Bug-Tracker = "https://github.com/kubeflow/pipelines/issues"
+Source = "https://github.com/kubeflow/pipelines/tree/master/sdk"
+Changelog = "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md"
+
+[project.scripts]
+dsl-compile = "kfp.cli.compile_:main"
+kfp = "kfp.cli.__main__:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "kfp.version.__version__"}
