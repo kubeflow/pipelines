@@ -29,8 +29,6 @@ import (
 	"sync"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/prometheus/client_golang/prometheus"
-
 	"google.golang.org/grpc/credentials"
 
 	"github.com/fsnotify/fsnotify"
@@ -251,13 +249,11 @@ func grpcCustomMatcher(key string) (string, bool) {
 func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Config) {
 	var s *grpc.Server
 
-	metrics := grpc_prometheus.NewServerMetrics()
-	metrics.EnableHandlingTimeHistogram(
+	grpc_prometheus.EnableHandlingTimeHistogram(
 		grpc_prometheus.WithHistogramBuckets([]float64{
-			0.01, 0.03, 0.1, 0.3, 1, 3, 10, 15, 30, 60, 120, 300,
+			0.005, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 15, 30, 60, 120, 300, // 5 ms -> 5 min
 		}),
 	)
-	prometheus.MustRegister(metrics)
 
 	if tlsCfg != nil {
 		glog.Info("Starting RPC server (TLS enabled)")
@@ -265,20 +261,18 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 		s = grpc.NewServer(
 			grpc.Creds(tlsCredentials),
 			grpc.ChainUnaryInterceptor(
+				grpc_prometheus.UnaryServerInterceptor,
 				apiServerInterceptor,
-				metrics.UnaryServerInterceptor(),
 			),
 			grpc.MaxRecvMsgSize(math.MaxInt32),
 		)
 	} else {
 		glog.Info("Starting RPC server")
 		s = grpc.NewServer(grpc.ChainUnaryInterceptor(
+			grpc_prometheus.UnaryServerInterceptor,
 			apiServerInterceptor,
-			metrics.UnaryServerInterceptor(),
 		), grpc.MaxRecvMsgSize(math.MaxInt32))
 	}
-
-	metrics.InitializeMetrics(s)
 
 	listener, err := net.Listen("tcp", *rpcPortFlag)
 	if err != nil {
