@@ -81,25 +81,17 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       # Check if the image tarball already exists or not, if yes, then skip building the image
-      - name: Attempt to download the artifact
-        uses: actions/download-artifact@v4
+      - name: Check if artifact exists
+        uses: nsingla/github-actions/github-artifacts@main
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}
-        continue-on-error: true
-        id: artifact-download
-
-      # If the image tarball was successfully downloaded, then clean it up as the download should
-      # happen when image tarballs are actually required for deployment (most likely in a new workflow/job)
-      - name: Delete the artifact downloaded artifact
-        if: ${{ steps.artifact-download.outcome == 'success' }}
-        run: |
-          rm -rf ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}
-        shell: bash
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          operation: 'check'
+          artifact-name: ${{ env.ARTIFACT_NAME }}
+        id: artifact-check
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        if: ${{ steps.artifact-download.outcome == 'failure' }}
+        if: ${{ steps.artifact-check.outputs.artifact-exists == 'false' }}
         id: setup-buildx
 
       - name: Build and save Docker image
