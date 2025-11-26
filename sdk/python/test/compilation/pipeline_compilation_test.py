@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
+import functools
 import os.path
 import tempfile
 from typing import Callable, Optional
 
+from kfp import dsl
 from kfp.compiler import Compiler
 import pytest
+
+base_image = "registry.access.redhat.com/ubi9/python-311:latest"
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+
+dsl.component = functools.partial(
+    dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH)
 
 from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
     echo as arguments_parameters_echo

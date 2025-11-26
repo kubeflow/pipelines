@@ -13,9 +13,9 @@ spec:
         - cluster.local
         options:
         - name: timeout
-          value: "5"
+          value: "10"
         - name: attempts
-          value: "3"
+          value: "5"
         - name: ndots
           value: "2"
       containers:

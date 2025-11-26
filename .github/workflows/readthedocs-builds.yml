@@ -26,8 +26,10 @@ jobs:
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
-        with:
-          generate_golang_proto: "false"
+
+      - name: Install kfp & kfp-kubernetes from source
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
 
       - name: Install Dependencies
         run: |
@@ -47,5 +49,6 @@ jobs:
         working-directory: kubernetes_platform/python
         env:
           KFP_KUBERNETES_VERSION: $(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
+          USE_FIND_LINKS: true
         run: |
           source create_release_branch.sh

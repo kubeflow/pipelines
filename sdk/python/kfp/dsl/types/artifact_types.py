@@ -117,8 +117,8 @@ class Artifact:
         # If the artifact is already present in the pipeline workspace, map to the workspace path.
         # This is indicated by backend setting metadata['_kfp_workspace'] = True.
         if self.metadata.get('_kfp_workspace') is True:
-            local_path = os.path.join(WORKSPACE_MOUNT_PATH, ".artifacts",
-                                      local_path.lstrip("/"))
+            local_path = os.path.join(WORKSPACE_MOUNT_PATH, '.artifacts',
+                                      local_path.lstrip('/'))
 
         return local_path
 
@@ -153,8 +153,8 @@ def convert_local_path_to_remote_path(path: str) -> str:
         return RemotePrefix.S3.value + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
         remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('_', '/')
-        if remote_path.endswith("/models"):
-            remote_path = remote_path[:-len("/models")]
+        if remote_path.endswith('/models'):
+            remote_path = remote_path[:-len('/models')]
 
         return RemotePrefix.OCI.value + remote_path
 
@@ -180,10 +180,10 @@ class Model(Artifact):
 
     @property
     def path(self) -> str:
-        if self.uri.startswith("oci://"):
+        if self.uri.startswith('oci://'):
             # Modelcar container images are expected to have the model files stored in /models
             # https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
-            return self._get_path() + "/models"
+            return self._get_path() + '/models'
 
         return self._get_path()
 

@@ -31,6 +31,8 @@ import pytest
 
 ROOT_FOR_TESTING = './testing_root'
 
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+
 
 @pytest.fixture(autouse=True)
 def set_packages_for_test_classes(monkeypatch, request):
@@ -359,7 +361,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with open(nb_path, 'w', encoding='utf-8') as f:
                 _json.dump(nb, f)
 
-            @dsl.notebook_component(notebook_path=nb_path,)
+            @dsl.notebook_component(
+                notebook_path=nb_path, kfp_package_path=_KFP_PACKAGE_PATH)
             def nb_comp(msg: str) -> str:
                 dsl.run_notebook(text=msg)
 

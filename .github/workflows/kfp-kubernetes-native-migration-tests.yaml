@@ -114,7 +114,7 @@ jobs:
           kubectl delete deployment ml-pipeline -n kubeflow     
           # Deploy KFP in K8s mode
           echo "Deploying KFP in K8s mode..."
-          kubectl apply -k "manifests/kustomize/env/cert-manager/platform-agnostic-k8s-native/"
+          kubectl kustomize --load-restrictor LoadRestrictionsNone  ".github/resources/manifests/kubernetes-native/default" | kubectl apply -f -
           # Wait for KFP K8s mode deployment to be ready
           kubectl wait --for=condition=available --timeout=300s deployment/ml-pipeline -n kubeflow
         continue-on-error: true

@@ -17,13 +17,14 @@
 # run from within ./kubernetes_platform/python
 # set environment variable KFP_KUBERNETES_VERSION
 
+USE_FIND_LINKS="${USE_FIND_LINKS:-false}"
 PKG_ROOT=$(pwd)
 REPO_ROOT=$(dirname $(dirname $PKG_ROOT))
 echo $REPO_ROOT
 
 echo "Generating Python protobuf code..."
 pushd "$PKG_ROOT/.."
-make clean-python python
+make clean-python python USE_FIND_LINKS=${USE_FIND_LINKS}
 popd
 
 SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')

@@ -78,6 +78,10 @@ type Options struct {
 	// set to true if metadata server is serving over tls
 	MLMDTLSEnabled bool
 
+	MLPipelineServerAddress string
+
+	MLPipelineServerPort string
+
 	MLMDServerAddress string
 
 	MLMDServerPort string
@@ -235,6 +239,8 @@ func initPodSpecPatch(
 	mlPipelineTLSEnabled bool,
 	metadataTLSEnabled bool,
 	caCertPath string,
+	mlPipelineServerAddress string,
+	mlPipelineServerPort string,
 	mlmdServerAddress string,
 	mlmdServerPort string,
 ) (*k8score.PodSpec, error) {
@@ -277,6 +283,8 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
+		"--ml_pipeline_server_address", mlPipelineServerAddress,
+		"--ml_pipeline_server_port", mlPipelineServerPort,
 		"--mlmd_server_address", mlmdServerAddress,
 		"--mlmd_server_port", mlmdServerPort,
 		"--publish_logs", publishLogs,
