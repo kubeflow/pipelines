@@ -4,12 +4,15 @@ package utils
 import (
 	"fmt"
 	"maps"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
@@ -91,6 +94,91 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 		}
 	}
 
+}
+
+// ValidateParallelismIfConfigured checks pipelineRunParallelism constraints when set.
+func ValidateParallelismIfConfigured(runClient *apiserver.RunClient, pipelineFilePath, runID string) {
+	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
+	if spec == nil || spec.PlatformSpec() == nil {
+		return
+	}
+	k8sSpec, ok := spec.PlatformSpec().GetPlatforms()["kubernetes"]
+	if !ok || k8sSpec == nil {
+		return
+	}
+	cfg := k8sSpec.GetPipelineConfig()
+	if cfg == nil || cfg.PipelineRunParallelism == nil {
+		return
+	}
+	limit := cfg.GetPipelineRunParallelism()
+
+	baseName := filepath.Base(pipelineFilePath)
+	if ext := filepath.Ext(baseName); ext != "" {
+		baseName = strings.TrimSuffix(baseName, ext)
+	}
+	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(
+		filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), baseName+".yaml"))
+	componentTaskNames := map[string]struct{}{}
+	for _, tmpl := range compiledWorkflow.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			if task.Template == "system-container-executor" {
+				componentTaskNames[task.Name] = struct{}{}
+			}
+		}
+	}
+	if len(componentTaskNames) == 0 {
+		return
+	}
+
+	runIDCopy := runID
+	runDetail := testutil.GetPipelineRun(runClient, &runIDCopy)
+	gomega.Expect(runDetail).NotTo(gomega.BeNil())
+	gomega.Expect(runDetail.RunDetails).NotTo(gomega.BeNil())
+
+	type event struct {
+		at    time.Time
+		delta int
+	}
+	var events []event
+	for _, task := range runDetail.RunDetails.TaskDetails {
+		if task == nil {
+			continue
+		}
+		name := task.DisplayName
+		if name == "" {
+			name = task.TaskID
+		}
+		if _, ok := componentTaskNames[name]; !ok {
+			continue
+		}
+		start := time.Time(task.StartTime)
+		if start.IsZero() {
+			continue
+		}
+		events = append(events, event{at: start, delta: +1})
+		end := time.Time(task.EndTime)
+		if !end.IsZero() {
+			events = append(events, event{at: end, delta: -1})
+		}
+	}
+	if len(events) == 0 {
+		return
+	}
+	sort.Slice(events, func(i, j int) bool {
+		if events[i].at.Equal(events[j].at) {
+			return events[i].delta < events[j].delta
+		}
+		return events[i].at.Before(events[j].at)
+	})
+	running := 0
+	for _, ev := range events {
+		running += ev.delta
+		gomega.Expect(running).To(gomega.BeNumerically(">=", 0))
+		gomega.Expect(running).To(gomega.BeNumerically("<=", limit))
+	}
 }
 
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component

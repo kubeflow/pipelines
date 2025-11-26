@@ -16,9 +16,12 @@
 from kfp import compiler, dsl
 
 
-@dsl.component
-def produce_message(msg: str) -> str:
-    print(msg)
+@dsl.component(base_image='python:3.9')
+def produce_message(msg: str, sleep_seconds: int = 20) -> str:
+    import time
+
+    print(f'Processing {msg}...')
+    time.sleep(sleep_seconds)
     return msg
 
 
@@ -27,7 +30,8 @@ def produce_message(msg: str) -> str:
     pipeline_config=dsl.PipelineConfig(pipeline_run_parallelism=2),
 )
 def pipeline_with_run_parallelism():
-    with dsl.ParallelFor(items=['one', 'two', 'three']) as item:
+    loop_args = ['one', 'two', 'three', 'four', 'five']
+    with dsl.ParallelFor(items=loop_args) as item:
         produce_message(msg=item)
 
 

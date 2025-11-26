@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-00cdf4de1b0ff15d542d6cb54821aeebf3de511087a035956ba6381b97ace0a1
-      value: '{"executorLabel":"exec-produce-message","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-00cdf4de1b0ff15d542d6cb54821aeebf3de511087a035956ba6381b97ace0a1
+    - name: components-178514df38896ed194ce06e7bfe28c7b70b505ef42774615200c302567af37de
+      value: '{"executorLabel":"exec-produce-message","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"},"sleep_seconds":{"defaultValue":20,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-178514df38896ed194ce06e7bfe28c7b70b505ef42774615200c302567af37de
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","produce_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,12 +18,14 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        produce_message(msg: str) -\u003e str:\n    print(msg)\n    return msg\n\n"],"image":"python:3.11"}'
+        produce_message(msg: str, sleep_seconds: int = 20) -\u003e str:\n    import
+        time\n\n    print(f''Processing {msg}...'')\n    time.sleep(sleep_seconds)\n    return
+        msg\n\n"],"image":"python:3.9"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"tasks":{"produce-message":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"produce-message"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"STRING"}}}}'
     - name: components-root
       value: '{"dag":{"tasks":{"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"one\",
-        \"two\", \"three\"]"}},"taskInfo":{"name":"for-loop-2"}}}}}'
+        \"two\", \"three\", \"four\", \"five\"]"}},"taskInfo":{"name":"for-loop-2"}}}}}'
   entrypoint: entrypoint
   parallelism: 2
   podMetadata:
@@ -213,11 +215,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-00cdf4de1b0ff15d542d6cb54821aeebf3de511087a035956ba6381b97ace0a1}}'
+            value: '{{workflow.parameters.components-178514df38896ed194ce06e7bfe28c7b70b505ef42774615200c302567af37de}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"produce-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-00cdf4de1b0ff15d542d6cb54821aeebf3de511087a035956ba6381b97ace0a1}}'
+            value: '{{workflow.parameters.implementations-178514df38896ed194ce06e7bfe28c7b70b505ef42774615200c302567af37de}}'
           - name: task-name
             value: produce-message
           - name: parent-dag-id
@@ -337,7 +339,7 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"one\",
-              \"two\", \"three\"]"}},"taskInfo":{"name":"for-loop-2"}}'
+              \"two\", \"three\", \"four\", \"five\"]"}},"taskInfo":{"name":"for-loop-2"}}'
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -366,7 +368,7 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"one\",
-              \"two\", \"three\"]"}},"taskInfo":{"name":"for-loop-2"}}'
+              \"two\", \"three\", \"four\", \"five\"]"}},"taskInfo":{"name":"for-loop-2"}}'
         name: iteration-driver
         template: system-dag-driver
       - arguments:

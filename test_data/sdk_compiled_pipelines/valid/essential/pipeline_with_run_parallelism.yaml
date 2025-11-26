@@ -25,6 +25,10 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        sleep_seconds:
+          defaultValue: 20.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
     outputDefinitions:
       parameters:
         Output:
@@ -57,9 +61,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef produce_message(msg: str) -> str:\n    print(msg)\n    return\
-          \ msg\n\n"
-        image: python:3.11
+          \ *\n\ndef produce_message(msg: str, sleep_seconds: int = 20) -> str:\n\
+          \    import time\n\n    print(f'Processing {msg}...')\n    time.sleep(sleep_seconds)\n\
+          \    return msg\n\n"
+        image: python:3.9
 pipelineInfo:
   name: pipeline-with-run-parallelism
 root:
@@ -71,7 +76,7 @@ root:
         parameterIterator:
           itemInput: pipelinechannel--loop-item-param-1
           items:
-            raw: '["one", "two", "three"]'
+            raw: '["one", "two", "three", "four", "five"]'
         taskInfo:
           name: for-loop-2
 schemaVersion: 2.1.0
