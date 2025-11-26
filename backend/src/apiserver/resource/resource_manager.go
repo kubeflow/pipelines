@@ -1281,8 +1281,8 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
 
 // Creates new tasks or updates existing ones.
 // This is not a part of internal API exposed to persistence agent only.
-func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task, runId string) ([]*model.Task, error) {
-	tasks, err := r.taskStore.CreateOrUpdateTasks(t, runId)
+func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task, runID string) ([]*model.Task, error) {
+	tasks, err := r.taskStore.CreateOrUpdateTasks(t, runID)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create or update tasks")
 	}
