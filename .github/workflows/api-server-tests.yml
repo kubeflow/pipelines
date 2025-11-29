@@ -190,7 +190,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_argoVersion=${{ matrix.argo_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}_dbType=${{ matrix.db_type }}"
+          report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_argoVersion=${{ matrix.argo_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}_dbType=${{ matrix.db_type }}_pipelineStore=${{ matrix.pipeline_store }}_tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
