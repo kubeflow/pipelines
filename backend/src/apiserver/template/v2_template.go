@@ -106,7 +106,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 
-	// Note: Parameter macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] are not formatted here.
+	// Parameter macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] are not formatted here.
 	// They remain unformatted in the ScheduledWorkflow spec and will be formatted by the scheduled workflow controller
 	if err = t.validatePipelineJobInputs(job); err != nil {
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
