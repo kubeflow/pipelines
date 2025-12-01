@@ -81,7 +81,7 @@ jobs:
           - image: ds-pipelines-launcher
             dockerfile: backend/Dockerfile.launcher
           - image: ds-pipelines-tests
-            dockerfile: backend/test/Dockerfile.test
+            dockerfile: backend/test/images/Dockerfile.test
     steps:
       - uses: actions/checkout@v3
       - name: Build Image
