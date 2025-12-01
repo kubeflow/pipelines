@@ -464,6 +464,23 @@ Notes:
 
 - Legacy `kfp-samples.yml` and `periodic.yml` workflows were removed.
 
+### Workflow path verification
+
+To verify all GitHub workflow path references are valid:
+
+1. **Iterate through all workflow files** in `.github/workflows/` (both `.yml` and `.yaml` files)
+2. **Parse each YAML file** and extract path references from:
+   - `working-directory` fields
+   - `dockerfile` and `context` fields in Docker build steps
+   - `script` or command paths (look for `./` prefixes)
+   - Any string values that appear to be file/directory paths
+   - Action references (e.g., `./.github/actions/...`)
+3. **Clean extracted paths** by removing `./` prefixes and variable expansions
+4. **Verify each extracted path exists** in the project filesystem
+5. **Report missing paths** and which workflows reference them
+
+This verification ensures workflow integrity and prevents CI failures due to missing files or incorrect path references.
+
 ### Feature flags
 
 KFP frontend supports feature flags for development:
