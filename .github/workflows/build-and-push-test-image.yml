@@ -21,7 +21,7 @@ env:
   QUAY_ID: ${{ secrets.QUAY_ROBOT_USERNAME }}
   QUAY_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
   IMAGE_REPO: ds-pipelines-tests
-  DOCKERFILE_PATH: backend/test/Dockerfile.test
+  DOCKERFILE_PATH: backend/test/images/Dockerfile.test
 
 jobs:
   build-test-image:
