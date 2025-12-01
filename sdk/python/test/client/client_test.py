@@ -38,7 +38,7 @@ SSL_CA_CERT: str = os.getenv("sslCertPath", None)
 @pytest.mark.client
 class TestClient:
 
-    hello_world_pipeline_file = f'{FileUtils.VALID_PIPELINE_FILES}/hello-world.yaml'
+    hello_world_pipeline_file = f'{FileUtils.VALID_PIPELINE_FILES}/hello_world.yaml'
     kfp_client: kfp.Client
 
     @pytest.fixture(autouse=True)

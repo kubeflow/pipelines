@@ -15,7 +15,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -24,10 +23,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
-	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
@@ -43,6 +43,8 @@ import (
 type PipelineVersionApiTest struct {
 	suite.Suite
 	namespace            string
+	repoName             string
+	branchName           string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
 }
@@ -83,6 +85,9 @@ func (s *PipelineVersionApiTest) SetupTest() {
 			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 	}
+
+	s.repoName = *config.REPO_NAME
+	s.branchName = *config.BRANCH_NAME
 
 	var err error
 	s.pipelineUploadClient, err = newPipelineUploadClient()
@@ -143,12 +148,14 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.Contains(t, err.Error(), "Failed to upload pipeline version")
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
+	pipelineURL, err := testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "backend/test/v2/resources/sequential.yaml")
+	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
 		Version: &pipeline_model.APIPipelineVersion{
 			Name: "sequential",
 			PackageURL: &pipeline_model.APIURL{
-				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
+				PipelineURL: pipelineURL,
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
@@ -164,7 +171,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Upload pipeline version zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
-		"../resources/arguments.pipeline.zip", &uploadParams.UploadPipelineVersionParams{
+		"../resources/arguments_parameters.zip", &uploadParams.UploadPipelineVersionParams{
 			Name:       util.StringPointer("zip-arguments-parameters"),
 			Pipelineid: util.StringPointer(pipelineId),
 		})
@@ -173,11 +180,8 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/resources/arguments.pipeline.zip"
-
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/resources/arguments.pipeline.zip", pullNumber)
-	}
+	pipelineURL, err = testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "backend/test/resources/arguments_parameters.zip")
+	require.Nil(t, err)
 
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
 		Version: &pipeline_model.APIPipelineVersion{

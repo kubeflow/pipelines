@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
+import functools
 import os.path
 import tempfile
 from typing import Callable, Optional
 
+from kfp import dsl
 from kfp.compiler import Compiler
 import pytest
+
+base_image = "registry.access.redhat.com/ubi9/python-311:latest"
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+
+dsl.component = functools.partial(
+    dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH)
 
 from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
     echo as arguments_parameters_echo
@@ -94,6 +102,8 @@ from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_artifact_uplo
     my_pipeline as artifact_upload_download_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_env import \
     my_pipeline as env_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import \
+    pipeline_with_importer_workspace
 from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_input_status_state import \
     status_state_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_placeholders import \
@@ -213,8 +223,6 @@ from test_data.sdk_compiled_pipelines.valid.pipeline_with_retry import \
     my_pipeline as retry_pipeline
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_secret_as_volume import \
     pipeline_secret_volume
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_semphore import \
-    pipeline_with_semaphore
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_pipeline_input import \
     pipeline as pipeline_with_string_machine_fields_pipeline_input
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_task_output import \
@@ -283,7 +291,7 @@ class TestPipelineCompilation:
                 pipeline_func=echo,
                 pipline_func_args=None,
                 compiled_file_name='hello_world.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/hello-world.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/hello_world.yaml'
             ),
             TestData(
                 pipeline_name='simple-two-step-pipeline',
@@ -480,6 +488,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='pipeline_with_workspace.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/pipeline_with_workspace.yaml'
+            ),
+            TestData(
+                pipeline_name='pipeline-with-importer-workspace',
+                pipeline_func=pipeline_with_importer_workspace,
+                pipline_func_args=None,
+                compiled_file_name='pipeline_with_importer_workspace.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/critical/pipeline_with_importer_workspace.yaml'
             ),
             TestData(
                 pipeline_name='containerized-two-step-pipeline',
@@ -918,7 +933,7 @@ class TestPipelineCompilation:
                     'param2': 'world'
                 },
                 compiled_file_name='arguments_parameters.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/arguments-parameters.yaml'
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/arguments_parameters.yaml'
             ),
             TestData(
                 pipeline_name='container-no-input',
@@ -1010,13 +1025,6 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='pythonic_artifact_with_single_return.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/pythonic_artifact_with_single_return.yaml'
-            ),
-            TestData(
-                pipeline_name='pipeline-with-semaphore',
-                pipeline_func=pipeline_with_semaphore,
-                pipline_func_args=None,
-                compiled_file_name='pipeline_with_semaphore.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/pipeline_with_semaphore.yaml'
             ),
             TestData(
                 pipeline_name='pipeline-with-condition-dynamic-task-output',

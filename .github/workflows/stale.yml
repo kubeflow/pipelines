@@ -11,7 +11,7 @@ on:
 
 jobs:
   stale:
-
+    if: ${{ github.repository == 'kubeflow/pipelines' }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -30,8 +30,14 @@ jobs:
         close-issue-message: >
           This issue has been automatically closed because it has not had recent
           activity. Please comment "/reopen" to reopen it.
-        stale-issue-label: 'lifecycle/stale'
+        stale-issue-label: lifecycle/stale
         exempt-issue-labels: lifecycle/frozen
+        stale-pr-label: lifecycle/stale
         exempt-pr-labels: lifecycle/frozen
+        stale-pr-message: "This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions. \n"
+        # The message that will be added as a comment to the pull requests
+        # when the stale workflow closes it automatically after being stale for too long.
+        close-pr-message: "This pull request has been automatically closed because it has not had recent  activity.You can reopen the PR if you want. \n"
+
         # Learn more about operations: https://github.com/actions/stale#operations-per-run.
         operations-per-run: 200

@@ -1,8 +1,9 @@
 package metadata
 
+import "github.com/kubeflow/pipelines/backend/src/apiserver/common"
+
 const (
-	metadataGrpcServiceAddress = "metadata-grpc-service.kubeflow"
-	metadataGrpcServicePort    = "8080"
+	metadataGrpcServicePort = "8080"
 )
 
 type ServerConfig struct {
@@ -10,9 +11,9 @@ type ServerConfig struct {
 	Port    string
 }
 
-func DefaultConfig() *ServerConfig {
+func GetMetadataConfig() *ServerConfig {
 	return &ServerConfig{
-		Address: metadataGrpcServiceAddress,
+		Address: common.GetMetadataServiceName() + "." + common.GetPodNamespace() + ".svc.cluster.local",
 		Port:    metadataGrpcServicePort,
 	}
 }

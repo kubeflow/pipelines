@@ -33,6 +33,7 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -480,12 +481,12 @@ const (
 	maxMetricsCountLimit = 50
 )
 
-func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.RunMetric, []error) {
+func (w *Workflow) CollectionMetrics(readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error)) ([]*api.RunMetric, []error) {
 	runID := w.Labels[LabelKeyWorkflowRunId]
 	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
 	partialFailures := make([]error, 0, len(w.Status.Nodes))
 	for _, nodeStatus := range w.Status.Nodes {
-		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, retrieveArtifact, *w.Workflow)
+		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, readArtifact, *w.Workflow)
 		if err != nil {
 			partialFailures = append(partialFailures, err)
 			continue
@@ -504,13 +505,13 @@ func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.
 	return runMetrics, partialFailures
 }
 
-func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact, wf workflowapi.Workflow) (
+func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error), wf workflowapi.Workflow) (
 	[]*api.RunMetric, error,
 ) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, retrieveArtifact, &wf)
+	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, readArtifact, &wf)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
@@ -563,7 +564,7 @@ func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
-	retrieveArtifact RetrieveArtifact, wf *workflowapi.Workflow,
+	readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error), wf *workflowapi.Workflow,
 ) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
@@ -579,20 +580,20 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		return "", nil // No metrics artifact, skip the reporting
 	}
 
-	artifactRequest := &api.ReadArtifactRequest{
-		RunId:        runID,
-		NodeId:       nodeStatus.ID,
+	artifactRequest := &artifactclient.ReadArtifactRequest{
+		RunID:        runID,
+		NodeID:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
-	artifactResponse, err := retrieveArtifact(artifactRequest)
+	artifactResponse, err := readArtifact(artifactRequest)
 	if err != nil {
 		return "", err
 	}
-	if artifactResponse == nil || artifactResponse.GetData() == nil || len(artifactResponse.GetData()) == 0 {
+	if artifactResponse == nil || artifactResponse.Data == nil || len(artifactResponse.Data) == 0 {
 		// If artifact is not found or empty content, skip the reporting.
 		return "", nil
 	}
-	archivedFiles, err := ExtractTgz(string(artifactResponse.GetData()))
+	archivedFiles, err := ExtractTgz(string(artifactResponse.Data))
 	if err != nil {
 		// Invalid tgz file. This should never happen unless there is a bug in the system and
 		// it is a unrecoverable error.

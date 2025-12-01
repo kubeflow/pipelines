@@ -71,3 +71,12 @@ const (
 	TLSCertCAPath = "/kfp/certs/ca.crt"
 	CABundleDir   = "/kfp/certs"
 )
+
+const (
+	DefaultPodNamespace string = "kubeflow"
+)
+
+const (
+	DefaultMLPipelineServiceName string = "ml-pipeline"
+	DefaultMetadataServiceName   string = "metadata-grpc-service"
+)

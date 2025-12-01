@@ -22,19 +22,13 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
       containers:
       - name: seaweedfs
-        env:
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: accesskey
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: secretkey
+        envFrom:
+        - secretRef:
+            name: mlpipeline-minio-artifact
         image: "chrislusf/seaweedfs:4.00"
         args:
         - "server"
@@ -43,6 +37,24 @@ spec:
         - "-iam"
         - "-filer"
         - "-master.volumePreallocate=false"
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -ec
+              - |
+                # wait until seaweedfs master is ready
+                for i in $(seq 1 120); do
+                  if wget -q --spider http://127.0.0.1:8333/status; then
+                    break
+                  fi
+                  sleep 2
+                done
+                # create bucket if not exists (ignore error if exists)
+                echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell || true
+                # configure admin user using keys from secret
+                echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell
         ports:
         - containerPort: 8333
         - containerPort: 8111

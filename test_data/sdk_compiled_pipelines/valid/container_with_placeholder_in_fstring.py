@@ -24,7 +24,7 @@ def container_with_placeholder_in_fstring(
     text1: str = 'text!',
 ):
     return ContainerSpec(
-        image='python:3.11',
+        image='registry.access.redhat.com/ubi9/python-311:latest',
         command=[
             'my_program',
             f'prefix-{text1}',

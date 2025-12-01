@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 import tempfile
 from typing import Any, Dict, List, Union
 import unittest
@@ -236,6 +237,80 @@ class TypeUtilsTest(parameterized.TestCase):
     def test_is_task_final_statu_type(self, given_type, expected_result):
         self.assertEqual(expected_result,
                          type_utils.is_task_final_status_type(given_type))
+
+    def test_pipeline_compile_with_builtin_generic_annotations(self):
+
+        @dsl.component
+        def produce_list(a: int, b: int) -> list[int]:
+            return [a, b]
+
+        @dsl.component
+        def consume_list(values: list[int]) -> int:
+            return values[0]
+
+        @dsl.pipeline
+        def typed_pipeline(x: int = 1):
+            outputs = produce_list(a=x, b=x)
+            consume_list(values=outputs.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'typed_pipeline.json')
+            compiler.Compiler().compile(typed_pipeline, package_path)
+            self.assertTrue(os.path.exists(package_path))
+
+    def test_pipeline_compile_with_builtin_list_and_dict_annotations(self):
+        if sys.version_info < (3, 9):
+            self.skipTest('Built-in generics require Python >= 3.9')
+
+        @dsl.component
+        def produce_mapping(x: int) -> dict[str, int]:
+            return {'value': x}
+
+        @dsl.component
+        def extract_values(mapping: dict[str, int],
+                           keys: list[str]) -> list[int]:
+            return [mapping[key] for key in keys]
+
+        @dsl.pipeline
+        def typed_pipeline(x: int = 1):
+            mapping_output = produce_mapping(x=x)
+            extract_values(mapping=mapping_output.output, keys=['value'])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir,
+                                        'typed_pipeline_list_and_dict.json')
+            compiler.Compiler().compile(typed_pipeline, package_path)
+            self.assertTrue(os.path.exists(package_path))
+
+    def test_pipeline_compile_with_builtin_and_typing_generic_annotations(self):
+        if sys.version_info < (3, 9):
+            self.skipTest('Built-in generics require Python >= 3.9')
+
+        @dsl.component
+        def produce_values(a: int, b: int) -> List[int]:
+            return [a, b]
+
+        @dsl.component
+        def values_to_mapping(values: list[int]) -> Dict[str, int]:
+            return {str(idx): value for idx, value in enumerate(values)}
+
+        @dsl.component
+        def merge_mappings(primary: dict[str, int],
+                           secondary: Dict[str, int]) -> list[int]:
+            merged = {**secondary, **primary}
+            return list(merged.values())
+
+        @dsl.pipeline
+        def typed_pipeline(x: int = 1, y: int = 2):
+            values = produce_values(a=x, b=y)
+            mapping = values_to_mapping(values=values.output)
+            merge_mappings(primary=mapping.output, secondary={'fallback': 0})
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(
+                tmpdir, 'typed_pipeline_builtin_and_typing.json')
+            compiler.Compiler().compile(typed_pipeline, package_path)
+            self.assertTrue(os.path.exists(package_path))
 
 
 class TestGetArtifactTypeSchema(parameterized.TestCase):

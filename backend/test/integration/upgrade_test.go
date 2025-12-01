@@ -34,6 +34,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/glog"
@@ -50,6 +51,8 @@ import (
 type UpgradeTests struct {
 	suite.Suite
 	namespace            string
+	repoName             string
+	branchName           string
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
@@ -101,6 +104,8 @@ func (s *UpgradeTests) SetupSuite() {
 		}
 	}
 	s.namespace = *config.Namespace
+	s.repoName = *config.REPO_NAME
+	s.branchName = *config.BRANCH_NAME
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
@@ -273,11 +278,8 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Import pipeline YAML by URL ---------- */
-	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml"
-
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml", pullNumber)
-	}
+	pipelineURL, err := testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml")
+	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
 		Pipeline: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
@@ -290,17 +292,13 @@ func (s *UpgradeTests) PreparePipelines() {
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/arguments.pipeline.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+		"../resources/arguments_parameters.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
 	require.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL = "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip"
-
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", pullNumber)
-	}
-
+	pipelineURL, err = testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "test_data/sdk_compiled_pipelines/valid/arguments_parameters.zip")
+	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
 		Pipeline: &pipeline_model.APIPipeline{
@@ -310,7 +308,7 @@ func (s *UpgradeTests) PreparePipelines() {
 		},
 	})
 	require.Nil(t, err)
-	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
+	assert.Equal(t, "arguments_parameters.zip", argumentUrlPipeline.Name)
 
 	time.Sleep(1 * time.Second)
 }
@@ -328,7 +326,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].Name)
 	assert.Equal(t, "sequential", pipelines[1].Name)
 	assert.Equal(t, "zip-arguments-parameters", pipelines[2].Name)
-	assert.Equal(t, "arguments.pipeline.zip", pipelines[3].Name)
+	assert.Equal(t, "arguments_parameters.zip", pipelines[3].Name)
 
 	verifyPipeline(t, pipelines[0])
 

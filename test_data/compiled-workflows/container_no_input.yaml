@@ -6,10 +6,10 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093
+    - name: components-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93
       value: '{"executorLabel":"exec-container-no-input"}'
-    - name: implementations-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093
-      value: '{"command":["echo","hello world"],"image":"python:3.11"}'
+    - name: implementations-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93
+      value: '{"command":["echo","hello world"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-root
       value: '{"dag":{"tasks":{"container-no-input":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-no-input"},"taskInfo":{"name":"container-no-input"}}}}}'
   entrypoint: entrypoint
@@ -58,6 +58,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest
@@ -192,11 +200,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093}}'
+            value: '{{workflow.parameters.components-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-no-input"},"taskInfo":{"name":"container-no-input"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093}}'
+            value: '{{workflow.parameters.implementations-370146599cb6990268d635f619ebf88131a8e5b3bfff29b79c6012ffcfff3f93}}'
           - name: task-name
             value: container-no-input
           - name: parent-dag-id
@@ -255,6 +263,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest

@@ -4380,66 +4380,61 @@ class TestPlatformConfig(unittest.TestCase):
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=output_yaml)
 
+    def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
+            self):
+        """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
 
-class TestPipelineSemaphoreMutex(unittest.TestCase):
+        import os
+        import tempfile
 
-    def test_pipeline_with_semaphore(self):
-        """Test that pipeline config correctly sets the semaphore key."""
-        config = PipelineConfig()
-        config.semaphore_key = 'semaphore'
+        from kfp import compiler
+        from kfp import dsl
 
-        @dsl.pipeline(pipeline_config=config)
+        # No PipelineConfig provided (i.e., no workspace configured)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'dsl\.importer\(download_to_workspace=True\) requires PipelineConfig\(workspace=\.\.\.\) on the pipeline\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                dsl.importer(
+                    artifact_uri='gs://bucket/file.txt',
+                    artifact_class=dsl.Dataset,
+                    download_to_workspace=True,
+                )
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
+            self):
+        """Tests that compilation succeeds with both download_to_workspace and workspace config."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                workspace=dsl.WorkspaceConfig(size='1Gi')))
         def my_pipeline():
-            task = comp()
+            dsl.importer(
+                artifact_uri='gs://bucket/file.txt',
+                artifact_class=dsl.Dataset,
+                download_to_workspace=True,
+            )
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=output_yaml)
-
-            with open(output_yaml, 'r') as f:
-                pipeline_docs = list(yaml.safe_load_all(f))
-
-        platform_spec = None
-        for doc in pipeline_docs:
-            if 'platforms' in doc:
-                platform_spec = doc
-                break
-
-        self.assertIsNotNone(platform_spec,
-                             'No platforms section found in compiled output')
-        kubernetes_spec = platform_spec['platforms']['kubernetes'][
-            'pipelineConfig']
-        self.assertEqual(kubernetes_spec['semaphoreKey'], 'semaphore')
-
-    def test_pipeline_with_mutex(self):
-        """Test that pipeline config correctly sets the mutex name."""
-        config = PipelineConfig()
-        config.mutex_name = 'mutex'
-
-        @dsl.pipeline(pipeline_config=config)
-        def my_pipeline():
-            task = comp()
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
-
-            with open(output_yaml, 'r') as f:
-                pipeline_docs = list(yaml.safe_load_all(f))
-
-        platform_spec = None
-        for doc in pipeline_docs:
-            if 'platforms' in doc:
-                platform_spec = doc
-                break
-
-        self.assertIsNotNone(platform_spec,
-                             'No platforms section found in compiled output')
-        kubernetes_spec = platform_spec['platforms']['kubernetes'][
-            'pipelineConfig']
-        self.assertEqual(kubernetes_spec['mutexName'], 'mutex')
+            # Should not raise an error
+            self.assertTrue(os.path.exists(output_yaml))
 
 
 class ExtractInputOutputDescription(unittest.TestCase):

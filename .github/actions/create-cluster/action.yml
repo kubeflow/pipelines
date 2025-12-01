@@ -15,6 +15,17 @@ runs:
   steps:
     - name: Create k8s Kind Cluster
       uses: helm/kind-action@v1.12.0
+      id: cluster-create
+      with:
+        cluster_name: ${{ inputs.cluster_name }}
+        kubectl_version: ${{ inputs.k8s_version }}
+        version: v0.29.0
+        node_image: kindest/node:${{ inputs.k8s_version }}
+        registry: true
+
+    - name: Retry Create k8s Kind Cluster
+      uses: helm/kind-action@v1.12.0
+      if: ${{ steps.cluster-create.outcome == 'failure' }}
       with:
         cluster_name: ${{ inputs.cluster_name }}
         kubectl_version: ${{ inputs.k8s_version }}

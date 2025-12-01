@@ -82,6 +82,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest
@@ -311,6 +319,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest

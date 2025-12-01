@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - ../../../../../manifests/kustomize/env/platform-agnostic
+  - ../../../../../manifests/kustomize/env/platform-agnostic-minio
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
@@ -20,6 +20,21 @@ images:
     newTag: latest
   - name: ghcr.io/kubeflow/kfp-metadata-writer
     newName: kind-registry:5000/metadata-writer
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
+    newName: kind-registry:5000/viewer-crd-controller
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-visualization-server
+    newName: kind-registry:5000/visualization-server
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-cache-deployer
+    newName: kind-registry:5000/cache-deployer
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-cache-server
+    newName: kind-registry:5000/cache-server
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-metadata-envoy
+    newName: kind-registry:5000/metadata-envoy
     newTag: latest
 
 patches:

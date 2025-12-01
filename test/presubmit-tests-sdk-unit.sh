@@ -38,6 +38,12 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -I api/v2alpha1/python
 fi
 
+if [[ -z "${PULL_NUMBER}" ]]; then
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
+else
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
+fi
+
 pytest -v -s sdk/python/kfp --cov=kfp
 
 if [ "${SETUP_ENV}" = "true" ]; then

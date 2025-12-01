@@ -53,17 +53,7 @@ If you want your PR released earlier in a patch release `X.Y.(Z+1)`:
 - The PR should be a bug fix.
 - The PR should be cherry picked to corresponding release branch `release-X.Y`.
 
-Choose one of the following options for cherry picking your PR to release branch.
-
-#### Option - (Recommended) cherrypick-approved label
-
-Contributors should ask OWNERS who approved the PR to add a `cherrypick-approved`
-label if they want the PR cherry picked to release branch.
-
-Release manager will periodically or before release, search all merged PRs with
-`cherrypick-approved` and cherry pick them into current release branch.
-
-#### Option - git cherry-pick
+To cherry pick a PR:
 
 - Find the commit you want to cherry pick on master as $COMMIT_SHA.
 - Find the active release branch name $BRANCH, e.g. release-1.0
@@ -106,71 +96,26 @@ Release branches must be scoped to a minor version. The following components sho
 1. Choose the next release branch's `$MINOR_VERSION` in format `x.y`, e.g. `1.0`, `1.1`...
 1. Make a release branch of format `release-$MINOR_VERSION`, e.g. `release-1.0`, `release-1.1`. Branch from the commit and push to kubeflow pipelines upstream repo.
 
-    ```bash
-    git checkout $COMMIT_SHA
-    BRANCH=release-$MINOR_VERSION
-    git checkout -b $BRANCH
-    git push upstream HEAD
-    ```
+```bash
+git checkout $COMMIT_SHA
+BRANCH=release-$MINOR_VERSION
+git checkout -b $BRANCH
+git push upstream HEAD
+```
+
+> [!Note]
+> The creation of this release branch triggers image builds via the [Build Tools Workflow]. 
+> These images are required by the release script used in the next sections.
 
 ### Before release
 
 Do the following things before a release:
 1. Cherry-picking
+    Cherry pick all PRs that should be released in the next minor release from the master branch. Make a PR and get an approval from the area owners.
 
-    Note: Instead of following this step to cherry-pick all PRs, you can also manually cherry-pick commits from the master branch to release branch, if the number of PRs to cherry-pick is minimal. Command for manual cherry-pick:
-
-    ```
+2. ```
     git cherry-pick <commit-id>
     ```
-
-    If you want to use script to cherry pick all merged PRs with `cherrypick-approved` label:
-    - Search all merged PRs with `cherrypick-approved`
-        label, but no `cherrypicked` label using
-        [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+sort%3Aupdated-asc)
-    - Use the git cherry-pick option to pick these PR commits into the release
-    branch one by one in a batch and add `cherrypicked` label to these PRs.
-
-        NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER
-        to create a cherry pick PR by themselves following other two options.
-    - `git push upstream $BRANCH` directly to the release branch.
-
-    There's an automated script that can help you do the above:
-
-    ```bash
-    # Prepare your env
-    cd ~/kubeflow/pipelines
-    git fetch upstream
-    git checkout release-1.0
-    git pull
-    git checkout -b <your-cherry-pick-branch-name>
-
-    # The following command shows usage info
-    ./hack/cherry-pick.sh
-
-    # The following command cherry picks PRs #123 #456 #789 for you.
-    # It runs git cherry-pick for each merged commit, then adds `cherrypicked`
-    # label on the PR.
-    #
-    # If there's a merge conflict in the middle, it will stop there waiting for
-    # you to resolve. You need to add the `cherrypicked` label by yourself in
-    # this case. After the issue resolved, you can rerun the same command and
-    # PRs already cherrypicked (with the label `cherrypicked`) will be skipped.
-    ./hack/cherry-pick.sh 123 456 789
-
-    # After cherry pickings are done, they are still in your local repo. Push
-    # them to your remote branch to create a PR.
-    git push origin HEAD
-    ```
-
-    You can get the list of PRs waiting to be cherrypicked by:
-    1. Open [cherrypick-approved PRs that haven't been cherrypicked sorted by updated order](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Amerged+sort%3Aupdated-asc+).
-    1. Open browser console (usually by pressing F12).
-    1. Paste the following command into the console.
-
-        ```javascript
-            console.log(Array.from(document.querySelectorAll('[id^="issue_"][id*="_link"]')).map(el => /issue_(.*)_link/.exec(el.id)[1]).join(' '))
-        ```
 
 1. Verify release branch CI is passing: visit <https://github.com/kubeflow/pipelines/commits/master> for master branch.
 
@@ -180,39 +125,59 @@ If not, contact the KFP team to determine if the failure(s) would block the rele
 
 ### Releasing from release branch
 
-
 1. Choose the release's complete `$VERSION` following semantic versioning, e.g.
-    - `1.0.0-rc.1`
-    - `1.0.0-rc.2`
-    - `1.0.0`
-    - `1.0.1`
-    - `1.1.0`
-    - ...
-    Set the version by using `VERSION=<version-value>`. Contact @chensun or @HumairAK if you are not sure what next version should be.
+- `1.0.0-rc.1`
+- `1.0.0-rc.2`
+- `1.0.0`
+- `1.0.1`
+- `1.1.0`
+- ...
+Set the version by using `VERSION=<version-value>`. Contact @chensun or @HumairAK if you are not sure what next version should be.
 
 1. Update all version refs in release branch by
 
-    ```bash
-    cd ./test/release && TAG=$VERSION BRANCH=$BRANCH make release
-    ```
-    This script updates the version values for various manifests, and generated code.
-    Once finished, it will prompt you whether to push it to release branch. You can inspect the changes by navigating to the temporary directory it creates. Once you are comfortable with the changes, press `y` and hit `Enter`. 
-
-    Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
-    
 > [!Note]
-> If you see error "docker.sock: connect: permission error", you need to [allow managing docker as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
+> Ensure that the [Build Tools Workflow] for the release branch has completed successfully before proceeding.
+> You can also verify this by checking the release tools images [Release Image] and [Api Generate Image] have the `$BRANCH` tag.
 
-1. Build the release images by using the [Build images from sources](https://github.com/kubeflow/pipelines/actions/workflows/image-builds-release.yml).
+```bash
+# Replace this with your fork remote, this is where you'll make a PR to the release branch. 
+export FORK_REMOTE=git@github.com:myuser/pipelines.git
+cd ./test/release && TAG=$VERSION BRANCH=$BRANCH FORK_REMOTE= make release
+```
+
+This script updates the version values for various manifests, and generated code.
+Once finished, it will prompt you whether to push it to your fork.
+You can inspect the changes by navigating to the temporary directory it creates. 
+Once you are comfortable with the changes, press `y` and hit `Enter`.
+If you choose no, you can always push manually later.
+
+> [!Note]
+> the script will clone kubeflow/pipelines repo into a temporary location on your computer, 
+> make those changes and attempt to push to your fork, so that it won't interfere with your current git repo.
+
+> [!Note]
+> If you see error "docker.sock: connect: permission error", you need to [allow managing docker as a non-root user].
+
+1. Build the release images by using the [Build images from sources].
 
 The target tag should be `$VERSION`. 
 
 ![Build Images From Sources](images/build-images.png)
 
+
+[allow managing docker as a non-root user]: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
+[Build images from sources]: https://github.com/kubeflow/pipelines/actions/workflows/image-builds-release.yml
+[Build Tools Workflow]: https://github.com/kubeflow/pipelines/actions/workflows/build-tools-images.yml
+[Release Image]: https://github.com/kubeflow/pipelines/pkgs/container/kfp-api-generator
+[Api Generate Image]: https://github.com/kubeflow/pipelines/pkgs/container/kfp-api-generator
+
 ### Releasing KFP Python Packages
 
-All Python packages must be released with wheel and source packages. When doing a minor release, you *must* make a release for all Python packages as well, even if there are no new changes there. This includes: 
+All Python packages must be released with wheel and source packages. 
+When doing a minor release, you *must* make a release for all Python packages as well, even if there are no new changes there. 
 
+This includes: 
 * kfp-pipeline-spec
 * kfp
 * kfp-kubernetes

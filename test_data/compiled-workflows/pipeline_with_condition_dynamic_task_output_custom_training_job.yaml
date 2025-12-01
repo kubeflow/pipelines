@@ -32,7 +32,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.11"}'
-    - name: components-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525
+    - name: components-20246c97a11cfe4c823ed6719ceb5c3f1d11943e4553ba99a2121c27711478b5
       value: '{"executorLabel":"exec-custom-training-job","inputDefinitions":{"parameters":{"base_output_directory":{"defaultValue":"","description":"The
         Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob.
         See [more information ](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).","isOptional":true,"parameterType":"STRING"},"display_name":{"description":"The
@@ -90,7 +90,7 @@ spec:
         an empty value. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).","isOptional":true,"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"gcp_resources":{"description":"Serialized
         JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
         which tracks the CustomJob.","parameterType":"STRING"}}}}'
-    - name: implementations-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525
+    - name: implementations-20246c97a11cfe4c823ed6719ceb5c3f1d11943e4553ba99a2121c27711478b5
       value: '{"args":["--type","CustomJob","--payload","{\"display_name\": \"{{$.inputs.parameters[''display_name'']}}\",
         \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters[''worker_pool_specs'']}},
         \"scheduling\": {\"timeout\": \"{{$.inputs.parameters[''timeout'']}}\", \"restart_job_on_worker_restart\":
@@ -104,7 +104,7 @@ spec:
         \"persistent_resource_id\": \"{{$.inputs.parameters[''persistent_resource_id'']}}\",
         \"psc_interface_config\": {{$.inputs.parameters[''psc_interface_config'']}}},
         \"labels\": {{$.inputs.parameters[''labels'']}}, \"encryption_spec\": {\"kms_key_name\":
-        \"{{$.inputs.parameters[''encryption_spec_key_name'']}}\"}}","--project","{{$.inputs.parameters[''project'']}}","--location","{{$.inputs.parameters[''location'']}}","--gcp_resources","{{$.outputs.parameters[''gcp_resources''].output_file}}"],"command":["python3","-u","-m","google_cloud_pipeline_components.container.v1.custom_job.launcher"],"image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.21.0"}'
+        \"{{$.inputs.parameters[''encryption_spec_key_name'']}}\"}}","--project","{{$.inputs.parameters[''project'']}}","--location","{{$.inputs.parameters[''location'']}}","--gcp_resources","{{$.outputs.parameters[''gcp_resources''].output_file}}"],"command":["python3","-u","-m","google_cloud_pipeline_components.container.v1.custom_job.launcher"],"image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.22.0"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"custom-training-job":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"pipelinechannel--encryption_spec_key_name"},"location":{"componentInputParameter":"pipelinechannel--location"},"pipelinechannel--accelerator-count-Output":{"componentInputParameter":"pipelinechannel--accelerator-count-Output"},"pipelinechannel--accelerator-type-Output":{"componentInputParameter":"pipelinechannel--accelerator-type-Output"},"pipelinechannel--machine-type-Output":{"componentInputParameter":"pipelinechannel--machine-type-Output"},"project":{"componentInputParameter":"pipelinechannel--project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--accelerator-count-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--accelerator-type-Output":{"parameterType":"STRING"},"pipelinechannel--encryption_spec_key_name":{"parameterType":"STRING"},"pipelinechannel--flip-biased-coin-op-Output":{"parameterType":"STRING"},"pipelinechannel--location":{"parameterType":"STRING"},"pipelinechannel--machine-type-Output":{"parameterType":"STRING"},"pipelinechannel--project":{"parameterType":"STRING"}}}}'
     - name: components-0c259210b1fb84dd1577b42a94ae79f0619227d7d05e5f54ffe040c596a5439c
@@ -183,6 +183,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest
@@ -317,11 +325,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525}}'
+            value: '{{workflow.parameters.components-20246c97a11cfe4c823ed6719ceb5c3f1d11943e4553ba99a2121c27711478b5}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"pipelinechannel--encryption_spec_key_name"},"location":{"componentInputParameter":"pipelinechannel--location"},"pipelinechannel--accelerator-count-Output":{"componentInputParameter":"pipelinechannel--accelerator-count-Output"},"pipelinechannel--accelerator-type-Output":{"componentInputParameter":"pipelinechannel--accelerator-type-Output"},"pipelinechannel--machine-type-Output":{"componentInputParameter":"pipelinechannel--machine-type-Output"},"project":{"componentInputParameter":"pipelinechannel--project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525}}'
+            value: '{{workflow.parameters.implementations-20246c97a11cfe4c823ed6719ceb5c3f1d11943e4553ba99a2121c27711478b5}}'
           - name: task-name
             value: custom-training-job
           - name: parent-dag-id
@@ -380,6 +388,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest

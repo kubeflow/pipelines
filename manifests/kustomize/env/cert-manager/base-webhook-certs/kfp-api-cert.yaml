@@ -9,6 +9,7 @@ spec:
   - ml-pipeline
   - ml-pipeline.$(kfp-namespace)
   - ml-pipeline.$(kfp-namespace).svc
+  - ml-pipeline.$(kfp-namespace).svc.cluster.local
   issuerRef:
     kind: Issuer
     name: kfp-api-webhook-selfsigned-issuer

@@ -6,10 +6,10 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-685d68a4c481be1028be8fd6b26bb6eb8f637d4d7984d7a9f1a767bdafbc0275
+    - name: components-40c540274b1d226bcb00c4909232618684bccf133c18257336a6d001e5eba8b4
       value: '{"executorLabel":"exec-container-io","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"output_path":{"parameterType":"STRING"}}}}'
-    - name: implementations-685d68a4c481be1028be8fd6b26bb6eb8f637d4d7984d7a9f1a767bdafbc0275
-      value: '{"args":["--output_path","{{$.outputs.parameters[''output_path''].output_file}}"],"command":["my_program","{{$.inputs.parameters[''text'']}}"],"image":"python:3.11"}'
+    - name: implementations-40c540274b1d226bcb00c4909232618684bccf133c18257336a6d001e5eba8b4
+      value: '{"args":["--output_path","{{$.outputs.parameters[''output_path''].output_file}}"],"command":["my_program","{{$.inputs.parameters[''text'']}}"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"output_path":{"valueFromParameter":{"outputParameterKey":"output_path","producerSubtask":"container-io"}}}},"tasks":{"container-io":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-io"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"container-io"}}}},"inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"output_path":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -58,6 +58,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest
@@ -192,11 +200,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-685d68a4c481be1028be8fd6b26bb6eb8f637d4d7984d7a9f1a767bdafbc0275}}'
+            value: '{{workflow.parameters.components-40c540274b1d226bcb00c4909232618684bccf133c18257336a6d001e5eba8b4}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-io"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"container-io"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-685d68a4c481be1028be8fd6b26bb6eb8f637d4d7984d7a9f1a767bdafbc0275}}'
+            value: '{{workflow.parameters.implementations-40c540274b1d226bcb00c4909232618684bccf133c18257336a6d001e5eba8b4}}'
           - name: task-name
             value: container-io
           - name: parent-dag-id
@@ -255,6 +263,14 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest

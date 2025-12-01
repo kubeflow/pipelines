@@ -280,6 +280,10 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				false,
 				false,
 				"",
+				"ml-pipeline.kubeflow",
+				"8887",
+				"metadata-grpc-service.kubeflow.svc.local",
+				"8080",
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -399,6 +403,10 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -449,6 +457,10 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -501,6 +513,10 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 
@@ -548,6 +564,10 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -675,6 +695,10 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				false,
 				false,
 				"",
+				"ml-pipeline.kubeflow",
+				"8887",
+				"metadata-grpc-service.kubeflow.svc.local",
+				"8080",
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -733,6 +757,10 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
@@ -797,6 +825,10 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	require.Nil(t, err)
 
@@ -997,6 +1029,10 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	require.NotNil(t, err)
 }
@@ -1110,7 +1146,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "",
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metadata-grpc-service.kubeflow.svc.local", "8080",
 	)
 	assert.Nil(t, err)
 
@@ -1153,7 +1189,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "",
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metatadata-grpc-service.kubeflow.svc.local", "8080",
 	)
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
@@ -1183,6 +1219,68 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 		}
 	}
 
+	if assert.Len(t, taskCfg.VolumeMounts, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.VolumeMounts[0].Name)
+		assert.Equal(t, "/kfp-workspace", taskCfg.VolumeMounts[0].MountPath)
+	}
+}
+
+func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{
+				Field:       pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES,
+				ApplyToTask: true,
+			},
+		},
+	}
+
+	// Build an ExecutorInput that does NOT reference workspace path in params,
+	// but contains an input artifact marked as already in workspace.
+	execInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri: "minio://mlpipeline/sample/sample.txt",
+							Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{
+								"_kfp_workspace": structpb.NewBoolValue(true),
+							}},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	taskCfg := &TaskConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, execInput,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metadata-grpc-service.kubeflow.svc.local", "8080",
+	)
+	assert.Nil(t, err)
+
+	// Expect workspace volume mounted
+	if assert.Len(t, podSpec.Volumes, 1) {
+		assert.Equal(t, "kfp-workspace", podSpec.Volumes[0].Name)
+		if assert.NotNil(t, podSpec.Volumes[0].PersistentVolumeClaim) {
+			assert.Equal(t, "my-run-name-kfp-workspace", podSpec.Volumes[0].PersistentVolumeClaim.ClaimName)
+		}
+	}
+	if assert.Len(t, podSpec.Containers, 1) {
+		if assert.Len(t, podSpec.Containers[0].VolumeMounts, 1) {
+			assert.Equal(t, "kfp-workspace", podSpec.Containers[0].VolumeMounts[0].Name)
+			assert.Equal(t, "/kfp-workspace", podSpec.Containers[0].VolumeMounts[0].MountPath)
+		}
+	}
+
+	// Expect volumes to be captured in TaskConfig
+	if assert.Len(t, taskCfg.Volumes, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.Volumes[0].Name)
+	}
 	if assert.Len(t, taskCfg.VolumeMounts, 1) {
 		assert.Equal(t, "kfp-workspace", taskCfg.VolumeMounts[0].Name)
 		assert.Equal(t, "/kfp-workspace", taskCfg.VolumeMounts[0].MountPath)
@@ -1220,6 +1318,10 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 
@@ -1267,6 +1369,10 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 	// Resources should be both on pod and in TaskConfig
@@ -1345,6 +1451,10 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 
@@ -1444,6 +1554,10 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		false,
 		false,
 		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
 	)
 	assert.Nil(t, err)
 
@@ -1502,4 +1616,52 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 			}
 		}
 	}
+}
+
+func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	customAddress := "custom-ml-pipeline.custom-namespace.svc.cluster.local"
+	customPort := "9999"
+
+	podSpec, err := initPodSpecPatch(
+		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		nil,
+		false,
+		false,
+		"",
+		customAddress,
+		customPort,
+		"metadata-grpc-service.kubeflow.svc.local",
+		"8080",
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, podSpec)
+
+	cmd := podSpec.Containers[0].Command
+
+	var foundAddress, foundPort bool
+	for idx, val := range cmd {
+		if val == "--ml_pipeline_server_address" && idx+1 < len(cmd) {
+			assert.Equal(t, customAddress, cmd[idx+1],
+				"--ml_pipeline_server_address should have custom value, not default")
+			foundAddress = true
+		}
+		if val == "--ml_pipeline_server_port" && idx+1 < len(cmd) {
+			assert.Equal(t, customPort, cmd[idx+1],
+				"--ml_pipeline_server_port should have custom value, not default")
+			foundPort = true
+		}
+	}
+	assert.True(t, foundAddress, "--ml_pipeline_server_address not found in launcher command")
+	assert.True(t, foundPort, "--ml_pipeline_server_port not found in launcher command")
 }
