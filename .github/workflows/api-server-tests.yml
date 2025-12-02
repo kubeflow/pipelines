@@ -36,6 +36,8 @@ on:
     paths:
       - '.github/workflows/api-server-tests.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/test-and-report/**'
+      - '.github/actions/junit-summary/**'
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
