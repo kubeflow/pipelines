@@ -560,8 +560,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertAlmostEqual(task.output, 44.745992817228334)
         self.assert_output_dir_contents(1, 7)
 
-    def test_parallel_for_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_parallel_for_supported(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def pass_op():
@@ -572,14 +572,14 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with dsl.ParallelFor([1, 2, 3]):
                 pass_op()
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"'dsl\.ParallelFor' is not supported by local pipeline execution\."
-        ):
-            my_pipeline()
+        # Should now execute successfully with enhanced orchestrator
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        # ParallelFor detection should route to enhanced orchestrator
+        # and skip actual parallel execution for now (as we implemented)
 
-    def test_condition_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_condition_supported(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def pass_op():
@@ -590,11 +590,11 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with dsl.Condition(x == 'foo'):
                 pass_op()
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"'dsl\.Condition' is not supported by local pipeline execution\."
-        ):
-            my_pipeline(x='bar')
+        # Should now execute successfully with enhanced orchestrator
+        task = my_pipeline(x='bar')
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        # Condition detection should route to enhanced orchestrator
+        # and evaluate the condition (false in this case, so task is skipped)
 
     @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
     def test_fails_with_raise_on_error_true(self, mock_stdout):
