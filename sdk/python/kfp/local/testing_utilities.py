@@ -17,6 +17,7 @@ import datetime
 import functools
 import os
 import pathlib
+import shutil
 import tempfile
 from typing import Any, Callable, Dict
 import unittest
@@ -37,21 +38,26 @@ _LOCAL_KFP_PACKAGE_PATH = os.path.join(
 )
 
 
-def modify_volumes_decorator(
-        original_method: Callable[..., Any]) -> Callable[..., Any]:
+def create_modify_volumes_decorator(isolated_kfp_path: str):
+    """Creates a volume decorator for a specific isolated KFP path."""
 
-    def wrapper(self, *args, **kwargs) -> Dict[str, Any]:
-        original_volumes = original_method(self, *args, **kwargs)
-        LOCAL_KFP_VOLUME = {
-            _LOCAL_KFP_PACKAGE_PATH: {
-                'bind': _LOCAL_KFP_PACKAGE_PATH,
-                'mode': 'rw'
+    def modify_volumes_decorator(
+            original_method: Callable[..., Any]) -> Callable[..., Any]:
+
+        def wrapper(self, *args, **kwargs) -> Dict[str, Any]:
+            original_volumes = original_method(self, *args, **kwargs)
+            LOCAL_KFP_VOLUME = {
+                isolated_kfp_path: {
+                    'bind': isolated_kfp_path,
+                    'mode': 'rw'
+                }
             }
-        }
-        original_volumes.update(LOCAL_KFP_VOLUME)
-        return original_volumes
+            original_volumes.update(LOCAL_KFP_VOLUME)
+            return original_volumes
 
-    return wrapper
+        return wrapper
+
+    return modify_volumes_decorator
 
 
 class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
@@ -68,29 +74,40 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         os.chdir(self.temp_dir.name)
 
-        # ENTER: mount KFP dir to enable install from source for docker runner
+        # ENTER: create isolated KFP source copy for this test to prevent build conflicts
+        self.isolated_kfp_dir = tempfile.mkdtemp(prefix='kfp_test_')
+        shutil.copytree(
+            _LOCAL_KFP_PACKAGE_PATH,
+            os.path.join(self.isolated_kfp_dir, 'kfp_source'),
+            ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '.git',
+                                          'build', 'dist', '*.egg-info'))
+        self.isolated_kfp_package_path = os.path.join(self.isolated_kfp_dir,
+                                                      'kfp_source')
+
+        # ENTER: use isolated KFP package path for this test
+        self.original_component, dsl.component = dsl.component, functools.partial(
+            dsl.component, kfp_package_path=self.isolated_kfp_package_path)
+
+        # ENTER: mount isolated KFP dir to enable install from source for docker runner
         self.original_get_volumes_to_mount = docker_task_handler.DockerTaskHandler.get_volumes_to_mount
+        modify_volumes_decorator = create_modify_volumes_decorator(
+            self.isolated_kfp_package_path)
         docker_task_handler.DockerTaskHandler.get_volumes_to_mount = modify_volumes_decorator(
             docker_task_handler.DockerTaskHandler.get_volumes_to_mount)
 
     def tearDown(self):
+        # EXIT: restore original component decorator
+        dsl.component = self.original_component
+
+        # EXIT: clean up isolated KFP source directory
+        shutil.rmtree(self.isolated_kfp_dir, ignore_errors=True)
+
         # EXIT: use tempdir for all tests
         self.temp_dir.cleanup()
         os.chdir(self.working_dir)
 
         # EXIT: mount KFP dir to enable install from source for docker runner
         docker_task_handler.DockerTaskHandler.get_volumes_to_mount = self.original_get_volumes_to_mount
-
-    @classmethod
-    def setUpClass(cls):
-        # ENTER: use local KFP package path for subprocess runner
-        cls.original_component, dsl.component = dsl.component, functools.partial(
-            dsl.component, kfp_package_path=_LOCAL_KFP_PACKAGE_PATH)
-
-    @classmethod
-    def tearDownClass(cls):
-        # EXIT: use local KFP package path for subprocess runner
-        dsl.component = cls.original_component
 
 
 class MockedDatetimeTestCase(unittest.TestCase):

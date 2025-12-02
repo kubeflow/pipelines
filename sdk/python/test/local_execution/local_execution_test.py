@@ -28,7 +28,6 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 dsl.component = functools.partial(
     dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH)
 
-
 from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
     echo as arguments_echo
 from test_data.sdk_compiled_pipelines.valid.critical.add_numbers import \
@@ -51,6 +50,8 @@ from test_data.sdk_compiled_pipelines.valid.essential.container_no_input import 
     container_no_input
 from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs import \
     pipeline as lightweight_with_outputs_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_loops import \
+    my_pipeline as pipeline_with_loops
 from test_data.sdk_compiled_pipelines.valid.hello_world import echo
 from test_data.sdk_compiled_pipelines.valid.identity import identity
 from test_data.sdk_compiled_pipelines.valid.nested_return import nested_return
@@ -58,6 +59,10 @@ from test_data.sdk_compiled_pipelines.valid.output_metrics import \
     output_metrics
 from test_data.sdk_compiled_pipelines.valid.parameter import \
     crust as parameter_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts import \
+    my_pipeline as pipeline_with_parallelfor_list_artifacts
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism import \
+    my_pipeline as pipeline_with_parallelfor_parallelism
 from test_data.sdk_compiled_pipelines.valid.sequential_v1 import sequential
 
 
@@ -184,6 +189,12 @@ pipeline_func_data = [
         pipeline_func_args=None,
         expected_output=None,
     ),
+    TestData(
+        name='Pipeline with Loops',
+        pipeline_func=pipeline_with_loops,
+        pipeline_func_args={'loop_parameter': ['item1', 'item2', 'item3']},
+        expected_output=None,
+    ),
 ]
 
 docker_specific_pipeline_funcs = [
@@ -223,6 +234,18 @@ docker_specific_pipeline_funcs = [
         },
         expected_output=None,
     ),
+    TestData(
+        name='Pipeline with ParallelFor Parallelism',
+        pipeline_func=pipeline_with_parallelfor_parallelism,
+        pipeline_func_args={'loop_parameter': ['item1', 'item2', 'item3']},
+        expected_output=None,
+    ),
+    TestData(
+        name='Pipeline with ParallelFor List Artifacts',
+        pipeline_func=pipeline_with_parallelfor_list_artifacts,
+        pipeline_func_args=None,
+        expected_output=None,
+    ),
 ]
 docker_specific_pipeline_funcs.extend(pipeline_func_data)
 
@@ -234,8 +257,17 @@ class TestDockerRunner:
     def setup_and_teardown(self):
         ws_root = f'{ws_root_base}_docker'
         pipeline_root = f'{pipeline_root_base}_docker'
+
+        # Create directories with proper permissions
         Path(ws_root).mkdir(exist_ok=True)
         Path(pipeline_root).mkdir(exist_ok=True)
+
+        # Set permissions to be writable by all (needed for Docker)
+        import stat
+        os.chmod(ws_root, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+        os.chmod(pipeline_root, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+
+        # Configure DockerRunner - let container run as default user
         local.init(
             runner=local.DockerRunner(),
             raise_on_error=True,

@@ -46,10 +46,21 @@ jobs:
         pip install -r sdk/python/requirements-dev.txt
 
     - name: Run SDK Tests
+      id: run-tests
       env:
         # We setup the env in the CI
         SETUP_ENV: false
         REPO_NAME: ${{ github.repository }}
         PULL_NUMBER: ${{ github.event.pull_request.number }}
+        JUNIT_XML: "sdk-unit.xml"
       run: |
         ./test/presubmit-tests-sdk-unit.sh
+        echo "JUNIT_XML=$JUNIT_XML" >> "$GITHUB_OUTPUT"
+
+    - name: Publish Junit Summary
+      id: summary
+      uses: ./.github/actions/junit-summary
+      if: (!cancelled())
+      with:
+        xml_files: ${{ steps.run-tests.outputs.JUNIT_XML }}
+      continue-on-error: true

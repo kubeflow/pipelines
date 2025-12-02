@@ -20,6 +20,7 @@ concurrency:
 jobs:
   sdk-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       matrix:
         python-version: ['3.9', '3.13']
@@ -57,7 +58,7 @@ jobs:
         sudo systemctl enable docker
         sudo usermod -aG docker "$USER"
         # Wait for Docker to be ready
-        timeout 30 bash -c 'until docker info > /dev/null 2>&1; do sleep 1; done'
+        timeout 5 bash -c 'until docker info > /dev/null 2>&1; do sleep 1; done'
         docker info
 
     - name: Run SDK Tests
