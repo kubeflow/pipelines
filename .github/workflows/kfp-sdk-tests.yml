@@ -13,6 +13,10 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+concurrency:
+  group: sdk-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sdk-tests:
     runs-on: ubuntu-latest
