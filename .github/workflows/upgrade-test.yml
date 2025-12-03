@@ -2,8 +2,7 @@ name: KFP upgrade tests
 
 env:
   TESTS_DIR: "./backend/test/v2/api"
-  TESTS_LABEL: "ApiServerTests"
-  NUMBER_OF_PARALLEL_NODES: 15
+  NUMBER_OF_PARALLEL_NODES: 10
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   PYTHON_VERSION: "3.9"

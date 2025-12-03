@@ -153,6 +153,13 @@ runs:
         xml_files: '${{ inputs.test_directory }}/reports'
       continue-on-error: true
 
+    - name: Notify Test Report
+      id: notify
+      if: (!cancelled())
+      shell: bash
+      run: |
+        echo "::notice file=${{ inputs.test_directory }}/reports/test-report.html,title=${{ steps.name_gen.outputs.REPORT_NAME }}::${{ steps.name_gen.outputs.REPORT_NAME }} Report"
+
     - name: Mark Workflow failure if test step failed
       if: steps.run-tests.outcome != 'success' && !cancelled()
       shell: bash
