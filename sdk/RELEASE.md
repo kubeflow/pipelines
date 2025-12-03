@@ -8,6 +8,13 @@
 
 ## Bug fixes and other changes
 
+# 2.15.2
+
+## Bug fixes and other changes
+
+* Fixed backwards compatibility issue where pipelines compiled with KFP 2.15 failed on older
+  versions with `"output_metadata.json": proto: (line 1:237): unknown field "custom_path"`.
+
 # 2.15.1
 
 * fix(sdk): align sdk versions in reqs (#12489)

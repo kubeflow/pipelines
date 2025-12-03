@@ -1,14 +1,19 @@
 [
     {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.1/",
-        "title": "2.15.1",
-        "aliases": [
-            "stable",
-            "latest"
-        ]
+      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.1/",
+      "title": "2.15.2",
+      "aliases": [
+        "stable",
+        "latest"
+      ]
     },
     {
-      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.6/",
+      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.1/",
+      "title": "2.15.1",
+      "aliases": []
+    },
+    {
+      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.0/",
       "title": "2.15.0",
       "aliases": []
     },
