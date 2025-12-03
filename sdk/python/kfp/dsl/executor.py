@@ -287,8 +287,10 @@ class Executor:
                 'name': artifact.name,
                 'uri': artifact.uri,
                 'metadata': artifact.metadata,
-                'custom_path': artifact.custom_path
             }
+            if artifact.custom_path:
+                runtime_artifact['custom_path'] = artifact.custom_path
+
             artifacts_list = {'artifacts': [runtime_artifact]}
 
             self.excutor_output['artifacts'][name] = artifacts_list
