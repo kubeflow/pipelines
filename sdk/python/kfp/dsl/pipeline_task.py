@@ -659,9 +659,22 @@ class PipelineTask:
             Self return to allow chained setting calls.
         """
         self._ensure_container_spec_exists()
+        pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
+            name)
+
         if isinstance(name, pipeline_channel.PipelineChannel):
             name = str(name)
+
         self.container_spec.image = name
+
+        if pipeline_channels:
+            existing_channel_patterns = {
+                channel.pattern for channel in self._channel_inputs
+            }
+            for channel in pipeline_channels:
+                if channel.pattern not in existing_channel_patterns:
+                    self._channel_inputs.append(channel)
+                    existing_channel_patterns.add(channel.pattern)
         return self
 
     @block_if_final()
