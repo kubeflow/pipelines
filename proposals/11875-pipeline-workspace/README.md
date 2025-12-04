@@ -394,8 +394,12 @@ index d986a048b..866696419 100644
    // ephemeral resources created by the pipeline run.
    int32 resource_ttl = 1;
 
-   // Configuration for the workspace
+  // Configuration for the workspace
    optional WorkspaceConfig workspace = 2;
+
+  // Maximum number of tasks that can be scheduled simultaneously for a single
+  // pipeline run.
+  optional int32 pipeline_run_parallelism = 3;
  }
 ```
 
