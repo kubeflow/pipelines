@@ -20,7 +20,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -388,7 +387,7 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
 	glog.Errorf("Failed to upload pipelines. Error: %+v", err)
 	w.WriteHeader(code)
-	errorResponse := &apiv1beta1.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
+	errorResponse := &apiv1beta1.Error{ErrorMessage: err.Error(), ErrorDetails: ""}
 	errBytes, err := json.Marshal(errorResponse)
 	if err != nil {
 		w.Write([]byte("Error uploading pipeline"))
