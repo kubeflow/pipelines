@@ -261,7 +261,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
 		},
 	}
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
