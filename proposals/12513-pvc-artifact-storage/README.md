@@ -1495,7 +1495,7 @@ def s3_specific_component():
 
 #### Namespace-Local Mode
 
-- Deploy with `DeploymentMode: "namespace-local"`
+- Deploy with `DeploymentMode: "namespaced"`
 - Create namespace with `pipelines.kubeflow.org/enabled=true` annotation
 - Verify API server creates PVC, Deployment, Service in that namespace
 - Run pipeline, verify artifacts stored in namespace-specific PVC
