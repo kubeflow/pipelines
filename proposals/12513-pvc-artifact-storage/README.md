@@ -5,6 +5,11 @@
 - [Summary](#summary)
 - [Architecture at a Glance](#architecture-at-a-glance)
 - [Motivation](#motivation)
+  - [Reduced External Dependencies](#reduced-external-dependencies)
+  - [Enterprise Considerations](#enterprise-considerations)
+  - [Per-Namespace Isolation and Scaling](#per-namespace-isolation-and-scaling)
+  - [Path to Local Development](#path-to-local-development)
+  - [Additional Use Cases](#additional-use-cases)
   - [Goals](#goals)
   - [Non-Goals](#non-goals)
 - [Proposal](#proposal)
@@ -51,7 +56,7 @@
 
 ## Summary
 
-This KEP proposes adding filesystem-based storage as an alternative artifact storage backend for Kubeflow Pipelines v2. Currently, KFP requires object storage (S3-compatible storage or Google Cloud Storage) for storing pipeline artifacts, which can be a barrier for users who want to experiment with KFP in development environments. This proposal introduces filesystem storage as an additional option that eliminates the need for object storage configuration, making it easier for users to get started with KFP.
+This KEP proposes adding filesystem-based storage as an alternative artifact storage backend for Kubeflow Pipelines v2. While KFP currently ships with S3-compatible storage by default, some deployments prefer not to depend on a separate object storage system. This proposal introduces filesystem storage as an additional option where artifact handling is integrated into KFP itself, eliminating the need for an external object storage component.
 
 The filesystem backend will primarily use `PersistentVolumeClaim` (PVC) based storage in Kubernetes environments, providing namespace-isolated storage using Kubernetes native `PersistentVolumes`. However, the design is flexible enough to support other filesystem backends (e.g., local filesystem for development). Users can specify any access mode value which KFP will pass through to Kubernetes without validation (e.g., `ReadWriteMany` for parallel task execution across nodes, `ReadWriteOnce` for single node access, etc.), with RWO as the default if not specified. The actual behavior depends on what the underlying storage class supports. Existing pipelines will work without modification unless they contain hardcoded S3/object storage paths.
 
@@ -61,13 +66,14 @@ To support scalability, KFP will introduce a new artifact URI scheme (`kfp-artif
 
 ### Quick Comparison
 
-| Aspect               | Current (Object Storage)                   | Proposed (Filesystem Storage)         |
-|----------------------|--------------------------------------------|---------------------------------------|
-| **Storage Backend**  | S3, GCS, MinIO                             | Kubernetes PVC                        |
-| **URI Scheme**       | `s3://`, `gs://`, `minio://`               | `kfp-artifacts://`                    |
-| **Configuration**    | Credentials, endpoints, buckets (required) | Optional (uses K8s defaults)          |
-| **Multi-tenancy**    | Bucket per namespace                       | PVC per namespace                     |
-| **Setup Complexity** | High (external dependencies)               | Low (Kubernetes native with defaults) |
+| Aspect                 | Current (S3-compatible Storage)                 | Proposed (Filesystem Storage)                     |
+|------------------------|-------------------------------------------------|---------------------------------------------------|
+| **Storage Backend**    | S3-compatible (SeaweedFS, MinIO, S3, GCS, etc.) | Kubernetes PVC                                    |
+| **URI Scheme**         | `s3://`, `gs://`, `minio://`                    | `kfp-artifacts://`                                |
+| **Architecture**       | Separate object storage service                 | KFP-native artifact server                        |
+| **Required Knowledge** | S3 concepts (buckets, endpoints, regions)       | Kubernetes concepts (PVCs, StorageClasses)        |
+| **Multi-tenancy**      | Shared storage (single instance)                | Per-namespace PVCs (in namespace-local mode)      |
+| **Scaling**            | Single object storage instance                  | Per-namespace artifact servers and storage quotas |
 
 ### High-Level Flow
 
@@ -103,29 +109,60 @@ Pipeline Pods                         UI/API Clients
 
 ## Motivation
 
-Setting up object storage is often a significant hurdle for users who want to experiment with Kubeflow Pipelines. Users must:
+**This proposal does not aim to replace existing object storage solutions.** S3-compatible storage remains fully supported and recommended for most production workloads. Instead, this KEP provides an additional option for deployments where a simpler, KFP-native artifact storage solution is preferred.
 
-- Configure S3-compatible storage with proper credentials
-- Manage access keys and secrets
-- Understand object storage concepts
-- Set up and maintain additional infrastructure
+While KFP currently ships with S3-compatible storage by default, this still requires deploying and maintaining a separate object storage service. For some deployment scenarios, this additional component may not be desired.
 
-For development, testing, and experimentation use cases, this overhead is unnecessary and discourages adoption. Many users simply want to try KFP without dealing with external dependencies.
+### Reduced External Dependencies
 
-Additionally, in some environments:
+While KFP's default manifests ship with S3-compatible storage pre-configured (no manual credential setup required), filesystem storage replaces the object storage system with a KFP-native artifact server. This means:
 
-- Object storage may not be available or allowed
-- Network policies may restrict external storage access
-- Organizations may prefer to use existing Kubernetes storage infrastructure
-- Development clusters may have limited resources
+- No external object storage project to track for updates and security patches
+- Artifact issues debugged within KFP ecosystem (no separate S3 API layer)
+- Artifact handling uses the same codebase as the rest of KFP
+- No S3-specific knowledge required (buckets, endpoints, regions). Only familiar Kubernetes concepts (PVCs, `StorageClasses`)
 
-By providing PVC-based storage as an alternative, we can:
+### Enterprise Considerations
 
-- Lower the barrier to entry for new users
-- Enable quick experimentation and prototyping
-- Leverage existing Kubernetes storage infrastructure
-- Simplify development environment setup
+Many enterprises and Kubeflow distributions prefer not to have additional external dependencies. With filesystem storage:
+
+- No separate object storage project to productize and support
+- Artifact handling is part of the KFP codebase (same team, same release cycle)
+- Troubleshooting stays within the KFP domain
+
+### Per-Namespace Isolation and Scaling
+
+In namespace-local mode, each namespace gets its own dedicated artifact server and PVC. This provides:
+
+- **Storage isolation**: Each team's artifacts are physically separated in their own PVC
+- **Independent scaling**: Teams can scale their artifact server horizontally (with RWX storage) and size their PVC based on workload requirements
+- **Per-namespace quotas**: Kubernetes `ResourceQuotas` can enforce storage limits per team
+
+### Path to Local Development
+
+This design enables future work on running full KFP locally without a Kubernetes cluster, as the artifact APIs can point directly to local filesystem storage. This improves developer experience and enables offline development workflows.
+
+### Additional Use Cases
+
+In some environments, organizations may prefer to use existing Kubernetes storage infrastructure without additional services.
+
+By providing PVC-based storage as an alternative, we:
+
+- Offer a KFP-native artifact storage option (no separate storage system)
 - Enable portability between different storage backends for pipelines using KFP's artifact APIs
+
+**When to use filesystem storage:**
+
+- Deployments where eliminating object storage dependency is preferred
+- Environments where Kubeflow distributions or platform providers prefer not to support additional storage systems
+- Multi-tenant deployments requiring per-namespace storage isolation, scaling, and quotas
+- Development and experimentation scenarios
+
+**When NOT to use filesystem storage:**
+
+- High-throughput production workloads with large artifacts
+- Scenarios requiring object storage features (versioning, lifecycle policies, geo-replication)
+- When existing object storage infrastructure is already available and preferred
 
 ### Goals
 
@@ -175,15 +212,14 @@ As a user with KFP on kind/minikube/k3s, I want my pipeline artifacts to automat
 - No S3/GCS credentials required
 - Artifact viewing in UI works seamlessly
 
-#### Story 2: Operator Using Default Filesystem Configuration
+#### Story 2: Operator Deploying KFP Without External Object Storage
 
-As an operator, I want to deploy KFP with minimal configuration using filesystem storage defaults, so that I can get KFP running quickly without cloud storage dependencies.
+As an operator for a Kubeflow distribution, I want to deploy KFP with filesystem storage so that I don't need to productize and support a separate object storage system.
 
 **Acceptance Criteria:**
 
 - Single configuration option to enable filesystem storage
-- No need to create or manage S3/GCS buckets
-- No cloud IAM policies to configure
+- Artifact handling is part of KFP (no separate object storage component)
 - Storage automatically provisioned via PVCs
 - Backup/restore follows standard Kubernetes PVC procedures
 
@@ -222,17 +258,17 @@ As an operator, I want to deploy KFP in namespace-local mode where each namespac
 - Users can only access artifacts in namespaces they have RBAC permissions for (via `SubjectAccessReview`)
 - Physical isolation verified: deleting `team-a` namespace doesn't affect `team-b`'s artifacts
 
-#### Story 6: Operator Implementing Air-Gapped ML Platform
+#### Story 6: Operator Preferring KFP-Native Storage
 
-As an operator in a regulated environment (e.g., healthcare, finance), I want to deploy KFP with filesystem storage using an encrypted StorageClass (e.g., `encrypted-gp3`) and no external network access, so that PHI/PII in artifacts never leaves our on-premises Kubernetes cluster.
+As an operator in a regulated environment (e.g., healthcare, finance), I want to deploy KFP with filesystem storage using an encrypted `StorageClass` (e.g., `encrypted-gp3`), so that artifact handling stays within the KFP codebase and I don't need to include a separate object storage system in my security audits.
 
 **Acceptance Criteria:**
 
-- All artifacts stored on PVCs within the cluster (no S3/GCS/external storage)
-- KFP configuration uses `Filesystem.Type: "pvc"` with encrypted StorageClass
-- Artifact server pods have no external network routes (verified by network policies)
+- All artifacts stored on PVCs within the cluster
+- KFP configuration uses `Filesystem.Type: "pvc"` with encrypted `StorageClass`
 - `SubjectAccessReview` validates all artifact access requests
-- Encryption at rest provided by the configured StorageClass (e.g., `encrypted-gp3`)
+- Encryption at rest provided by the configured `StorageClass` (e.g., `encrypted-gp3`)
+- No separate object storage component to audit
 
 #### Story 7: Operator Running KFP on Storage-Constrained Infrastructure
 
