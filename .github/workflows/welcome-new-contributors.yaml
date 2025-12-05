@@ -1,0 +1,46 @@
+name: Welcome new contributors
+
+# Trigger on first-time pull requests and issues
+on:
+  pull_request_target:
+    types:
+      - opened
+  issues:
+    types:
+      - opened
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v3
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
+            🎉 **Welcome to the Kubeflow Pipelines repo!** 🎉
+
+            Thanks for opening your first issue! We're happy to have you as part of our community 🚀
+
+            **Next steps:**
+            - Our team will review your issue soon! cc @kubeflow/pipelines-maintainers
+            - Check out the [Contributing Guide](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) for repo-specific instructions
+            - Join the community Slack channels: [#kubeflow-platform](https://slack.kubeflow.org/)  
+
+            Feel free to ask questions in the comments. Thanks again for contributing! 🙏
+
+          pr_message: |
+            🎉 **Welcome to the Kubeflow Pipelines repo!** 🎉
+
+            Thanks for opening your first PR! We're excited to have you onboard 🚀
+
+            **Next steps:**
+            - Our team will review your PR soon! cc @kubeflow/pipelines-maintainers
+            - If you haven't already, please check out the [Contributing Guide](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md)
+            - Join the community Slack channels: [#kubeflow-platform](https://slack.kubeflow.org/)
+
+            Feel free to ask questions in the comments. Thanks again for contributing! 🙏
