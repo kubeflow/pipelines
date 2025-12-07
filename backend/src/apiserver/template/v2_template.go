@@ -325,8 +325,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 
 	if job.RuntimeConfig != nil && len(job.RuntimeConfig.GetParameterValues()) > 0 {
 		scheduledEpoch := int64(-1) // disabled by default
-		if modelRun.RunDetails.ScheduledAtInSec > 0 {
-			scheduledEpoch = modelRun.RunDetails.ScheduledAtInSec
+		
+		if modelRun.ScheduledAtInSec > 0 {
+			scheduledEpoch = modelRun.ScheduledAtInSec
 		}
 		formatter := util.NewSWFParameterFormatter(
 			options.RunID,
