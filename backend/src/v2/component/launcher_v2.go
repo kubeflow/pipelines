@@ -827,18 +827,153 @@ func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, ar
 	executorInputJSONString := string(executorInputJSON)
 
 	compiledCmd := strings.ReplaceAll(cmd, executorInputJSONKey, executorInputJSONString)
-	compiledArgs := make([]string, 0, len(args))
 	for placeholder, replacement := range placeholders {
-		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+		compiledCmd = strings.ReplaceAll(compiledCmd, placeholder, replacement)
 	}
+
+	compiledArgs := make([]string, 0, len(args))
+	providedInputs := getProvidedInputs(executorInput)
 	for _, arg := range args {
-		compiledArgTemplate := strings.ReplaceAll(arg, executorInputJSONKey, executorInputJSONString)
-		for placeholder, replacement := range placeholders {
-			compiledArgTemplate = strings.ReplaceAll(compiledArgTemplate, placeholder, replacement)
+		expandedArgs, err := resolveStructPlaceholders(arg, providedInputs)
+		if err != nil {
+			return "", nil, err
 		}
-		compiledArgs = append(compiledArgs, compiledArgTemplate)
+		for _, expanded := range expandedArgs {
+			compiledArgTemplate := strings.ReplaceAll(expanded, executorInputJSONKey, executorInputJSONString)
+			for placeholder, replacement := range placeholders {
+				compiledArgTemplate = strings.ReplaceAll(compiledArgTemplate, placeholder, replacement)
+			}
+			compiledArgs = append(compiledArgs, compiledArgTemplate)
+		}
 	}
 	return compiledCmd, compiledArgs, nil
+}
+
+// getProvidedInputs returns the input names that have values supplied (parameters or artifacts).
+func getProvidedInputs(executorInput *pipelinespec.ExecutorInput) map[string]struct{} {
+	provided := make(map[string]struct{})
+	for name, v := range executorInput.GetInputs().GetParameterValues() {
+		if v != nil {
+			provided[name] = struct{}{}
+		}
+	}
+	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		if artifactList != nil && len(artifactList.Artifacts) > 0 {
+			provided[name] = struct{}{}
+		}
+	}
+	return provided
+}
+
+// resolveStructPlaceholders expands IfPresent/Concat placeholder strings into concrete args.
+// If no struct placeholder is detected, the original arg is returned.
+func resolveStructPlaceholders(arg string, providedInputs map[string]struct{}) ([]string, error) {
+	if strings.HasPrefix(arg, `{"Concat": `) || strings.HasPrefix(arg, `{"IfPresent": `) {
+		var obj interface{}
+		if err := json.Unmarshal([]byte(arg), &obj); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal struct placeholder %q: %w", arg, err)
+		}
+		resolved, err := recursivelyResolveStruct(obj, providedInputs)
+		if err != nil {
+			return nil, err
+		}
+		switch v := resolved.(type) {
+		case nil:
+			return []string{}, nil
+		case string:
+			return []string{v}, nil
+		case []string:
+			return v, nil
+		default:
+			return nil, fmt.Errorf("unexpected resolved struct placeholder type %T for %q", v, arg)
+		}
+	}
+
+	return []string{arg}, nil
+}
+
+// recursivelyResolveStruct handles nested IfPresent/Concat structures.
+func recursivelyResolveStruct(obj interface{}, providedInputs map[string]struct{}) (interface{}, error) {
+	switch typed := obj.(type) {
+	case string:
+		return typed, nil
+	case []interface{}:
+		var parts []string
+		for _, item := range typed {
+			resolved, err := recursivelyResolveStruct(item, providedInputs)
+			if err != nil {
+				return nil, err
+			}
+			switch v := resolved.(type) {
+			case nil:
+				continue
+			case string:
+				parts = append(parts, v)
+			case []string:
+				parts = append(parts, v...)
+			default:
+				return nil, fmt.Errorf("unexpected list item type %T in struct placeholder", v)
+			}
+		}
+		return parts, nil
+	case map[string]interface{}:
+		if len(typed) != 1 {
+			return nil, fmt.Errorf("invalid struct placeholder: %v", typed)
+		}
+		for key, value := range typed {
+			switch key {
+			case "Concat":
+				items, ok := value.([]interface{})
+				if !ok {
+					return nil, fmt.Errorf("Concat value must be a list, got %T", value)
+				}
+				var parts []string
+				for _, item := range items {
+					resolved, err := recursivelyResolveStruct(item, providedInputs)
+					if err != nil {
+						return nil, err
+					}
+					switch v := resolved.(type) {
+					case nil:
+						continue
+					case string:
+						parts = append(parts, v)
+					case []string:
+						parts = append(parts, v...)
+					default:
+						return nil, fmt.Errorf("unexpected Concat item type %T", v)
+					}
+				}
+				return strings.Join(parts, ""), nil
+			case "IfPresent":
+				inner, ok := value.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("IfPresent value must be an object, got %T", value)
+				}
+				inputName, ok := inner["InputName"].(string)
+				if !ok {
+					return nil, fmt.Errorf("IfPresent.InputName must be a string, got %T", inner["InputName"])
+				}
+				_, exists := providedInputs[inputName]
+				var branch interface{}
+				if exists {
+					branch = inner["Then"]
+				} else {
+					branch = inner["Else"]
+				}
+				if branch == nil {
+					return nil, nil
+				}
+				return recursivelyResolveStruct(branch, providedInputs)
+			default:
+				return nil, fmt.Errorf("unsupported struct placeholder key %q", key)
+			}
+		}
+	default:
+		return nil, fmt.Errorf("unexpected struct placeholder type %T", typed)
+	}
+
+	return nil, nil
 }
 
 // Add executor input placeholders to provided map.
