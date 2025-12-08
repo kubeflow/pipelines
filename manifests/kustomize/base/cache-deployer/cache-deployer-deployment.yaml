@@ -19,9 +19,6 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-    metadata:
-      labels:
-        app: cache-deployer
       containers:
       - name: main
         securityContext:
