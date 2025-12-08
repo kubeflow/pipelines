@@ -22,6 +22,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -86,6 +87,65 @@ func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
 	if err != nil {
 		return
 	}
+}
+
+// GetWorkflowNameByRunID retrieves the Argo Workflow name for a given pipeline run ID
+// by querying the Kubernetes API using the pipeline/runid label.
+func GetWorkflowNameByRunID(namespace string, runID string) string {
+	cmd := exec.Command("kubectl", "get", "workflows", "-n", namespace,
+		"-l", fmt.Sprintf("pipeline/runid=%s", runID),
+		"-o", "jsonpath={.items[0].metadata.name}")
+	output, err := cmd.Output()
+	if err != nil {
+		logger.Log("Failed to get workflow for run ID %s: %v", runID, err)
+		return ""
+	}
+	workflowName := strings.TrimSpace(string(output))
+	if workflowName == "" {
+		logger.Log("No workflow found for run ID %s", runID)
+	}
+	return workflowName
+}
+
+// WriteTestWorkflowMapping appends a test-to-workflow mapping entry for failed tests.
+// The mapping file is used to correlate failed tests with their associated workflow logs.
+// Format: TEST_NAME|WORKFLOW_NAME1,WORKFLOW_NAME2,...
+func WriteTestWorkflowMapping(testName string, runIDs []string, namespace string, mappingFilePath string) {
+	if len(runIDs) == 0 {
+		return
+	}
+
+	var workflowNames []string
+	for _, runID := range runIDs {
+		wfName := GetWorkflowNameByRunID(namespace, runID)
+		if wfName != "" {
+			workflowNames = append(workflowNames, wfName)
+		}
+	}
+
+	if len(workflowNames) == 0 {
+		logger.Log("No workflows found for run IDs %v, skipping mapping", runIDs)
+		return
+	}
+
+	mappingDir := filepath.Dir(mappingFilePath)
+	if err := os.MkdirAll(mappingDir, 0755); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to create mapping directory %q: %v", mappingDir, err))
+	}
+	file, err := os.OpenFile(mappingFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to open mapping file %q: %v", mappingFilePath, err))
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			ginkgo.Fail(fmt.Sprintf("Failed to close mapping file %q: %v", mappingFilePath, closeErr))
+		}
+	}()
+	entry := fmt.Sprintf("%s|%s\n", testName, strings.Join(workflowNames, ","))
+	if _, err := file.WriteString(entry); err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to write to mapping file %q: %v", mappingFilePath, err))
+	}
+	logger.Log("Wrote test-workflow mapping: %s -> %v", testName, workflowNames)
 }
 
 // GetNamespace - Get Namespace based on the deployment mode

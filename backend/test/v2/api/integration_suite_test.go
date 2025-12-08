@@ -193,6 +193,15 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 		currentDir, err := os.Getwd()
 		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
 		testutil.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
+
+		if len(testContext.PipelineRun.CreatedRunIds) > 0 {
+			testutil.WriteTestWorkflowMapping(
+				GinkgoT().Name(),
+				testContext.PipelineRun.CreatedRunIds,
+				testutil.GetNamespace(),
+				filepath.Join(currentDir, testReportDirectory, "test-workflow-mapping.txt"),
+			)
+		}
 	} else {
 		log.Printf("Test passed")
 	}

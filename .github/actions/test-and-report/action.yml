@@ -101,19 +101,69 @@ runs:
       run: |
         echo "=== Current disk usage ==="
         df -h
-        NAMESPACE=${{ env.NAMESPACE }}
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          NAMESPACE=${{ inputs.namespace }}
-        fi
+        NAMESPACE="${{ inputs.default_namespace }}"
         ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
 
-    - name: Install Junit2Html plugin and generate report
-      if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+    - name: Install Junit2Html plugin
+      id: install-junit2html
+      if: (!cancelled())
       shell: bash
       run: |
+        JUNIT_XML="${{ inputs.test_directory }}/reports/junit.xml"
+        if [[ ! -f "$JUNIT_XML" ]]; then
+          echo "ERROR: junit.xml not found at $JUNIT_XML"
+          exit 1
+        fi
         pip install junit2html
+
+    - name: Install MinIO Client for log collection
+      id: install-mc
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      shell: bash
+      run: |
+        MC_PATH="$HOME/.local/bin/minio-mc"
+        if [ -f "$MC_PATH" ]; then
+          echo "MinIO client already installed"
+        else
+          echo "Installing MinIO client..."
+          curl -sLO https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          mkdir -p "$HOME/.local/bin"
+          mv mc "$MC_PATH"
+        fi
+        echo "MC_PATH=$MC_PATH" >> "$GITHUB_ENV"
+
+    - name: Port-forward MinIO service for workflow log access
+      id: port-forward-minio
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        kubectl port-forward -n "$NAMESPACE" svc/minio-service 9000:9000 >/tmp/minio-port-forward.log 2>&1 &
+        PF_PID=$!
+        sleep 2
+        if ! kill -0 "$PF_PID" 2>/dev/null; then
+          echo "ERROR: minio port-forward exited early"
+          cat /tmp/minio-port-forward.log || true
+          exit 1
+        fi
+
+    - name: Augment junit.xml with workflow logs
+      id: augment-junit-xml
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      shell: bash
+      run: |
+        python3 "$GITHUB_ACTION_PATH/augment-junit-xml-with-workflow-logs.py" \
+          --test-directory "${{ inputs.test_directory }}" \
+          --namespace "${{ inputs.default_namespace }}" \
+          --mc-path "$HOME/.local/bin/minio-mc"
+
+    - name: Generate HTML report
+      id: generate-html-report
+      if: (!cancelled()) && steps.install-junit2html.outcome == 'success'
+      shell: bash
+      run: |
         junit2html ${{ inputs.test_directory }}/reports/junit.xml ${{ inputs.test_directory }}/reports/test-report.html
-      continue-on-error: true
 
     - name: Configure report name
       id: name_gen
@@ -129,36 +179,21 @@ runs:
     - name: Upload HTML Report
       id: upload
       uses: actions/upload-artifact@v4
-      if: (!cancelled())
+      if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
         retention-days: 7
-      continue-on-error: true
 
     - name: Publish Test Summary With HTML Report
       id: publish
       uses: ./.github/actions/junit-summary
-      if: (!cancelled()) && steps.upload.outcome != 'failure'
+      if: always() && !cancelled()
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
         custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
-      continue-on-error: true
-
-    - name: Publish Test Summary
-      id: summary
-      uses: ./.github/actions/junit-summary
-      if: (!cancelled()) && steps.upload.outcome == 'failure'
-      with:
-        xml_files: '${{ inputs.test_directory }}/reports'
-      continue-on-error: true
 
     - name: Mark Workflow failure if test step failed
       if: steps.run-tests.outcome != 'success' && !cancelled()
-      shell: bash
-      run: exit 1
-
-    - name: Mark Workflow failure if test reporting failed
-      if: (steps.publish.outcome == 'failure' || steps.summary.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
       shell: bash
       run: exit 1
