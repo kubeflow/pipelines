@@ -12,6 +12,9 @@ spec:
   strategy:
     type: Recreate
   template:
+    metadata:
+      labels:
+        app: cache-deployer
     spec:
       securityContext:
         seccompProfile:
@@ -19,7 +22,6 @@ spec:
     metadata:
       labels:
         app: cache-deployer
-    spec:
       containers:
       - name: main
         securityContext:
