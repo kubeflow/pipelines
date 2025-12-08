@@ -12,12 +12,24 @@ spec:
   strategy:
     type: Recreate
   template:
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
     metadata:
       labels:
         app: cache-deployer
     spec:
       containers:
       - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
         image: ghcr.io/kubeflow/kfp-cache-deployer:dummy
         imagePullPolicy: Always
         env:
