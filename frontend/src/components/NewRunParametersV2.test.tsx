@@ -877,4 +877,57 @@ describe('NewRunParametersV2', () => {
 
     expect(container.querySelector('input').type).toEqual('checkbox');
   });
+
+  // Test for fix: Default parameters not displayed in Compare Runs
+  // https://github.com/kubeflow/pipelines/issues/12536
+  it('calls handleParameterChange with default values on mount', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'default pipelineRoot',
+      specParameters: {
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'default string',
+        },
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 42,
+        },
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: true,
+        },
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+          defaultValue: [1, 2, 3],
+        },
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+          defaultValue: { key: 'value' },
+        },
+      },
+      clonedRuntimeConfig: {},
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // Verify that handleParameterChange was called on mount with all default values
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
+      strParam: 'default string',
+      intParam: 42,
+      boolParam: true,
+      listParam: [1, 2, 3],
+      structParam: { key: 'value' },
+    });
+
+    // Verify that the default values are displayed in the UI
+    screen.getByDisplayValue('default string');
+    screen.getByDisplayValue('42');
+    screen.getByDisplayValue('true');
+    screen.getByDisplayValue('[1,2,3]');
+    screen.getByDisplayValue('{"key":"value"}');
+  });
 });
