@@ -3,6 +3,5 @@ kind: Kustomization
 
 resources:
   - dns-config.yaml
-  - allow-same-namespace-networkpolicy.yaml
 
 namespace: kubeflow
