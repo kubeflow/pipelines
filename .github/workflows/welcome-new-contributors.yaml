@@ -25,12 +25,11 @@ jobs:
             Thanks for opening your first issue! We're happy to have you as part of our community 🚀
 
             **Next steps:**
-            - Our team will review your issue soon! cc @kubeflow/wg-pipeline-leads
             - Check out the [Contributing Guide](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) for repo-specific guidelines and the [Kubeflow Contributor Guide](https://www.kubeflow.org/docs/about/contributing/) for general community standards
             - Join our [#kubeflow-pipelines](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) Slack channel
             - Attend the [Kubeflow Pipelines WG](http://bit.ly/kfp-meeting-notes) meetings
 
-            Feel free to ask questions in the comments. Thanks again for contributing! 🙏
+            Feel free to ask questions in the comments.
 
           pr_message: |
             🎉 **Welcome to the Kubeflow Pipelines repo!** 🎉
@@ -38,9 +37,8 @@ jobs:
             Thanks for opening your first PR! We're excited to have you onboard 🚀
 
             **Next steps:**
-            - Our team will review your PR soon! cc @kubeflow/wg-pipeline-leads
             - Check out the [Contributing Guide](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) for repo-specific guidelines and the [Kubeflow Contributor Guide](https://www.kubeflow.org/docs/about/contributing/) for general community standards
             - Join our [#kubeflow-pipelines](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) Slack channel
             - Attend the [Kubeflow Pipelines WG](http://bit.ly/kfp-meeting-notes) meetings
 
-            Feel free to ask questions in the comments. Thanks again for contributing! 🙏
+            Feel free to ask questions in the comments.
