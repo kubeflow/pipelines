@@ -274,3 +274,4 @@ jobs:
         if: ${{ steps.test-run.outcome == 'success' }}
         run: |
           echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
+# FORCE RUN
