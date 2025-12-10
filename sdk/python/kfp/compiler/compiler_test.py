@@ -429,9 +429,8 @@ class TestCompilePipeline(parameterized.TestCase):
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
             task = my_component(text='hello').set_display_name('My Task')
-            return task
+            # Don't return task - just check the DAG task keys
 
-        my_pipeline()
         # Check that the DAG task key uses the sanitized display_name
         self.assertIn('my-task', my_pipeline.pipeline_spec.root.dag.tasks)
         # Verify task_info.name is set correctly
@@ -448,9 +447,8 @@ class TestCompilePipeline(parameterized.TestCase):
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
             task = my_component(text='hello')
-            return task
+            # Don't return task - just check the DAG task keys
 
-        my_pipeline()
         # Check that the DAG task key uses sanitized task name
         # The task variable name would be sanitized
         task_keys = list(my_pipeline.pipeline_spec.root.dag.tasks.keys())
@@ -471,9 +469,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             task1 = my_component(text='hello').set_display_name('Same Name')
             task2 = my_component(text='world').set_display_name('Same Name')
-            return task1, task2
+            # Don't return tasks - just check the DAG task keys
 
-        my_pipeline()
         # Check that both tasks exist with unique keys
         task_keys = list(my_pipeline.pipeline_spec.root.dag.tasks.keys())
         self.assertEqual(len(task_keys), 2)
@@ -493,9 +490,8 @@ class TestCompilePipeline(parameterized.TestCase):
             # Create a very long display name (> 15 chars)
             long_name = 'a' * 50
             task = my_component(text='hello').set_display_name(long_name)
-            return task
+            # Don't return task - just check the DAG task keys
 
-        my_pipeline()
         # Check that the task key is truncated
         task_keys = list(my_pipeline.pipeline_spec.root.dag.tasks.keys())
         self.assertEqual(len(task_keys), 1)
@@ -513,9 +509,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             with dsl.ParallelFor(items=['a', 'b', 'c']) as item:
                 task = my_component(text=item).set_display_name('Loop Task')
-            return task
+            # Don't return task - just check the DAG task keys
 
-        my_pipeline()
         # Find the loop component
         loop_component = None
         for comp_name, comp_spec in my_pipeline.pipeline_spec.components.items():
@@ -540,9 +535,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             prod = producer(text='hello').set_display_name('Producer')
             cons = consumer(text=prod.output).set_display_name('Consumer')
-            return cons
+            # Don't return task - just check the DAG task keys
 
-        my_pipeline()
         # Check that both tasks exist
         self.assertIn('producer', my_pipeline.pipeline_spec.root.dag.tasks)
         self.assertIn('consumer', my_pipeline.pipeline_spec.root.dag.tasks)
@@ -560,9 +554,8 @@ class TestCompilePipeline(parameterized.TestCase):
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
             task = my_component(text='hello').set_display_name('My Task @#$%')
-            return task
+            # Don't return task - just check the DAG task keys
 
-        my_pipeline()
         # Check that special characters are sanitized
         task_keys = list(my_pipeline.pipeline_spec.root.dag.tasks.keys())
         self.assertEqual(len(task_keys), 1)
@@ -580,9 +573,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             # Display name that becomes empty after sanitization
             task = my_component(text='hello').set_display_name('!!!')
-            return task
+            # Don't return task - just check the DAG task keys
 
-        my_pipeline()
         # Should fall back to task name
         task_keys = list(my_pipeline.pipeline_spec.root.dag.tasks.keys())
         self.assertEqual(len(task_keys), 1)
