@@ -29,6 +29,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
       - name: Create KFP cluster
         id: create-kfp-cluster
         uses: ./.github/actions/create-cluster
@@ -56,7 +59,11 @@ jobs:
       - name: Collect failed logs
         if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.deploy.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
-          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          if kubectl get namespace kubeflow >/dev/null 2>&1; then
+            ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          else
+            echo "kubeflow namespace not found; skipping log collection."
+          fi
           exit 1
 
       - name: Collect test results
