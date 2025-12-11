@@ -57,14 +57,14 @@ runs:
       run: ./.github/resources/squid/deploy-squid.sh
 
     - name: Download Docker Images
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         path: "images_${{ github.sha }}"
 
     - name: Load Docker Images
       shell: bash
       run: |
-        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer")
+        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy"  )
         for app in "${APPS[@]}"; do
           docker image load -i ${{ inputs.image_path }}/$app/$app.tar
           docker push ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}

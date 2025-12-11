@@ -69,8 +69,10 @@ var (
 	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
-	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
-	mlmdServerPort    = flag.String("mlmd_server_port", "", "MLMD server port")
+	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
+	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
+	mlmdServerAddress       = flag.String("mlmd_server_address", "", "MLMD server address")
+	mlmdServerPort          = flag.String("mlmd_server_port", "", "MLMD server port")
 
 	// output paths
 	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
@@ -190,30 +192,32 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag, tlsCfg)
+	cacheClient, err := cacheutils.NewClient(*mlPipelineServerAddress, *mlPipelineServerPort, *cacheDisabledFlag, tlsCfg)
 	if err != nil {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:         *pipelineName,
-		RunID:                *runID,
-		RunName:              *runName,
-		RunDisplayName:       *runDisplayName,
-		Namespace:            namespace,
-		Component:            componentSpec,
-		Task:                 taskSpec,
-		DAGExecutionID:       *dagExecutionID,
-		IterationIndex:       *iterationIndex,
-		PipelineLogLevel:     *logLevel,
-		PublishLogs:          *publishLogs,
-		CacheDisabled:        *cacheDisabledFlag,
-		DriverType:           *driverType,
-		TaskName:             *taskName,
-		MLMDServerAddress:    *mlmdServerAddress,
-		MLMDServerPort:       *mlmdServerPort,
-		MLPipelineTLSEnabled: *mlPipelineTLSEnabled,
-		MLMDTLSEnabled:       *metadataTLSEnabled,
-		CaCertPath:           *caCertPath,
+		PipelineName:            *pipelineName,
+		RunID:                   *runID,
+		RunName:                 *runName,
+		RunDisplayName:          *runDisplayName,
+		Namespace:               namespace,
+		Component:               componentSpec,
+		Task:                    taskSpec,
+		DAGExecutionID:          *dagExecutionID,
+		IterationIndex:          *iterationIndex,
+		PipelineLogLevel:        *logLevel,
+		PublishLogs:             *publishLogs,
+		CacheDisabled:           *cacheDisabledFlag,
+		DriverType:              *driverType,
+		TaskName:                *taskName,
+		MLPipelineServerAddress: *mlPipelineServerAddress,
+		MLPipelineServerPort:    *mlPipelineServerPort,
+		MLMDServerAddress:       *mlmdServerAddress,
+		MLMDServerPort:          *mlmdServerPort,
+		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
+		MLMDTLSEnabled:          *metadataTLSEnabled,
+		CaCertPath:              *caCertPath,
 	}
 	var execution *driver.Execution
 	var driverErr error

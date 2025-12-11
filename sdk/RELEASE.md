@@ -2,14 +2,54 @@
 
 ## Features
 
-* Allow sharing utility functions across components via the `additional_funcs` argument to the `component` decorator;
-  functions are embedded into the generated component code before the main function (#12178).
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+# 2.15.2
+
+## Bug fixes and other changes
+
+* Fixed backwards compatibility issue where pipelines compiled with KFP 2.15 failed on older
+  versions with `"output_metadata.json": proto: (line 1:237): unknown field "custom_path"`.
+
+# 2.15.1
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
+## Features
 
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
+## Documentation updates
+
+# 2.15.0
+
+## Features
+
+* Allow sharing utility functions across components via the `additional_funcs` argument to the `component` decorator;
+  functions are embedded into the generated component code before the main function (#12178).
+* feat(backend, sdk): Add custom_path field to RuntimeArtifact (#12248)
+* feat(sdk): Add notebook components and embedded artifacts support (#12294)
+* feat(sdk): add compile-time validation for workspace size
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* fix(sdk): Add support for list and dict parameter type hints (#12410)
+* fix(CI/SDK): Fix tests for pipelines with optional input parameters and an SDK syntax error (#12420)
+* chore: update py image refs to 3.11 (#12383)
 
 ## Documentation updates
 

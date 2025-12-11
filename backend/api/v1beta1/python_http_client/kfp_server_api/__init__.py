@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "2.14.6"
+__version__ = "2.15.2"
 
 # import apis into sdk package
 from kfp_server_api.api.experiment_service_api import ExperimentServiceApi
@@ -50,7 +50,6 @@ from kfp_server_api.models.api_pipeline import ApiPipeline
 from kfp_server_api.models.api_pipeline_runtime import ApiPipelineRuntime
 from kfp_server_api.models.api_pipeline_spec import ApiPipelineSpec
 from kfp_server_api.models.api_pipeline_version import ApiPipelineVersion
-from kfp_server_api.models.api_read_artifact_response import ApiReadArtifactResponse
 from kfp_server_api.models.api_relationship import ApiRelationship
 from kfp_server_api.models.api_report_run_metrics_response import ApiReportRunMetricsResponse
 from kfp_server_api.models.api_resource_key import ApiResourceKey

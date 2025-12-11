@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
@@ -176,6 +177,29 @@ func Test_executeV2_publishLogs(t *testing.T) {
 	}
 }
 
+func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
+	execIn := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{Uri: "minio://mlpipeline/sample/sample.txt", Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{"_kfp_workspace": structpb.NewBoolValue(true)}}},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	if err != nil {
+		t.Fatalf("getPlaceholders error: %v", err)
+	}
+	actual := ph["{{$.inputs.artifacts['data'].path}}"]
+	expected := filepath.Join(WorkspaceMountPath, ".artifacts", "minio", "mlpipeline", "sample", "sample.txt")
+	if actual != expected {
+		t.Fatalf("placeholder path mismatch: actual=%q expected=%q", actual, expected)
+	}
+}
+
 func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 	executorInputJSON := `{
 		"inputs": {
@@ -320,7 +344,7 @@ func Test_get_log_Writer(t *testing.T) {
 func Test_NewLauncherV2(t *testing.T) {
 	var testCmdArgs = []string{"sh", "-c", "echo \"hello world\""}
 
-	disabledCacheClient, _ := cacheutils.NewClient(true, &tls.Config{})
+	disabledCacheClient, _ := cacheutils.NewClient("ml-pipeline.kubeflow", "8887", true, &tls.Config{})
 	var testLauncherV2Deps = client_manager.NewFakeClientManager(
 		fake.NewSimpleClientset(),
 		metadata.NewFakeClient(),

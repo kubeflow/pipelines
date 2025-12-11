@@ -11,7 +11,7 @@ data:
     until the changes take effect. A quick way to restart all deployments in a
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
-  appVersion: 2.14.3
+  appVersion: 2.15.0
   dbHost: mysql # relic to be removed after release
   dbPort: "3306" # relic to be removed after release
   dbType: mysql
@@ -107,4 +107,3 @@ data:
   ## - A negative integer (e.g., -1) disables automatic deletion, meaning artifacts are retained indefinitely.  
   ## Note: The unit of this configuration is always in days.  
   ARTIFACT_RETENTION_DAYS: "-1"
-

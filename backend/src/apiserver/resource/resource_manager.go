@@ -88,7 +88,7 @@ type ClientManagerInterface interface {
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
-	ObjectStore() storage.ObjectStoreInterface
+	ObjectStore() storage.ObjectStore
 	ExecClient() util.ExecutionClient
 	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
@@ -116,7 +116,7 @@ type ResourceManager struct {
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
-	objectStore               storage.ObjectStoreInterface
+	objectStore               storage.ObjectStore
 	execClient                util.ExecutionClient
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
@@ -1553,21 +1553,20 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-		template, errUri := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
-		if errUri != nil {
+		template, errURI := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		if errURI != nil {
 			// Try reading object store from pipeline_version_id
 			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineId := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
-				if errPipelineId != nil {
+				template, errPipelineID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				if errPipelineID != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
-							util.Wrap(errUri, "Failed to read a file from pipeline_spec_uri"),
+							util.Wrap(errURI, "Failed to read a file from pipeline_spec_uri"),
 							util.Wrap(errUUID, "Failed to read a file from OS with pipeline_version_id").Error(),
 						),
-						util.Wrap(errPipelineId, "Failed to read a file from OS with pipeline_id").Error(),
+						util.Wrap(errPipelineID, "Failed to read a file from OS with pipeline_id").Error(),
 					)
 				}
 				return template, r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)), nil
@@ -1628,28 +1627,52 @@ func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
 	return nil
 }
 
-// ReadArtifact parses run's workflow to find artifact file path and reads the content of the file
-// from object store.
-func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName string) ([]byte, error) {
+// ResolveArtifactPath resolves the object storage path for an artifact.
+func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
 	run, err := r.runStore.GetRun(runID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if run.WorkflowRuntimeManifest == "" {
-		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
+		return "", util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
 	}
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	if err != nil {
-		// This should never happen.
-		return nil, util.NewInternalServerError(
+		return "", util.NewInternalServerError(
 			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
 	}
 	artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
-		return nil, util.NewResourceNotFoundError(
+		return "", util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
-	return r.objectStore.GetFile(context.TODO(), artifactPath)
+	return artifactPath, nil
+}
+
+// ReadArtifact streams artifact content from object storage to the provided writer.
+func (r *ResourceManager) ReadArtifact(ctx context.Context, runID string, nodeID string, artifactName string, writer io.Writer) error {
+	artifactPath, err := r.ResolveArtifactPath(runID, nodeID, artifactName)
+	if err != nil {
+		return err
+	}
+
+	reader, err := r.objectStore.GetFileReader(ctx, artifactPath)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to get file reader for %v", artifactPath)
+	}
+	defer reader.Close()
+
+	_, err = io.Copy(writer, reader)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to stream artifact content")
+	}
+
+	return nil
+}
+
+// ObjectStore returns the object store interface for direct access to object storage operations
+func (r *ResourceManager) ObjectStore() storage.ObjectStore {
+	return r.objectStore
 }
 
 // Fetches the default experiment id.

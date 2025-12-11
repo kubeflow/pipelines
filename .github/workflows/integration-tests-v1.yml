@@ -18,6 +18,10 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+concurrency:
+  group: legacy-integration-v1-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     uses: ./.github/workflows/image-builds-with-cache.yml

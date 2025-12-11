@@ -27,6 +27,7 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -170,12 +171,12 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	metricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "logloss", "numberValue": 1.2}]}`
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(artifactData),
 		})
 	pipelineFake.StubReportRunMetrics(&api.ReportRunMetricsResponse{
@@ -233,12 +234,12 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 	})
 	artifactData, _ := util.ArchiveTgz(map[string]string{})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(artifactData),
 		})
 
@@ -277,12 +278,12 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 	invalidMetricsJSON := `invalid JSON`
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file1": validMetricsJSON, "file2": invalidMetricsJSON})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(artifactData),
 		})
 
@@ -320,12 +321,12 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 	metricsJSON := `invalid JSON`
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(artifactData),
 		})
 
@@ -374,21 +375,21 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	invalidArtifactData, _ := util.ArchiveTgz(map[string]string{"file": invalidMetricsJSON})
 	// Stub two artifacts, node-1 is invalid, node-2 is valid.
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(invalidArtifactData),
 		})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-2",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-2",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(validArtifactData),
 		})
 
@@ -444,12 +445,12 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 		},
 	})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte("invalid tgz content"),
 		})
 
@@ -488,12 +489,12 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		`{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "log loss", "numberValue": 1.2}, {"name": "accuracy", "numberValue": 1.2}]}`
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(artifactData),
 		})
 	pipelineFake.StubReportRunMetrics(&api.ReportRunMetricsResponse{
@@ -551,12 +552,12 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 	metricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "logloss", "numberValue": 1.2}]}`
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+		&artifactclient.ReadArtifactRequest{
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
-		&api.ReadArtifactResponse{
+		&artifactclient.ReadArtifactResponse{
 			Data: []byte(artifactData),
 		})
 	pipelineFake.StubReportRunMetrics(&api.ReportRunMetricsResponse{

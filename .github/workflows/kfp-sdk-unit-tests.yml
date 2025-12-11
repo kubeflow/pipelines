@@ -12,6 +12,10 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+concurrency:
+  group: sdk-unit-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sdk-unit-tests:
     runs-on: ubuntu-latest
@@ -45,5 +49,7 @@ jobs:
       env:
         # We setup the env in the CI
         SETUP_ENV: false
+        REPO_NAME: ${{ github.repository }}
+        PULL_NUMBER: ${{ github.event.pull_request.number }}
       run: |
         ./test/presubmit-tests-sdk-unit.sh

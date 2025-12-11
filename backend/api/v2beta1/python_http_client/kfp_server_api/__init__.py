@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "2.14.6"
+__version__ = "2.15.2"
 
 # import apis into sdk package
 from kfp_server_api.api.auth_service_api import AuthServiceApi
@@ -66,7 +66,6 @@ from kfp_server_api.models.v2beta1_pipeline_version import V2beta1PipelineVersio
 from kfp_server_api.models.v2beta1_pipeline_version_reference import V2beta1PipelineVersionReference
 from kfp_server_api.models.v2beta1_predicate import V2beta1Predicate
 from kfp_server_api.models.v2beta1_predicate_operation import V2beta1PredicateOperation
-from kfp_server_api.models.v2beta1_read_artifact_response import V2beta1ReadArtifactResponse
 from kfp_server_api.models.v2beta1_recurring_run import V2beta1RecurringRun
 from kfp_server_api.models.v2beta1_recurring_run_status import V2beta1RecurringRunStatus
 from kfp_server_api.models.v2beta1_run import V2beta1Run

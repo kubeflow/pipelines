@@ -14,7 +14,6 @@
 import inspect
 import json
 import os
-import re
 from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
 
@@ -23,6 +22,7 @@ from kfp.dsl import task_final_status
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
+from kfp.dsl.types import type_utils
 
 
 class Executor:
@@ -287,8 +287,10 @@ class Executor:
                 'name': artifact.name,
                 'uri': artifact.uri,
                 'metadata': artifact.metadata,
-                'custom_path': artifact.custom_path
             }
+            if artifact.custom_path:
+                runtime_artifact['custom_path'] = artifact.custom_path
+
             artifacts_list = {'artifacts': [runtime_artifact]}
 
             self.excutor_output['artifacts'][name] = artifacts_list
@@ -436,35 +438,18 @@ def create_artifact_instance(
     )
 
 
-def get_short_type_name(type_name: str) -> str:
-    """Extracts the short form type name.
-
-    This method is used for looking up serializer for a given type.
-
-    For example:
-      typing.List -> List
-      typing.List[int] -> List
-      typing.Dict[str, str] -> Dict
-      List -> List
-      str -> str
-
-    Args:
-      type_name: The original type name.
-
-    Returns:
-      The short form type name or the original name if pattern doesn't match.
-    """
-    match = re.match(r'(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    return match['type'] if match else type_name
-
-
 # TODO: merge with type_utils.is_parameter_type
 def is_parameter(annotation: Any) -> bool:
-    if type(annotation) == type:
-        return annotation in [str, int, float, bool, dict, list]
+    if isinstance(annotation, type):
+        if annotation in [str, int, float, bool, dict, list]:
+            return True
+        annotation_name = getattr(annotation, '__name__', '')
+        if type_utils.is_task_final_status_type(annotation_name):
+            return True
+        if type_utils.is_task_config_type(annotation_name):
+            return True
 
-    # Annotation could be, for instance `typing.Dict[str, str]`, etc.
-    return get_short_type_name(str(annotation)) in ['Dict', 'List']
+    return type_utils.is_parameter_type(str(annotation))
 
 
 def is_artifact(annotation: Any) -> bool:

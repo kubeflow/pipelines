@@ -218,7 +218,7 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	cacheClient, err := NewClient(false, &tls.Config{})
+	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
 	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -339,7 +339,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 			fingerPrint: "3d9a2a778fa3174c6cfc6e639c507c265b5f21ef6e5b1dd70b236462cc6da464",
 		},
 	}
-	cacheClient, err := NewClient(false, &tls.Config{})
+	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
 	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -409,7 +409,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 	}
 
-	cacheClient, err := NewClient(false, &tls.Config{})
+	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
 	require.NoError(t, err)
 
 	baseFP, err := cacheClient.GenerateFingerPrint(base)
