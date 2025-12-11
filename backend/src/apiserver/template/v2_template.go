@@ -106,7 +106,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 
-	// Note: Parameter macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] are not formatted here.
+	// Parameter macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] are not formatted here.
 	// They remain unformatted in the ScheduledWorkflow spec and will be formatted by the scheduled workflow controller
 	if err = t.validatePipelineJobInputs(job); err != nil {
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
@@ -322,19 +322,17 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 
 	// Format parameters to expand macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] (V1 forward compatibility).
 	// Uses NewSWFParameterFormatter to support all macros. For standalone runs, [[ScheduledTime]] and [[Index]] remain unformatted
-	// (scheduledEpoch and index are -1) since they don't apply. For runs from ScheduledWorkflow, these should ideally be
-	// formatted by the controller before calling CreateRun, but we format them here if scheduled time is available.
+
 	if job.RuntimeConfig != nil && len(job.RuntimeConfig.GetParameterValues()) > 0 {
 		scheduledEpoch := int64(-1) // disabled by default
 		if modelRun.RunDetails.ScheduledAtInSec > 0 {
 			scheduledEpoch = modelRun.RunDetails.ScheduledAtInSec
 		}
-		// Use SWF formatter to support all macros (scheduledEpoch and index are -1 for standalone runs)
 		formatter := util.NewSWFParameterFormatter(
 			options.RunID,
 			scheduledEpoch,
 			options.RunAt,
-			-1, // index not available for single runs
+			-1,
 		)
 		// Convert structpb.Value to strings, format, convert back
 		paramValues := job.RuntimeConfig.GetParameterValues()
