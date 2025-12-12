@@ -131,12 +131,11 @@ def run_single_task_implementation(
         }
 
     if _DOCKER_AVAILABLE:
-        task_handler_map[local.DockerRunner] = docker_task_handler.DockerTaskHandler
+        task_handler_map[
+            local.DockerRunner] = docker_task_handler.DockerTaskHandler
     elif runner_type is local.DockerRunner:
-        raise RuntimeError(
-            "DockerRunner selected but docker is not installed. "
-            "Install docker or switch to SubprocessRunner."
-        )
+        raise RuntimeError("DockerRunner selected but docker is not installed. "
+                           "Install docker or switch to SubprocessRunner.")
 
     TaskHandler = task_handler_map[runner_type]
 
