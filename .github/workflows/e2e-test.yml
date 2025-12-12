@@ -183,7 +183,7 @@ jobs:
           cache_enabled: "true"
           test_label: "E2ECritical"
         - multi_user: "true"
-          artifact_proxy: "true"
+          artifact_proxy: "false"
           storage: "seaweedfs-ha"
           k8s_version: "v1.34.0"
           test_label: "E2ECritical"
