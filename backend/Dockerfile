@@ -39,7 +39,9 @@ RUN echo "Building for architecture: ${TARGETARCH}"
 
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION=v3.7.3
-RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz && \
+RUN curl -sL -H "Accept: application/octet-stream" \
+        https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz \
+    -o argo-linux-$TARGETARCH.gz && \
     gunzip argo-linux-$TARGETARCH.gz && \
     chmod +x argo-linux-$TARGETARCH && \
     mv ./argo-linux-$TARGETARCH /usr/local/bin/argo
