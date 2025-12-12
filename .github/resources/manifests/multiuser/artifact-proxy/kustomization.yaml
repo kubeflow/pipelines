@@ -2,8 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../../../../../manifests/kustomize/env/platform-agnostic-multi-user
-  - ../../../base
+  - ../../../../../manifests/kustomize/env/platform-agnostic-multi-user
+  - ../../base
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
@@ -38,15 +38,15 @@ images:
     newTag: latest
 
 patches:
-  - path: ../../../base/apiserver-env.yaml
+  - path: ../../base/apiserver-env.yaml
     target:
       kind: Deployment
       name: ml-pipeline
-  - path: ../../../base/grpc-specs.yaml
+  - path: ../../base/grpc-specs.yaml
     target:
       kind: Deployment
       name: metadata-grpc-deployment
-  - path: ../../../base/cache-specs.yaml
+  - path: ../../base/cache-specs.yaml
     target:
       kind: Deployment
       name: cache-server
