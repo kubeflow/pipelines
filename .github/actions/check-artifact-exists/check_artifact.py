@@ -79,6 +79,12 @@ def check_artifact_exists(artifact_name: str, token: str, repo: str, head_sha: s
         while max_iterations > 0:
             params['page'] = page
             response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code == requests.codes.forbidden:
+                print(f"::warning::GitHub API returned 403 when listing artifacts "
+                      f"(name={artifact_name}, page={page}); treating as not found.")
+                return False
+
             response.raise_for_status()
 
             artifacts_data = response.json()
