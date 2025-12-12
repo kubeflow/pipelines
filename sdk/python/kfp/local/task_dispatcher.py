@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Code for dispatching a local task execution."""
+
 import logging
 from typing import Any, Dict, Tuple
 
 from kfp import local
 from kfp.local import config
-from kfp.local import docker_task_handler
+
+# docker import fix
+try:
+    from kfp.local import docker_task_handler
+    _DOCKER_AVAILABLE = True
+except ImportError:
+    docker_task_handler = None
+    _DOCKER_AVAILABLE = False
+
 from kfp.local import executor_input_utils
 from kfp.local import executor_output_utils
 from kfp.local import logging_utils
@@ -33,15 +42,7 @@ def run_single_task(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     arguments: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Runs a single component from its compiled PipelineSpec.
-
-    Args:
-        pipeline_spec: The PipelineSpec of the component to run.
-        arguments: The runtime arguments.
-
-    Returns:
-        A LocalTask instance.
-    """
+    """Runs a single component from its compiled PipelineSpec."""
     config.LocalExecutionConfig.validate()
     component_name, component_spec = list(pipeline_spec.components.items())[0]
     executor_spec = get_executor_spec(
@@ -52,8 +53,6 @@ def run_single_task(
     pipeline_resource_name = executor_input_utils.get_local_pipeline_resource_name(
         pipeline_spec.pipeline_info.name)
 
-    # all global state should be accessed here
-    # do not access local config state downstream
     outputs, _ = run_single_task_implementation(
         pipeline_resource_name=pipeline_resource_name,
         component_name=component_name,
@@ -90,11 +89,6 @@ def run_single_task_implementation(
     block_input_artifact: bool,
     unique_pipeline_id: str,
 ) -> Tuple[Outputs, status.Status]:
-    """The implementation of a single component runner.
-
-    Returns a tuple of (outputs, status). If status is FAILURE, outputs
-    is an empty dictionary.
-    """
 
     task_resource_name = executor_input_utils.get_local_task_resource_name(
         component_name)
@@ -128,13 +122,22 @@ def run_single_task_implementation(
     )
 
     runner_type = type(runner)
+
+    # Safe TaskHandler map fix
     task_handler_map: Dict[
         local.LocalRunnerType, task_handler_interface.ITaskHandler] = {
             local.SubprocessRunner:
                 subprocess_task_handler.SubprocessTaskHandler,
-            local.DockerRunner:
-                docker_task_handler.DockerTaskHandler,
         }
+
+    if _DOCKER_AVAILABLE:
+        task_handler_map[local.DockerRunner] = docker_task_handler.DockerTaskHandler
+    elif runner_type is local.DockerRunner:
+        raise RuntimeError(
+            "DockerRunner selected but docker is not installed. "
+            "Install docker or switch to SubprocessRunner."
+        )
+
     TaskHandler = task_handler_map[runner_type]
 
     with logging_utils.local_logger_context():
@@ -148,11 +151,10 @@ def run_single_task_implementation(
             runner=runner,
         )
 
-        # trailing newline helps visually separate subprocess logs
+        # separate logs visually
         logging.info(f'Streamed logs:\n')
 
         with logging_utils.indented_print():
-            # subprocess logs printed here
             task_status = task_handler.run()
 
         if task_status == status.Status.SUCCESS:
@@ -182,8 +184,8 @@ def run_single_task_implementation(
             outputs = {}
 
         else:
-            # for developers; user should never hit this
             raise ValueError(f'Got unknown status: {task_status}')
+
         logging_utils.print_horizontal_line()
 
         return outputs, task_status
