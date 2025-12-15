@@ -110,7 +110,7 @@ Pipeline Pods                         UI/API Clients
 
 ## Motivation
 
-**This proposal does not aim to replace existing object storage solutions.** S3-compatible storage remains fully supported and recommended for most production workloads. Instead, this KEP provides an additional option for deployments where a simpler, KFP-native artifact storage solution is preferred.
+**This proposal does not aim to replace existing object storage solutions.** S3-compatible storage remains fully supported and recommended for most production workloads. Instead, this KEP provides an additional option for deployments where a simpler, KFP-native artifact storage solution is preferred. This also enables future work toward running KFP locally (outside Kubernetes) by pointing artifact APIs to local filesystem storage instead of requiring an object store deployment.
 
 While KFP currently ships with S3-compatible storage by default, this still requires deploying and maintaining a separate object storage service. For some deployment scenarios, this additional component may not be desired.
 
