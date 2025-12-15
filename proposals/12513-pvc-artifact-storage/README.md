@@ -122,6 +122,7 @@ Many enterprises and Kubeflow distributions prefer not to have additional extern
 - No separate object storage project to productize and support
 - Artifact handling is part of the KFP codebase (same team, same release cycle)
 - Troubleshooting stays within the KFP domain
+- Access control leverages Kubernetes RBAC (via KFP's existing authorization mechanisms), simplifying onboarding and provisioning of new namespaces without object-store-specific credential/policy management
 
 ### Per-Namespace Isolation and Scaling
 
