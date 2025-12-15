@@ -58,7 +58,7 @@
 
 This KEP proposes adding filesystem-based storage as an alternative artifact storage backend for Kubeflow Pipelines v2. While KFP currently ships with S3-compatible storage by default, some deployments prefer not to depend on a separate object storage system. This proposal introduces filesystem storage as an additional option where artifact handling is integrated into KFP itself, eliminating the need for an external object storage component.
 
-The filesystem backend will primarily use `PersistentVolumeClaim` (PVC) based storage in Kubernetes environments, providing namespace-isolated storage using Kubernetes native `PersistentVolumes`. However, the design is flexible enough to support other filesystem backends (e.g., local filesystem for development). Users can specify any access mode value which KFP will pass through to Kubernetes without validation (e.g., `ReadWriteMany` for parallel task execution across nodes, `ReadWriteOnce` for single node access, etc.), with RWO as the default if not specified. The actual behavior depends on what the underlying storage class supports. Existing pipelines will work without modification unless they contain hardcoded S3/object storage paths.
+The filesystem backend uses Kubernetes `PersistentVolumeClaims` (PVCs) for storage. KFP creates the PVC(s) for the artifact server (one shared PVC in central mode, or one PVC per namespace in namespaced mode). **Only the artifact server mounts these PVCs**; pipeline pods never mount them directly. When KFP creates a PVC, it forwards the configured access mode string into the PVC spec (without validation); if not specified, it defaults to `ReadWriteOnce`. The actual behavior depends on what the underlying `StorageClass` supports. Existing pipelines will work without modification unless they contain hardcoded S3/object storage paths.
 
 To support scalability, KFP will introduce a new artifact URI scheme (`kfp-artifacts://`) that routes all artifact requests through KFP's artifact server. Pipeline pods never mount PVCs directly - they upload and download artifacts via the artifact server API, which handles the actual filesystem operations. The artifact server can be scaled independently as an artifacts-only instance.
 
@@ -202,6 +202,7 @@ This KEP proposes adding a new artifact storage backend that uses filesystem sto
 
 ### User Stories
 
+<!-- TODO: REMOVE THIS STORY -->
 #### Story 1: User Running Pipelines on Local Kubernetes
 
 As a user with KFP on kind/minikube/k3s, I want my pipeline artifacts to automatically use the local cluster's default `StorageClass` via the `kfp-artifacts://` scheme, so that I can develop pipelines offline without any storage configuration.
