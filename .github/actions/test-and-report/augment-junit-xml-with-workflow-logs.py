@@ -11,10 +11,6 @@ from xml.etree import ElementTree
 from typing import Dict, List, NoReturn, Optional, Tuple
 
 
-REPORTS_DIRNAME = "reports"
-JUNIT_XML_FILENAME = "junit.xml"
-MAPPING_FILENAME = "test-workflow-mapping.txt"
-
 MINIO_BUCKET = "mlpipeline"
 LOGS_PREFIX_TEMPLATE = "private-artifacts/{namespace}"
 
@@ -282,10 +278,18 @@ def main() -> int:
     parser.add_argument("--test-directory", required=True)
     parser.add_argument("--namespace", required=True)
     parser.add_argument("--mc-path", required=True)
+    parser.add_argument("--reports-dir", required=True)
+    parser.add_argument("--junit-xml-filename", required=True)
+    parser.add_argument("--mapping-filename", required=True)
     args = parser.parse_args()
 
-    junit_xml = os.path.join(args.test_directory, REPORTS_DIRNAME, JUNIT_XML_FILENAME)
-    mapping_file = os.path.join(args.test_directory, REPORTS_DIRNAME, MAPPING_FILENAME)
+    test_directory = str(args.test_directory)
+    reports_dir = str(args.reports_dir)
+    junit_xml_filename = str(args.junit_xml_filename)
+    mapping_filename = str(args.mapping_filename)
+
+    junit_xml = os.path.join(test_directory, reports_dir, junit_xml_filename)
+    mapping_file = os.path.join(test_directory, reports_dir, mapping_filename)
     mc = _require_mc_path(args.mc_path)
 
     if not (os.path.isfile(mapping_file) and os.path.isfile(junit_xml)):

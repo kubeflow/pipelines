@@ -156,7 +156,10 @@ runs:
         python3 "$GITHUB_ACTION_PATH/augment-junit-xml-with-workflow-logs.py" \
           --test-directory "${{ inputs.test_directory }}" \
           --namespace "${{ inputs.default_namespace }}" \
-          --mc-path "$HOME/.local/bin/minio-mc"
+          --mc-path "$HOME/.local/bin/minio-mc" \
+          --reports-dir "reports" \
+          --junit-xml-filename "junit.xml" \
+          --mapping-filename "test-workflow-mapping.txt"
 
     - name: Generate HTML report
       id: generate-html-report
