@@ -5,7 +5,6 @@
 - [Summary](#summary)
 - [Architecture at a Glance](#architecture-at-a-glance)
 - [Motivation](#motivation)
-  - [Reduced External Dependencies](#reduced-external-dependencies)
   - [Enterprise Considerations](#enterprise-considerations)
   - [Per-Namespace Isolation and Scaling](#per-namespace-isolation-and-scaling)
   - [Path to Local Development](#path-to-local-development)
@@ -114,14 +113,7 @@ Pipeline Pods                         UI/API Clients
 
 While KFP currently ships with S3-compatible storage by default, this still requires deploying and maintaining a separate object storage service. For some deployment scenarios, this additional component may not be desired.
 
-### Reduced External Dependencies
-
-While KFP's default manifests ship with S3-compatible storage pre-configured (no manual credential setup required), filesystem storage replaces the object storage system with a KFP-native artifact server. This means:
-
-- No external object storage project to track for updates and security patches
-- Artifact issues debugged within KFP ecosystem (no separate S3 API layer)
-- Artifact handling uses the same codebase as the rest of KFP
-- No S3-specific knowledge required (buckets, endpoints, regions). Only familiar Kubernetes concepts (PVCs, `StorageClasses`)
+Filesystem storage replaces the object storage system with a KFP-native artifact server and PVCs. This reduces reliance on a separate storage system and shifts operational knowledge from S3 concepts (buckets, endpoints, regions) to Kubernetes concepts (PVCs, `StorageClasses`).
 
 ### Enterprise Considerations
 
