@@ -130,7 +130,7 @@ Many enterprises and Kubeflow distributions prefer not to have additional extern
 In namespace-local mode, each namespace gets its own dedicated artifact server and PVC. This provides:
 
 - **Storage isolation**: Each team's artifacts are physically separated in their own PVC
-- **Independent scaling**: Teams can scale their artifact server horizontally (with RWX storage) and size their PVC based on workload requirements
+- **Independent scaling**: Teams can scale their artifact server horizontally and size their PVC based on workload requirements
 - **Per-namespace quotas**: Kubernetes `ResourceQuotas` can enforce storage limits per team
 
 ### Path to Local Development
