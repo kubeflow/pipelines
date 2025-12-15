@@ -101,7 +101,7 @@ Pipeline Pods                         UI/API Clients
 ### Key Components
 
 - **Storage**: Kubernetes `PersistentVolumeClaims` (one per namespace)
-- **URI Format**: `kfp-artifacts://<namespace>/<pipeline>/<run-id>/<node-id>/<artifact-name>`
+- **URI Format**: `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>`
 - **API Changes**: New `/filesystem-storage/config` endpoint for UI configuration discovery
 - **Deployment Modes**:
   - **Central**: Single artifact server for all namespaces (default)
