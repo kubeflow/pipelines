@@ -150,7 +150,6 @@ By providing PVC-based storage as an alternative, we:
 
 - Deployments where eliminating object storage dependency is preferred
 - Environments where Kubeflow distributions or platform providers prefer not to support additional storage systems
-- Multi-tenant deployments requiring per-namespace storage isolation, scaling, and quotas
 - Development and experimentation scenarios
 
 **When NOT to use filesystem storage:**
