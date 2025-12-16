@@ -133,7 +133,7 @@ In namespace-local mode, each namespace gets its own dedicated artifact server a
 - **Independent scaling**: Teams can scale their artifact server horizontally and size their PVC based on workload requirements
 - **Per-namespace quotas**: Kubernetes `ResourceQuotas` can enforce storage limits per team
 
-Scaling options for the artifact server include running it as a standard Kubernetes Deployment (default, scale by replicas) or as a DaemonSet via `ObjectStoreConfig.ArtifactServer.WorkloadKind: "daemonset"` (one pod per node, intended for RWX or node-local storage; see Artifact Server Architecture).
+Scaling options for the artifact server include running it as a standard Kubernetes Deployment (default, scale by replicas) or as a DaemonSet via `ObjectStoreConfig.ArtifactServer.WorkloadKind: "daemonset"` (one pod per node, intended for `ReadWriteMany` (RWX) or node-local storage; see Artifact Server Architecture).
 
 ### Path to Local Development
 
@@ -167,7 +167,7 @@ Based on the user story "As a user, I want to provision Kubeflow Pipelines with 
 1. **Add filesystem storage as an additional backend option** alongside S3-compatible and Google Cloud Storage, primarily using PVC but not limited to it
 2. **Enable zero-configuration storage** for experimentation use cases - a KFP server can be installed with just a PVC for artifact storage
 3. **Provide namespace-isolated artifact storage** with proper subject access review guards in multi-user mode
-4. **Allow any Kubernetes access mode to be configured** - KFP passes through the configuration to Kubernetes (RWO default)
+4. **Allow any Kubernetes access mode to be configured** - KFP passes through the configuration to Kubernetes (defaults to `ReadWriteOnce` (RWO))
 5. **Pipeline compatibility (no pipeline code changes)** - pipelines that use KFP-managed artifact passing (e.g., `Input/Output[Dataset|Model]` and `.path`) work unchanged with the filesystem backend (unless they contain hardcoded `s3://`/`gs://`/`minio://` URIs or call object-store SDKs directly)
 6. **Match existing artifact persistence behavior** - artifacts persist indefinitely until explicitly deleted (no automatic cleanup)
 7. **Enable separate scaling of artifact serving** through an artifacts-only KFP instance with `--artifacts-only` flag
@@ -188,7 +188,7 @@ Based on the user story "As a user, I want to provision Kubeflow Pipelines with 
 This KEP proposes adding a new artifact storage backend that uses filesystem storage (primarily Kubernetes `PersistentVolumeClaims`) instead of object storage. The implementation will:
 
 1. Create PVC-backed storage for artifact serving (a single shared PVC in central mode, or one PVC per namespace in namespaced mode)
-2. Use configurable access mode with sensible defaults (RWO)
+2. Use configurable PVC access mode (defaults to RWO if not specified; RWX is recommended for multi-node clusters)
 3. Organize artifacts in a filesystem hierarchy within the PVC
 4. Provide transparent access through the existing KFP artifact APIs with new `kfp-artifacts://` URI scheme
 5. Maintain compatibility with existing pipeline definitions that don't have hardcoded storage paths
