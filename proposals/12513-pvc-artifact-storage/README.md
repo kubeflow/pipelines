@@ -31,7 +31,7 @@
   - [Multi-User Isolation and Authorization](#multi-user-isolation-and-authorization)
     - [Namespace Isolation](#namespace-isolation)
     - [Multi-User Isolation Strategy](#multi-user-isolation-strategy)
-    - [Namespace-Local Artifact Pods Architecture](#namespace-local-artifact-pods-architecture)
+    - [Dedicated Per-Namespace Artifact Server Architecture](#dedicated-per-namespace-artifact-server-architecture)
     - [Subject Access Review Integration](#subject-access-review-integration)
     - [Single-User vs Multi-User Deployments](#single-user-vs-multi-user-deployments)
   - [Artifact Lifecycle Management](#artifact-lifecycle-management)
@@ -57,7 +57,7 @@
 
 This KEP proposes adding filesystem-based storage as an alternative artifact storage backend for Kubeflow Pipelines v2. While KFP currently ships with S3-compatible storage by default, some deployments prefer not to depend on a separate object storage system. This proposal introduces filesystem storage as an additional option where artifact handling is integrated into KFP itself, eliminating the need for an external object storage component.
 
-The filesystem backend uses Kubernetes `PersistentVolumeClaims` (PVCs) for storage. KFP creates the PVC(s) for the artifact server (one shared PVC in central mode, or one PVC per namespace in namespaced mode). **Only the artifact server mounts these PVCs**; pipeline pods never mount them directly. When KFP creates a PVC, it forwards the configured access mode string into the PVC spec (without validation); if not specified, it defaults to `ReadWriteOnce`. The actual behavior depends on what the underlying `StorageClass` supports. Existing pipelines will work without modification unless they contain hardcoded S3/object storage paths.
+The filesystem backend uses Kubernetes `PersistentVolumeClaims` (PVCs) for storage. KFP creates a shared PVC for the default shared artifact server, and can also create per-namespace PVCs when a namespace is configured to use a dedicated artifact server. **Only the artifact server mounts these PVCs**; pipeline pods never mount them directly. When KFP creates a PVC, it forwards the configured access mode string into the PVC spec (without validation); if not specified, it defaults to `ReadWriteOnce`. The actual behavior depends on what the underlying `StorageClass` supports. Existing pipelines will work without modification unless they contain hardcoded S3/object storage paths.
 
 To support scalability, KFP will introduce a new artifact URI scheme (`kfp-artifacts://`) that routes all artifact requests through KFP's artifact server. Pipeline pods never mount PVCs directly - they upload and download artifacts via the artifact server API, which handles the actual filesystem operations. The artifact server can be scaled independently as an artifacts-only instance.
 
@@ -71,7 +71,7 @@ To support scalability, KFP will introduce a new artifact URI scheme (`kfp-artif
 | **URI Scheme**         | `s3://`, `gs://`, `minio://`                    | `kfp-artifacts://`                                |
 | **Architecture**       | Separate object storage service                 | KFP-native artifact server                        |
 | **Required Knowledge** | S3 concepts (buckets, endpoints, regions)       | Kubernetes concepts (PVCs, StorageClasses)        |
-| **Multi-tenancy**      | Shared storage (single instance)                | Per-namespace PVCs (in namespace-local mode)      |
+| **Multi-tenancy**      | Shared storage (single instance)                | Optional per-namespace PVCs for dedicated servers |
 | **Scaling**            | Single object storage instance                  | Per-namespace artifact servers and storage quotas |
 
 ### High-Level Flow
@@ -102,10 +102,9 @@ Pipeline Pods                         UI/API Clients
 - **Storage**: Kubernetes `PersistentVolumeClaims` (one per namespace)
 - **URI Format**: `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>`
 - **API Changes**: New `/filesystem-storage/config` endpoint for UI configuration discovery
-- **Deployment Modes**:
-  - **Central**: Single artifact server for all namespaces (default)
-  - **Namespace-local**: One artifact server per namespace (better isolation)
-  - **Mixed**: Per-namespace mode override via `kfp-launcher` ConfigMap
+- **Deployment model**:
+  - **Default**: A shared artifact server serves all namespaces
+  - **Optional per-namespace isolation**: Individual namespaces can be configured to use a dedicated artifact server and PVC
 
 ## Motivation
 
@@ -123,11 +122,11 @@ Many enterprises and Kubeflow distributions prefer not to have additional extern
 - Artifact handling is part of the KFP codebase (same team, same release cycle)
 - Troubleshooting stays within the KFP domain
 - Access control leverages Kubernetes RBAC (via KFP's existing authorization mechanisms), simplifying onboarding and provisioning of new namespaces without object-store-specific credential/policy management
-- In central mode, artifacts are stored under namespace-aware paths (e.g., `/artifacts/<namespace>/...`) and access is enforced through Kubernetes RBAC (via KFP authorization), providing logical namespace isolation even with shared storage
+- In the default shared setup, artifacts are stored under namespace-aware paths (e.g., `/artifacts/<namespace>/...`) and access is enforced through Kubernetes RBAC (via KFP authorization), providing logical namespace isolation even with shared storage
 
 ### Per-Namespace Isolation and Scaling
 
-In namespace-local mode, each namespace gets its own dedicated artifact server and PVC. This provides:
+When configured for per-namespace isolation, a namespace gets its own dedicated artifact server and PVC. This provides:
 
 - **Storage isolation**: Each team's artifacts are physically separated in their own PVC
 - **Independent scaling**: Teams can scale their artifact server horizontally and size their PVC based on workload requirements
@@ -187,7 +186,7 @@ Based on the user story "As a user, I want to provision Kubeflow Pipelines with 
 
 This KEP proposes adding a new artifact storage backend that uses filesystem storage (primarily Kubernetes `PersistentVolumeClaims`) instead of object storage. The implementation will:
 
-1. Create PVC-backed storage for artifact serving (a single shared PVC in central mode, or one PVC per namespace in namespaced mode)
+1. Create PVC-backed storage for artifact serving (a shared PVC by default, with optional per-namespace PVCs for dedicated artifact servers)
 2. Use configurable PVC access mode (defaults to RWO if not specified; RWX is recommended for multi-node clusters)
 3. Organize artifacts in a filesystem hierarchy within the PVC that is namespace aware
 4. Provide artifact access via KFP's artifact endpoints (`.../artifacts/...:read` and a new `...:write`) using the `kfp-artifacts://` URI scheme
@@ -247,7 +246,7 @@ As a user with existing pipelines containing components that call `boto3.upload_
 
 #### Story 5: Operator Deploying Multi-Tenant KFP with Namespace Isolation
 
-As an operator, I want to deploy KFP in namespace-local mode where each namespace annotated with `pipelines.kubeflow.org/enabled=true` gets its own artifact server pod and dedicated PVC, so that Team A's artifacts in namespace `team-a` are physically isolated from Team B's artifacts in namespace `team-b`.
+As an operator, I want to configure KFP so that specific namespaces annotated with `pipelines.kubeflow.org/enabled=true` use a dedicated artifact server pod and PVC, so that Team A's artifacts in namespace `team-a` are physically isolated from Team B's artifacts in namespace `team-b`.
 
 **Acceptance Criteria:**
 
@@ -271,40 +270,39 @@ As an operator in a regulated environment (e.g., healthcare, finance), I want to
 
 #### Story 7: Operator Running KFP on Storage-Constrained Infrastructure
 
-As an operator with limited storage budget (only 1TB total available), I want to deploy KFP in central mode with a single 500GB PVC shared across 10 team namespaces, so that all teams can run pipelines without each needing their own 100GB PVC (which would require 1TB total).
+As an operator with limited storage budget (only 1TB total available), I want to use the default shared artifact server with a single 500GB PVC across 10 team namespaces, so that all teams can run pipelines without each needing their own 100GB PVC (which would require 1TB total).
 
 **Acceptance Criteria:**
 
-- Central mode configured with: `DeploymentMode: "central"`, `Size: "500Gi"`
+- Central artifact server is used (default) with a single PVC sized to `500Gi`
 - Single PVC created in `kubeflow` namespace mounted by one artifact server
 - All 10 teams' artifacts stored in `/artifacts/<namespace>/` directories on same PVC
 - Teams can run pipelines concurrently without storage allocation failures
-- No per-namespace storage limits (trade-off of central mode - shared PVC means no per-team quotas)
+- No per-namespace storage limits (trade-off of shared PVC - no per-team quotas in the default shared setup)
 
 #### Story 8: Operator Scaling High-Throughput Model Training Platform
 
-As an operator supporting 100+ concurrent pipeline runs with multi-GB model checkpoints, I want to deploy KFP in central mode with RWX storage (e.g., NFS/CephFS) and multiple artifact server replicas behind a load balancer, so that artifact upload/download operations can scale horizontally without bottlenecks.
+As an operator supporting 100+ concurrent pipeline runs with multi-GB model checkpoints, I want to use the shared artifact server with `ReadWriteMany` (RWX) storage (e.g., NFS/CephFS) and multiple replicas behind a load balancer, so that artifact upload/download operations can scale horizontally without bottlenecks.
 
 **Acceptance Criteria:**
 
-- Can deploy artifact servers in both central and namespace-local modes
+- Can use the default shared artifact server, or configure dedicated per-namespace artifact servers and PVCs where needed
 - Artifact servers stream large files without loading into memory
 - Can use high-performance `StorageClasses` (e.g., SSD-backed)
-- Horizontal scaling possible in central mode
-- Direct pod-to-pod communication in namespace-local mode reduces latency
+- Horizontal scaling possible for the shared artifact server when using `ReadWriteMany` (RWX) storage
+- Dedicated per-namespace artifact servers can reduce contention and improve isolation for selected namespaces
 
 #### Story 9: Operator with Mixed Isolation Requirements
 
-As an operator, I want to deploy KFP in central mode by default, but configure specific namespaces (e.g., `team-finance`) to use namespace-local mode for stricter isolation, so that most teams share the simple central server while sensitive teams get dedicated resources.
+As an operator, I want to use the shared artifact server by default, but configure specific namespaces (e.g., `team-finance`) to use a dedicated artifact server and PVC for stricter isolation, so that most teams share the simple default while sensitive teams get dedicated resources.
 
 **Acceptance Criteria:**
 
-- Global deployment mode set to `central` (default)
-- Specific namespaces can override to `namespaced` via their `kfp-launcher` ConfigMap
-- Teams using central mode share the central artifact server
-- Teams with namespace-local override get their own artifact server and PVC
-- UI correctly routes artifact requests based on each namespace's deployment mode
-- No cluster-wide restart needed to change a namespace's mode
+- Shared artifact server is used by default
+- Specific namespaces can opt in to dedicated artifact servers via their `kfp-launcher` ConfigMap (`artifactServer.dedicated: true`)
+- Namespaces that opt in get their own artifact server and PVC
+- UI correctly routes artifact requests based on whether a namespace has opted in to a dedicated server
+- No cluster-wide restart needed to change a namespace's setting
 
 ### Notes/Constraints/Caveats
 
@@ -378,7 +376,7 @@ There are three related but distinct formats:
 |--------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------|
 | **URI** (stored in MLMD) | `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>` | `kfp-artifacts://team-a/my-pipeline/abc123/step1/output`      |
 | **API Endpoint**         | `/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read`     | `/apis/v2beta1/runs/abc123/nodes/step1/artifacts/output:read` |
-| **Filesystem Path**      | `<mount_path>/<namespace>/<pipeline>/<run-id>/<node-id>/<artifact-name>`         | `/artifacts/team-a/my-pipeline/abc123/step1/output`           |
+| **Filesystem Path**      | `<mount_path>/<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>`    | `/artifacts/team-a/my-pipeline/abc123/step1/output`           |
 
 **Why the API endpoint doesn't include namespace/pipeline:**
 
@@ -388,7 +386,7 @@ The API endpoint only requires `run_id`, `node_id`, and `artifact_name`. The ser
 
 1. Launcher receives artifact URI: `kfp-artifacts://team-a/my-pipeline/abc123/step1/output`
 2. Extracts `run_id=abc123`, `node_id=step1`, `artifact_name=output`
-3. In namespace-local mode, extracts `namespace=team-a` to route to correct artifact server
+3. If the namespace is configured to use a dedicated artifact server, extracts `namespace=team-a` to route to the correct service
 4. Makes API call: `GET http://ml-pipeline-artifact-server.team-a.svc:8080/apis/v2beta1/runs/abc123/nodes/step1/artifacts/output:read`
 
 This approach provides several benefits:
@@ -402,22 +400,22 @@ This approach provides several benefits:
 
 #### Backend Responsibilities
 
-KFP will support two distinct deployment modes for artifact serving. The default mode is configured globally via the `ObjectStoreConfig.ArtifactServer.DeploymentMode` field, but individual namespaces can override this setting via their `kfp-launcher` ConfigMap. **In both modes, only the artifact server pods mount the PVC - pipeline workflow pods access artifacts exclusively through the artifact server API.**
+KFP uses a shared artifact server by default, and namespaces can optionally be configured to use a dedicated artifact server and PVC for physical isolation. **Only artifact server pods mount PVCs - pipeline workflow pods access artifacts exclusively through the artifact server API.**
 
 ##### Artifact Server Workload Type (Deployment vs DaemonSet)
 
-In addition to the deployment mode (central vs namespaced), the artifact server can be deployed using different Kubernetes workload types:
+In addition to whether a namespace uses the shared artifact server or a dedicated per-namespace artifact server, the artifact server can be deployed using different Kubernetes workload types:
 
 - **Deployment (default)**: Runs a configurable number of replicas. This is the recommended default for most clusters.
 - **DaemonSet (optional)**: Runs one artifact server pod per node. When using `WorkloadKind: "daemonset"`, KFP configures the artifact server Service with `internalTrafficPolicy: Local` so artifact traffic stays node-local (requests only route to endpoints on the same node).
 
 **Important**: DaemonSet + `internalTrafficPolicy: Local` only works when the underlying storage can be accessed by an artifact server pod on every node (for example, RWX storage such as NFS/CephFS, or node-local volumes). With RWO PVCs, most DaemonSet pods will be unable to mount the PVC and local-only routing would fail for clients on other nodes.
 
-##### Mode 1: Central Artifact Server (Default)
+##### Default: Shared Artifact Server
 
-A single artifact server in the main KFP namespace serves all namespaces, configured via `ObjectStoreConfig.ArtifactServer.DeploymentMode: "central"`.
+A single artifact server in the main KFP namespace serves all namespaces by default.
 
-**Central Mode Characteristics:**
+**Characteristics:**
 
 - **Single PVC** with directory structure: `/artifacts/<namespace>/<pipeline>/<run-id>/<node-id>/<artifact-name>`
 - **Authorization**: Uses `SubjectAccessReview` to verify namespace access
@@ -425,11 +423,11 @@ A single artifact server in the main KFP namespace serves all namespaces, config
 - **Advantages**: Simple setup, single storage location, easy backup
 - **Limitations**: All namespaces share same PVC and storage quota
 
-##### Mode 2: Namespace-Local Artifact Servers
+##### Optional: Dedicated Artifact Server per Namespace
 
-Each namespace runs its own artifact server, configured via `ObjectStoreConfig.ArtifactServer.DeploymentMode: "namespaced"`.
+Each namespace can run its own artifact server when configured via its `kfp-launcher` ConfigMap (`artifactServer.dedicated: true`).
 
-**Namespace-Local Mode Characteristics:**
+**Characteristics:**
 
 - **PVC per namespace**: Complete storage isolation
 - **Direct access**: Clients connect directly to namespace servers (no proxying)
@@ -438,9 +436,9 @@ Each namespace runs its own artifact server, configured via `ObjectStoreConfig.A
 - **Advantages**: True multi-tenancy, per-namespace scaling, independent quotas
 - **Deployment**: Proactive initialization when namespace has `pipelines.kubeflow.org/enabled=true` annotation
 
-##### Mixed Mode Support
+##### Per-Namespace Configuration Support
 
-For multi-tenant deployments with varying isolation requirements, administrators can configure different deployment modes per namespace using the `kfp-launcher` ConfigMap:
+For multi-tenant deployments with varying isolation requirements, administrators can configure namespace-local artifact servers per namespace using the `kfp-launcher` ConfigMap:
 
 ```yaml
 apiVersion: v1
@@ -451,36 +449,36 @@ metadata:
 data:
   defaultPipelineRoot: "kfp-artifacts://team-requiring-isolation"
   artifactServer: |
-    deploymentMode: namespaced
+    dedicated: true
 ```
 
 The `artifactServer` key contains a YAML block that mirrors the global `ObjectStoreConfig.ArtifactServer` structure, allowing consistent configuration patterns across global and per-namespace settings.
 
 This enables scenarios where:
 
-- Most namespaces use the simpler central mode (global default)
-- Specific namespaces requiring strict isolation use namespace-local mode
+- Most namespaces use the shared artifact server (default)
+- Specific namespaces requiring strict isolation use dedicated namespace-local artifact servers
 - Teams can be migrated between modes without cluster-wide changes
 
 #### Request Routing
 
-Based on the configured mode (global default or per-namespace override from `kfp-launcher` ConfigMap), artifact URIs are resolved differently:
+Artifact URIs are resolved based on whether a namespace has opted into a dedicated artifact server via its `kfp-launcher` ConfigMap:
 
-**Central Mode:**
+**Default (shared artifact server):**
 
 ```text
 Client
   │
   │ GET kfp-artifacts://<namespace>/...
   ▼
-KFP API Server (central)
+KFP API Server (shared)
   │
   │ Authorization check (SubjectAccessReview)
   ▼
 Serve from /artifacts/<namespace>/...
 ```
 
-**Namespace-Local Mode:**
+**Dedicated per-namespace artifact server:**
 
 ```text
 Client
@@ -494,16 +492,16 @@ Resolve to ml-pipeline-artifact-server.<namespace>.svc
 Serve from /artifacts/<namespace>/...
 ```
 
-**Note on Path Structure**: The namespace-local mode intentionally includes `<namespace>` in the filesystem path even though each namespace has its own dedicated PVC. This design decision provides:
+**Note on Path Structure**: The dedicated per-namespace setup intentionally includes `<namespace>` in the filesystem path even though each namespace has its own dedicated PVC. This design decision provides:
 
-- **Consistent path generation logic** across both deployment modes - no conditional logic needed
+- **Consistent path generation logic** across both the default shared setup and the dedicated per-namespace setup - no conditional logic needed
 - **Simplified artifact URI handling** - the same `kfp-artifacts://<namespace>/...` format works everywhere
 - **Future flexibility** - allows potential migration between modes without path restructuring
 - **Debugging clarity** - filesystem paths clearly indicate the namespace even in isolated PVCs
 
 ##### Architecture Diagrams
 
-###### Central Mode Architecture
+###### Shared Artifact Server Architecture
 
 ```text
 ┌──────────────────────────────────────┐
@@ -539,13 +537,13 @@ Serve from /artifacts/<namespace>/...
 │        (namespace: kubeflow)         │
 │                                      │
 │  • SubjectAccessReview               │
-│  • Mounts central PVC                │
+│  • Mounts shared PVC                 │
 │  • Serves all namespaces             │
 └──────────────────┬───────────────────┘
                    │ mounts
                    ▼
 ┌──────────────────────────────────────┐
-│  Central PVC (kfp-artifacts-central) │
+│  Shared PVC (kfp-artifacts-central)  │
 │  /artifacts/                         │
 │    ├── ns1/                          │
 │    ├── ns2/                          │
@@ -553,7 +551,7 @@ Serve from /artifacts/<namespace>/...
 └──────────────────────────────────────┘
 ```
 
-###### Namespace-Local Mode Architecture
+###### Dedicated Per-Namespace Architecture
 
 ```text
 ┌──────────────────────────────────────┐
@@ -604,7 +602,7 @@ Direct client access to namespace servers (no proxying)
 
 #### UI Integration
 
-The UI discovers artifact server routing through the KFP API server, which acts as a registry. The API server already watches namespaces and reads their `kfp-launcher` ConfigMaps to determine deployment mode, so it can derive the routing information without additional infrastructure.
+The UI discovers artifact server routing through the KFP API server, which acts as a registry. The API server already watches namespaces and reads their `kfp-launcher` ConfigMaps to determine whether a namespace has opted into a dedicated artifact server, so it can derive the routing information without additional infrastructure.
 
 ##### Filesystem Storage Configuration Endpoint
 
@@ -617,17 +615,7 @@ GET /apis/v2beta1/filesystem-storage/config
 ```json
 {
   "enabled": true,
-  "default_mode": "central",
-  "namespaced_servers": ["team-a", "team-b"]
-}
-```
-
-When global default is `namespaced` (all namespaces have their own server):
-
-```json
-{
-  "enabled": true,
-  "default_mode": "namespaced"
+  "dedicated_namespaces": ["team-a", "team-b"]
 }
 ```
 
@@ -641,24 +629,16 @@ When filesystem storage is not enabled (using S3/GCS/MinIO):
 
 ##### Override Rules and Rationale
 
-**Only `central` → `namespaced` overrides are supported.** When global default is `namespaced`, individual namespaces cannot override to `central`.
+Namespaces can opt in to dedicated per-namespace artifact servers via their `kfp-launcher` ConfigMap. If `artifactServer.dedicated` is omitted (or set to `false`), the namespace uses the shared artifact server.
 
-| Global Default | Can Override To | Central Server Deployed? |
-|----------------|-----------------|--------------------------|
-| `central`      | `namespaced` ✓  | Yes                      |
-| `namespaced`   | (no overrides)  | No                       |
+| Namespace Setting (`kfp-launcher`) | Result                                  | Shared Server Deployed? |
+|------------------------------------|-----------------------------------------|-------------------------|
+| (none) or `dedicated: false`       | Shared artifact server                  | Yes                     |
+| `dedicated: true`                  | Dedicated per-namespace artifact server | Yes                     |
 
 **Rationale:**
 
-1. **Common use case is isolation opt-in**: Organizations typically start with shared storage (`central`) for simplicity, then specific teams with strict requirements (security, compliance) override to `namespaced` for isolation.
-
-2. **Reverse scenario is rare**: If an organization chooses `namespaced` as the default, they likely have strong reasons (compliance, security, multi-tenancy). It's unlikely they'd want some namespaces to break that pattern and use shared central storage.
-
-3. **Avoids infrastructure complexity**: If global is `namespaced`, there's no central server deployed. Allowing overrides to `central` raises the question: "Who deploys the central server when the default is namespaced?" This adds unnecessary complexity.
-
-4. **Simple mental model**:
-   - `central` default → shared storage, teams can opt into isolation
-   - `namespaced` default → everyone isolated, no shared option
+1. **Common use case is isolation opt-in**: Organizations typically start with the shared artifact server (default) for simplicity, then specific teams with strict requirements (security, compliance) opt in to dedicated per-namespace servers for physical isolation.
 
 This keeps the configuration model simple while covering realistic use cases.
 
@@ -674,15 +654,14 @@ func (s *APIServer) GetFilesystemStorageConfig() *FilesystemStorageConfig {
     }
     
     config := &FilesystemStorageConfig{
-        Enabled:           true,
-        DefaultMode:       s.config.ArtifactServer.DeploymentMode,
-        NamespacedServers: []string{},
+        Enabled:             true,
+        DedicatedNamespaces: []string{},
     }
     
-    // Scan ConfigMaps for namespaces with local artifact servers
+    // Scan ConfigMaps for namespaces with dedicated artifact servers
     for namespace, configMap := range s.launcherConfigMaps {
-        if mode := getArtifactDeploymentMode(configMap); mode == "namespaced" {
-            config.NamespacedServers = append(config.NamespacedServers, namespace)
+        if dedicated := getArtifactServerDedicated(configMap); dedicated {
+            config.DedicatedNamespaces = append(config.DedicatedNamespaces, namespace)
         }
     }
     
@@ -695,8 +674,7 @@ func (s *APIServer) GetFilesystemStorageConfig() *FilesystemStorageConfig {
 ```javascript
 interface FilesystemStorageConfig {
   enabled: boolean;
-  default_mode?: 'central' | 'namespaced';
-  namespaced_servers?: string[];
+  dedicated_namespaces?: string[];
 }
 
 // Cache with 1 minute TTL
@@ -725,27 +703,22 @@ async function getArtifactServerEndpoint(namespace: string): Promise<string | nu
     return null;
   }
   
-  // If default is namespaced, all namespaces have their own server
-  if (config.default_mode === 'namespaced') {
+  // Shared is the default - check if namespace has opted in to dedicated server
+  if (config.dedicated_namespaces?.includes(namespace)) {
     return `ml-pipeline-artifact-server.${namespace}.svc:8080`;
   }
   
-  // Default is central - check if namespace has overridden to namespaced
-  if (config.namespaced_servers?.includes(namespace)) {
-    return `ml-pipeline-artifact-server.${namespace}.svc:8080`;
-  }
-  
-  // Use central server
+  // Use shared server
   return 'ml-pipeline-artifact-server.kubeflow.svc:8080';
 }
 ```
 
 ##### Implementation Details
 
-- **Dedicated endpoint**: `/filesystem-storage/config` returns all configuration and routing
-- **Single source of truth**: API server derives config from global settings and ConfigMaps
+- **Dedicated endpoint**: `/filesystem-storage/config` returns configuration and routing
+- **Single source of truth**: API server derives routing from per-namespace ConfigMaps (shared is default; namespaces can opt in to dedicated)
 - **Cacheable**: UI can cache the response with 1 minute TTL
-- **Works for all modes**: Central, namespaced, and mixed
+- **Works for shared + per-namespace**: Shared default with optional dedicated per-namespace overrides
 
 ##### Artifact Server API Specification
 
@@ -918,14 +891,14 @@ See [Kubernetes StorageClass documentation](https://kubernetes.io/docs/concepts/
 
 The default `ReadWriteOnce` (RWO) access mode constrains PVC mounting to a single node at a time. This creates architectural implications for the artifact server deployment that must be considered in the design.
 
-**Impact on Central Mode:**
+**Impact on the default shared artifact server:**
 
 - With `WorkloadKind: "deployment"`, the artifact server pod(s) are constrained to run on a single node (this KEP does not implement scheduling constraints to ensure this)
 - Horizontal scaling is possible but all replicas must run on the same node (limited benefit)
 - With `WorkloadKind: "daemonset"`, RWO is not compatible in multi-node clusters because most pods will be unable to mount the PVC (DaemonSet mode requires RWX or node-local storage)
 - Node failures result in service interruption until PVC reattachment completes
 
-**Impact on Namespace-Local Mode:**
+**Impact on dedicated per-namespace artifact servers:**
 
 - Each namespace's artifact server pod(s) must run on the same node as their PVC (this KEP does not implement pod affinity rules)
 - Horizontal scaling within a namespace is possible but confined to a single node
@@ -998,7 +971,7 @@ func ParseBucketConfig(path string) (*Config, error) {
 
 #### KFP API Server Artifact Management
 
-The KFP API server manages artifact infrastructure lifecycle for both deployment modes:
+The KFP API server manages artifact infrastructure lifecycle for the shared artifact server and for namespaces configured to use dedicated artifact servers:
 
 ##### Namespace Annotation-Based Provisioning
 
@@ -1031,11 +1004,11 @@ func (m *ArtifactServerManager) WatchNamespaces() error {
 func (m *ArtifactServerManager) handleNamespace(ns *v1.Namespace) {
     // Check if namespace should have KFP artifact infrastructure
     if enabled, ok := ns.Annotations["pipelines.kubeflow.org/enabled"]; ok && enabled == "true" {
-        // Determine deployment mode: check namespace's kfp-launcher ConfigMap for override
-        deploymentMode := m.getNamespaceDeploymentMode(ns.Name)
+        // Determine dedicated artifact server opt-in: check namespace's kfp-launcher ConfigMap for per-namespace override
+        dedicated := m.getNamespaceArtifactServerDedicated(ns.Name)
         
-        // Provision artifact infrastructure based on resolved mode
-        if err := m.EnsureArtifactInfrastructure(ns.Name, deploymentMode); err != nil {
+        // Provision artifact infrastructure based on resolved selection
+        if err := m.EnsureArtifactInfrastructure(ns.Name, dedicated); err != nil {
             log.Errorf("Failed to provision artifact infrastructure for namespace %s: %v", 
                 ns.Name, err)
         }
@@ -1048,7 +1021,7 @@ func (m *ArtifactServerManager) handleNamespace(ns *v1.Namespace) {
 - **Simple and predictable**: Explicit opt-in required, no surprises
 - **Clear boundaries**: Either a namespace has artifact infrastructure or it doesn't  
 - **Works everywhere**: Same behavior in Kubeflow and standalone
-- **Per-namespace override**: Can still read deployment mode from `kfp-launcher` ConfigMap
+- **Per-namespace override**: Can still read the dedicated artifact server opt-in from `kfp-launcher` ConfigMap
 
 Namespaces without the annotation cannot use filesystem storage - they must use S3-compatible storage or add the annotation first.
 
@@ -1065,51 +1038,47 @@ type ArtifactServerManager struct {
 }
 
 // EnsureArtifactInfrastructure ensures artifact infrastructure exists for a namespace
-// Handles central, namespace-local, and mixed deployment modes
-func (m *ArtifactServerManager) EnsureArtifactInfrastructure(namespace string, deploymentMode string) error {
-    switch deploymentMode {
-    case "central":
-        // For central mode, ensure the shared artifact server exists in kubeflow namespace
+// Default is shared infrastructure, with optional per-namespace dedicated infrastructure.
+func (m *ArtifactServerManager) EnsureArtifactInfrastructure(namespace string, dedicated bool) error {
+    if !dedicated {
+        // Default: ensure the shared artifact server exists in kubeflow namespace
         return m.ensureCentralArtifactServer()
-    case "namespaced":
-        // For namespace-local mode, create per-namespace resources
-        return m.ensureNamespaceLocalResources(namespace)
-    default:
-        return fmt.Errorf("unknown deployment mode: %s", deploymentMode)
     }
+    // Optional per-namespace: create per-namespace resources
+        return m.ensureNamespaceLocalResources(namespace)
 }
 
-// GetNamespaceDeploymentMode reads the deployment mode from namespace's kfp-launcher ConfigMap
-// Falls back to global default if not specified
-func (m *ArtifactServerManager) GetNamespaceDeploymentMode(ctx context.Context, namespace string) string {
+// GetNamespaceArtifactServerDedicated reads artifactServer.dedicated from namespace's kfp-launcher ConfigMap
+// Falls back to false (shared server) if not specified.
+func (m *ArtifactServerManager) GetNamespaceArtifactServerDedicated(ctx context.Context, namespace string) bool {
     cm, err := m.k8sClient.CoreV1().ConfigMaps(namespace).
         Get(ctx, "kfp-launcher", metav1.GetOptions{})
     if err != nil {
-        return m.config.DeploymentMode // Global default
+        return false // Default
     }
     
     // Parse hierarchical artifactServer config
     if artifactServerConfig, ok := cm.Data["artifactServer"]; ok {
         var config struct {
-            DeploymentMode string `yaml:"deploymentMode"`
+            Dedicated bool `yaml:"dedicated"`
         }
-        if err := yaml.Unmarshal([]byte(artifactServerConfig), &config); err == nil && config.DeploymentMode != "" {
-            return config.DeploymentMode
+        if err := yaml.Unmarshal([]byte(artifactServerConfig), &config); err == nil {
+            return config.Dedicated
         }
     }
-    return m.config.DeploymentMode // Global default
+    return false // Default
 }
 
 func (m *ArtifactServerManager) ensureCentralArtifactServer() error {
     kubeflowNs := "kubeflow" // Or from config
     
-    // Check if central artifact server exists
+    // Check if shared artifact server exists
     _, err := m.k8sClient.AppsV1().Deployments(kubeflowNs).
         Get(context.Background(), "ml-pipeline-artifact-server", metav1.GetOptions{})
     if errors.IsNotFound(err) {
-        // Create central artifact server, service, and PVC
+        // Create shared artifact server, service, and PVC
         if err := m.createCentralInfrastructure(kubeflowNs); err != nil {
-            return fmt.Errorf("failed to create central artifact infrastructure: %w", err)
+            return fmt.Errorf("failed to create shared artifact infrastructure: %w", err)
         }
     }
     
@@ -1170,21 +1139,19 @@ func (m *ArtifactServerManager) ensureNamespaceLocalResources(namespace string) 
 
 // Called during API server startup to initialize artifact management
 func (m *ArtifactServerManager) Start(ctx context.Context) error {
-    // For central mode (default), ensure the central server exists on startup
-    if m.config.DeploymentMode == "central" {
-        if err := m.ensureCentralArtifactServer(); err != nil {
-            return fmt.Errorf("failed to ensure central artifact server: %w", err)
-        }
-        log.Info("Central artifact server verified/created")
+    // Ensure the shared server exists on startup
+    if err := m.ensureCentralArtifactServer(); err != nil {
+        return fmt.Errorf("failed to ensure shared artifact server: %w", err)
     }
+    log.Info("Shared artifact server verified/created")
     
     // Watch namespaces with pipelines.kubeflow.org/enabled annotation
-    // Deployment mode for each namespace is read from its kfp-launcher ConfigMap
+    // Per-namespace selection is read from its kfp-launcher ConfigMap
     if err := m.WatchNamespaces(); err != nil {
         return fmt.Errorf("failed to start namespace watcher: %w", err)
     }
     
-    log.Infof("Artifact manager started with default mode: %s", m.config.DeploymentMode)
+    log.Infof("Artifact manager started with shared-by-default artifact server")
     return nil
 }
 
@@ -1206,14 +1173,14 @@ func (s *PipelineRunServer) CreatePipelineRun(ctx context.Context, req *api.Crea
 
 // Quick check without creation - used during pipeline run creation
 func (m *ArtifactServerManager) VerifyArtifactInfrastructure(ctx context.Context, namespace string) error {
-    deploymentMode := m.GetNamespaceDeploymentMode(ctx, namespace)
+    dedicated := m.GetNamespaceArtifactServerDedicated(ctx, namespace)
     
-    if deploymentMode != "namespaced" {
-        // Central mode: just verify central server exists (done at startup)
+    if !dedicated {
+        // Default: just verify shared server exists (done at startup)
         return nil
     }
     
-    // Namespace-local mode: verify resources exist in the namespace
+    // Optional per-namespace: verify resources exist in the namespace
     _, err := m.k8sClient.AppsV1().Deployments(namespace).
         Get(ctx, "ml-pipeline-artifact-server", metav1.GetOptions{})
     if err != nil {
@@ -1259,7 +1226,7 @@ func (c *workflowCompiler) configureArtifactAPI(template *wfapi.Template) {
 
 #### Driver (`backend/src/v2/driver/`)
 
-The driver validates that required artifact infrastructure exists before pipeline execution. It reads the deployment mode from the namespace's `kfp-launcher` ConfigMap, falling back to the global default:
+The driver validates that required artifact infrastructure exists before pipeline execution. It reads `artifactServer.dedicated` from the namespace's `kfp-launcher` ConfigMap, falling back to the shared default (`false`) when omitted:
 
 ```go
 func (d *Driver) validateArtifactInfrastructure(ctx context.Context, pipelineRoot string) error {
@@ -1269,16 +1236,16 @@ func (d *Driver) validateArtifactInfrastructure(ctx context.Context, pipelineRoo
     
     namespace := d.options.Namespace
     
-    // Get deployment mode from kfp-launcher ConfigMap (or global default)
-    deploymentMode := d.getNamespaceDeploymentMode(ctx, namespace)
+    // Get dedicated artifact server opt-in from kfp-launcher ConfigMap (default is shared, dedicated=false)
+    dedicated := d.getNamespaceArtifactServerDedicated(ctx, namespace)
     
-    if deploymentMode == "namespaced" {
+    if dedicated {
         deploymentName := "ml-pipeline-artifact-server"
         
         // Verify artifact server exists in the namespace
         _, err := d.k8sClient.AppsV1().Deployments(namespace).
             Get(ctx, deploymentName, metav1.GetOptions{})
-        if err != nil {
+    if err != nil {
             if errors.IsNotFound(err) {
                 return fmt.Errorf("artifact server not found in namespace %s. "+
                     "Please ensure the KFP backend has provisioned artifact infrastructure "+
@@ -1290,11 +1257,11 @@ func (d *Driver) validateArtifactInfrastructure(ctx context.Context, pipelineRoo
         // Verify service exists
         _, err = d.k8sClient.CoreV1().Services(namespace).
             Get(ctx, deploymentName, metav1.GetOptions{})
-        if err != nil {
+            if err != nil {
             return fmt.Errorf("artifact service not found or inaccessible: %w", err)
+            }
         }
-    }
-    // For central mode, artifact server is pre-deployed in kubeflow namespace
+    // Default: artifact server is pre-deployed in kubeflow namespace
     
     return nil
 }
@@ -1308,7 +1275,7 @@ The filesystem storage implementation should follow the principle of least privi
 
 **KFP API Server Permissions:**
 
-For both deployment modes, the API server needs:
+For both the shared and dedicated setups, the API server needs:
 
 ```yaml
 # Watch namespaces for annotations
@@ -1316,7 +1283,7 @@ For both deployment modes, the API server needs:
   resources: ["namespaces"]
   verbs: ["get", "list", "watch"]
 
-# For namespace-local mode: manage per-namespace resources
+# Optional per-namespace: manage per-namespace resources
 - apiGroups: [""]
   resources: ["persistentvolumeclaims"]
   verbs: ["get", "create"]
@@ -1327,7 +1294,7 @@ For both deployment modes, the API server needs:
   resources: ["services"]
   verbs: ["get", "create"]
 
-# For central mode: manage resources in kubeflow namespace
+# Default shared: manage resources in kubeflow namespace
 # (same permissions but scoped to kubeflow namespace)
 ```
 
@@ -1371,23 +1338,23 @@ Each namespace gets its own PVC with strict isolation:
 
 #### Multi-User Isolation Strategy
 
-The approach to multi-user isolation depends on the deployment mode:
+The approach to multi-user isolation depends on whether a namespace uses the shared artifact server or a dedicated per-namespace artifact server:
 
-##### Central Mode Isolation
+##### Shared Artifact Server Isolation
 
 - Directory-based separation: Artifacts stored in `/artifacts/<namespace>/...` structure
 - Authorization checks: Every request validated using `SubjectAccessReview`
 - Single PVC: Shared storage with logical separation
 
-##### Namespace-Local Mode Isolation
+##### Dedicated Per-Namespace Isolation
 
 - Physical separation: Each namespace has its own PVC
 - Network accessibility: Artifact servers can be accessed from other namespaces
 - RBAC authorization: All requests validated via `SubjectAccessReview`
 
-#### Namespace-Local Artifact Pods Architecture
+#### Dedicated Per-Namespace Artifact Server Architecture
 
-For namespace-local mode, each namespace runs its own lightweight artifact server:
+With the dedicated per-namespace setup, each namespace runs its own lightweight artifact server:
 
 ##### Service Discovery
 
@@ -1452,11 +1419,11 @@ This design allows the control plane to serve artifacts from any namespace while
 
 ##### Direct Client Access
 
-In namespace-local mode, workflow pods connect directly to their namespace's artifact server:
+With the dedicated per-namespace setup, workflow pods connect directly to their namespace's artifact server:
 
 - Artifact URI: `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/...`
 - Resolved to: `http://ml-pipeline-artifact-server.<namespace>.svc.cluster.local:8080/...`
-- UI handles the resolution based on deployment mode
+- UI handles routing based on the namespace's dedicated artifact server opt-in
 
 ##### Deployment Strategy
 
@@ -1469,7 +1436,7 @@ In namespace-local mode, workflow pods connect directly to their namespace's art
 
 #### Subject Access Review Integration
 
-Both deployment modes use KFP's existing authorization layer with Kubernetes `SubjectAccessReview`. In namespace-local mode, this is especially important as the artifact servers perform authorization checks for cross-namespace requests:
+Both the shared and dedicated setups use KFP's existing authorization layer with Kubernetes `SubjectAccessReview`. With the dedicated per-namespace setup, this is especially important as the artifact servers perform authorization checks for cross-namespace requests:
 
 ```go
 // Artifact access uses the same authorization regardless of storage backend
@@ -1503,7 +1470,7 @@ The authorization flow for filesystem storage:
 
 #### Single-User vs Multi-User Deployments
 
-The namespace-isolated design works for both deployment modes:
+The namespace-isolated design works for both the shared and dedicated setups:
 
 ##### Multi-User Mode
 
@@ -1638,12 +1605,12 @@ def s3_specific_component():
 #### `ArtifactServerManager` (API Server)
 
 - Watches namespaces with `pipelines.kubeflow.org/enabled=true` annotation
-- Creates PVC, Deployment, Service based on resolved deployment mode
-- Reads `artifactServer.deploymentMode` from namespace's `kfp-launcher` ConfigMap, falls back to global default
+- Creates PVC, Deployment, Service based on the namespace's dedicated artifact server opt-in
+- Reads `artifactServer.dedicated` from namespace's `kfp-launcher` ConfigMap, falls back to the shared default (`false`) when omitted
 - No action for namespaces without the annotation
 - Skips namespaces where infrastructure already exists
 - Idempotent: Re-processing same namespace doesn't create duplicate resources
-- Mixed mode: Different namespaces can use different deployment modes
+- Different namespaces can use different settings (shared default or dedicated per-namespace)
 
 #### Configuration Parsing
 
@@ -1651,8 +1618,7 @@ def s3_specific_component():
 - `ObjectStoreConfig.Filesystem.PVC.StorageClassName` sets PVC storage class
 - `ObjectStoreConfig.Filesystem.PVC.Size` sets PVC capacity
 - `ObjectStoreConfig.Filesystem.PVC.AccessMode` defaults to `ReadWriteOnce`
-- `ObjectStoreConfig.ArtifactServer.DeploymentMode` accepts `central` or `namespaced` (global default)
-- Per-namespace `kfp-launcher` ConfigMap `artifactServer.deploymentMode` overrides global default
+- Per-namespace `kfp-launcher` ConfigMap `artifactServer.dedicated: true` opts a namespace into a dedicated per-namespace server (default is shared)
 
 ### Integration Tests
 
@@ -1663,18 +1629,19 @@ def s3_specific_component():
 - Verify artifacts stored at correct filesystem paths
 - Verify artifact server API returns correct content
 
-#### Central Mode
+#### Shared Artifact Server (Default)
 
-- Deploy with `DeploymentMode: "central"`
+- Deploy with filesystem storage enabled (shared artifact server is the default)
 - Run pipelines in multiple namespaces
 - Verify single PVC in `kubeflow` namespace contains all artifacts
-- Verify path structure: `/artifacts/<namespace>/<pipeline>/<run-id>/...`
+- Verify path structure: `/artifacts/<namespace>/<pipeline-name>/<run-id>/...`
 - Verify `SubjectAccessReview` prevents cross-namespace access
 
-#### Namespace-Local Mode
+#### Dedicated Per-Namespace Artifact Server (Optional)
 
-- Deploy with `DeploymentMode: "namespaced"`
+- Deploy with filesystem storage enabled
 - Create namespace with `pipelines.kubeflow.org/enabled=true` annotation
+- Configure the namespace `kfp-launcher` ConfigMap with `artifactServer.dedicated: true`
 - Verify API server creates PVC, Deployment, Service in that namespace
 - Run pipeline, verify artifacts stored in namespace-specific PVC
 - Verify namespace isolation: artifacts in `team-a` not accessible from `team-b`
@@ -1684,15 +1651,15 @@ def s3_specific_component():
 - Deploy the artifact server with `WorkloadKind: "daemonset"` (KFP configures the Service with `internalTrafficPolicy: Local`)
 - Verify the expected Kubernetes resources are deployed (DaemonSet instead of Deployment, and Service has `internalTrafficPolicy: Local`)
 
-#### Mixed Mode
+#### Mixed Configuration (Per-Namespace Overrides)
 
-- Deploy with global `DeploymentMode: "central"`
-- Create `team-a` namespace with annotation (no `artifactServer` override in ConfigMap - uses central)
-- Create `team-b` namespace with annotation and `kfp-launcher` ConfigMap containing `artifactServer.deploymentMode: "namespaced"`
-- Verify `team-a` uses central artifact server
+- Deploy with filesystem storage enabled (shared is default)
+- Create `team-a` namespace with annotation (no `artifactServer` override in ConfigMap - uses shared)
+- Create `team-b` namespace with annotation and `kfp-launcher` ConfigMap containing `artifactServer.dedicated: true`
+- Verify `team-a` uses shared artifact server
 - Verify `team-b` gets its own artifact server deployment and PVC
 - Run pipelines in both namespaces, verify correct routing
-- Update `team-a` ConfigMap to add `artifactServer.deploymentMode: "namespaced"`, verify infrastructure created
+- Update `team-a` ConfigMap to add `artifactServer.dedicated: true`, verify infrastructure created
 
 #### Authorization
 
@@ -1711,8 +1678,8 @@ def s3_specific_component():
 - PVC full: Clear error message when storage exhausted
 - Missing namespace annotation: Pipeline fails with actionable error suggesting to add `pipelines.kubeflow.org/enabled=true`
 - Artifact server unavailable: Pipeline step fails with clear error message
-- Invalid `artifactServer.deploymentMode` value in ConfigMap: Clear validation error
-- Malformed `artifactServer` YAML in ConfigMap: Warning logged, falls back to global default
+- Invalid `artifactServer.dedicated` value in ConfigMap: Clear validation error
+- Malformed `artifactServer` YAML in ConfigMap: Warning logged, falls back to shared by default
   
 ## Configuration Reference
 
@@ -1735,7 +1702,6 @@ Here's a complete example showing all new configuration fields for filesystem st
     },
     
     "ArtifactServer": {
-      "DeploymentMode": "central",
       "WorkloadKind": "deployment"
     }
   }
@@ -1752,25 +1718,22 @@ Here's a complete example showing all new configuration fields for filesystem st
 | `ObjectStoreConfig.Filesystem.PVC.Size`              | Size of PVC to create             | `"10Gi"`          | K8s quantity (e.g., `"100Gi"`, `"1Ti"`) |
 | `ObjectStoreConfig.Filesystem.PVC.AccessMode`        | PVC access mode                   | `"ReadWriteOnce"` | `"ReadWriteOnce"`, `"ReadWriteMany"`    |
 | `ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists` | Auto-create PVC if missing        | `true`            | `true`, `false`                         |
-| `ObjectStoreConfig.ArtifactServer.DeploymentMode`    | Default deployment mode           | `"central"`       | `"central"`, `"namespaced"`             |
 | `ObjectStoreConfig.ArtifactServer.WorkloadKind`      | Artifact server workload kind     | `"deployment"`    | `"deployment"`, `"daemonset"`           |
 
 **Notes:**
 
-- `DeploymentMode: "central"`: Single shared artifact server in kubeflow namespace
-- `DeploymentMode: "namespaced"`: Per-namespace artifact servers for isolation
 - `WorkloadKind: "daemonset"` is intended to be used with RWX or node-local storage. When set, KFP configures the artifact server Service with `internalTrafficPolicy: Local` so requests only route to endpoints on the same node.
 
 #### Per-Namespace Configuration (kfp-launcher ConfigMap)
 
-When global default is `central`, individual namespaces can override to `namespaced` via their `kfp-launcher` ConfigMap. **Note: Overrides are only supported when global default is `central`.** When global is `namespaced`, all namespaces use their own artifact server (no overrides allowed).
+Namespaces can opt in to dedicated per-namespace artifact servers by setting `artifactServer.dedicated: true` in their `kfp-launcher` ConfigMap. If `artifactServer` is omitted (or `dedicated` is omitted / `false`), the namespace uses the shared artifact server by default.
 
-| Key                             | Description                                            | Default                  | Valid Values                                                         |
-|---------------------------------|--------------------------------------------------------|--------------------------|----------------------------------------------------------------------|
-| `defaultPipelineRoot`           | Artifact storage root URI                              | `minio://mlpipeline/...` | `minio://...`, `s3://...`, `gs://...`, `kfp-artifacts://<namespace>` |
-| `artifactServer.deploymentMode` | Override to namespaced (only when global is `central`) | (global default)         | `"namespaced"`                                                       |
+| Key                        | Description                                                               | Default                  | Valid Values                                                         |
+|----------------------------|---------------------------------------------------------------------------|--------------------------|----------------------------------------------------------------------|
+| `defaultPipelineRoot`      | Artifact storage root URI                                                 | `minio://mlpipeline/...` | `minio://...`, `s3://...`, `gs://...`, `kfp-artifacts://<namespace>` |
+| `artifactServer.dedicated` | Use dedicated per-namespace artifact server when using `kfp-artifacts://` | `false`                  | `true`, `false`                                                      |
 
-**Example ConfigMap for namespace-local mode (when global is `central`):**
+**Example ConfigMap for dedicated per-namespace artifact server:**
 
 ```yaml
 apiVersion: v1
@@ -1781,16 +1744,15 @@ metadata:
 data:
   defaultPipelineRoot: "kfp-artifacts://team-a"
   artifactServer: |
-    deploymentMode: namespaced
+    dedicated: true
 ```
 
-**Deployment Mode Scenarios:**
+**Dedicated Artifact Server Opt-In Scenarios:**
 
-| Global Default | Per-Namespace Override | Result                                   |
-|----------------|------------------------|------------------------------------------|
-| `central`      | (none)                 | All namespaces use central server        |
-| `central`      | `namespaced`           | Override namespaces get their own server |
-| `namespaced`   | (not allowed)          | All namespaces have their own server     |
+| Namespace Setting (`kfp-launcher`) | Result                                       |
+|------------------------------------|----------------------------------------------|
+| (none) or `dedicated: false`       | Uses shared artifact server                  |
+| `dedicated: true`                  | Uses dedicated per-namespace artifact server |
 
 ### Environment Variable Overrides
 
@@ -1808,7 +1770,6 @@ OBJECTSTORECONFIG_FILESYSTEM_PVC_ACCESSMODE=ReadWriteMany
 OBJECTSTORECONFIG_FILESYSTEM_PVC_CREATEIFNOTEXISTS=true
 
 # Artifact server configuration
-OBJECTSTORECONFIG_ARTIFACTSERVER_DEPLOYMENTMODE=central
 OBJECTSTORECONFIG_ARTIFACTSERVER_WORKLOADKIND=deployment
 ```
 
@@ -1840,11 +1801,10 @@ To switch an installation from S3-compatible storage to filesystem storage for *
    - Question: Should we add integration tests for mixed S3+PVC or GCS+PVC deployments?
    - Consideration: Added test complexity vs. validation of real-world usage patterns
 
-2. **Profile Controller Integration for Mixed Modes**: How should the Profile Controller support per-namespace deployment mode configuration?
-   - Option A: Add environment variable for default mode, individual Profiles override via annotation → ConfigMap sync
-   - Option B: Profile Controller always creates ConfigMap with explicit `artifactServer` block from a template
-   - Option C: Profile Controller omits `artifactServer` block, letting namespaces inherit global default unless manually overridden
-   - Recommendation: Option C (simplest, aligns with current design where ConfigMap override is optional)
+2. **Profile Controller Integration for Namespaced Opt-In**: How should the Profile Controller support per-namespace dedicated artifact server opt-in configuration?
+   - Option A: Profile Controller always creates ConfigMap with explicit `artifactServer` block from a template
+   - Option B: Profile Controller omits `artifactServer` block, letting namespaces use shared by default unless manually overridden
+   - Recommendation: Option B (simplest, aligns with current design where ConfigMap override is optional)
 
 3. **Access Mode Validation**: Should KFP validate the `PVC_ACCESSMODE` value or just pass it through to Kubernetes?
    - Current design: Pass through any value to Kubernetes (simpler, lets Kubernetes handle validation)
