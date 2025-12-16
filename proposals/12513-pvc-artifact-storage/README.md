@@ -187,7 +187,7 @@ Based on the user story "As a user, I want to provision Kubeflow Pipelines with 
 
 This KEP proposes adding a new artifact storage backend that uses filesystem storage (primarily Kubernetes `PersistentVolumeClaims`) instead of object storage. The implementation will:
 
-1. Create one PVC per namespace for artifact storage
+1. Create PVC-backed storage for artifact serving (a single shared PVC in central mode, or one PVC per namespace in namespaced mode)
 2. Use configurable access mode with sensible defaults (RWO)
 3. Organize artifacts in a filesystem hierarchy within the PVC
 4. Provide transparent access through the existing KFP artifact APIs with new `kfp-artifacts://` URI scheme
