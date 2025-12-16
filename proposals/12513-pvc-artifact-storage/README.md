@@ -166,7 +166,7 @@ Based on the user story "As a user, I want to provision Kubeflow Pipelines with 
 2. **Enable zero-configuration storage** for experimentation use cases - a KFP server can be installed with just a PVC for artifact storage
 3. **Provide namespace-isolated artifact storage** with proper subject access review guards in multi-user mode
 4. **Allow any Kubernetes access mode to be configured** - KFP passes through the configuration to Kubernetes (RWO default)
-5. **Support existing pipelines** that use KFP's standard artifact types (Dataset, Model, etc.) - pipelines work unchanged with the new filesystem backend
+5. **Pipeline compatibility (no pipeline code changes)** - pipelines that use KFP-managed artifact passing (e.g., `Input/Output[Dataset|Model]` and `.path`) work unchanged with the filesystem backend (unless they contain hardcoded `s3://`/`gs://`/`minio://` URIs or call object-store SDKs directly)
 6. **Match existing artifact persistence behavior** - artifacts persist indefinitely until explicitly deleted (no automatic cleanup)
 7. **Enable separate scaling of artifact serving** through an artifacts-only KFP instance with `--artifacts-only` flag
 8. **Ensure UI can properly handle artifact downloads** with the new `kfp-artifacts://` URI scheme
@@ -176,7 +176,7 @@ Based on the user story "As a user, I want to provision Kubeflow Pipelines with 
 1. **Replace object storage** - filesystem storage is an additional option, not a replacement
 2. **Cross-namespace artifact sharing** - Initial implementation focuses on namespace isolation
 3. **Performance optimization for large-scale workloads** - filesystem storage may not match object storage performance for massive datasets or high concurrency scenarios
-4. **Storage migration tools** - Migrating from S3 to PVC/filesystem is not supported
+4. **Migration of existing installations / artifacts** - switching an existing KFP installation from S3-compatible storage to filesystem storage does not migrate previously produced artifacts or rewrite stored artifact URIs (no migration tooling in this KEP)
 5. **Advanced storage features** - No versioning, replication, or geo-distribution initially
 
 ## Proposal
@@ -309,7 +309,7 @@ As an operator, I want to deploy KFP in central mode by default, but configure s
 3. **Scalability**: filesystem storage is not designed for massive scale like object storage
 4. **Cost**: Cost depends on the storage class and provider - could be more or less expensive than object storage
 5. **Portability**: Pipelines using filesystem storage are tied to Kubernetes infrastructure
-6. **No Migration Support**: Migrating existing artifacts from S3/GCS to filesystem storage is not supported. Users must choose their storage backend at deployment time and stick with it
+6. **No Migration Support**: Migrating existing artifacts from S3-compatible storage to filesystem storage is not supported in this KEP (no artifact copy or URI rewrite tooling)
 
 ### Risks and Mitigations
 
@@ -1791,14 +1791,14 @@ OBJECTSTORECONFIG_ARTIFACTSERVER_DEPLOYMENTMODE=central
 
 ### Migration Path
 
-To migrate from object storage to filesystem storage:
+To switch an installation from S3-compatible storage to filesystem storage for **new runs**:
 
 1. Update `defaultPipelineRoot` to use `kfp-artifacts://` scheme
 2. Add `ObjectStoreConfig.Filesystem` configuration
 3. Configure `ObjectStoreConfig.ArtifactServer` based on deployment needs
 4. Restart KFP components to apply changes
 
-**Note**: Migrating existing artifacts from S3/GCS to filesystem storage is not supported. Users must choose their storage backend at deployment time and stick with it.
+**Note**: Existing runs/artifacts are not migrated. Artifact URIs already recorded in MLMD remain `s3://`/`minio://`/`gs://` (etc.) and continue to refer to the original object store location. This KEP does not include tooling to copy historical artifacts or rewrite stored URIs.
 
 ### Backward Compatibility
 
