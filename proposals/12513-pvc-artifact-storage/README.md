@@ -191,7 +191,7 @@ This KEP proposes adding a new artifact storage backend that uses filesystem sto
 2. Use configurable PVC access mode (defaults to RWO if not specified; RWX is recommended for multi-node clusters)
 3. Organize artifacts in a filesystem hierarchy within the PVC that is namespace aware
 4. Provide artifact access via KFP's artifact endpoints (`.../artifacts/...:read` and a new `...:write`) using the `kfp-artifacts://` URI scheme
-5. Maintain compatibility with existing pipeline definitions that don't have hardcoded storage paths
+5. Maintain pipeline compatibility for new runs: existing pipeline definitions that use KFP-managed artifact passing (e.g., `Input/Output[Dataset|Model]`, `OutputPath`, and `.path`, and do not hardcode storage-specific URIs/paths) work unchanged when switching the pipeline root to `kfp-artifacts://` (this does not migrate previously stored artifacts/URIs)
 6. Support separate scaling of artifact serving through artifacts-only instances
 7. Update the UI to seamlessly handle artifact downloads from filesystem storage
 
@@ -220,6 +220,7 @@ As an operator for a Kubeflow distribution, I want to deploy KFP with filesystem
 - Storage automatically provisioned via PVCs
 - Backup/restore follows standard Kubernetes PVC procedures
 
+<!-- TODO: REMOVE THIS STORY -->
 #### Story 3: Operator Configuring Storage Class and Size
 
 As an operator, I want to configure KFP to use a specific StorageClass and PVC size instead of defaults, so that I can match storage performance and capacity to my workload requirements.
@@ -232,6 +233,7 @@ As an operator, I want to configure KFP to use a specific StorageClass and PVC s
 - Clear error messages when storage limits are reached
 - Can choose between RWO and RWX access modes based on needs
 
+<!-- Remove this story -->
 #### Story 4: User Migrating from S3 to Filesystem Storage
 
 As a user with existing pipelines containing components that call `boto3.upload_file()` directly, I want KFP system artifacts to use `kfp-artifacts://` with PVC storage while my custom components continue accessing S3, so that I can migrate incrementally without rewriting all components at once.
