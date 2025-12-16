@@ -920,8 +920,9 @@ The default `ReadWriteOnce` (RWO) access mode constrains PVC mounting to a singl
 
 **Impact on Central Mode:**
 
-- The artifact server pod(s) are constrained to run on a single node (this KEP does not implement scheduling constraints to ensure this)
+- With `WorkloadKind: "deployment"`, the artifact server pod(s) are constrained to run on a single node (this KEP does not implement scheduling constraints to ensure this)
 - Horizontal scaling is possible but all replicas must run on the same node (limited benefit)
+- With `WorkloadKind: "daemonset"`, RWO is not compatible in multi-node clusters because most pods will be unable to mount the PVC (DaemonSet mode requires RWX or node-local storage)
 - Node failures result in service interruption until PVC reattachment completes
 
 **Impact on Namespace-Local Mode:**
