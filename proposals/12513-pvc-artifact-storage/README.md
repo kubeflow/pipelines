@@ -353,7 +353,7 @@ Storage backends in KFP are determined by the `defaultPipelineRoot` URL scheme, 
 For filesystem storage, this KEP introduces a new URL scheme:
 
 ```text
-kfp-artifacts://<namespace>/<pipeline>/<run-id>/<node-id>/<artifact-name>
+kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>
 ```
 
 This follows the same pattern as existing storage schemes (s3://, gs://, minio://), where the namespace maps to the bucket name and the rest maps to the prefix.
@@ -370,11 +370,11 @@ defaultPipelineRoot: "kfp-artifacts://{namespace}"
 
 There are three related but distinct formats:
 
-| Concept                  | Format                                                                       | Example                                                       |
-|--------------------------|------------------------------------------------------------------------------|---------------------------------------------------------------|
-| **URI** (stored in MLMD) | `kfp-artifacts://<namespace>/<pipeline>/<run-id>/<node-id>/<artifact-name>`  | `kfp-artifacts://team-a/my-pipeline/abc123/step1/output`      |
-| **API Endpoint**         | `/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read` | `/apis/v2beta1/runs/abc123/nodes/step1/artifacts/output:read` |
-| **Filesystem Path**      | `<mount_path>/<namespace>/<pipeline>/<run-id>/<node-id>/<artifact-name>`     | `/artifacts/team-a/my-pipeline/abc123/step1/output`           |
+| Concept                  | Format                                                                           | Example                                                       |
+|--------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------|
+| **URI** (stored in MLMD) | `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>` | `kfp-artifacts://team-a/my-pipeline/abc123/step1/output`      |
+| **API Endpoint**         | `/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read`     | `/apis/v2beta1/runs/abc123/nodes/step1/artifacts/output:read` |
+| **Filesystem Path**      | `<mount_path>/<namespace>/<pipeline>/<run-id>/<node-id>/<artifact-name>`         | `/artifacts/team-a/my-pipeline/abc123/step1/output`           |
 
 **Why the API endpoint doesn't include namespace/pipeline:**
 
@@ -815,7 +815,7 @@ Note: This is a new endpoint that doesn't exist in the current KFP artifact serv
 
 ```json
 {
-  "uri": "kfp-artifacts://<namespace>/<pipeline>/<run_id>/<node_id>/<artifact_name>"
+  "uri": "kfp-artifacts://<namespace>/<pipeline-name>/<run_id>/<node_id>/<artifact_name>"
 }
 ```
 
@@ -1438,7 +1438,7 @@ This design allows the control plane to serve artifacts from any namespace while
 
 In namespace-local mode, workflow pods connect directly to their namespace's artifact server:
 
-- Artifact URI: `kfp-artifacts://<namespace>/<pipeline>/<run-id>/...`
+- Artifact URI: `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/...`
 - Resolved to: `http://ml-pipeline-artifact-server.<namespace>.svc.cluster.local:8080/...`
 - UI handles the resolution based on deployment mode
 
