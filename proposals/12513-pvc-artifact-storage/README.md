@@ -194,7 +194,7 @@ This KEP proposes adding a new artifact storage backend that uses filesystem sto
 
 1. Create one PVC per namespace for artifact storage
 2. Use configurable access mode with sensible defaults (RWO)
-3. Organize artifacts in a filesystem hierarchy within the PVC
+3. Organize artifacts in a filesystem hierarchy within the PVC that is namespace aware
 4. Provide transparent access through the existing KFP artifact APIs with new `kfp-artifacts://` URI scheme
 5. Maintain compatibility with existing pipeline definitions that don't have hardcoded storage paths
 6. Support separate scaling of artifact serving through artifacts-only instances
