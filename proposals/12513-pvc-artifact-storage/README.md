@@ -151,7 +151,7 @@ By providing PVC-based storage as an alternative, we:
 **When to use filesystem storage:**
 
 - Deployments where eliminating object storage dependency is preferred
-- Environments where Kubeflow distributions or platform providers prefer not to support additional storage systems
+- Environments where Kubeflow distributions or platform providers do not offer a fully supported object store solution
 - Development and experimentation scenarios
 
 **When NOT to use filesystem storage:**
@@ -189,7 +189,7 @@ This KEP proposes adding a new artifact storage backend that uses filesystem sto
 
 1. Create PVC-backed storage for artifact serving (a single shared PVC in central mode, or one PVC per namespace in namespaced mode)
 2. Use configurable PVC access mode (defaults to RWO if not specified; RWX is recommended for multi-node clusters)
-3. Organize artifacts in a filesystem hierarchy within the PVC
+3. Organize artifacts in a filesystem hierarchy within the PVC that is namespace aware
 4. Provide transparent access through the existing KFP artifact APIs with new `kfp-artifacts://` URI scheme
 5. Maintain compatibility with existing pipeline definitions that don't have hardcoded storage paths
 6. Support separate scaling of artifact serving through artifacts-only instances
