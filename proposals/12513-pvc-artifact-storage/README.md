@@ -133,6 +133,8 @@ In namespace-local mode, each namespace gets its own dedicated artifact server a
 - **Independent scaling**: Teams can scale their artifact server horizontally and size their PVC based on workload requirements
 - **Per-namespace quotas**: Kubernetes `ResourceQuotas` can enforce storage limits per team
 
+Scaling options for the artifact server include running it as a standard Kubernetes Deployment (default, scale by replicas) or as a DaemonSet via `ObjectStoreConfig.ArtifactServer.WorkloadKind: "daemonset"` (one pod per node, intended for RWX or node-local storage; see Artifact Server Architecture).
+
 ### Path to Local Development
 
 This design enables future work on running full KFP locally without a Kubernetes cluster, as the artifact APIs can point directly to local filesystem storage. This improves developer experience and enables offline development workflows.
@@ -399,6 +401,15 @@ This approach provides several benefits:
 #### Backend Responsibilities
 
 KFP will support two distinct deployment modes for artifact serving. The default mode is configured globally via the `ObjectStoreConfig.ArtifactServer.DeploymentMode` field, but individual namespaces can override this setting via their `kfp-launcher` ConfigMap. **In both modes, only the artifact server pods mount the PVC - pipeline workflow pods access artifacts exclusively through the artifact server API.**
+
+##### Artifact Server Workload Type (Deployment vs DaemonSet)
+
+In addition to the deployment mode (central vs namespaced), the artifact server can be deployed using different Kubernetes workload types:
+
+- **Deployment (default)**: Runs a configurable number of replicas. This is the recommended default for most clusters.
+- **DaemonSet (optional)**: Runs one artifact server pod per node. When using `WorkloadKind: "daemonset"`, KFP configures the artifact server Service with `internalTrafficPolicy: Local` so artifact traffic stays node-local (requests only route to endpoints on the same node).
+
+**Important**: DaemonSet + `internalTrafficPolicy: Local` only works when the underlying storage can be accessed by an artifact server pod on every node (for example, RWX storage such as NFS/CephFS, or node-local volumes). With RWO PVCs, most DaemonSet pods will be unable to mount the PVC and local-only routing would fail for clients on other nodes.
 
 ##### Mode 1: Central Artifact Server (Default)
 
@@ -936,6 +947,8 @@ This KEP accepts the RWO limitation as a reasonable trade-off for the initial im
 - Configuration examples should default to RWX for multi-node clusters
 
 **Scope of this KEP**: This initial implementation targets single-node clusters and multi-node clusters with RWX storage. Full RWO support in multi-node clusters is deferred to future enhancements.
+
+**Note on DaemonSet + `internalTrafficPolicy: Local`**: If the artifact server is deployed as a DaemonSet, the PVC must be mountable by an artifact server pod on every node (RWX or node-local volumes). This is not compatible with a single shared RWO PVC in a multi-node cluster.
 
 #### Storage Quota Enforcement
 
@@ -1663,6 +1676,11 @@ def s3_specific_component():
 - Run pipeline, verify artifacts stored in namespace-specific PVC
 - Verify namespace isolation: artifacts in `team-a` not accessible from `team-b`
 
+#### DaemonSet + Local Traffic (RWX or node-local storage only)
+
+- Deploy the artifact server with `WorkloadKind: "daemonset"` (KFP configures the Service with `internalTrafficPolicy: Local`)
+- Verify the expected Kubernetes resources are deployed (DaemonSet instead of Deployment, and Service has `internalTrafficPolicy: Local`)
+
 #### Mixed Mode
 
 - Deploy with global `DeploymentMode: "central"`
@@ -1714,7 +1732,8 @@ Here's a complete example showing all new configuration fields for filesystem st
     },
     
     "ArtifactServer": {
-      "DeploymentMode": "central"
+      "DeploymentMode": "central",
+      "WorkloadKind": "deployment"
     }
   }
 }
@@ -1731,11 +1750,13 @@ Here's a complete example showing all new configuration fields for filesystem st
 | `ObjectStoreConfig.Filesystem.PVC.AccessMode`        | PVC access mode                   | `"ReadWriteOnce"` | `"ReadWriteOnce"`, `"ReadWriteMany"`    |
 | `ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists` | Auto-create PVC if missing        | `true`            | `true`, `false`                         |
 | `ObjectStoreConfig.ArtifactServer.DeploymentMode`    | Default deployment mode           | `"central"`       | `"central"`, `"namespaced"`             |
+| `ObjectStoreConfig.ArtifactServer.WorkloadKind`      | Artifact server workload kind     | `"deployment"`    | `"deployment"`, `"daemonset"`           |
 
 **Notes:**
 
 - `DeploymentMode: "central"`: Single shared artifact server in kubeflow namespace
 - `DeploymentMode: "namespaced"`: Per-namespace artifact servers for isolation
+- `WorkloadKind: "daemonset"` is intended to be used with RWX or node-local storage. When set, KFP configures the artifact server Service with `internalTrafficPolicy: Local` so requests only route to endpoints on the same node.
 
 #### Per-Namespace Configuration (kfp-launcher ConfigMap)
 
@@ -1785,6 +1806,7 @@ OBJECTSTORECONFIG_FILESYSTEM_PVC_CREATEIFNOTEXISTS=true
 
 # Artifact server configuration
 OBJECTSTORECONFIG_ARTIFACTSERVER_DEPLOYMENTMODE=central
+OBJECTSTORECONFIG_ARTIFACTSERVER_WORKLOADKIND=deployment
 ```
 
 ## Migration and Compatibility
