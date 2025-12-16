@@ -116,7 +116,7 @@ While KFP currently ships with S3-compatible storage by default, this still requ
 
 ### Reduced External Dependencies
 
-While KFP's default manifests ship with S3-compatible storage pre-configured (no manual credential setup required), filesystem storage replaces the object storage system with a KFP-native artifact server. This means:
+While KFP's default manifests ship with S3-compatible storage pre-configured (with credentials set up in the manifests, so no manual credential setup is required during deployment), filesystem storage replaces the object storage system with a KFP-native artifact server. This means:
 
 - No external object storage project to track for updates and security patches
 - Artifact issues debugged within KFP ecosystem (no separate S3 API layer)
