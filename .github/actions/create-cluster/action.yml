@@ -14,8 +14,7 @@ runs:
   using: "composite"
   steps:
     - name: Free up disk space on runner
-      shell: bash
-      run: ./.github/resources/scripts/free-disk-space.sh
+      uses: ./.github/actions/github-disk-cleanup
 
     - name: Create k8s Kind Cluster
       uses: helm/kind-action@v1.12.0
