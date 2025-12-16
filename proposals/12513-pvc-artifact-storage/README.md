@@ -1765,10 +1765,10 @@ Here's a complete example showing all new configuration fields for filesystem st
 
 When global default is `central`, individual namespaces can override to `namespaced` via their `kfp-launcher` ConfigMap. **Note: Overrides are only supported when global default is `central`.** When global is `namespaced`, all namespaces use their own artifact server (no overrides allowed).
 
-| Key                             | Description                                            | Default                  | Valid Values                  |
-|---------------------------------|--------------------------------------------------------|--------------------------|-------------------------------|
-| `defaultPipelineRoot`           | Artifact storage root URI                              | `minio://mlpipeline/...` | `kfp-artifacts://<namespace>` |
-| `artifactServer.deploymentMode` | Override to namespaced (only when global is `central`) | (global default)         | `"namespaced"`                |
+| Key                             | Description                                            | Default                  | Valid Values                                                         |
+|---------------------------------|--------------------------------------------------------|--------------------------|----------------------------------------------------------------------|
+| `defaultPipelineRoot`           | Artifact storage root URI                              | `minio://mlpipeline/...` | `minio://...`, `s3://...`, `gs://...`, `kfp-artifacts://<namespace>` |
+| `artifactServer.deploymentMode` | Override to namespaced (only when global is `central`) | (global default)         | `"namespaced"`                                                       |
 
 **Example ConfigMap for namespace-local mode (when global is `central`):**
 
