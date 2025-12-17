@@ -84,9 +84,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
-
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
@@ -192,9 +189,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
-
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
@@ -249,9 +243,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster

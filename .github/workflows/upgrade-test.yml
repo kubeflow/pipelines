@@ -42,9 +42,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
