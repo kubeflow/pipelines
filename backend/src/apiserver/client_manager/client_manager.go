@@ -954,6 +954,8 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	}
 
 	if err := ensureBucketExists(ctx, blobConfig); err != nil {
+		// Best-effort: some S3-compatible stores (e.g., MinIO/SeaweedFS) can return non-AWS-ish errors for bucket
+		// creation/existence checks even when the bucket is usable; don't fail apiserver init on those false negatives.
 		glog.Warningf("Failed to ensure bucket exists: %v", err)
 	}
 
