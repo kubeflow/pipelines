@@ -340,7 +340,7 @@ def main() -> None:
     except subprocess.CalledProcessError as e:
         _warn(f"Failed to read Argo artifact repository config: {e}; skipping.")
         return
-    if "archiveLogs: true" not in artifact_repo:
+    if not re.search(r'^\s*archiveLogs\s*:\s*true\s*(?:#.*)?$', artifact_repo, re.MULTILINE):
         _warn("Argo Workflows log archiving is not enabled (archiveLogs: true not found); skipping.")
         return
 
