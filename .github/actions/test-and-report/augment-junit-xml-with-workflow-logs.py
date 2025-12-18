@@ -326,8 +326,11 @@ def main() -> None:
     if not mc:
         return
 
-    if not (os.path.isfile(mapping_file) and os.path.isfile(junit_xml)):
-        _warn(f"mapping file or junit.xml not found (mapping={mapping_file}, junit={junit_xml}); skipping.")
+    if not os.path.isfile(mapping_file):
+        _warn(f"mapping file not found at {mapping_file}; skipping workflow log augmentation.")
+        return
+    if not os.path.isfile(junit_xml):
+        _warn(f"junit.xml not found at {junit_xml}; skipping workflow log augmentation.")
         return
 
     test_to_workflows_map = map_test_to_workflows(mapping_file)
