@@ -42,6 +42,9 @@ def _get_artifact_repo(namespace: str) -> str:
             "kubectl",
             "get",
             "configmap",
+            # KFP manifests pin this name. If it changes, update both:
+            # - manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml
+            # - this script (CI report augmentation)
             "workflow-controller-configmap",
             "-n",
             namespace,
@@ -58,6 +61,10 @@ def _get_minio_creds(namespace: str) -> tuple[str, str]:
             "kubectl",
             "get",
             "secret",
+            # KFP manifests pin this Secret name. If it changes, update both:
+            # - manifests/kustomize/third-party/minio/base/mlpipeline-minio-artifact-secret.yaml
+            # - manifests/kustomize/third-party/seaweedfs/base/seaweedfs/mlpipeline-minio-artifact-secret.yaml
+            # - this script (CI report augmentation)
             "mlpipeline-minio-artifact",
             "-n",
             namespace,
@@ -70,6 +77,7 @@ def _get_minio_creds(namespace: str) -> tuple[str, str]:
             "kubectl",
             "get",
             "secret",
+            # Keep in sync with manifests (see comment above).
             "mlpipeline-minio-artifact",
             "-n",
             namespace,
