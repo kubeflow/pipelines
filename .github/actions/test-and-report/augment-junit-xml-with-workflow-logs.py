@@ -151,6 +151,22 @@ def _parse_test_to_workflows_line(line: str) -> Optional[tuple[str, list[str]]]:
 
 
 def map_test_to_workflows(mapping_file: str) -> dict[str, list[str]]:
+    """Parse a test-to-workflow mapping file into a dictionary.
+
+    The mapping file is expected to contain one mapping per non-empty line, in the form:
+
+        <test_name>|<workflow_name_1>,<workflow_name_2>,...
+
+    Lines that are empty or cannot be parsed by ``_parse_test_to_workflows_line`` are ignored.
+
+    Args:
+        mapping_file: Path to the text file containing test-to-workflow mappings.
+
+    Returns:
+        A dictionary mapping each test name to a list of associated workflow names.
+        If a test name appears on multiple lines, all workflows from those lines are
+        accumulated in the list for that test.
+    """
     test_to_workflows_map: dict[str, list[str]] = {}
     with open(mapping_file, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
