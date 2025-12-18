@@ -1072,7 +1072,7 @@ func validateRequiredConfig(bucketName, host, accessKey, secretKey string) error
 	if host == "" {
 		return fmt.Errorf("ObjectStoreConfig.Host is required")
 	}
-	if (accessKey != "") != (secretKey != "") {
+	if (accessKey == "" && secretKey != "") || (accessKey != "" && secretKey == "") {
 		return fmt.Errorf("ObjectStoreConfig.AccessKey and ObjectStoreConfig.SecretAccessKey must both be set or both be empty")
 	}
 	return nil
