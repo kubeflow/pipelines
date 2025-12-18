@@ -1,5 +1,5 @@
-# Note: This workflow only updates the cache. You should create a separate workflow for your actual Trivy scans.
-# In your scan workflow, set TRIVY_SKIP_DB_UPDATE=true and TRIVY_SKIP_JAVA_DB_UPDATE=true.
+# Note: This workflow only updates the cache.
+# The workflow that actually runs the scan is trivy.yml.
 name: Update Trivy Cache
 
 on:
