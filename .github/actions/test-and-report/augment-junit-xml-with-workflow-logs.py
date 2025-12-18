@@ -8,8 +8,12 @@ import subprocess
 import sys
 import tempfile
 from xml.etree import ElementTree
-from typing import Dict, List, NoReturn, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
+
+REPORTS_DIRNAME = "reports"
+JUNIT_XML_FILENAME = "junit.xml"
+MAPPING_FILENAME = "test-workflow-mapping.txt"
 
 MINIO_BUCKET = "mlpipeline"
 LOGS_PREFIX_TEMPLATE = "private-artifacts/{namespace}"
@@ -18,9 +22,8 @@ MAX_BYTES_PER_WORKFLOW = 200_000
 MAX_BYTES_PER_STEP = 80_000
 
 
-def _die(message: str, exit_code: int) -> NoReturn:
-    print(f"ERROR: {message}", file=sys.stderr)
-    raise SystemExit(exit_code)
+def _warn(message: str) -> None:
+    print(f"WARNING: {message}", file=sys.stderr)
 
 
 def _run(cmd: list[str], *, check: bool = True, capture: bool = True, text: bool = True) -> subprocess.CompletedProcess:
@@ -180,12 +183,15 @@ def _append_system_out(tc: ElementTree.Element, text_to_append: str) -> None:
 
 def _require_mc_path(mc_path: str) -> str:
     if not mc_path:
-        _die("MinIO client path is required.", 2)
+        _warn("MinIO client path is required; skipping workflow log augmentation.")
+        return ""
     mc = str(os.fspath(mc_path))
     if not os.path.isfile(mc):
-        _die(f"MinIO client not found at: {mc}", 2)
+        _warn(f"MinIO client not found at: {mc}; skipping workflow log augmentation.")
+        return ""
     if not os.access(mc, os.X_OK):
-        _die(f"MinIO client is not executable: {mc}", 2)
+        _warn(f"MinIO client is not executable: {mc}; skipping workflow log augmentation.")
+        return ""
     return mc
 
 
@@ -264,7 +270,7 @@ def _augment_junit_xml(
         modified += 1
 
     if modified == 0:
-        _die("No failing testcases matched mapping entries; junit.xml was not augmented.", 1)
+        return 0
 
     with tempfile.NamedTemporaryFile("wb", delete=False, dir=os.path.dirname(junit_xml_path) or None) as tmp:
         tmp_path = tmp.name
@@ -278,36 +284,42 @@ def main() -> int:
     parser.add_argument("--test-directory", required=True)
     parser.add_argument("--namespace", required=True)
     parser.add_argument("--mc-path", required=True)
-    parser.add_argument("--reports-dir", required=True)
-    parser.add_argument("--junit-xml-filename", required=True)
-    parser.add_argument("--mapping-filename", required=True)
     args = parser.parse_args()
 
-    test_directory = str(args.test_directory)
-    reports_dir = str(args.reports_dir)
-    junit_xml_filename = str(args.junit_xml_filename)
-    mapping_filename = str(args.mapping_filename)
-
-    junit_xml = os.path.join(test_directory, reports_dir, junit_xml_filename)
-    mapping_file = os.path.join(test_directory, reports_dir, mapping_filename)
+    junit_xml = os.path.join(args.test_directory, REPORTS_DIRNAME, JUNIT_XML_FILENAME)
+    mapping_file = os.path.join(args.test_directory, REPORTS_DIRNAME, MAPPING_FILENAME)
     mc = _require_mc_path(args.mc_path)
+    if not mc:
+        return 0
 
     if not (os.path.isfile(mapping_file) and os.path.isfile(junit_xml)):
-        _die(
-            f"mapping file or junit.xml not found (mapping={mapping_file}, junit={junit_xml})",
-            2,
-        )
+        _warn(f"mapping file or junit.xml not found (mapping={mapping_file}, junit={junit_xml}); skipping.")
+        return 0
 
     test_to_workflows_map = map_test_to_workflows(mapping_file)
     if not test_to_workflows_map:
-        _die("No mappings found; nothing to do.", 1)
+        _warn("No test->workflows entries found; skipping workflow log augmentation.")
+        return 0
 
-    artifact_repo = _get_artifact_repo(args.namespace)
+    try:
+        artifact_repo = _get_artifact_repo(args.namespace)
+    except subprocess.CalledProcessError as e:
+        _warn(f"Failed to read Argo artifact repository config: {e}; skipping.")
+        return 0
     if "archiveLogs: true" not in artifact_repo:
-        _die("Argo Workflows log archiving is not enabled (archiveLogs: true not found).", 1)
+        _warn("Argo Workflows log archiving is not enabled (archiveLogs: true not found); skipping.")
+        return 0
 
-    access_key, secret_key = _get_minio_creds(args.namespace)
-    _mc_alias_set(mc, "http://localhost:9000", access_key, secret_key)
+    try:
+        access_key, secret_key = _get_minio_creds(args.namespace)
+    except subprocess.CalledProcessError as e:
+        _warn(f"Failed to read artifact credentials: {e}; skipping.")
+        return 0
+    try:
+        _mc_alias_set(mc, "http://localhost:9000", access_key, secret_key)
+    except subprocess.CalledProcessError as e:
+        _warn(f"Failed to configure mc alias: {e}; skipping.")
+        return 0
     modified = _augment_junit_xml(
         junit_xml_path=junit_xml,
             test_to_workflows_map=test_to_workflows_map,
@@ -318,7 +330,8 @@ def main() -> int:
         max_bytes_per_step=MAX_BYTES_PER_STEP,
     )
 
-    print(f"Updated junit.xml: appended workflow logs to {modified} failing testcase(s).")
+    if modified:
+        print(f"Updated junit.xml: appended workflow logs to {modified} failing testcase(s).")
     return 0
 
 

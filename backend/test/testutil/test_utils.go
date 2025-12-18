@@ -130,20 +130,23 @@ func WriteTestWorkflowMapping(testName string, runIDs []string, namespace string
 
 	mappingDir := filepath.Dir(mappingFilePath)
 	if err := os.MkdirAll(mappingDir, 0755); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to create mapping directory %q: %v", mappingDir, err))
+		logger.Log("Failed to create mapping directory %q: %v", mappingDir, err)
+		return
 	}
 	file, err := os.OpenFile(mappingFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to open mapping file %q: %v", mappingFilePath, err))
+		logger.Log("Failed to open mapping file %q: %v", mappingFilePath, err)
+		return
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
-			ginkgo.Fail(fmt.Sprintf("Failed to close mapping file %q: %v", mappingFilePath, closeErr))
+			logger.Log("Failed to close mapping file %q: %v", mappingFilePath, closeErr)
 		}
 	}()
 	entry := fmt.Sprintf("%s|%s\n", testName, strings.Join(workflowNames, ","))
 	if _, err := file.WriteString(entry); err != nil {
-		ginkgo.Fail(fmt.Sprintf("Failed to write to mapping file %q: %v", mappingFilePath, err))
+		logger.Log("Failed to write to mapping file %q: %v", mappingFilePath, err)
+		return
 	}
 	logger.Log("Wrote test-workflow mapping: %s -> %v", testName, workflowNames)
 }

@@ -103,18 +103,15 @@ runs:
         df -h
         NAMESPACE="${{ inputs.default_namespace }}"
         ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+      continue-on-error: true
 
     - name: Install Junit2Html plugin
       id: install-junit2html
       if: (!cancelled())
       shell: bash
       run: |
-        JUNIT_XML="${{ inputs.test_directory }}/reports/junit.xml"
-        if [[ ! -f "$JUNIT_XML" ]]; then
-          echo "ERROR: junit.xml not found at $JUNIT_XML"
-          exit 1
-        fi
         pip install junit2html
+      continue-on-error: true
 
     - name: Install MinIO Client for log collection
       id: install-mc
@@ -132,6 +129,7 @@ runs:
           mv mc "$MC_PATH"
         fi
         echo "MC_PATH=$MC_PATH" >> "$GITHUB_ENV"
+      continue-on-error: true
 
     - name: Port-forward MinIO service for workflow log access
       id: port-forward-minio
@@ -147,19 +145,18 @@ runs:
           cat /tmp/minio-port-forward.log || true
           exit 1
         fi
+      continue-on-error: true
 
     - name: Augment junit.xml with workflow logs
       id: augment-junit-xml
-      if: ${{ steps.run-tests.outcome != 'success' }}
+      if: ${{ steps.run-tests.outcome != 'success' && steps.install-mc.outcome == 'success' && steps.port-forward-minio.outcome == 'success' }}
       shell: bash
       run: |
         python3 "$GITHUB_ACTION_PATH/augment-junit-xml-with-workflow-logs.py" \
           --test-directory "${{ inputs.test_directory }}" \
           --namespace "${{ inputs.default_namespace }}" \
-          --mc-path "$HOME/.local/bin/minio-mc" \
-          --reports-dir "reports" \
-          --junit-xml-filename "junit.xml" \
-          --mapping-filename "test-workflow-mapping.txt"
+          --mc-path "$HOME/.local/bin/minio-mc"
+      continue-on-error: true
 
     - name: Generate HTML report
       id: generate-html-report
@@ -167,6 +164,7 @@ runs:
       shell: bash
       run: |
         junit2html ${{ inputs.test_directory }}/reports/junit.xml ${{ inputs.test_directory }}/reports/test-report.html
+      continue-on-error: true
 
     - name: Configure report name
       id: name_gen
@@ -187,6 +185,7 @@ runs:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
         retention-days: 7
+      continue-on-error: true
 
     - name: Publish Test Summary With HTML Report
       id: publish
@@ -195,6 +194,17 @@ runs:
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
         custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
+      continue-on-error: true
+
+    - name: Mark Workflow failure if test reporting failed
+      if: always() && !cancelled() && (
+        steps.install-junit2html.outcome == 'failure' ||
+        steps.generate-html-report.outcome == 'failure' ||
+        steps.upload.outcome != 'success' ||
+        steps.publish.outcome == 'failure'
+        )
+      shell: bash
+      run: exit 1
 
     - name: Mark Workflow failure if test step failed
       if: steps.run-tests.outcome != 'success' && !cancelled()
