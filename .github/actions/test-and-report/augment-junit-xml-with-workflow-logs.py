@@ -356,7 +356,7 @@ def main() -> None:
         return
     modified = _augment_junit_xml(
         junit_xml_path=junit_xml,
-            test_to_workflows_map=test_to_workflows_map,
+        test_to_workflows_map=test_to_workflows_map,
         mc=mc,
         bucket=MINIO_BUCKET,
         logs_prefix=LOGS_PREFIX_TEMPLATE.format(namespace=namespace),
