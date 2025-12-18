@@ -105,7 +105,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 					GinkgoT().Name(),
 					testContext.PipelineRun.CreatedRunIds,
 					testutil.GetNamespace(),
-					filepath.Join(currentDir, testReportDirectory, "test-workflow-mapping.txt"),
+					filepath.Join(currentDir, testReportDirectory, testutil.GetTestWorkflowMappingFilename()),
 				)
 			}
 		}

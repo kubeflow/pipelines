@@ -199,7 +199,7 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 				GinkgoT().Name(),
 				testContext.PipelineRun.CreatedRunIds,
 				testutil.GetNamespace(),
-				filepath.Join(currentDir, testReportDirectory, "test-workflow-mapping.txt"),
+				filepath.Join(currentDir, testReportDirectory, testutil.GetTestWorkflowMappingFilename()),
 			)
 		}
 	} else {

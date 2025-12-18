@@ -72,6 +72,7 @@ runs:
       working-directory: ${{ inputs.test_directory }}
       env:
         PIPELINE_STORE: ${{ inputs.pipeline_store }}
+        KFP_TEST_WORKFLOW_MAPPING_FILENAME: test-workflow-mapping.txt
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z $USE_PROXY ]; then
@@ -151,6 +152,8 @@ runs:
       id: augment-junit-xml
       if: ${{ steps.run-tests.outcome != 'success' && steps.install-mc.outcome == 'success' && steps.port-forward-minio.outcome == 'success' }}
       shell: bash
+      env:
+        KFP_TEST_WORKFLOW_MAPPING_FILENAME: test-workflow-mapping.txt
       run: |
         python3 "$GITHUB_ACTION_PATH/augment-junit-xml-with-workflow-logs.py" \
           --test-directory "${{ inputs.test_directory }}" \

@@ -107,6 +107,18 @@ func GetWorkflowNameByRunID(namespace string, runID string) string {
 	return workflowName
 }
 
+const (
+	testWorkflowMappingFilenameEnv     = "KFP_TEST_WORKFLOW_MAPPING_FILENAME"
+	defaultTestWorkflowMappingFilename = "test-workflow-mapping.txt"
+)
+
+func GetTestWorkflowMappingFilename() string {
+	if v := os.Getenv(testWorkflowMappingFilenameEnv); v != "" {
+		return v
+	}
+	return defaultTestWorkflowMappingFilename
+}
+
 // WriteTestWorkflowMapping appends a test-to-workflow mapping entry for failed tests.
 // The mapping file is used to correlate failed tests with their associated workflow logs.
 // Format: TEST_NAME|WORKFLOW_NAME1,WORKFLOW_NAME2,...
