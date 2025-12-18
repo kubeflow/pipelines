@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 from xml.etree import ElementTree
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 
 REPORTS_DIRNAME = "reports"
@@ -134,7 +134,7 @@ def _mc_cat(mc: str, path: str) -> str:
     return cp.stdout or ""
 
 
-def _parse_test_to_workflows_line(line: str) -> Optional[Tuple[str, List[str]]]:
+def _parse_test_to_workflows_line(line: str) -> Optional[tuple[str, list[str]]]:
     stripped = line.strip()
     if not stripped:
         return None
@@ -151,7 +151,7 @@ def _parse_test_to_workflows_line(line: str) -> Optional[Tuple[str, List[str]]]:
 
 
 def map_test_to_workflows(mapping_file: str) -> dict[str, list[str]]:
-    test_to_workflows_map: Dict[str, List[str]] = {}
+    test_to_workflows_map: dict[str, list[str]] = {}
     with open(mapping_file, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             parsed = _parse_test_to_workflows_line(line)
@@ -166,7 +166,7 @@ def _is_failed_testcase(tc: ElementTree.Element) -> bool:
     return tc.find("failure") is not None or tc.find("error") is not None
 
 
-def _match_test_name(testcase_name: str, test_to_workflows_map: Dict[str, List[str]]) -> Optional[str]:
+def _match_test_name(testcase_name: str, test_to_workflows_map: dict[str, list[str]]) -> Optional[str]:
     if testcase_name in test_to_workflows_map:
         return testcase_name
     norm = re.sub(r"\s+", " ", testcase_name).strip()
@@ -209,11 +209,11 @@ def _build_workflow_logs_text(
     mc: str,
     bucket: str,
     logs_prefix: str,
-    workflows: List[str],
+    workflows: list[str],
     max_bytes_per_workflow: int,
     max_bytes_per_step: int,
 ) -> str:
-    out_lines: List[str] = ["===== Argo Workflows archived logs (tailed) ====="]
+    out_lines: list[str] = ["===== Argo Workflows archived logs (tailed) ====="]
     for wf in workflows:
         out_lines.append(f"--- Workflow: {wf} ---")
         wf_prefix = f"{logs_prefix}/{wf}/"
@@ -242,7 +242,7 @@ def _build_workflow_logs_text(
 def _augment_junit_xml(
     *,
     junit_xml_path: str,
-    test_to_workflows_map: Dict[str, List[str]],
+    test_to_workflows_map: dict[str, list[str]],
     mc: str,
     bucket: str,
     logs_prefix: str,
