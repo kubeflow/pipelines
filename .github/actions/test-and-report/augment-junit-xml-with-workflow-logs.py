@@ -17,6 +17,7 @@ MAPPING_FILENAME = "test-workflow-mapping.txt"
 
 MINIO_BUCKET = "mlpipeline"
 LOGS_PREFIX_TEMPLATE = "private-artifacts/{namespace}"
+MC_ALIAS = "kfp-minio"
 
 MAX_BYTES_PER_WORKFLOW = 200_000
 MAX_BYTES_PER_STEP = 80_000
@@ -91,11 +92,11 @@ def _get_minio_creds(namespace: str) -> tuple[str, str]:
 
 
 def _mc_alias_set(mc: str, endpoint: str, access_key: str, secret_key: str) -> None:
-    _run([mc, "alias", "set", "kfp-minio", endpoint, access_key, secret_key, "--api", "S3v4"])
+    _run([mc, "alias", "set", MC_ALIAS, endpoint, access_key, secret_key, "--api", "S3v4"])
 
 
 def _mc_find_logs(mc: str, bucket: str, prefix: str) -> list[str]:
-    cp = _run([mc, "find", f"kfp-minio/{bucket}/{prefix}", "--name", "*.log"], check=False)
+    cp = _run([mc, "find", f"{MC_ALIAS}/{bucket}/{prefix}", "--name", "*.log"], check=False)
     paths = []
     if cp.returncode == 0 and cp.stdout:
         for line in cp.stdout.splitlines():
@@ -104,7 +105,7 @@ def _mc_find_logs(mc: str, bucket: str, prefix: str) -> list[str]:
                 paths.append(line)
     if paths:
         return paths
-    cp = _run([mc, "ls", "--recursive", f"kfp-minio/{bucket}/{prefix}"], check=False)
+    cp = _run([mc, "ls", "--recursive", f"{MC_ALIAS}/{bucket}/{prefix}"], check=False)
     if cp.returncode != 0 or not cp.stdout:
         return []
     for line in cp.stdout.splitlines():
