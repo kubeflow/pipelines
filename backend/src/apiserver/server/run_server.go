@@ -460,7 +460,6 @@ func (s *RunServerV1) ReportRunMetricsV1(ctx context.Context, request *apiv1beta
 	return &apiv1beta1.ReportRunMetricsResponse{Results: apiResults}, nil
 }
 
-
 // Terminates a run.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) terminateRun(ctx context.Context, runId string) error {
@@ -604,7 +603,6 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRun
 	}
 	return &emptypb.Empty{}, nil
 }
-
 
 // Terminates a run.
 // Supports v2beta1 behavior.
