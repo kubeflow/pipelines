@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
@@ -38,6 +39,8 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 )
+
+var testWorkflowMappingMu sync.Mutex
 
 // ParsePointersToString - convert a string pointer to string value
 func ParsePointersToString(s *string) string {
@@ -145,6 +148,10 @@ func WriteTestWorkflowMapping(testName string, runIDs []string, namespace string
 		logger.Log("Failed to create mapping directory %q: %v", mappingDir, err)
 		return
 	}
+
+	testWorkflowMappingMu.Lock()
+	defer testWorkflowMappingMu.Unlock()
+
 	file, err := os.OpenFile(mappingFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.Log("Failed to open mapping file %q: %v", mappingFilePath, err)
@@ -155,6 +162,14 @@ func WriteTestWorkflowMapping(testName string, runIDs []string, namespace string
 			logger.Log("Failed to close mapping file %q: %v", mappingFilePath, closeErr)
 		}
 	}()
+
+	unlock, lockErr := lockFile(file)
+	if lockErr != nil {
+		logger.Log("Failed to lock mapping file %q: %v", mappingFilePath, lockErr)
+	} else {
+		defer unlock()
+	}
+
 	entry := fmt.Sprintf("%s|%s\n", testName, strings.Join(workflowNames, ","))
 	if _, err := file.WriteString(entry); err != nil {
 		logger.Log("Failed to write to mapping file %q: %v", mappingFilePath, err)
