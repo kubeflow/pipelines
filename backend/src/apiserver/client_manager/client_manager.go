@@ -954,7 +954,7 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	}
 
 	if err := ensureBucketExists(ctx, blobConfig); err != nil {
-		glog.Warningf("Failed to ensure bucket exists (may already exist): %v", err)
+		glog.Warningf("Failed to ensure bucket exists: %v", err)
 	}
 
 	bucket, err := openBucketWithRetry(ctx, blobConfig, initConnectionTimeout)
