@@ -95,9 +95,9 @@ func GetWorkflowNameByRunID(namespace string, runID string) string {
 	cmd := exec.Command("kubectl", "get", "workflows", "-n", namespace,
 		"-l", fmt.Sprintf("pipeline/runid=%s", runID),
 		"-o", "jsonpath={.items[0].metadata.name}")
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Log("Failed to get workflow for run ID %s: %v", runID, err)
+		logger.Log("Failed to get workflow for run ID %s: %v, kubectl output: %s", runID, err, strings.TrimSpace(string(output)))
 		return ""
 	}
 	workflowName := strings.TrimSpace(string(output))
