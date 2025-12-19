@@ -1,17 +1,13 @@
 approvers:
   - accorvin
-  - DharmitD
   - dsp-developers
   - gmfrasca
   - HumairAK
-  - rimolive
   - mprahl
 reviewers:
-  - DharmitD
   - gmfrasca
   - hbelmiro
   - HumairAK
-  - rimolive
   - VaniHaripriya
   - mprahl
 emeritus_approvers:
