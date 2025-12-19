@@ -1479,7 +1479,6 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 	)
 }
 
-
 func TestRetryRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
