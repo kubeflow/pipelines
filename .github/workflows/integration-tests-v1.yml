@@ -49,6 +49,9 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
 
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
       - name: Deploy
         id: deploy
         uses: ./.github/actions/deploy
