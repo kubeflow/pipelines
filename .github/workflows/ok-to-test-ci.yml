@@ -1,0 +1,54 @@
+name: Execute CI on PRs with ok-to-test label
+
+# This workflow executes CI for fork PRs that have the 'ok-to-test' label.
+# Once labeled, all subsequent commits will have their CI runs auto-approved.
+
+on:
+  pull_request_target:
+    types: [labeled, synchronize]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    # Only run for fork PRs with ok-to-test label
+    if: >
+      github.event.pull_request.head.repo.full_name != github.repository &&
+      contains(join(github.event.pull_request.labels.*.name, ','), 'ok-to-test')
+    steps:
+      - name: Approve pending workflow runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "Looking for workflow runs requiring approval for SHA: $PR_SHA"
+
+          # Wait a moment for workflow runs to be created
+          sleep 5
+
+          # Get all workflow runs for this commit that need approval
+          runs=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?head_sha=$PR_SHA" | \
+            jq -r '.workflow_runs[] | select(.status == "action_required") | .id')
+
+          if [[ -z "$runs" ]]; then
+            echo "No workflow runs found requiring approval."
+            exit 0
+          fi
+
+          echo "Found workflow runs requiring approval: $runs"
+
+          # Approve each workflow run
+          for run_id in $runs; do
+            echo "Approving workflow run: $run_id"
+            curl -X POST -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id/approve"
+          done
+
+          echo "All pending runs approved."
