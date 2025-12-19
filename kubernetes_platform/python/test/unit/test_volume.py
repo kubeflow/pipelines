@@ -410,6 +410,35 @@ class TestMountPVC:
                 }
             }
         }
+        
+    def test_mount_pvc_with_subpath(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.mount_pvc(
+                task,
+                pvc_name='pvc-name',
+                mount_path='path',
+                sub_path='subfolder',
+            )
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'pvcMount': [{
+                                    'constant': 'pvc-name',
+                                    'pvcNameParameter': {'runtimeValue': {'constant': 'pvc-name'}},
+                                    'mountPath': 'path',
+                                    'subPath': 'subfolder'
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 class TestGenericEphemeralVolume:
 

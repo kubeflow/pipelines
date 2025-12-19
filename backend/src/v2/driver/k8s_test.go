@@ -27,6 +27,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 		args        args
 		wantPath    string
 		wantName    string
+		wantSubPath string
 		inputParams map[string]*structpb.Value
 	}{
 		{
@@ -43,6 +44,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			},
 			"/mnt/path",
 			"pvc-name",
+			"",
 			nil,
 		},
 		{
@@ -60,6 +62,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			},
 			"/mnt/path",
 			"pvc-name",
+			"",
 			nil,
 		},
 		{
@@ -76,9 +79,28 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			},
 			"/mnt/path",
 			"pvc-name",
+			"",
 			map[string]*structpb.Value{
 				"param_1": structpb.NewStringValue("pvc-name"),
 			},
+		},
+		{
+    		"pvc with subPath",
+    		args{
+        		[]*kubernetesplatform.PvcMount{
+            		{
+                		MountPath:        "/mnt/path",
+                		SubPath:          "logs/experiment1",
+                		PvcNameParameter: inputParamConstant("pvc-name"),
+            		},
+        		},
+        		nil,
+        		nil,
+    		},
+    		"/mnt/path",
+    		"pvc-name",
+    		"logs/experiment1",
+    		nil,
 		},
 	}
 
@@ -98,6 +120,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			assert.Equal(t, 1, len(volumes))
 			assert.Equal(t, volumeMounts[0].MountPath, tt.wantPath)
 			assert.Equal(t, volumeMounts[0].Name, tt.wantName)
+			assert.Equal(t, volumeMounts[0].SubPath, tt.wantSubPath)
 			assert.Equal(t, volumes[0].Name, tt.wantName)
 			assert.Equal(t, volumes[0].PersistentVolumeClaim.ClaimName, tt.wantName)
 		})

@@ -54,6 +54,7 @@ def CreatePVC(
             provisioned PersistentVolumeClaim. Used for statically
             specified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
         annotations: Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+        sub_path: Optional subPath inside the PVC to mount. If not specified, the volume root will be mounted.
 
     Returns:
         ``name: str`` \n\t\t\tName of the generated PVC.
@@ -66,6 +67,7 @@ def mount_pvc(
     task: PipelineTask,
     pvc_name: Union[str, 'PipelineChannel'],
     mount_path: str,
+    sub_path: Optional[str] = None,
 ) -> PipelineTask:
     """Mount a PersistentVolumeClaim to the task's container.
 
@@ -80,7 +82,7 @@ def mount_pvc(
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
-    pvc_mount = pb.PvcMount(mount_path=mount_path)
+    pvc_mount = pb.PvcMount(mount_path=mount_path, sub_path=sub_path or '')
     pvc_name_parameter = common.parse_k8s_parameter_input(pvc_name, task)
     pvc_mount.pvc_name_parameter.CopyFrom(pvc_name_parameter)
 

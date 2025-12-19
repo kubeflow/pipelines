@@ -95,6 +95,9 @@ message PvcMount {
 
     // Name of the PVC.
     ml_pipelines.TaskInputsSpec.InputParameterSpec pvc_name_parameter = 5;
+
+    // Optional subPath inside the PVC to mount (instead of mounting the volume root).
+    string sub_path = 6;
 }
 
 message CreatePvc {
