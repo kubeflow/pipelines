@@ -73,3 +73,8 @@ repos:
         language: golang
         require_serial: true
         pass_filenames: false
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.9
+    hooks:
+      - id: actionlint
+    types: ["yml", "yaml"]

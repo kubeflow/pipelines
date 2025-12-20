@@ -19,7 +19,6 @@ import re
 import collections
 import kubernetes
 import yaml
-import urllib3
 from time import sleep
 import lru
 
@@ -400,7 +399,9 @@ while True:
         # If the for loop ended, a server-side timeout occurred. Continue watching.
         pass
 
-    except urllib3.exceptions.ReadTimeoutError as e:
-        # Client side timeout, continue watching.
+    except Exception as e:
+        # Handle any errors, print stack trace, and continue watching.
+        import traceback
+        print(traceback.format_exc())
         continue
  
