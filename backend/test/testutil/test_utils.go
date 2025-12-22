@@ -223,3 +223,13 @@ func getBranchOrPR(pullNumber, branch string) string {
 	}
 	return fmt.Sprintf("branch '%s'", branch)
 }
+
+func ContainsEnvVar(envVarMap map[string]string, vars ...string) bool {
+	for _, entry := range vars {
+		_, ok := envVarMap[entry]
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
