@@ -180,3 +180,13 @@ func GetTLSConfig(caCertPath string) (*tls.Config, error) {
 		MinVersion: tls.VersionTLS13,
 	}, nil
 }
+
+func ContainsEnvVar(envVarMap map[string]string, vars ...string) bool {
+	for _, entry := range vars {
+		_, ok := envVarMap[entry]
+		if !ok {
+			return false
+		}
+	}
+	return true
+}

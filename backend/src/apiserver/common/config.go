@@ -37,6 +37,8 @@ const (
 	SignedURLExpiryTimeSeconds              string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
 	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
+	CaBundleConfigMapName                   string = "CABUNDLE_CONFIGMAP_NAME"
+	CaBundleKeyName                         string = "CABUNDLE_KEY_NAME"
 	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
 	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
 	MLPipelineServiceName                   string = "ML_PIPELINE_SERVICE_NAME"
@@ -167,6 +169,14 @@ func GetMetadataTLSEnabled() bool {
 
 func GetCaBundleSecretName() string {
 	return GetStringConfigWithDefault(CaBundleSecretName, "")
+}
+
+func GetCABundleKey() string {
+	return GetStringConfigWithDefault(CaBundleKeyName, "")
+}
+
+func GetCaBundleConfigMapName() string {
+	return GetStringConfigWithDefault(CaBundleConfigMapName, "")
 }
 
 func GetCompiledPipelineSpecPatch() string {
