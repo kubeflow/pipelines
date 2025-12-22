@@ -362,7 +362,7 @@ describe('RecurringRunDetails', () => {
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(deleteRecurringRunSpy).toHaveBeenCalledTimes(1);
-    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id', undefined);
   });
 
   it('does not call delete API when delete cancel dialog button is clicked', async () => {
@@ -392,7 +392,7 @@ describe('RecurringRunDetails', () => {
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
-    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id', undefined);
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.EXPERIMENTS);
   });
@@ -429,8 +429,7 @@ describe('RecurringRunDetails', () => {
     expect(updateDialogSpy).toHaveBeenCalledTimes(2);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        content:
-          'Failed to delete recurring run config: test-job-id with error: "could not delete"',
+        content: 'could not delete',
         title: 'Failed to delete recurring run config',
       }),
     );
