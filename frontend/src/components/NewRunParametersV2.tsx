@@ -207,6 +207,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     }
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
+    const runtimeParametersInRealType: RuntimeParameters = {};
     let allParamtersWithDefault = true;
     let errMsg: string[] = [];
     Object.keys(specParameters).forEach(key => {
@@ -218,6 +219,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
           key,
           specParameters[key].defaultValue,
         );
+        // Convert to real type for handleParameterChange
+        runtimeParametersInRealType[key] = convertInput(
+          runtimeParametersWithDefault[key],
+          specParameters[key].parameterType,
+        );
       } else {
         allParamtersWithDefault = false;
         errMsg[key] = 'Missing parameter.';
@@ -227,6 +233,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     setErrorMessages(errMsg);
     if (setIsValidInput) {
       setIsValidInput(allParamtersWithDefault);
+    }
+    // Propagate default parameter values to parent component so they are included in runtime_config
+    // This ensures default parameters are visible in Compare Runs feature
+    if (handleParameterChange) {
+      handleParameterChange(runtimeParametersInRealType);
     }
   }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
 
