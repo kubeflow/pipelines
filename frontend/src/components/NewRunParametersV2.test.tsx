@@ -947,140 +947,139 @@ describe('NewRunParametersV2', () => {
   });
 });
 
-  describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
-    
-    it('SCENARIO 1: User creates run with ALL default parameters (no changes)', () => {
-      const handleParameterChangeSpy = jest.fn();
-      
-      const props = {
-        titleMessage: 'Specify parameters required by the pipeline',
-        specParameters: {
-          string_param: {
-            parameterType: ParameterType_ParameterTypeEnum.STRING,
-            defaultValue: 'default_string_value',
-          },
-          integer_param: {
-            parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-            defaultValue: 42,
-          },
-          boolean_param: {
-            parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-            defaultValue: true,
-          },
-          float_param: {
-            parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
-            defaultValue: 3.14,
-          },
-          list_param: {
-            parameterType: ParameterType_ParameterTypeEnum.LIST,
-            defaultValue: [1, 2, 3],
-          },
-          struct_param: {
-            parameterType: ParameterType_ParameterTypeEnum.STRUCT,
-            defaultValue: { key: 'value', nested: { data: 123 } },
-          },
+describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
+  it('SCENARIO 1: User creates run with ALL default parameters (no changes)', () => {
+    const handleParameterChangeSpy = jest.fn();
+
+    const props = {
+      titleMessage: 'Specify parameters required by the pipeline',
+      specParameters: {
+        string_param: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'default_string_value',
         },
-        clonedRuntimeConfig: {},
-        handleParameterChange: handleParameterChangeSpy,
-      };
-
-      // User does NOT interact - just renders form
-      render(<NewRunParametersV2 {...props} />);
-
-      // KEY ASSERTION: handleParameterChange called on mount (not 0!)
-      expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
-      
-      // ALL default parameters sent to API
-      expect(handleParameterChangeSpy).toHaveBeenCalledWith({
-        string_param: 'default_string_value',
-        integer_param: 42,
-        boolean_param: true,
-        float_param: 3.14,
-        list_param: [1, 2, 3],
-        struct_param: { key: 'value', nested: { data: 123 } },
-      });
-    });
-
-    it('SCENARIO 2: User changes ONE parameter, others remain at default', () => {
-      const handleParameterChangeSpy = jest.fn();
-      
-      const props = {
-        titleMessage: 'Test',
-        specParameters: {
-          param_a: {
-            parameterType: ParameterType_ParameterTypeEnum.STRING,
-            defaultValue: 'default_a',
-          },
-          param_b: {
-            parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-            defaultValue: 100,
-          },
-          param_c: {
-            parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-            defaultValue: false,
-          },
+        integer_param: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 42,
         },
-        clonedRuntimeConfig: {},
-        handleParameterChange: handleParameterChangeSpy,
-      };
-
-      render(<NewRunParametersV2 {...props} />);
-      
-      // On mount, all defaults sent
-      expect(handleParameterChangeSpy).toHaveBeenCalledWith({
-        param_a: 'default_a',
-        param_b: 100,
-        param_c: false,
-      });
-
-      // User changes only param_a
-      const paramAInput = screen.getByDisplayValue('default_a');
-      handleParameterChangeSpy.mockClear();
-      fireEvent.change(paramAInput, { target: { value: 'custom_value' } });
-
-      // ALL parameters sent (not just changed one)
-      expect(handleParameterChangeSpy).toHaveBeenCalledWith({
-        param_a: 'custom_value',
-        param_b: 100,
-        param_c: false,
-      });
-    });
-
-    it('SCENARIO 3: Falsy default values (0, false, empty list) are included', () => {
-      const handleParameterChangeSpy = jest.fn();
-      
-      const props = {
-        titleMessage: 'Test falsy defaults',
-        specParameters: {
-          zero_param: {
-            parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-            defaultValue: 0,
-          },
-          false_param: {
-            parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-            defaultValue: false,
-          },
-          zero_float: {
-            parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
-            defaultValue: 0.0,
-          },
-          empty_list: {
-            parameterType: ParameterType_ParameterTypeEnum.LIST,
-            defaultValue: [],
-          },
+        boolean_param: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: true,
         },
-        clonedRuntimeConfig: {},
-        handleParameterChange: handleParameterChangeSpy,
-      };
+        float_param: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
+          defaultValue: 3.14,
+        },
+        list_param: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+          defaultValue: [1, 2, 3],
+        },
+        struct_param: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+          defaultValue: { key: 'value', nested: { data: 123 } },
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+    };
 
-      render(<NewRunParametersV2 {...props} />);
+    // User does NOT interact - just renders form
+    render(<NewRunParametersV2 {...props} />);
 
-      // CRITICAL: Falsy values NOT omitted
-      expect(handleParameterChangeSpy).toHaveBeenCalledWith({
-        zero_param: 0,
-        false_param: false,
-        zero_float: 0.0,
-        empty_list: [],
-      });
+    // KEY ASSERTION: handleParameterChange called on mount (not 0!)
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+
+    // ALL default parameters sent to API
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
+      string_param: 'default_string_value',
+      integer_param: 42,
+      boolean_param: true,
+      float_param: 3.14,
+      list_param: [1, 2, 3],
+      struct_param: { key: 'value', nested: { data: 123 } },
     });
   });
+
+  it('SCENARIO 2: User changes ONE parameter, others remain at default', () => {
+    const handleParameterChangeSpy = jest.fn();
+
+    const props = {
+      titleMessage: 'Test',
+      specParameters: {
+        param_a: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'default_a',
+        },
+        param_b: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 100,
+        },
+        param_c: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: false,
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+    };
+
+    render(<NewRunParametersV2 {...props} />);
+
+    // On mount, all defaults sent
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
+      param_a: 'default_a',
+      param_b: 100,
+      param_c: false,
+    });
+
+    // User changes only param_a
+    const paramAInput = screen.getByDisplayValue('default_a');
+    handleParameterChangeSpy.mockClear();
+    fireEvent.change(paramAInput, { target: { value: 'custom_value' } });
+
+    // ALL parameters sent (not just changed one)
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
+      param_a: 'custom_value',
+      param_b: 100,
+      param_c: false,
+    });
+  });
+
+  it('SCENARIO 3: Falsy default values (0, false, empty list) are included', () => {
+    const handleParameterChangeSpy = jest.fn();
+
+    const props = {
+      titleMessage: 'Test falsy defaults',
+      specParameters: {
+        zero_param: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 0,
+        },
+        false_param: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: false,
+        },
+        zero_float: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
+          defaultValue: 0.0,
+        },
+        empty_list: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+          defaultValue: [],
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+    };
+
+    render(<NewRunParametersV2 {...props} />);
+
+    // CRITICAL: Falsy values NOT omitted
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({
+      zero_param: 0,
+      false_param: false,
+      zero_float: 0.0,
+      empty_list: [],
+    });
+  });
+});
