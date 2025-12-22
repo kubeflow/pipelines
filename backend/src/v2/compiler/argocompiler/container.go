@@ -224,7 +224,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	}
 
 	setCABundle := false
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+	if common.GetCaBundleSecretName() != "" || c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
 		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
 		setCABundle = true
 	}
@@ -551,7 +551,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		},
 	}
 	// If the apiserver is TLS-enabled, add the custom CA bundle to the executor.
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+	if common.GetCaBundleSecretName() != "" || c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
 		ConfigureCustomCABundle(executor)
 	}
 
