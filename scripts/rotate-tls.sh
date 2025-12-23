@@ -3,7 +3,7 @@
 # Defaults: namespace=kubeflow, secret=kfp-pod-tls, cert=server.crt, key=server.key
 
 NS="${1:-kubeflow}"
-SECRET="${2:-kfp-pod-tls}"
+SECRET="${2:-kfp-api-tls-cert}"
 CERT="${3:-server.crt}"
 KEY="${4:-server.key}"
 
