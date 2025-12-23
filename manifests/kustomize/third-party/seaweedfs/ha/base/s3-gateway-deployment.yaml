@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-s3
+  labels:
+    app: seaweedfs
+    component: s3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: seaweedfs
+      component: s3
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: s3
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: seaweedfs
+                  component: s3
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 10
+      serviceAccountName: seaweedfs
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: seaweedfs
+        image: chrislusf/seaweedfs
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        args:
+        - 's3'
+        - '-ip.bind=0.0.0.0'
+        - '-filer=seaweedfs-filer:8888'
+        ports:
+          - containerPort: 8333
+            name: swfs-s3
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8333
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 50
+          timeoutSeconds: 2
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
+        securityContext:  # Using restricted profile
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          # image defaults to root user
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL

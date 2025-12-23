@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+
+resources:
+- ../../base
+- filer-statefulset.yaml
+- filer-svc.yaml
+- master-statefulset.yaml
+- master-svc.yaml
+- s3-gateway-deployment.yaml
+- volume-statefulset.yaml
+- volume-svc.yaml
+
+patches:
+- target:
+    version: v1
+    kind: Job
+    name: init-seaweedfs
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/env/1/value
+      value: "seaweedfs-master:9333"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value: {"name": "WEED_CLUSTER_SW_FILER", "value": "seaweedfs-filer:8888"}
+- target:
+    version: v1
+    kind: Service
+    name: minio-service
+  patch: |-
+    - op: add
+      path: /spec/selector/component
+      value: s3
+
+images:
+- name: chrislusf/seaweedfs
+  newTag: '4.00'

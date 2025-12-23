@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: seaweedfs
+    component: master
+  name: seaweedfs-master
+spec:
+  publishNotReadyAddresses: true
+  ports:
+  - name: http-master
+    port: 9333
+    protocol: TCP
+    targetPort: 9333
+  - name: grpc-master
+    port: 19333
+    protocol: TCP
+    targetPort: 19333
+  selector:
+    app: seaweedfs
+    component: master
