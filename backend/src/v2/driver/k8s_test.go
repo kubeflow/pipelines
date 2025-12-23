@@ -2990,3 +2990,360 @@ func Test_extendPodSpecPatch_PvcMounts_Passthrough_AppliedToPod(t *testing.T) {
 	assert.NotEmpty(t, taskCfg.Volumes)
 	assert.NotEmpty(t, taskCfg.VolumeMounts)
 }
+
+func boolPtr(val bool) *bool {
+	return &val
+}
+
+func Test_extendPodSpecPatch_SecurityContext(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - privileged true",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					Privileged: boolPtr(true),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							Privileged: boolPtr(true),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - privileged false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					Privileged: boolPtr(false),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							Privileged: boolPtr(false),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - no security context",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+		{
+			"Valid - allow privilege escalation false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					AllowPrivilegeEscalation: boolPtr(false),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							AllowPrivilegeEscalation: boolPtr(false),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - run as user",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(1000),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							RunAsUser: int64Ptr(1000),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - run as group",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsGroup: int64Ptr(1000),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							RunAsGroup: int64Ptr(1000),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - run as non root",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsNonRoot: boolPtr(true),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							RunAsNonRoot: boolPtr(true),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - read only root filesystem",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					ReadOnlyRootFilesystem: boolPtr(true),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							ReadOnlyRootFilesystem: boolPtr(true),
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - capabilities add",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					Capabilities: &kubernetesplatform.Capabilities{
+						Add: []string{"NET_ADMIN", "SYS_TIME"},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							Capabilities: &k8score.Capabilities{
+								Add: []k8score.Capability{"NET_ADMIN", "SYS_TIME"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - capabilities drop",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					Capabilities: &kubernetesplatform.Capabilities{
+						Drop: []string{"ALL"},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							Capabilities: &k8score.Capabilities{
+								Drop: []k8score.Capability{"ALL"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - capabilities add and drop",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					Capabilities: &kubernetesplatform.Capabilities{
+						Add:  []string{"NET_ADMIN"},
+						Drop: []string{"SYS_ADMIN"},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							Capabilities: &k8score.Capabilities{
+								Add:  []k8score.Capability{"NET_ADMIN"},
+								Drop: []k8score.Capability{"SYS_ADMIN"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - SELinux options",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					SeLinuxOptions: &kubernetesplatform.SELinuxOptions{
+						User:  "system_u",
+						Role:  "system_r",
+						Type:  "container_t",
+						Level: "s0:c123,c456",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							SELinuxOptions: &k8score.SELinuxOptions{
+								User:  "system_u",
+								Role:  "system_r",
+								Type:  "container_t",
+								Level: "s0:c123,c456",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - seccomp profile RuntimeDefault",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					SeccompProfile: &kubernetesplatform.SeccompProfile{
+						Type: "RuntimeDefault",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							SeccompProfile: &k8score.SeccompProfile{
+								Type: k8score.SeccompProfileTypeRuntimeDefault,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - seccomp profile Localhost",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					SeccompProfile: &kubernetesplatform.SeccompProfile{
+						Type:             "Localhost",
+						LocalhostProfile: "profiles/my-profile.json",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							SeccompProfile: &k8score.SeccompProfile{
+								Type:             k8score.SeccompProfileTypeLocalhost,
+								LocalhostProfile: func() *string { s := "profiles/my-profile.json"; return &s }(),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - full security context",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					Privileged:               boolPtr(false),
+					AllowPrivilegeEscalation: boolPtr(false),
+					RunAsUser:                int64Ptr(1000),
+					RunAsGroup:               int64Ptr(1000),
+					RunAsNonRoot:             boolPtr(true),
+					ReadOnlyRootFilesystem:   boolPtr(true),
+					Capabilities: &kubernetesplatform.Capabilities{
+						Add:  []string{"NET_BIND_SERVICE"},
+						Drop: []string{"ALL"},
+					},
+					SeccompProfile: &kubernetesplatform.SeccompProfile{
+						Type: "RuntimeDefault",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							Privileged:               boolPtr(false),
+							AllowPrivilegeEscalation: boolPtr(false),
+							RunAsUser:                int64Ptr(1000),
+							RunAsGroup:               int64Ptr(1000),
+							RunAsNonRoot:             boolPtr(true),
+							ReadOnlyRootFilesystem:   boolPtr(true),
+							Capabilities: &k8score.Capabilities{
+								Add:  []k8score.Capability{"NET_BIND_SERVICE"},
+								Drop: []k8score.Capability{"ALL"},
+							},
+							SeccompProfile: &k8score.SeccompProfile{
+								Type: k8score.SeccompProfileTypeRuntimeDefault,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+
+			err := extendPodSpecPatch(
+				context.Background(),
+				got,
+				Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				nil,
+				nil,
+				nil,
+				map[string]*structpb.Value{},
+				nil,
+			)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}

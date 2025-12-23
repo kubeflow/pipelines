@@ -695,6 +695,73 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get security context information
+	if securityContext := kubernetesExecutorConfig.GetSecurityContext(); securityContext != nil {
+		containerSecurityContext := &k8score.SecurityContext{}
+
+		if securityContext.Privileged != nil {
+			containerSecurityContext.Privileged = securityContext.Privileged
+		}
+
+		if securityContext.AllowPrivilegeEscalation != nil {
+			containerSecurityContext.AllowPrivilegeEscalation = securityContext.AllowPrivilegeEscalation
+		}
+
+		if securityContext.RunAsUser != nil {
+			containerSecurityContext.RunAsUser = securityContext.RunAsUser
+		}
+
+		if securityContext.RunAsGroup != nil {
+			containerSecurityContext.RunAsGroup = securityContext.RunAsGroup
+		}
+
+		if securityContext.RunAsNonRoot != nil {
+			containerSecurityContext.RunAsNonRoot = securityContext.RunAsNonRoot
+		}
+
+		if securityContext.ReadOnlyRootFilesystem != nil {
+			containerSecurityContext.ReadOnlyRootFilesystem = securityContext.ReadOnlyRootFilesystem
+		}
+
+		// Handle Capabilities
+		if caps := securityContext.GetCapabilities(); caps != nil {
+			containerSecurityContext.Capabilities = &k8score.Capabilities{}
+			for _, cap := range caps.GetAdd() {
+				containerSecurityContext.Capabilities.Add = append(containerSecurityContext.Capabilities.Add, k8score.Capability(cap))
+			}
+			for _, cap := range caps.GetDrop() {
+				containerSecurityContext.Capabilities.Drop = append(containerSecurityContext.Capabilities.Drop, k8score.Capability(cap))
+			}
+		}
+
+		// Handle SELinuxOptions
+		if seLinux := securityContext.GetSeLinuxOptions(); seLinux != nil {
+			containerSecurityContext.SELinuxOptions = &k8score.SELinuxOptions{
+				User:  seLinux.GetUser(),
+				Role:  seLinux.GetRole(),
+				Type:  seLinux.GetType(),
+				Level: seLinux.GetLevel(),
+			}
+		}
+
+		// Handle SeccompProfile
+		if seccomp := securityContext.GetSeccompProfile(); seccomp != nil {
+			containerSecurityContext.SeccompProfile = &k8score.SeccompProfile{
+				Type: k8score.SeccompProfileType(seccomp.GetType()),
+				LocalhostProfile: func() *string {
+					if seccomp.GetLocalhostProfile() != "" {
+						s := seccomp.GetLocalhostProfile()
+						return &s
+					}
+					return nil
+				}(),
+			}
+		}
+
+		// Apply security context to the user container
+		podSpec.Containers[0].SecurityContext = containerSecurityContext
+	}
+
 	return nil
 }
 
