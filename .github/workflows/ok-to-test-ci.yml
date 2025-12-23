@@ -15,10 +15,13 @@ permissions:
 jobs:
   auto-approve:
     runs-on: ubuntu-latest
-    # Only run for fork PRs with ok-to-test label
+    # Only run for fork PRs with ok-to-test label OR from trusted contributors (owner/member/collaborator)
     if: >
       github.event.pull_request.head.repo.full_name != github.repository &&
-      contains(join(github.event.pull_request.labels.*.name, ','), 'ok-to-test')
+      (
+        contains(join(github.event.pull_request.labels.*.name, ','), 'ok-to-test') ||
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+      )
     steps:
       - name: Approve pending workflow runs
         env:
