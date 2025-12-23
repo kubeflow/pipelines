@@ -130,7 +130,7 @@ jobs:
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
           fi
-          
+
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
             echo "TEST_LABEL=$TEST_LABEL"
@@ -160,12 +160,6 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
-
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
     needs: build
@@ -182,7 +176,7 @@ jobs:
           storage: "seaweedfs"
           k8s_version: "v1.34.0"
           cache_enabled: "true"
-          test_label: "E2ECritical" 
+          test_label: "E2ECritical"
       fail-fast: false
     name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} storage=${{ matrix.storage }} artifactProxy=${{ matrix.artifact_proxy }}
     steps:
@@ -262,9 +256,3 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
-
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
