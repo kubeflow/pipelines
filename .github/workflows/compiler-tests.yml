@@ -63,9 +63,3 @@ jobs:
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Workflow Compiler Tests"
-
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
