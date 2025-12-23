@@ -9,44 +9,57 @@ jobs:
   check_ci_status:
     runs-on: ubuntu-latest
     permissions:
-      checks: read  
-      pull-requests: write        
+      checks: read
+      pull-requests: write
     steps:
       - name: Check out the repository
         uses: actions/checkout@v5
 
       - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
         id: label_check
-        run: |          
-          LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels --jq '.labels[].name')          
+        run: |
+          # Org members (MEMBER/OWNER) don't need ok-to-test label
+          AUTHOR_ASSOCIATION="${{ github.event.pull_request.author_association }}"
+          if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" ]]; then
+            echo "Author is org $AUTHOR_ASSOCIATION. Continuing without ok-to-test label."
+            echo "should_continue=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels --jq '.labels[].name')
           if echo "$LABELS" | grep -q 'needs-ok-to-test'; then
             echo "Label 'needs-ok-to-test' found. Skipping the workflow."
+            echo "should_continue=false" >> "$GITHUB_OUTPUT"
             exit 0
-          fi                    
+          fi
           if echo "$LABELS" | grep -q 'ok-to-test'; then
             echo "Label 'ok-to-test' found. Continuing the workflow."
+            echo "should_continue=true" >> "$GITHUB_OUTPUT"
           else
             echo "Label 'ok-to-test' not found. Skipping the workflow."
-            exit 0
+            echo "should_continue=false" >> "$GITHUB_OUTPUT"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if all CI checks passed
+        if: steps.label_check.outputs.should_continue == 'true'
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
-        with:                                 
+        with:
           delay: '5'
           retries: '10'
           polling_interval: '5'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Save PR payload
+        if: steps.label_check.outputs.should_continue == 'true'
         shell: bash
         run: |
           mkdir -p ./pr
-          echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
+          echo ${{ github.event.pull_request.number }} >> ./pr/pr_number
           echo ${{ github.event.action }} >> ./pr/event_action
       - uses: actions/upload-artifact@v4
+        if: steps.label_check.outputs.should_continue == 'true'
         with:
           name: pr
           path: pr/

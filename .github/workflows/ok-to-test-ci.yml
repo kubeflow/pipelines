@@ -15,9 +15,10 @@ permissions:
 jobs:
   auto-approve:
     runs-on: ubuntu-latest
-    # Only run for fork PRs with ok-to-test label
+    # Only run for non-org members with ok-to-test label
     if: >
-      github.event.pull_request.head.repo.full_name != github.repository &&
+      github.event.pull_request.author_association != 'MEMBER' &&
+      github.event.pull_request.author_association != 'OWNER' &&
       contains(join(github.event.pull_request.labels.*.name, ','), 'ok-to-test')
     steps:
       - name: Approve pending workflow runs
