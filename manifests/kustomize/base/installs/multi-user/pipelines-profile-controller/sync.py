@@ -66,7 +66,7 @@ def get_settings_from_env(controller_port=None,
     settings["artifacts_proxy_enabled"] = \
         artifacts_proxy_enabled or \
         os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
-    
+
     settings["artifact_retention_days"] = \
         artifact_retention_days or \
         os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
@@ -104,7 +104,7 @@ def server_factory(frontend_image,
             except ValueError:
                 print(f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update.")
                 return
-            
+
             # To disable lifecycle policy we need to delete it
             if retention_days <= 0:
                 print(f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.")
@@ -112,7 +112,7 @@ def server_factory(frontend_image,
                     response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
                     # Check if there are any enabled rules
                     has_enabled_rules = any(rule.get('Status') == 'Enabled' for rule in response.get('Rules', []))
-                    
+
                     if has_enabled_rules:
                         s3.delete_bucket_lifecycle(Bucket=bucket_name)
                         print("Successfully deleted lifecycle policy.")
@@ -121,7 +121,7 @@ def server_factory(frontend_image,
                 except Exception:
                     print(f"Warning: No lifecycle policy exists")
                 return
-            
+
             # Create/update lifecycle policy
             life_cycle_policy = {
                 "Rules": [
@@ -134,7 +134,7 @@ def server_factory(frontend_image,
                 ]
             }
             print('upsert_lifecycle_policy:', life_cycle_policy)
-            
+
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
                     Bucket=bucket_name,
@@ -225,7 +225,7 @@ def server_factory(frontend_image,
                     }
                 },
             ]
-            
+
             # Add artifact fetcher related resources if enabled
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
@@ -337,7 +337,7 @@ def server_factory(frontend_image,
                         }
                     },
                 ])
-            
+
             print('Received request:\n', json.dumps(parent, sort_keys=True))
             print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
 
@@ -375,9 +375,9 @@ def server_factory(frontend_image,
                             }]
                         })
                 )
-                
+
                 self.upsert_lifecycle_policy(S3_BUCKET_NAME, artifact_retention_days)
-                
+
                 desired_resources.insert(
                     0,
                     {
