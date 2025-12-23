@@ -1,0 +1,72 @@
+name: Approve Workflow Runs
+
+permissions:
+  actions: write
+  contents: read
+
+on:
+  pull_request_target:
+    types:
+      - labeled
+      - synchronize
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  ok-to-test:
+    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test') || github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Check if author is a Kubeflow GitHub member
+        id: membership-check
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const username = context.payload.pull_request.user.login;
+            const org = context.repo.owner;
+            try {
+              const res = await github.rest.orgs.checkMembershipForUser({
+                org,
+                username
+              });
+              core.setOutput("is_member", true);
+            } catch (error) {
+              if (error.status === 404) {
+                // User is not a member
+                core.setOutput("is_member", false);
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Approve Pending Workflow Runs
+        if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+        uses: actions/github-script@v8
+        with:
+          retries: 3
+          script: |
+            const request = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event: "pull_request",
+              status: "action_required",
+              head_sha: context.payload.pull_request.head.sha,
+            }
+
+            core.info(`Getting workflow runs that need approval for commit ${request.head_sha}`)
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, request)
+
+            core.info(`Found ${runs.length} workflow runs that need approval`)
+            for (const run of runs) {
+              core.info(`Approving workflow run ${run.id}`)
+              const request = {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: run.id,
+              }
+              await github.rest.actions.approveWorkflowRun(request)
+            }
