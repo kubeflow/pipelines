@@ -309,6 +309,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 <Input
                   required={true}
                   type='number'
+                  inputProps={{ min: 1 }}
                   onChange={this.handleChange('intervalValue')}
                   value={intervalValue}
                   height={30}
