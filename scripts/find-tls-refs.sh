@@ -3,7 +3,7 @@
 # Defaults: namespace=kubeflow, secret=kfp-pod-tls
 
 NS="${1:-kubeflow}"
-SECRET="${2:-kfp-pod-tls}"
+SECRET="${2:-kfp-api-tls-cert}"
 
 set -euo pipefail
 
