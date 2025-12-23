@@ -53,7 +53,17 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
         Returns:
             Status.
         """
-        with environment(use_venv=self.runner.use_venv) as py_executable:
+        # Check if command contains pip install operations
+        command_str = ' '.join(self.full_command) if self.full_command else ''
+        has_pip_install = ('pip install' in command_str or
+                           'python3 -m pip install' in command_str or
+                           'python -m pip install' in command_str or
+                           '-m pip install' in command_str)
+
+        with environment(
+                use_venv=self.runner.use_venv,
+                runner_config=self.runner,
+                has_pip_install=has_pip_install) as py_executable:
             full_command = replace_python_executable(
                 self.full_command,
                 py_executable,
@@ -64,7 +74,7 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
     def validate_image(self, image: str) -> None:
         if 'python' not in image:
             warnings.warn(
-                f"You may be attemping to run a task that uses custom or non-Python base image '{image}' in a Python environment. This may result in incorrect dependencies and/or incorrect behavior. Consider using the 'DockerRunner' to run this task in a container.",
+                f'You may be attemping to run a task that uses custom or non-Python base image "{image}" in a Python environment. This may result in incorrect dependencies and/or incorrect behavior. Consider using the "DockerRunner" to run this task in a container.',
                 RuntimeWarning,
             )
 
@@ -143,20 +153,71 @@ def replace_python_executable(full_command: List[str],
 
 
 @contextlib.contextmanager
-def environment(use_venv: bool) -> str:
+def environment(use_venv: bool,
+                runner_config: config.SubprocessRunner = None,
+                has_pip_install: bool = False) -> str:
     """Context manager that handles the environment used for the subprocess.
 
     Args:
         use_venv: Whether to use the virtual environment instead of current environment.
+        runner_config: SubprocessRunner configuration for pip install management.
+        has_pip_install: Whether the command contains pip install operations.
 
     Returns:
         The Python executable path to use.
     """
     if use_venv:
-        with tempfile.TemporaryDirectory() as tempdir:
-            # Create the virtual environment inside the temporary directory
-            venv.create(tempdir, with_pip=True)
+        # Use the managed install context for virtual environment setup
+        # Track stats only if packages will be installed
+        from kfp.local.pip_install_manager import pip_install_manager
+        with pip_install_manager.managed_install(
+                'subprocess', track_stats=has_pip_install):
+            with tempfile.TemporaryDirectory() as tempdir:
+                # Create the virtual environment inside the temporary directory
+                venv.create(tempdir, with_pip=True)
 
-            yield os.path.join(tempdir, 'bin', 'python')
+                # Install setuptools and wheel in the venv to ensure build dependencies are available
+                # This is required for Python 3.13+ where setuptools is not included by default
+                python_path = os.path.join(tempdir, 'bin', 'python')
+                try:
+                    # First upgrade pip itself to ensure we have a compatible version
+                    subprocess.run([
+                        python_path, '-m', 'pip', 'install', '--upgrade', 'pip'
+                    ],
+                                   check=True,
+                                   capture_output=True,
+                                   text=True)
+                    # Then install setuptools and wheel
+                    # For Python 3.13+, require setuptools>=70.0.0 (needed for 3.13 compatibility)
+                    # For older versions, just upgrade to latest compatible version
+                    # Check the venv Python version (venv.create uses current interpreter, so this matches)
+                    if sys.version_info >= (3, 13):
+                        setuptools_req = 'setuptools>=70.0.0'
+                    else:
+                        # For Python < 3.13, upgrade setuptools without minimum version requirement
+                        # pip will install the latest version compatible with the Python version
+                        setuptools_req = 'setuptools'
+                    subprocess.run([
+                        python_path, '-m', 'pip', 'install', '--upgrade',
+                        setuptools_req, 'wheel'
+                    ],
+                                   check=True,
+                                   capture_output=True,
+                                   text=True)
+                except subprocess.CalledProcessError as e:
+                    # Log the error but continue, as some packages might still work
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f'Failed to install setuptools and wheel in venv: {e}')
+
+                yield python_path
     else:
-        yield sys.executable
+        # When not using venv but still have pip installs, serialize to prevent concurrency issues
+        if has_pip_install:
+            from kfp.local.pip_install_manager import pip_install_manager
+            with pip_install_manager.managed_install(
+                    'subprocess', track_stats=True):
+                yield sys.executable
+        else:
+            yield sys.executable

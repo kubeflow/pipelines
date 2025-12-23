@@ -38,7 +38,7 @@ repos:
       - id: isort
         name: isort
         entry: isort --profile google
-  - repo: https://github.com/pre-commit/mirrors-yapf
+  - repo: https://github.com/google/yapf
     rev: "v0.32.0"
     hooks:
       - id: yapf

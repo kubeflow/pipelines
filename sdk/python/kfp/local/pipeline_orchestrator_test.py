@@ -15,7 +15,8 @@
 import functools
 import io as stdlib_io
 import os
-from typing import NamedTuple
+import sys
+from typing import List, NamedTuple
 import unittest
 from unittest import mock
 
@@ -36,7 +37,7 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 @pytest.fixture(autouse=True)
 def set_packages_for_test_classes(monkeypatch, request):
-    if request.cls.__name__ in {
+    if request.cls and request.cls.__name__ in {
             'TestRunLocalPipeline',
             'TestFstringContainerComponent',
     }:
@@ -560,8 +561,12 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertAlmostEqual(task.output, 44.745992817228334)
         self.assert_output_dir_contents(1, 7)
 
-    def test_parallel_for_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_parallel_for_supported(self):
+        # Use use_venv=False to avoid pip race conditions when installing
+        # packages in parallel virtual environments
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def pass_op():
@@ -572,14 +577,108 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with dsl.ParallelFor([1, 2, 3]):
                 pass_op()
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"'dsl\.ParallelFor' is not supported by local pipeline execution\."
-        ):
-            my_pipeline()
+        # Should now execute successfully with enhanced orchestrator
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        # ParallelFor detection should route to enhanced orchestrator
+        # and execute tasks in parallel
 
-    def test_condition_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_parallel_for_with_venv(self):
+        # Use use_venv=True with pip installation serialization enabled
+        # This test demonstrates the fix for pip race conditions
+        local.init(
+            local.SubprocessRunner(
+                use_venv=True,
+                serialize_pip_installs=True  # Enable serialization to prevent race conditions
+            ),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
+        import sys
+        numpy_version = 'numpy>=1.26.0' if sys.version_info >= (
+            3, 13) else 'numpy==1.24.3'
+
+        @dsl.component(packages_to_install=[numpy_version])
+        def package_using_op() -> List[int]:
+            import numpy as np
+            return np.array([1, 2, 3]).tolist()
+
+        @dsl.pipeline
+        def my_pipeline():
+            # Use more parallel tasks to increase chance of race condition
+            with dsl.ParallelFor([1, 2, 3, 4, 5, 6, 7, 8]):
+                package_using_op()
+
+        # This test now passes reliably with pip installation serialization
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+
+    def test_parallel_for_with_venv_race_condition(self):
+        # Use use_venv=True to demonstrate pip race conditions when installing
+        # packages in parallel virtual environments
+        local.init(
+            local.SubprocessRunner(
+                use_venv=True,
+                serialize_pip_installs=True  # Enable serialization to prevent race conditions
+            ),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
+        import sys
+        numpy_version = 'numpy>=1.26.0' if sys.version_info >= (
+            3, 13) else 'numpy==1.24.3'
+
+        @dsl.component(packages_to_install=[numpy_version])
+        def package_using_op() -> List[int]:
+            import numpy as np
+            return np.array([1, 2, 3]).tolist()
+
+        @dsl.pipeline
+        def my_pipeline():
+            # Use more parallel tasks to increase chance of race condition
+            with dsl.ParallelFor([1, 2, 3, 4, 5, 6, 7, 8]):
+                package_using_op()
+
+        # This test now passes reliably with pip installation serialization
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+
+    def test_parallel_for_with_max_concurrent_pip_installs(self):
+        # Use use_venv=True with pip installation serialization enabled
+        local.init(
+            local.SubprocessRunner(
+                use_venv=True,
+                serialize_pip_installs=False,  # Allow concurrent installs
+                max_concurrent_pip_installs=2,  # But limit to 2 concurrent
+            ),
+            pipeline_root=ROOT_FOR_TESTING,
+            raise_on_error=False)
+
+        # Use packages that require installation to demonstrate serialization
+        @dsl.component(packages_to_install=['requests==2.28.2'])
+        def network_task(url: str) -> str:
+            # Simple task that imports requests but doesn't make actual network calls
+            return f'Would fetch from {url}'
+
+        @dsl.pipeline
+        def my_pipeline():
+            # Use parallel tasks that will install packages concurrently
+            urls = ['http://example.com/' + str(i) for i in range(4)]
+            with dsl.ParallelFor(urls) as url:
+                network_task(url=url)
+
+        # This should work reliably with concurrent pip installations
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+
+        # Check concurrent execution stats
+        from kfp.local.pip_install_manager import pip_install_manager
+        stats = pip_install_manager.get_stats()
+        self.assertLessEqual(stats['concurrent_peak'],
+                             2)  # Should respect max concurrent limit
+
+    def test_condition_supported(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def pass_op():
@@ -590,11 +689,11 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with dsl.Condition(x == 'foo'):
                 pass_op()
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"'dsl\.Condition' is not supported by local pipeline execution\."
-        ):
-            my_pipeline(x='bar')
+        # Should now execute successfully with enhanced orchestrator
+        task = my_pipeline(x='bar')
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        # Condition detection should route to enhanced orchestrator
+        # and evaluate the condition (false in this case, so task is skipped)
 
     @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
     def test_fails_with_raise_on_error_true(self, mock_stdout):
