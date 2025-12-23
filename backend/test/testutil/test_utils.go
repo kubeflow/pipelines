@@ -63,7 +63,7 @@ func CheckIfSkipping(stringValue string) {
 	// Skip pipeline if name contains "GH-" (case-insensitive)
 	if strings.Contains(strings.ToLower(stringValue), "_gh-") {
 		issue := strings.Split(strings.ToLower(stringValue), "_gh-")[1]
-		ginkgo.Skip()
+		ginkgo.Skip("Skipping pipeline run")
 		fmt.Printf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue)
 
 	}
