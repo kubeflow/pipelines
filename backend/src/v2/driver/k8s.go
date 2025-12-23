@@ -725,22 +725,32 @@ func extendPodSpecPatch(
 
 		// Handle Capabilities
 		if caps := securityContext.GetCapabilities(); caps != nil {
-			containerSecurityContext.Capabilities = &k8score.Capabilities{}
-			for _, cap := range caps.GetAdd() {
-				containerSecurityContext.Capabilities.Add = append(containerSecurityContext.Capabilities.Add, k8score.Capability(cap))
-			}
-			for _, cap := range caps.GetDrop() {
-				containerSecurityContext.Capabilities.Drop = append(containerSecurityContext.Capabilities.Drop, k8score.Capability(cap))
+			addCaps := caps.GetAdd()
+			dropCaps := caps.GetDrop()
+			if len(addCaps) > 0 || len(dropCaps) > 0 {
+				containerSecurityContext.Capabilities = &k8score.Capabilities{}
+				for _, cap := range addCaps {
+					containerSecurityContext.Capabilities.Add = append(containerSecurityContext.Capabilities.Add, k8score.Capability(cap))
+				}
+				for _, cap := range dropCaps {
+					containerSecurityContext.Capabilities.Drop = append(containerSecurityContext.Capabilities.Drop, k8score.Capability(cap))
+				}
 			}
 		}
 
 		// Handle SELinuxOptions
 		if seLinux := securityContext.GetSeLinuxOptions(); seLinux != nil {
-			containerSecurityContext.SELinuxOptions = &k8score.SELinuxOptions{
-				User:  seLinux.GetUser(),
-				Role:  seLinux.GetRole(),
-				Type:  seLinux.GetType(),
-				Level: seLinux.GetLevel(),
+			user := seLinux.GetUser()
+			role := seLinux.GetRole()
+			seType := seLinux.GetType()
+			level := seLinux.GetLevel()
+			if user != "" || role != "" || seType != "" || level != "" {
+				containerSecurityContext.SELinuxOptions = &k8score.SELinuxOptions{
+					User:  user,
+					Role:  role,
+					Type:  seType,
+					Level: level,
+				}
 			}
 		}
 
