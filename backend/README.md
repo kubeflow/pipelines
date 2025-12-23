@@ -353,7 +353,7 @@ kind delete clusters dev-pipelines-api
 
 ### Context
 
-When pod-to-pod TLS is enabled, backend components (API server, launcher, persistence agent, metadata writer, and other pipeline-related deployments) use TLS certificates stored in Kubernetes Secret(s). These certificates expire and must be rotated periodically.
+When pod-to-pod TLS is enabled, backend components (ml-pipeline-apiserver, metadata-envoy-deployment, metadata-grpc-deployment, ml-pipeline-persistenceagent, ml-pipeline-scheduledworkflow, and ml-pipeline-ui) use the TLS certificate stored in the Kubernetes TLS Secret `kfp-api-tls-cert`. These certificates expire and must be rotated periodically.
 
 
 Important operational behaviour: updating a Kubernetes Secret does not cause running pods to read the updated secret automatically. Pods mount Secrets as files or reference them via environment variables at container start time. To pick up rotated certificates, you must restart the pods that read those secrets (a rolling restart of the affected deployments).
@@ -376,7 +376,6 @@ Which secrets and components are impacted:
 > **Note**
 > The `pipelines-cache` / cache deployment generally does **not** require the CA cert for inbound TLS from pipeline components; confirm whether your deployment references the TLS secret before restarting it.
 
-*`(Any other pipeline-related deployments that reference the TLS secret)`*
 
 > **Note**
 > Confirm the exact secret name(s) and deployments used in your cluster before running commands. Example discovery commands:
@@ -384,7 +383,7 @@ Which secrets and components are impacted:
 ```bash
 kubectl get secrets -n <namespace>
 
-# Find deployments referencing the secret (recommended by reviewer)
+# Find deployments referencing the secret
 kubectl -n <namespace> get deploy -o name \
   | xargs -n1 kubectl -n <namespace> get deploy -o yaml \
   | grep -C3 "name: <secret-name>" || true
@@ -399,50 +398,49 @@ Generate or obtain new cert files: `server.crt` and `server.key` (PEM encoded).
 
 Replace <namespace> and <secret-name> with your cluster's values:
 
-   ```bash
-   kubectl create secret tls <secret-name> \
-      --cert=server.crt \
-      --key=server.key \
-      --dry-run=client -o yaml | kubectl apply -f -
-   ```
+```bash
+kubectl create secret tls <secret-name> \
+  --cert=server.crt \
+  --key=server.key \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
+
 Example:
 
-   ```bash
-   kubectl create secret tls kfp-api-tls-cert \
-      --cert=server.crt \
-      --key=server.key \
-      --dry-run=client -o yaml | kubectl apply -f -
-   ```
+ ```bash
+ kubectl create secret tls kfp-api-tls-cert \
+    --cert=server.crt \
+    --key=server.key \
+    --dry-run=client -o yaml | kubectl apply -f -
+ ```
 
 #### Restart affected deployments (rolling restart)
 
 Restart the deployments so they mount/read the updated secret:
 
-   ```bash
-  kubectl rollout restart deploy -n <namespace> ml-pipeline-apiserver
-  kubectl rollout restart deploy -n <namespace> ml-pipeline-persistenceagent
-  kubectl rollout restart deploy -n <namespace> metadata-writer
-  kubectl rollout restart deploy -n <namespace> metadata-envoy-deployment
-  kubectl rollout restart deploy -n <namespace> metadata-grpc-deployment
-  kubectl rollout restart deploy -n <namespace> ml-pipeline-scheduledworkflow
-  kubectl rollout restart deploy -n <namespace> ml-pipeline-ui
-   ```
+```bash
+kubectl rollout restart deploy -n <namespace> ml-pipeline-apiserver
+kubectl rollout restart deploy -n <namespace> ml-pipeline-persistenceagent
+kubectl rollout restart deploy -n <namespace> metadata-envoy-deployment
+kubectl rollout restart deploy -n <namespace> metadata-grpc-deployment
+kubectl rollout restart deploy -n <namespace> ml-pipeline-scheduledworkflow
+kubectl rollout restart deploy -n <namespace> ml-pipeline-ui
+```
 
 Or restart all pipeline-related deployments discovered earlier.
 
 #### Verify rollout and pod readiness
 
-   ```bash
-   kubectl get pods -n <namespace>
-   kubectl rollout status deploy/pipelines-api-server -n <namespace>
-   ```
+```bash
+kubectl get pods -n <namespace>
+kubectl rollout status deploy/ml-pipeline-apiserver -n <namespace>
+```
 
 Check logs for errors:
 
-   ```bash
-   kubectl describe secret <secret-name> -n <namespace>
-   ```
+```bash
+kubectl describe secret <secret-name> -n <namespace>
+```
 
 Optional: connect to the API server over TLS (from inside cluster or via port-forward) to confirm certificate in use.
 
@@ -450,9 +448,9 @@ Optional: connect to the API server over TLS (from inside cluster or via port-fo
 
 * Rotation interval: rotate certificates before they expire; recommended: track expiry via:
 
-   ```bash
-   openssl x509 -enddate -noout -in server.crt
-   ```
+```bash
+openssl x509 -enddate -noout -in server.crt
+```
 
 * **Automation**: if using `cert-manager`, automate issuance and renewal, and consider automating rollout restarts (see below).
 * **Minimize disruption**: perform rollouts during maintenance windows or low activity windows.
