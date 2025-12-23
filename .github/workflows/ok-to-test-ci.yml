@@ -30,19 +30,32 @@ jobs:
         run: |
           echo "Looking for workflow runs requiring approval for SHA: $PR_SHA"
 
-          # Wait a moment for workflow runs to be created
-          sleep 5
+          # Retry loop to wait for workflow runs to be created and enter pending state
+          max_attempts=6
+          attempt=1
+          runs=""
 
-          # Get all workflow runs for this commit that need approval
-          # Runs awaiting first-time contributor approval have status "pending" (not "action_required")
-          runs=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs?head_sha=$PR_SHA" | \
-            jq -r '.workflow_runs[] // [] | select(.status == "pending" or .status == "waiting") | .id')
+          while [[ $attempt -le $max_attempts ]]; do
+            echo "Attempt $attempt of $max_attempts: checking for pending runs..."
+            sleep 10
 
+            # Get all workflow runs for this commit that need approval
+            # Runs awaiting first-time contributor approval have status "pending" (not "action_required")
+            runs=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs?head_sha=$PR_SHA" | \
+              jq -r '(.workflow_runs // [])[] | select(.status == "pending" or .status == "waiting") | .id')
+
+            if [[ -n "$runs" ]]; then
+              echo "Found pending runs on attempt $attempt"
+              break
+            fi
+
+            attempt=$((attempt + 1))
+          done
 
           if [[ -z "$runs" ]]; then
-            echo "No workflow runs found requiring approval."
+            echo "No workflow runs found requiring approval after $max_attempts attempts."
             exit 0
           fi
 
