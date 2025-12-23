@@ -362,15 +362,14 @@ This section documents a recommended, minimal process for safely renewing TLS ce
 
 ### Which secrets and components are impacted
 
-TLS certificates are commonly stored in a Kubernetes TLS Secret (for example: `kfp-pod-tls`) in the KFP namespace (commonly `kubeflow`).
+TLS certificates are stored in the Kubernetes TLS Secret `kfp-api-tls-cert` in the KFP namespace (commonly `kubeflow`).
 
 Which secrets and components are impacted:
 
 * `ml-pipeline-apiserver`
-* `ml-pipeline-persistenceagent`
-* `metadata-writer`
 * `metadata-envoy-deployment`
 * `metadata-grpc-deployment`
+* `ml-pipeline-persistenceagent`
 * `ml-pipeline-scheduledworkflow`
 * `ml-pipeline-ui`
 
@@ -391,7 +390,7 @@ kubectl -n <namespace> get deploy -o name \
   | grep -C3 "name: <secret-name>" || true
 ```
 
-### Recommended rotation procedure (example)
+### Recommended rotation procedure
 
 #### Prepare/obtain new cert and key
 Generate or obtain new cert files: `server.crt` and `server.key` (PEM encoded).
@@ -410,7 +409,7 @@ Replace <namespace> and <secret-name> with your cluster's values:
 Example:
 
    ```bash
-   kubectl create secret tls kfp-pod-tls \
+   kubectl create secret tls kfp-api-tls-cert \
       --cert=server.crt \
       --key=server.key \
       --dry-run=client -o yaml | kubectl apply -f -
