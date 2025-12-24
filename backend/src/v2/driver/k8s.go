@@ -1011,12 +1011,14 @@ func makeVolumeMountPatch(
 		pvcName := resolvedPvcName.GetStringValue()
 
 		pvcMountPath := pvcMount.GetMountPath()
+		pvcSubPath := pvcMount.GetSubPath()
 		if pvcName == "" || pvcMountPath == "" {
 			return nil, nil, fmt.Errorf("failed to mount volume, missing mountpath or pvc name")
 		}
 		volumeMount := k8score.VolumeMount{
 			Name:      pvcName,
 			MountPath: pvcMountPath,
+			SubPath:   pvcSubPath,
 		}
 		volume := k8score.Volume{
 			Name: pvcName,
