@@ -4,12 +4,15 @@ package utils
 import (
 	"fmt"
 	"maps"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
@@ -91,6 +94,166 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 		}
 	}
 
+}
+
+// ValidateParallelismIfConfigured checks pipelineRunParallelism constraints when set.
+func ValidateParallelismIfConfigured(runClient *apiserver.RunClient, pipelineFilePath, runID string) {
+	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
+	if spec == nil || spec.PlatformSpec() == nil {
+		return
+	}
+	baseName := filepath.Base(pipelineFilePath)
+	if ext := filepath.Ext(baseName); ext != "" {
+		baseName = strings.TrimSuffix(baseName, ext)
+	}
+	// Skip task-level parallelism checks for workflow-level semaphore scenarios.
+	if baseName == "pipeline_with_run_parallelism" {
+		return
+	}
+	k8sSpec, ok := spec.PlatformSpec().GetPlatforms()["kubernetes"]
+	if !ok || k8sSpec == nil {
+		return
+	}
+	cfg := k8sSpec.GetPipelineConfig()
+	if cfg == nil || cfg.PipelineRunParallelism == nil {
+		return
+	}
+	limit := cfg.GetPipelineRunParallelism()
+
+	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(
+		filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), baseName+".yaml"))
+	componentTaskNames := map[string]struct{}{}
+	for _, tmpl := range compiledWorkflow.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			if task.Template == "system-container-executor" {
+				componentTaskNames[task.Name] = struct{}{}
+			}
+		}
+	}
+	if len(componentTaskNames) == 0 {
+		return
+	}
+
+	runIDCopy := runID
+	runDetail := testutil.GetPipelineRun(runClient, &runIDCopy)
+	gomega.Expect(runDetail).NotTo(gomega.BeNil())
+	gomega.Expect(runDetail.RunDetails).NotTo(gomega.BeNil())
+
+	type event struct {
+		at    time.Time
+		delta int
+	}
+	var events []event
+	for _, task := range runDetail.RunDetails.TaskDetails {
+		if task == nil {
+			continue
+		}
+		name := task.DisplayName
+		if name == "" {
+			name = task.TaskID
+		}
+		if _, ok := componentTaskNames[name]; !ok {
+			continue
+		}
+		start := time.Time(task.StartTime)
+		if start.IsZero() {
+			continue
+		}
+		events = append(events, event{at: start, delta: +1})
+		end := time.Time(task.EndTime)
+		if !end.IsZero() {
+			events = append(events, event{at: end, delta: -1})
+		}
+	}
+	if len(events) == 0 {
+		return
+	}
+	sort.Slice(events, func(i, j int) bool {
+		if events[i].at.Equal(events[j].at) {
+			return events[i].delta < events[j].delta
+		}
+		return events[i].at.Before(events[j].at)
+	})
+	running := 0
+	for _, ev := range events {
+		running += ev.delta
+		gomega.Expect(running).To(gomega.BeNumerically(">=", 0))
+		gomega.Expect(running).To(gomega.BeNumerically("<=", limit))
+	}
+}
+
+// PipelineRunParallelismLimit returns the configured pipelineRunParallelism from a pipeline spec, if set and valid (>0).
+func PipelineRunParallelismLimit(pipelineFilePath string) (int32, bool) {
+	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
+	if spec == nil || spec.PlatformSpec() == nil {
+		return 0, false
+	}
+	k8sSpec, ok := spec.PlatformSpec().GetPlatforms()["kubernetes"]
+	if !ok || k8sSpec == nil {
+		return 0, false
+	}
+	cfg := k8sSpec.GetPipelineConfig()
+	if cfg == nil || cfg.PipelineRunParallelism == nil {
+		return 0, false
+	}
+	val := cfg.GetPipelineRunParallelism()
+	if val <= 0 {
+		return 0, false
+	}
+	return val, true
+}
+
+// ValidateWorkflowParallelismAcrossRuns launches multiple runs for the same pipeline version
+// and asserts that no more than the configured limit are active concurrently.
+func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID string, pipelineVersionID string, experimentID *string, limit int32, maxPipelineWaitTime int) {
+	// Launch (limit + 2) runs to exercise the semaphore.
+	targetRuns := int(limit) + 2
+	runIDs := make([]string, 0, targetRuns)
+	for i := 0; i < targetRuns; i++ {
+		created := CreatePipelineRun(runClient, testContext, &pipelineID, &pipelineVersionID, experimentID, nil)
+		runIDs = append(runIDs, created.RunID)
+	}
+
+	// Wait a bit for Argo to process the runs and enforce semaphore limits
+	time.Sleep(5 * time.Second)
+
+	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
+	pollInterval := 2 * time.Second
+
+	for {
+		active := 0
+		allTerminal := true
+		for _, rid := range runIDs {
+			run := testutil.GetPipelineRun(runClient, &rid)
+			if run.State == nil {
+				active++
+				allTerminal = false
+				continue
+			}
+			switch *run.State {
+			case run_model.V2beta1RuntimeStateRUNNING:
+				// Only count RUNNING as active; PENDING may indicate waiting for semaphore
+				active++
+				allTerminal = false
+			case run_model.V2beta1RuntimeStatePENDING:
+				// PENDING runs might be waiting for semaphore, don't count as active
+				allTerminal = false
+			default:
+				// terminal
+			}
+		}
+		gomega.Expect(active).To(gomega.BeNumerically("<=", limit), "Active concurrent runs should respect pipeline_run_parallelism")
+		if allTerminal {
+			return
+		}
+		if time.Now().After(timeout) {
+			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active=%d, limit=%d", active, limit))
+		}
+		time.Sleep(pollInterval)
+	}
 }
 
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component

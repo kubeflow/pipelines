@@ -34,8 +34,15 @@ mkdir -p "$HOME/bin"
 export PATH="$HOME/bin:$PATH"
 {
     server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
-    stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt")
-    kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/amd64/kubectl"
+    # Try to fetch the stable build for the detected server minor. If that fails
+    # (e.g., file not found), fall back to a pinned kubectl version.
+    stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt" || true)
+    if [[ -z "${stable_build_version}" || "${stable_build_version}" == *"NoSuchKey"* ]]; then
+        # Fallback: pin to a known kubectl version compatible with the cluster.
+        # Can be overridden via KUBECTL_VERSION_FALLBACK env var.
+        stable_build_version="${KUBECTL_VERSION_FALLBACK:-v1.34.0}"
+    fi
+    kubectl_url="https://dl.k8s.io/release/${stable_build_version}/bin/linux/amd64/kubectl"
     curl -L -o "$HOME/bin/kubectl" "$kubectl_url"
     chmod +x "$HOME/bin/kubectl"
 } || true

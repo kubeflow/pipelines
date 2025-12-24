@@ -2310,6 +2310,10 @@ def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
     if workspace is not None:
         config_dict['workspace'] = workspace.get_workspace()
 
+    pipeline_run_parallelism = pipelineConfig.pipeline_run_parallelism
+    if pipeline_run_parallelism is not None:
+        config_dict['pipelineRunParallelism'] = pipeline_run_parallelism
+
     if config_dict:
         json_format.ParseDict({'pipelineConfig': config_dict},
                               platformSpec.platforms['kubernetes'])
