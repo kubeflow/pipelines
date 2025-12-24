@@ -921,6 +921,11 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         <Input
           error={false}
           height={30}
+          inputProps={
+            Object {
+              "min": 1,
+            }
+          }
           onChange={[Function]}
           required={true}
           type="number"
