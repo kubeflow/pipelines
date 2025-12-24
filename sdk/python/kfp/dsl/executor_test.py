@@ -1604,6 +1604,54 @@ class ExecutorTest(parameterized.TestCase):
 
         self.assertDictEqual(output_metadata, {})
 
+    def test_list_of_datasets_input(self):
+        """Test for Input[List[Dataset]] which previously caused a crash."""
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_list": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0",
+                "type": {
+                  "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/output/input_list/0"
+              },
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1",
+                "type": {
+                  "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/output/input_list/1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_list: Input[List[Dataset]]):
+            self.assertEqual(len(input_list), 2)
+            self.assertIsInstance(input_list[0], Dataset)
+            self.assertIsInstance(input_list[1], Dataset)
+            self.assertEqual(
+                input_list[0].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+            )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
     def test_list_of_artifacts_input_pythonic(self):
         executor_input = """\
     {
