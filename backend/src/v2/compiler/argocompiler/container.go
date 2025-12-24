@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -178,31 +177,31 @@ func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	}
 
 	args := map[string]interface{}{
-		"type":                    "CONTAINER",
-		"pipeline_name":           c.spec.GetPipelineInfo().GetName(),
-		"run_id":                  runID(),
-		"run_name":                runResourceName(),
-		"run_display_name":        c.job.DisplayName,
-		"dag_execution_id":        inputValue(paramParentDagID),
-		"component":               inputValue(paramComponent),
-		"task":                    inputValue(paramTask),
-		"task_name":               inputValue(paramTaskName),
-		"container":               inputValue(paramContainer),
-		"iteration_index":         inputValue(paramIterationIndex),
-		"cached_decision_path":    outputPath(paramCachedDecision),
-		"pod_spec_patch_path":     outputPath(paramPodSpecPatch),
-		"condition_path":          outputPath(paramCondition),
-		"kubernetes_config":       inputValue(paramKubernetesConfig),
-		"http_proxy":              proxy.GetConfig().GetHttpProxy(),
-		"https_proxy":             proxy.GetConfig().GetHttpsProxy(),
-		"no_proxy":                proxy.GetConfig().GetNoProxy(),
-		"ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
-		"ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
-		"mlmd_server_address":     metadata.DefaultConfig().Address,
-		"mlmd_server_port":        metadata.DefaultConfig().Port,
-		"cache_disabled":          c.cacheDisabled,
-		"ml_pipeline_tls_enabled": c.mlPipelineTLSEnabled,
-		"metadata_tls_enabled":    common.GetMetadataTLSEnabled(),
+		"type":                       "CONTAINER",
+		"pipeline_name":              c.spec.GetPipelineInfo().GetName(),
+		"run_id":                     runID(),
+		"run_name":                   runResourceName(),
+		"run_display_name":           c.job.DisplayName,
+		"dag_execution_id":           inputValue(paramParentDagID),
+		"component":                  inputValue(paramComponent),
+		"task":                       inputValue(paramTask),
+		"task_name":                  inputValue(paramTaskName),
+		"container":                  inputValue(paramContainer),
+		"iteration_index":            inputValue(paramIterationIndex),
+		"cached_decision_path":       outputPath(paramCachedDecision),
+		"pod_spec_patch_path":        outputPath(paramPodSpecPatch),
+		"condition_path":             outputPath(paramCondition),
+		"kubernetes_config":          inputValue(paramKubernetesConfig),
+		"http_proxy":                 proxy.GetConfig().GetHttpProxy(),
+		"https_proxy":                proxy.GetConfig().GetHttpsProxy(),
+		"no_proxy":                   proxy.GetConfig().GetNoProxy(),
+		"ml_pipeline_server_address": config.GetMLPipelineServerConfig().Address,
+		"ml_pipeline_server_port":    config.GetMLPipelineServerConfig().Port,
+		"mlmd_server_address":        config.GetMLPipelineServerConfig().Address,
+		"mlmd_server_port":           config.GetMLPipelineServerConfig().Port,
+		"cache_disabled":             c.cacheDisabled,
+		"ml_pipeline_tls_enabled":    c.mlPipelineTLSEnabled,
+		"metadata_tls_enabled":       common.GetMetadataTLSEnabled(),
 	}
 
 	setCABundle := false
