@@ -46,7 +46,8 @@
       "@google-cloud/common": "^3.1.0",
       "gcs-resumable-upload": "^3.1.0"
     },
-    "cross-spawn": "7.0.5",
+    "cross-spawn": "7.0.6",
+    "cookie": "0.7.2",
     "braces": "3.0.3",
     "json-schema": "0.4.0",
     "jsonpath-plus": "10.3.0",
