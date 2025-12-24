@@ -85,22 +85,22 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			},
 		},
 		{
-    		"pvc with subPath",
-    		args{
-        		[]*kubernetesplatform.PvcMount{
-            		{
-                		MountPath:        "/mnt/path",
-                		SubPath:          "logs/experiment1",
-                		PvcNameParameter: inputParamConstant("pvc-name"),
-            		},
-        		},
-        		nil,
-        		nil,
-    		},
-    		"/mnt/path",
-    		"pvc-name",
-    		"logs/experiment1",
-    		nil,
+			"pvc with subPath",
+			args{
+				[]*kubernetesplatform.PvcMount{
+					{
+						MountPath:        "/mnt/path",
+						SubPath:          "logs/experiment1",
+						PvcNameParameter: inputParamConstant("pvc-name"),
+					},
+				},
+				nil,
+				nil,
+			},
+			"/mnt/path",
+			"pvc-name",
+			"logs/experiment1",
+			nil,
 		},
 	}
 
