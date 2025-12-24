@@ -33,7 +33,7 @@ RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/schedu
 
 FROM alpine:3.19
 
-RUN apk --no-cache add tzdata
+RUN apk --no-cache add tzdata && apk upgrade --no-cache
 
 RUN adduser -S appuser
 USER appuser
