@@ -17,6 +17,9 @@
 import AddIcon from '@material-ui/icons/Add';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
+import MenuItem from '@material-ui/core/MenuItem';
+import * as React from 'react';
+import Input from 'src/atoms/Input';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { ToolbarActionMap } from 'src/components/Toolbar';
 import { PageProps } from 'src/pages/Page';
@@ -548,15 +551,102 @@ export default class Buttons {
     useCurrentResource: boolean,
     callback: (_: string[], success: boolean) => void,
   ): void {
-    this._dialogActionHandler(
-      [id],
-      'Do you want to delete this recurring run config? This action cannot be undone.',
-      useCurrentResource,
-      recurringRunId => Apis.recurringRunServiceApi.deleteRecurringRun(recurringRunId),
-      callback,
-      'Delete',
-      'recurring run config',
-    );
+    // Use an object so closure captures reference that can be mutated
+    const state = { policy: 'DEFAULT' };
+
+    const updateDialog = () => {
+      this._props.updateDialog({
+        buttons: [
+          {
+            onClick: async () => {
+              this._props.updateDialog({ open: false });
+              callback([id], false);
+            },
+            text: 'Cancel',
+          },
+          {
+            onClick: async () => {
+              // Map display value to API value (DEFAULT = undefined, others = uppercase)
+              const policyToSend = state.policy === 'DEFAULT' ? undefined : state.policy;
+              await this._executeDeleteRecurringRun(id, policyToSend, useCurrentResource, callback);
+            },
+            text: 'Delete',
+          },
+        ],
+        content: React.createElement(
+          'div',
+          null,
+          React.createElement(
+            'p',
+            null,
+            'Do you want to delete this recurring run config? This action cannot be undone.',
+          ),
+          React.createElement(
+            'div',
+            { style: { marginTop: 16 } },
+            React.createElement(
+              Input,
+              {
+                select: true,
+                label: 'Deletion policy',
+                value: state.policy,
+                onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+                  state.policy = event.target.value;
+                  updateDialog();
+                },
+                variant: 'outlined',
+              },
+              React.createElement(MenuItem, { key: 'default', value: 'DEFAULT' }, 'Default'),
+              React.createElement(
+                MenuItem,
+                { key: 'background', value: 'BACKGROUND' },
+                'Background',
+              ),
+              React.createElement(
+                MenuItem,
+                { key: 'foreground', value: 'FOREGROUND' },
+                'Foreground',
+              ),
+              React.createElement(MenuItem, { key: 'orphan', value: 'ORPHAN' }, 'Orphan'),
+            ),
+          ),
+        ),
+        onClose: async () => {
+          callback([id], false);
+        },
+        title: 'Delete this recurring run config?',
+      });
+    };
+
+    updateDialog();
+  }
+
+  private async _executeDeleteRecurringRun(
+    id: string,
+    propagationPolicy: string | undefined,
+    useCurrentResource: boolean,
+    callback: (_: string[], success: boolean) => void,
+  ): Promise<void> {
+    try {
+      await Apis.recurringRunServiceApi.deleteRecurringRun(id, propagationPolicy as any);
+      this._props.updateDialog({ open: false });
+      this._props.updateSnackbar({
+        message: `Delete succeeded for this recurring run config`,
+        open: true,
+      });
+      if (!useCurrentResource) {
+        this._refresh();
+      }
+      callback([id], true);
+    } catch (err) {
+      const errorMessage = await errorToMessage(err);
+      this._props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        content: errorMessage,
+        title: 'Failed to delete recurring run config',
+      });
+      callback([id], false);
+    }
   }
 
   private _terminateRun(
