@@ -170,11 +170,6 @@ func writeFile(path string, data []byte) (err error) {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func newMlmdClient(tlsCfg *tls.Config) (*metadata.Client, error) {
-	mlmdConfig := metadata.DefaultConfig()
-	if *mlmdServerAddress != "" && *mlmdServerPort != "" {
-		mlmdConfig.Address = *mlmdServerAddress
-		mlmdConfig.Port = *mlmdServerPort
-	}
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsCfg)
+func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.Config) (*metadata.Client, error) {
+	return metadata.NewClient(mlmdServerAddress, mlmdServerPort, tlsCfg)
 }

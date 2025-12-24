@@ -179,11 +179,11 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 			return nil, fmt.Errorf("unable to drive driver: failed to load TLS configuration: %v", err)
 		}
 	}
-	client, err := newMlmdClient(tlsCfg)
+	client, err := newMlmdClient(*mlmdServerAddress, *mlmdServerPort, tlsCfg)
 	if err != nil {
 		return nil, err
 	}
-	cacheClient, err := cacheutils.NewClient(args.CacheDisabledFlag, tlsCfg)
+	cacheClient, err := cacheutils.NewClient(args.MlPipelineServerAddress, args.MlPipelineServerPort, args.CacheDisabledFlag, tlsCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -197,23 +197,26 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 		return nil, fmt.Errorf("failed to parse iteration index, error: %w", err)
 	}
 	options := driver.Options{
-		PipelineName:         args.PipelineName,
-		RunID:                args.RunID,
-		RunName:              args.RunName,
-		RunDisplayName:       args.RunDisplayName,
-		Namespace:            namespace,
-		Component:            componentSpec,
-		Task:                 taskSpec,
-		DAGExecutionID:       dagExecutionID,
-		IterationIndex:       iterationIndex,
-		PublishLogs:          args.PublishLogs,
-		CacheDisabled:        args.CacheDisabledFlag,
-		DriverType:           args.Type,
-		TaskName:             args.TaskName,
-		MLPipelineTLSEnabled: args.MlPipelineTLSEnabled,
-		MLMDServerAddress:    *mlmdServerAddress,
-		MLMDServerPort:       *mlmdServerPort,
-		CaCertPath:           args.CACertPath,
+		PipelineName:            args.PipelineName,
+		RunID:                   args.RunID,
+		RunName:                 args.RunName,
+		RunDisplayName:          args.RunDisplayName,
+		Namespace:               namespace,
+		Component:               componentSpec,
+		Task:                    taskSpec,
+		DAGExecutionID:          dagExecutionID,
+		IterationIndex:          iterationIndex,
+		PipelineLogLevel:        args.LogLevel,
+		PublishLogs:             args.PublishLogs,
+		CacheDisabled:           args.CacheDisabledFlag,
+		DriverType:              args.Type,
+		TaskName:                args.TaskName,
+		MLPipelineServerAddress: args.MlPipelineServerAddress,
+		MLPipelineServerPort:    args.MlPipelineServerPort,
+		MLPipelineTLSEnabled:    args.MlPipelineTLSEnabled,
+		MLMDServerAddress:       *mlmdServerAddress,
+		MLMDServerPort:          *mlmdServerPort,
+		CaCertPath:              args.CACertPath,
 	}
 
 	var driverErr error

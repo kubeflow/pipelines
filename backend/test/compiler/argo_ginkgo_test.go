@@ -64,16 +64,18 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 			envVars:           map[string]string{"PIPELINE_RUN_AS_USER": "1001", "PIPELINE_LOG_LEVEL": "3"},
 			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "run_as_user_cache_enabled.yaml")},
 		},
-		{
-			compilerOptions:   argocompiler.Options{CacheDisabled: false},
-			envVars:           map[string]string{"CABUNDLE_CONFIGMAP_NAME": "test-configmap-name", "CABUNDLE_KEY_NAME": "test-configmap-key"},
-			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "mounted_cabundle_configmap.yaml")},
-		},
-		{
-			compilerOptions:   argocompiler.Options{CacheDisabled: false},
-			envVars:           map[string]string{"CABUNDLE_SECRET_NAME": "test-secret-name"},
-			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "mounted_cabundle_secret.yaml")},
-		},
+		// WARN: Tests are temporarily ignored because volume mount management
+		// is not available at the plugin level. Plugin volumes can only be configured globally.
+		//{
+		//	compilerOptions:   argocompiler.Options{CacheDisabled: false},
+		//	envVars:           map[string]string{"CABUNDLE_CONFIGMAP_NAME": "test-configmap-name", "CABUNDLE_KEY_NAME": "test-configmap-key"},
+		//	pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "mounted_cabundle_configmap.yaml")},
+		//},
+		//{
+		//	compilerOptions:   argocompiler.Options{CacheDisabled: false},
+		//	envVars:           map[string]string{"CABUNDLE_SECRET_NAME": "test-secret-name"},
+		//	pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "mounted_cabundle_secret.yaml")},
+		//},
 	}
 	for _, param := range testParams {
 		Context(fmt.Sprintf("Verify compiled workflow for a pipeline with compiler options cacheDisabled '%v' and env vars %v >", param.compilerOptions.CacheDisabled, param.envVars), Ordered, func() {

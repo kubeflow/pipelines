@@ -19,14 +19,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"github.com/kubeflow/pipelines/backend/src/v2/config"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -562,30 +560,30 @@ func (c *workflowCompiler) addDAGDriverTemplate() (string, error) {
 	}
 
 	args := map[string]interface{}{
-		"type":                    inputValue(paramDriverType),
-		"pipeline_name":           c.spec.GetPipelineInfo().GetName(),
-		"run_id":                  runID(),
-		"run_name":                runResourceName(),
-		"run_display_name":        c.job.DisplayName,
-		"dag_execution_id":        inputValue(paramParentDagID),
-		"component":               inputValue(paramComponent),
-		"task":                    inputValue(paramTask),
-		"task_name":               inputValue(paramTaskName),
-		"runtime_config":          inputValue(paramRuntimeConfig),
-		"iteration_index":         inputValue(paramIterationIndex),
-		"execution_id_path":       outputPath(paramExecutionID),
-		"iteration_count_path":    outputPath(paramIterationCount),
-		"condition_path":          outputPath(paramCondition),
-		"http_proxy":              proxy.GetConfig().GetHttpProxy(),
-		"https_proxy":             proxy.GetConfig().GetHttpsProxy(),
-		"no_proxy":                proxy.GetConfig().GetNoProxy(),
-		"ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
-		"ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
-		"mlmd_server_address":     metadata.DefaultConfig().Address,
-		"mlmd_server_port":        metadata.DefaultConfig().Port,
-		"cache_disabled":          c.cacheDisabled,
-		"ml_pipeline_tls_enabled": c.mlPipelineTLSEnabled,
-		"metadata_tls_enabled":    common.GetMetadataTLSEnabled(),
+		"type":                       inputValue(paramDriverType),
+		"pipeline_name":              c.spec.GetPipelineInfo().GetName(),
+		"run_id":                     runID(),
+		"run_name":                   runResourceName(),
+		"run_display_name":           c.job.DisplayName,
+		"dag_execution_id":           inputValue(paramParentDagID),
+		"component":                  inputValue(paramComponent),
+		"task":                       inputValue(paramTask),
+		"task_name":                  inputValue(paramTaskName),
+		"runtime_config":             inputValue(paramRuntimeConfig),
+		"iteration_index":            inputValue(paramIterationIndex),
+		"execution_id_path":          outputPath(paramExecutionID),
+		"iteration_count_path":       outputPath(paramIterationCount),
+		"condition_path":             outputPath(paramCondition),
+		"http_proxy":                 proxy.GetConfig().GetHttpProxy(),
+		"https_proxy":                proxy.GetConfig().GetHttpsProxy(),
+		"no_proxy":                   proxy.GetConfig().GetNoProxy(),
+		"ml_pipeline_server_address": config.GetMLPipelineServerConfig().Address,
+		"ml_pipeline_server_port":    config.GetMLPipelineServerConfig().Port,
+		"mlmd_server_address":        config.GetMLPipelineServerConfig().Address,
+		"mlmd_server_port":           config.GetMLPipelineServerConfig().Port,
+		"cache_disabled":             c.cacheDisabled,
+		"ml_pipeline_tls_enabled":    c.mlPipelineTLSEnabled,
+		"metadata_tls_enabled":       common.GetMetadataTLSEnabled(),
 	}
 
 	setCABundle := false
