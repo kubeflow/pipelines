@@ -22,9 +22,11 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
@@ -37,6 +39,8 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 )
+
+var testWorkflowMappingMu sync.Mutex
 
 // ParsePointersToString - convert a string pointer to string value
 func ParsePointersToString(s *string) string {
@@ -88,6 +92,92 @@ func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
 	if err != nil {
 		return
 	}
+}
+
+// GetWorkflowNameByRunID retrieves the Argo Workflow name for a given pipeline run ID
+// by querying the Kubernetes API using the pipeline/runid label.
+func GetWorkflowNameByRunID(namespace string, runID string) string {
+	cmd := exec.Command("kubectl", "get", "workflows", "-n", namespace,
+		"-l", fmt.Sprintf("pipeline/runid=%s", runID),
+		"-o", "jsonpath={.items[0].metadata.name}")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log("Failed to get workflow for run ID %s: %v, kubectl output: %s", runID, err, strings.TrimSpace(string(output)))
+		return ""
+	}
+	workflowName := strings.TrimSpace(string(output))
+	if workflowName == "" {
+		logger.Log("No workflow found for run ID %s", runID)
+	}
+	return workflowName
+}
+
+const (
+	testWorkflowMappingFilenameEnv     = "KFP_TEST_WORKFLOW_MAPPING_FILENAME"
+	defaultTestWorkflowMappingFilename = "test-workflow-mapping.txt"
+)
+
+func GetTestWorkflowMappingFilename() string {
+	if v := os.Getenv(testWorkflowMappingFilenameEnv); v != "" {
+		return v
+	}
+	return defaultTestWorkflowMappingFilename
+}
+
+// WriteTestWorkflowMapping appends a test-to-workflow mapping entry for failed tests.
+// The mapping file is used to correlate failed tests with their associated workflow logs.
+// Format: TEST_NAME|WORKFLOW_NAME1,WORKFLOW_NAME2,...
+func WriteTestWorkflowMapping(testName string, runIDs []string, namespace string, mappingFilePath string) {
+	if len(runIDs) == 0 {
+		return
+	}
+
+	var workflowNames []string
+	for _, runID := range runIDs {
+		wfName := GetWorkflowNameByRunID(namespace, runID)
+		if wfName != "" {
+			workflowNames = append(workflowNames, wfName)
+		}
+	}
+
+	if len(workflowNames) == 0 {
+		logger.Log("No workflows found for run IDs %v, skipping mapping", runIDs)
+		return
+	}
+
+	mappingDir := filepath.Dir(mappingFilePath)
+	if err := os.MkdirAll(mappingDir, 0755); err != nil {
+		logger.Log("Failed to create mapping directory %q: %v", mappingDir, err)
+		return
+	}
+
+	testWorkflowMappingMu.Lock()
+	defer testWorkflowMappingMu.Unlock()
+
+	file, err := os.OpenFile(mappingFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		logger.Log("Failed to open mapping file %q: %v", mappingFilePath, err)
+		return
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			logger.Log("Failed to close mapping file %q: %v", mappingFilePath, closeErr)
+		}
+	}()
+
+	unlock, lockErr := lockFile(file)
+	if lockErr != nil {
+		logger.Log("Failed to lock mapping file %q: %v", mappingFilePath, lockErr)
+	} else {
+		defer unlock()
+	}
+
+	entry := fmt.Sprintf("%s|%s\n", testName, strings.Join(workflowNames, ","))
+	if _, err := file.WriteString(entry); err != nil {
+		logger.Log("Failed to write to mapping file %q: %v", mappingFilePath, err)
+		return
+	}
+	logger.Log("Wrote test-workflow mapping: %s -> %v", testName, workflowNames)
 }
 
 // GetNamespace - Get Namespace based on the deployment mode
