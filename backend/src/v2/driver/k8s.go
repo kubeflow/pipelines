@@ -695,6 +695,83 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get security context information
+	if securityContext := kubernetesExecutorConfig.GetSecurityContext(); securityContext != nil {
+		containerSecurityContext := &k8score.SecurityContext{}
+
+		if securityContext.Privileged != nil {
+			containerSecurityContext.Privileged = securityContext.Privileged
+		}
+
+		if securityContext.AllowPrivilegeEscalation != nil {
+			containerSecurityContext.AllowPrivilegeEscalation = securityContext.AllowPrivilegeEscalation
+		}
+
+		if securityContext.RunAsUser != nil {
+			containerSecurityContext.RunAsUser = securityContext.RunAsUser
+		}
+
+		if securityContext.RunAsGroup != nil {
+			containerSecurityContext.RunAsGroup = securityContext.RunAsGroup
+		}
+
+		if securityContext.RunAsNonRoot != nil {
+			containerSecurityContext.RunAsNonRoot = securityContext.RunAsNonRoot
+		}
+
+		if securityContext.ReadOnlyRootFilesystem != nil {
+			containerSecurityContext.ReadOnlyRootFilesystem = securityContext.ReadOnlyRootFilesystem
+		}
+
+		// Handle Capabilities
+		if caps := securityContext.GetCapabilities(); caps != nil {
+			addCaps := caps.GetAdd()
+			dropCaps := caps.GetDrop()
+			if len(addCaps) > 0 || len(dropCaps) > 0 {
+				containerSecurityContext.Capabilities = &k8score.Capabilities{}
+				for _, cap := range addCaps {
+					containerSecurityContext.Capabilities.Add = append(containerSecurityContext.Capabilities.Add, k8score.Capability(cap))
+				}
+				for _, cap := range dropCaps {
+					containerSecurityContext.Capabilities.Drop = append(containerSecurityContext.Capabilities.Drop, k8score.Capability(cap))
+				}
+			}
+		}
+
+		// Handle SELinuxOptions
+		if seLinux := securityContext.GetSeLinuxOptions(); seLinux != nil {
+			user := seLinux.GetUser()
+			role := seLinux.GetRole()
+			seType := seLinux.GetType()
+			level := seLinux.GetLevel()
+			if user != "" || role != "" || seType != "" || level != "" {
+				containerSecurityContext.SELinuxOptions = &k8score.SELinuxOptions{
+					User:  user,
+					Role:  role,
+					Type:  seType,
+					Level: level,
+				}
+			}
+		}
+
+		// Handle SeccompProfile
+		if seccomp := securityContext.GetSeccompProfile(); seccomp != nil {
+			containerSecurityContext.SeccompProfile = &k8score.SeccompProfile{
+				Type: k8score.SeccompProfileType(seccomp.GetType()),
+				LocalhostProfile: func() *string {
+					if seccomp.GetLocalhostProfile() != "" {
+						s := seccomp.GetLocalhostProfile()
+						return &s
+					}
+					return nil
+				}(),
+			}
+		}
+
+		// Apply security context to the user container
+		podSpec.Containers[0].SecurityContext = containerSecurityContext
+	}
+
 	return nil
 }
 

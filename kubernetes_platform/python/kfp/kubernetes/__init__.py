@@ -31,6 +31,7 @@ __all__ = [
     'set_image_pull_policy',
     'use_field_path_as_env',
     'set_image_pull_secrets',
+    'set_security_context',
     'set_timeout',
     'use_config_map_as_env',
     'use_config_map_as_volume',
@@ -52,6 +53,7 @@ from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
+from kfp.kubernetes.security_context import set_security_context
 from kfp.kubernetes.timeout import set_timeout
 from kfp.kubernetes.toleration import add_toleration
 from kfp.kubernetes.toleration import add_toleration_json
