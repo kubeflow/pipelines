@@ -269,6 +269,50 @@ func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 	assert.Equal(t, "9312", config["sphinx_port"])
 }
 
+func Test_compileCmdAndArgs_structPlaceholders(t *testing.T) {
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"file":        structpb.NewStringValue("/etc/hosts"),
+				"line_number": structpb.NewBoolValue(true),
+				"flag_value":  structpb.NewStringValue("foo"),
+			},
+		},
+	}
+
+	cmd := "cat"
+	args := []string{
+		"{{$.inputs.parameters['file']}}",
+		`{"IfPresent": {"InputName": "line_number", "Then": ["-n"]}}`,
+		`{"Concat": ["--flag=", "{{$.inputs.parameters['flag_value']}}"]}`,
+	}
+
+	compiledCmd, compiledArgs, err := compileCmdAndArgs(executorInput, cmd, args)
+	assert.NoError(t, err)
+	assert.Equal(t, "cat", compiledCmd)
+	assert.Equal(t, []string{"/etc/hosts", "-n", "--flag=foo"}, compiledArgs)
+}
+
+func Test_compileCmdAndArgs_structPlaceholders_Omitted(t *testing.T) {
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"file": structpb.NewStringValue("/etc/hosts"),
+			},
+		},
+	}
+
+	cmd := "cat"
+	args := []string{
+		"{{$.inputs.parameters['file']}}",
+		`{"IfPresent": {"InputName": "line_number", "Then": ["-n"]}}`,
+	}
+
+	_, compiledArgs, err := compileCmdAndArgs(executorInput, cmd, args)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"/etc/hosts"}, compiledArgs)
+}
+
 func Test_get_log_Writer(t *testing.T) {
 	old := osCreateFunc
 	defer func() { osCreateFunc = old }()
