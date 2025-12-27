@@ -952,8 +952,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
-        def conditional_process(
-                data: Input[Dataset] = None, use_data: bool = False) -> str:
+        def conditional_process(data: Input[Dataset] = None,
+                                use_data: bool = False) -> str:
             if use_data and data:
                 return f'processed: {data.uri}'
             return 'skipped'
@@ -999,13 +999,14 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
-        def process_with_config(
-                data: Input[Dataset], config: str, batch_size: int) -> str:
+        def process_with_config(data: Input[Dataset], config: str,
+                                batch_size: int) -> str:
             return f'{config}:{batch_size}:{data.uri}'
 
         @dsl.pipeline
-        def my_pipeline(
-                input_data: Dataset, config_str: str, batch: int = 32) -> str:
+        def my_pipeline(input_data: Dataset,
+                        config_str: str,
+                        batch: int = 32) -> str:
             return process_with_config(
                 data=input_data, config=config_str, batch_size=batch).output
 
