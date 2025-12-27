@@ -52,7 +52,7 @@ describe('/artifacts', () => {
   beforeEach(() => {
     artifactContent = 'hello world'; // reset
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function() {
+    mockedMinioClient.mockImplementation(function () {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -186,7 +186,12 @@ describe('/artifacts', () => {
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', async () => {
+    // Note: The following two tests were updated as part of the security fix for Issue #9889(https://github.com/kubeflow/pipelines/issues/9889).
+    // Previously, these tests verified that a default namespace was used when none was provided.
+    // This was insecure behavior, now the namespace must be explicitly provided.
+    // The tests now verify that providing an explicit namespace works correctly.
+
+    it('responds with artifact if source is S3, and credentials are sourced from Provider Configurations, with explicit namespace', async () => {
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: Mock = minio.Client as any;
@@ -208,7 +213,7 @@ describe('/artifacts', () => {
       };
       await request
         .get(
-          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
@@ -238,7 +243,7 @@ describe('/artifacts', () => {
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default namespace when no namespace is provided, as specified in ENV', async () => {
+    it('responds with artifact if source is AWS S3, and credentials are sourced from Provider Configurations, with explicit non-default namespace', async () => {
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: Mock = minio.Client as any;
@@ -260,7 +265,7 @@ describe('/artifacts', () => {
       };
       await request
         .get(
-          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
@@ -378,7 +383,7 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function() {
+      mockedGcsStorage.mockImplementationOnce(function () {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -466,9 +471,9 @@ describe('/artifacts', () => {
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({
-              buffer: () => Promise.resolve(artifactContent),
-              body: toWebStream(artifactContent),
-            })
+            buffer: () => Promise.resolve(artifactContent),
+            body: toWebStream(artifactContent),
+          })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -491,9 +496,9 @@ describe('/artifacts', () => {
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({
-              buffer: () => Promise.resolve(artifactContent),
-              body: toWebStream(artifactContent),
-            })
+            buffer: () => Promise.resolve(artifactContent),
+            body: toWebStream(artifactContent),
+          })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -514,11 +519,11 @@ describe('/artifacts', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt' &&
-        opts.headers.Authorization === 'someToken'
+          opts.headers.Authorization === 'someToken'
           ? Promise.resolve({
-              buffer: () => Promise.resolve(artifactContent),
-              body: toWebStream(artifactContent),
-            })
+            buffer: () => Promise.resolve(artifactContent),
+            body: toWebStream(artifactContent),
+          })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -544,9 +549,9 @@ describe('/artifacts', () => {
       mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({
-              buffer: () => Promise.resolve(artifactContent),
-              body: toWebStream(artifactContent),
-            })
+            buffer: () => Promise.resolve(artifactContent),
+            body: toWebStream(artifactContent),
+          })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -573,7 +578,7 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function() {
+      mockedGcsStorage.mockImplementationOnce(function () {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -595,7 +600,7 @@ describe('/artifacts', () => {
       const mockedGcsStorage: Mock = GCSStorage as any;
       const stream = new PassThrough();
       stream.end(artifactContent);
-      mockedGcsStorage.mockImplementationOnce(function() {
+      mockedGcsStorage.mockImplementationOnce(function () {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -834,7 +839,7 @@ describe('/artifacts', () => {
       await request
         .get(
           '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=' +
-            'a'.repeat(1025),
+          'a'.repeat(1025),
         )
         .expect(500, 'Object key too long');
     });
