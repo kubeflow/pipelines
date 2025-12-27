@@ -907,6 +907,72 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         task = my_pipeline()
         self.assertEqual(task.output, 'foo-bar-baz')
 
+    def test_pipeline_with_artifact_input(self):
+        """Test for issue #12555: Pipelines with artifact inputs should be invocable directly."""
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process(data: Input[Dataset]) -> str:
+            return "done"
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return process(data=input_data).output
+
+        # Direct invocation with artifact input
+        result = my_pipeline(input_data=Dataset(uri="gs://bucket/data"))
+        self.assertEqual(result, "done")
+
+    def test_pipeline_with_artifact_input_validation(self):
+        """Test that passing non-Artifact values to artifact inputs raises TypeError."""
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process(data: Input[Dataset]) -> str:
+            return "done"
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return process(data=input_data).output
+
+        # Passing a string instead of Dataset should raise TypeError
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Pipeline argument 'input_data' must be an Artifact instance"):
+            my_pipeline(input_data="gs://bucket/data")
+
+    def test_pipeline_with_optional_artifact_input(self):
+        """Test pipeline with optional artifact input that is not provided."""
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def conditional_process(
+                data: Input[Dataset] = None, use_data: bool = False) -> str:
+            if use_data and data:
+                return f"processed: {data.uri}"
+            return "skipped"
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset = None) -> str:
+            # Process only if data is provided
+            return conditional_process(
+                data=input_data, use_data=input_data is not None).output
+
+        # Invoke without providing the optional artifact
+        result = my_pipeline()
+        self.assertEqual(result, "skipped")
+
+        # Invoke with the optional artifact provided
+        result_with_data = my_pipeline(
+            input_data=Dataset(uri="gs://bucket/data"))
+        self.assertEqual(result_with_data, "processed: gs://bucket/data")
+
     def test_workspace_functionality(self):
         import tempfile
 
