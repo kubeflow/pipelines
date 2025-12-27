@@ -313,12 +313,17 @@ def verify_type_compatibility(
                    for_loop.LoopArgumentVariable)) and given_type == 'String':
         return True
 
+    # Check once if given_value is a constant artifact to avoid repeated isinstance calls
+    is_constant_artifact = isinstance(given_value, artifact_types.Artifact)
+
     given_is_param = is_parameter_type(str(given_type))
     if given_is_param:
         given_type = get_parameter_type_name(given_type)
         given_is_artifact_list = False
     else:
-        if isinstance(given_value, artifact_types.Artifact):
+        # For constant artifacts, is_artifact_list is always False
+        # For PipelineChannels, check the channel's is_artifact_list attribute
+        if is_constant_artifact:
             given_is_artifact_list = False
         else:
             given_is_artifact_list = given_value.is_artifact_list

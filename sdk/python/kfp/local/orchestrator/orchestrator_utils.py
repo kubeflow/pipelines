@@ -186,6 +186,13 @@ class OrchestratorUtils:
                         f"Pipeline argument '{input_name}' must be an Artifact instance. "
                         f"Got {type(artifact_value).__name__} instead.")
 
+                # Security: Validate URI to prevent path traversal attacks
+                if artifact_value.uri and '..' in artifact_value.uri:
+                    raise ValueError(
+                        f"Pipeline argument '{input_name}' has invalid artifact URI: "
+                        f"URI cannot contain path traversal sequences (..). "
+                        f"Got: {artifact_value.uri!r}")
+
         return copied_dag_arguments
 
     @classmethod
