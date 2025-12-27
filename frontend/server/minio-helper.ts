@@ -74,7 +74,7 @@ export async function getNamespaceCredentials(
     console.warn(`[CREDENTIALS] Incomplete credentials in ${namespace}/${secretName}`);
   } catch (error) {
     console.warn(
-      `[CREDENTIALS] Failed to get namespace credentials from ${namespace}/${secretName}: ${err}`,
+      `[CREDENTIALS] Failed to get namespace credentials from ${namespace}/${secretName}: ${error}`,
     );
   }
   return undefined;
@@ -141,11 +141,11 @@ export async function createMinioClient(
 
   if (useNamespaceCredentials && namespace && !providerInfoString) {
     const namespaceCredentials = await getNamespaceCredentials(namespace, namespaceSecretName);
-    if (namespaceCreds) {
+    if (namespaceCredentials) {
       config = {
         ...config,
-        accessKey: namespaceCreds.accessKey,
-        secretKey: namespaceCreds.secretKey,
+        accessKey: namespaceCredentials.accessKey,
+        secretKey: namespaceCredentials.secretKey,
       };
     } else {
       console.warn(
