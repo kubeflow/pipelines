@@ -1144,17 +1144,28 @@ class Client:
             stacklevel=2)
         return self.delete_recurring_run(recurring_run_id=job_id)
 
-    def delete_recurring_run(self, recurring_run_id: str) -> dict:
+    def delete_recurring_run(
+        self,
+        recurring_run_id: str,
+        propagation_policy: Optional[str] = None,
+    ) -> dict:
         """Deletes a recurring run.
 
         Args:
             recurring_run_id: ID of the recurring_run.
+            propagation_policy: Propagation policy for deleting the recurring
+                run's ScheduledWorkflow. One of 'FOREGROUND', 'BACKGROUND', or
+                'ORPHAN'. FOREGROUND waits for children to be deleted first.
+                BACKGROUND deletes immediately, children are deleted async.
+                ORPHAN deletes the parent but leaves children running.
 
         Returns:
             Empty dictionary.
         """
         return self._recurring_run_api.recurring_run_service_delete_recurring_run(
-            recurring_run_id=recurring_run_id)
+            recurring_run_id=recurring_run_id,
+            propagation_policy=propagation_policy,
+        )
 
     def disable_job(self, job_id: str) -> dict:
         """Disables a job (recurring run).
