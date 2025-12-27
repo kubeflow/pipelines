@@ -52,7 +52,7 @@ class TestRecurringRunServiceApi(unittest.TestCase):
     def test_recurring_run_service_enable_recurring_run(self):
         """Test case for recurring_run_service_enable_recurring_run
 
-        Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.  # noqa: E501
+        Restarts a recurring run that was previously stopped. All runs associated with the recurring run will continue.  # noqa: E501
         """
         pass
 
@@ -66,7 +66,7 @@ class TestRecurringRunServiceApi(unittest.TestCase):
     def test_recurring_run_service_list_recurring_runs(self):
         """Test case for recurring_run_service_list_recurring_runs
 
-        Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
+        Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
         """
         pass
 
