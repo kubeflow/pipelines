@@ -273,6 +273,7 @@ export class Apis {
 
   /**
    * Reads file from storage using server.
+   * @deprecated Use readArtifactFromBackend() for secure artifact access with proper authorization.
    */
   public static readFile({
     path,
@@ -287,6 +288,69 @@ export class Apis {
   }): Promise<string> {
     let query = this.buildReadFileUrl({ path, namespace, providerInfo, peek, isDownload: false });
     return this._fetch(query);
+  }
+
+  /**
+   * Reads an artifact from the backend API server with proper authorization.
+   * This is the secure way to read artifacts as it goes through the backend's
+   * authorization layer which validates namespace access via Kubernetes RBAC.
+   *
+   * @param runId The ID of the pipeline run
+   * @param nodeId The ID of the node (task) that produced the artifact
+   * @param artifactName The name of the artifact to read
+   * @returns The artifact content as a string (decoded from base64)
+   */
+  public static async readArtifactFromBackend(
+    runId: string,
+    nodeId: string,
+    artifactName: string,
+  ): Promise<string> {
+    const response = await this._fetchAndParse<{ data?: string }>(
+      `/runs/${encodeURIComponent(runId)}/nodes/${encodeURIComponent(
+        nodeId,
+      )}/artifacts/${encodeURIComponent(artifactName)}:read`,
+      v2beta1Prefix,
+    );
+
+    if (response.data) {
+      try {
+        return atob(response.data);
+      } catch (error) {
+        return response.data;
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Reads an artifact as binary data from the backend API server with proper authorization.
+   * Use this for binary artifacts that should not be decoded as text.
+   *
+   * @param runId The ID of the pipeline run
+   * @param nodeId The ID of the node (task) that produced the artifact
+   * @param artifactName The name of the artifact to read
+   * @returns The artifact content as a Uint8Array
+   */
+  public static async readArtifactFromBackendAsBytes(
+    runId: string,
+    nodeId: string,
+    artifactName: string,
+  ): Promise<Uint8Array> {
+    const response = await this._fetchAndParse<{ data?: string }>(
+      `/runs/${encodeURIComponent(runId)}/nodes/${encodeURIComponent(
+        nodeId,
+      )}/artifacts/${encodeURIComponent(artifactName)}:read`,
+      v2beta1Prefix,
+    );
+    if (response.data) {
+      const binaryString = atob(response.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes;
+    }
+    return new Uint8Array(0);
   }
 
   /**

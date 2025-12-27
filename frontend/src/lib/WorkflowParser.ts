@@ -403,7 +403,7 @@ export default class WorkflowParser {
         source: StorageService.VOLUME,
       };
     } else {
-      throw new Error('Unsupported storage path: ' + strPath);
+      throw new Error('Unable to retrieve storage path from artifact URI: ' + strPath);
     }
   }
 
