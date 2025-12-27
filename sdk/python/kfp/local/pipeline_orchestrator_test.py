@@ -915,15 +915,15 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         @dsl.component
         def process(data: Input[Dataset]) -> str:
-            return "done"
+            return 'done'
 
         @dsl.pipeline
         def my_pipeline(input_data: Dataset) -> str:
             return process(data=input_data).output
 
         # Direct invocation with artifact input
-        result = my_pipeline(input_data=Dataset(uri="gs://bucket/data"))
-        self.assertEqual(result, "done")
+        result = my_pipeline(input_data=Dataset(uri='gs://bucket/data'))
+        self.assertEqual(result, 'done')
 
     def test_pipeline_with_artifact_input_validation(self):
         """Test that passing non-Artifact values to artifact inputs raises TypeError."""
@@ -933,7 +933,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         @dsl.component
         def process(data: Input[Dataset]) -> str:
-            return "done"
+            return 'done'
 
         @dsl.pipeline
         def my_pipeline(input_data: Dataset) -> str:
@@ -943,7 +943,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         with self.assertRaisesRegex(
                 TypeError,
                 r"Pipeline argument 'input_data' must be an Artifact instance"):
-            my_pipeline(input_data="gs://bucket/data")
+            my_pipeline(input_data='gs://bucket/data')
 
     def test_pipeline_with_optional_artifact_input(self):
         """Test pipeline with optional artifact input that is not provided."""
@@ -955,8 +955,8 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         def conditional_process(
                 data: Input[Dataset] = None, use_data: bool = False) -> str:
             if use_data and data:
-                return f"processed: {data.uri}"
-            return "skipped"
+                return f'processed: {data.uri}'
+            return 'skipped'
 
         @dsl.pipeline
         def my_pipeline(input_data: Dataset = None) -> str:
@@ -966,12 +966,12 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         # Invoke without providing the optional artifact
         result = my_pipeline()
-        self.assertEqual(result, "skipped")
+        self.assertEqual(result, 'skipped')
 
         # Invoke with the optional artifact provided
         result_with_data = my_pipeline(
-            input_data=Dataset(uri="gs://bucket/data"))
-        self.assertEqual(result_with_data, "processed: gs://bucket/data")
+            input_data=Dataset(uri='gs://bucket/data'))
+        self.assertEqual(result_with_data, 'processed: gs://bucket/data')
 
     def test_pipeline_with_multiple_artifact_inputs(self):
         """Test pipeline with multiple artifact inputs."""
@@ -981,16 +981,16 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         @dsl.component
         def merge_data(data1: Input[Dataset], data2: Input[Dataset]) -> str:
-            return f"{data1.uri}+{data2.uri}"
+            return f'{data1.uri}+{data2.uri}'
 
         @dsl.pipeline
         def my_pipeline(input1: Dataset, input2: Dataset) -> str:
             return merge_data(data1=input1, data2=input2).output
 
         result = my_pipeline(
-            input1=Dataset(uri="gs://bucket/data1"),
-            input2=Dataset(uri="gs://bucket/data2"))
-        self.assertEqual(result, "gs://bucket/data1+gs://bucket/data2")
+            input1=Dataset(uri='gs://bucket/data1'),
+            input2=Dataset(uri='gs://bucket/data2'))
+        self.assertEqual(result, 'gs://bucket/data1+gs://bucket/data2')
 
     def test_pipeline_with_mixed_inputs(self):
         """Test pipeline with both artifact and parameter inputs."""
@@ -1001,7 +1001,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         @dsl.component
         def process_with_config(
                 data: Input[Dataset], config: str, batch_size: int) -> str:
-            return f"{config}:{batch_size}:{data.uri}"
+            return f'{config}:{batch_size}:{data.uri}'
 
         @dsl.pipeline
         def my_pipeline(
@@ -1010,10 +1010,10 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 data=input_data, config=config_str, batch_size=batch).output
 
         result = my_pipeline(
-            input_data=Dataset(uri="gs://bucket/data"),
-            config_str="production",
+            input_data=Dataset(uri='gs://bucket/data'),
+            config_str='production',
             batch=64)
-        self.assertEqual(result, "production:64:gs://bucket/data")
+        self.assertEqual(result, 'production:64:gs://bucket/data')
 
     def test_pipeline_with_model_artifact(self):
         """Test pipeline with Model artifact instead of Dataset."""
@@ -1023,14 +1023,14 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         @dsl.component
         def deploy_model(model: Input[Model]) -> str:
-            return f"deployed:{model.uri}"
+            return f'deployed:{model.uri}'
 
         @dsl.pipeline
         def my_pipeline(trained_model: Model) -> str:
             return deploy_model(model=trained_model).output
 
-        result = my_pipeline(trained_model=Model(uri="gs://models/my_model"))
-        self.assertEqual(result, "deployed:gs://models/my_model")
+        result = my_pipeline(trained_model=Model(uri='gs://models/my_model'))
+        self.assertEqual(result, 'deployed:gs://models/my_model')
 
     def test_workspace_functionality(self):
         import tempfile
