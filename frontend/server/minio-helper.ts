@@ -42,6 +42,44 @@ export interface Credentials {
   sessionToken?: string;
 }
 
+/** Default secret name for namespace-specific object storage credentials */
+const DEFAULT_NAMESPACE_SECRET_NAME = 'mlpipeline-minio-artifact';
+
+/**
+ * Fetches MinIO/S3 credentials from a namespace-specific Kubernetes secret.
+ * This ensures credential isolation in multi-user deployments where each
+ * namespace should have its own storage credentials.
+ *
+ * Security: This addresses the credential isolation vulnerability described in
+ * https://github.com/kubeflow/pipelines/issues/12373 where global admin
+ * credentials were used for all users instead of per-namespace credentials.
+ *
+ * @param namespace The user's namespace to fetch credentials from
+ * @param secretName Name of the secret containing credentials (default: mlpipeline-minio-artifact)
+ * @returns MinIO credentials or undefined if not found/error
+ */
+export async function getNamespaceCredentials(
+  namespace: string,
+  secretName: string = DEFAULT_NAMESPACE_SECRET_NAME,
+): Promise<{ accessKey: string; secretKey: string } | undefined> {
+  try {
+    const accessKey = await getK8sSecret(secretName, 'accesskey', namespace);
+    const secretKey = await getK8sSecret(secretName, 'secretkey', namespace);
+    if (accessKey && secretKey) {
+      console.log(
+        `[CREDENTIALS] Using namespace-specific credentials from ${namespace}/${secretName}`,
+      );
+      return { accessKey, secretKey };
+    }
+    console.warn(`[CREDENTIALS] Incomplete credentials in ${namespace}/${secretName}`);
+  } catch (error) {
+    console.warn(
+      `[CREDENTIALS] Failed to get namespace credentials from ${namespace}/${secretName}: ${err}`,
+    );
+  }
+  return undefined;
+}
+
 /**
  * Create minio client for s3 compatible storage
  *
@@ -55,10 +93,18 @@ export interface Credentials {
  * (defaultConfigs or ProviderInfo), and return a minio client configured
  * respectively.
  *
+ * Security: When useNamespaceCredentials is true and a namespace is provided,
+ * this function will first try to fetch credentials from a namespace-specific
+ * secret. This ensures credential isolation in multi-user deployments.
+ * See: https://github.com/kubeflow/pipelines/issues/12373
+ *
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')
  * @param providerInfoString
  * @param namespace
+ * @param useNamespaceCredentials When true, attempt to fetch credentials from namespace-specific secret
+ *        for multi-user credential isolation. Defaults to false for backward compatibility.
+ * @param namespaceSecretName Name of the secret in the namespace containing credentials
  * @param customCredentialProvider An optional function which can be added to resolve credentials from a non-standard source. Useful
  * for enterprises who may have bespoke credential retrieval processes or for refreshing short-lived tokens.
  */
@@ -67,6 +113,8 @@ export async function createMinioClient(
   providerType: string,
   providerInfoString?: string,
   namespace?: string,
+  useNamespaceCredentials: boolean = false,
+  namespaceSecretName?: string,
   customCredentialProvider?: () => Promise<Credentials> | Credentials,
 ) {
   if (customCredentialProvider) {
@@ -88,6 +136,22 @@ export async function createMinioClient(
     } catch (error) {
       console.error('Custom credential resolver failed:', error);
       console.warn('Falling back to default credential resolution chain');
+    }
+  }
+
+  if (useNamespaceCredentials && namespace && !providerInfoString) {
+    const namespaceCredentials = await getNamespaceCredentials(namespace, namespaceSecretName);
+    if (namespaceCreds) {
+      config = {
+        ...config,
+        accessKey: namespaceCreds.accessKey,
+        secretKey: namespaceCreds.secretKey,
+      };
+    } else {
+      console.warn(
+        `[CREDENTIALS] No namespace-specific credentials found for ${namespace}, ` +
+          `falling back to default credentials. This may allow cross-namespace access.`,
+      );
     }
   }
 
