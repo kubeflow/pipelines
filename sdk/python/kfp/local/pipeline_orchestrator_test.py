@@ -1113,7 +1113,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         with self.assertRaisesRegex(
                 TypeError,
-                r"must be an Artifact instance"):
+                r'must be an Artifact instance'):
             my_pipeline(input_data=None)
 
     def test_pipeline_with_empty_string_artifact(self):
@@ -1131,7 +1131,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         with self.assertRaisesRegex(
                 TypeError,
-                r"must be an Artifact instance"):
+                r'must be an Artifact instance'):
             my_pipeline(input_data='')
 
     def test_pipeline_with_long_uri_artifact(self):
@@ -1237,7 +1237,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r"URI cannot contain path traversal sequences"):
+                r'URI cannot contain path traversal sequences'):
             my_pipeline(input_data=Dataset(uri='gs://bucket/../sensitive/data'))
 
     def test_workspace_functionality(self):
