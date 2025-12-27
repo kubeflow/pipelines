@@ -908,7 +908,6 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertEqual(task.output, 'foo-bar-baz')
 
     def test_pipeline_with_artifact_input(self):
-        """Test for issue #12555: Pipelines with artifact inputs should be invocable directly."""
         local.init(
             runner=local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING)
@@ -926,7 +925,6 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertEqual(result, 'done')
 
     def test_pipeline_with_artifact_input_validation(self):
-        """Test that passing non-Artifact values to artifact inputs raises TypeError."""
         local.init(
             runner=local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING)
@@ -946,7 +944,6 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             my_pipeline(input_data='gs://bucket/data')
 
     def test_pipeline_with_optional_artifact_input(self):
-        """Test pipeline with optional artifact input that is not provided."""
         local.init(
             runner=local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING)
@@ -974,7 +971,6 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertEqual(result_with_data, 'processed: gs://bucket/data')
 
     def test_pipeline_with_multiple_artifact_inputs(self):
-        """Test pipeline with multiple artifact inputs."""
         local.init(
             runner=local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING)
@@ -993,7 +989,6 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertEqual(result, 'gs://bucket/data1+gs://bucket/data2')
 
     def test_pipeline_with_mixed_inputs(self):
-        """Test pipeline with both artifact and parameter inputs."""
         local.init(
             runner=local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING)
@@ -1017,7 +1012,6 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertEqual(result, 'production:64:gs://bucket/data')
 
     def test_pipeline_with_model_artifact(self):
-        """Test pipeline with Model artifact instead of Dataset."""
         local.init(
             runner=local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING)
