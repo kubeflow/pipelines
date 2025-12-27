@@ -11,7 +11,7 @@
     "form-data": "^2.5.4",
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^2.0.7",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "lodash": ">=4.17.21",
     "minio": "~8.0.3",
     "node-fetch": "2.6.7",
