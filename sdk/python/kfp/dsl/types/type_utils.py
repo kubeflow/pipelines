@@ -271,9 +271,7 @@ def _get_type_string_from_component_argument(
         return _TYPE_TO_TYPE_NAME[argument_type]
 
     if isinstance(argument_value, artifact_types.Artifact):
-        raise ValueError(
-            f'Input artifacts are not supported. Got input artifact of type {argument_value.__class__.__name__!r}.'
-        )
+        return f'{argument_value.schema_title}@{argument_value.schema_version}'
     raise ValueError(
         f'Constant argument inputs must be one of type {list(_TYPE_TO_TYPE_NAME.values())} Got: {argument_value!r} of type {type(argument_value)!r}.'
     )
@@ -320,7 +318,10 @@ def verify_type_compatibility(
         given_type = get_parameter_type_name(given_type)
         given_is_artifact_list = False
     else:
-        given_is_artifact_list = given_value.is_artifact_list
+        if isinstance(given_value, artifact_types.Artifact):
+            given_is_artifact_list = False
+        else:
+            given_is_artifact_list = given_value.is_artifact_list
 
     expected_is_param = is_parameter_type(expected_type)
     if expected_is_param:
