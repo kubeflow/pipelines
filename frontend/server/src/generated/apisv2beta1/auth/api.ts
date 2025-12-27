@@ -30,12 +30,22 @@ export const COLLECTION_FORMATS = {
 };
 
 /**
+ * Fetch API Response interface
+ * @export
+ * @interface FetchResponse
+ */
+export interface FetchResponse {
+  status: number;
+  json(): Promise<any>;
+}
+
+/**
  *
  * @export
  * @interface FetchAPI
  */
 export interface FetchAPI {
-  (url: string, init?: any): Promise<Response>;
+  (url: string, init?: any): Promise<FetchResponse>;
 }
 
 /**
