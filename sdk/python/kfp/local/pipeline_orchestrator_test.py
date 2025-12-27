@@ -1026,6 +1026,220 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         task = my_pipeline(trained_model=Model(uri='gs://models/my_model'))
         self.assertEqual(task.output, 'deployed:gs://models/my_model')
 
+    def test_pipeline_with_metrics_artifact(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def analyze_metrics(metrics: Input[Metrics]) -> str:
+            return f'analyzed:{metrics.uri}'
+
+        @dsl.pipeline
+        def my_pipeline(input_metrics: Metrics) -> str:
+            return analyze_metrics(metrics=input_metrics).output
+
+        task = my_pipeline(input_metrics=Metrics(uri='gs://bucket/metrics'))
+        self.assertEqual(task.output, 'analyzed:gs://bucket/metrics')
+
+    def test_pipeline_with_artifact_metadata_preserved(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def check_metadata(data: Input[Dataset]) -> str:
+            version = data.metadata.get('version', 'none')
+            return f'version:{version}'
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return check_metadata(data=input_data).output
+
+        artifact = Dataset(
+            uri='gs://bucket/data',
+            metadata={'version': '1.0', 'author': 'test'})
+        task = my_pipeline(input_data=artifact)
+        self.assertEqual(task.output, 'version:1.0')
+
+    def test_nested_pipeline_with_artifact_input(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process(data: Input[Dataset]) -> str:
+            return f'processed:{data.uri}'
+
+        @dsl.pipeline
+        def inner_pipeline(data: Dataset) -> str:
+            return process(data=data).output
+
+        @dsl.pipeline
+        def outer_pipeline(input_data: Dataset) -> str:
+            return inner_pipeline(data=input_data).output
+
+        task = outer_pipeline(input_data=Dataset(uri='gs://bucket/data'))
+        self.assertEqual(task.output, 'processed:gs://bucket/data')
+
+    def test_pipeline_with_custom_artifact_type(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process_custom(artifact: Input[Artifact]) -> str:
+            return f'custom:{artifact.uri}'
+
+        @dsl.pipeline
+        def my_pipeline(input_artifact: Artifact) -> str:
+            return process_custom(artifact=input_artifact).output
+
+        task = my_pipeline(input_artifact=Artifact(uri='gs://bucket/custom'))
+        self.assertEqual(task.output, 'custom:gs://bucket/custom')
+
+    def test_pipeline_with_none_artifact(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process(data: Input[Dataset]) -> str:
+            return 'done'
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return process(data=input_data).output
+
+        with self.assertRaisesRegex(
+                TypeError,
+                r"must be an Artifact instance"):
+            my_pipeline(input_data=None)
+
+    def test_pipeline_with_empty_string_artifact(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process(data: Input[Dataset]) -> str:
+            return 'done'
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return process(data=input_data).output
+
+        with self.assertRaisesRegex(
+                TypeError,
+                r"must be an Artifact instance"):
+            my_pipeline(input_data='')
+
+    def test_pipeline_with_long_uri_artifact(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process(data: Input[Dataset]) -> str:
+            return f'length:{len(data.uri)}'
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return process(data=input_data).output
+
+        long_uri = 'gs://bucket/' + 'a' * 2000
+        task = my_pipeline(input_data=Dataset(uri=long_uri))
+        self.assertEqual(task.output, f'length:{len(long_uri)}')
+
+    def test_pipeline_with_special_chars_in_metadata(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def check_metadata(data: Input[Dataset]) -> str:
+            name = data.metadata.get('name', '')
+            return f'name:{name}'
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return check_metadata(data=input_data).output
+
+        artifact = Dataset(
+            uri='gs://bucket/data',
+            metadata={'name': 'test-data_v1.0 (final)'})
+        task = my_pipeline(input_data=artifact)
+        self.assertEqual(task.output, 'name:test-data_v1.0 (final)')
+
+    def test_pipeline_with_unicode_in_metadata(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def check_metadata(data: Input[Dataset]) -> str:
+            desc = data.metadata.get('description', '')
+            return f'desc:{desc}'
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return check_metadata(data=input_data).output
+
+        artifact = Dataset(
+            uri='gs://bucket/data',
+            metadata={'description': 'データ 数据 données'})
+        task = my_pipeline(input_data=artifact)
+        self.assertEqual(task.output, 'desc:データ 数据 données')
+
+    def test_pipeline_with_many_artifacts(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process_many(
+                a1: Input[Dataset],
+                a2: Input[Dataset],
+                a3: Input[Dataset],
+                a4: Input[Dataset],
+                a5: Input[Dataset]) -> str:
+            return 'processed:5'
+
+        @dsl.pipeline
+        def my_pipeline(
+                d1: Dataset,
+                d2: Dataset,
+                d3: Dataset,
+                d4: Dataset,
+                d5: Dataset) -> str:
+            return process_many(a1=d1, a2=d2, a3=d3, a4=d4, a5=d5).output
+
+        task = my_pipeline(
+            d1=Dataset(uri='gs://bucket/1'),
+            d2=Dataset(uri='gs://bucket/2'),
+            d3=Dataset(uri='gs://bucket/3'),
+            d4=Dataset(uri='gs://bucket/4'),
+            d5=Dataset(uri='gs://bucket/5'))
+        self.assertEqual(task.output, 'processed:5')
+
+    def test_pipeline_artifact_path_traversal_blocked(self):
+        local.init(
+            runner=local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def process(data: Input[Dataset]) -> str:
+            return 'done'
+
+        @dsl.pipeline
+        def my_pipeline(input_data: Dataset) -> str:
+            return process(data=input_data).output
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"URI cannot contain path traversal sequences"):
+            my_pipeline(input_data=Dataset(uri='gs://bucket/../sensitive/data'))
+
     def test_workspace_functionality(self):
         import tempfile
 
