@@ -23,7 +23,7 @@ runs:
       shell: bash
       working-directory: backend/api/v2beta1/python_http_client
       run: |
-        rm -rf build/ dist/
+        rm -rf build/ dist/ || true
         python -m build .
         pip install dist/*.whl
 
@@ -32,7 +32,7 @@ runs:
       shell: bash
       working-directory: sdk/python
       run: |
-        rm -rf build/ dist/
+        rm -rf build/ dist/ || true
         python -m build .
         pip install dist/*.whl
 
