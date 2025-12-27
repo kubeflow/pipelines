@@ -77,15 +77,21 @@ export interface GCSProviderInfo {
 
 /**
  * Returns an authorization middleware for artifact endpoints.
- * This middleware handles 2 modes:
+ * This middleware handles 3 modes:
  *
  * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
- *    Auth disabled - no namespace parameter required, no authorization checks.
+ *    No namespace parameter, no Subject Access Review, 100% insecure.
  *
- * 2. Multi-tenant deployment of KFP within Kubeflow platform (auth enabled):
- *    Namespace parameter is REQUIRED. Authorization is performed via Subject
- *    Access Review. Based on ARTIFACTS_SERVICE_PROXY_ENABLED setting, requests
- *    are either routed through the artifact proxy or go directly to storage.
+ * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
+ *    Namespace parameter provided, validate format and check RBAC (the user
+ *    is authenticated to access the artifact from the specific namespace
+ *    folder on the object storage via Subject Access Review) and access
+ *    SeaweedFS/storage directly.
+ *
+ * 3. Artifact PROXY MODE (overhead, disabled by default):
+ *    Namespace parameter provided, validate format and check RBAC, adds
+ *    significant overhead to each namespace, decreases scalability and is
+ *    prone to many CVEs in the artifact proxy deployment.
  *
  * Security: This addresses the vulnerability where the namespace parameter
  * could be manipulated to access artifacts from other namespaces.

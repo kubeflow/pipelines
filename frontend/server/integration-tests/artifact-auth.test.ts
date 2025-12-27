@@ -35,7 +35,7 @@ describe('/artifacts authorization', () => {
 
   beforeEach(() => {
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function () {
+    mockedMinioClient.mockImplementation(function() {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
