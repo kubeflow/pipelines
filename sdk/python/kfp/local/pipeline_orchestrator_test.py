@@ -966,8 +966,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertEqual(task.output, 'skipped')
 
         # Invoke with the optional artifact provided
-        task_with_data = my_pipeline(
-            input_data=Dataset(uri='gs://bucket/data'))
+        task_with_data = my_pipeline(input_data=Dataset(uri='gs://bucket/data'))
         self.assertEqual(task_with_data.output, 'processed: gs://bucket/data')
 
     def test_pipeline_with_multiple_artifact_inputs(self):
