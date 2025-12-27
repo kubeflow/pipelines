@@ -127,7 +127,8 @@ class PipelineTask:
                     raise ValueError(
                         f'Input artifacts are not supported for {component_type}s. '
                         f'Got input artifact of type {argument_value.__class__.__name__!r}. '
-                        f'Artifact inputs are only supported for pipelines during local execution.')
+                        f'Artifact inputs are only supported for pipelines during local execution.'
+                    )
 
             type_utils.verify_type_compatibility(
                 given_value=argument_value,

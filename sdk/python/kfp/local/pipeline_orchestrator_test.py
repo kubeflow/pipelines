@@ -1058,7 +1058,10 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         artifact = Dataset(
             uri='gs://bucket/data',
-            metadata={'version': '1.0', 'author': 'test'})
+            metadata={
+                'version': '1.0',
+                'author': 'test'
+            })
         task = my_pipeline(input_data=artifact)
         self.assertEqual(task.output, 'version:1.0')
 
@@ -1111,9 +1114,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         def my_pipeline(input_data: Dataset) -> str:
             return process(data=input_data).output
 
-        with self.assertRaisesRegex(
-                TypeError,
-                r'must be an Artifact instance'):
+        with self.assertRaisesRegex(TypeError, r'must be an Artifact instance'):
             my_pipeline(input_data=None)
 
     def test_pipeline_with_empty_string_artifact(self):
@@ -1129,9 +1130,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         def my_pipeline(input_data: Dataset) -> str:
             return process(data=input_data).output
 
-        with self.assertRaisesRegex(
-                TypeError,
-                r'must be an Artifact instance'):
+        with self.assertRaisesRegex(TypeError, r'must be an Artifact instance'):
             my_pipeline(input_data='')
 
     def test_pipeline_with_long_uri_artifact(self):
@@ -1166,8 +1165,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             return check_metadata(data=input_data).output
 
         artifact = Dataset(
-            uri='gs://bucket/data',
-            metadata={'name': 'test-data_v1.0 (final)'})
+            uri='gs://bucket/data', metadata={'name': 'test-data_v1.0 (final)'})
         task = my_pipeline(input_data=artifact)
         self.assertEqual(task.output, 'name:test-data_v1.0 (final)')
 
@@ -1186,8 +1184,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             return check_metadata(data=input_data).output
 
         artifact = Dataset(
-            uri='gs://bucket/data',
-            metadata={'description': 'データ 数据 données'})
+            uri='gs://bucket/data', metadata={'description': 'データ 数据 données'})
         task = my_pipeline(input_data=artifact)
         self.assertEqual(task.output, 'desc:データ 数据 données')
 
@@ -1197,21 +1194,14 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
-        def process_many(
-                a1: Input[Dataset],
-                a2: Input[Dataset],
-                a3: Input[Dataset],
-                a4: Input[Dataset],
-                a5: Input[Dataset]) -> str:
+        def process_many(a1: Input[Dataset], a2: Input[Dataset],
+                         a3: Input[Dataset], a4: Input[Dataset],
+                         a5: Input[Dataset]) -> str:
             return 'processed:5'
 
         @dsl.pipeline
-        def my_pipeline(
-                d1: Dataset,
-                d2: Dataset,
-                d3: Dataset,
-                d4: Dataset,
-                d5: Dataset) -> str:
+        def my_pipeline(d1: Dataset, d2: Dataset, d3: Dataset, d4: Dataset,
+                        d5: Dataset) -> str:
             return process_many(a1=d1, a2=d2, a3=d3, a4=d4, a5=d5).output
 
         task = my_pipeline(
@@ -1236,8 +1226,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             return process(data=input_data).output
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'URI cannot contain path traversal sequences'):
+                ValueError, r'URI cannot contain path traversal sequences'):
             my_pipeline(input_data=Dataset(uri='gs://bucket/../sensitive/data'))
 
     def test_workspace_functionality(self):
