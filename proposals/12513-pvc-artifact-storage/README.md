@@ -78,20 +78,25 @@ Note: per-namespace overrides can choose filesystem storage (dedicated artifact 
 
 ### High-Level Flow
 
-At a high level:
+This proposal introduces a filesystem artifact backend **shared-by-default**, with **optional per-namespace overrides**.
 
-- The Driver detects `kfp-artifacts://` and ensures artifact operations are routed through the artifact server.
-- Pipeline pods upload/download artifacts via artifact server APIs (pipeline pods never mount PVCs directly).
-- The artifact server performs filesystem reads/writes on the mounted PVC, and UI/API clients fetch artifacts through KFP.
+#### Inputs → Behavior
 
-### Key Components
+| Input                                             | Outcome                                                                                |
+|---------------------------------------------------|----------------------------------------------------------------------------------------|
+| `defaultPipelineRoot` scheme                      | `kfp-artifacts://` → filesystem via artifact APIs; other schemes unchanged             |
+| Namespace `artifactServer.dedicated` (filesystem) | `false` → shared; `true` → dedicated + PVC                                             |
+| `ObjectStoreConfig.ArtifactServer.WorkloadKind`   | `deployment` or `daemonset` (`daemonset` ⇒ `internalTrafficPolicy: Local`)             |
 
-- **Storage**: Kubernetes `PersistentVolumeClaims` (shared PVC by default; optional per-namespace PVCs for dedicated servers)
-- **URI Format**: `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>`
-- **API Changes**: New `/filesystem-storage/config` endpoint for UI configuration discovery
-- **Deployment model**:
-  - **Default**: A shared artifact server serves all namespaces
-  - **Optional per-namespace isolation**: Individual namespaces can be configured to use a dedicated artifact server and PVC
+#### Component Responsibilities
+
+| Component       | Responsibility (filesystem backend only)                                              |
+|-----------------|---------------------------------------------------------------------------------------|
+| Compiler        | Enable artifact API mode for `kfp-artifacts://`                                       |
+| Driver          | Validate artifact infrastructure exists for the namespace                             |
+| Launcher        | Upload/download artifacts via artifact server APIs                                    |
+| Artifact server | Mount PVC, perform filesystem I/O, authorize via `SubjectAccessReview`                |
+| UI/API          | Discover routing via `/apis/v2beta1/filesystem-storage/config` and fetch artifacts    |
 
 ## Motivation
 
@@ -115,9 +120,9 @@ Many enterprises and Kubeflow distributions prefer not to have additional extern
 
 When configured for per-namespace isolation, a namespace gets its own dedicated artifact server and PVC. This provides:
 
-- **Storage isolation**: Each team's artifacts are physically separated in their own PVC
-- **Independent scaling**: Teams can scale their artifact server horizontally and size their PVC based on workload requirements
-- **Per-namespace quotas**: Kubernetes `ResourceQuotas` can enforce storage limits per team
+- **Storage isolation**: artifacts are physically separated per namespace
+- **Independent scaling**: teams can size/scale dedicated artifact servers independently
+- **Per-namespace quotas**: enforceable outside of KFP (for example via Kubernetes `ResourceQuotas`)
 
 Scaling options for the artifact server include running it as a standard Kubernetes Deployment (default, scale by replicas) or as a DaemonSet via `ObjectStoreConfig.ArtifactServer.WorkloadKind: "daemonset"` (one pod per node, intended for `ReadWriteMany` (RWX) or node-local storage; see Artifact Server Architecture).
 
@@ -127,12 +132,7 @@ This design enables future work on running full KFP locally without a Kubernetes
 
 ### Additional Use Cases
 
-In some environments, organizations may prefer to use existing Kubernetes storage infrastructure without additional services.
-
-By providing PVC-based storage as an alternative, we:
-
-- Offer a KFP-native artifact storage option (no separate storage system)
-- Enable portability between different storage backends for pipelines using KFP's artifact APIs
+PVC-based storage provides a KFP-native artifact backend option (no separate object storage system) and keeps pipeline definitions portable as long as they rely on KFP-managed artifact passing.
 
 **When to use filesystem storage:**
 
@@ -271,23 +271,7 @@ There are three related but distinct formats:
 | **API Endpoint**         | `/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read`     | `/apis/v2beta1/runs/abc123/nodes/step1/artifacts/output:read` |
 | **Filesystem Path**      | `<mount_path>/<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>`    | `/artifacts/team-a/my-pipeline/abc123/step1/output`           |
 
-**Why the API endpoint doesn't include namespace/pipeline:**
-
-The API endpoint only requires `run_id`, `node_id`, and `artifact_name`. The server resolves the full filesystem path by looking up the run's metadata from the database (which contains the namespace and pipeline name). This matches the existing artifact server behavior for S3/GCS.
-
-**How the Launcher uses the URI:**
-
-1. Launcher receives artifact URI: `kfp-artifacts://team-a/my-pipeline/abc123/step1/output`
-2. Extracts `run_id=abc123`, `node_id=step1`, `artifact_name=output`
-3. If the namespace is configured to use a dedicated artifact server, extracts `namespace=team-a` to route to the correct service
-4. Makes API call: `GET http://ml-pipeline-artifact-server.team-a.svc:8080/apis/v2beta1/runs/abc123/nodes/step1/artifacts/output:read`
-
-This approach provides several benefits:
-
-1. **Abstraction**: Clients don't need to know the underlying storage backend
-2. **Security**: All artifact access goes through KFP's authorization layer  
-3. **Scalability**: Artifact serving can be scaled independently
-4. **Flexibility**: Storage backend can be changed without client modifications
+The API endpoint only needs `run_id`, `node_id`, and `artifact_name`; the server derives the filesystem path from run metadata (namespace + pipeline name), consistent with existing behavior for object storage backends. The namespace segment in the URI is also used for routing when a namespace opts into a dedicated artifact server.
 
 ### Artifact Server Architecture
 
@@ -338,52 +322,18 @@ Configure the namespace `kfp-launcher` ConfigMap to:
 - set `defaultPipelineRoot` to `kfp-artifacts://<namespace>`, and
 - set `artifactServer.dedicated: true` (within the `artifactServer` YAML value) to opt the namespace into a dedicated artifact server + PVC.
 
-The `artifactServer` value mirrors the global `ObjectStoreConfig.ArtifactServer` structure, allowing consistent patterns across global and per-namespace settings.
-
-This enables scenarios where:
-
-- Most namespaces use the shared artifact server (default)
-- Specific namespaces requiring strict isolation use dedicated namespace-local artifact servers
-- Teams can be migrated between modes without cluster-wide changes
+The `artifactServer` value mirrors the global `ObjectStoreConfig.ArtifactServer` structure.
 
 #### Request Routing
 
 Artifact URIs are resolved based on whether a namespace has opted into a dedicated artifact server via its `kfp-launcher` ConfigMap:
 
-**Default (shared artifact server):**
+Routing rules:
 
-```text
-Client
-  │
-  │ GET kfp-artifacts://<namespace>/...
-  ▼
-KFP API Server (shared)
-  │
-  │ Authorization check (SubjectAccessReview)
-  ▼
-Serve from /artifacts/<namespace>/...
-```
+- **Shared default**: serve via shared artifact server.
+- **Dedicated override**: for namespaces with `artifactServer.dedicated: true`, route to the namespace-local artifact server service.
 
-**Dedicated per-namespace artifact server:**
-
-```text
-Client
-  │
-  │ GET kfp-artifacts://<namespace>/...
-  ▼
-Resolve to ml-pipeline-artifact-server.<namespace>.svc
-  │
-  │ Direct connection to namespace server
-  ▼
-Serve from /artifacts/<namespace>/...
-```
-
-**Note on Path Structure**: The dedicated per-namespace setup intentionally includes `<namespace>` in the filesystem path even though each namespace has its own dedicated PVC. This design decision provides:
-
-- **Consistent path generation logic** across both the default shared setup and the dedicated per-namespace setup - no conditional logic needed
-- **Simplified artifact URI handling** - the same `kfp-artifacts://<namespace>/...` format works everywhere
-- **Future flexibility** - allows potential migration between modes without path restructuring
-- **Debugging clarity** - filesystem paths clearly indicate the namespace even in isolated PVCs
+**Note on Path Structure**: The dedicated per-namespace setup still includes `<namespace>` in the filesystem path to keep path/URI handling consistent across shared and dedicated setups.
 
 ##### Architecture Diagrams
 
@@ -657,19 +607,7 @@ The artifact server remains unchanged for reads and adds a new write handler.
 
 ##### Artifact Display Handling
 
-For filesystem storage, the UI's `/artifacts/get` endpoint cannot directly access PVCs. Instead, it must proxy through the artifact server. Following the existing frontend code pattern of handler functions:
-
-The UI's `/artifacts/get` endpoint needs to proxy filesystem artifacts through the artifact server API:
-The handler logic adds a filesystem backend case that proxies to the artifact server read endpoint, and the UI converts `kfp-artifacts://` URIs into the existing `/artifacts/get` proxy request format.
-
-From the user's perspective, artifact handling remains unchanged:
-
-- Click on artifact links in the UI to view/download
-- Artifact preview works for common formats (text, images, etc.)
-- Download button saves artifacts to local machine
-- No visible difference between storage backends
-
-The only change is that artifact URIs in the UI will show `kfp-artifacts://` instead of `s3://` or `gs://` when using filesystem storage, providing a clear indication of the storage backend being used.
+For filesystem storage, the UI proxies artifact reads through the artifact server read endpoint (PVCs are not directly accessible to the UI).
 
 ### PVC Management
 
@@ -691,42 +629,12 @@ Selects which `StorageClass` to use for PVC provisioning (empty string uses the 
 
 ##### Known Limitation: RWO in Multi-Node Clusters
 
-The default `ReadWriteOnce` (RWO) access mode constrains PVC mounting to a single node at a time. This creates architectural implications for the artifact server deployment that must be considered in the design.
+The default `ReadWriteOnce` (RWO) access mode constrains PVC mounting to a single node at a time.
 
-**Impact on the default shared artifact server:**
+Key implications:
 
-- With `WorkloadKind: "deployment"`, the artifact server pod(s) are constrained to run on a single node (this KEP does not implement scheduling constraints to ensure this)
-- Horizontal scaling is possible but all replicas must run on the same node (limited benefit)
-- With `WorkloadKind: "daemonset"`, RWO is not compatible in multi-node clusters because most pods will be unable to mount the PVC (DaemonSet mode requires RWX or node-local storage)
-- Node failures result in service interruption until PVC reattachment completes
-
-**Impact on dedicated per-namespace artifact servers:**
-
-- Each namespace's artifact server pod(s) must run on the same node as their PVC (this KEP does not implement pod affinity rules)
-- Horizontal scaling within a namespace is possible but confined to a single node
-- Resource scheduling becomes less flexible due to node affinity requirements
-
-**Design Considerations:**
-
-This limitation is acceptable for the initial implementation because:
-
-1. Single-node development clusters (primary target use case) are unaffected
-2. RWX-capable `StorageClasses` can be configured where high availability is required
-3. Pipeline pods remain unconstrained, maintaining scheduling flexibility for compute workloads
-
-**Scope Clarification:**
-
-This KEP accepts the RWO limitation as a reasonable trade-off for the initial implementation. The design explicitly does not attempt to work around RWO limitations through complex scheduling or node affinity rules, as this would add complexity without addressing the fundamental constraint.
-
-**Documentation Requirements:**
-
-- Installation guide must clearly state this limitation
-- Troubleshooting guide must include "volume node affinity conflict" errors
-- Configuration examples should default to RWX for multi-node clusters
-
-**Scope of this KEP**: This initial implementation targets single-node clusters and multi-node clusters with RWX storage. Full RWO support in multi-node clusters is deferred to future enhancements.
-
-**Note on DaemonSet + `internalTrafficPolicy: Local`**: If the artifact server is deployed as a DaemonSet, the PVC must be mountable by an artifact server pod on every node (RWX or node-local volumes). This is not compatible with a single shared RWO PVC in a multi-node cluster.
+- With `WorkloadKind: "daemonset"`, RWO is not compatible in multi-node clusters (DaemonSet requires RWX or node-local storage).
+- With `WorkloadKind: "deployment"`, horizontal scaling is constrained by where the PVC can be mounted.
 
 #### Storage Quota Enforcement
 
@@ -748,20 +656,7 @@ The KFP API server manages artifact infrastructure lifecycle for the shared arti
 ##### Namespace Annotation-Based Provisioning
 
 The KFP API server watches for namespaces with a specific annotation to provision artifact infrastructure. When Kubeflow Profiles are used, the Profile controller creates namespaces with the `pipelines.kubeflow.org/enabled: "true"` annotation. For standalone KFP, namespaces can be annotated directly.
-At a high level:
-
-- Watch namespaces for `pipelines.kubeflow.org/enabled: "true"`.
-- When enabled, provision the required artifact infrastructure.
-- Read the namespace `kfp-launcher` ConfigMap to determine whether `artifactServer.dedicated: true` is set.
-
-**Benefits of annotation-based approach:**
-
-- **Simple and predictable**: Explicit opt-in required, no surprises
-- **Clear boundaries**: Either a namespace has artifact infrastructure or it doesn't  
-- **Works everywhere**: Same behavior in Kubeflow and standalone
-- **Per-namespace override**: Can still read the dedicated artifact server opt-in from `kfp-launcher` ConfigMap
-
-Namespaces without the annotation cannot use filesystem storage - they must use S3-compatible storage or add the annotation first.
+For annotated namespaces, the API server provisions the required artifact infrastructure and reads the namespace `kfp-launcher` ConfigMap to determine whether `artifactServer.dedicated: true` is set.
 
 ##### API Server Implementation
 
@@ -816,15 +711,11 @@ For both the shared and dedicated setups, the API server needs:
 
 - Create `SubjectAccessReview` resources for authorization checks.
 
-This separation ensures that:
-
-- Only the KFP API server can create infrastructure (not workflow pods)
-- Drivers can only verify resources exist
-- Artifact servers can perform authorization checks but have no other Kubernetes API access
+This keeps infrastructure management in the control plane, while workflow pods only perform read-only verification.
 
 ### Multi-User Isolation and Authorization
 
-In multi-user mode, KFP enforces strict isolation and authorization using Kubernetes native mechanisms:
+In multi-user mode, KFP enforces isolation and authorization via `SubjectAccessReview` and the chosen artifact server topology (shared vs dedicated).
 
 #### Namespace Isolation
 
@@ -851,42 +742,7 @@ The approach to multi-user isolation depends on whether a namespace uses the sha
 
 #### Dedicated Per-Namespace Artifact Server Architecture
 
-With the dedicated per-namespace setup, each namespace runs its own lightweight artifact server:
-
-##### Service Discovery
-
-Each namespace's dedicated artifact server is exposed via a Service so control-plane components can reach it.
-
-##### Cross-Namespace Access Pattern
-
-Control plane components (UI, API server) in the `kubeflow` namespace need to access artifact servers in user namespaces:
-
-**Access Flow:**
-
-1. **UI determines target namespace**: Reads run metadata to identify which namespace contains the artifact
-2. **Service call**: UI calls `http://ml-pipeline-artifact-server.<namespace>.svc:8080/apis/v2beta1/...`
-3. **Authorization check**: Target namespace's artifact server performs `SubjectAccessReview`
-4. **Artifact retrieval**: If authorized, serves artifact from namespace's PVC
-
-Example: UI Accessing User Namespace Artifacts
-The UI constructs the namespace-local service URL for the artifact server and forwards the user's credentials so the target artifact server can perform a `SubjectAccessReview` before serving the artifact.
-
-##### Direct Client Access
-
-With the dedicated per-namespace setup, workflow pods connect directly to their namespace's artifact server:
-
-- Artifact URI: `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/...`
-- Resolved to: `http://ml-pipeline-artifact-server.<namespace>.svc.cluster.local:8080/...`
-- UI handles routing based on the namespace's dedicated artifact server opt-in
-
-##### Deployment Strategy
-
-1. **Proactive Provisioning**: The KFP API server watches for namespaces with `pipelines.kubeflow.org/enabled=true` annotation and creates:
-   - The artifact server Deployment
-   - The artifact server Service
-   - The namespace PVC (which only the artifact server will mount)
-2. **Lifecycle Management**: Artifact servers persist as long as the namespace exists
-3. **Resource Efficiency**: Minimal resource usage when idle (can scale to zero if configured)
+With the dedicated per-namespace setup, each namespace runs its own artifact server and mounts its own PVC; control-plane components route to the namespace-local service and requests are authorized via `SubjectAccessReview`.
 
 #### Subject Access Review Integration
 
@@ -912,46 +768,19 @@ This unified approach avoids code complexity while providing secure defaults for
 
 ### Artifact Lifecycle Management
 
-The filesystem storage backend provides basic artifact persistence similar to S3, but without advanced lifecycle features.
+Filesystem storage matches current persistence behavior (artifacts persist until explicitly deleted) but does not replicate object-storage-specific lifecycle features.
 
 #### Artifact Persistence
 
-##### S3 Behavior (current)
-
-- Artifacts uploaded after task completion
-- Persist indefinitely in object storage
-- No automatic deletion after pipeline completion
-- Available through KFP UI/API until explicitly deleted
-
-##### PVC Behavior (matching)
-
-- Artifacts saved to PVC after task completion
-- Persist indefinitely in PVC
-- No automatic deletion after pipeline completion
-- Available through KFP UI/API until explicitly deleted
+Behavior matches the current object-storage backend: artifacts are persisted and not automatically deleted on run deletion.
 
 #### Cleanup Mechanisms
 
-- **Metadata deletion**: Deleting runs/experiments through KFP UI/API removes metadata but typically leaves artifacts in storage (same as S3 behavior)
-- **Manual artifact cleanup**:
-  - S3: Can use AWS CLI, S3 console, or other S3 tools
-  - Filesystem: Requires kubectl access to exec into a pod with PVC mounted, or deletion of the entire PVC
-
-- **No automatic cleanup**: Neither S3 nor filesystem storage automatically delete artifacts when runs are deleted
-
-##### PVC Lifecycle
-
-- Created on first pipeline run in namespace
-- Persists even when empty (avoids recreation overhead)
-- Deleted only when namespace is deleted or manually removed
+- No automatic cleanup is introduced in this KEP (consistent with current behavior).
 
 #### Caching Support
 
-Artifact caching works identically:
-
-- Cached artifacts identified by hash/fingerprint
-- Stored in same PVC with cache metadata
-- Reused across pipeline runs within namespace
+Caching behavior is unchanged.
 
 #### Features Not Replicated
 
