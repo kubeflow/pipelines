@@ -511,7 +511,7 @@ GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read
 GET /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read
 ```
 
-Note: Both v1beta1 and v2beta1 endpoints are supported because both V1 and V2 pipelines will need to read artifacts via this API when using filesystem storage. Both endpoints use the same implementation. There is an open question about whether this API should be considered public or internal. See [Open Questions: External Client Support](#open-questions).
+Note: Both v1beta1 and v2beta1 endpoints are supported because both V1 and V2 pipelines will need to read artifacts via this API when using filesystem storage. Both endpoints use the same implementation. There is an open question about whether this API should be considered public or internal. See [Open Questions: External Client Support](#external-client-support).
 
 **Request Parameters:**
 
