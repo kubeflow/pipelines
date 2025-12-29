@@ -77,6 +77,13 @@ jobs:
           pip install --upgrade pip
           pip install build==${{ env.PYTHON_BUILD_PKG_VERSION }}
 
+      - name: Install Test dependencies
+        run: |
+          pip install -r sdk/python/requirements.txt
+          pip install -r sdk/python/requirements-dev.txt
+          pip install pytest
+          pip install pytest-cov
+
       - name: Build & install kfp-server-api dist
         id: install-kfp-server-api
         shell: bash
@@ -85,13 +92,6 @@ jobs:
           rm -rf dist/
           python -m build .
           pip install dist/*.whl
-
-      - name: Install Test dependencies
-        run: |
-          pip install -r sdk/python/requirements.txt
-          pip install -r sdk/python/requirements-dev.txt
-          pip install pytest
-          pip install pytest-cov
 
       - name: Run tests
         id: tests
