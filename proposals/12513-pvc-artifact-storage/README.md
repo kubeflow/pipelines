@@ -108,8 +108,8 @@ Many enterprises and Kubeflow distributions prefer not to have additional extern
 - No separate object storage project to productize and support
 - Artifact handling is part of the KFP codebase (same team, same release cycle)
 - Troubleshooting stays within the KFP domain
-- Access control leverages Kubernetes RBAC (via KFP's existing authorization mechanisms), simplifying onboarding and provisioning of new namespaces without object-store-specific credential/policy management
-- In the default shared setup, artifacts are stored under namespace-aware paths (e.g., `/artifacts/<namespace>/...`) and access is enforced through Kubernetes RBAC (via KFP authorization), providing logical namespace isolation even with shared storage
+- Access control reuses KFP's existing authorization mechanisms, avoiding object-store-specific credential/policy management
+- In the default shared setup, artifacts are stored under namespace-aware paths (e.g., `/artifacts/<namespace>/...`) and access is enforced via KFP authorization, providing logical namespace isolation even with shared storage
 
 ### Per-Namespace Isolation and Scaling
 
@@ -681,17 +681,13 @@ The PVC lifecycle is controlled by the `ObjectStoreConfig.Filesystem.PVC` config
 
 ##### StorageClass Selection (`ObjectStoreConfig.Filesystem.PVC.StorageClassName`)
 
-- Empty string (default): Uses cluster's default StorageClass
-- Explicit name: Uses the specified `StorageClass`
-- `"manual"`: Static PV binding (for pre-provisioned volumes)
+Selects which `StorageClass` to use for PVC provisioning (empty string uses the cluster default).
 
 ##### Access Mode Configuration (`ObjectStoreConfig.Filesystem.PVC.AccessMode`)
 
 - Passed directly to Kubernetes without validation
 - Defaults to `ReadWriteOnce` if not specified
 - Actual behavior depends on what your `StorageClass` supports
-
-See [Kubernetes StorageClass documentation](https://kubernetes.io/docs/concepts/storage/storage-classes/) and [Access Modes documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes) for details.
 
 ##### Known Limitation: RWO in Multi-Node Clusters
 
@@ -734,12 +730,7 @@ This KEP accepts the RWO limitation as a reasonable trade-off for the initial im
 
 #### Storage Quota Enforcement
 
-Storage limits are enforced by Kubernetes, not KFP:
-
-1. **Kubernetes `ResourceQuotas`**: Cluster admins configure quotas per namespace
-2. **PVC Creation**: Fails if requested size exceeds namespace quota
-3. **Runtime Enforcement**: Kubernetes prevents writes when PVC is full
-4. **KFP Behavior**: Respects these limits but doesn't manage them
+Storage quotas are configured outside of KFP (e.g., via Kubernetes `ResourceQuotas`); KFP does not implement quota management.
 
 ### Component Modifications
 
@@ -856,7 +847,7 @@ The approach to multi-user isolation depends on whether a namespace uses the sha
 
 - Physical separation: Each namespace has its own PVC
 - Network accessibility: Artifact servers can be accessed from other namespaces
-- RBAC authorization: All requests validated via `SubjectAccessReview`
+- Authorization: All requests validated via `SubjectAccessReview`
 
 #### Dedicated Per-Namespace Artifact Server Architecture
 
@@ -864,7 +855,7 @@ With the dedicated per-namespace setup, each namespace runs its own lightweight 
 
 ##### Service Discovery
 
-Each namespace's dedicated artifact server is exposed via a Kubernetes Service (e.g., `ml-pipeline-artifact-server` in that namespace) so control-plane components can reach it via standard in-cluster DNS.
+Each namespace's dedicated artifact server is exposed via a Service so control-plane components can reach it.
 
 ##### Cross-Namespace Access Pattern
 
@@ -879,14 +870,6 @@ Control plane components (UI, API server) in the `kubeflow` namespace need to ac
 
 Example: UI Accessing User Namespace Artifacts
 The UI constructs the namespace-local service URL for the artifact server and forwards the user's credentials so the target artifact server can perform a `SubjectAccessReview` before serving the artifact.
-
-**Why Both Network Access + RBAC?**
-
-- **Network access** (`ml-pipeline-artifact-server.<namespace>.svc`): Enables cross-namespace communication via standard Kubernetes DNS
-- **RBAC authorization** (`SubjectAccessReview`): Ensures users can only access artifacts they have permissions for
-- **Defense in depth**: Network reachability doesn't imply authorization - both layers provide security
-
-This design allows the control plane to serve artifacts from any namespace while maintaining strict user-level access control.
 
 ##### Direct Client Access
 
@@ -907,15 +890,7 @@ With the dedicated per-namespace setup, workflow pods connect directly to their 
 
 #### Subject Access Review Integration
 
-Both the shared and dedicated setups use KFP's existing authorization layer with Kubernetes `SubjectAccessReview`. With the dedicated per-namespace setup, this is especially important as the artifact servers perform authorization checks for cross-namespace requests:
-The read/write handlers perform the same authorization flow regardless of backend: validate access via `SubjectAccessReview`, then stream the artifact content from the configured storage backend.
-
-The authorization flow for filesystem storage:
-
-1. **Extract User Identity**: From request context (existing KFP authentication)
-2. **Create `SubjectAccessReview`**: Check if user can access the run's artifacts
-3. **Verify Namespace**: Ensure user has access to the namespace
-4. **Access Filesystem**: Read artifact from PVC mount if authorized
+Both the shared and dedicated setups use KFP's existing authorization layer with Kubernetes `SubjectAccessReview` before reading/writing any artifact content.
 
 #### Single-User vs Multi-User Deployments
 
@@ -925,7 +900,6 @@ The namespace-isolated design works for both the shared and dedicated setups:
 
 - Shared default uses a single PVC with namespace-aware paths plus `SubjectAccessReview` enforcement.
 - Dedicated per-namespace mode provides a PVC per opted-in namespace (physical isolation).
-- Kubernetes enforces workload and namespace boundaries; KFP enforces user-level access via `SubjectAccessReview`.
 
 ##### Single-User Mode
 
@@ -1219,5 +1193,5 @@ No special infrastructure needed beyond standard Kubernetes:
 
 - Kubernetes cluster with PVC support
 - `StorageClass` (preferably with RWX support)
-- RBAC permissions for PVC management
+- Permissions to manage PVC-backed storage for artifact servers (as described in the Permission Model above)
 - Sufficient storage capacity for artifacts
