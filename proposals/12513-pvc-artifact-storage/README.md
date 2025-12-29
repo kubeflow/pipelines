@@ -257,7 +257,7 @@ Example configurations:
 
 ```yaml
 # Both modes use the same path structure for consistency
-# {namespace} is substituted at runtime (e.g., "kubeflow" in single-user mode)
+# {namespace} is substituted at runtime (single-user mode uses the KFP install namespace)
 defaultPipelineRoot: "kfp-artifacts://{namespace}"
 ```
 
@@ -370,7 +370,7 @@ Routing rules:
                    ▼
 ┌──────────────────────────────────────┐
 │      Central Artifact Server         │
-│        (namespace: kubeflow)         │
+│   (namespace: KFP install namespace) │
 │                                      │
 │  • SubjectAccessReview               │
 │  • Mounts shared PVC                 │
@@ -655,8 +655,11 @@ The KFP API server manages artifact infrastructure lifecycle for the shared arti
 
 ##### Namespace Annotation-Based Provisioning
 
-The KFP API server watches for namespaces with a specific annotation to provision artifact infrastructure. When Kubeflow Profiles are used, the Profile controller creates namespaces with the `pipelines.kubeflow.org/enabled: "true"` annotation. For standalone KFP, namespaces can be annotated directly.
-For annotated namespaces, the API server provisions the required artifact infrastructure and reads the namespace `kfp-launcher` ConfigMap to determine whether `artifactServer.dedicated: true` is set.
+The shared artifact server (default) is managed in the KFP install namespace and does not depend on namespace annotations (including in single-user mode).
+
+Namespace annotations are only used to drive optional per-namespace provisioning in multi-tenant setups. In multi-user Kubeflow, the Profile controller creates user namespaces (Profiles) and can apply the `pipelines.kubeflow.org/enabled: "true"` annotation to those namespaces. The `kubeflow` namespace is the control-plane namespace, not a Profile. For standalone KFP, namespaces can be annotated directly.
+
+For annotated namespaces, the API server reads the namespace `kfp-launcher` ConfigMap to determine whether `artifactServer.dedicated: true` is set; if so, it provisions dedicated per-namespace infrastructure.
 
 ##### API Server Implementation
 
@@ -836,10 +839,9 @@ For example, components that directly call an object-store SDK (e.g., `boto3`) s
 
 #### `ArtifactServerManager` (API Server)
 
-- Watches namespaces with `pipelines.kubeflow.org/enabled=true` annotation
-- Creates PVC, Deployment, Service based on the namespace's dedicated artifact server opt-in
-- Reads `artifactServer.dedicated` from namespace's `kfp-launcher` ConfigMap, falls back to the shared default (`false`) when omitted
-- No action for namespaces without the annotation
+- Ensures the shared artifact server (default) exists in the KFP install namespace when filesystem storage is enabled
+- Watches KFP-enabled namespaces (e.g., `pipelines.kubeflow.org/enabled: "true"`) for optional per-namespace provisioning
+- Creates per-namespace PVC and artifact server workload only when the namespace opts in (`artifactServer.dedicated: true` in `kfp-launcher`)
 - Skips namespaces where infrastructure already exists
 - Idempotent: Re-processing same namespace doesn't create duplicate resources
 - Different namespaces can use different settings (shared default or dedicated per-namespace)
