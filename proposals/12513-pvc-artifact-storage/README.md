@@ -198,113 +198,25 @@ This KEP proposes adding a new artifact storage backend that uses filesystem sto
 
 ### User Stories
 
-<!-- TODO: REMOVE THIS STORY -->
-#### Story 1: User Running Pipelines on Local Kubernetes
+#### Story 1: Admin Needing KFP-Native Artifact Storage (On-Prem / Compliance)
 
-As a user with KFP on kind/minikube/k3s, I want my pipeline artifacts to automatically use the local cluster's default `StorageClass` via the `kfp-artifacts://` scheme, so that I can develop pipelines offline without any storage configuration.
-
-**Acceptance Criteria:**
-
-- KFP works out-of-the-box with filesystem storage on local clusters
-- Artifacts are stored using the `kfp-artifacts://` URI scheme
-- No S3/GCS credentials required
-- Artifact viewing in UI works seamlessly
-
-#### Story 2: Operator Deploying KFP Without External Object Storage
-
-As an operator for a Kubeflow distribution, I want to deploy KFP with filesystem storage so that I don't need to productize and support a separate object storage system.
+As an admin with a requirement to have storage on-premise, I want a simple artifact storage solution for KFP artifacts without having to maintain a separate service for artifacts due to administrative overhead or enterprise licensing costs.
 
 **Acceptance Criteria:**
 
-- Single configuration option to enable filesystem storage
-- Artifact handling is part of KFP (no separate object storage component)
-- Storage automatically provisioned via PVCs
-- Backup/restore follows standard Kubernetes PVC procedures
+- KFP can be configured to use filesystem storage (PVC-backed) as an artifact backend without requiring an external object store deployment.
+- Artifact upload/download is handled via KFP's artifact server API (pipeline pods do not mount PVCs directly).
 
-<!-- TODO: REMOVE THIS STORY -->
-#### Story 3: Operator Configuring Storage Class and Size
+#### Story 2: Admin Overriding a Namespace’s Artifact Storage
 
-As an operator, I want to configure KFP to use a specific StorageClass and PVC size instead of defaults, so that I can match storage performance and capacity to my workload requirements.
+As an admin using the KFP artifact server, I want the ability to override a namespace's artifact configuration to use alternative storage such as S3 or a dedicated artifact server.
 
 **Acceptance Criteria:**
 
-- Can specify `StorageClass` in KFP configuration
-- Can set PVC size limits (global configuration)
-- Storage quotas enforced via Kubernetes `ResourceQuotas`
-- Clear error messages when storage limits are reached
-- Can choose between RWO and RWX access modes based on needs
-
-<!-- Remove this story -->
-#### Story 4: User Migrating from S3 to Filesystem Storage
-
-As a user with existing pipelines containing components that call `boto3.upload_file()` directly, I want KFP system artifacts to use `kfp-artifacts://` with PVC storage while my custom components continue accessing S3, so that I can migrate incrementally without rewriting all components at once.
-
-**Acceptance Criteria:**
-
-- KFP artifacts use filesystem storage via `kfp-artifacts://` URIs
-- Components using boto3/gsutil for S3 continue to work
-- Can mix storage backends (system artifacts on PVC, custom data on S3)
-- Clear documentation on what uses filesystem vs object storage
-
-#### Story 5: Operator Deploying Multi-Tenant KFP with Namespace Isolation
-
-As an operator, I want to configure KFP so that specific namespaces annotated with `pipelines.kubeflow.org/enabled=true` use a dedicated artifact server pod and PVC, so that Team A's artifacts in namespace `team-a` are physically isolated from Team B's artifacts in namespace `team-b`.
-
-**Acceptance Criteria:**
-
-- Each namespace with `pipelines.kubeflow.org/enabled=true` annotation gets its own artifact server deployment
-- Each namespace gets its own dedicated PVC (no shared storage)
-- Artifact server in `team-a` namespace cannot access PVC in `team-b` namespace
-- Users can only access artifacts in namespaces they have RBAC permissions for (via `SubjectAccessReview`)
-- Physical isolation verified: deleting `team-a` namespace doesn't affect `team-b`'s artifacts
-
-#### Story 6: Operator Preferring KFP-Native Storage
-
-As an operator in a regulated environment (e.g., healthcare, finance), I want to deploy KFP with filesystem storage using an encrypted `StorageClass` (e.g., `encrypted-gp3`), so that artifact handling stays within the KFP codebase and I don't need to include a separate object storage system in my security audits.
-
-**Acceptance Criteria:**
-
-- All artifacts stored on PVCs within the cluster
-- KFP configuration uses `Filesystem.Type: "pvc"` with encrypted `StorageClass`
-- `SubjectAccessReview` validates all artifact access requests
-- Encryption at rest provided by the configured `StorageClass` (e.g., `encrypted-gp3`)
-- No separate object storage component to audit
-
-#### Story 7: Operator Running KFP on Storage-Constrained Infrastructure
-
-As an operator with limited storage budget (only 1TB total available), I want to use the default shared artifact server with a single 500GB PVC across 10 team namespaces, so that all teams can run pipelines without each needing their own 100GB PVC (which would require 1TB total).
-
-**Acceptance Criteria:**
-
-- Central artifact server is used (default) with a single PVC sized to `500Gi`
-- Single PVC created in `kubeflow` namespace mounted by one artifact server
-- All 10 teams' artifacts stored in `/artifacts/<namespace>/` directories on same PVC
-- Teams can run pipelines concurrently without storage allocation failures
-- No per-namespace storage limits (trade-off of shared PVC - no per-team quotas in the default shared setup)
-
-#### Story 8: Operator Scaling High-Throughput Model Training Platform
-
-As an operator supporting 100+ concurrent pipeline runs with multi-GB model checkpoints, I want to use the shared artifact server with `ReadWriteMany` (RWX) storage (e.g., NFS/CephFS) and multiple replicas behind a load balancer, so that artifact upload/download operations can scale horizontally without bottlenecks.
-
-**Acceptance Criteria:**
-
-- Can use the default shared artifact server, or configure dedicated per-namespace artifact servers and PVCs where needed
-- Artifact servers stream large files without loading into memory
-- Can use high-performance `StorageClasses` (e.g., SSD-backed)
-- Horizontal scaling possible for the shared artifact server when using `ReadWriteMany` (RWX) storage
-- Dedicated per-namespace artifact servers can reduce contention and improve isolation for selected namespaces
-
-#### Story 9: Operator with Mixed Isolation Requirements
-
-As an operator, I want to use the shared artifact server by default, but configure specific namespaces (e.g., `team-finance`) to use a dedicated artifact server and PVC for stricter isolation, so that most teams share the simple default while sensitive teams get dedicated resources.
-
-**Acceptance Criteria:**
-
-- Shared artifact server is used by default
-- Specific namespaces can opt in to dedicated artifact servers via their `kfp-launcher` ConfigMap (`artifactServer.dedicated: true`)
-- Namespaces that opt in get their own artifact server and PVC
-- UI correctly routes artifact requests based on whether a namespace has opted in to a dedicated server
-- No cluster-wide restart needed to change a namespace's setting
+- A namespace can override the default shared artifact server behavior without affecting other namespaces.
+- Per-namespace override can either:
+  - keep using S3-compatible storage (`s3://`, `minio://`, etc.), or
+  - opt into filesystem storage with a dedicated artifact server + PVC (`artifactServer.dedicated: true`).
 
 ### Notes/Constraints/Caveats
 
