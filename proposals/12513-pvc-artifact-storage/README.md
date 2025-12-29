@@ -693,7 +693,9 @@ The driver validates that required artifact infrastructure exists before pipelin
 - If the namespace opted into a dedicated artifact server, verify the namespace-local Service/workload exist.
 - Otherwise, the shared artifact server is used.
 
-### Security and RBAC
+### Multi-User Isolation and Authorization
+
+In multi-user mode, KFP enforces isolation and authorization via `SubjectAccessReview` and the chosen artifact server topology (shared vs dedicated).
 
 #### Permission Model
 
@@ -715,10 +717,6 @@ For both the shared and dedicated setups, the API server needs:
 - Create `SubjectAccessReview` resources for authorization checks.
 
 This keeps infrastructure management in the control plane, while workflow pods only perform read-only verification.
-
-### Multi-User Isolation and Authorization
-
-In multi-user mode, KFP enforces isolation and authorization via `SubjectAccessReview` and the chosen artifact server topology (shared vs dedicated).
 
 #### Namespace Isolation
 
