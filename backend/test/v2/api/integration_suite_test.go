@@ -171,6 +171,9 @@ var _ = AfterEach(func() {
 		report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
 		AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
 	}
+	if len(testContext.PipelineRun.CreatedRunIds) > 0 {
+		Fail("Intentional failure to validate archived-workflow log report output")
+	}
 
 	logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))
 	for _, runID := range testContext.PipelineRun.CreatedRunIds {
