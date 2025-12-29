@@ -855,7 +855,6 @@ For example, components that directly call an object-store SDK (e.g., `boto3`) s
 
 #### Configuration Parsing
 
-- `ObjectStoreConfig.Filesystem.Type: "pvc"` enables filesystem storage
 - `ObjectStoreConfig.Filesystem.PVC.StorageClassName` sets PVC storage class
 - `ObjectStoreConfig.Filesystem.PVC.Size` sets PVC capacity
 - `ObjectStoreConfig.Filesystem.PVC.AccessMode` defaults to `ReadWriteOnce`
@@ -895,7 +894,6 @@ Here's a complete example showing all new configuration fields for filesystem st
 {
   "ObjectStoreConfig": {
     "Filesystem": {
-      "Type": "pvc",
       "MountPath": "/artifacts",
       "PVC": {
         "StorageClassName": "standard",
@@ -916,7 +914,6 @@ Here's a complete example showing all new configuration fields for filesystem st
 
 | Field                                                | Description                       | Default           | Valid Values                            |
 |------------------------------------------------------|-----------------------------------|-------------------|-----------------------------------------|
-| `ObjectStoreConfig.Filesystem.Type`                  | Storage backend type              | -                 | `"pvc"`, `"local"` (testing only)       |
 | `ObjectStoreConfig.Filesystem.MountPath`             | Path where PVC is mounted         | `"/artifacts"`    | Any valid path                          |
 | `ObjectStoreConfig.Filesystem.PVC.StorageClassName`  | K8s StorageClass to use           | Cluster default   | Any available StorageClass              |
 | `ObjectStoreConfig.Filesystem.PVC.Size`              | Size of PVC to create             | `"10Gi"`          | K8s quantity (e.g., `"100Gi"`, `"1Ti"`) |
