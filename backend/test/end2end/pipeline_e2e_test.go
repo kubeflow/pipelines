@@ -157,6 +157,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
 				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+				if pipelineFile == "critical/flip_coin.yaml" {
+					Fail("Intentional failure to validate archived-workflow log report output")
+				}
 			})
 		}
 	})
