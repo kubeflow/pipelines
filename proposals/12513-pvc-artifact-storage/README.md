@@ -86,7 +86,7 @@ This proposal introduces a filesystem artifact backend **shared-by-default**, wi
 |---------------------------------------------------|----------------------------------------------------------------------------------------|
 | `defaultPipelineRoot` scheme                      | `kfp-artifacts://` → filesystem via artifact APIs; other schemes unchanged             |
 | Namespace `artifactServer.dedicated` (filesystem) | `false` → shared; `true` → dedicated + PVC                                             |
-| `ObjectStoreConfig.ArtifactServer.WorkloadKind`   | `deployment` or `daemonset` (`daemonset` ⇒ `internalTrafficPolicy: Local`)             |
+| `ObjectStoreConfig.ArtifactServer.WorkloadKind`   | `deployment` or `daemonset` (`daemonset` → `internalTrafficPolicy: Local`)             |
 
 #### Component Responsibilities
 
@@ -719,7 +719,7 @@ For both the shared and dedicated setups, the API server needs:
 
 **Driver/Workflow Pod Permissions:**
 
-- Read-only access to verify the artifact server workload/Service exists when validating filesystem storage prerequisites.
+- Read-only access to verify the artifact server workload and Service exist when validating filesystem storage prerequisites.
 
 **Artifact Server Pod Permissions:**
 
@@ -958,7 +958,7 @@ data:
 ### Environment Variable Overrides
 
 All configuration fields can be overridden via environment variables:
-This follows KFP's existing convention where dots become underscores (for example, `ObjectStoreConfig.Filesystem.PVC.Size` → `OBJECTSTORECONFIG_FILESYSTEM_PVC_SIZE`).
+This follows KFP's existing convention where the full configuration path is uppercased and all dots are replaced with underscores (for example, `ObjectStoreConfig.Filesystem.PVC.Size` → `OBJECTSTORECONFIG_FILESYSTEM_PVC_SIZE`).
 
 ## Migration and Compatibility
 
