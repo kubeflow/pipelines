@@ -86,7 +86,7 @@ This proposal introduces a filesystem artifact backend **shared-by-default**, wi
 |---------------------------------------------------|----------------------------------------------------------------------------------------|
 | `defaultPipelineRoot` scheme                      | `kfp-artifacts://` → filesystem via artifact APIs; other schemes unchanged             |
 | Namespace `artifactServer.dedicated` (filesystem) | `false` → shared; `true` → dedicated + PVC                                             |
-| `ObjectStoreConfig.ArtifactServer.WorkloadKind`   | `deployment` or `daemonset` (`daemonset` ⇒ `internalTrafficPolicy: Local`)             |
+| `ObjectStoreConfig.ArtifactServer.WorkloadKind`   | `deployment` or `daemonset` (`daemonset` → `internalTrafficPolicy: Local`)             |
 
 #### Component Responsibilities
 
