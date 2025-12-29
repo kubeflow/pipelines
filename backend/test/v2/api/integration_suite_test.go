@@ -164,15 +164,28 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	// Delete pipelines created during the test
-	logger.Log("################### Global Cleanup after each test #####################")
-
-	if CurrentSpecReport().Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
-		report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
-		AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
-	}
 	if len(testContext.PipelineRun.CreatedRunIds) > 0 {
 		Fail("Intentional failure to validate archived-workflow log report output")
+	}
+})
+
+var _ = ReportAfterEach(func(specReport types.SpecReport) {
+	logger.Log("################### Global Cleanup after each test #####################")
+	if specReport.Failed() {
+		if len(testContext.PipelineRun.CreatedRunIds) > 0 {
+			report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
+			AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
+		}
+
+		logger.Log("Test failed... Capturing pod logs from %v to %v", testContext.TestStartTimeUTC, time.Now().UTC())
+		podLogs := testutil.ReadContainerLogs(k8Client, *config.Namespace, "pipeline-api-server", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+		AddReportEntry("Pod Log", podLogs)
+		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
+		currentDir, err := os.Getwd()
+		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
+		testutil.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
+	} else {
+		log.Printf("Test passed")
 	}
 
 	logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))
@@ -189,20 +202,6 @@ var _ = AfterEach(func() {
 	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
 		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID)
-	}
-})
-
-var _ = ReportAfterEach(func(specReport types.SpecReport) {
-	if specReport.Failed() {
-		logger.Log("Test failed... Capturing pod logs from %v to %v", testContext.TestStartTimeUTC, time.Now().UTC())
-		podLogs := testutil.ReadContainerLogs(k8Client, *config.Namespace, "pipeline-api-server", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
-		AddReportEntry("Pod Log", podLogs)
-		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
-		currentDir, err := os.Getwd()
-		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
-		testutil.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
-	} else {
-		log.Printf("Test passed")
 	}
 })
 

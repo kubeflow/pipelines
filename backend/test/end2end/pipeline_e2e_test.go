@@ -35,6 +35,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,8 +96,10 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 	AfterEach(func() {
 		logger.Log("################### Global Cleanup after each test #####################")
+	})
 
-		if CurrentSpecReport().Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
+	ReportAfterEach(func(specReport types.SpecReport) {
+		if specReport.Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
 			report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
 			AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
 		}
