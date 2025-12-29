@@ -65,14 +65,16 @@ To support scalability, KFP will introduce a new artifact URI scheme (`kfp-artif
 
 ### Quick Comparison
 
-| Aspect                 | Current (S3-compatible Storage)                 | Proposed (Filesystem Storage)                     |
-|------------------------|-------------------------------------------------|---------------------------------------------------|
-| **Storage Backend**    | S3-compatible (SeaweedFS, MinIO, S3, GCS, etc.) | Kubernetes PVC                                    |
-| **URI Scheme**         | `s3://`, `gs://`, `minio://`                    | `kfp-artifacts://`                                |
-| **Architecture**       | Separate object storage service                 | KFP-native artifact server                        |
-| **Required Knowledge** | S3 concepts (buckets, endpoints, regions)       | Kubernetes concepts (PVCs, StorageClasses)        |
-| **Multi-tenancy**      | Shared storage (single instance)                | Optional per-namespace PVCs for dedicated servers |
-| **Scaling**            | Single object storage instance                  | Per-namespace artifact servers and storage quotas |
+| Aspect                  | Current (S3-compatible Storage)                  | Proposed (Filesystem Storage)                                |
+|-------------------------|--------------------------------------------------|--------------------------------------------------------------|
+| **Storage Backend**     | S3-compatible (SeaweedFS, MinIO, S3, GCS, etc.)  | Kubernetes PVC                                               |
+| **URI Scheme**          | `s3://`, `gs://`, `minio://`                     | `kfp-artifacts://`                                           |
+| **Architecture**        | Separate object storage service                  | KFP-native artifact server                                   |
+| **Required Knowledge**  | S3 concepts (buckets, endpoints, regions)        | Kubernetes concepts (PVCs, StorageClasses)                   |
+| **Multi-tenancy**       | Shared storage (single instance)                 | Shared by default; per-namespace override supported          |
+| **Scaling**             | Single object storage instance                   | Shared by default; per-namespace scaling/quotas optional     |
+
+Note: per-namespace overrides can choose filesystem storage (dedicated artifact server + PVC) or keep using S3-compatible storage.
 
 ### High-Level Flow
 
@@ -99,7 +101,7 @@ Pipeline Pods                         UI/API Clients
 
 ### Key Components
 
-- **Storage**: Kubernetes `PersistentVolumeClaims` (one per namespace)
+- **Storage**: Kubernetes `PersistentVolumeClaims` (shared PVC by default; optional per-namespace PVCs for dedicated servers)
 - **URI Format**: `kfp-artifacts://<namespace>/<pipeline-name>/<run-id>/<node-id>/<artifact-name>`
 - **API Changes**: New `/filesystem-storage/config` endpoint for UI configuration discovery
 - **Deployment model**:
