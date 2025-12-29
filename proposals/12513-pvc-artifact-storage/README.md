@@ -719,7 +719,7 @@ For both the shared and dedicated setups, the API server needs:
 
 **Driver/Workflow Pod Permissions:**
 
-- Read-only access to verify the artifact server workload/Service exists when validating filesystem storage prerequisites.
+- Read-only access to verify the artifact server workload and Service exist when validating filesystem storage prerequisites.
 
 **Artifact Server Pod Permissions:**
 
