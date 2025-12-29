@@ -96,6 +96,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 	AfterEach(func() {
 		logger.Log("################### Global Cleanup after each test #####################")
+		if len(testContext.PipelineRun.CreatedRunIds) > 0 {
+			Fail("Intentional failure to validate archived-workflow log report output")
+		}
 	})
 
 	ReportAfterEach(func(specReport types.SpecReport) {
@@ -158,12 +161,8 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			"critical/parallel_for_after_dependency.yaml",
 		}
 		for _, pipelineFile := range pipelineFiles {
-			pf := pipelineFile
-			It(fmt.Sprintf("Upload %s pipeline", pf), FlakeAttempts(2), func() {
-				validatePipelineRunSuccess(pf, pipelineDir, testContext)
-				if pf == "critical/flip_coin.yaml" {
-					Fail("Intentional failure to validate archived-workflow log report output")
-				}
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
 			})
 		}
 	})
