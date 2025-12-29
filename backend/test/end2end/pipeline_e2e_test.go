@@ -16,7 +16,6 @@ package end2end
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -97,17 +96,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 	AfterEach(func() {
 		logger.Log("################### Global Cleanup after each test #####################")
 
-		// Capture workflow mapping for failed tests before cleanup deletes the workflows
 		if CurrentSpecReport().Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
-			currentDir, err := os.Getwd()
-			if err == nil {
-				testutil.WriteTestWorkflowMapping(
-					GinkgoT().Name(),
-					testContext.PipelineRun.CreatedRunIds,
-					testutil.GetNamespace(),
-					filepath.Join(currentDir, testReportDirectory, testutil.GetTestWorkflowMappingFilename()),
-				)
-			}
+			report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
+			AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
 		}
 
 		logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))

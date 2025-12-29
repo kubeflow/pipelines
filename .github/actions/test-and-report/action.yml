@@ -66,13 +66,22 @@ runs:
       with:
         python-version: ${{ inputs.python_version }}
 
+    - name: Port-forward MinIO service for archived workflow logs
+      id: port-forward-minio
+      if: (!cancelled())
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        pkill -f "kubectl port-forward.*minio" || true
+        ./.github/resources/scripts/forward-port.sh -q "$NAMESPACE" "minio" 9000 9000
+      continue-on-error: true
+
     - name: Run Tests
       id: run-tests
       shell: bash
       working-directory: ${{ inputs.test_directory }}
       env:
         PIPELINE_STORE: ${{ inputs.pipeline_store }}
-        KFP_TEST_WORKFLOW_MAPPING_FILENAME: test-workflow-mapping.txt
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z $USE_PROXY ]; then
@@ -112,53 +121,6 @@ runs:
       shell: bash
       run: |
         pip install junit2html
-      continue-on-error: true
-
-    - name: Install MinIO Client for log collection
-      id: install-mc
-      if: ${{ steps.run-tests.outcome != 'success' }}
-      shell: bash
-      run: |
-        MC_PATH="$HOME/.local/bin/minio-mc"
-        if [ -f "$MC_PATH" ]; then
-          echo "MinIO client already installed"
-        else
-          echo "Installing MinIO client..."
-          curl -sLO https://dl.min.io/client/mc/release/linux-amd64/mc
-          chmod +x mc
-          mkdir -p "$HOME/.local/bin"
-          mv mc "$MC_PATH"
-        fi
-        echo "MC_PATH=$MC_PATH" >> "$GITHUB_ENV"
-      continue-on-error: true
-
-    - name: Port-forward MinIO service for workflow log access
-      id: port-forward-minio
-      if: ${{ steps.run-tests.outcome != 'success' }}
-      shell: bash
-      run: |
-        NAMESPACE="${{ inputs.default_namespace }}"
-        kubectl port-forward -n "$NAMESPACE" svc/minio-service 9000:9000 >/tmp/minio-port-forward.log 2>&1 &
-        PF_PID=$!
-        sleep 2
-        if ! kill -0 "$PF_PID" 2>/dev/null; then
-          echo "ERROR: minio port-forward exited early"
-          cat /tmp/minio-port-forward.log || true
-          exit 1
-        fi
-      continue-on-error: true
-
-    - name: Augment junit.xml with workflow logs
-      id: augment-junit-xml
-      if: ${{ steps.run-tests.outcome != 'success' && steps.install-mc.outcome == 'success' && steps.port-forward-minio.outcome == 'success' }}
-      shell: bash
-      env:
-        KFP_TEST_WORKFLOW_MAPPING_FILENAME: test-workflow-mapping.txt
-      run: |
-        python3 "$GITHUB_ACTION_PATH/augment-junit-xml-with-workflow-logs.py" \
-          --test-directory "${{ inputs.test_directory }}" \
-          --namespace "${{ inputs.default_namespace }}" \
-          --mc-path "$HOME/.local/bin/minio-mc"
       continue-on-error: true
 
     - name: Generate HTML report

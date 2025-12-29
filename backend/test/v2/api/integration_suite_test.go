@@ -167,6 +167,11 @@ var _ = AfterEach(func() {
 	// Delete pipelines created during the test
 	logger.Log("################### Global Cleanup after each test #####################")
 
+	if CurrentSpecReport().Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
+		report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
+		AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
+	}
+
 	logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))
 	for _, runID := range testContext.PipelineRun.CreatedRunIds {
 		testutil.TerminatePipelineRun(runClient, runID)
@@ -193,15 +198,6 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 		currentDir, err := os.Getwd()
 		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
 		testutil.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
-
-		if len(testContext.PipelineRun.CreatedRunIds) > 0 {
-			testutil.WriteTestWorkflowMapping(
-				GinkgoT().Name(),
-				testContext.PipelineRun.CreatedRunIds,
-				testutil.GetNamespace(),
-				filepath.Join(currentDir, testReportDirectory, testutil.GetTestWorkflowMappingFilename()),
-			)
-		}
 	} else {
 		log.Printf("Test passed")
 	}
