@@ -1536,65 +1536,27 @@ def s3_specific_component():
 
 ### Integration Tests
 
-#### Basic Filesystem Storage
+#### Story 1: KFP-Native Filesystem Artifacts (No External Object Store)
 
-- Deploy KFP with `defaultPipelineRoot: "kfp-artifacts://"`
-- Run pipeline with two components passing artifacts
-- Verify artifacts stored at correct filesystem paths
-- Verify artifact server API returns correct content
+- Deploy KFP with filesystem storage enabled and `defaultPipelineRoot: "kfp-artifacts://"` (shared artifact server by default)
+- Run a pipeline with two components passing artifacts via KFP-managed mechanisms (e.g., `Output[Dataset]` → `Input[Dataset]`)
+- Verify:
+  - artifacts are stored under the expected namespace-aware path (e.g., `/artifacts/<namespace>/<pipeline-name>/<run-id>/...`)
+  - artifact server read/write endpoints return the correct content
+  - cross-namespace access is denied via `SubjectAccessReview` (multi-user mode)
 
-#### Shared Artifact Server (Default)
+#### Story 2: Per-Namespace Overrides (S3-Compatible or Dedicated Server+PVC)
 
-- Deploy with filesystem storage enabled (shared artifact server is the default)
-- Run pipelines in multiple namespaces
-- Verify single PVC in `kubeflow` namespace contains all artifacts
-- Verify path structure: `/artifacts/<namespace>/<pipeline-name>/<run-id>/...`
-- Verify `SubjectAccessReview` prevents cross-namespace access
+- Deploy KFP with filesystem storage enabled (shared default)
+- Configure namespaces to exercise overrides:
+  - `team-a`: no override (uses shared artifact server)
+  - `team-b`: `artifactServer.dedicated: true` (dedicated artifact server + PVC)
+  - `team-c`: override `defaultPipelineRoot` to an S3-compatible scheme (e.g., `s3://...` or `minio://...`)
+- Verify:
+  - KFP routes artifact operations correctly per namespace (shared vs dedicated vs S3-compatible)
+  - enabling/disabling a namespace override does not require a cluster-wide restart
+  - when `WorkloadKind: "daemonset"` is configured, the expected Kubernetes resources are deployed (DaemonSet and Service with `internalTrafficPolicy: Local`)
 
-#### Dedicated Per-Namespace Artifact Server (Optional)
-
-- Deploy with filesystem storage enabled
-- Create namespace with `pipelines.kubeflow.org/enabled=true` annotation
-- Configure the namespace `kfp-launcher` ConfigMap with `artifactServer.dedicated: true`
-- Verify API server creates PVC, Deployment, Service in that namespace
-- Run pipeline, verify artifacts stored in namespace-specific PVC
-- Verify namespace isolation: artifacts in `team-a` not accessible from `team-b`
-
-#### DaemonSet + Local Traffic (RWX or node-local storage only)
-
-- Deploy the artifact server with `WorkloadKind: "daemonset"` (KFP configures the Service with `internalTrafficPolicy: Local`)
-- Verify the expected Kubernetes resources are deployed (DaemonSet instead of Deployment, and Service has `internalTrafficPolicy: Local`)
-
-#### Mixed Configuration (Per-Namespace Overrides)
-
-- Deploy with filesystem storage enabled (shared is default)
-- Create `team-a` namespace with annotation (no `artifactServer` override in ConfigMap - uses shared)
-- Create `team-b` namespace with annotation and `kfp-launcher` ConfigMap containing `artifactServer.dedicated: true`
-- Verify `team-a` uses shared artifact server
-- Verify `team-b` gets its own artifact server deployment and PVC
-- Run pipelines in both namespaces, verify correct routing
-- Update `team-a` ConfigMap to add `artifactServer.dedicated: true`, verify infrastructure created
-
-#### Authorization
-
-- User with `readArtifact` permission can download artifacts
-- User without permission receives 403 Forbidden
-- `SubjectAccessReview` correctly validates namespace-scoped access
-
-#### Sample Pipeline Compatibility
-
-- Run official KFP sample pipelines (e.g., iris classification)
-- Verify pipelines work without modification
-- Verify artifact URIs in MLMD use `kfp-artifacts://` scheme
-
-#### Error Handling
-
-- PVC full: Clear error message when storage exhausted
-- Missing namespace annotation: Pipeline fails with actionable error suggesting to add `pipelines.kubeflow.org/enabled=true`
-- Artifact server unavailable: Pipeline step fails with clear error message
-- Invalid `artifactServer.dedicated` value in ConfigMap: Clear validation error
-- Malformed `artifactServer` YAML in ConfigMap: Warning logged, falls back to shared by default
-  
 ## Configuration Reference
 
 ### Complete Configuration Example
