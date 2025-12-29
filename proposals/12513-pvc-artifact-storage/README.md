@@ -124,7 +124,7 @@ When configured for per-namespace isolation, a namespace gets its own dedicated 
 - **Independent scaling**: teams can size/scale dedicated artifact servers independently
 - **Per-namespace quotas**: enforceable outside of KFP (for example via Kubernetes `ResourceQuotas`)
 
-Scaling options for the artifact server include running it as a standard Kubernetes Deployment (default, scale by replicas) or as a DaemonSet via `ObjectStoreConfig.ArtifactServer.WorkloadKind: "daemonset"` (one pod per node, intended for `ReadWriteMany` (RWX) or node-local storage; see Artifact Server Architecture).
+Scaling options for the artifact server include running it as a standard Kubernetes Deployment (default, scale by replicas) or as a DaemonSet via `ObjectStoreConfig.ArtifactServer.WorkloadKind: "daemonset"` (one pod per node, intended for `ReadWriteMany` (RWX) or node-local storage; see [Artifact Server Architecture](#artifact-server-architecture)).
 
 ### Path to Local Development
 
