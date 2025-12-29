@@ -873,6 +873,7 @@ For example, components that directly call an object-store SDK (e.g., `boto3`) s
 - Verify:
   - KFP routes artifact operations correctly per namespace (shared vs dedicated vs S3-compatible)
   - enabling/disabling a namespace override does not require a cluster-wide restart
+  - when `WorkloadKind` is unset or set to `"deployment"` (default), the expected Kubernetes resources are deployed (Deployment and Service)
   - when `WorkloadKind: "daemonset"` is configured, the expected Kubernetes resources are deployed (DaemonSet and Service with `internalTrafficPolicy: Local`)
 
 ## Configuration Reference
