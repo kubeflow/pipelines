@@ -320,9 +320,11 @@ For multi-tenant deployments with varying isolation requirements, administrators
 Configure the namespace `kfp-launcher` ConfigMap to:
 
 - set `defaultPipelineRoot` to `kfp-artifacts://<namespace>`, and
-- set `artifactServer.dedicated: true` (within the `artifactServer` YAML value) to opt the namespace into a dedicated artifact server + PVC.
+- set `artifactServer.dedicated: true` to opt the namespace into a dedicated artifact server + PVC.
 
-The `artifactServer` value mirrors the global `ObjectStoreConfig.ArtifactServer` structure.
+**Notation note**: In this document, `artifactServer.dedicated` is a key-path notation. In the `kfp-launcher` ConfigMap it is expressed as the `dedicated` field inside the YAML document stored under the `artifactServer` data key (see the example in the Configuration Reference).
+
+The per-namespace `artifactServer` YAML mirrors the global `ObjectStoreConfig.ArtifactServer` structure.
 
 #### Request Routing
 
@@ -933,7 +935,7 @@ Namespaces can opt in to dedicated per-namespace artifact servers by setting `ar
 | Key                        | Description                                                               | Default                  | Valid Values                                                         |
 |----------------------------|---------------------------------------------------------------------------|--------------------------|----------------------------------------------------------------------|
 | `defaultPipelineRoot`      | Artifact storage root URI                                                 | `minio://mlpipeline/...` | `minio://...`, `s3://...`, `gs://...`, `kfp-artifacts://<namespace>` |
-| `artifactServer.dedicated` | Use dedicated per-namespace artifact server when using `kfp-artifacts://` | `false`                  | `true`, `false`                                                      |
+| `artifactServer.dedicated` | (Key path) `dedicated` inside the `artifactServer` YAML value             | `false`                  | `true`, `false`                                                      |
 
 **Example ConfigMap for dedicated per-namespace artifact server:**
 
