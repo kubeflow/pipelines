@@ -78,26 +78,11 @@ Note: per-namespace overrides can choose filesystem storage (dedicated artifact 
 
 ### High-Level Flow
 
-```text
-Pipeline Submission
-        │
-        ▼
-Driver (detects "kfp-artifacts://")
-        │
-        ▼
-Artifact Server (mounts PVC)
-        │
-        ├──────────────────────────────────┐
-        │                                  │
-        ▼                                  ▼
-Pipeline Pods                         UI/API Clients
-(upload/download via API)             (view artifacts)
-        │                                  │
-        └──────────► Artifact Server ◄─────┘
-                           │
-                           ▼
-                    Read/Write to PVC
-```
+At a high level:
+
+- The Driver detects `kfp-artifacts://` and ensures artifact operations are routed through the artifact server.
+- Pipeline pods upload/download artifacts via artifact server APIs (pipeline pods never mount PVCs directly).
+- The artifact server performs filesystem reads/writes on the mounted PVC, and UI/API clients fetch artifacts through KFP.
 
 ### Key Components
 
@@ -207,7 +192,7 @@ As an admin with a requirement to have storage on-premise, I want a simple artif
 - KFP can be configured to use filesystem storage (PVC-backed) as an artifact backend without requiring an external object store deployment.
 - Artifact upload/download is handled via KFP's artifact server API (pipeline pods do not mount PVCs directly).
 
-#### Story 2: Admin Overriding a Namespace’s Artifact Storage
+#### Story 2: Admin Overriding a Namespace's Artifact Storage
 
 As an admin using the KFP artifact server, I want the ability to override a namespace's artifact configuration to use alternative storage such as S3 or a dedicated artifact server.
 
@@ -247,13 +232,7 @@ This KEP extends KFP's existing configuration structure rather than creating new
 3. **Minimal Code Changes**: Reuses existing configuration loading and validation logic
 4. **Familiar Pattern**: Follows the same pattern as database configuration where MySQL and PostgreSQL share the `DBConfig` section
 
-All new configurations will be added as new fields under the existing `ObjectStoreConfig`:
-
-```text
-ObjectStoreConfig/
-├── [Existing Fields] (unchanged)
-└── [New Fields]
-```
+All new configurations will be added as new fields under the existing `ObjectStoreConfig`.
 
 Throughout this KEP, when new configurations are introduced, they will be referenced by their full path (e.g., `ObjectStoreConfig.Filesystem.PVC.Size`) to make the hierarchy clear. All configurations can be overridden via environment variables following KFP's naming convention where dots become underscores (e.g., `OBJECTSTORECONFIG_FILESYSTEM_PVC_SIZE`).
 
@@ -354,19 +333,12 @@ Each namespace can run its own artifact server when configured via its `kfp-laun
 
 For multi-tenant deployments with varying isolation requirements, administrators can configure namespace-local artifact servers per namespace using the `kfp-launcher` ConfigMap:
 
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kfp-launcher
-  namespace: team-requiring-isolation
-data:
-  defaultPipelineRoot: "kfp-artifacts://team-requiring-isolation"
-  artifactServer: |
-    dedicated: true
-```
+Configure the namespace `kfp-launcher` ConfigMap to:
 
-The `artifactServer` key contains a YAML block that mirrors the global `ObjectStoreConfig.ArtifactServer` structure, allowing consistent configuration patterns across global and per-namespace settings.
+- set `defaultPipelineRoot` to `kfp-artifacts://<namespace>`, and
+- set `artifactServer.dedicated: true` (within the `artifactServer` YAML value) to opt the namespace into a dedicated artifact server + PVC.
+
+The `artifactServer` value mirrors the global `ObjectStoreConfig.ArtifactServer` structure, allowing consistent patterns across global and per-namespace settings.
 
 This enables scenarios where:
 
@@ -558,74 +530,11 @@ This keeps the configuration model simple while covering realistic use cases.
 
 ##### How the API Server Builds the Response
 
-The API server combines global configuration with per-namespace ConfigMap data:
-
-```go
-func (s *APIServer) GetFilesystemStorageConfig() *FilesystemStorageConfig {
-    // Check if filesystem storage is enabled
-    if !s.config.Filesystem.Enabled {
-        return &FilesystemStorageConfig{Enabled: false}
-    }
-    
-    config := &FilesystemStorageConfig{
-        Enabled:             true,
-        DedicatedNamespaces: []string{},
-    }
-    
-    // Scan ConfigMaps for namespaces with dedicated artifact servers
-    for namespace, configMap := range s.launcherConfigMaps {
-        if dedicated := getArtifactServerDedicated(configMap); dedicated {
-            config.DedicatedNamespaces = append(config.DedicatedNamespaces, namespace)
-        }
-    }
-    
-    return config
-}
-```
+The API server combines global configuration with per-namespace `kfp-launcher` ConfigMaps by listing namespaces that have opted into dedicated artifact servers.
 
 ##### UI Usage
 
-```javascript
-interface FilesystemStorageConfig {
-  enabled: boolean;
-  dedicated_namespaces?: string[];
-}
-
-// Cache with 1 minute TTL
-let configCache: FilesystemStorageConfig | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_TTL_MS = 60 * 1000; // 1 minute
-
-async function getFilesystemStorageConfig(): Promise<FilesystemStorageConfig> {
-  const now = Date.now();
-  
-  // Refresh cache if expired or not initialized
-  if (!configCache || (now - cacheTimestamp) > CACHE_TTL_MS) {
-    const response = await fetch('/apis/v2beta1/filesystem-storage/config');
-    configCache = await response.json();
-    cacheTimestamp = now;
-  }
-  
-  return configCache;
-}
-
-async function getArtifactServerEndpoint(namespace: string): Promise<string | null> {
-  const config = await getFilesystemStorageConfig();
-  
-  // Filesystem storage not enabled
-  if (!config.enabled) {
-    return null;
-  }
-  
-  // Shared is the default - check if namespace has opted in to dedicated server
-  if (config.dedicated_namespaces?.includes(namespace)) {
-    return `ml-pipeline-artifact-server.${namespace}.svc:8080`;
-  }
-  
-  // Use shared server
-  return 'ml-pipeline-artifact-server.kubeflow.svc:8080';
-}
-```
+The UI fetches `/apis/v2beta1/filesystem-storage/config`, caches the response, and routes requests to either the shared service or the namespace-local service based on whether the namespace is listed in `dedicated_namespaces`.
 
 ##### Implementation Details
 
@@ -751,24 +660,7 @@ The artifact server remains unchanged for reads and adds a new write handler.
 For filesystem storage, the UI's `/artifacts/get` endpoint cannot directly access PVCs. Instead, it must proxy through the artifact server. Following the existing frontend code pattern of handler functions:
 
 The UI's `/artifacts/get` endpoint needs to proxy filesystem artifacts through the artifact server API:
-
-```typescript
-// frontend/server/handlers/artifacts.ts
-// Add new case to existing switch statement:
-
-case 'filesystem':
-  // Proxy to artifact server API since UI can't access PVC directly
-  // Calls: GET /apis/v2beta1/runs/{runId}/nodes/{nodeId}/artifacts/{artifactName}:read
-  // Returns decoded tar.gz content to browser
-  break;
-
-// frontend/src/components/ArtifactPreview.tsx
-// Convert kfp-artifacts:// URIs to UI proxy calls:
-
-if (uri.startsWith('kfp-artifacts://')) {
-  // Parse URI and return: /artifacts/get?source=filesystem&runId=...&nodeId=...&artifactName=...
-}
-```
+The handler logic adds a filesystem backend case that proxies to the artifact server read endpoint, and the UI converts `kfp-artifacts://` URIs into the existing `/artifacts/get` proxy request format.
 
 From the user's perspective, artifact handling remains unchanged:
 
@@ -855,33 +747,8 @@ Storage limits are enforced by Kubernetes, not KFP:
 
 The object store interface remains unchanged for S3/GCS. For filesystem storage, artifact operations are redirected to the artifact server API:
 
-```go
-func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (*blob.Bucket, error) {
-    // Check if filesystem storage is configured (based on pipeline root URL scheme)
-    if strings.HasPrefix(config.Scheme, "kfp-artifacts://") {
-        // Return nil - filesystem storage uses artifact server API, not direct access
-        // The launcher will detect this and use the artifact client instead
-        return nil, &FilesystemAPIMode{
-            Namespace: namespace,
-            Endpoint:  getArtifactServerEndpoint(namespace),
-        }
-    }
-    // Existing logic for s3, minio, gs...
-}
-
-func ParseBucketConfig(path string) (*Config, error) {
-    if strings.HasPrefix(path, "kfp-artifacts://") {
-        // Parse kfp-artifacts path: kfp-artifacts://namespace/artifacts/...
-        parts := strings.SplitN(strings.TrimPrefix(path, "kfp-artifacts://"), "/", 2)
-        return &Config{
-            Scheme:      "kfp-artifacts://",
-            BucketName:  parts[0], // namespace
-            Prefix:      parts[1] if len(parts) > 1 else "",
-        }, nil
-    }
-    // Existing parsing logic...
-}
-```
+- `kfp-artifacts://` is treated as filesystem artifact mode: artifacts are read/written via the artifact server API (not via direct bucket/object store access).
+- The namespace is derived from the first path segment after `kfp-artifacts://` (similar to how KFP maps namespace → bucket for S3-compatible storage).
 
 #### KFP API Server Artifact Management
 
@@ -890,45 +757,11 @@ The KFP API server manages artifact infrastructure lifecycle for the shared arti
 ##### Namespace Annotation-Based Provisioning
 
 The KFP API server watches for namespaces with a specific annotation to provision artifact infrastructure. When Kubeflow Profiles are used, the Profile controller creates namespaces with the `pipelines.kubeflow.org/enabled: "true"` annotation. For standalone KFP, namespaces can be annotated directly.
+At a high level:
 
-```go
-// Watch namespaces and provision based on annotations
-func (m *ArtifactServerManager) WatchNamespaces() error {
-    informer := informers.NewSharedInformerFactory(m.k8sClient, 0)
-    informer.Core().V1().Namespaces().Informer().AddEventHandler(
-        cache.ResourceEventHandlerFuncs{
-            AddFunc: func(obj interface{}) {
-                m.handleNamespace(obj.(*v1.Namespace))
-            },
-            UpdateFunc: func(oldObj, newObj interface{}) {
-                oldNs := oldObj.(*v1.Namespace)
-                newNs := newObj.(*v1.Namespace)
-                // Only process if annotations changed
-                if !reflect.DeepEqual(oldNs.Annotations, newNs.Annotations) {
-                    m.handleNamespace(newNs)
-                }
-            },
-        },
-    )
-    
-    go informer.Start(wait.NeverStop)
-    return nil
-}
-
-func (m *ArtifactServerManager) handleNamespace(ns *v1.Namespace) {
-    // Check if namespace should have KFP artifact infrastructure
-    if enabled, ok := ns.Annotations["pipelines.kubeflow.org/enabled"]; ok && enabled == "true" {
-        // Determine dedicated artifact server opt-in: check namespace's kfp-launcher ConfigMap for per-namespace override
-        dedicated := m.getNamespaceArtifactServerDedicated(ns.Name)
-        
-        // Provision artifact infrastructure based on resolved selection
-        if err := m.EnsureArtifactInfrastructure(ns.Name, dedicated); err != nil {
-            log.Errorf("Failed to provision artifact infrastructure for namespace %s: %v", 
-                ns.Name, err)
-        }
-    }
-}
-```
+- Watch namespaces for `pipelines.kubeflow.org/enabled: "true"`.
+- When enabled, provision the required artifact infrastructure.
+- Read the namespace `kfp-launcher` ConfigMap to determine whether `artifactServer.dedicated: true` is set.
 
 **Benefits of annotation-based approach:**
 
@@ -941,168 +774,11 @@ Namespaces without the annotation cannot use filesystem storage - they must use 
 
 ##### API Server Implementation
 
-```go
-// backend/src/apiserver/server/artifact_manager.go
+Implementation notes:
 
-type ArtifactServerManager struct {
-    k8sClient     kubernetes.Interface
-    config        *ObjectStoreConfig
-    informerCache cache.SharedIndexInformer
-    workqueue     workqueue.RateLimitingInterface
-}
-
-// EnsureArtifactInfrastructure ensures artifact infrastructure exists for a namespace
-// Default is shared infrastructure, with optional per-namespace dedicated infrastructure.
-func (m *ArtifactServerManager) EnsureArtifactInfrastructure(namespace string, dedicated bool) error {
-    if !dedicated {
-        // Default: ensure the shared artifact server exists in kubeflow namespace
-        return m.ensureCentralArtifactServer()
-    }
-    // Optional per-namespace: create per-namespace resources
-        return m.ensureNamespaceLocalResources(namespace)
-}
-
-// GetNamespaceArtifactServerDedicated reads artifactServer.dedicated from namespace's kfp-launcher ConfigMap
-// Falls back to false (shared server) if not specified.
-func (m *ArtifactServerManager) GetNamespaceArtifactServerDedicated(ctx context.Context, namespace string) bool {
-    cm, err := m.k8sClient.CoreV1().ConfigMaps(namespace).
-        Get(ctx, "kfp-launcher", metav1.GetOptions{})
-    if err != nil {
-        return false // Default
-    }
-    
-    // Parse hierarchical artifactServer config
-    if artifactServerConfig, ok := cm.Data["artifactServer"]; ok {
-        var config struct {
-            Dedicated bool `yaml:"dedicated"`
-        }
-        if err := yaml.Unmarshal([]byte(artifactServerConfig), &config); err == nil {
-            return config.Dedicated
-        }
-    }
-    return false // Default
-}
-
-func (m *ArtifactServerManager) ensureCentralArtifactServer() error {
-    kubeflowNs := "kubeflow" // Or from config
-    
-    // Check if shared artifact server exists
-    _, err := m.k8sClient.AppsV1().Deployments(kubeflowNs).
-        Get(context.Background(), "ml-pipeline-artifact-server", metav1.GetOptions{})
-    if errors.IsNotFound(err) {
-        // Create shared artifact server, service, and PVC
-        if err := m.createCentralInfrastructure(kubeflowNs); err != nil {
-            return fmt.Errorf("failed to create shared artifact infrastructure: %w", err)
-        }
-    }
-    
-    return nil
-}
-
-func (m *ArtifactServerManager) ensureNamespaceLocalResources(namespace string) error {
-    // Check and create PVC if needed
-    pvcName := "ml-pipeline-artifacts"
-    _, err := m.k8sClient.CoreV1().PersistentVolumeClaims(namespace).
-        Get(context.Background(), pvcName, metav1.GetOptions{})
-    if errors.IsNotFound(err) {
-        pvc := m.buildArtifactPVC(namespace, pvcName)
-        _, err = m.k8sClient.CoreV1().PersistentVolumeClaims(namespace).
-            Create(context.Background(), pvc, metav1.CreateOptions{})
-        if err != nil && !errors.IsAlreadyExists(err) {
-            return fmt.Errorf("failed to create PVC: %w", err)
-        }
-    }
-    
-    // Check and create Deployment if needed
-    deploymentName := "ml-pipeline-artifact-server"
-    deployment, err := m.k8sClient.AppsV1().Deployments(namespace).
-        Get(context.Background(), deploymentName, metav1.GetOptions{})
-    if errors.IsNotFound(err) {
-        deployment = m.buildArtifactServerDeployment(namespace, deploymentName, pvcName)
-        _, err = m.k8sClient.AppsV1().Deployments(namespace).
-            Create(context.Background(), deployment, metav1.CreateOptions{})
-        if err != nil && !errors.IsAlreadyExists(err) {
-            return fmt.Errorf("failed to create deployment: %w", err)
-        }
-    } else if err == nil {
-        // Update deployment if configuration changed
-        if m.deploymentNeedsUpdate(deployment) {
-            updated := m.updateDeploymentSpec(deployment)
-            _, err = m.k8sClient.AppsV1().Deployments(namespace).
-                Update(context.Background(), updated, metav1.UpdateOptions{})
-            if err != nil {
-                return fmt.Errorf("failed to update deployment: %w", err)
-            }
-        }
-    }
-    
-    // Check and create Service if needed
-    _, err = m.k8sClient.CoreV1().Services(namespace).
-        Get(context.Background(), deploymentName, metav1.GetOptions{})
-    if errors.IsNotFound(err) {
-        service := m.buildArtifactServerService(namespace, deploymentName)
-        _, err = m.k8sClient.CoreV1().Services(namespace).
-            Create(context.Background(), service, metav1.CreateOptions{})
-        if err != nil && !errors.IsAlreadyExists(err) {
-            return fmt.Errorf("failed to create service: %w", err)
-        }
-    }
-    
-    return nil
-}
-
-// Called during API server startup to initialize artifact management
-func (m *ArtifactServerManager) Start(ctx context.Context) error {
-    // Ensure the shared server exists on startup
-    if err := m.ensureCentralArtifactServer(); err != nil {
-        return fmt.Errorf("failed to ensure shared artifact server: %w", err)
-    }
-    log.Info("Shared artifact server verified/created")
-    
-    // Watch namespaces with pipelines.kubeflow.org/enabled annotation
-    // Per-namespace selection is read from its kfp-launcher ConfigMap
-    if err := m.WatchNamespaces(); err != nil {
-        return fmt.Errorf("failed to start namespace watcher: %w", err)
-    }
-    
-    log.Infof("Artifact manager started with shared-by-default artifact server")
-    return nil
-}
-
-// Integration with pipeline run creation (fallback/verification only)
-func (s *PipelineRunServer) CreatePipelineRun(ctx context.Context, req *api.CreateRunRequest) (*api.Run, error) {
-    // Existing validation...
-    
-    // Verify artifact infrastructure exists for filesystem storage
-    if s.isFilesystemStorageEnabled() && s.artifactManager != nil {
-        if err := s.artifactManager.VerifyArtifactInfrastructure(ctx, req.Run.Namespace); err != nil {
-            return nil, fmt.Errorf("artifact infrastructure not available for namespace %s. "+
-                "Please ensure the namespace has the 'pipelines.kubeflow.org/enabled=true' annotation", 
-                req.Run.Namespace)
-        }
-    }
-    
-    // Continue with pipeline run creation...
-}
-
-// Quick check without creation - used during pipeline run creation
-func (m *ArtifactServerManager) VerifyArtifactInfrastructure(ctx context.Context, namespace string) error {
-    dedicated := m.GetNamespaceArtifactServerDedicated(ctx, namespace)
-    
-    if !dedicated {
-        // Default: just verify shared server exists (done at startup)
-        return nil
-    }
-    
-    // Optional per-namespace: verify resources exist in the namespace
-    _, err := m.k8sClient.AppsV1().Deployments(namespace).
-        Get(ctx, "ml-pipeline-artifact-server", metav1.GetOptions{})
-    if err != nil {
-        return fmt.Errorf("artifact server not found: %w", err)
-    }
-    return nil
-}
-```
+- Shared artifact server is the default, created/verified during API server startup.
+- Namespaces opt into dedicated artifact servers via `artifactServer.dedicated: true` in their `kfp-launcher` ConfigMap.
+- The manager reconciles PVC/Service/workload resources idempotently for opted-in namespaces.
 
 #### Launcher (`backend/src/v2/component/launcher_v2.go`)
 
@@ -1118,68 +794,15 @@ The launcher will be modified to:
 #### Compiler (`backend/src/v2/compiler/argocompiler/`)
 
 Configure launcher to use artifact API when filesystem storage is detected:
-
-```go
-func (c *workflowCompiler) configureArtifactAPI(template *wfapi.Template) {
-    if c.pipelineRoot != nil && strings.HasPrefix(*c.pipelineRoot, "kfp-artifacts://") {
-        template.Container.Env = append(template.Container.Env, 
-            corev1.EnvVar{
-                Name:  "ARTIFACT_API_ENABLED",
-                Value: "true",
-            },
-            corev1.EnvVar{
-                Name:  "ARTIFACT_SERVER_ENDPOINT",
-                Value: c.getArtifactServerEndpoint(),
-            },
-        )
-        
-        // No PVC mounts needed - all artifact operations go through API
-    }
-}
-```
+When `pipeline_root` uses `kfp-artifacts://`, the compiler configures the launcher to enable artifact API mode and to use the resolved artifact server endpoint (no PVC mounts in pipeline pods).
 
 #### Driver (`backend/src/v2/driver/`)
 
-The driver validates that required artifact infrastructure exists before pipeline execution. It reads `artifactServer.dedicated` from the namespace's `kfp-launcher` ConfigMap, falling back to the shared default (`false`) when omitted:
+The driver validates that required artifact infrastructure exists before pipeline execution:
 
-```go
-func (d *Driver) validateArtifactInfrastructure(ctx context.Context, pipelineRoot string) error {
-    if !strings.HasPrefix(pipelineRoot, "kfp-artifacts://") {
-        return nil // Not using filesystem storage
-    }
-    
-    namespace := d.options.Namespace
-    
-    // Get dedicated artifact server opt-in from kfp-launcher ConfigMap (default is shared, dedicated=false)
-    dedicated := d.getNamespaceArtifactServerDedicated(ctx, namespace)
-    
-    if dedicated {
-        deploymentName := "ml-pipeline-artifact-server"
-        
-        // Verify artifact server exists in the namespace
-        _, err := d.k8sClient.AppsV1().Deployments(namespace).
-            Get(ctx, deploymentName, metav1.GetOptions{})
-    if err != nil {
-            if errors.IsNotFound(err) {
-                return fmt.Errorf("artifact server not found in namespace %s. "+
-                    "Please ensure the KFP backend has provisioned artifact infrastructure "+
-                    "for this namespace", namespace)
-            }
-            return fmt.Errorf("failed to check artifact server: %w", err)
-        }
-        
-        // Verify service exists
-        _, err = d.k8sClient.CoreV1().Services(namespace).
-            Get(ctx, deploymentName, metav1.GetOptions{})
-            if err != nil {
-            return fmt.Errorf("artifact service not found or inaccessible: %w", err)
-            }
-        }
-    // Default: artifact server is pre-deployed in kubeflow namespace
-    
-    return nil
-}
-```
+- If not using `kfp-artifacts://`, no filesystem checks are needed.
+- If the namespace opted into a dedicated artifact server, verify the namespace-local Service/workload exist.
+- Otherwise, the shared artifact server is used.
 
 ### Security and RBAC
 
@@ -1191,47 +814,16 @@ The filesystem storage implementation should follow the principle of least privi
 
 For both the shared and dedicated setups, the API server needs:
 
-```yaml
-# Watch namespaces for annotations
-- apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["get", "list", "watch"]
-
-# Optional per-namespace: manage per-namespace resources
-- apiGroups: [""]
-  resources: ["persistentvolumeclaims"]
-  verbs: ["get", "create"]
-- apiGroups: ["apps"]
-  resources: ["deployments"]
-  verbs: ["get", "create", "update"]
-- apiGroups: [""]
-  resources: ["services"]
-  verbs: ["get", "create"]
-
-# Default shared: manage resources in kubeflow namespace
-# (same permissions but scoped to kubeflow namespace)
-```
+- Watch `namespaces` for the enabling annotation.
+- Create/read PVCs, Services, and the artifact server workload (Deployment or DaemonSet), scoped appropriately (shared infra in the KFP namespace; dedicated infra in user namespaces).
 
 **Driver/Workflow Pod Permissions:**
 
-```yaml
-# Only verify that resources exist
-- apiGroups: ["apps"]
-  resources: ["deployments"]
-  verbs: ["get"]
-- apiGroups: [""]
-  resources: ["services"]
-  verbs: ["get"]
-```
+- Read-only access to verify the artifact server workload/Service exists when validating filesystem storage prerequisites.
 
 **Artifact Server Pod Permissions:**
 
-```yaml
-# Authorization checks via SubjectAccessReview
-- apiGroups: ["authorization.k8s.io"]
-  resources: ["subjectaccessreviews"]
-  verbs: ["create"]
-```
+- Create `SubjectAccessReview` resources for authorization checks.
 
 This separation ensures that:
 
@@ -1245,10 +837,10 @@ In multi-user mode, KFP enforces strict isolation and authorization using Kubern
 
 #### Namespace Isolation
 
-Each namespace gets its own PVC with strict isolation:
+Namespace isolation depends on whether the namespace uses the shared default artifact server or a dedicated per-namespace artifact server:
 
-1. **PVC per Namespace**: Each namespace has a dedicated PVC named `kfp-artifacts-<namespace>`
-2. **Directory Organization**: Artifacts organized by pipeline/run-id for clarity (not security)
+1. **Shared default**: a single shared PVC is used, with namespace-aware paths (`/artifacts/<namespace>/...`) and `SubjectAccessReview` enforcing access.
+2. **Dedicated per-namespace**: the namespace has its own PVC (physical isolation), and the namespace-local artifact server only mounts that PVC.
 
 #### Multi-User Isolation Strategy
 
@@ -1272,21 +864,7 @@ With the dedicated per-namespace setup, each namespace runs its own lightweight 
 
 ##### Service Discovery
 
-Each namespace's artifact server is exposed via a Service:
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: ml-pipeline-artifact-server
-  namespace: <user-namespace>
-spec:
-  selector:
-    app: ml-pipeline-artifact-server
-  ports:
-  - port: 8080
-    protocol: TCP
-```
+Each namespace's dedicated artifact server is exposed via a Kubernetes Service (e.g., `ml-pipeline-artifact-server` in that namespace) so control-plane components can reach it via standard in-cluster DNS.
 
 ##### Cross-Namespace Access Pattern
 
@@ -1300,28 +878,7 @@ Control plane components (UI, API server) in the `kubeflow` namespace need to ac
 4. **Artifact retrieval**: If authorized, serves artifact from namespace's PVC
 
 Example: UI Accessing User Namespace Artifacts
-
-```go
-// UI backend code running in kubeflow namespace
-func (s *UIServer) GetArtifact(namespace, runID, nodeID, artifactName string) (*Artifact, error) {
-    // Construct cross-namespace URL
-    artifactURL := fmt.Sprintf(
-        "http://ml-pipeline-artifact-server.%s.svc:8080/apis/v2beta1/runs/%s/nodes/%s/artifacts/%s:read",
-        namespace, runID, nodeID, artifactName,
-    )
-    
-    // Request includes user's credentials for `SubjectAccessReview`
-    req, _ := http.NewRequest("GET", artifactURL, nil)
-    req.Header.Set("Authorization", userToken)
-    
-    // Artifact server in target namespace will:
-    // 1. Extract user identity from token
-    // 2. Perform `SubjectAccessReview` against pipelines.kubeflow.org/runs resource
-    // 3. Return artifact if user has access
-    resp, err := http.DefaultClient.Do(req)
-    // ...
-}
-```
+The UI constructs the namespace-local service URL for the artifact server and forwards the user's credentials so the target artifact server can perform a `SubjectAccessReview` before serving the artifact.
 
 **Why Both Network Access + RBAC?**
 
@@ -1351,29 +908,7 @@ With the dedicated per-namespace setup, workflow pods connect directly to their 
 #### Subject Access Review Integration
 
 Both the shared and dedicated setups use KFP's existing authorization layer with Kubernetes `SubjectAccessReview`. With the dedicated per-namespace setup, this is especially important as the artifact servers perform authorization checks for cross-namespace requests:
-
-```go
-// Artifact access uses the same authorization regardless of storage backend
-func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadArtifactRequest) (*apiv2beta1.ReadArtifactResponse, error) {
-    // Authorization check using `SubjectAccessReview`
-    err := s.canAccessRun(ctx, request.GetRunId(), &authorizationv1.ResourceAttributes{
-        Verb: common.RbacResourceVerbReadArtifact,
-    })
-    if err != nil {
-        return nil, util.Wrap(err, "Failed to authorize the request")
-    }
-    
-    // Use ObjectStore interface - works for any backend (S3, GCS, PVC, etc.)
-    reader, err := s.resourceManager.ObjectStore().GetFileReader(ctx, artifactPath)
-    if err != nil {
-        return nil, err
-    }
-    defer reader.Close()
-    
-    // Stream and encode response (same for all backends)
-    // ...
-}
-```
+The read/write handlers perform the same authorization flow regardless of backend: validate access via `SubjectAccessReview`, then stream the artifact content from the configured storage backend.
 
 The authorization flow for filesystem storage:
 
@@ -1388,9 +923,9 @@ The namespace-isolated design works for both the shared and dedicated setups:
 
 ##### Multi-User Mode
 
-- Each namespace (team/user) gets its own PVC
-- Kubernetes enforces isolation between namespaces
-- Natural fit for multi-tenant environments
+- Shared default uses a single PVC with namespace-aware paths plus `SubjectAccessReview` enforcement.
+- Dedicated per-namespace mode provides a PVC per opted-in namespace (physical isolation).
+- Kubernetes enforces workload and namespace boundaries; KFP enforces user-level access via `SubjectAccessReview`.
 
 ##### Single-User Mode
 
@@ -1461,32 +996,12 @@ These features are considered out of scope for the initial implementation as the
 #### What Works Across All Storage Backends
 
 Pipelines that use KFP's standard artifact mechanisms work with any storage backend without modification:
-
-```python
-# ✅ These patterns work with S3, GCS, and PVC
-@component
-def process_data(
-    input_data: Input[Dataset],
-    output_data: Output[Dataset],
-    model_path: OutputPath('Model')
-):
-    # KFP handles storage operations transparently
-    df = pd.read_csv(input_data.path)
-    # ... process ...
-    df.to_csv(output_data.path)
-```
+For example, using KFP-managed artifact passing (e.g., `Input/Output[Dataset|Model]`, `OutputPath`, and `.path`) remains portable across storage backends because KFP manages the artifact I/O behind the scenes.
 
 #### What Doesn't Work
 
 Pipelines with storage-specific code may fail depending on service availability:
-
-```python
-# ❌ This only works if S3 is accessible, regardless of KFP's storage backend
-@component
-def s3_specific_component():
-    s3 = boto3.client('s3')
-    s3.download_file('my-bucket', 'my-key', '/tmp/data')
-```
+For example, components that directly call an object-store SDK (e.g., `boto3`) still require that service to be reachable, regardless of which backend KFP uses for its own managed artifacts.
 
 **This is expected behavior** - KFP doesn't validate or prevent storage-specific code. Components with storage-specific operations will behave according to their implementation - they may fail if the required service isn't available, or they may succeed if they can still access that service. The artifacts managed by KFP will be stored in the configured backend (PVC in this case), but any direct storage operations in the component code are independent of KFP's configuration.
 
@@ -1633,21 +1148,7 @@ data:
 ### Environment Variable Overrides
 
 All configuration fields can be overridden via environment variables:
-
-```yaml
-# Filesystem configuration
-OBJECTSTORECONFIG_FILESYSTEM_TYPE=pvc
-OBJECTSTORECONFIG_FILESYSTEM_MOUNTPATH=/artifacts
-
-# PVC configuration
-OBJECTSTORECONFIG_FILESYSTEM_PVC_STORAGECLASSNAME=standard
-OBJECTSTORECONFIG_FILESYSTEM_PVC_SIZE=100Gi
-OBJECTSTORECONFIG_FILESYSTEM_PVC_ACCESSMODE=ReadWriteMany
-OBJECTSTORECONFIG_FILESYSTEM_PVC_CREATEIFNOTEXISTS=true
-
-# Artifact server configuration
-OBJECTSTORECONFIG_ARTIFACTSERVER_WORKLOADKIND=deployment
-```
+This follows KFP's existing convention where dots become underscores (for example, `ObjectStoreConfig.Filesystem.PVC.Size` → `OBJECTSTORECONFIG_FILESYSTEM_PVC_SIZE`).
 
 ## Migration and Compatibility
 
