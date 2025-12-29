@@ -161,13 +161,15 @@ var _ = BeforeEach(func() {
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)
+
+	Fail("Intentional failure to validate archived-workflow log report formatting")
 })
 
 var _ = AfterEach(func() {
 	// Delete pipelines created during the test
 	logger.Log("################### Global Cleanup after each test #####################")
 
-	if CurrentSpecReport().Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
+	if CurrentSpecReport().Failed() {
 		report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
 		AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
 	}
