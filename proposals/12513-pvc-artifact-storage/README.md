@@ -617,6 +617,13 @@ The PVC lifecycle is controlled by the `ObjectStoreConfig.Filesystem.PVC` config
 
 `PersistentVolumeClaims` are created automatically when the artifact server is deployed in a namespace. The PVC uses a standard naming convention (`kfp-artifacts-{namespace}`) and the configured storage size, access mode, and storage class. Pipeline pods interact with artifacts exclusively through the artifact server API, ensuring proper isolation and access control.
 
+##### Create-on-Missing Behavior (`ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists`)
+
+Controls whether KFP creates the expected PVC when provisioning filesystem storage:
+
+- `true` (default): the control plane creates the PVC for the shared artifact server and for any namespace that opts into a dedicated artifact server.
+- `false`: KFP does not create PVCs. The PVC must already exist (same naming convention); otherwise, filesystem storage setup fails during prerequisite validation.
+
 ##### StorageClass Selection (`ObjectStoreConfig.Filesystem.PVC.StorageClassName`)
 
 Selects which `StorageClass` to use for PVC provisioning (empty string uses the cluster default).
@@ -850,6 +857,7 @@ For example, components that directly call an object-store SDK (e.g., `boto3`) s
 - `ObjectStoreConfig.Filesystem.PVC.StorageClassName` sets PVC storage class
 - `ObjectStoreConfig.Filesystem.PVC.Size` sets PVC capacity
 - `ObjectStoreConfig.Filesystem.PVC.AccessMode` defaults to `ReadWriteOnce`
+- `ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists` controls whether KFP auto-creates the PVC (default `true`); when `false`, the PVC must already exist
 - Per-namespace `kfp-launcher` ConfigMap `artifactServer.dedicated: true` opts a namespace into a dedicated per-namespace server (default is shared)
 
 ### Integration Tests
@@ -873,7 +881,6 @@ For example, components that directly call an object-store SDK (e.g., `boto3`) s
 - Verify:
   - KFP routes artifact operations correctly per namespace (shared vs dedicated vs S3-compatible)
   - enabling/disabling a namespace override does not require a cluster-wide restart
-  - when `WorkloadKind` is unset or set to `"deployment"` (default), the expected Kubernetes resources are deployed (Deployment and Service)
   - when `WorkloadKind: "daemonset"` is configured, the expected Kubernetes resources are deployed (DaemonSet and Service with `internalTrafficPolicy: Local`)
 
 ## Configuration Reference
