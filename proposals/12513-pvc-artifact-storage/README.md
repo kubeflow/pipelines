@@ -911,15 +911,15 @@ Here's a complete example showing all new configuration fields for filesystem st
 ```
 
 ### Configuration Field Reference
-
-| Field                                                | Description                       | Default           | Valid Values                            |
-|------------------------------------------------------|-----------------------------------|-------------------|-----------------------------------------|
-| `ObjectStoreConfig.Filesystem.MountPath`             | Path where PVC is mounted         | `"/artifacts"`    | Any valid path                          |
-| `ObjectStoreConfig.Filesystem.PVC.StorageClassName`  | K8s StorageClass to use           | Cluster default   | Any available StorageClass              |
-| `ObjectStoreConfig.Filesystem.PVC.Size`              | Size of PVC to create             | `"10Gi"`          | K8s quantity (e.g., `"100Gi"`, `"1Ti"`) |
-| `ObjectStoreConfig.Filesystem.PVC.AccessMode`        | PVC access mode                   | `"ReadWriteOnce"` | `"ReadWriteOnce"`, `"ReadWriteMany"`    |
-| `ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists` | Auto-create PVC if missing        | `true`            | `true`, `false`                         |
-| `ObjectStoreConfig.ArtifactServer.WorkloadKind`      | Artifact server workload kind     | `"deployment"`    | `"deployment"`, `"daemonset"`           |
+| Field                                                | Description                       | Default                         | Valid Values                            |
+|------------------------------------------------------|-----------------------------------|---------------------------------|-----------------------------------------|
+| `ObjectStoreConfig.Filesystem.Type`                  | Storage backend type              | -                               | `"pvc"`, `"local"` (testing only)       |
+| `ObjectStoreConfig.Filesystem.MountPath`             | Path where PVC is mounted         | `"/artifacts"`                  | Any valid path                          |
+| `ObjectStoreConfig.Filesystem.PVC.StorageClassName`  | K8s StorageClass to use           | empty string (uses cluster default) | Any available StorageClass              |
+| `ObjectStoreConfig.Filesystem.PVC.Size`              | Size of PVC to create             | `"10Gi"`                        | K8s quantity (e.g., `"100Gi"`, `"1Ti"`) |
+| `ObjectStoreConfig.Filesystem.PVC.AccessMode`        | PVC access mode                   | `"ReadWriteOnce"`               | `"ReadWriteOnce"`, `"ReadWriteMany"`    |
+| `ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists` | Auto-create PVC if missing        | `true`                          | `true`, `false`                         |
+| `ObjectStoreConfig.ArtifactServer.WorkloadKind`      | Artifact server workload kind     | `"deployment"`                  | `"deployment"`, `"daemonset"`           |
 
 **Notes:**
 
