@@ -139,7 +139,7 @@ def my_component():
     
     # Log structured data as JSON
     log_data = {
-        "event":  "model_training_complete",
+        "event": "model_training_complete",
         "accuracy": 0.95,
         "epochs": 100,
         "model_size_mb": 250
