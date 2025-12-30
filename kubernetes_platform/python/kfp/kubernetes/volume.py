@@ -34,12 +34,9 @@ def CreatePVC(
     annotations: Optional[Dict[str, str]] = None,
 ):
     """Create a PersistentVolumeClaim, which can be used by downstream tasks.
-    See `PersistentVolume
-    <https://kubernetes.io/docs/concepts/storage/persistent-
-    volumes/#persistent-volumes>`_ and `PersistentVolumeClaim
-    <https://kubernetes.io/docs/concepts/storage/persistent-
-    volumes/#persistentvolumeclaims>`_ documentation for more information about
-    the component input parameters.
+    See `PersistentVolume <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_
+    and `PersistentVolumeClaim <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims>`_
+    documentation for more information about the component input parameters.
 
     Args:
         access_modes: AccessModes to request for the provisioned PVC. May
