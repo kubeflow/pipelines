@@ -152,7 +152,7 @@ In Cloud Logging, you can parse these JSON logs using log queries and create cus
 
 #### Additional Notes
 
-- This issue is specific to **Vertex AI Pipelines**.  Other platforms (e.g., Kubeflow on GKE) may not be affected.
+- This issue is specific to **Vertex AI Pipelines**. Other platforms (e.g., Kubeflow on GKE) may not be affected.
 - The issue occurs regardless of the IAM roles assigned to your service account.
 - Both `set_memory_limit()` and other resource methods (`set_cpu_limit()`, `set_memory_request()`, `set_cpu_request()`) trigger this behavior.
 
