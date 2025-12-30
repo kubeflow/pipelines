@@ -25,7 +25,7 @@ denied on resource (or it may not exist).
 domain: "iam.googleapis.com"
 metadata {
   key: "permission"
-  value: "logging. logEntries.create"
+  value: "logging.logEntries.create"
 }
 ```
 
