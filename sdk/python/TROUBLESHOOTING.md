@@ -102,7 +102,7 @@ This approach bypasses the need for direct Cloud Logging API calls, avoiding the
 
 #### Viewing Logs
 
-Your logs will appear in Cloud Logging: 
+Your logs will appear in Cloud Logging:
 
 1. Go to [Cloud Logging](https://console.cloud.google.com/logs)
 2. Filter by:
