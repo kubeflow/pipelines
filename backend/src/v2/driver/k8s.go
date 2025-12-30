@@ -1017,6 +1017,7 @@ func makeVolumeMountPatch(
 		volumeMount := k8score.VolumeMount{
 			Name:      pvcName,
 			MountPath: pvcMountPath,
+			SubPath:   pvcMount.GetSubPath(),
 		}
 		volume := k8score.Volume{
 			Name: pvcName,

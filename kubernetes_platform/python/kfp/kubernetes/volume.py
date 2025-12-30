@@ -34,8 +34,9 @@ def CreatePVC(
     annotations: Optional[Dict[str, str]] = None,
 ):
     """Create a PersistentVolumeClaim, which can be used by downstream tasks.
-    See `PersistentVolume <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_ and `PersistentVolumeClaim <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims>`_ documentation for more information about
-    the component input parameters.
+    See `PersistentVolume <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_
+    and `PersistentVolumeClaim <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims>`_
+    documentation for more information about the component input parameters.
 
     Args:
         access_modes: AccessModes to request for the provisioned PVC. May
@@ -66,6 +67,7 @@ def mount_pvc(
     task: PipelineTask,
     pvc_name: Union[str, 'PipelineChannel'],
     mount_path: str,
+    sub_path: str = '',
 ) -> PipelineTask:
     """Mount a PersistentVolumeClaim to the task's container.
 
@@ -73,6 +75,7 @@ def mount_pvc(
         task: Pipeline task.
         pvc_name: Name of the PVC to mount. Supports passing a runtime-generated name, such as a name provided by ``kubernetes.CreatePvcOp().outputs['name']``.
         mount_path: Path to which the PVC should be mounted as a volume.
+        sub_path: Path within the volume from which the container's volume should be mounted. Defaults to "" (volume's root).
 
     Returns:
         Task object with updated PVC mount configuration.
@@ -80,7 +83,7 @@ def mount_pvc(
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
-    pvc_mount = pb.PvcMount(mount_path=mount_path)
+    pvc_mount = pb.PvcMount(mount_path=mount_path, sub_path=sub_path)
     pvc_name_parameter = common.parse_k8s_parameter_input(pvc_name, task)
     pvc_mount.pvc_name_parameter.CopyFrom(pvc_name_parameter)
 
@@ -110,7 +113,10 @@ def _assign_pvc_name_to_msg(
     msg: message.Message,
     pvc_name: Union[str, 'PipelineChannel'],
 ) -> bool:
-    """Assigns pvc_name to the msg's pvc_reference oneof. Returns True if pvc_name is an upstream task output. Else, returns False."""
+    """Assigns pvc_name to the msg's pvc_reference oneof.
+
+    Returns True if pvc_name is an upstream task output; otherwise, False.
+    """
     if isinstance(pvc_name, str):
         msg.constant = pvc_name
         return False
@@ -138,7 +144,7 @@ def add_ephemeral_volume(
     labels: Dict[str, str] = None,
     annotations: Dict[str, str] = None,
 ):
-    """Add a `generic ephemeral volume
+    """Add a `generic ephemeral volume.
     <https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes>`_. to a task.
 
     Args:
@@ -183,8 +189,7 @@ def add_ephemeral_volume(
                 annotations=annotations or {},
                 labels=labels or {},
             ) if annotations or labels else None,
-        )
-    )
+        ))
     task.platform_config["kubernetes"] = json_format.MessageToDict(msg)
 
     return task

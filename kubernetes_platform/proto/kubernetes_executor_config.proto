@@ -95,6 +95,11 @@ message PvcMount {
 
     // Name of the PVC.
     ml_pipelines.TaskInputsSpec.InputParameterSpec pvc_name_parameter = 5;
+
+    // Path within the volume from which the container's volume should be mounted.
+    // Defaults to "" (volume's root).
+    // Cannot be used with CreatePvc which creates an empty volume.
+    string sub_path = 6;
 }
 
 message CreatePvc {
