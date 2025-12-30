@@ -115,8 +115,7 @@ def _assign_pvc_name_to_msg(
 ) -> bool:
     """Assigns pvc_name to the msg's pvc_reference oneof.
 
-    Returns True if pvc_name is an upstream task output. Else, returns
-    False.
+    Returns True if pvc_name is an upstream task output; otherwise, False.
     """
     if isinstance(pvc_name, str):
         msg.constant = pvc_name
@@ -146,7 +145,6 @@ def add_ephemeral_volume(
     annotations: Dict[str, str] = None,
 ):
     """Add a `generic ephemeral volume.
-
     <https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes>`_. to a task.
 
     Args:
