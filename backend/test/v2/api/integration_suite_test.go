@@ -165,6 +165,12 @@ var _ = BeforeEach(func() {
 
 var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	logger.Log("################### Global Cleanup after each test #####################")
+
+	if testContext == nil {
+		logger.Log("Test context not initialized (pending/skipped test) - skipping cleanup")
+		return
+	}
+
 	if specReport.Failed() {
 		if len(testContext.PipelineRun.CreatedRunIds) > 0 {
 			report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
