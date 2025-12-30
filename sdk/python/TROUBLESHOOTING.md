@@ -15,7 +15,7 @@ This guide covers common issues and solutions when using the Kubeflow Pipelines 
 
 #### Problem
 
-When using resource limit methods like `set_memory_limit()`, `set_cpu_limit()`, `set_cpu_request()`, or `set_memory_request()` with components that use the `google-cloud-logging` Python client, you may encounter a permission error: 
+When using resource limit methods like `set_memory_limit()`, `set_cpu_limit()`, `set_cpu_request()`, or `set_memory_request()` with components that use the `google-cloud-logging` Python client, you may encounter a permission error:
 
 ```
 Failed to submit 1 logs. 
