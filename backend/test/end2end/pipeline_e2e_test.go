@@ -96,9 +96,6 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 	AfterEach(func() {
 		logger.Log("################### Global Cleanup after each test #####################")
-		if testContext != nil && len(testContext.PipelineRun.CreatedRunIds) > 0 {
-			Fail("Intentional failure to validate archived-workflow log report output")
-		}
 	})
 
 	ReportAfterEach(func(specReport types.SpecReport) {

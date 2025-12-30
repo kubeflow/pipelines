@@ -163,12 +163,6 @@ var _ = BeforeEach(func() {
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)
 })
 
-var _ = AfterEach(func() {
-	if len(testContext.PipelineRun.CreatedRunIds) > 0 {
-		Fail("Intentional failure to validate archived-workflow log report output")
-	}
-})
-
 var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	logger.Log("################### Global Cleanup after each test #####################")
 	if specReport.Failed() {
