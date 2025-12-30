@@ -33,7 +33,7 @@ This is a known issue when running pipelines on Vertex AI Pipelines.  See [#1255
 
 #### Root Cause
 
-When resource specifications are present in a component, Vertex AI may create pods with a restricted execution context that lacks permissions for the Cloud Logging API.  This appears to be a platform-level behavior in Vertex AI rather than a Kubeflow Pipelines issue.
+When resource specifications are present in a component, Vertex AI may create pods with a restricted execution context that lacks permissions for the Cloud Logging API. This appears to be a platform-level behavior in Vertex AI rather than a Kubeflow Pipelines issue.
 
 #### Solution
 
