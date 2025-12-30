@@ -29,7 +29,7 @@ metadata {
 }
 ```
 
-This is a known issue when running pipelines on Vertex AI Pipelines.  See [#12554](https://github.com/kubeflow/pipelines/issues/12554) and [#11302](https://github.com/kubeflow/pipelines/issues/11302) for details.
+This is a known issue when running pipelines on Vertex AI Pipelines. See [#12554](https://github.com/kubeflow/pipelines/issues/12554) and [#11302](https://github.com/kubeflow/pipelines/issues/11302) for details.
 
 #### Root Cause
 
