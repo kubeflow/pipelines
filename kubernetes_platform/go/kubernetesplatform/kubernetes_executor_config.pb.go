@@ -427,8 +427,12 @@ type PvcMount struct {
 	MountPath string `protobuf:"bytes,4,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
 	// Name of the PVC.
 	PvcNameParameter *pipelinespec.TaskInputsSpec_InputParameterSpec `protobuf:"bytes,5,opt,name=pvc_name_parameter,json=pvcNameParameter,proto3" json:"pvc_name_parameter,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Path within the volume from which the container's volume should be mounted.
+	// Defaults to "" (volume's root).
+	// Cannot be used with CreatePvc which creates an empty volume.
+	SubPath       string `protobuf:"bytes,6,opt,name=sub_path,json=subPath,proto3" json:"sub_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PvcMount) Reset() {
@@ -510,6 +514,13 @@ func (x *PvcMount) GetPvcNameParameter() *pipelinespec.TaskInputsSpec_InputParam
 		return x.PvcNameParameter
 	}
 	return nil
+}
+
+func (x *PvcMount) GetSubPath() string {
+	if x != nil {
+		return x.SubPath
+	}
+	return ""
 }
 
 type isPvcMount_PvcReference interface {
@@ -1812,14 +1823,15 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\n" +
 	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x17\n" +
 	"\aenv_var\x18\x02 \x01(\tR\x06envVarB\v\n" +
-	"\t_optional\"\x81\x03\n" +
+	"\t_optional\"\x9c\x03\n" +
 	"\bPvcMount\x12\x81\x01\n" +
 	"\x15task_output_parameter\x18\x01 \x01(\v2G.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpecB\x02\x18\x01H\x00R\x13taskOutputParameter\x12 \n" +
 	"\bconstant\x18\x02 \x01(\tB\x02\x18\x01H\x00R\bconstant\x12@\n" +
 	"\x19component_input_parameter\x18\x03 \x01(\tB\x02\x18\x01H\x00R\x17componentInputParameter\x12\x1d\n" +
 	"\n" +
 	"mount_path\x18\x04 \x01(\tR\tmountPath\x12]\n" +
-	"\x12pvc_name_parameter\x18\x05 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x10pvcNameParameterB\x0f\n" +
+	"\x12pvc_name_parameter\x18\x05 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x10pvcNameParameter\x12\x19\n" +
+	"\bsub_path\x18\x06 \x01(\tR\asubPathB\x0f\n" +
 	"\rpvc_reference\"\xcf\x02\n" +
 	"\tCreatePvc\x12\x1b\n" +
 	"\bpvc_name\x18\x01 \x01(\tH\x00R\apvcName\x12(\n" +

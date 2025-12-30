@@ -80,6 +80,23 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 				"param_1": structpb.NewStringValue("pvc-name"),
 			},
 		},
+		{
+			"pvc mount with sub_path",
+			args{
+				[]*kubernetesplatform.PvcMount{
+					{
+						MountPath:        "/mnt/data",
+						SubPath:          "models",
+						PvcNameParameter: inputParamConstant("my-pvc"),
+					},
+				},
+				nil,
+				nil,
+			},
+			"/mnt/data",
+			"my-pvc",
+			nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -100,6 +117,10 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 			assert.Equal(t, volumeMounts[0].Name, tt.wantName)
 			assert.Equal(t, volumes[0].Name, tt.wantName)
 			assert.Equal(t, volumes[0].PersistentVolumeClaim.ClaimName, tt.wantName)
+			// Check subPath if specified in the test case
+			if len(tt.args.pvcMount) > 0 && tt.args.pvcMount[0].SubPath != "" {
+				assert.Equal(t, tt.args.pvcMount[0].SubPath, volumeMounts[0].SubPath)
+			}
 		})
 	}
 }
