@@ -91,7 +91,7 @@ def my_pipeline():
 
 #### Why This Works
 
-Vertex AI Pipelines automatically configures log collection for pipeline containers: 
+Vertex AI Pipelines automatically configures log collection for pipeline containers:
 
 1. Your component writes logs to stdout/stderr using standard Python logging
 2. The Kubernetes pod captures stdout/stderr streams
