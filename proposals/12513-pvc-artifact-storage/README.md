@@ -488,6 +488,8 @@ The API server combines global configuration with per-namespace `kfp-launcher` C
 
 The UI fetches `/apis/v2beta1/filesystem-storage/config`, caches the response, and routes requests to either the shared service or the namespace-local service based on whether the namespace is listed in `dedicated_namespaces`.
 
+Security and authorization requirements are described in [Multi-User Isolation and Authorization](#multi-user-isolation-and-authorization).
+
 ##### Implementation Details
 
 - **Dedicated endpoint**: `/filesystem-storage/config` returns configuration and routing
@@ -511,7 +513,7 @@ GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read
 GET /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read
 ```
 
-Note: Both v1beta1 and v2beta1 endpoints are supported because both V1 and V2 pipelines will need to read artifacts via this API when using filesystem storage. Both endpoints use the same implementation. There is an open question about whether this API should be considered public or internal. See [Open Questions: External Client Support](#external-client-support).
+Note: Both v1beta1 and v2beta1 endpoints are supported because both V1 and V2 pipelines will need to read artifacts via this API when using filesystem storage. Both endpoints use the same implementation. There is an open question about whether this API should be considered public or internal. See [Open Questions](#open-questions).
 
 **Request Parameters:**
 
@@ -705,6 +707,8 @@ The driver validates that required artifact infrastructure exists before pipelin
 ### Multi-User Isolation and Authorization
 
 In multi-user mode, KFP enforces isolation and authorization via `SubjectAccessReview` and the chosen artifact server topology (shared vs dedicated).
+
+This isolation model assumes the server does not trust client-controlled namespace inputs for artifact access: the effective namespace must be validated and authorized server-side for every read/write.
 
 #### Permission Model
 
@@ -911,15 +915,15 @@ Here's a complete example showing all new configuration fields for filesystem st
 ```
 
 ### Configuration Field Reference
-| Field                                                | Description                       | Default                         | Valid Values                            |
-|------------------------------------------------------|-----------------------------------|---------------------------------|-----------------------------------------|
-| `ObjectStoreConfig.Filesystem.Type`                  | Storage backend type              | -                               | `"pvc"`, `"local"` (testing only)       |
-| `ObjectStoreConfig.Filesystem.MountPath`             | Path where PVC is mounted         | `"/artifacts"`                  | Any valid path                          |
-| `ObjectStoreConfig.Filesystem.PVC.StorageClassName`  | K8s StorageClass to use           | empty string (uses cluster default) | Any available StorageClass              |
-| `ObjectStoreConfig.Filesystem.PVC.Size`              | Size of PVC to create             | `"10Gi"`                        | K8s quantity (e.g., `"100Gi"`, `"1Ti"`) |
-| `ObjectStoreConfig.Filesystem.PVC.AccessMode`        | PVC access mode                   | `"ReadWriteOnce"`               | `"ReadWriteOnce"`, `"ReadWriteMany"`    |
-| `ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists` | Auto-create PVC if missing        | `true`                          | `true`, `false`                         |
-| `ObjectStoreConfig.ArtifactServer.WorkloadKind`      | Artifact server workload kind     | `"deployment"`                  | `"deployment"`, `"daemonset"`           |
+
+| Field                                                | Description                   | Default                             | Valid Values                            |
+|------------------------------------------------------|-------------------------------|-------------------------------------|-----------------------------------------|
+| `ObjectStoreConfig.Filesystem.MountPath`             | Path where PVC is mounted     | `"/artifacts"`                      | Any valid path                          |
+| `ObjectStoreConfig.Filesystem.PVC.StorageClassName`  | K8s StorageClass to use       | empty string (uses cluster default) | Any available StorageClass              |
+| `ObjectStoreConfig.Filesystem.PVC.Size`              | Size of PVC to create         | `"10Gi"`                            | K8s quantity (e.g., `"100Gi"`, `"1Ti"`) |
+| `ObjectStoreConfig.Filesystem.PVC.AccessMode`        | PVC access mode               | `"ReadWriteOnce"`                   | `"ReadWriteOnce"`, `"ReadWriteMany"`    |
+| `ObjectStoreConfig.Filesystem.PVC.CreateIfNotExists` | Auto-create PVC if missing    | `true`                              | `true`, `false`                         |
+| `ObjectStoreConfig.ArtifactServer.WorkloadKind`      | Artifact server workload kind | `"deployment"`                      | `"deployment"`, `"daemonset"`           |
 
 **Notes:**
 
