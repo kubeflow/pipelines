@@ -274,7 +274,12 @@ func initPodSpecPatch(
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
-	userCmdArgs = append(userCmdArgs, container.Args...)
+
+	resolvedArgs, err := resolveContainerArgs(container.Args, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container args: %w", err)
+	}
+	userCmdArgs = append(userCmdArgs, resolvedArgs...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.

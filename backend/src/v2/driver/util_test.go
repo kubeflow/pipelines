@@ -158,3 +158,118 @@ func Test_resolvePodSpecRuntimeParameter(t *testing.T) {
 		})
 	}
 }
+
+func Test_resolveContainerArgs(t *testing.T) {
+	tests := []struct {
+		name          string
+		args          []string
+		executorInput *pipelinespec.ExecutorInput
+		expected      []string
+		wantErr       bool
+	}{
+		{
+			name: "IfPresent with parameter present",
+			args: []string{
+				"{{$.inputs.parameters['file']}}",
+				`{"IfPresent": {"InputName": "line_number", "Then": ["-n"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"file":        structpb.NewStringValue("/etc/hosts"),
+						"line_number": structpb.NewBoolValue(true),
+					},
+				},
+			},
+			expected: []string{"/etc/hosts", "-n"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with parameter absent",
+			args: []string{
+				"{{$.inputs.parameters['file']}}",
+				`{"IfPresent": {"InputName": "line_number", "Then": ["-n"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"file": structpb.NewStringValue("/etc/hosts"),
+					},
+				},
+			},
+			expected: []string{"/etc/hosts"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with else clause",
+			args: []string{
+				"{{$.inputs.parameters['file']}}",
+				`{"IfPresent": {"InputName": "line_number", "Then": ["-n"], "Else": ["--no-line-numbers"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"file": structpb.NewStringValue("/etc/hosts"),
+					},
+				},
+			},
+			expected: []string{"/etc/hosts", "--no-line-numbers"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with multiple values",
+			args: []string{
+				`{"IfPresent": {"InputName": "verbose", "Then": ["--verbose", "--debug"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"verbose": structpb.NewBoolValue(true),
+					},
+				},
+			},
+			expected: []string{"--verbose", "--debug"},
+			wantErr:  false,
+		},
+		{
+			name: "input parameter channel",
+			args: []string{
+				"{{$.inputs.parameters['pipelinechannel--someParameterName']}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"pipelinechannel--someParameterName": structpb.NewStringValue("resolved-value"),
+					},
+				},
+			},
+			expected: []string{"resolved-value"},
+			wantErr:  false,
+		},
+		{
+			name: "regular arg",
+			args: []string{
+				"regular-arg",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{},
+				},
+			},
+			expected: []string{"regular-arg"},
+			wantErr:  false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := resolveContainerArgs(test.args, test.executorInput)
+			if test.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expected, actual)
+			}
+		})
+	}
+}
