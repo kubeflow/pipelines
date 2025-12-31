@@ -284,7 +284,6 @@ def create_custom_training_job_from_component(
   # Only copy inputs that were actually provided by the user
   # This ensures IfPresentPlaceholder works correctly for optional parameters
   user_task_inputs = user_pipeline_spec['root']['dag']['tasks'][user_task_key].get('inputs', {})
-  
   # Copy parameters only if they exist in the user task
   if 'parameters' in user_task_inputs:
     if 'parameters' not in cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs']:
@@ -292,7 +291,6 @@ def create_custom_training_job_from_component(
     cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs']['parameters'].update(
         user_task_inputs['parameters']
     )
-  
   # Copy artifacts only if they exist in the user task
   if 'artifacts' in user_task_inputs:
     if 'artifacts' not in cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs']:
@@ -300,12 +298,10 @@ def create_custom_training_job_from_component(
     cj_pipeline_spec['root']['dag']['tasks'][cj_task_key]['inputs']['artifacts'].update(
         user_task_inputs['artifacts']
     )
-
   # reload the pipelinespec as a component using KFP
   new_component = components.load_component_from_text(
       yaml.safe_dump(cj_pipeline_spec)
   )
-
   # Copy the component name and description
   # TODO(b/262360354): The inner .component_spec.name is needed here as that is
   # the name that is retrieved by the FE for display. Can simply reference the
