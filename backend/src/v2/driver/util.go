@@ -147,13 +147,15 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 		resolved = []string{resolvedArg}
 	case []interface{}:
 		for _, item := range v {
-			if str, ok := item.(string); ok {
-				resolvedArg, err := resolvePodSpecInputRuntimeParameter(str, executorInput)
-				if err != nil {
-					return nil, err
-				}
-				resolved = append(resolved, resolvedArg)
+			str, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("non-string item in IfPresent Then/Else array: %T", item)
 			}
+			resolvedArg, err := resolvePodSpecInputRuntimeParameter(str, executorInput)
+			if err != nil {
+				return nil, err
+			}
+			resolved = append(resolved, resolvedArg)
 		}
 	default:
 		return nil, fmt.Errorf("unexpected type in IfPresent Then/Else: %T", v)

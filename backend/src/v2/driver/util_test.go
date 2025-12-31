@@ -259,6 +259,21 @@ func Test_resolveContainerArgs(t *testing.T) {
 			expected: []string{"regular-arg"},
 			wantErr:  false,
 		},
+		{
+			name: "IfPresent with non-string in array",
+			args: []string{
+				`{"IfPresent": {"InputName": "flag", "Then": ["--flag", 123]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"flag": structpb.NewBoolValue(true),
+					},
+				},
+			},
+			expected: nil,
+			wantErr:  true,
+		},
 	}
 
 	for _, test := range tests {
