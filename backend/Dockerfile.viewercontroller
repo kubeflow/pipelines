@@ -31,7 +31,10 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/viewer/*.go
 
 FROM alpine
+
 WORKDIR /bin
+
+RUN apk upgrade --no-cache
 
 COPY --from=builder /bin/controller /bin/controller
 RUN chmod +x /bin/controller
