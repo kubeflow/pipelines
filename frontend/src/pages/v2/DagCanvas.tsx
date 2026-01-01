@@ -93,19 +93,3 @@ export default function DagCanvas({
     </>
   );
 }
-onNodeDragStop={(event, node) => {
- 
-  const updatedElements = elements.map(value => {
-    if (value.id === node.id) {
-      return node;
-    }
-    return value;
-  });
-  
-  
-  if (updatedElements.length <= 200) {
-    setFlowElements(updatedElements);
-  } else {
-    console.warn(`Skipped DAG update: ${updatedElements.length} nodes exceed limit (200)`);
-  }
-}}
