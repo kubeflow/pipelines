@@ -31,13 +31,7 @@ const inputPipelineChannelPattern = `\$.inputs.parameters\['(.+?)'\]`
 func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
 	match := re.FindStringSubmatch(inputChannel)
-	if len(match) == 2 {
-		return true
-	} else {
-		// if len(match) > 2, then this is still incorrect because
-		// inputChannel should contain only one parameter channel input
-		return false
-	}
+	return len(match) == 2
 }
 
 // extractInputParameterFromChannel takes an inputChannel that adheres to
@@ -50,9 +44,8 @@ func extractInputParameterFromChannel(inputChannel string) (string, error) {
 	if len(match) > 1 {
 		extractedValue := match[1]
 		return extractedValue, nil
-	} else {
-		return "", fmt.Errorf("failed to extract input parameter from channel: %s", inputChannel)
 	}
+	return "", fmt.Errorf("failed to extract input parameter from channel: %s", inputChannel)
 }
 
 // inputParamConstant convert and return value as a RuntimeValue
