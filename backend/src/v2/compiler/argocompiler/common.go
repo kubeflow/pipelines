@@ -55,28 +55,33 @@ var commonEnvs = []k8score.EnvVar{{
 
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
 func ConfigureCustomCABundle(tmpl *wfapi.Template) {
-	caBundleDir := common.CABundleDir
+	volumeSource := k8score.VolumeSource{}
+	volumeMount := k8score.VolumeMount{Name: "custom-ca", MountPath: common.CABundleDir}
+
+	// CABUNDLE_SECRET_NAME is prioritized above CABUNDLE_CONFIGMAP_NAME.
 	caBundleSecretName := common.GetCaBundleSecretName()
-	if caBundleSecretName == "" {
-		glog.Error("Env var CABUNDLE_SECRET_NAME is blank or empty. Failed to configure custom CA bundle.")
+	caBundleConfigMapName := common.GetCaBundleConfigMapName()
+	if caBundleSecretName != "" {
+		volumeSource.Secret = &k8score.SecretVolumeSource{SecretName: caBundleSecretName}
+	} else if caBundleConfigMapName != "" {
+		caBundleConfigMapKey := common.GetCaBundleConfigMapKey()
+		if caBundleConfigMapKey == "" {
+			glog.Error("CABUNDLE_CONFIGMAP_KEY is not set. Failed to configure custom CA bundle.")
+			return
+		}
+		volumeSource.ConfigMap = &k8score.ConfigMapVolumeSource{LocalObjectReference: k8score.LocalObjectReference{Name: caBundleConfigMapName}}
+		volumeMount.SubPath = caBundleConfigMapKey
+	} else {
+		glog.Error("Neither CABUNDLE_SECRET_NAME nor CABUNDLE_CONFIGMAP_NAME is set. Failed to configure custom CA bundle.")
 		return
 	}
+
 	volume := k8score.Volume{
-		Name: "ca-secret",
-		VolumeSource: k8score.VolumeSource{
-			Secret: &k8score.SecretVolumeSource{
-				SecretName: caBundleSecretName,
-			},
-		},
+		Name:         "custom-ca",
+		VolumeSource: volumeSource,
 	}
 
 	tmpl.Volumes = append(tmpl.Volumes, volume)
-
-	volumeMount := k8score.VolumeMount{
-		Name:      "ca-secret",
-		MountPath: caBundleDir,
-	}
-
 	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
 
 }

@@ -72,20 +72,6 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 					testutil.CheckIfSkipping(pipelineSpecFileName)
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
-					if *createMissingGoldenFiles || *updateGoldenFiles {
-						var configuredWorkflow *v1alpha1.Workflow
-						if param.compilerOptions.CacheDisabled {
-							configuredWorkflow = workflowutils.ConfigureCacheSettings(compiledWorkflow, true)
-						} else {
-							configuredWorkflow = compiledWorkflow
-						}
-						logger.Log("Updating/Creating Compiled Workflow File '%s'", compiledWorkflowFilePath)
-						workflowutils.CreateCompiledWorkflowFile(configuredWorkflow, compiledWorkflowFilePath)
-					}
-					expectedWorkflow := workflowutils.UnmarshallWorkflowYAML(compiledWorkflowFilePath)
-					if param.compilerOptions.CacheDisabled {
-						expectedWorkflow = workflowutils.ConfigureCacheSettings(expectedWorkflow, false)
-					}
 
 					// Set provided env variables
 					for envVarName, envVarValue := range param.envVars {
@@ -100,6 +86,21 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 							Expect(err).To(BeNil(), "Could not unset env var %s", envVarName)
 						}
 					}()
+
+					if *createMissingGoldenFiles || *updateGoldenFiles {
+						var configuredWorkflow *v1alpha1.Workflow
+						if param.compilerOptions.CacheDisabled {
+							configuredWorkflow = workflowutils.ConfigureCacheSettings(compiledWorkflow, true)
+						} else {
+							configuredWorkflow = compiledWorkflow
+						}
+						logger.Log("Updating/Creating Compiled Workflow File '%s'", compiledWorkflowFilePath)
+						workflowutils.CreateCompiledWorkflowFile(configuredWorkflow, compiledWorkflowFilePath)
+					}
+					expectedWorkflow := workflowutils.UnmarshallWorkflowYAML(compiledWorkflowFilePath)
+					if param.compilerOptions.CacheDisabled {
+						expectedWorkflow = workflowutils.ConfigureCacheSettings(expectedWorkflow, false)
+					}
 
 					matcher.CompareWorkflows(compiledWorkflow, expectedWorkflow)
 
