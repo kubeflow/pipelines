@@ -226,15 +226,24 @@ def get(ctx: click.Context, recurring_run_id: str):
 
 @recurring_run.command()
 @click.argument('recurring-run-id')
+@click.option(
+    '--propagation-policy',
+    type=click.Choice(['FOREGROUND', 'BACKGROUND', 'ORPHAN'],
+                      case_sensitive=False),
+    default=None,
+    help='Propagation policy for deletion. FOREGROUND waits for children to be '
+    'deleted first. BACKGROUND deletes immediately. ORPHAN leaves children running.',
+)
 @click.pass_context
-def delete(ctx: click.Context, recurring_run_id: str):
+def delete(ctx: click.Context, recurring_run_id: str, propagation_policy: str):
     """Delete a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
     confirmation = f'Are you sure you want to delete job {recurring_run_id}?'
     if not click.confirm(confirmation):
         return
-    client_obj.delete_recurring_run(recurring_run_id)
+    client_obj.delete_recurring_run(
+        recurring_run_id, propagation_policy=propagation_policy)
     output.print_deleted_text('recurring_run', recurring_run_id, output_format)
 
 
