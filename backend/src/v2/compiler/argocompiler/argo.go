@@ -150,6 +150,16 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 	}
 
+	if hasPipelineConfig {
+		pipelineConfig := kubernetesSpec.GetPipelineConfig()
+		if pipelineConfig.PipelineRunParallelism != nil {
+			value := pipelineConfig.GetPipelineRunParallelism()
+			if value <= 0 {
+				return nil, fmt.Errorf("pipelineRunParallelism must be greater than 0, got %d", value)
+			}
+		}
+	}
+
 	runAsUser := GetPipelineRunAsUser()
 	if runAsUser != nil {
 		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}

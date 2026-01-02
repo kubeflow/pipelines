@@ -15,6 +15,16 @@ rules:
   - list
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+- apiGroups:
   - argoproj.io
   resources:
   - workflows
