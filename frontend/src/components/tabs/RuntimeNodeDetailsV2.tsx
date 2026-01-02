@@ -242,6 +242,10 @@ function getTaskDetailsFields(
 
       const createdAt = new Date(execution.getCreateTimeSinceEpoch()).toString();
       details.push(['Created At', createdAt]);
+      
+      const retryCount = execution?.getCustomPropertiesMap().get('retry_count')?.getStringValue() || '0';
+      const maxRetries = execution?.getCustomPropertiesMap().get('max_retries')?.getStringValue() || '∞';
+      details.push(['Retry Attempts', `${retryCount}/${maxRetries}`]);
 
       const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
       let finishedAt = '-';
