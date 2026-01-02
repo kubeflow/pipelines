@@ -159,19 +159,20 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	var resolvedArgs []string
 	for _, arg := range args {
-		if isInputParameterChannel(arg) {
+		switch {
+		case isInputParameterChannel(arg):
 			resolvedArg, err := resolvePodSpecInputRuntimeParameter(arg, executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve input parameter channel: %w", err)
 			}
 			resolvedArgs = append(resolvedArgs, resolvedArg)
-		} else if isConditionClause(arg) {
+		case isConditionClause(arg):
 			resolved, err := resolveCondition(arg, executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve condition: %w", err)
 			}
 			resolvedArgs = append(resolvedArgs, resolved...)
-		} else {
+		default:
 			resolvedArgs = append(resolvedArgs, arg)
 		}
 	}
