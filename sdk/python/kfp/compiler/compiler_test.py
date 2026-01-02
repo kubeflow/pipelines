@@ -1154,7 +1154,7 @@ implementation:
                 description='A simple test pipeline with platform spec',
                 pipeline_config=dsl.PipelineConfig(
                     workspace=dsl.WorkspaceConfig(size='25Gi'),
-                    pipeline_run_parallelism=5),
+                ),
             )
             def my_pipeline(input1: str):
                 print_op(message=input1)

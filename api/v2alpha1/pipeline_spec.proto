@@ -1177,7 +1177,8 @@ message PipelineConfig {
   // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
   optional WorkspaceConfig workspace = 2;
 
-  // Maximum number of tasks that can be scheduled simultaneously for a single
-  // pipeline run.
+  // Maximum number of concurrent runs allowed for this pipeline version.
+  // When set, Argo Workflows will use synchronization semaphores to limit
+  // the number of simultaneously running workflow instances for the same pipeline version.
   optional int32 pipeline_run_parallelism = 3;
 }

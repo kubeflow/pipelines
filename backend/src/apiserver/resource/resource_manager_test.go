@@ -1940,15 +1940,20 @@ func TestCreateRun_PipelineRunParallelismConfigMap(t *testing.T) {
 	initEnvVars()
 
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
+	defer func() {
+		if err := store.Close(); err != nil {
+			t.Errorf("Failed to close store: %v", err)
+		}
+	}()
 
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
 	pipeline, err := manager.CreatePipeline(createPipeline("parallelism-pipeline", "", "kubeflow"))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
+	require.NotNil(t, store)
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
-	assert.True(t, ok)
+	require.True(t, ok)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 
 	pv := createPipelineVersion(
@@ -1961,7 +1966,7 @@ func TestCreateRun_PipelineRunParallelismConfigMap(t *testing.T) {
 		"kubeflow",
 	)
 	version, err := manager.CreatePipelineVersion(pv)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	run := &model.Run{
 		DisplayName: "run-with-parallelism",
@@ -1976,30 +1981,28 @@ func TestCreateRun_PipelineRunParallelismConfigMap(t *testing.T) {
 	}
 
 	createdRun, err := manager.CreateRun(context.Background(), run)
-	assert.NoError(t, err)
-	assert.NotNil(t, createdRun)
+	require.NoError(t, err)
+	require.NotNil(t, createdRun)
 
 	configMap, err := store.k8sCoreClientFake.ConfigMapClient("kubeflow").Get(
 		context.Background(), pipelineParallelismConfigMapName, v1.GetOptions{})
-	assert.NoError(t, err)
-	if assert.NotNil(t, configMap.Data) {
-		assert.Equal(t, "5", configMap.Data[version.UUID])
-	}
+	require.NoError(t, err)
+	require.NotNil(t, configMap.Data)
+	assert.Equal(t, "5", configMap.Data[version.UUID])
 
 	execSpec, err := store.ExecClientFake.Execution("kubeflow").Get(
 		context.Background(), createdRun.K8SName, v1.GetOptions{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	workflow, ok := execSpec.(*util.Workflow)
-	assert.True(t, ok)
+	require.True(t, ok)
 	// Check that synchronization semaphores are configured to read from ConfigMap
-	if assert.NotNil(t, workflow.Spec.Synchronization) {
-		if assert.NotNil(t, workflow.Spec.Synchronization.Semaphores) && assert.Len(t, workflow.Spec.Synchronization.Semaphores, 1) {
-			semaphore := workflow.Spec.Synchronization.Semaphores[0]
-			assert.NotNil(t, semaphore.ConfigMapKeyRef)
-			assert.Equal(t, pipelineParallelismConfigMapName, semaphore.ConfigMapKeyRef.Name)
-			assert.Equal(t, version.UUID, semaphore.ConfigMapKeyRef.Key)
-		}
-	}
+	require.NotNil(t, workflow.Spec.Synchronization)
+	require.NotNil(t, workflow.Spec.Synchronization.Semaphores)
+	require.Len(t, workflow.Spec.Synchronization.Semaphores, 1)
+	semaphore := workflow.Spec.Synchronization.Semaphores[0]
+	assert.NotNil(t, semaphore.ConfigMapKeyRef)
+	assert.Equal(t, pipelineParallelismConfigMapName, semaphore.ConfigMapKeyRef.Name)
+	assert.Equal(t, version.UUID, semaphore.ConfigMapKeyRef.Key)
 }
 
 func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {

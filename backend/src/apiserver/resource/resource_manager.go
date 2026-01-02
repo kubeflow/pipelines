@@ -158,47 +158,87 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 
 // extractPipelineRunParallelism extracts pipeline_run_parallelism from the template's platform spec.
 // It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> pipelineRunParallelism
-func extractPipelineRunParallelism(tmpl template.Template) (int64, bool) {
+func extractPipelineRunParallelism(tmpl template.Template) (int64, error) {
 	if tmpl == nil || !tmpl.IsV2() {
-		return 0, false
+		return 0, nil
 	}
 	// Type assertion: cast to V2Spec to access PlatformSpec()
 	v2Spec, ok := tmpl.(*template.V2Spec)
 	if !ok || v2Spec == nil {
-		return 0, false
+		return 0, nil
 	}
 	// Get the platform spec (already public method)
 	platformSpec := v2Spec.PlatformSpec()
 	if platformSpec == nil {
-		return 0, false
+		return 0, nil
 	}
 	// Get kubernetes platform config
 	kubernetesSpec, ok := platformSpec.Platforms["kubernetes"]
 	if !ok || kubernetesSpec == nil {
-		return 0, false
+		return 0, nil
 	}
 	// Get pipeline config
 	pipelineConfig := kubernetesSpec.GetPipelineConfig()
 	if pipelineConfig == nil || pipelineConfig.PipelineRunParallelism == nil {
-		return 0, false
+		return 0, nil
 	}
 	// Get the parallelism value
 	value := pipelineConfig.GetPipelineRunParallelism()
 	if value <= 0 {
-		return 0, false
+		return 0, fmt.Errorf("pipeline_run_parallelism must be greater than 0, got %d", value)
 	}
-	return int64(value), true
+	return int64(value), nil
 }
 
-func (r *ResourceManager) upsertPipelineParallelismConfigMap(ctx context.Context, namespace, key string, parallelism int64) error {
+func (r *ResourceManager) deletePipelineParallelismConfigMapEntry(ctx context.Context, namespace, key string) error {
 	if key == "" {
-		return nil
+		return fmt.Errorf("key cannot be empty")
 	}
 
 	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
-	value := strconv.FormatInt(parallelism, 10)
+	for {
+		if ctx.Err() != nil {
+			return util.Wrap(ctx.Err(), "context cancelled while deleting pipeline parallelism ConfigMap entry")
+		}
+		current, err := configMaps.Get(ctx, pipelineParallelismConfigMapName, v1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			// ConfigMap doesn't exist, nothing to clean up
+			return nil
+		}
+		if err != nil {
+			return util.Wrap(err, "failed to retrieve pipeline parallelism ConfigMap for cleanup")
+		}
+
+		if current.Data == nil {
+			return nil
+		}
+		if _, ok := current.Data[key]; !ok {
+			// Key doesn't exist, nothing to clean up
+			return nil
+		}
+
+		delete(current.Data, key)
+		if _, err := configMaps.Update(ctx, current, v1.UpdateOptions{}); apierrors.IsConflict(err) {
+			continue
+		} else if err != nil {
+			return util.Wrap(err, "failed to delete pipeline parallelism ConfigMap entry")
+		}
+		return nil
+	}
+}
+
+func (r *ResourceManager) upsertPipelineParallelismConfigMap(ctx context.Context, namespace, key string, parallelism int) error {
+	if key == "" {
+		return fmt.Errorf("key cannot be empty")
+	}
+
+	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
+	value := strconv.Itoa(parallelism)
 
 	for {
+		if ctx.Err() != nil {
+			return util.Wrap(ctx.Err(), "context cancelled while upserting pipeline parallelism ConfigMap")
+		}
 		current, err := configMaps.Get(ctx, pipelineParallelismConfigMapName, v1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			newConfigMap := &corev1.ConfigMap{
@@ -648,33 +688,31 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
 	// Extract parallelism from template and configure synchronization semaphores
-	if parallelism, ok := extractPipelineRunParallelism(tmpl); ok && parallelism > 0 && run.PipelineVersionId != "" {
+	parallelism, err := extractPipelineRunParallelism(tmpl)
+	if err != nil {
+		return nil, util.Wrap(err, "failed to extract pipeline_run_parallelism")
+	}
+	if parallelism > 0 && run.PipelineVersionId != "" {
 		// Create/update ConfigMap with semaphore limit
 		if err := r.upsertPipelineParallelismConfigMap(
-			ctx, k8sNamespace, run.PipelineVersionId, parallelism); err != nil {
-			if apierrors.IsForbidden(errors.Cause(err)) {
-				glog.Warningf("Skipping pipeline_run_parallelism ConfigMap update in namespace %q: %v. Semaphore will not be configured.", k8sNamespace, err)
-				// Don't configure semaphores if ConfigMap creation fails
-			} else {
-				return nil, util.Wrap(err, "Failed to persist pipeline_run_parallelism configuration")
+			ctx, k8sNamespace, run.PipelineVersionId, int(parallelism)); err != nil {
+			return nil, util.Wrap(err, "Failed to persist pipeline_run_parallelism configuration")
+		}
+		// Only configure synchronization semaphores if ConfigMap was successfully created/updated
+		wf, ok := executionSpec.(*util.Workflow)
+		if ok && wf != nil && wf.Workflow != nil {
+			if wf.Spec.Synchronization == nil {
+				wf.Spec.Synchronization = &workflowapi.Synchronization{}
 			}
-		} else {
-			// Only configure synchronization semaphores if ConfigMap was successfully created/updated
-			wf, ok := executionSpec.(*util.Workflow)
-			if ok && wf != nil && wf.Workflow != nil {
-				if wf.Spec.Synchronization == nil {
-					wf.Spec.Synchronization = &workflowapi.Synchronization{}
-				}
-				wf.Spec.Synchronization.Semaphores = []*workflowapi.SemaphoreRef{
-					{
-						ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: pipelineParallelismConfigMapName,
-							},
-							Key: run.PipelineVersionId,
+			wf.Spec.Synchronization.Semaphores = []*workflowapi.SemaphoreRef{
+				{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: pipelineParallelismConfigMapName,
 						},
+						Key: run.PipelineVersionId,
 					},
-				}
+				},
 			}
 		}
 	}

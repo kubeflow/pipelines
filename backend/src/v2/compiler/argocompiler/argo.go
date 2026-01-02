@@ -157,9 +157,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			if value <= 0 {
 				return nil, fmt.Errorf("pipelineRunParallelism must be greater than 0, got %d", value)
 			}
-			// Note: We don't set wf.Spec.Parallelism here because that limits tasks within a single workflow.
-			// Instead, we use synchronization.semaphores with ConfigMap to limit concurrent workflow runs.
-			// The synchronization is configured in resource_manager.go after the workflow is created.
 		}
 	}
 

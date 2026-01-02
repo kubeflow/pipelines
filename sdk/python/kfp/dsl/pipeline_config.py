@@ -99,6 +99,7 @@ class PipelineConfig:
     def __init__(self,
                  workspace: Optional[WorkspaceConfig] = None,
                  pipeline_run_parallelism: Optional[int] = None):
+        self._pipeline_run_parallelism = None
         self.workspace = workspace
         self.pipeline_run_parallelism = pipeline_run_parallelism
 
@@ -107,7 +108,7 @@ class PipelineConfig:
         return self._pipeline_run_parallelism
 
     @pipeline_run_parallelism.setter
-    def pipeline_run_parallelism(self, value: Optional[int]) -> None:  # pylint: disable=attribute-defined-outside-init
+    def pipeline_run_parallelism(self, value: Optional[int]) -> None:
         if value is not None:
             if not isinstance(value, int):
                 raise ValueError(
