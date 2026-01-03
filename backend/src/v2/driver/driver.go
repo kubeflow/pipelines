@@ -273,7 +273,12 @@ func initPodSpecPatch(
 	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
-	userCmdArgs = append(userCmdArgs, container.Command...)
+
+	resolvedCommand, err := resolveContainerArgs(container.Command, executorInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container command: %w", err)
+	}
+	userCmdArgs = append(userCmdArgs, resolvedCommand...)
 
 	resolvedArgs, err := resolveContainerArgs(container.Args, executorInput)
 	if err != nil {
