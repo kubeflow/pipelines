@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -207,8 +208,10 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--mlmd_server_address", metadata.DefaultConfig().Address,
-		"--mlmd_server_port", metadata.DefaultConfig().Port,
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
@@ -226,12 +229,17 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		setCABundle = true
 	}
 
+	logLevel := "1"
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		logLevel = value
 	}
+	args = append(args, "--log_level", logLevel)
+
+	publishLogs := "true"
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		publishLogs = value
 	}
+	args = append(args, "--publish_logs", publishLogs)
 
 	t := &wfapi.Template{
 		Name: name,
@@ -258,7 +266,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
 		},
 	}
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
@@ -422,12 +430,17 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	logLevel := "1"
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		logLevel = value
 	}
+	args = append(args, "--log_level", logLevel)
+
+	publishLogs := "true"
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		publishLogs = value
 	}
+	args = append(args, "--publish_logs", publishLogs)
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{

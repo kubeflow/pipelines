@@ -34,7 +34,7 @@ func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.Com
 	return c.saveComponentImpl(name, importer)
 }
 
-func (c *workflowCompiler) importerTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string) (*wfapi.DAGTask, error) {
+func (c *workflowCompiler) importerTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string, downloadToWorkspace bool) (*wfapi.DAGTask, error) {
 	componentPlaceholder, err := c.useComponentSpec(task.GetComponentRef().GetName())
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (c *workflowCompiler) importerTask(name string, task *pipelinespec.Pipeline
 	}
 	return &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addImporterTemplate(),
+		Template: c.addImporterTemplate(downloadToWorkspace),
 		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{{
 			Name:  paramTask,
 			Value: wfapi.AnyStringPtr(taskJSON),
@@ -62,8 +62,11 @@ func (c *workflowCompiler) importerTask(name string, task *pipelinespec.Pipeline
 	}, nil
 }
 
-func (c *workflowCompiler) addImporterTemplate() string {
+func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string {
 	name := "system-importer"
+	if downloadToWorkspace {
+		name += "-workspace"
+	}
 	if _, alreadyExists := c.templates[name]; alreadyExists {
 		return name
 	}
@@ -79,8 +82,10 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-		"--mlmd_server_address", metadata.DefaultConfig().Address,
-		"--mlmd_server_port", metadata.DefaultConfig().Port,
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
@@ -98,12 +103,35 @@ func (c *workflowCompiler) addImporterTemplate() string {
 		setCABundle = true
 	}
 
+	logLevel := "1"
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		logLevel = value
 	}
+	args = append(args, "--log_level", logLevel)
+
+	publishLogs := "true"
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		publishLogs = value
 	}
+	args = append(args, "--publish_logs", publishLogs)
+
+	var volumeMounts []k8score.VolumeMount
+	var volumes []k8score.Volume
+	if downloadToWorkspace {
+		volumeMounts = append(volumeMounts, k8score.VolumeMount{
+			Name:      workspaceVolumeName,
+			MountPath: component.WorkspaceMountPath,
+		})
+		volumes = append(volumes, k8score.Volume{
+			Name: workspaceVolumeName,
+			VolumeSource: k8score.VolumeSource{
+				PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+					ClaimName: fmt.Sprintf("{{workflow.name}}-%s", workspaceVolumeName),
+				},
+			},
+		})
+	}
+
 	importerTemplate := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -115,13 +143,15 @@ func (c *workflowCompiler) addImporterTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.launcherImage,
-			Command:   c.launcherCommand,
-			Args:      args,
-			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
-			Env:       commonEnvs,
-			Resources: driverResources,
+			Image:        c.launcherImage,
+			Command:      c.launcherCommand,
+			Args:         args,
+			EnvFrom:      []k8score.EnvFromSource{metadataEnvFrom},
+			Env:          commonEnvs,
+			Resources:    driverResources,
+			VolumeMounts: volumeMounts,
 		},
+		Volumes: volumes,
 	}
 
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the importer template.
