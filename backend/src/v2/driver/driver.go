@@ -277,6 +277,7 @@ func initPodSpecPatch(
 	userCmdArgs = append(userCmdArgs, container.Args...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
+		"--executor_type", "container",
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
 		"--run_id", runID,
@@ -292,6 +293,7 @@ func initPodSpecPatch(
 		"--mlmd_server_address", mlmdServerAddress,
 		"--mlmd_server_port", mlmdServerPort,
 		"--publish_logs", publishLogs,
+		"--log_level", pipelineLogLevel,
 	}
 	if mlPipelineTLSEnabled {
 		launcherCmd = append(launcherCmd, "--ml_pipeline_tls_enabled")
@@ -304,13 +306,6 @@ func initPodSpecPatch(
 	}
 	if cacheDisabled == "true" {
 		launcherCmd = append(launcherCmd, "--cache_disabled")
-	}
-	if pipelineLogLevel != "1" {
-		// Add log level to user code launcher if not default (set to 1)
-		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
-	}
-	if publishLogs == "true" {
-		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
 	}
 	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
