@@ -595,12 +595,17 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		setCABundle = true
 	}
 
+	logLevel := "1"
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		logLevel = value
 	}
+	args = append(args, "--log_level", logLevel)
+
+	publishLogs := "true"
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		publishLogs = value
 	}
+	args = append(args, "--publish_logs", publishLogs)
 
 	t := &wfapi.Template{
 		Name: name,
