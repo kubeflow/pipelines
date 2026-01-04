@@ -55,7 +55,7 @@ func validateLiteralParameter(
 	}
 
 	return fmt.Errorf(
-		"resolved parameter %q value does not match any of the allowed literal values",
+		"input parameter %q value does not match any of the allowed literal values",
 		paramName,
 	)
 }
