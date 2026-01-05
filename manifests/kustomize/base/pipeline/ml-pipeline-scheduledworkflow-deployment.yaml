@@ -23,6 +23,12 @@ spec:
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
         env:
+          - name: METRICS_PORT
+            value: "9090"
+          - name: CLIENT_QPC
+            value: "10"
+          - name: CLIENT_BURST
+            value: "20"
           - name: LOG_LEVEL
             value: "info"
           - name: NAMESPACE
