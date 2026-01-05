@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -274,6 +276,14 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		return artifact, nil
 	}
 
+	if strings.HasPrefix(artifactUri, "huggingface://") {
+		// HuggingFace artifacts
+		if err := l.handleHuggingFaceImport(ctx, artifactUri, artifact); err != nil {
+			return nil, err
+		}
+		return artifact, nil
+	}
+
 	provider, err := objectstore.ParseProviderFromPath(artifactUri)
 	if err != nil {
 		return nil, fmt.Errorf("no provider scheme found in artifact URI: %s", artifactUri)
@@ -318,6 +328,97 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		}
 	}
 	return artifact, nil
+}
+
+func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactUri string, artifact *pb.Artifact) error {
+	parts := strings.TrimPrefix(artifactUri, "huggingface://")
+	pathParts := strings.Split(parts, "/")
+
+	if len(pathParts) < 2 {
+		return fmt.Errorf("invalid HuggingFace URI format: %q, expected huggingface://repo_id/revision", artifactUri)
+	}
+
+	revision := "main"
+	if len(pathParts) > 2 {
+		revision = pathParts[len(pathParts)-1]
+		repoID := strings.Join(pathParts[:len(pathParts)-1], "/")
+		pathParts = []string{repoID, revision}
+	} else {
+		pathParts = []string{parts, revision}
+	}
+
+	repoID := pathParts[0]
+	revision = pathParts[1]
+
+	glog.Infof("Downloading HuggingFace model repo_id=%q revision=%q", repoID, revision)
+
+	storeSessionInfo := objectstore.SessionInfo{
+		Provider: "huggingface",
+		Params: map[string]string{
+			"fromEnv": "true",
+		},
+	}
+	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
+	if err != nil {
+		return err
+	}
+	storeSessionInfoStr := string(storeSessionInfoJSON)
+	artifact.CustomProperties["store_session_info"] = metadata.StringValue(storeSessionInfoStr)
+
+	artifact.CustomProperties["hf_repo_id"] = metadata.StringValue(repoID)
+	artifact.CustomProperties["hf_revision"] = metadata.StringValue(revision)
+
+	if l.importer.GetDownloadToWorkspace() {
+		if err := l.downloadHuggingFaceModel(ctx, repoID, revision, artifactUri); err != nil {
+			return fmt.Errorf("failed to download HuggingFace model: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (l *ImportLauncher) downloadHuggingFaceModel(ctx context.Context, repoID, revision, artifactUri string) error {
+	bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactUri)
+	if err != nil {
+		return err
+	}
+
+	localPath, err := LocalWorkspacePathForURI(artifactUri)
+	if err != nil {
+		return fmt.Errorf("failed to get local path for uri %q: %w", artifactUri, err)
+	}
+
+	hfToken := ""
+	if bucketConfig.SessionInfo != nil {
+		hfToken, _ = objectstore.GetHuggingFaceTokenFromSessionInfo(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig.SessionInfo)
+	}
+
+	glog.Infof("Downloading HuggingFace model %q (revision=%q) to workspace path %q", repoID, revision, localPath)
+
+	if err := os.MkdirAll(localPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %q: %w", localPath, err)
+	}
+
+	cmd := exec.CommandContext(ctx, "python3", "-c", fmt.Sprintf(`
+from huggingface_hub import snapshot_download
+import os
+repo_id = %q
+revision = %q
+cache_dir = %q
+token = os.environ.get('HF_TOKEN', None)
+snapshot_download(repo_id=repo_id, revision=revision, cache_dir=cache_dir, token=token, local_dir=%q)
+`, repoID, revision, localPath, localPath))
+
+	if hfToken != "" {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("HF_TOKEN=%s", hfToken))
+	}
+
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to download HuggingFace model: %w, output: %s", err, string(output))
+	}
+
+	glog.Infof("Successfully downloaded HuggingFace model to %q", localPath)
+	return nil
 }
 
 // resolveBucketConfigForURI parses bucket configuration for a given artifact URI and

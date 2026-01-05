@@ -74,6 +74,15 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 				}
 				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 			}
+		case "huggingface":
+			token, err1 := getHuggingFaceToken(ctx, namespace, config.SessionInfo, k8sClient)
+			if err1 != nil {
+				return nil, err1
+			}
+			if token != "" {
+				os.Setenv("HF_TOKEN", token)
+			}
+			return nil, nil
 		}
 	}
 
@@ -241,6 +250,38 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 		return nil, err
 	}
 	return client, nil
+}
+
+func getHuggingFaceToken(ctx context.Context, namespace string, sessionInfo *SessionInfo, clientSet kubernetes.Interface) (token string, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("Failed to get HuggingFace token from secret: %w", err)
+		}
+	}()
+	params, err := StructuredHuggingFaceParams(sessionInfo.Params)
+	if err != nil {
+		return "", err
+	}
+	if params.FromEnv {
+		return "", nil
+	}
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(ctx, params.SecretName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	tokenBytes, ok := secret.Data[params.TokenKey]
+	if !ok || len(tokenBytes) == 0 {
+		return "", fmt.Errorf("key '%s' not found or is empty in secret", params.TokenKey)
+	}
+	return string(tokenBytes), nil
+}
+
+// GetHuggingFaceTokenFromSessionInfo extracts HF token from SessionInfo
+func GetHuggingFaceTokenFromSessionInfo(ctx context.Context, k8sClient kubernetes.Interface, namespace string, sessionInfo *SessionInfo) (string, error) {
+	if sessionInfo == nil {
+		return "", nil
+	}
+	return getHuggingFaceToken(ctx, namespace, sessionInfo, k8sClient)
 }
 
 func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *SessionInfo, client kubernetes.Interface) (*s3.Client, error) {
