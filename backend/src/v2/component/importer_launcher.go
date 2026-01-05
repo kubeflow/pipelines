@@ -9,7 +9,9 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/golang/glog"
@@ -48,7 +50,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	kfpAPI := l.clientManager.KFPAPIClient()
 
 	downloadToWorkspace := false
-	if l.importer.GetDownloadToWorkspace() {
+	if l.opts.ImporterSpec.GetDownloadToWorkspace() {
 		downloadToWorkspace = true
 	}
 
@@ -65,7 +67,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 			ScopePath:    l.opts.ScopePath.DotNotation(),
 			CreateTime:   timestamppb.Now(),
 			TypeAttributes: &apiV2beta1.PipelineTaskDetail_TypeAttributes{
-				DownloadToWorkspace: downloadToWorkspace,
+				DownloadToWorkspace: util.BoolPointer(downloadToWorkspace),
 			},
 			Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
 				{
@@ -288,7 +290,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 	}
 	if strings.HasPrefix(artifactUri, "oci://") {
 		// OCI artifacts are not supported when workspace is used
-		if l.importer.GetDownloadToWorkspace() {
+		if l.opts.ImporterSpec.GetDownloadToWorkspace() {
 			return nil, fmt.Errorf("importer workspace download does not support OCI registries")
 		}
 
@@ -299,26 +301,15 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 	}
 
 	// Download the artifact into the workspace
-	if l.importer.GetDownloadToWorkspace() {
-		bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactUri)
-		if err != nil {
-			return nil, err
-		}
+	if l.opts.ImporterSpec.GetDownloadToWorkspace() {
 		localPath, err := LocalWorkspacePathForURI(artifactUri)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get local path for uri %q: %w", artifactUri, err)
 		}
-		blobKey, err := bucketConfig.KeyFromURI(artifactUri)
+		ctx := context.Background()
+		glog.Infof("Downloading artifact %q (artifact key %q) to workspace path %q", artifactUri, artifactKey, localPath)
+		err = l.objectStore.DownloadArtifact(ctx, artifact.Uri, localPath, artifactKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to derive blob key from uri %q while downloading artifact into workspace: %w", artifactUri, err)
-		}
-		bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open bucket for uri %q: %w", artifactUri, err)
-		}
-		defer bucket.Close()
-		glog.Infof("Downloading artifact %q (blob key %q) to workspace path %q", artifactUri, blobKey, localPath)
-		if err := objectstore.DownloadBlob(ctx, bucket, localPath, blobKey); err != nil {
 			return nil, fmt.Errorf("failed to download artifact to workspace: %w", err)
 		}
 	}

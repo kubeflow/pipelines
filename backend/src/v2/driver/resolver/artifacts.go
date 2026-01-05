@@ -28,7 +28,7 @@ func resolveArtifacts(opts common.Options) ([]ArtifactMetadata, error) {
 	var artifacts []ArtifactMetadata
 
 	for key, artifactSpec := range opts.Task.GetInputs().GetArtifacts() {
-		v, ioType, err := resolveInputArtifact(opts, key, artifactSpec, opts.ParentTask.Inputs.GetArtifacts())
+		producerTask, v, ioType, err := resolveInputArtifact(opts, key, artifactSpec, opts.ParentTask.Inputs.GetArtifacts())
 		if err != nil {
 			return nil, err
 		}
@@ -51,18 +51,33 @@ func resolveArtifacts(opts common.Options) ([]ArtifactMetadata, error) {
 		if opts.IterationIndex >= 0 {
 			am.ArtifactIO.Producer.Iteration = util.Int64Pointer(int64(opts.IterationIndex))
 		}
+
+		// If the artifact is produced by an importer, then we need to register this into the run time artifact's
+		// metadata which is later passed as executor input to the executor.
+		artifactProducedByImporter := producerTask != nil && producerTask.Type == apiv2beta1.PipelineTaskDetail_IMPORTER
+		if artifactProducedByImporter && producerTask.TypeAttributes.GetDownloadToWorkspace() {
+			am.DownloadedToWorkSpace = producerTask.TypeAttributes.GetDownloadToWorkspace()
+		}
 		artifacts = append(artifacts, am)
 	}
 
 	return artifacts, nil
 }
 
+// resolveInputArtifact resolves the input artifact based on its specification and returns details about its type and producer.
+// The function handles artifacts specified as component inputs or task output artifacts and supports error handling.
+//
+// Returns:
+//   - *PipelineTaskDetail: The producer task details, or nil if artifact is a component input
+//   - *PipelineTaskDetail_InputOutputs_IOArtifact: The resolved input/output artifact information
+//   - IOType: The type of I/O (component input, task output, etc)
+//   - error: Error if resolution fails
 func resolveInputArtifact(
 	opts common.Options,
 	name string,
 	artifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec,
 	inputArtifacts []*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, apiv2beta1.IOType, error) {
+) (*apiv2beta1.PipelineTaskDetail, *apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, apiv2beta1.IOType, error) {
 	artifactError := func(err error) error {
 		return fmt.Errorf("failed to resolve input artifact %s with spec %s: %w", name, artifactSpec, err)
 	}
@@ -70,21 +85,21 @@ func resolveInputArtifact(
 	case *pipelinespec.TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact:
 		artifactIO, err := resolveArtifactComponentInputParameter(opts, artifactSpec, inputArtifacts)
 		if err != nil {
-			return nil, apiv2beta1.IOType_COMPONENT_INPUT, artifactError(err)
+			return nil, nil, apiv2beta1.IOType_COMPONENT_INPUT, artifactError(err)
 		}
-		return artifactIO, apiv2beta1.IOType_COMPONENT_INPUT, nil
+		return nil, artifactIO, apiv2beta1.IOType_COMPONENT_INPUT, nil
 	case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
-		artifact, err := resolveTaskOutputArtifact(opts, artifactSpec)
+		producerTask, artifact, err := resolveTaskOutputArtifact(opts, artifactSpec)
 		if err != nil {
-			return nil, apiv2beta1.IOType_TASK_OUTPUT_INPUT, err
+			return nil, nil, apiv2beta1.IOType_TASK_OUTPUT_INPUT, err
 		}
 		ioType := apiv2beta1.IOType_TASK_OUTPUT_INPUT
 		if artifact.GetType() == apiv2beta1.IOType_COLLECTED_INPUTS {
 			ioType = apiv2beta1.IOType_COLLECTED_INPUTS
 		}
-		return artifact, ioType, nil
+		return producerTask, artifact, ioType, nil
 	default:
-		return nil, apiv2beta1.IOType_UNSPECIFIED, artifactError(fmt.Errorf("artifact spec of type %T not implemented yet", t))
+		return nil, nil, apiv2beta1.IOType_UNSPECIFIED, artifactError(fmt.Errorf("artifact spec of type %T not implemented yet", t))
 	}
 }
 
@@ -117,17 +132,21 @@ func resolveArtifactComponentInputParameter(
 func resolveTaskOutputArtifact(
 	opts common.Options,
 	spec *pipelinespec.TaskInputsSpec_InputArtifactSpec,
-) (*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact, error) {
+) (
+	*apiv2beta1.PipelineTaskDetail,
+	*apiv2beta1.PipelineTaskDetail_InputOutputs_IOArtifact,
+	error,
+) {
 	tasks, err := getSubTasks(opts.ParentTask, opts.Run.Tasks, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if tasks == nil {
-		return nil, fmt.Errorf("failed to get sub tasks for task %s", opts.ParentTask.Name)
+		return nil, nil, fmt.Errorf("failed to get sub tasks for task %s", opts.ParentTask.Name)
 	}
 	producerTaskAmbiguousName := spec.GetTaskOutputArtifact().GetProducerTask()
 	if producerTaskAmbiguousName == "" {
-		return nil, fmt.Errorf("producerTask task cannot be empty")
+		return nil, nil, fmt.Errorf("producerTask task cannot be empty")
 	}
 	producerTaskUniqueName := getTaskNameWithTaskID(producerTaskAmbiguousName, opts.ParentTask.GetTaskId())
 	if opts.IterationIndex >= 0 {
@@ -137,18 +156,18 @@ func resolveTaskOutputArtifact(
 	// producerTaskUniqueName may look something like "task_name_a_dag_id_1_idx_0"
 	producerTask := tasks[producerTaskUniqueName]
 	if producerTask == nil {
-		return nil, fmt.Errorf("producerTask task %s not found", producerTaskUniqueName)
+		return nil, nil, fmt.Errorf("producerTask task %s not found", producerTaskUniqueName)
 	}
 	outputKey := spec.GetTaskOutputArtifact().GetOutputArtifactKey()
 	outputs := producerTask.GetOutputs().GetArtifacts()
 	outputIO, err := findArtifactByProducerKeyInList(outputKey, producerTask.GetName(), outputs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if outputIO == nil {
-		return nil, fmt.Errorf("output artifact %s not found", outputKey)
+		return nil, nil, fmt.Errorf("output artifact %s not found", outputKey)
 	}
-	return outputIO, nil
+	return producerTask, outputIO, nil
 }
 
 // resolveArtifactIterator handles Artifact Iterator Input resolution

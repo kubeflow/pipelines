@@ -22,6 +22,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -425,7 +426,7 @@ func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 		// first artifact is used, as the list is expected to contain a single artifact
 		artifact := artifactList.Artifacts[0]
 		if artifact.Metadata != nil {
-			if workspaceVal, ok := artifact.Metadata.Fields["_kfp_workspace"]; ok {
+			if workspaceVal, ok := artifact.Metadata.Fields[common.WorkspaceMetadataField]; ok {
 				if boolVal, ok := workspaceVal.GetKind().(*structpb.Value_BoolValue); ok && boolVal.BoolValue {
 					return true
 				}

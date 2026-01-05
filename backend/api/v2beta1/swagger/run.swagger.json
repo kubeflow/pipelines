@@ -775,6 +775,10 @@
           "type": "string",
           "format": "int64",
           "title": "Optional. Applies to type LOOP"
+        },
+        "download_to_workspace": {
+          "type": "boolean",
+          "title": "Optional. Applies to type IMPORTER"
         }
       }
     },

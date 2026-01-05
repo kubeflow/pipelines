@@ -446,6 +446,8 @@ message PipelineTaskDetail {
     optional int64 iteration_index = 1;
     // Optional. Applies to type LOOP
     optional int64 iteration_count = 2;
+    // Optional. Applies to type IMPORTER
+    optional bool download_to_workspace = 3;
   }
 
   TypeAttributes type_attributes = 13;

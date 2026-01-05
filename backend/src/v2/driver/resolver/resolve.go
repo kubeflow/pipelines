@@ -39,7 +39,8 @@ type ParameterMetadata struct {
 }
 
 type ArtifactMetadata struct {
-	Key string
+	Key                   string
+	DownloadedToWorkSpace bool
 	// InputArtifactSpec is mutually exclusive with ArtifactIterator
 	InputArtifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec
 	ArtifactIterator  *pipelinespec.ArtifactIteratorSpec

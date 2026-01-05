@@ -17,6 +17,9 @@ import (
 // swagger:model PipelineTaskDetailTypeAttributes
 type PipelineTaskDetailTypeAttributes struct {
 
+	// Optional. Applies to type IMPORTER
+	DownloadToWorkspace bool `json:"download_to_workspace,omitempty"`
+
 	// Optional. Applies to type LOOP
 	IterationCount string `json:"iteration_count,omitempty"`
 

@@ -31,26 +31,26 @@ import (
 )
 
 var (
-	copy                 = flag.String("copy", "", "copy this binary to specified destination path")
-	pipelineName         = flag.String("pipeline_name", "", "pipeline context name")
-	runID                = flag.String("run_id", "", "pipeline run uid")
-	taskID               = flag.String("task_id", "", "pipeline task id (PipelineTaskDetail.task_id)")
-	parentTaskID         = flag.String("parent_task_id", "", "Parent PipelineTask ID")
-	executorType         = flag.String("executor_type", "container", "The type of the ExecutorSpec")
-	executorInputJSON    = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
-	taskName             = flag.String("task_name", "", "The name of the task.")
-	importerSpecJSON     = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
-	podName              = flag.String("pod_name", "", "Kubernetes Pod name.")
-	podUID               = flag.String("pod_uid", "", "Kubernetes Pod UID.")
+	copy                    = flag.String("copy", "", "copy this binary to specified destination path")
+	pipelineName            = flag.String("pipeline_name", "", "pipeline context name")
+	runID                   = flag.String("run_id", "", "pipeline run uid")
+	taskID                  = flag.String("task_id", "", "pipeline task id (PipelineTaskDetail.task_id)")
+	parentTaskID            = flag.String("parent_task_id", "", "Parent PipelineTask ID")
+	executorType            = flag.String("executor_type", "container", "The type of the ExecutorSpec")
+	executorInputJSON       = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
+	taskName                = flag.String("task_name", "", "The name of the task.")
+	importerSpecJSON        = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	podName                 = flag.String("pod_name", "", "Kubernetes Pod name.")
+	podUID                  = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline.kubeflow", "The name of the ML pipeline API server address.")
 	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
-	logLevel             = flag.String("log_level", "1", "The verbosity level to log.")
-	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
-	fingerPrint          = flag.String("fingerprint", "", "The fingerprint of the pipeline executor.")
-	iterationIndex       = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
-	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
+	logLevel                = flag.String("log_level", "1", "The verbosity level to log.")
+	publishLogs             = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	cacheDisabledFlag       = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	fingerPrint             = flag.String("fingerprint", "", "The fingerprint of the pipeline executor.")
+	iterationIndex          = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	caCertPath              = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
+	mlPipelineTLSEnabled    = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
 )
 
 func main() {
@@ -128,21 +128,21 @@ func run() error {
 	taskSpec := scopePath.GetLast().GetTaskSpec()
 
 	launcherV2Opts := &component.LauncherV2Options{
-		Namespace:         namespace,
-		PodName:           *podName,
-		PodUID:            *podUID,
+		Namespace:               namespace,
+		PodName:                 *podName,
+		PodUID:                  *podUID,
 		MLPipelineServerAddress: *mlPipelineServerAddress,
 		MLPipelineServerPort:    *mlPipelineServerPort,
-		PipelineName:      *pipelineName,
-		Run:               pipelineRun,
-		ParentTask:        parentTask,
-		PublishLogs:       *publishLogs,
-		CacheDisabled:     *cacheDisabledFlag,
-		CachedFingerprint: *fingerPrint,
-		ComponentSpec:     componentSpec,
-		TaskSpec:          taskSpec,
-		ScopePath:         scopePath,
-		PipelineSpec:      pipelineSpecStruct,
+		PipelineName:            *pipelineName,
+		Run:                     pipelineRun,
+		ParentTask:              parentTask,
+		PublishLogs:             *publishLogs,
+		CacheDisabled:           *cacheDisabledFlag,
+		CachedFingerprint:       *fingerPrint,
+		ComponentSpec:           componentSpec,
+		TaskSpec:                taskSpec,
+		ScopePath:               scopePath,
+		PipelineSpec:            pipelineSpecStruct,
 	}
 
 	if iterationIndex != nil && *iterationIndex > -1 {

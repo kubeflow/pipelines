@@ -2450,8 +2450,10 @@ type PipelineTaskDetail_TypeAttributes struct {
 	IterationIndex *int64 `protobuf:"varint,1,opt,name=iteration_index,json=iterationIndex,proto3,oneof" json:"iteration_index,omitempty"`
 	// Optional. Applies to type LOOP
 	IterationCount *int64 `protobuf:"varint,2,opt,name=iteration_count,json=iterationCount,proto3,oneof" json:"iteration_count,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Optional. Applies to type IMPORTER
+	DownloadToWorkspace *bool `protobuf:"varint,3,opt,name=download_to_workspace,json=downloadToWorkspace,proto3,oneof" json:"download_to_workspace,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *PipelineTaskDetail_TypeAttributes) Reset() {
@@ -2496,6 +2498,13 @@ func (x *PipelineTaskDetail_TypeAttributes) GetIterationCount() int64 {
 		return *x.IterationCount
 	}
 	return 0
+}
+
+func (x *PipelineTaskDetail_TypeAttributes) GetDownloadToWorkspace() bool {
+	if x != nil && x.DownloadToWorkspace != nil {
+		return *x.DownloadToWorkspace
+	}
+	return false
 }
 
 // A dependent task that requires this one to succeed.
@@ -2799,7 +2808,7 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"RunDetails\x12.\n" +
 	"\x13pipeline_context_id\x18\x01 \x01(\x03R\x11pipelineContextId\x125\n" +
 	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextId\x12]\n" +
-	"\ftask_details\x18\x03 \x03(\v2:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetailR\vtaskDetails\"\xb2\x19\n" +
+	"\ftask_details\x18\x03 \x03(\v2:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetailR\vtaskDetails\"\x85\x1a\n" +
 	"\x12PipelineTaskDetail\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x17\n" +
@@ -2839,12 +2848,14 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\vupdate_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTime\x12Z\n" +
 	"\x05state\x18\x02 \x01(\x0e2D.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetail.TaskStateR\x05state\x12(\n" +
-	"\x05error\x18\x03 \x01(\v2\x12.google.rpc.StatusR\x05error\x1a\x94\x01\n" +
+	"\x05error\x18\x03 \x01(\v2\x12.google.rpc.StatusR\x05error\x1a\xe7\x01\n" +
 	"\x0eTypeAttributes\x12,\n" +
 	"\x0fiteration_index\x18\x01 \x01(\x03H\x00R\x0eiterationIndex\x88\x01\x01\x12,\n" +
-	"\x0fiteration_count\x18\x02 \x01(\x03H\x01R\x0eiterationCount\x88\x01\x01B\x12\n" +
+	"\x0fiteration_count\x18\x02 \x01(\x03H\x01R\x0eiterationCount\x88\x01\x01\x127\n" +
+	"\x15download_to_workspace\x18\x03 \x01(\bH\x02R\x13downloadToWorkspace\x88\x01\x01B\x12\n" +
 	"\x10_iteration_indexB\x12\n" +
-	"\x10_iteration_count\x1a8\n" +
+	"\x10_iteration_countB\x18\n" +
+	"\x16_download_to_workspace\x1a8\n" +
 	"\tChildTask\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x1a\x94\x06\n" +

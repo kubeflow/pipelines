@@ -27,6 +27,10 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+const (
+	WorkspaceMetadataField = "_kfp_workspace"
+)
+
 // Options contain driver options
 type Options struct {
 	// required, pipeline context name
