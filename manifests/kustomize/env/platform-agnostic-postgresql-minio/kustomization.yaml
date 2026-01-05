@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# PostgreSQL + MinIO combination configuration
+# This configuration combines PostgreSQL database with MinIO object storage
+resources:
+  - ../../base/installs/generic
+  - ../../base/metadata/base
+  - ../../third-party/argo/installs/namespace
+  - ../../third-party/minio/base          # MinIO resources
+  - ../../third-party/postgresql/base     # PostgreSQL resources
+
+# Reuse PostgreSQL patches (already includes MinIO environment variables)
+patches:
+  - path: apiserver-patch.yaml
+  - path: cache-server-patch.yaml
+  - path: mlmd-patch.yaml
+
+configMapGenerator:
+  - name: pipeline-install-config
+    behavior: merge
+    literals:
+      - DBDriverName=pgx
+      - pipelineDb=mlpipeline
+      - cacheDb=cachedb
+      - postgresHost=postgres-service
+      - postgresPort=5432
+
+namespace: kubeflow
+
+# Identifier for application manager to apply ownerReference.
+# The ownerReference ensures the resources get garbage collected
+# when application is deleted.
+labels:
+  - includeSelectors: false
+    pairs:
+      application-crd-id: kubeflow-pipelines
