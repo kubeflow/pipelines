@@ -255,7 +255,7 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 func getHuggingFaceToken(ctx context.Context, namespace string, sessionInfo *SessionInfo, clientSet kubernetes.Interface) (token string, err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("Failed to get HuggingFace token from secret: %w", err)
+			err = fmt.Errorf("failed to get HuggingFace token from secret: %w", err)
 		}
 	}()
 	params, err := StructuredHuggingFaceParams(sessionInfo.Params)

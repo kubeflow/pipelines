@@ -330,12 +330,12 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 	return artifact, nil
 }
 
-func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactUri string, artifact *pb.Artifact) error {
-	parts := strings.TrimPrefix(artifactUri, "huggingface://")
+func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactURI string, artifact *pb.Artifact) error {
+	parts := strings.TrimPrefix(artifactURI, "huggingface://")
 	pathParts := strings.Split(parts, "/")
 
 	if len(pathParts) < 2 {
-		return fmt.Errorf("invalid HuggingFace URI format: %q, expected huggingface://repo_id/revision", artifactUri)
+		return fmt.Errorf("invalid HuggingFace URI format: %q, expected huggingface://repo_id/revision", artifactURI)
 	}
 
 	revision := "main"
@@ -369,7 +369,7 @@ func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactUr
 	artifact.CustomProperties["hf_revision"] = metadata.StringValue(revision)
 
 	if l.importer.GetDownloadToWorkspace() {
-		if err := l.downloadHuggingFaceModel(ctx, repoID, revision, artifactUri); err != nil {
+		if err := l.downloadHuggingFaceModel(ctx, repoID, revision, artifactURI); err != nil {
 			return fmt.Errorf("failed to download HuggingFace model: %w", err)
 		}
 	}
@@ -377,15 +377,15 @@ func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactUr
 	return nil
 }
 
-func (l *ImportLauncher) downloadHuggingFaceModel(ctx context.Context, repoID, revision, artifactUri string) error {
-	bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactUri)
+func (l *ImportLauncher) downloadHuggingFaceModel(ctx context.Context, repoID, revision, artifactURI string) error {
+	bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactURI)
 	if err != nil {
 		return err
 	}
 
-	localPath, err := LocalWorkspacePathForURI(artifactUri)
+	localPath, err := LocalWorkspacePathForURI(artifactURI)
 	if err != nil {
-		return fmt.Errorf("failed to get local path for uri %q: %w", artifactUri, err)
+		return fmt.Errorf("failed to get local path for uri %q: %w", artifactURI, err)
 	}
 
 	hfToken := ""
