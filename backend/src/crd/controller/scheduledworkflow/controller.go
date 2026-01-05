@@ -30,10 +30,13 @@ import (
 	swfScheme "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/scheme"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	wraperror "github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -50,6 +53,28 @@ import (
 const (
 	Workflow          = "Workflow"
 	ScheduledWorkflow = "ScheduledWorkflow"
+)
+
+var (
+	processNextItemDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "process_scheduled_workflow_duration_seconds",
+		Help: "The duration of scheduled workflow handling in seconds",
+	}, []string{"status"})
+
+	processNextItemOperationDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "scheduled_workflow_duration_operation_seconds",
+		Help: "The duration of scheduled workflow handling in seconds",
+	}, []string{"operation", "status"})
+
+	queueSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "scheduled_workflow_queue_size",
+		Help: "The total len of queue",
+	})
+
+	processedWorkflowTotal = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "scheduled_workflow_processed_size",
+		Help: "The total len of processed workflows",
+	})
 )
 
 var (
@@ -215,6 +240,7 @@ func (c *Controller) enqueueScheduledWorkflow(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("Equeuing object: error: %v: %+v", err, obj))
 		return
 	}
+	queueSizeGauge.Set(float64(c.workqueue.Len()))
 	c.workqueue.AddRateLimited(key)
 }
 
@@ -285,6 +311,16 @@ func (c *Controller) handleWorkflow(obj interface{}) {
 // processNextWorkItem will read a single work item off the workqueue and
 // attempt to process it, by calling the syncHandler.
 func (c *Controller) processNextWorkItem() bool {
+	startTime := time.Now()
+	var err error
+	defer func() {
+		if err != nil {
+			processNextItemDuration.WithLabelValues("error").Observe(time.Since(startTime).Seconds())
+		} else {
+			processNextItemDuration.WithLabelValues("ok").Observe(time.Since(startTime).Seconds())
+			processedWorkflowTotal.Inc()
+		}
+	}()
 	obj, shutdown := c.workqueue.Get()
 
 	if shutdown {
@@ -344,7 +380,8 @@ func (c *Controller) processNextWorkItem() bool {
 		// Run the syncHandler, passing it the namespace/name string of the
 		// ScheduledWorkflow to be synced.
 		ctx := context.Background()
-		syncAgain, retryOnError, swf, err := c.syncHandler(ctx, key)
+		syncAgain, retryOnError, swf, syncError := c.syncHandler(ctx, key)
+		err = syncError
 		if err != nil && retryOnError {
 			// Transient failure. We will retry.
 			c.workqueue.AddRateLimited(obj) // Exponential backoff.
@@ -399,12 +436,16 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 	}
 
 	// Get the ScheduledWorkflow with this namespace/name
+	startTime := time.Now()
 	swf, err = c.swfClient.Get(namespace, name)
 	if err != nil {
 		// Permanent failure.
 		// The ScheduledWorkflow may no longer exist, we stop processing and do not retry.
+		processNextItemOperationDuration.WithLabelValues("swfget", "error").Observe(time.Since(startTime).Seconds())
 		return false, false, nil,
 			wraperror.Wrapf(err, "ScheduledWorkflow (%s) in work queue no longer exists: %v", key, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swfget", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
 	// Get the current time
@@ -412,28 +453,39 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 	// number for the current time.
 	nowEpoch := c.time.Now().Unix()
 
+	startTime = time.Time{}
 	// Get active workflows for this ScheduledWorkflow.
 	active, err := c.workflowClient.List(swf.Name,
 		false, /* active workflow */
 		0 /* retrieve all workflows */)
 	if err != nil {
+		processNextItemOperationDuration.WithLabelValues("swflist", "error").Observe(time.Since(startTime).Seconds())
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch active workflows: %v", name, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swflist", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
+	startTime = time.Now()
 	// Get completed workflows for this ScheduledWorkflow.
 	completed, err := c.workflowClient.List(swf.Name,
 		true, /* completed workflows */
 		swf.MinIndex())
 	if err != nil {
+		processNextItemOperationDuration.WithLabelValues("swflistcompleted", "error").Observe(time.Since(startTime).Seconds())
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swflistcompleted", "ok").Observe(time.Since(startTime).Seconds())
 	}
-
+	startTime = time.Now()
 	submitted, nextScheduledEpoch, err := c.submitNextWorkflowIfNeeded(ctx, swf, len(active), nowEpoch)
 	if err != nil {
+		processNextItemOperationDuration.WithLabelValues("swfsubmit", "error").Observe(time.Since(startTime).Seconds())
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
+	} else {
+		processNextItemOperationDuration.WithLabelValues("swfsubmit", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
 	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
@@ -602,9 +654,28 @@ func (c *Controller) updateStatus(
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
 	swfCopy.UpdateStatus(nowEpoch, submitted, nextScheduledEpoch, active, completed, c.location)
 
+	startTime := time.Now()
+	conditionsWasUpdated := !equality.Semantic.DeepEqual(swf.Status.Conditions, swfCopy.Status.Conditions)
+	workHistoryWasUpdated := !equality.Semantic.DeepEqual(swf.Status.WorkflowHistory, swfCopy.Status.WorkflowHistory)
+	labelsWasUpdated := !equality.Semantic.DeepEqual(swf.Labels, swfCopy.Labels)
+	var updated = conditionsWasUpdated ||
+		workHistoryWasUpdated ||
+		labelsWasUpdated
+	processNextItemOperationDuration.WithLabelValues("checkupdates", "ok").Observe(time.Since(startTime).Seconds())
+
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
-	return c.swfClient.Update(ctx, swf.Namespace, swfCopy)
+	if updated {
+		startTime = time.Now()
+		err := c.swfClient.Update(ctx, swf.Namespace, swfCopy)
+		if err != nil {
+			processNextItemOperationDuration.WithLabelValues("swfupdate", "error").Observe(time.Since(startTime).Seconds())
+		} else {
+			processNextItemOperationDuration.WithLabelValues("swfupdate", "ok").Observe(time.Since(startTime).Seconds())
+		}
+		return err
+	}
+	return nil
 }
