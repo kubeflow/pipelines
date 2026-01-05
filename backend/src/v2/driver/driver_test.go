@@ -286,7 +286,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				"",
 				"ml-pipeline.kubeflow",
 				"8887",
-				)
+			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
 				assert.NotNil(t, err)
@@ -410,7 +410,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		)
+	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
 
@@ -465,7 +465,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		)
+	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
 
@@ -522,7 +522,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		)
+	)
 	assert.Nil(t, err)
 
 	assert.Len(t, podSpec.InitContainers, 1)
@@ -572,7 +572,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		)
+	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
 	assert.Contains(t, cmd, "--publish_logs")
@@ -704,7 +704,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				"",
 				"ml-pipeline.kubeflow",
 				"8887",
-				)
+			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
 			podSpecString, err := json.Marshal(podSpec)
@@ -747,7 +747,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887",)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887")
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
 	assert.Len(t, podSpec.Containers, 1)
@@ -1209,7 +1209,7 @@ func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		)
+	)
 	assert.Nil(t, err)
 
 	// Expect workspace volume mounted
@@ -1523,7 +1523,7 @@ func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
 		"",
 		customAddress,
 		customPort,
-		)
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
 

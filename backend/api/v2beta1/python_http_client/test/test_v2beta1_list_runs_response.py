@@ -96,7 +96,8 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                     type = 'ROOT', 
                                     type_attributes = kfp_server_api.models.pipeline_task_detail_type_attributes.PipelineTaskDetailTypeAttributes(
                                         iteration_index = '0', 
-                                        iteration_count = '0', ), 
+                                        iteration_count = '0', 
+                                        download_to_workspace = True, ), 
                                     parent_task_id = '0', 
                                     child_tasks = [
                                         kfp_server_api.models.pipeline_task_detail_child_task.PipelineTaskDetailChildTask(

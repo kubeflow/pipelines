@@ -37,6 +37,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"k8s.io/client-go/kubernetes"
 )
 
 type LauncherV2Options struct {
@@ -1498,4 +1499,26 @@ func (l *LauncherV2) prepareOutputFolders(executorInput *pipelinespec.ExecutorIn
 	}
 
 	return nil
+}
+
+// ObjectStoreDependencies interface implementation for LauncherV2
+
+func (l *LauncherV2) GetOpenedBucketCache() map[string]*blob.Bucket {
+	return l.openedBucketCache
+}
+
+func (l *LauncherV2) SetOpenedBucket(key string, bucket *blob.Bucket) {
+	l.openedBucketCache[key] = bucket
+}
+
+func (l *LauncherV2) GetLauncherConfig() *config.Config {
+	return l.launcherConfig
+}
+
+func (l *LauncherV2) GetK8sClient() kubernetes.Interface {
+	return l.clientManager.K8sClient()
+}
+
+func (l *LauncherV2) GetNamespace() string {
+	return l.options.Namespace
 }

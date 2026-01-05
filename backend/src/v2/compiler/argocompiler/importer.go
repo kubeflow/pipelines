@@ -101,15 +101,15 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 	var volumes []k8score.Volume
 	if downloadToWorkspace {
 		volumeMounts = append(volumeMounts,
-		k8score.VolumeMount{
-			Name:      workspaceVolumeName,
-			MountPath: component.WorkspaceMountPath,
-		},
-		k8score.VolumeMount{
-			Name:      kfpTokenVolumeName,
-			MountPath: kfpTokenMountPath,
-			ReadOnly:  true,
-		})
+			k8score.VolumeMount{
+				Name:      workspaceVolumeName,
+				MountPath: component.WorkspaceMountPath,
+			},
+			k8score.VolumeMount{
+				Name:      kfpTokenVolumeName,
+				MountPath: kfpTokenMountPath,
+				ReadOnly:  true,
+			})
 		volumes = append(volumes,
 			k8score.Volume{
 				Name: workspaceVolumeName,

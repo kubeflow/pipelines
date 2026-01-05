@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"gocloud.dev/blob"
+	"k8s.io/client-go/kubernetes"
 )
 
 // FileSystem provides an interface for file system operations.
@@ -63,6 +64,21 @@ type ObjectStoreClientInterface interface {
 	DownloadArtifact(ctx context.Context, remoteURI, localPath, artifactKey string) error
 }
 
+// ObjectStoreDependencies provides the common dependencies needed by ObjectStoreClient.
+// Both LauncherV2 and ImportLauncher implement this interface.
+type ObjectStoreDependencies interface {
+	// GetOpenedBucketCache returns the cache of opened buckets
+	GetOpenedBucketCache() map[string]*blob.Bucket
+	// SetOpenedBucket stores a bucket in the cache
+	SetOpenedBucket(key string, bucket *blob.Bucket)
+	// GetLauncherConfig returns the launcher configuration
+	GetLauncherConfig() *config.Config
+	// GetK8sClient returns the Kubernetes client
+	GetK8sClient() kubernetes.Interface
+	// GetNamespace returns the namespace
+	GetNamespace() string
+}
+
 // OSFileSystem is the production implementation of FileSystem using real os calls
 type OSFileSystem struct{}
 
@@ -97,17 +113,19 @@ func (e *RealCommandExecutor) Run(ctx context.Context, cmd string, args []string
 	return command.Run()
 }
 
-// ObjectStoreClient is the production implementation using the actual objectstore package
+// ObjectStoreClient is the production implementation using the actual objectstore package.
+// It works with any launcher that implements ObjectStoreDependencies.
 type ObjectStoreClient struct {
-	launcher *LauncherV2
+	deps ObjectStoreDependencies
 }
 
-func NewObjectStoreClient(launcher *LauncherV2) *ObjectStoreClient {
-	return &ObjectStoreClient{launcher: launcher}
+// NewObjectStoreClient creates a new ObjectStoreClient with the given dependencies.
+func NewObjectStoreClient(deps ObjectStoreDependencies) *ObjectStoreClient {
+	return &ObjectStoreClient{deps: deps}
 }
 
 func (c *ObjectStoreClient) UploadArtifact(ctx context.Context, localPath, remoteURI, artifactKey string) error {
-	openedBucket, blobKey, err := c.getBucket(ctx, artifactKey, remoteURI, c.launcher.launcherConfig)
+	openedBucket, blobKey, err := c.getBucket(ctx, artifactKey, remoteURI)
 	if err != nil {
 		return fmt.Errorf("failed to get opened bucket for output artifact %q: %w", artifactKey, err)
 	}
@@ -119,48 +137,46 @@ func (c *ObjectStoreClient) UploadArtifact(ctx context.Context, localPath, remot
 }
 
 func (c *ObjectStoreClient) DownloadArtifact(ctx context.Context, remoteURI, localPath, artifactKey string) error {
-	openedBucket, blobKey, err := c.getBucket(ctx, artifactKey, remoteURI, c.launcher.launcherConfig)
+	openedBucket, blobKey, err := c.getBucket(ctx, artifactKey, remoteURI)
 	if err != nil {
 		return fmt.Errorf("failed to get opened bucket for input artifact %q: %w", artifactKey, err)
 	}
 	if err = objectstore.DownloadBlob(ctx, openedBucket, localPath, blobKey); err != nil {
 		return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", artifactKey, remoteURI, err)
 	}
-	return err
+	return nil
 }
 
 func (c *ObjectStoreClient) getBucket(
 	ctx context.Context,
 	artifactKey,
 	artifactURI string,
-	launcherConfig *config.Config,
 ) (*blob.Bucket, string, error) {
 	prefix, base, err := objectstore.SplitObjectURI(artifactURI)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get base URI path for input artifact %q: %w", artifactKey, err)
+		return nil, "", fmt.Errorf("failed to get base URI path for artifact %q: %w", artifactKey, err)
 	}
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(prefix)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get base URI path for input artifact %q: %w", artifactKey, err)
+		return nil, "", fmt.Errorf("failed to get base URI path for artifact %q: %w", artifactKey, err)
 	}
 
 	key := bucketConfig.Hash()
-	var openedBucket *blob.Bucket
-	if cachedBucket, exists := c.launcher.openedBucketCache[key]; exists {
-		openedBucket = cachedBucket
-	} else {
-		// Create new opened bucket and store in cache
-		storeSessionInfo, err := launcherConfig.GetStoreSessionInfo(bucketConfig.PrefixedBucket())
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to get store session info for bucket %q: %w", bucketConfig.PrefixedBucket(), err)
-		}
-		newOpenBucket, err := objectstore.OpenBucket(ctx, c.launcher.clientManager.K8sClient(), c.launcher.options.Namespace, bucketConfig, &storeSessionInfo)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to open bucket %q: %w", bucketConfig.PrefixedBucket(), err)
-		}
-		c.launcher.openedBucketCache[bucketConfig.Hash()] = newOpenBucket
-		openedBucket = newOpenBucket
+	if cachedBucket, exists := c.deps.GetOpenedBucketCache()[key]; exists {
+		return cachedBucket, base, nil
 	}
 
-	return openedBucket, base, nil
+	// Create new opened bucket and store in cache
+	launcherConfig := c.deps.GetLauncherConfig()
+	storeSessionInfo, err := launcherConfig.GetStoreSessionInfo(bucketConfig.PrefixedBucket())
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get store session info for bucket %q: %w", bucketConfig.PrefixedBucket(), err)
+	}
+	newOpenBucket, err := objectstore.OpenBucket(ctx, c.deps.GetK8sClient(), c.deps.GetNamespace(), bucketConfig, &storeSessionInfo)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to open bucket %q: %w", bucketConfig.PrefixedBucket(), err)
+	}
+	c.deps.SetOpenedBucket(bucketConfig.Hash(), newOpenBucket)
+
+	return newOpenBucket, base, nil
 }

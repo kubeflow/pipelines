@@ -72,7 +72,8 @@ class TestV2beta1ListTasksResponse(unittest.TestCase):
                         type = 'ROOT', 
                         type_attributes = kfp_server_api.models.pipeline_task_detail_type_attributes.PipelineTaskDetailTypeAttributes(
                             iteration_index = '0', 
-                            iteration_count = '0', ), 
+                            iteration_count = '0', 
+                            download_to_workspace = True, ), 
                         error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
                             code = 56, 
                             message = '0', ), 

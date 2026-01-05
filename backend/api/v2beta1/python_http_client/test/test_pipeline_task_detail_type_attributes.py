@@ -37,7 +37,8 @@ class TestPipelineTaskDetailTypeAttributes(unittest.TestCase):
         if include_optional :
             return PipelineTaskDetailTypeAttributes(
                 iteration_index = '0', 
-                iteration_count = '0'
+                iteration_count = '0', 
+                download_to_workspace = True
             )
         else :
             return PipelineTaskDetailTypeAttributes(

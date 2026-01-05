@@ -11,15 +11,20 @@ import (
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
+	"gocloud.dev/blob"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang/glog"
 )
 
 type ImportLauncher struct {
-	opts          LauncherV2Options
-	clientManager client_manager.ClientManagerInterface
+	opts              LauncherV2Options
+	clientManager     client_manager.ClientManagerInterface
+	objectStore       ObjectStoreClientInterface
+	openedBucketCache map[string]*blob.Bucket
+	launcherConfig    *config.Config
 }
 
 func NewImporterLauncher(
@@ -35,10 +40,13 @@ func NewImporterLauncher(
 	if err != nil {
 		return nil, err
 	}
-	return &ImportLauncher{
-		opts:          *launcherV2Opts,
-		clientManager: clientManager,
-	}, nil
+	launcher := &ImportLauncher{
+		opts:              *launcherV2Opts,
+		clientManager:     clientManager,
+		openedBucketCache: make(map[string]*blob.Bucket),
+	}
+	launcher.objectStore = NewObjectStoreClient(launcher)
+	return launcher, nil
 }
 
 func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
@@ -47,6 +55,21 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 			executionErr = fmt.Errorf("failed to execute importer component: %w", executionErr)
 		}
 	}()
+
+	// Close any open buckets in the cache
+	defer func() {
+		for _, bucket := range l.openedBucketCache {
+			_ = bucket.Close()
+		}
+	}()
+
+	// Fetch Launcher config
+	launcherConfig, executionErr := config.FetchLauncherConfigMap(ctx, l.clientManager.K8sClient(), l.opts.Namespace)
+	if executionErr != nil {
+		return fmt.Errorf("failed to get launcher configmap: %w", executionErr)
+	}
+	l.launcherConfig = launcherConfig
+
 	kfpAPI := l.clientManager.KFPAPIClient()
 
 	downloadToWorkspace := false
@@ -306,9 +329,14 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 		if err != nil {
 			return nil, fmt.Errorf("failed to get local path for uri %q: %w", artifactUri, err)
 		}
+		// Get the artifact output key from the component spec
+		artifactKey, err := l.getArtifactOutputKey()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get artifact output key: %w", err)
+		}
 		ctx := context.Background()
 		glog.Infof("Downloading artifact %q (artifact key %q) to workspace path %q", artifactUri, artifactKey, localPath)
-		err = l.objectStore.DownloadArtifact(ctx, artifact.Uri, localPath, artifactKey)
+		err = l.objectStore.DownloadArtifact(ctx, artifactUri, localPath, artifactKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to download artifact to workspace: %w", err)
 		}
@@ -351,4 +379,26 @@ func inferArtifactName(uri string) (string, error) {
 	// For URLs without a scheme, e.g. "bucket/path/to/file.txt"
 	cleaned := strings.TrimSuffix(uri, "/")
 	return path.Base(cleaned), nil
+}
+
+// ObjectStoreDependencies interface implementation for ImportLauncher
+
+func (l *ImportLauncher) GetOpenedBucketCache() map[string]*blob.Bucket {
+	return l.openedBucketCache
+}
+
+func (l *ImportLauncher) SetOpenedBucket(key string, bucket *blob.Bucket) {
+	l.openedBucketCache[key] = bucket
+}
+
+func (l *ImportLauncher) GetLauncherConfig() *config.Config {
+	return l.launcherConfig
+}
+
+func (l *ImportLauncher) GetK8sClient() kubernetes.Interface {
+	return l.clientManager.K8sClient()
+}
+
+func (l *ImportLauncher) GetNamespace() string {
+	return l.opts.Namespace
 }

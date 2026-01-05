@@ -34,15 +34,17 @@ class PipelineTaskDetailTypeAttributes(object):
     """
     openapi_types = {
         'iteration_index': 'str',
-        'iteration_count': 'str'
+        'iteration_count': 'str',
+        'download_to_workspace': 'bool'
     }
 
     attribute_map = {
         'iteration_index': 'iteration_index',
-        'iteration_count': 'iteration_count'
+        'iteration_count': 'iteration_count',
+        'download_to_workspace': 'download_to_workspace'
     }
 
-    def __init__(self, iteration_index=None, iteration_count=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, iteration_index=None, iteration_count=None, download_to_workspace=None, local_vars_configuration=None):  # noqa: E501
         """PipelineTaskDetailTypeAttributes - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -50,12 +52,15 @@ class PipelineTaskDetailTypeAttributes(object):
 
         self._iteration_index = None
         self._iteration_count = None
+        self._download_to_workspace = None
         self.discriminator = None
 
         if iteration_index is not None:
             self.iteration_index = iteration_index
         if iteration_count is not None:
             self.iteration_count = iteration_count
+        if download_to_workspace is not None:
+            self.download_to_workspace = download_to_workspace
 
     @property
     def iteration_index(self):
@@ -98,6 +103,27 @@ class PipelineTaskDetailTypeAttributes(object):
         """
 
         self._iteration_count = iteration_count
+
+    @property
+    def download_to_workspace(self):
+        """Gets the download_to_workspace of this PipelineTaskDetailTypeAttributes.  # noqa: E501
+
+
+        :return: The download_to_workspace of this PipelineTaskDetailTypeAttributes.  # noqa: E501
+        :rtype: bool
+        """
+        return self._download_to_workspace
+
+    @download_to_workspace.setter
+    def download_to_workspace(self, download_to_workspace):
+        """Sets the download_to_workspace of this PipelineTaskDetailTypeAttributes.
+
+
+        :param download_to_workspace: The download_to_workspace of this PipelineTaskDetailTypeAttributes.  # noqa: E501
+        :type download_to_workspace: bool
+        """
+
+        self._download_to_workspace = download_to_workspace
 
     def to_dict(self):
         """Returns the model properties as a dict"""

@@ -95,11 +95,9 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 					{
 						MountPath:        "/mnt/data",
 						SubPath:          "models",
-						PvcNameParameter: inputParamConstant("my-pvc"),
+						PvcNameParameter: common.InputParamConstant("my-pvc"),
 					},
 				},
-				nil,
-				nil,
 			},
 			"/mnt/data",
 			"my-pvc",

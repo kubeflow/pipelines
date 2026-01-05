@@ -59,7 +59,7 @@ func TestConvertArtifactsToArtifactList_MultipleMetrics(t *testing.T) {
 		},
 	}
 
-	artifactList, err := convertArtifactsToArtifactList(artifacts)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, artifactList)
 
@@ -101,7 +101,7 @@ func TestConvertArtifactsToArtifactList_SingleMetric(t *testing.T) {
 		},
 	}
 
-	artifactList, err := convertArtifactsToArtifactList(artifacts)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, artifactList)
 
@@ -134,7 +134,7 @@ func TestConvertArtifactsToArtifactList_NonMetrics(t *testing.T) {
 		},
 	}
 
-	artifactList, err := convertArtifactsToArtifactList(artifacts)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, artifactList)
 
@@ -173,7 +173,7 @@ func TestConvertArtifactsToArtifactList_MixedTypes(t *testing.T) {
 		},
 	}
 
-	artifactList, err := convertArtifactsToArtifactList(artifacts)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, artifactList)
 
@@ -186,7 +186,7 @@ func TestConvertArtifactsToArtifactList_MixedTypes(t *testing.T) {
 func TestConvertArtifactsToArtifactList_EmptyList(t *testing.T) {
 	artifacts := []*apiV2beta1.Artifact{}
 
-	artifactList, err := convertArtifactsToArtifactList(artifacts)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, artifactList)
 	assert.Equal(t, 0, len(artifactList.Artifacts), "Empty list should return empty ArtifactList")
@@ -221,7 +221,7 @@ func TestConvertArtifactsToArtifactList_MetricsWithURIAndMetadata(t *testing.T) 
 		},
 	}
 
-	artifactList, err := convertArtifactsToArtifactList(artifacts)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, artifactList)
 
@@ -263,7 +263,7 @@ func TestConvertArtifactsToArtifactList_MetricsNumberValueInMetadata(t *testing.
 		},
 	}
 
-	artifactList, err := convertArtifactsToArtifactList(artifacts)
+	artifactList, err := convertArtifactsToArtifactList(artifacts, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, artifactList)
 
