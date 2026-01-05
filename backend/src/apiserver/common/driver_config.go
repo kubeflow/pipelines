@@ -103,7 +103,7 @@ func filterReservedLabels(labels map[string]string) map[string]string {
 		return nil
 	}
 
-	filtered := make(map[string]string)
+	filtered := make(map[string]string, len(labels))
 	for k, v := range labels {
 		if strings.HasPrefix(k, ReservedLabelPrefix) {
 			glog.Warningf("Ignoring reserved label %s (prefix %s is reserved)", k, ReservedLabelPrefix)
