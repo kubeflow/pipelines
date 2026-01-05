@@ -28,9 +28,9 @@ import (
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/viper"
 )
 
 var _ = BeforeEach(func() {
@@ -39,31 +39,78 @@ var _ = BeforeEach(func() {
 })
 
 var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WorkflowCompiler), func() {
-	pipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
+	allPipelineFiles := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
 
 	testParams := []struct {
-		compilerOptions argocompiler.Options
-		envVars         map[string]string
+		compilerOptions   argocompiler.Options
+		envVars           map[string]string
+		pipelineFilePaths []string
 	}{
 		{
-			compilerOptions: argocompiler.Options{CacheDisabled: true},
+			compilerOptions:   argocompiler.Options{CacheDisabled: true},
+			pipelineFilePaths: allPipelineFiles,
 		},
 		{
-			compilerOptions: argocompiler.Options{CacheDisabled: true},
-			envVars:         map[string]string{"PIPELINE_RUN_AS_USER": "1001", "PIPELINE_LOG_LEVEL": "3"},
+			compilerOptions:   argocompiler.Options{CacheDisabled: true},
+			envVars:           map[string]string{"PIPELINE_RUN_AS_USER": "1001", "PIPELINE_LOG_LEVEL": "3"},
+			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "run_as_user_cache_disabled.yaml")},
 		},
 		{
-			compilerOptions: argocompiler.Options{CacheDisabled: false},
+			compilerOptions:   argocompiler.Options{CacheDisabled: false},
+			pipelineFilePaths: allPipelineFiles,
 		},
 		{
-			compilerOptions: argocompiler.Options{CacheDisabled: false},
-			envVars:         map[string]string{"PIPELINE_RUN_AS_USER": "1001", "PIPELINE_LOG_LEVEL": "3"},
+			compilerOptions:   argocompiler.Options{CacheDisabled: false},
+			envVars:           map[string]string{"PIPELINE_RUN_AS_USER": "1001", "PIPELINE_LOG_LEVEL": "3"},
+			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "run_as_user_cache_enabled.yaml")},
+		},
+		{
+			compilerOptions:   argocompiler.Options{CacheDisabled: false},
+			envVars:           map[string]string{"CABUNDLE_CONFIGMAP_NAME": "test-configmap-name", "CABUNDLE_KEY_NAME": "test-configmap-key"},
+			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "mounted_cabundle_configmap.yaml")},
+		},
+		{
+			compilerOptions:   argocompiler.Options{CacheDisabled: false},
+			envVars:           map[string]string{"CABUNDLE_SECRET_NAME": "test-secret-name"},
+			pipelineFilePaths: []string{filepath.Join(pipelineFilesRootDir, pipelineDirectory, "mounted_cabundle_secret.yaml")},
 		},
 	}
 	for _, param := range testParams {
 		Context(fmt.Sprintf("Verify compiled workflow for a pipeline with compiler options cacheDisabled '%v' and env vars %v >", param.compilerOptions.CacheDisabled, param.envVars), Ordered, func() {
-			for _, pipelineSpecFilePath := range pipelineFilePaths {
+			// Set and cleanup env vars per spec execution
+			BeforeEach(func() {
+				for envVarName, envVarValue := range param.envVars {
+					err := os.Setenv(envVarName, envVarValue)
+					viper.AutomaticEnv()
+					Expect(err).To(BeNil(), "Could not set env var %s", envVarName)
+				}
+				DeferCleanup(func() {
+					for envVarName := range param.envVars {
+						err := os.Unsetenv(envVarName)
+						Expect(err).To(BeNil(), "Could not unset env var %s", envVarName)
+					}
+				})
+			})
+			for _, pipelineSpecFilePath := range param.pipelineFilePaths {
 				pipelineSpecFileName := filepath.Base(pipelineSpecFilePath)
+
+				// The test cases below should be executed only if the required env variables are set.
+				if pipelineSpecFileName == "run_as_user_cache_disabled.yaml" || pipelineSpecFileName == "run_as_user_cache_enabled.yaml" {
+					if !testutil.ContainsEnvVar(param.envVars, "PIPELINE_RUN_AS_USER", "PIPELINE_LOG_LEVEL") {
+						continue
+					}
+				}
+				if pipelineSpecFileName == "mounted_cabundle_configmap.yaml" {
+					if !testutil.ContainsEnvVar(param.envVars, "CABUNDLE_CONFIGMAP_NAME", "CABUNDLE_KEY_NAME") {
+						continue
+					}
+				}
+				if pipelineSpecFileName == "mounted_cabundle_secret.yaml" {
+					if !testutil.ContainsEnvVar(param.envVars, "CABUNDLE_SECRET_NAME") {
+						continue
+					}
+				}
+
 				fileExtension := filepath.Ext(pipelineSpecFileName)
 				fileNameWithoutExtension := strings.TrimSuffix(pipelineSpecFileName, fileExtension)
 				compiledWorkflowFileName := fileNameWithoutExtension + ".yaml"
@@ -86,20 +133,6 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 					if param.compilerOptions.CacheDisabled {
 						expectedWorkflow = workflowutils.ConfigureCacheSettings(expectedWorkflow, false)
 					}
-
-					// Set provided env variables
-					for envVarName, envVarValue := range param.envVars {
-						err := os.Setenv(envVarName, envVarValue)
-						Expect(err).To(BeNil(), "Could not set env var %s", envVarName)
-					}
-
-					// Defer UnSetting the set env variables at the end of the test
-					defer func() {
-						for envVarName := range param.envVars {
-							err := os.Unsetenv(envVarName)
-							Expect(err).To(BeNil(), "Could not unset env var %s", envVarName)
-						}
-					}()
 
 					matcher.CompareWorkflows(compiledWorkflow, expectedWorkflow)
 
