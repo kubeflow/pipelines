@@ -1,19 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# This CI overlay for PostgreSQL testing does three things:
-# 1. It uses `platform-agnostic-postgresql` as its base. This is the project's
-#    standard way to deploy KFP with PostgreSQL, which correctly includes both
-#    the KFP core components and the third-party PostgreSQL instance, and
-#    patches the API server to use the 'pgx' driver.
+# CI overlay for PostgreSQL + MinIO testing
+# This CI overlay for PostgreSQL + MinIO testing does three things:
+# 1. It uses `platform-agnostic-postgresql-minio` as its base. This correctly
+#    includes both KFP core components, PostgreSQL instance, and MinIO instance,
+#    and patches the API server to use the 'pgx' driver with MinIO storage.
 # 2. It applies an additional patch (`apiserver-env.yaml`) to inject
-#    CI-specific environment variables, like the V2 image path. This aligns
-#    with the pattern used in other CI overlays like `minio`.
+#    CI-specific environment variables, like the V2 image paths. This aligns
+#    with the pattern used in other CI overlays like `postgresql`.
 # 3. It overrides the image names to use the locally built images from the
 #    Kind registry, which is standard practice for all CI tests.
 resources:
   - ../../base
-  - ../../../../../manifests/kustomize/env/platform-agnostic-postgresql
+  - ../../../../../manifests/kustomize/env/platform-agnostic-postgresql-minio
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
