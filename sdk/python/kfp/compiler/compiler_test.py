@@ -50,6 +50,7 @@ from kfp.dsl.pipeline_config import WorkspaceConfig
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
+import typing
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -186,6 +187,32 @@ def print_artifact(a: Input[Artifact]):
 
 
 class TestCompilePipeline(parameterized.TestCase):
+
+    def test_compile_pipeline_with_literal_single_type_valid(self):
+        @dsl.component
+        def literal_comp(x: typing.Literal['a', 'b']):
+            return x
+
+        @dsl.pipeline(name='test-literal-pipeline')
+        def literal_pipeline():
+            literal_comp(x='a')
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target_file = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=literal_pipeline,
+                package_path=target_file,
+            )
+            self.assertTrue(os.path.exists(target_file))
+
+
+    def test_literal_mixed_elements_should_raise_type_error(self):
+        # Mixed-type Literal should be rejected at component definition time
+        with self.assertRaises(TypeError):
+            @dsl.component
+            def bad_literal(x: typing.Literal[1, 2, 'a']):
+                return x
+
 
     def test_can_use_dsl_attribute_on_kfp(self):
 
