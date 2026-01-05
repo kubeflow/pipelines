@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -131,6 +132,7 @@ func (s *RunStore) ListRuns(
 		glog.Error("Failed to start transaction to list runs")
 		return errorF(err)
 	}
+
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		return errorF(err)
@@ -179,7 +181,8 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	filterContext *model.FilterContext,
 ) (string, []interface{}, error) {
 	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
+	// Use Question format for subqueries to ensure correct parameter numbering
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
 
@@ -205,9 +208,29 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	// to get resource reference information. Pagination and sorting are applied at the outermost level.
 	if !selectCount {
 		sqlBuilder = s.addMetricsResourceReferencesAndTasks(sqlBuilder, opts)
+
+		// Convert metric value (string) to float64 for numeric comparison in SQL, generic for all DBs.
+		if opts != nil && opts.SortByFieldName != "" {
+			var r model.Run
+			// Check if it's a metric field (non-regular field)
+			if !r.IsRegularField(opts.SortByFieldName) && opts.GetSortByFieldValue() != nil {
+				// Try to convert to float64 if it's a string
+				if strVal, ok := opts.GetSortByFieldValue().(string); ok {
+					if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
+						opts = opts.WithSortByFieldValue(floatVal)
+					}
+				}
+			}
+		}
+
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder, q)
 		// Note: AddPaginationToSelect already calls AddSortingToSelect internally, so we don't need to call it again
 	}
+	// Apply correct placeholder format for the final SQL generation
+	if s.dbDialect.Name() == "pgx" {
+		sqlBuilder = sqlBuilder.PlaceholderFormat(sq.Dollar)
+	}
+
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
@@ -250,7 +273,8 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 
 func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
+	// Use Question format for subqueries to ensure correct parameter numbering
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	var r model.Run
 
 	// Optimization: Only pass UUID and aggregated columns through the 3 LEFT JOINs,
@@ -355,10 +379,14 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 
 	// Wrap in final SELECT to provide clean column names without table prefixes
 	// This avoids ambiguity in ORDER BY clauses added by pagination
-	// Note: We only select the columns needed for the result (not the sortBy metric column,
-	// which is only used in ORDER BY and is available in the subquery)
 	finalSelectColumns := quoteAll(q, runColumns)
 	finalSelectColumns = append(finalSelectColumns, q("refs"), q("taskDetails"), q("metrics"))
+
+	// Include metric sort column in SELECT when sorting by metric.
+	// MySQL/PostgreSQL require WHERE-referenced columns in SELECT list.
+	if opts != nil && opts.SortByFieldName != "" && !r.IsRegularField(opts.SortByFieldName) {
+		finalSelectColumns = append(finalSelectColumns, q(opts.SortByFieldName))
+	}
 
 	return qb.
 		Select(finalSelectColumns...).
@@ -373,7 +401,16 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextId, pipelineRunContextId sql.NullInt64
 		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
-		err := rows.Scan(
+
+		// Check how many columns are in the result set
+		columns, err := rows.Columns()
+		if err != nil {
+			glog.Errorf("Failed to get columns from rows: %v", err)
+			return runs, nil
+		}
+
+		// Prepare scan destinations: 30 base columns + 1 optional metric sort column
+		scanDest := []interface{}{
 			&uuid,
 			&experimentUUID,
 			&displayName,
@@ -404,7 +441,15 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&resourceReferencesInString,
 			&tasksInString,
 			&metricsInString,
-		)
+		}
+
+		// If there's an extra column (metric sort column), add a dummy variable to scan it
+		if len(columns) > 30 {
+			var dummyMetricValue sql.NullFloat64
+			scanDest = append(scanDest, &dummyMetricValue)
+		}
+
+		err = rows.Scan(scanDest...)
 		if err != nil {
 			glog.Errorf("Failed to scan row into a run: %v", err)
 			return runs, nil

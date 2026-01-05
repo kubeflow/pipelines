@@ -138,27 +138,31 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
   if $POD_TO_POD_TLS_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
 
-  # Priority 2: PostgreSQL (mutually exclusive with default MySQL setup)
+  # Priority 2: PostgreSQL + MinIO combination
+  elif [ "${DB_TYPE}" == "pgx" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql-minio"
+
+  # Priority 3: PostgreSQL (with default SeaweedFS storage)
   elif [ "${DB_TYPE}" == "pgx" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
 
-  # Priority 3: Check for cache-disabled + proxy + minio combination
+  # Priority 4: Check for cache-disabled + proxy + minio combination
   elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
 
-  # Priority 4: Check for cache-disabled + proxy combination
+  # Priority 5: Check for cache-disabled + proxy combination
   elif $CACHE_DISABLED && $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
 
-  # Priority 5: Check for cache-disabled + minio combination
+  # Priority 6: Check for cache-disabled + minio combination
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
 
-  # Priority 6: Check for proxy + minio combination
+  # Priority 7: Check for proxy + minio combination
   elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
 
-  # Priority 7: Check for single flags (cache-disabled, proxy, or minio)
+  # Priority 8: Check for single flags (cache-disabled, proxy, or minio)
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
@@ -179,10 +183,32 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED; then
+
+  # Priority 1: PostgreSQL + MinIO
+  if [ "${DB_TYPE}" == "pgx" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql-minio"
+
+  # Priority 2: PostgreSQL (with default SeaweedFS)
+  elif [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
+
+  # Priority 3: Artifact proxy (MySQL + SeaweedFS)
+  elif $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
+
+  # Priority 4: Cache disabled + MinIO (MySQL + MinIO)
+  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+
+  # Priority 5: MinIO (MySQL + MinIO)
+  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
+
+  # Priority 6: Cache disabled (MySQL + SeaweedFS)
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+
+  # Default: MySQL + SeaweedFS
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi

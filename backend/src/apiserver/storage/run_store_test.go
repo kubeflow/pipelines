@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"sort"
 	"testing"
@@ -227,21 +228,21 @@ func TestListRuns_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
@@ -333,21 +334,21 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 
@@ -355,21 +356,21 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err = list.NewOptions(&model.Run{}, 1, "metric:dummymetric desc", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
@@ -381,10 +382,10 @@ func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 
 	// No filter
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 }
 
 func TestListRuns_TotalSizeWithFilter(t *testing.T) {
@@ -407,10 +408,10 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	}
 	newFilter, _ := filter.New(filterProto)
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", newFilter)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
@@ -498,7 +499,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	for i, run := range runs {
 		runs[i] = run.ToV1()
@@ -506,17 +507,17 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
@@ -606,13 +607,13 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
@@ -1189,10 +1190,10 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 2, "id", nil)
 	assert.Nil(t, err)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Nil(t, err)
 	for _, run := range expectedRuns {
 		sort.Sort(RunMetricSorter(run.Metrics))
@@ -1326,11 +1327,11 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 	}
 	expectedRuns[0] = expectedRuns[0].ToV1()
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs)
 	assert.NotEmpty(t, nextPageToken)
 }
@@ -1427,4 +1428,87 @@ func TestRunAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Run{}).APIToModelFieldMap() {
 		assert.Contains(t, runColumns, modelField)
 	}
+}
+
+func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	expectedSecondPageRuns := []*model.Run{
+		{
+			UUID:         "2",
+			ExperimentId: defaultFakeExpId,
+			K8SName:      "run2",
+			DisplayName:  "run2",
+			StorageState: model.StorageStateAvailable,
+			Namespace:    "n2",
+			RunDetails: model.RunDetails{
+				CreatedAtInSec:          2,
+				ScheduledAtInSec:        2,
+				Conditions:              "Succeeded",
+				State:                   model.RuntimeStateSucceeded,
+				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
+			},
+			Metrics: []*model.RunMetric{
+				{
+					RunUUID:     "2",
+					NodeID:      "node2",
+					Name:        "dummymetric",
+					NumberValue: 2.0,
+					Format:      "PERCENTAGE",
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
+				},
+			},
+		},
+	}
+	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
+
+	// Sort in asc order
+	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
+	assert.Nil(t, err)
+
+	_, _, nextPageToken, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+
+	// Decode token to modify SortByFieldValue to string
+	// list.Token is exported now
+	var tokenMap map[string]interface{}
+	tokenBytes, err := base64.StdEncoding.DecodeString(nextPageToken)
+	assert.Nil(t, err)
+	err = json.Unmarshal(tokenBytes, &tokenMap)
+	assert.Nil(t, err)
+
+	// Force it to string
+	tokenMap["SortByFieldValue"] = fmt.Sprintf("%v", tokenMap["SortByFieldValue"])
+
+	// Encode back
+	newTokenBytes, err := json.Marshal(tokenMap)
+	assert.Nil(t, err)
+	newToken := base64.StdEncoding.EncodeToString(newTokenBytes)
+
+	// Use the manipulated token
+	opts, err = list.NewOptionsFromToken(newToken, 1)
+	assert.Nil(t, err)
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	runs[0] = runs[0].ToV1()
+
+	// Should not error and return correct results
+	assert.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed with string token")
+	assert.Empty(t, nextPageToken)
 }
