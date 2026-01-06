@@ -31,10 +31,7 @@ inputs:
     description: "Enables artifact proxy"
     required: false
     default: 'false'
-  storage_backend:
-    description: "Storage backend to use (minio or seaweedfs)"
-    required: false
-    default: 'seaweedfs'
+
   argo_version:
     required: false
     description: "Argo version to use for the cluster"
@@ -103,10 +100,7 @@ runs:
           ARGS="${ARGS} --artifact-proxy"
         fi
 
-        if [ "${{ inputs.storage_backend }}" != "seaweedfs" ] && [ -n "${{ inputs.storage_backend }}" ]; then
-          echo "Deploying with artifact storage ${{ inputs.storage_backend }}"
-          ARGS="${ARGS} --storage ${{ inputs.storage_backend }}"
-        fi
+
 
         if [ -n "${{ inputs.argo_version }}" ]; then
           echo "Deploying with argo version ${{ inputs.argo_version }}"
