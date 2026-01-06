@@ -93,6 +93,77 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 
 }
 
+// PipelineVersionConcurrencyLimit returns the configured pipelineVersionConcurrencyLimit from a pipeline spec, if set and valid (>0).
+func PipelineVersionConcurrencyLimit(pipelineFilePath string) (int32, bool) {
+	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
+	if spec == nil || spec.PlatformSpec() == nil {
+		return 0, false
+	}
+	k8sSpec, ok := spec.PlatformSpec().GetPlatforms()["kubernetes"]
+	if !ok || k8sSpec == nil {
+		return 0, false
+	}
+	cfg := k8sSpec.GetPipelineConfig()
+	if cfg == nil || cfg.PipelineVersionConcurrencyLimit == nil {
+		return 0, false
+	}
+	val := cfg.GetPipelineVersionConcurrencyLimit()
+	if val <= 0 {
+		return 0, false
+	}
+	return val, true
+}
+
+// ValidateWorkflowParallelismAcrossRuns launches multiple runs for the same pipeline version
+// and asserts that no more than the configured limit are active concurrently.
+func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID string, pipelineVersionID string, experimentID *string, limit int32, maxPipelineWaitTime int) {
+	// Launch (limit + 2) runs to exercise the semaphore.
+	targetRuns := int(limit) + 2
+	runIDs := make([]string, 0, targetRuns)
+	for i := 0; i < targetRuns; i++ {
+		created := CreatePipelineRun(runClient, testContext, &pipelineID, &pipelineVersionID, experimentID, nil)
+		runIDs = append(runIDs, created.RunID)
+	}
+
+	// Wait a bit for Argo to process the runs and enforce semaphore limits
+	time.Sleep(5 * time.Second)
+
+	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
+	pollInterval := 2 * time.Second
+
+	for {
+		active := 0
+		allTerminal := true
+		for _, rid := range runIDs {
+			run := testutil.GetPipelineRun(runClient, &rid)
+			if run.State == nil {
+				active++
+				allTerminal = false
+				continue
+			}
+			switch *run.State {
+			case run_model.V2beta1RuntimeStateRUNNING:
+				// Only count RUNNING as active; PENDING may indicate waiting for semaphore
+				active++
+				allTerminal = false
+			case run_model.V2beta1RuntimeStatePENDING:
+				// PENDING runs might be waiting for semaphore, don't count as active
+				allTerminal = false
+			default:
+				// terminal
+			}
+		}
+		gomega.Expect(active).To(gomega.BeNumerically("<=", limit), "Active concurrent runs should respect pipeline_version_concurrency_limit")
+		if allTerminal {
+			return
+		}
+		if time.Now().After(timeout) {
+			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active=%d, limit=%d", active, limit))
+		}
+		time.Sleep(pollInterval)
+	}
+}
+
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
 func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, taskDetails []*run_model.V2beta1PipelineTaskDetail) {
 	failedTasks := make(map[string]string)

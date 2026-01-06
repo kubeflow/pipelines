@@ -1176,4 +1176,9 @@ message PipelineConfig {
   // Configuration for a shared storage workspace that persists for the duration of the pipeline run.
   // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
   optional WorkspaceConfig workspace = 2;
+
+  // Maximum number of concurrent runs allowed for this pipeline version.
+  // When set, Argo Workflows will use synchronization semaphores to limit
+  // the number of simultaneously running workflow instances for the same pipeline version.
+  optional int32 pipeline_version_concurrency_limit = 3;
 }
