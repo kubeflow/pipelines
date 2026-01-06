@@ -3,3 +3,7 @@ kind: Kustomization
 resources:
 - scheduled-workflow-crd.yaml
 - viewer-crd.yaml
+- ml-pipeline-configmap-manager-clusterrole.yaml
+- ml-pipeline-configmap-manager-clusterrolebinding.yaml
+configurations:
+- params.yaml

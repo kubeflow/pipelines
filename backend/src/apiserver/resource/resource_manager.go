@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 
 	"github.com/cenkalti/backoff"
@@ -49,6 +50,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
+
+const pipelineParallelismConfigMapName = "kfp-pipeline-config"
 
 // Metric variables. Please prefix the metric names with resource_manager_.
 var (
@@ -150,6 +153,131 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		uuid:                      clientManager.UUID(),
 		authenticators:            clientManager.Authenticators(),
 		options:                   options,
+	}
+}
+
+// extractPipelineVersionConcurrencyLimit extracts pipeline_version_concurrency_limit from the template's platform spec.
+// It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> pipelineVersionConcurrencyLimit
+func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int64, error) {
+	if tmpl == nil || !tmpl.IsV2() {
+		return 0, nil
+	}
+	// Type assertion: cast to V2Spec to access PlatformSpec()
+	v2Spec, ok := tmpl.(*template.V2Spec)
+	if !ok || v2Spec == nil {
+		return 0, nil
+	}
+	// Get the platform spec (already public method)
+	platformSpec := v2Spec.PlatformSpec()
+	if platformSpec == nil {
+		return 0, nil
+	}
+	// Get kubernetes platform config
+	kubernetesSpec, ok := platformSpec.Platforms["kubernetes"]
+	if !ok || kubernetesSpec == nil {
+		return 0, nil
+	}
+	// Get pipeline config
+	pipelineConfig := kubernetesSpec.GetPipelineConfig()
+	if pipelineConfig == nil || pipelineConfig.PipelineVersionConcurrencyLimit == nil {
+		return 0, nil
+	}
+	// Get the concurrency limit value
+	value := pipelineConfig.GetPipelineVersionConcurrencyLimit()
+	if value <= 0 {
+		return 0, fmt.Errorf("pipeline_version_concurrency_limit must be greater than 0, got %d", value)
+	}
+	return int64(value), nil
+}
+
+// deletePipelineParallelismConfigMapEntry removes a pipeline version's parallelism entry from a ConfigMap.
+// This function is currently unused but kept for future implementation of automatic cleanup.
+// nolint: unused
+func (r *ResourceManager) deletePipelineParallelismConfigMapEntry(ctx context.Context, namespace, key string) error {
+	if key == "" {
+		return fmt.Errorf("key cannot be empty")
+	}
+
+	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
+	for {
+		if ctx.Err() != nil {
+			return util.Wrap(ctx.Err(), "context canceled while deleting pipeline parallelism ConfigMap entry")
+		}
+		current, err := configMaps.Get(ctx, pipelineParallelismConfigMapName, v1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			// ConfigMap doesn't exist, nothing to clean up
+			return nil
+		}
+		if err != nil {
+			return util.Wrap(err, "failed to retrieve pipeline parallelism ConfigMap for cleanup")
+		}
+
+		if current.Data == nil {
+			return nil
+		}
+		if _, ok := current.Data[key]; !ok {
+			// Key doesn't exist, nothing to clean up
+			return nil
+		}
+
+		delete(current.Data, key)
+		if _, err := configMaps.Update(ctx, current, v1.UpdateOptions{}); apierrors.IsConflict(err) {
+			continue
+		} else if err != nil {
+			return util.Wrap(err, "failed to delete pipeline parallelism ConfigMap entry")
+		}
+		return nil
+	}
+}
+
+func (r *ResourceManager) upsertPipelineParallelismConfigMap(ctx context.Context, namespace, key string, parallelism int) error {
+	if key == "" {
+		return fmt.Errorf("key cannot be empty")
+	}
+
+	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
+	value := strconv.Itoa(parallelism)
+
+	for {
+		if ctx.Err() != nil {
+			return util.Wrap(ctx.Err(), "context canceled while upserting pipeline parallelism ConfigMap")
+		}
+		current, err := configMaps.Get(ctx, pipelineParallelismConfigMapName, v1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			newConfigMap := &corev1.ConfigMap{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      pipelineParallelismConfigMapName,
+					Namespace: namespace,
+				},
+				Data: map[string]string{
+					key: value,
+				},
+			}
+			if _, err := configMaps.Create(ctx, newConfigMap, v1.CreateOptions{}); apierrors.IsAlreadyExists(err) {
+				continue
+			} else if err != nil {
+				return util.Wrap(err, "failed to create pipeline parallelism ConfigMap entry")
+			}
+			return nil
+		}
+		if err != nil {
+			return util.Wrap(err, "failed to retrieve pipeline parallelism ConfigMap")
+		}
+
+		if current.Data == nil {
+			current.Data = map[string]string{}
+		}
+		if existing, ok := current.Data[key]; ok && existing == value {
+			return nil
+		}
+
+		current.Data[key] = value
+		if _, err := configMaps.Update(ctx, current, v1.UpdateOptions{}); apierrors.IsConflict(err) {
+			continue
+		} else if err != nil {
+			return util.Wrap(err, "failed to update pipeline parallelism ConfigMap entry")
+		}
+		return nil
 	}
 }
 
@@ -561,6 +689,36 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
+
+	// Extract concurrency limit from template and configure synchronization semaphores
+	concurrencyLimit, err := extractPipelineVersionConcurrencyLimit(tmpl)
+	if err != nil {
+		return nil, util.Wrap(err, "failed to extract pipeline_version_concurrency_limit")
+	}
+	if concurrencyLimit > 0 && run.PipelineVersionId != "" {
+		// Create/update ConfigMap with semaphore limit
+		if err := r.upsertPipelineParallelismConfigMap(
+			ctx, k8sNamespace, run.PipelineVersionId, int(concurrencyLimit)); err != nil {
+			return nil, util.Wrap(err, "Failed to persist pipeline_version_concurrency_limit configuration")
+		}
+		// Only configure synchronization semaphores if ConfigMap was successfully created/updated
+		wf, ok := executionSpec.(*util.Workflow)
+		if ok && wf != nil && wf.Workflow != nil {
+			if wf.Spec.Synchronization == nil {
+				wf.Spec.Synchronization = &workflowapi.Synchronization{}
+			}
+			wf.Spec.Synchronization.Semaphores = []*workflowapi.SemaphoreRef{
+				{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: pipelineParallelismConfigMapName,
+						},
+						Key: run.PipelineVersionId,
+					},
+				},
+			}
+		}
+	}
 
 	// assign OwnerReference to scheduledworkflow
 	if run.RecurringRunId != "" {
