@@ -18,12 +18,6 @@ import (
 )
 
 const (
-	minioSecretName   = "mlpipeline-minio-artifact"
-	minioBucket       = "mlpipeline"
-	logsPrefixBaseFmt = "private-artifacts/%s"
-
-	minioLocalEndpoint = "localhost:9000"
-
 	pollTimeout  = 90 * time.Second
 	pollInterval = 2 * time.Second
 
@@ -34,20 +28,20 @@ const (
 )
 
 func getMinioCreds(k8Client *kubernetes.Clientset, namespace string) (string, string, error) {
-	secret, err := k8Client.CoreV1().Secrets(namespace).Get(context.Background(), minioSecretName, metav1.GetOptions{})
+	secret, err := k8Client.CoreV1().Secrets(namespace).Get(context.Background(), *config.MinioSecretName, metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}
 	access := strings.TrimSpace(string(secret.Data["accesskey"]))
 	secretKey := strings.TrimSpace(string(secret.Data["secretkey"]))
 	if access == "" || secretKey == "" {
-		return "", "", fmt.Errorf("missing accesskey/secretkey in secret %s/%s", namespace, minioSecretName)
+		return "", "", fmt.Errorf("missing accesskey/secretkey in secret %s/%s", namespace, *config.MinioSecretName)
 	}
 	return access, secretKey, nil
 }
 
 func newMinioClient(accessKey, secretKey string) (*minio.Client, error) {
-	return minio.New(minioLocalEndpoint, &minio.Options{
+	return minio.New(*config.MinioEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: false,
 	})
@@ -132,15 +126,16 @@ func tryAppendWorkflowKeysOrMessage(
 	workflowNamespace string,
 	workflow string,
 ) (keys []string, ok bool) {
-	prefix := fmt.Sprintf(logsPrefixBaseFmt, workflowNamespace)
+	prefix := fmt.Sprintf(*config.MinioLogsPrefixFmt, workflowNamespace)
 	wfPrefix := fmt.Sprintf("%s/%s/", prefix, workflow)
-	keys, waited, err := pollForLogKeys(ctx, client, minioBucket, wfPrefix)
+	bucket := *config.MinioBucket
+	keys, waited, err := pollForLogKeys(ctx, client, bucket, wfPrefix)
 	if err != nil {
-		*lines = append(*lines, fmt.Sprintf("[error waiting for *.log under s3://%s/%s after %s] %v", minioBucket, wfPrefix, waited, err))
+		*lines = append(*lines, fmt.Sprintf("[error waiting for *.log under s3://%s/%s after %s] %v", bucket, wfPrefix, waited, err))
 		return nil, false
 	}
 	if len(keys) == 0 {
-		*lines = append(*lines, fmt.Sprintf("[no *.log files found under s3://%s/%s after waiting %s]", minioBucket, wfPrefix, waited))
+		*lines = append(*lines, fmt.Sprintf("[no *.log files found under s3://%s/%s after waiting %s]", bucket, wfPrefix, waited))
 		return nil, false
 	}
 	return keys, true
@@ -148,6 +143,7 @@ func tryAppendWorkflowKeysOrMessage(
 
 func buildWorkflowLogsText(ctx context.Context, client *minio.Client, workflowNamespace string, workflows []string) string {
 	lines := []string{"===== Argo Workflows archived logs (tailed) ====="}
+	bucket := *config.MinioBucket
 	for _, wf := range workflows {
 		lines = append(lines, fmt.Sprintf("--- Workflow: %s ---", wf))
 		keys, ok := tryAppendWorkflowKeysOrMessage(&lines, ctx, client, workflowNamespace, wf)
@@ -164,7 +160,7 @@ func buildWorkflowLogsText(ctx context.Context, client *minio.Client, workflowNa
 			step := path.Base(path.Dir(key))
 			lines = append(lines, fmt.Sprintf("[step: %s]", step))
 			maxBytes := min(maxBytesPerStep, bytesBudget)
-			content, err := tailObject(ctx, client, minioBucket, key, maxBytes)
+			content, err := tailObject(ctx, client, bucket, key, maxBytes)
 			if err != nil {
 				lines = append(lines, fmt.Sprintf("[failed to fetch %s] %v", key, err))
 				lines = append(lines, "")
@@ -194,7 +190,7 @@ func BuildArchivedWorkflowLogsReport(k8Client *kubernetes.Clientset, runIDs []st
 	deployNamespace := *config.Namespace
 	accessKey, secretKey, err := getMinioCreds(k8Client, deployNamespace)
 	if err != nil {
-		return fmt.Sprintf("WARNING: failed to read %s secret (%s/%s): %v\n", minioSecretName, deployNamespace, minioSecretName, err), err
+		return fmt.Sprintf("WARNING: failed to read %s secret (%s/%s): %v\n", *config.MinioSecretName, deployNamespace, *config.MinioSecretName, err), err
 	}
 	client, err := newMinioClient(accessKey, secretKey)
 	if err != nil {
