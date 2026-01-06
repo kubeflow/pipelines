@@ -53,6 +53,7 @@ def read_from_workspace(file_path: str) -> str:
     name="pipeline-with-workspace",
     description="A pipeline that demonstrates workspace functionality",
     pipeline_config=dsl.PipelineConfig(
+        pipeline_version_concurrency_limit=None,
         workspace=dsl.WorkspaceConfig(
             size='1Gi',
             kubernetes=dsl.KubernetesWorkspaceConfig(

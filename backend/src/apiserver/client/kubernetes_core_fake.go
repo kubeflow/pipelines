@@ -21,11 +21,14 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/client-go/kubernetes"
+	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type FakeKuberneteCoreClient struct {
 	podClientFake *FakePodClient
+	coreClient    v1.CoreV1Interface
+	clientset     kubernetes.Interface
 }
 
 func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
@@ -35,30 +38,48 @@ func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
 }
 
+func (c *FakeKuberneteCoreClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
+	return c.coreClient.ConfigMaps(namespace)
+}
+
 func (c *FakeKuberneteCoreClient) GetClientSet() kubernetes.Interface {
-	// Return nil for fake implementation - tests that need this should use a mock
-	return nil
+	return c.clientset
 }
 
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
-	return &FakeKuberneteCoreClient{&FakePodClient{}}
+	clientset := kubernetesfake.NewSimpleClientset() // nolint: staticcheck
+	return &FakeKuberneteCoreClient{
+		podClientFake: &FakePodClient{},
+		coreClient:    clientset.CoreV1(),
+		clientset:     clientset,
+	}
 }
 
 type FakeKubernetesCoreClientWithBadPodClient struct {
 	podClientFake *FakeBadPodClient
+	coreClient    v1.CoreV1Interface
+	clientset     kubernetes.Interface
 }
 
 func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWithBadPodClient {
-	return &FakeKubernetesCoreClientWithBadPodClient{&FakeBadPodClient{}}
+	clientset := kubernetesfake.NewSimpleClientset() // nolint: staticcheck
+	return &FakeKubernetesCoreClientWithBadPodClient{
+		podClientFake: &FakeBadPodClient{},
+		coreClient:    clientset.CoreV1(),
+		clientset:     clientset,
+	}
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
 }
 
+func (c *FakeKubernetesCoreClientWithBadPodClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
+	return c.coreClient.ConfigMaps(namespace)
+}
+
 func (c *FakeKubernetesCoreClientWithBadPodClient) GetClientSet() kubernetes.Interface {
-	// Return nil for fake implementation
-	return nil
+	return c.clientset
 }
 
 func (c *FakePodClient) EvictV1(context.Context, *policyv1.Eviction) error {

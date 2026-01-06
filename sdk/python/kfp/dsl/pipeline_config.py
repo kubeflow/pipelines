@@ -96,5 +96,28 @@ class WorkspaceConfig:
 class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
-    def __init__(self, workspace: Optional[WorkspaceConfig] = None):
+    def __init__(self,
+                 workspace: Optional[WorkspaceConfig] = None,
+                 pipeline_version_concurrency_limit: Optional[int] = None):
+        self._pipeline_version_concurrency_limit = None
         self.workspace = workspace
+        self.pipeline_version_concurrency_limit = pipeline_version_concurrency_limit
+
+    @property
+    def pipeline_version_concurrency_limit(self) -> Optional[int]:
+        return self._pipeline_version_concurrency_limit
+
+    @pipeline_version_concurrency_limit.setter
+    def pipeline_version_concurrency_limit(self, value: Optional[int]) -> None:
+        if value is not None:
+            if not isinstance(value, int):
+                raise ValueError(
+                    'pipeline_version_concurrency_limit must be an integer if specified.'
+                )
+            if value <= 0:
+                raise ValueError(
+                    'pipeline_version_concurrency_limit must be a positive integer.'
+                )
+            self._pipeline_version_concurrency_limit = value
+        else:
+            self._pipeline_version_concurrency_limit = None

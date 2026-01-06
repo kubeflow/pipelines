@@ -1937,6 +1937,75 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
+func TestCreateRun_PipelineVersionConcurrencyLimitConfigMap(t *testing.T) {
+	initEnvVars()
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer func() {
+		if err := store.Close(); err != nil {
+			t.Errorf("Failed to close store: %v", err)
+		}
+	}()
+
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipeline, err := manager.CreatePipeline(createPipeline("parallelism-pipeline", "", "kubeflow"))
+	require.NoError(t, err)
+
+	require.NotNil(t, store)
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	require.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+
+	pv := createPipelineVersion(
+		pipeline.UUID,
+		"parallelism-version",
+		"",
+		"",
+		v2SpecHelloWorldWithParallelism,
+		"",
+		"kubeflow",
+	)
+	version, err := manager.CreatePipelineVersion(pv)
+	require.NoError(t, err)
+
+	run := &model.Run{
+		DisplayName: "run-with-parallelism",
+		Namespace:   "kubeflow",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:        pipeline.UUID,
+			PipelineVersionId: version.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"hello\"}",
+			},
+		},
+	}
+
+	createdRun, err := manager.CreateRun(context.Background(), run)
+	require.NoError(t, err)
+	require.NotNil(t, createdRun)
+
+	configMap, err := store.k8sCoreClientFake.ConfigMapClient("kubeflow").Get(
+		context.Background(), pipelineParallelismConfigMapName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, configMap.Data)
+	assert.Equal(t, "5", configMap.Data[version.UUID])
+
+	execSpec, err := store.ExecClientFake.Execution("kubeflow").Get(
+		context.Background(), createdRun.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow, ok := execSpec.(*util.Workflow)
+	require.True(t, ok)
+	// Check that synchronization semaphores are configured to read from ConfigMap
+	require.NotNil(t, workflow.Spec.Synchronization)
+	require.NotNil(t, workflow.Spec.Synchronization.Semaphores)
+	require.Len(t, workflow.Spec.Synchronization.Semaphores, 1)
+	semaphore := workflow.Spec.Synchronization.Semaphores[0]
+	assert.NotNil(t, semaphore.ConfigMapKeyRef)
+	assert.Equal(t, pipelineParallelismConfigMapName, semaphore.ConfigMapKeyRef.Name)
+	assert.Equal(t, version.UUID, semaphore.ConfigMapKeyRef.Key)
+}
+
 func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	// Create experiment, pipeline, and pipeline version.
 	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
@@ -4079,6 +4148,14 @@ root:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
+`
+
+var v2SpecHelloWorldWithParallelism = v2SpecHelloWorld + `
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      pipelineVersionConcurrencyLimit: 5
 `
 
 var v2SpecHelloWorldMutated = `

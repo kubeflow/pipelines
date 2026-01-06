@@ -2760,9 +2760,13 @@ type PipelineConfig struct {
 	ResourceTtl int32 `protobuf:"varint,1,opt,name=resource_ttl,json=resourceTtl,proto3" json:"resource_ttl,omitempty"`
 	// Configuration for a shared storage workspace that persists for the duration of the pipeline run.
 	// The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
-	Workspace     *WorkspaceConfig `protobuf:"bytes,2,opt,name=workspace,proto3,oneof" json:"workspace,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Workspace *WorkspaceConfig `protobuf:"bytes,2,opt,name=workspace,proto3,oneof" json:"workspace,omitempty"`
+	// Maximum number of concurrent runs allowed for this pipeline version.
+	// When set, Argo Workflows will use synchronization semaphores to limit
+	// the number of simultaneously running workflow instances for the same pipeline version.
+	PipelineVersionConcurrencyLimit *int32 `protobuf:"varint,3,opt,name=pipeline_version_concurrency_limit,json=pipelineVersionConcurrencyLimit,proto3,oneof" json:"pipeline_version_concurrency_limit,omitempty"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *PipelineConfig) Reset() {
@@ -2807,6 +2811,13 @@ func (x *PipelineConfig) GetWorkspace() *WorkspaceConfig {
 		return x.Workspace
 	}
 	return nil
+}
+
+func (x *PipelineConfig) GetPipelineVersionConcurrencyLimit() int32 {
+	if x != nil && x.PipelineVersionConcurrencyLimit != nil {
+		return *x.PipelineVersionConcurrencyLimit
+	}
+	return 0
 }
 
 // The runtime config of a PipelineJob.
@@ -6109,12 +6120,14 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\v_kubernetes\"r\n" +
 	"\x19KubernetesWorkspaceConfig\x12B\n" +
 	"\x0epvc_spec_patch\x18\x01 \x01(\v2\x17.google.protobuf.StructH\x00R\fpvcSpecPatch\x88\x01\x01B\x11\n" +
-	"\x0f_pvc_spec_patch\"\x83\x01\n" +
+	"\x0f_pvc_spec_patch\"\xfc\x01\n" +
 	"\x0ePipelineConfig\x12!\n" +
 	"\fresource_ttl\x18\x01 \x01(\x05R\vresourceTtl\x12@\n" +
-	"\tworkspace\x18\x02 \x01(\v2\x1d.ml_pipelines.WorkspaceConfigH\x00R\tworkspace\x88\x01\x01B\f\n" +
+	"\tworkspace\x18\x02 \x01(\v2\x1d.ml_pipelines.WorkspaceConfigH\x00R\tworkspace\x88\x01\x01\x12P\n" +
+	"\"pipeline_version_concurrency_limit\x18\x03 \x01(\x05H\x01R\x1fpipelineVersionConcurrencyLimit\x88\x01\x01B\f\n" +
 	"\n" +
-	"_workspaceB<Z:github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespecb\x06proto3"
+	"_workspaceB%\n" +
+	"#_pipeline_version_concurrency_limitB<Z:github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespecb\x06proto3"
 
 var (
 	file_pipeline_spec_proto_rawDescOnce sync.Once

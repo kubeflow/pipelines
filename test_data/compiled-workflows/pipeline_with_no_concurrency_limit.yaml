@@ -2,49 +2,26 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: null
-  generateName: pipeline-with-workspace-
+  generateName: pipeline-with-no-concurrency-limit-
 spec:
   arguments:
     parameters:
-    - name: components-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50
-      value: '{"executorLabel":"exec-read-from-workspace","inputDefinitions":{"parameters":{"file_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_from_workspace"],"command":["sh","-c","\nif
+    - name: components-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e
+      value: '{"executorLabel":"exec-produce-message","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","produce_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        read_from_workspace(file_path: str) -\u003e str:\n    \"\"\"Read a file from
-        the workspace using the provided file path.\"\"\"    \n    import os\n\n    if
-        os.path.exists(file_path):\n        with open(file_path, \"r\") as f:\n            content
-        = f.read()\n        print(f\"Read content from: {file_path}\")\n        print(f\"Content:
-        {content}\")\n        assert content == \"Hello from workspace!\"\n        return
-        content\n    else:\n        print(f\"File not found at: {file_path}\")\n        return
-        \"File not found\"\n\n"],"image":"python:3.11"}'
-    - name: components-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad
-      value: '{"executorLabel":"exec-write-to-workspace","inputDefinitions":{"parameters":{"workspace_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","write_to_workspace"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        write_to_workspace(workspace_path: str) -\u003e str:\n    \"\"\"Write a file
-        to the workspace.\"\"\"   \n    import os\n\n    # Create a file in the workspace\n    file_path
-        = os.path.join(workspace_path, \"data\", \"test_file.txt\")\n    os.makedirs(os.path.dirname(file_path),
-        exist_ok=True)\n\n    with open(file_path, \"w\") as f:\n        f.write(\"Hello
-        from workspace!\")\n\n    print(f\"Wrote file to: {file_path}\")\n    return
-        file_path\n\n"],"image":"python:3.11"}'
+        produce_message(msg: str) -\u003e str:\n    print(f''Processing {msg}...'')\n    return
+        msg\n\n"],"image":"python:3.9"}'
     - name: components-root
-      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-from-workspace"}}}},"tasks":{"read-from-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}},"write-to-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+      value: '{"dag":{"tasks":{"produce-message":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"test"}}}},"taskInfo":{"name":"produce-message"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -58,7 +35,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - pipeline-with-workspace
+      - pipeline-with-no-concurrency-limit
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -92,7 +69,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
+      - ml-pipeline.kubeflow
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address
@@ -242,51 +219,26 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50}}'
+            value: '{{workflow.parameters.components-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"test"}}}},"taskInfo":{"name":"produce-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fdb9ebacd988353f9117beea48067da4e44b4484a444ad8f093929476660be50}}'
+            value: '{{workflow.parameters.implementations-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e}}'
           - name: task-name
-            value: read-from-workspace
+            value: produce-message
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: write-to-workspace.Succeeded
-        name: read-from-workspace-driver
+        name: produce-message-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.read-from-workspace-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.produce-message-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.read-from-workspace-driver.outputs.parameters.cached-decision}}'
-        depends: read-from-workspace-driver.Succeeded
-        name: read-from-workspace
-        template: system-container-executor
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-8547baf43414445c3b300de6c0e4bea20119f0d9de05c3af3f5dfcb181cc9bad}}'
-          - name: task-name
-            value: write-to-workspace
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        name: write-to-workspace-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.write-to-workspace-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.write-to-workspace-driver.outputs.parameters.cached-decision}}'
-        depends: write-to-workspace-driver.Succeeded
-        name: write-to-workspace
+            value: '{{tasks.produce-message-driver.outputs.parameters.cached-decision}}'
+        depends: produce-message-driver.Succeeded
+        name: produce-message
         template: system-container-executor
     inputs:
       parameters:
@@ -299,7 +251,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - pipeline-with-workspace
+      - pipeline-with-no-concurrency-limit
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -331,7 +283,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
+      - ml-pipeline.kubeflow
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address
@@ -404,18 +356,6 @@ spec:
     metadata: {}
     name: entrypoint
     outputs: {}
-  volumeClaimTemplates:
-  - metadata:
-      creationTimestamp: null
-      name: kfp-workspace
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1Gi
-      storageClassName: standard
-    status: {}
 status:
   finishedAt: null
   startedAt: null
