@@ -12,9 +12,6 @@ on:
   push:
     branches:
       - master
-      - main
-      - stable
-      - 'rhoai-*'
 
   pull_request:
     paths:
@@ -37,11 +34,13 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
+    if: github.repository_owner == 'opendatahub-io'
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
         k8s_version: [ "v1.34.0" ]
+        tls_enabled : [ "true" ]
     name: KFP upgrade tests - K8s ${{ matrix.k8s_version }}
 
     steps:
@@ -58,33 +57,6 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Get last release tag
-        shell: bash
-        id: get-tag
-        run: |
-          lastRelease=""
-          for attempt in 1 2 3; do
-            lastRelease=$(curl -sSL --fail-with-body --connect-timeout 10 --max-time 60 \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name 2>/dev/null || echo "")
-            if [[ -n "$lastRelease" && "$lastRelease" != "null" ]]; then
-              break
-            fi
-            if [[ "$attempt" -lt 3 ]]; then
-              echo "Attempt $attempt: Failed to fetch release tag. Retrying in 5s..."
-              sleep 5
-            fi
-          done
-
-          if [[ -z "$lastRelease" || "$lastRelease" == "null" ]]; then
-            echo "::error::Could not fetch latest release tag from GitHub API after 3 attempts."
-            exit 1
-          fi
-
-          echo "Fetched last release tag: $lastRelease"
-          echo "lastRelease=$lastRelease" >> "$GITHUB_OUTPUT"
-
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
@@ -92,37 +64,42 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
 
       - name: Deploy Last Release
-        shell: bash
         id: deploy-release
-        run: |
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=${{ steps.get-tag.outputs.lastRelease }}
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=${{ steps.get-tag.outputs.lastRelease }}
-          source "./.github/resources/scripts/helper-functions.sh"
-          wait_for_pods || EXIT_CODE=$?
-          if [[ $EXIT_CODE -ne 0 ]]; then
-            echo "Deploy unsuccessful. Not all pods running."
-            exit 1
-          fi
+        uses: ./.github/actions/deploy
+        with:
+          image_path: ''
+          image_path_prefix: 'opendatahub/ds-pipelines-'
+          image_tag: "odh-stable"
+          image_registry: "quay.io"
+          pod_to_pod_tls_enabled: ${{ matrix.tls_enabled }}
+          operator_image_tag: "odh-stable"
+          skip_load_docker_images: 'true'
+          skip_operator_deployment: 'false'
+          operator_branch: 'stable'
 
-      - name: Forward API port
-        id: forward-api-port
-        if: ${{ steps.deploy-release.outcome == 'success' }}
+      - name: Configure Cluster CA e2e for TLS-Enabled Tests
         shell: bash
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-        continue-on-error: true
+        run: |
+          kubectl get configmap openshift-service-ca.crt -n kubeflow -o jsonpath='{.data.service-ca\.crt}' > "${{ github.workspace }}/ca.crt"
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
 
       - name: Prepare for Upgrade
         id: prepare-upgrade
-        if: ${{ steps.forward-api-port.outcome == 'success' }}
-        working-directory: ${{ env.TESTS_DIR }}
-        run: |
-          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
-        continue-on-error: true
-
-      - name: Stop port forwarding
-        run: |
-          pkill -f "port-forward"
-        continue-on-error: true
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.deploy-release.outcome == 'success' }}
+        with:
+          test_directory: ${{ env.TESTS_DIR }}
+          test_label: "UpgradePreparation"
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "Upgrade Preparation"
+          tls_enabled: ${{ matrix.tls_enabled }}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
+          # Deployment metadata from deploy-release action
+          deployment_name: ${{ steps.deploy-release.outputs.deployment_name }}
+          deployment_service_account_name: ${{ steps.deploy-release.outputs.service_account_name }}
+          deployment_mode: ${{ steps.deploy-release.outputs.deployment_mode }}
 
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
@@ -132,7 +109,8 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-          forward_port: 'true'
+          forward_port: 'false'
+          skip_operator_deployment: 'false'
 
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
@@ -144,3 +122,9 @@ jobs:
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Upgrade Verification"
+          tls_enabled: ${{ matrix.tls_enabled }}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
+          # Deployment metadata from deploy action
+          deployment_name: ${{ steps.deploy.outputs.deployment_name }}
+          deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}

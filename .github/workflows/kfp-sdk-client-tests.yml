@@ -66,11 +66,15 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: 'false'
 
       - name: Forward API port
         id: forward-api-port
         if: ${{ steps.deploy.outcome == 'success' }}
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        run: |
+          API_SERVICE="${{ steps.deploy.outputs.deployment_name }}"
+          echo "🔗 Forwarding API port for service: $API_SERVICE"
+          ./.github/resources/scripts/forward-port.sh "kubeflow" "$API_SERVICE" 8888 8888
         continue-on-error: true
 
       - name: Install protobuf dependencies & kfp-pipeline-spec

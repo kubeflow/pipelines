@@ -41,7 +41,6 @@ jobs:
         with:
           python-version: 3.9
 
-
       - name: Create KFP cluster
         id: create-kfp-cluster
         uses: ./.github/actions/create-cluster
@@ -62,7 +61,10 @@ jobs:
       - name: Forward Frontend port
         id: forward-frontend-port
         if: ${{ steps.deploy.outcome == 'success' }}
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
+        run: |
+          FRONTEND_SERVICE="${{ steps.deploy.outputs.frontend_service_name }}"
+          echo "🔗 Forwarding frontend port for service: $FRONTEND_SERVICE"
+          ./.github/resources/scripts/forward-port.sh "kubeflow" "$FRONTEND_SERVICE" 3000 3000
         continue-on-error: true
 
       - name: Server integration tests
