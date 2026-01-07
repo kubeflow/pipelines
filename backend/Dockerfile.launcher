@@ -27,9 +27,11 @@ COPY . .
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
 
-FROM alpine:3.19
+FROM python:3.12-slim
 
-RUN adduser -S appuser
+RUN pip3 install --no-cache-dir huggingface-hub==1.2.4 && \
+    useradd -M -s /usr/sbin/nologin appuser
+
 USER appuser
 
 WORKDIR /bin
