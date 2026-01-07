@@ -159,11 +159,11 @@ spec:
           cpu: 100m
           memory: 64Mi
       volumeMounts:
-      - mountPath: /kfp-workspace
-        name: kfp-workspace
       - mountPath: /var/run/secrets/kfp
         name: kfp-launcher-token
         readOnly: true
+      - mountPath: /kfp-workspace
+        name: kfp-workspace
     inputs:
       parameters:
       - name: task-name
@@ -173,9 +173,6 @@ spec:
     name: system-importer-workspace
     outputs: {}
     volumes:
-    - name: kfp-workspace
-      persistentVolumeClaim:
-        claimName: '{{workflow.name}}-kfp-workspace'
     - name: kfp-launcher-token
       projected:
         sources:
@@ -183,6 +180,9 @@ spec:
             audience: pipelines.kubeflow.org
             expirationSeconds: 7200
             path: token
+    - name: kfp-workspace
+      persistentVolumeClaim:
+        claimName: '{{workflow.name}}-kfp-workspace'
   - container:
       args:
       - --type

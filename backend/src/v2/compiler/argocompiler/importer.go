@@ -97,18 +97,37 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		args = append(args, "--publish_logs", value)
 	}
 
-	var volumeMounts []k8score.VolumeMount
-	var volumes []k8score.Volume
+	// Always mount the KFP token volume for authentication with the API server
+	volumeMounts := []k8score.VolumeMount{
+		{
+			Name:      kfpTokenVolumeName,
+			MountPath: kfpTokenMountPath,
+			ReadOnly:  true,
+		},
+	}
+	volumes := []k8score.Volume{
+		{
+			Name: kfpTokenVolumeName,
+			VolumeSource: k8score.VolumeSource{
+				Projected: &k8score.ProjectedVolumeSource{
+					Sources: []k8score.VolumeProjection{
+						{
+							ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
+								Path:              "token",
+								Audience:          kfpTokenAudience,
+								ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 	if downloadToWorkspace {
 		volumeMounts = append(volumeMounts,
 			k8score.VolumeMount{
 				Name:      workspaceVolumeName,
 				MountPath: component.WorkspaceMountPath,
-			},
-			k8score.VolumeMount{
-				Name:      kfpTokenVolumeName,
-				MountPath: kfpTokenMountPath,
-				ReadOnly:  true,
 			})
 		volumes = append(volumes,
 			k8score.Volume{
@@ -116,22 +135,6 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 				VolumeSource: k8score.VolumeSource{
 					PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
 						ClaimName: fmt.Sprintf("{{workflow.name}}-%s", workspaceVolumeName),
-					},
-				},
-			},
-			k8score.Volume{
-				Name: kfpTokenVolumeName,
-				VolumeSource: k8score.VolumeSource{
-					Projected: &k8score.ProjectedVolumeSource{
-						Sources: []k8score.VolumeProjection{
-							{
-								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
-									Path:              "token",
-									Audience:          kfpTokenAudience,
-									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
-								},
-							},
-						},
 					},
 				},
 			},
