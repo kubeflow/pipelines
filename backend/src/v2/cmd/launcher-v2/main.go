@@ -19,37 +19,38 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
-	"github.com/kubeflow/pipelines/backend/src/v2/config"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// TODO: use https://github.com/spf13/cobra as a framework to create more complex CLI tools with subcommands.
 var (
 	copy                    = flag.String("copy", "", "copy this binary to specified destination path")
 	pipelineName            = flag.String("pipeline_name", "", "pipeline context name")
 	runID                   = flag.String("run_id", "", "pipeline run uid")
-	parentDagID             = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
+	taskID                  = flag.String("task_id", "", "pipeline task id (PipelineTaskDetail.task_id)")
+	parentTaskID            = flag.String("parent_task_id", "", "Parent PipelineTask ID")
 	executorType            = flag.String("executor_type", "container", "The type of the ExecutorSpec")
-	executionID             = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON       = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
-	componentSpecJSON       = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
+	taskName                = flag.String("task_name", "", "The name of the task.")
 	importerSpecJSON        = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
-	taskSpecJSON            = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
 	podName                 = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID                  = flag.String("pod_uid", "", "Kubernetes Pod UID.")
 	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline.kubeflow", "The name of the ML pipeline API server address.")
 	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
-	mlmdServerAddress       = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
-	mlmdServerPort          = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	logLevel                = flag.String("log_level", "1", "The verbosity level to log.")
 	publishLogs             = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag       = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	fingerPrint             = flag.String("fingerprint", "", "The fingerprint of the pipeline executor.")
+	iterationIndex          = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 	caCertPath              = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 	mlPipelineTLSEnabled    = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
-	metadataTLSEnabled      = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
 )
 
 func main() {
@@ -75,10 +76,56 @@ func run() error {
 		// early
 		return component.CopyThisBinary(*copy)
 	}
-	namespace, err := config.InPodNamespace()
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		return fmt.Errorf("NAMESPACE environment variable must be set")
+	}
+
+	// Create a client manager
+	clientOptions := &client_manager.Options{
+		MLPipelineTLSEnabled: *mlPipelineTLSEnabled,
+		CaCertPath:           *caCertPath,
+	}
+
+	clientManager, err := client_manager.NewClientManager(clientOptions)
+	if err != nil {
+		return fmt.Errorf("failed to create client manager: %w", err)
+	}
+
+	// Fetch Run
+	kfpAPI := clientManager.KFPAPIClient()
+	fullView := go_client.GetRunRequest_FULL
+	pipelineRun, err := kfpAPI.GetRun(ctx, &go_client.GetRunRequest{RunId: *runID, View: &fullView})
+	if err != nil {
+		return fmt.Errorf("failed to get run: %w", err)
+	}
+
+	// Fetch Parent Task
+	if parentTaskID == nil || *parentTaskID == "" {
+		return fmt.Errorf("parent task id is nil or empty")
+	}
+	parentTask, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{TaskId: *parentTaskID})
+	if err != nil {
+		return fmt.Errorf("failed to get parent task: %w", err)
+	}
+
+	// Build scope path
+	pipelineSpecStruct, err := kfpAPI.FetchPipelineSpecFromRun(ctx, pipelineRun)
 	if err != nil {
 		return err
 	}
+	var scopePath util.ScopePath
+	scopePath, err = util.ScopePathFromStringPathWithNewTask(
+		pipelineSpecStruct,
+		parentTask.GetScopePath(),
+		*taskName,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to build scope path: %w", err)
+	}
+
+	componentSpec := scopePath.GetLast().GetComponentSpec()
+	taskSpec := scopePath.GetLast().GetTaskSpec()
 
 	launcherV2Opts := &component.LauncherV2Options{
 		Namespace:               namespace,
@@ -86,55 +133,68 @@ func run() error {
 		PodUID:                  *podUID,
 		MLPipelineServerAddress: *mlPipelineServerAddress,
 		MLPipelineServerPort:    *mlPipelineServerPort,
-		MLMDServerAddress:       *mlmdServerAddress,
-		MLMDServerPort:          *mlmdServerPort,
 		PipelineName:            *pipelineName,
-		RunID:                   *runID,
+		Run:                     pipelineRun,
+		ParentTask:              parentTask,
 		PublishLogs:             *publishLogs,
 		CacheDisabled:           *cacheDisabledFlag,
-		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
-		MLMDTLSEnabled:          *metadataTLSEnabled,
-		CaCertPath:              *caCertPath,
+		CachedFingerprint:       *fingerPrint,
+		ComponentSpec:           componentSpec,
+		TaskSpec:                taskSpec,
+		ScopePath:               scopePath,
+		PipelineSpec:            pipelineSpecStruct,
+	}
+
+	if iterationIndex != nil && *iterationIndex > -1 {
+		launcherV2Opts.IterationIndex = util.Int64Pointer(int64(*iterationIndex))
 	}
 
 	switch *executorType {
 	case "importer":
-		importerLauncherOpts := &component.ImporterLauncherOptions{
-			PipelineName: *pipelineName,
-			RunID:        *runID,
-			ParentDagID:  *parentDagID,
+		if importerSpecJSON == nil || *importerSpecJSON == "" {
+			return fmt.Errorf("importer spec is nil or empty")
 		}
-		importerLauncher, err := component.NewImporterLauncher(ctx, *componentSpecJSON, *importerSpecJSON, *taskSpecJSON, launcherV2Opts, importerLauncherOpts)
+		importerSpec := &pipelinespec.PipelineDeploymentConfig_ImporterSpec{}
+		err = protojson.Unmarshal([]byte(*importerSpecJSON), importerSpec)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to unmarshal importer spec: %w", err)
+		}
+		launcherV2Opts.ImporterSpec = importerSpec
+		importerLauncher, err := component.NewImporterLauncher(
+			launcherV2Opts,
+			clientManager,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create importer launcher: %w", err)
 		}
 		if err := importerLauncher.Execute(ctx); err != nil {
-			return err
+			return fmt.Errorf("failed to execute importer launcher: %w", err)
 		}
 		return nil
 	case "container":
-		clientOptions := &client_manager.Options{
-			MLPipelineServerAddress: launcherV2Opts.MLPipelineServerAddress,
-			MLPipelineServerPort:    launcherV2Opts.MLPipelineServerPort,
-			MLMDServerAddress:       launcherV2Opts.MLMDServerAddress,
-			MLMDServerPort:          launcherV2Opts.MLMDServerPort,
-			CacheDisabled:           launcherV2Opts.CacheDisabled,
-			MLMDTLSEnabled:          launcherV2Opts.MLMDTLSEnabled,
-			CaCertPath:              launcherV2Opts.CaCertPath,
+		// Container task should have a pre-existing task created by the Driver
+		if taskID != nil && *taskID != "" {
+			task, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{TaskId: *taskID})
+			if err != nil {
+				return fmt.Errorf("failed to get task: %w", err)
+			}
+			launcherV2Opts.Task = task
+		} else {
+			return fmt.Errorf("task id is nil or empty")
 		}
-		clientManager, err := client_manager.NewClientManager(clientOptions)
+		launcher, err := component.NewLauncherV2(
+			*executorInputJSON,
+			flag.Args(),
+			launcherV2Opts,
+			clientManager,
+		)
 		if err != nil {
-			return err
-		}
-		launcher, err := component.NewLauncherV2(ctx, *executionID, *executorInputJSON, *componentSpecJSON, flag.Args(), launcherV2Opts, clientManager)
-		if err != nil {
-			return err
+			return fmt.Errorf("failed to create launcher: %w", err)
 		}
 		glog.V(5).Info(launcher.Info())
 		if err := launcher.Execute(ctx); err != nil {
-			return err
+			return fmt.Errorf("failed to execute launcher: %w", err)
 		}
-
 		return nil
 
 	}

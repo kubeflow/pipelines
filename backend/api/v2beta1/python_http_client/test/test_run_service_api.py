@@ -28,6 +28,34 @@ class TestRunServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_batch_update_tasks(self):
+        """Test case for batch_update_tasks
+
+        Updates multiple tasks in bulk.  # noqa: E501
+        """
+        pass
+
+    def test_create_task(self):
+        """Test case for create_task
+
+        Creates a new task.  # noqa: E501
+        """
+        pass
+
+    def test_get_task(self):
+        """Test case for get_task
+
+        Gets a specific task by ID.  # noqa: E501
+        """
+        pass
+
+    def test_list_tasks(self):
+        """Test case for list_tasks
+
+        Lists tasks with optional filtering.  # noqa: E501
+        """
+        pass
+
     def test_run_service_archive_run(self):
         """Test case for run_service_archive_run
 
@@ -81,6 +109,13 @@ class TestRunServiceApi(unittest.TestCase):
         """Test case for run_service_unarchive_run
 
         Restores an archived run in an experiment given by run ID and experiment ID.  # noqa: E501
+        """
+        pass
+
+    def test_update_task(self):
+        """Test case for update_task
+
+        Updates an existing task.  # noqa: E501
         """
         pass
 

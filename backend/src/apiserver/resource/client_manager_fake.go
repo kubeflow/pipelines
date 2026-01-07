@@ -24,6 +24,8 @@ import (
 	"gocloud.dev/blob/memblob"
 )
 
+var _ ClientManagerInterface = &FakeClientManager{}
+
 type FakeClientManager struct {
 	db                            *storage.DB
 	experimentStore               storage.ExperimentStoreInterface
@@ -31,6 +33,8 @@ type FakeClientManager struct {
 	jobStore                      storage.JobStoreInterface
 	runStore                      storage.RunStoreInterface
 	taskStore                     storage.TaskStoreInterface
+	artifactStore                 storage.ArtifactStoreInterface
+	artifactTaskStore             storage.ArtifactTaskStoreInterface
 	resourceReferenceStore        storage.ResourceReferenceStoreInterface
 	dBStatusStore                 storage.DBStatusStoreInterface
 	defaultExperimentStore        storage.DefaultExperimentStoreInterface
@@ -71,6 +75,8 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		jobStore:                      storage.NewJobStore(db, time, nil),
 		runStore:                      storage.NewRunStore(db, time),
 		taskStore:                     storage.NewTaskStore(db, time, uuid),
+		artifactStore:                 storage.NewArtifactStore(db, time, uuid),
+		artifactTaskStore:             storage.NewArtifactTaskStore(db, uuid),
 		ExecClientFake:                client.NewFakeExecClient(),
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
@@ -152,6 +158,14 @@ func (f *FakeClientManager) RunStore() storage.RunStoreInterface {
 
 func (f *FakeClientManager) TaskStore() storage.TaskStoreInterface {
 	return f.taskStore
+}
+
+func (f *FakeClientManager) ArtifactStore() storage.ArtifactStoreInterface {
+	return f.artifactStore
+}
+
+func (f *FakeClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterface {
+	return f.artifactTaskStore
 }
 
 func (f *FakeClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {

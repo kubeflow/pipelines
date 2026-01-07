@@ -20,7 +20,6 @@ import (
 //   - PENDING: Service is preparing to execute an entity.
 //   - RUNNING: Entity execution is in progress.
 //   - SUCCEEDED: Entity completed successfully.
-//   - SKIPPED: Entity has been skipped. For example, due to caching.
 //   - FAILED: Entity execution has failed.
 //   - CANCELING: Entity is being canceled. From this state, an entity may only
 //
@@ -54,9 +53,6 @@ const (
 	// V2beta1RuntimeStateSUCCEEDED captures enum value "SUCCEEDED"
 	V2beta1RuntimeStateSUCCEEDED V2beta1RuntimeState = "SUCCEEDED"
 
-	// V2beta1RuntimeStateSKIPPED captures enum value "SKIPPED"
-	V2beta1RuntimeStateSKIPPED V2beta1RuntimeState = "SKIPPED"
-
 	// V2beta1RuntimeStateFAILED captures enum value "FAILED"
 	V2beta1RuntimeStateFAILED V2beta1RuntimeState = "FAILED"
 
@@ -75,7 +71,7 @@ var v2beta1RuntimeStateEnum []interface{}
 
 func init() {
 	var res []V2beta1RuntimeState
-	if err := json.Unmarshal([]byte(`["RUNTIME_STATE_UNSPECIFIED","PENDING","RUNNING","SUCCEEDED","SKIPPED","FAILED","CANCELING","CANCELED","PAUSED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["RUNTIME_STATE_UNSPECIFIED","PENDING","RUNNING","SUCCEEDED","FAILED","CANCELING","CANCELED","PAUSED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

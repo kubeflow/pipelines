@@ -30,6 +30,332 @@
     "application/json"
   ],
   "paths": {
+    "/apis/v2beta1/artifact_tasks": {
+      "get": {
+        "summary": "Lists artifact-task relationships.",
+        "operationId": "list_artifact_tasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ListArtifactTasksResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "task_ids",
+            "description": "Optional, filter artifact task by a set of task_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "run_ids",
+            "description": "Optional, filter artifact task by a set of run_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "artifact_ids",
+            "description": "Optional, filter artifact task by a set of artifact_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "type",
+            "description": "Optional. Only list artifact tasks that have artifacts of this type.\n\n - UNSPECIFIED: For validation\n - COMPONENT_DEFAULT_INPUT: This is used for inputs that are\nprovided via default parameters in\nthe component input definitions\n - TASK_OUTPUT_INPUT: This is used for inputs that are\nprovided via upstream tasks.\nIn the sdk this appears as:\nTaskInputsSpec.kind.task_output_parameter\n& TaskInputsSpec.kind.task_output_artifact\n - COMPONENT_INPUT: Used for inputs that are\npassed from parent tasks.\n - RUNTIME_VALUE_INPUT: Hardcoded values passed\nas arguments to the task.\n - COLLECTED_INPUTS: Used for dsl.Collected\nUsage of this type indicates that all\nArtifacts within the IOArtifact.artifacts\nare inputs collected from sub tasks with\nITERATOR_OUTPUT outputs.\n - ITERATOR_INPUT: In a for loop task, introduced via ParallelFor, this type\nis used to indicate whether this resolved input belongs\nto a parameterIterator or artifactIterator.\nIn such a case the \"artifacts\" field for IOArtifact.artifacts\nis the list of resolved items for this parallelFor.\n - ITERATOR_INPUT_RAW: Hardcoded iterator parameters.\nRaw Iterator inputs have no producer\n - ITERATOR_OUTPUT: When an output is produced by a Runtime Iteration Task\nThis value is use to differentiate between standard inputs\n - OUTPUT: All other output types fall under this type.\n - ONE_OF_OUTPUT: An output of a Conditions branch.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNSPECIFIED",
+              "COMPONENT_DEFAULT_INPUT",
+              "TASK_OUTPUT_INPUT",
+              "COMPONENT_INPUT",
+              "RUNTIME_VALUE_INPUT",
+              "COLLECTED_INPUTS",
+              "ITERATOR_INPUT",
+              "ITERATOR_INPUT_RAW",
+              "ITERATOR_OUTPUT",
+              "OUTPUT",
+              "ONE_OF_OUTPUT",
+              "TASK_FINAL_STATUS_OUTPUT"
+            ],
+            "default": "UNSPECIFIED"
+          },
+          {
+            "name": "page_token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      },
+      "post": {
+        "summary": "Creates an artifact-task relationship.",
+        "operationId": "create_artifact_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ArtifactTask"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1CreateArtifactTaskRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      }
+    },
+    "/apis/v2beta1/artifact_tasks:batchCreate": {
+      "post": {
+        "summary": "Creates multiple artifact-task relationships in bulk.",
+        "operationId": "batch_create_artifact_tasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1CreateArtifactTasksBulkResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1CreateArtifactTasksBulkRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      }
+    },
+    "/apis/v2beta1/artifacts": {
+      "get": {
+        "summary": "Finds all artifacts within the specified namespace.",
+        "operationId": "list_artifacts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ListArtifactResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "description": "Optional input. Namespace for the artifacts.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_token",
+            "description": "A page token to request the results page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of artifacts to be listed per page. If there are more artifacts\nthan this number, the response message will contain a valid value in the\nnextPageToken field.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/artifacts/blob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new artifact.",
+        "operationId": "create_artifact",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Artifact"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1CreateArtifactRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      }
+    },
+    "/apis/v2beta1/artifacts/{artifact_id}": {
+      "get": {
+        "summary": "Finds a specific Artifact by ID.",
+        "operationId": "get_artifact",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Artifact"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "artifact_id",
+            "description": "Required. The ID of the artifact to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      }
+    },
+    "/apis/v2beta1/artifacts:batchCreate": {
+      "post": {
+        "summary": "Creates multiple artifacts in bulk.",
+        "operationId": "batch_create_artifacts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1CreateArtifactsBulkResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1CreateArtifactsBulkRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ArtifactService"
+        ]
+      }
+    },
     "/apis/v2beta1/auth": {
       "get": {
         "operationId": "AuthService_Authorize",
@@ -1225,6 +1551,18 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "view",
+            "description": "Optional view mode. This field can be used to adjust\nhow detailed the Run object that is returned will be.\n\n - DEFAULT: By default `tasks` field is omitted.\nThis provides a faster and leaner run object.\n - FULL: This view mode displays all the tasks for this run\nwith all its fields populated.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "DEFAULT",
+              "FULL"
+            ],
+            "default": "DEFAULT"
           }
         ],
         "tags": [
@@ -1303,6 +1641,18 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "view",
+            "description": "Optional view mode. This field can be used to adjust\nhow detailed the Run object that is returned will be.\n\n - DEFAULT: By default `tasks` field is omitted.\nThis provides a faster and leaner run object.\n - FULL: This view mode displays all the tasks for this run\nwith all its fields populated.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "DEFAULT",
+              "FULL"
+            ],
+            "default": "DEFAULT"
           }
         ],
         "tags": [
@@ -1508,6 +1858,209 @@
         ]
       }
     },
+    "/apis/v2beta1/tasks": {
+      "get": {
+        "summary": "Lists tasks with optional filtering.",
+        "operationId": "list_tasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ListTasksResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "parent_id",
+            "description": "List all tasks with this parent task.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "run_id",
+            "description": "List all tasks for this run.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "List all tasks in this namespace.\nThe primary use case for this filter is to detect cache hits.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "page_token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new task.",
+        "operationId": "create_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "task",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/tasks/{task_id}": {
+      "get": {
+        "summary": "Gets a specific task by ID.",
+        "operationId": "get_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      },
+      "patch": {
+        "summary": "Updates an existing task.",
+        "operationId": "update_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "task",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/tasks:batchUpdate": {
+      "post": {
+        "summary": "Updates multiple tasks in bulk.",
+        "operationId": "batch_update_tasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1UpdateTasksBulkResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1UpdateTasksBulkRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
     "/apis/v2beta1/visualizations/{namespace}": {
       "post": {
         "operationId": "VisualizationService_CreateVisualizationV1",
@@ -1548,25 +2101,21 @@
     }
   },
   "definitions": {
-    "AuthorizeRequestResources": {
+    "ArtifactArtifactType": {
       "type": "string",
       "enum": [
-        "UNASSIGNED_RESOURCES",
-        "VIEWERS"
+        "TYPE_UNSPECIFIED",
+        "Artifact",
+        "Model",
+        "Dataset",
+        "HTML",
+        "Markdown",
+        "Metric",
+        "ClassificationMetric",
+        "SlicedClassificationMetric"
       ],
-      "default": "UNASSIGNED_RESOURCES",
-      "description": "Type of resources in pipelines system."
-    },
-    "AuthorizeRequestVerb": {
-      "type": "string",
-      "enum": [
-        "UNASSIGNED_VERB",
-        "CREATE",
-        "GET",
-        "DELETE"
-      ],
-      "default": "UNASSIGNED_VERB",
-      "description": "Type of verbs that act on the resources."
+      "default": "TYPE_UNSPECIFIED",
+      "description": " - TYPE_UNSPECIFIED: default; treated as \"not set\"\nreject if unset."
     },
     "googlerpcStatus": {
       "type": "object",
@@ -1610,6 +2159,272 @@
       },
       "additionalProperties": {},
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(&foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n    // or ...\n    if (any.isSameTypeAs(Foo.getDefaultInstance())) {\n      foo = any.unpack(Foo.getDefaultInstance());\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := &pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := &pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": <string>,\n      \"lastName\": <string>\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\nThe JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "v2beta1Artifact": {
+      "type": "object",
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "title": "Output only. The unique server generated id of the artifact.\nNote: Updated id name to be consistent with other api naming patterns (with prefix)",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Required. The client provided name of the artifact.\nNote: in MLMD when name was set, it had to be unique for that type_id\nthis restriction is removed here\nIf this is a \"Metric\" artifact, the name of the metric\nis treated as the Key in its K/V pair."
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/ArtifactArtifactType",
+          "title": "Required. The name of an ArtifactType. E.g. Dataset"
+        },
+        "uri": {
+          "type": "string",
+          "description": "The uniform resource identifier of the physical artifact.\nMay be empty if there is no physical artifact."
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Optional. User provided custom properties which are not defined by its type."
+        },
+        "number_value": {
+          "type": "number",
+          "format": "double",
+          "title": "Used primarily for metrics"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output only. Create time of the artifact in millisecond since epoch.\nNote: The type and name is updated from mlmd artifact to be consistent with other backend apis.",
+          "readOnly": true
+        },
+        "namespace": {
+          "type": "string"
+        }
+      },
+      "title": "Not to be confused with RuntimeArtifact in PipelineSpec"
+    },
+    "v2beta1ArtifactTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output only. The unique server generated id of the ArtifactTask.",
+          "readOnly": true
+        },
+        "artifact_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/v2beta1IOType"
+        },
+        "producer": {
+          "$ref": "#/definitions/v2beta1IOProducer"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "title": "Describes a relationship link between Artifacts and Tasks"
+    },
+    "v2beta1CreateArtifactRequest": {
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "$ref": "#/definitions/v2beta1Artifact",
+          "description": "Required. The artifact to create."
+        },
+        "run_id": {
+          "type": "string",
+          "description": "An artifact is always created in the context of a\nrun."
+        },
+        "task_id": {
+          "type": "string",
+          "description": "The Task that is associated with the creation of this artifact."
+        },
+        "producer_key": {
+          "type": "string",
+          "title": "The outgoing parameter name of this Artifact within this task's component spec.\nFor example:\ndef preprocess(my_output: dsl.Outputs[dsl.Artifact]):\n  ...\nhere the producer_key == \"my_output\"\nNote that producer_task_name == task_name"
+        },
+        "iteration_index": {
+          "type": "string",
+          "format": "int64",
+          "title": "If the producing task is in a parallelFor iteration\nthis field designates the iteration index"
+        },
+        "type": {
+          "$ref": "#/definitions/v2beta1IOType"
+        }
+      }
+    },
+    "v2beta1CreateArtifactTaskRequest": {
+      "type": "object",
+      "properties": {
+        "artifact_task": {
+          "$ref": "#/definitions/v2beta1ArtifactTask",
+          "description": "Required. The artifact-task relationship to create."
+        }
+      },
+      "title": "Request to create an artifact-task relationship"
+    },
+    "v2beta1CreateArtifactTasksBulkRequest": {
+      "type": "object",
+      "properties": {
+        "artifact_tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1ArtifactTask"
+          },
+          "description": "Required. The list of artifact-task relationships to create."
+        }
+      }
+    },
+    "v2beta1CreateArtifactTasksBulkResponse": {
+      "type": "object",
+      "properties": {
+        "artifact_tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1ArtifactTask"
+          },
+          "description": "The list of created artifact-task relationships."
+        }
+      }
+    },
+    "v2beta1CreateArtifactsBulkRequest": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1CreateArtifactRequest"
+          },
+          "description": "Required. The list of artifacts to create."
+        }
+      }
+    },
+    "v2beta1CreateArtifactsBulkResponse": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1Artifact"
+          },
+          "description": "The list of created artifacts."
+        }
+      }
+    },
+    "v2beta1IOProducer": {
+      "type": "object",
+      "properties": {
+        "task_name": {
+          "type": "string"
+        },
+        "iteration": {
+          "type": "string",
+          "format": "int64",
+          "title": "When a source is from an iteration Runtime\ntask type inside a ParallelFor"
+        }
+      }
+    },
+    "v2beta1IOType": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "COMPONENT_DEFAULT_INPUT",
+        "TASK_OUTPUT_INPUT",
+        "COMPONENT_INPUT",
+        "RUNTIME_VALUE_INPUT",
+        "COLLECTED_INPUTS",
+        "ITERATOR_INPUT",
+        "ITERATOR_INPUT_RAW",
+        "ITERATOR_OUTPUT",
+        "OUTPUT",
+        "ONE_OF_OUTPUT",
+        "TASK_FINAL_STATUS_OUTPUT"
+      ],
+      "default": "UNSPECIFIED",
+      "description": "Describes the I/O relationship between\nArtifacts/Parameters and Tasks.\nThere are a couple of instances where\ninput/outputs have special types such\nas in the case of LoopArguments or\ndsl.Collected outputs.\n\n - UNSPECIFIED: For validation\n - COMPONENT_DEFAULT_INPUT: This is used for inputs that are\nprovided via default parameters in\nthe component input definitions\n - TASK_OUTPUT_INPUT: This is used for inputs that are\nprovided via upstream tasks.\nIn the sdk this appears as:\nTaskInputsSpec.kind.task_output_parameter\n& TaskInputsSpec.kind.task_output_artifact\n - COMPONENT_INPUT: Used for inputs that are\npassed from parent tasks.\n - RUNTIME_VALUE_INPUT: Hardcoded values passed\nas arguments to the task.\n - COLLECTED_INPUTS: Used for dsl.Collected\nUsage of this type indicates that all\nArtifacts within the IOArtifact.artifacts\nare inputs collected from sub tasks with\nITERATOR_OUTPUT outputs.\n - ITERATOR_INPUT: In a for loop task, introduced via ParallelFor, this type\nis used to indicate whether this resolved input belongs\nto a parameterIterator or artifactIterator.\nIn such a case the \"artifacts\" field for IOArtifact.artifacts\nis the list of resolved items for this parallelFor.\n - ITERATOR_INPUT_RAW: Hardcoded iterator parameters.\nRaw Iterator inputs have no producer\n - ITERATOR_OUTPUT: When an output is produced by a Runtime Iteration Task\nThis value is use to differentiate between standard inputs\n - OUTPUT: All other output types fall under this type.\n - ONE_OF_OUTPUT: An output of a Conditions branch."
+    },
+    "v2beta1ListArtifactResponse": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1Artifact"
+          },
+          "description": "The list of artifacts returned."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of artifacts available. This field is not always populated."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "A token to retrieve the next page of results, or empty if there are no\nmore results in the list."
+        }
+      }
+    },
+    "v2beta1ListArtifactTasksResponse": {
+      "type": "object",
+      "properties": {
+        "artifact_tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1ArtifactTask"
+          }
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "next_page_token": {
+          "type": "string"
+        }
+      }
+    },
+    "AuthorizeRequestResources": {
+      "type": "string",
+      "enum": [
+        "UNASSIGNED_RESOURCES",
+        "VIEWERS"
+      ],
+      "default": "UNASSIGNED_RESOURCES",
+      "description": "Type of resources in pipelines system."
+    },
+    "AuthorizeRequestVerb": {
+      "type": "string",
+      "enum": [
+        "UNASSIGNED_VERB",
+        "CREATE",
+        "GET",
+        "DELETE"
+      ],
+      "default": "UNASSIGNED_VERB",
+      "description": "Type of verbs that act on the resources."
     },
     "v2beta1Experiment": {
       "type": "object",
@@ -1803,14 +2618,6 @@
           "title": "Returns the pipeline storage type (database or kubernetes)"
         }
       }
-    },
-    "protobufNullValue": {
-      "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
-      "default": "NULL_VALUE",
-      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\nThe JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
     "v2beta1CreatePipelineAndVersionRequest": {
       "type": "object",
@@ -2161,6 +2968,44 @@
       },
       "description": "Trigger defines what starts a pipeline run."
     },
+    "InputOutputsIOArtifact": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1Artifact"
+          }
+        },
+        "type": {
+          "$ref": "#/definitions/v2beta1IOType"
+        },
+        "artifact_key": {
+          "type": "string"
+        },
+        "producer": {
+          "$ref": "#/definitions/v2beta1IOProducer"
+        }
+      },
+      "title": "Align structure with Executor Input"
+    },
+    "InputOutputsIOParameter": {
+      "type": "object",
+      "properties": {
+        "value": {},
+        "type": {
+          "$ref": "#/definitions/v2beta1IOType"
+        },
+        "parameter_key": {
+          "type": "string"
+        },
+        "producer": {
+          "$ref": "#/definitions/v2beta1IOProducer",
+          "description": "This field is optional because in the case of\nInput RuntimeValues, ComponentDefaultInputs,\nand Raw Iterator Input there are no producers."
+        }
+      }
+    },
     "PipelineTaskDetailChildTask": {
       "type": "object",
       "properties": {
@@ -2168,26 +3013,151 @@
           "type": "string",
           "description": "System-generated ID of a task."
         },
-        "pod_name": {
-          "type": "string",
-          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
+        "name": {
+          "type": "string"
         }
       },
       "description": "A dependent task that requires this one to succeed.\nRepresented by either task_id or pod_name."
     },
-    "v2beta1ArtifactList": {
+    "PipelineTaskDetailInputOutputs": {
       "type": "object",
       "properties": {
-        "artifact_ids": {
+        "parameters": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "int64"
+            "type": "object",
+            "$ref": "#/definitions/InputOutputsIOParameter"
           },
-          "description": "A list of artifact metadata ids."
+          "title": "For Loops parameters are filled with resolved\nparameterIterator.items"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/InputOutputsIOArtifact"
+          },
+          "description": "Output Only. To create Artifacts for a task use\nArtifactTasks to link artifacts to tasks."
+        }
+      }
+    },
+    "PipelineTaskDetailStatusMetadata": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "KFP Backend will populate this field with error messages\nif any are available on a Failed task."
+        },
+        "custom_properties": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Custom status metadata, this can be used to provide\nadditional status info for a given task during runtime\nThis is currently not utilized by KFP backend."
+        }
+      }
+    },
+    "PipelineTaskDetailTaskPod": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/PipelineTaskDetailTaskPodType"
+        }
+      }
+    },
+    "PipelineTaskDetailTaskPodType": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "DRIVER",
+        "EXECUTOR"
+      ],
+      "default": "UNSPECIFIED"
+    },
+    "PipelineTaskDetailTaskState": {
+      "type": "string",
+      "enum": [
+        "RUNTIME_STATE_UNSPECIFIED",
+        "RUNNING",
+        "SUCCEEDED",
+        "SKIPPED",
+        "FAILED",
+        "CACHED"
+      ],
+      "default": "RUNTIME_STATE_UNSPECIFIED",
+      "description": "- RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - SKIPPED: Entity has been skipped. For example, due to caching.\n - FAILED: Entity execution has failed.",
+      "title": "Runtime state of a Task"
+    },
+    "PipelineTaskDetailTaskStatus": {
+      "type": "object",
+      "properties": {
+        "update_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "state": {
+          "$ref": "#/definitions/PipelineTaskDetailTaskState"
+        },
+        "error": {
+          "$ref": "#/definitions/googlerpcStatus"
         }
       },
-      "description": "A list of artifact metadata."
+      "description": "Timestamped representation of a Task state with an optional error."
+    },
+    "PipelineTaskDetailTaskType": {
+      "type": "string",
+      "enum": [
+        "ROOT",
+        "RUNTIME",
+        "CONDITION_BRANCH",
+        "CONDITION",
+        "LOOP",
+        "EXIT_HANDLER",
+        "IMPORTER",
+        "DAG"
+      ],
+      "default": "ROOT",
+      "description": " - ROOT: Root task is the top ancestor task to all tasks in the pipeline run\nIt is the only task with no parent task in a Pipeline Run.\n - RUNTIME: All child tasks in the Run DAG are Runtime tasks. With the exception\nof K8S driver pods.\nThese tasks are the only tasks that have Executor Pods.\n - CONDITION_BRANCH: Condition Branch is the wrapper task of an If block\n - CONDITION: Condition is an individual \"if\" branch, and is\na child to a CONDITION_BRANCH task.\n - LOOP: Task Group for CONDITION_BRANCH\nTask Group for RUNTIME Loop Iterations\n - DAG: Generic DAG task type for types like Nested Pipelines\nwhere there is no declarative way to detect this within\na driver."
+    },
+    "PipelineTaskDetailTypeAttributes": {
+      "type": "object",
+      "properties": {
+        "iteration_index": {
+          "type": "string",
+          "format": "int64",
+          "title": "Optional. Applies to type Runtime that is an iteration"
+        },
+        "iteration_count": {
+          "type": "string",
+          "format": "int64",
+          "title": "Optional. Applies to type LOOP"
+        },
+        "download_to_workspace": {
+          "type": "boolean",
+          "title": "Optional. Applies to type IMPORTER"
+        }
+      }
+    },
+    "v2beta1GetRunRequestViewMode": {
+      "type": "string",
+      "enum": [
+        "DEFAULT",
+        "FULL"
+      ],
+      "default": "DEFAULT",
+      "description": " - DEFAULT: By default `tasks` field is omitted.\nThis provides a faster and leaner run object.\n - FULL: This view mode displays all the tasks for this run\nwith all its fields populated."
+    },
+    "v2beta1ListRunsRequestViewMode": {
+      "type": "string",
+      "enum": [
+        "DEFAULT",
+        "FULL"
+      ],
+      "default": "DEFAULT",
+      "description": " - DEFAULT: By default `tasks` field is omitted.\nThis provides a faster and leaner run object.\n - FULL: This view mode displays all the tasks for this run\nwith all its fields populated."
     },
     "v2beta1ListRunsResponse": {
       "type": "object",
@@ -2211,82 +3181,90 @@
         }
       }
     },
+    "v2beta1ListTasksResponse": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+          }
+        },
+        "next_page_token": {
+          "type": "string"
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "v2beta1PipelineTaskDetail": {
       "type": "object",
       "properties": {
-        "run_id": {
+        "name": {
+          "type": "string"
+        },
+        "display_name": {
           "type": "string",
-          "description": "ID of the parent run."
+          "description": "User specified name of a task that is defined in\n[Pipeline.spec][]."
         },
         "task_id": {
           "type": "string",
           "description": "System-generated ID of a task."
         },
-        "display_name": {
+        "run_id": {
           "type": "string",
-          "description": "User specified name of a task that is defined in\n[Pipeline.spec][]."
+          "description": "ID of the parent run."
+        },
+        "pods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PipelineTaskDetailTaskPod"
+          }
+        },
+        "cache_fingerprint": {
+          "type": "string"
         },
         "create_time": {
           "type": "string",
           "format": "date-time",
           "description": "Creation time of a task."
         },
-        "start_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Starting time of a task."
-        },
         "end_time": {
           "type": "string",
           "format": "date-time",
           "description": "Completion time of a task."
         },
-        "executor_detail": {
-          "$ref": "#/definitions/v2beta1PipelineTaskExecutorDetail",
-          "description": "Execution information of a task."
-        },
         "state": {
-          "$ref": "#/definitions/v2beta1RuntimeState",
-          "description": "Runtime state of a task."
+          "$ref": "#/definitions/PipelineTaskDetailTaskState"
         },
-        "execution_id": {
-          "type": "string",
-          "format": "int64",
-          "description": "Execution id of the corresponding entry in ML metadata store."
-        },
-        "error": {
-          "$ref": "#/definitions/googlerpcStatus",
-          "description": "The error that occurred during task execution.\nOnly populated when the task is in FAILED or CANCELED state."
-        },
-        "inputs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/v2beta1ArtifactList"
-          },
-          "description": "Input artifacts of the task."
-        },
-        "outputs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/v2beta1ArtifactList"
-          },
-          "description": "Output artifacts of the task."
-        },
-        "parent_task_id": {
-          "type": "string",
-          "description": "ID of the parent task if the task is within a component scope.\nEmpty if the task is at the root level."
+        "status_metadata": {
+          "$ref": "#/definitions/PipelineTaskDetailStatusMetadata"
         },
         "state_history": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v2beta1RuntimeStatus"
+            "$ref": "#/definitions/PipelineTaskDetailTaskStatus"
           },
           "description": "A sequence of task statuses. This field keeps a record\nof state transitions."
         },
-        "pod_name": {
+        "type": {
+          "$ref": "#/definitions/PipelineTaskDetailTaskType"
+        },
+        "type_attributes": {
+          "$ref": "#/definitions/PipelineTaskDetailTypeAttributes"
+        },
+        "error": {
+          "$ref": "#/definitions/googlerpcStatus",
+          "description": "The error that occurred during task execution.\nOnly populated when the task is in FAILED or CANCELED state."
+        },
+        "parent_task_id": {
           "type": "string",
-          "description": "Name of the corresponding pod assigned by the orchestration engine.\nAlso known as node_id."
+          "description": "ID of the parent task if the task is within a component scope.\nEmpty if the task is at the root level."
         },
         "child_tasks": {
           "type": "array",
@@ -2294,38 +3272,20 @@
             "type": "object",
             "$ref": "#/definitions/PipelineTaskDetailChildTask"
           },
-          "description": "Sequence of dependen tasks."
+          "description": "Sequence of dependent tasks."
+        },
+        "inputs": {
+          "$ref": "#/definitions/PipelineTaskDetailInputOutputs"
+        },
+        "outputs": {
+          "$ref": "#/definitions/PipelineTaskDetailInputOutputs"
+        },
+        "scope_path": {
+          "type": "string",
+          "title": "The scope of this task within the\npipeline spec. Each entry (delimited by\na dot \".\"), represents either a Dag\nTask or a Container task.\nNote that Container task will are\nalways the last entry in a scope_path.\nExample of a scope_path:\n\"root.primary-pipeline.secondary-pipeline.task\""
         }
       },
       "description": "Runtime information of a task execution."
-    },
-    "v2beta1PipelineTaskExecutorDetail": {
-      "type": "object",
-      "properties": {
-        "main_job": {
-          "type": "string",
-          "description": "The name of the job for the main container execution."
-        },
-        "pre_caching_check_job": {
-          "type": "string",
-          "description": "The name of the job for the pre-caching-check container\nexecution. This job will be available if the\nRun.pipeline_spec specifies the `pre_caching_check` hook in\nthe lifecycle events."
-        },
-        "failed_main_jobs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The names of the previously failed job for the main container\nexecutions. The list includes the all attempts in chronological order."
-        },
-        "failed_pre_caching_check_jobs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The names of the previously failed job for the\npre-caching-check container executions. This job will be available if the\nRun.pipeline_spec specifies the `pre_caching_check` hook in\nthe lifecycle events.\nThe list includes the all attempts in chronological order."
-        }
-      },
-      "description": "Runtime information of a pipeline task executor."
     },
     "v2beta1Run": {
       "type": "object",
@@ -2395,7 +3355,7 @@
         },
         "run_details": {
           "$ref": "#/definitions/v2beta1RunDetails",
-          "description": "Output. Runtime details of a run."
+          "title": "Output. Runtime details of a run.\nEither remove or deprecate this"
         },
         "recurring_run_id": {
           "type": "string",
@@ -2408,6 +3368,22 @@
             "$ref": "#/definitions/v2beta1RuntimeStatus"
           },
           "description": "Output. A sequence of run statuses. This field keeps a record\nof state transitions."
+        },
+        "pipeline_reference": {
+          "$ref": "#/definitions/v2beta1PipelineVersionReference",
+          "description": "Output only. Reference to the pipeline used for this run.",
+          "readOnly": true
+        },
+        "task_count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+          }
         }
       }
     },
@@ -2452,14 +3428,13 @@
         "PENDING",
         "RUNNING",
         "SUCCEEDED",
-        "SKIPPED",
         "FAILED",
         "CANCELING",
         "CANCELED",
         "PAUSED"
       ],
       "default": "RUNTIME_STATE_UNSPECIFIED",
-      "description": "Describes the runtime state of an entity.\n\n - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - SKIPPED: Entity has been skipped. For example, due to caching.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
+      "description": "Describes the runtime state of an entity.\n\n - RUNTIME_STATE_UNSPECIFIED: Default value. This value is not used.\n - PENDING: Service is preparing to execute an entity.\n - RUNNING: Entity execution is in progress.\n - SUCCEEDED: Entity completed successfully.\n - FAILED: Entity execution has failed.\n - CANCELING: Entity is being canceled. From this state, an entity may only\nchange its state to SUCCEEDED, FAILED or CANCELED.\n - CANCELED: Entity has been canceled.\n - PAUSED: Entity has been paused. It can be resumed."
     },
     "v2beta1RuntimeStatus": {
       "type": "object",
@@ -2479,6 +3454,30 @@
         }
       },
       "description": "Timestamped representation of a runtime state with an optional error."
+    },
+    "v2beta1UpdateTasksBulkRequest": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+          },
+          "title": "Required. Map of task ID to task detail for bulk update.\nKey: task_id, Value: PipelineTaskDetail to update"
+        }
+      }
+    },
+    "v2beta1UpdateTasksBulkResponse": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v2beta1PipelineTaskDetail"
+          },
+          "title": "Map of task ID to updated task detail.\nKey: task_id, Value: Updated PipelineTaskDetail"
+        }
+      }
     },
     "v2beta1Visualization": {
       "type": "object",

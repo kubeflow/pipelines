@@ -2429,7 +2429,7 @@ func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *te
 			},
 		},
 	}
-	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
+	expectedJob.PipelineName = job.PipelineName
 	require.Equal(t, expectedJob.ToV1(), job.ToV1())
 	fetchedJob, err := manager.GetJob(job.UUID)
 	require.Nil(t, err)
@@ -3248,6 +3248,7 @@ func TestReconcileSwfCrs(t *testing.T) {
 	swf.Spec.Workflow.Spec = nil
 	swf, err = swfClient.Update(ctx, swf)
 	require.Nil(t, swf.Spec.Workflow.Spec)
+	require.NoError(t, err)
 
 	err = manager.ReconcileSwfCrs(ctx)
 	require.Nil(t, err)
@@ -3956,37 +3957,6 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
-}
-
-func TestCreateTask(t *testing.T) {
-	_, manager, _, _, _, runDetail := initWithExperimentAndPipelineAndRun(t)
-	task := &model.Task{
-		Namespace:         "",
-		PipelineName:      "pipeline/my-pipeline",
-		RunID:             runDetail.UUID,
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1462875553,
-		FinishedTimestamp: 1462875663,
-		Fingerprint:       "123",
-	}
-
-	expectedTask := &model.Task{
-		UUID:              DefaultFakeUUID,
-		PipelineName:      "pipeline/my-pipeline",
-		RunID:             runDetail.UUID,
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1462875553,
-		FinishedTimestamp: 1462875663,
-		Fingerprint:       "123",
-	}
-	createdTask, err := manager.CreateTask(task)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedTask, createdTask, "The CreateTask return has unexpected value")
-
-	// Verify the T in DB is in status PipelineVersionCreating.
-	storedTask, err := manager.taskStore.GetTask(DefaultFakeUUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value")
 }
 
 var v2SpecHelloWorld = `

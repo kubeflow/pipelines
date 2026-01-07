@@ -1,17 +1,3 @@
-// Copyright 2025 The Kubeflow Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package driver
 
 import (
@@ -20,118 +6,75 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/config"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
-	"k8s.io/client-go/kubernetes"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func validateRootDAG(opts Options) (err error) {
+// RootDAG handles initial root dag task creation
+// and runtime parameter resolution.
+func RootDAG(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("invalid root DAG driver args: %w", err)
+			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.Info(), err)
 		}
 	}()
-	if opts.PipelineName == "" {
-		return fmt.Errorf("pipeline name is required")
-	}
-	if opts.RunID == "" {
-		return fmt.Errorf("KFP run ID is required")
-	}
-	if opts.Component == nil {
-		return fmt.Errorf("component spec is required")
-	}
-	if opts.RuntimeConfig == nil {
-		return fmt.Errorf("runtime config is required")
-	}
-	if opts.Namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-	if opts.Task.GetTaskInfo().GetName() != "" {
-		return fmt.Errorf("task spec is unnecessary")
-	}
-	if opts.DAGExecutionID != 0 {
-		return fmt.Errorf("DAG execution ID is unnecessary")
-	}
-	if opts.Container != nil {
-		return fmt.Errorf("container spec is unnecessary")
-	}
-	if opts.IterationIndex >= 0 {
-		return fmt.Errorf("iteration index is unnecessary")
-	}
-	return nil
-}
 
-func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.info(), err)
-		}
-	}()
-	b, _ := json.Marshal(opts)
+	b, err := json.Marshal(opts)
+	if err != nil {
+		return nil, err
+	}
 	glog.V(4).Info("RootDAG opts: ", string(b))
-	err = validateRootDAG(opts)
-	if err != nil {
+	if err = validateRootDAG(opts); err != nil {
 		return nil, err
 	}
-	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
-	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
-
-	restConfig, err := util.GetKubernetesConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-	}
-	cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
-	if err != nil {
-		return nil, err
+	if clientManager == nil {
+		return nil, fmt.Errorf("api client is nil")
 	}
 
-	storeSessionInfo := objectstore.SessionInfo{}
-	if pipelineRoot != "" {
-		glog.Infof("PipelineRoot=%q", pipelineRoot)
-	} else {
-		pipelineRoot = cfg.DefaultPipelineRoot()
-		glog.Infof("PipelineRoot=%q from default config", pipelineRoot)
+	// Build minimal PipelineTaskDetail for root DAG task under the run.
+	// Inputs: pass runtime parameters into task inputs for record.
+	var inputs *apiV2beta1.PipelineTaskDetail_InputOutputs
+	if opts.RuntimeConfig != nil && opts.RuntimeConfig.GetParameterValues() != nil {
+		params := make([]*apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter, 0, len(opts.RuntimeConfig.GetParameterValues()))
+		for name, val := range opts.RuntimeConfig.GetParameterValues() {
+			n := name
+			params = append(params, &apiV2beta1.PipelineTaskDetail_InputOutputs_IOParameter{
+				ParameterKey: n,
+				Value:        val,
+				Type:         apiV2beta1.IOType_RUNTIME_VALUE_INPUT,
+				Producer: &apiV2beta1.IOProducer{
+					TaskName: "ROOT",
+				},
+			})
+		}
+		inputs = &apiV2beta1.PipelineTaskDetail_InputOutputs{Parameters: params}
 	}
-	storeSessionInfo, err = cfg.GetStoreSessionInfo(pipelineRoot)
-	if err != nil {
-		return nil, err
-	}
-	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
-	if err != nil {
-		return nil, err
-	}
-	storeSessionInfoStr := string(storeSessionInfoJSON)
-	// TODO(Bobgy): fill in run resource.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot, storeSessionInfoStr)
-	if err != nil {
-		return nil, err
-	}
-
-	executorInput := &pipelinespec.ExecutorInput{
-		Inputs: &pipelinespec.ExecutorInput_Inputs{
-			ParameterValues: opts.RuntimeConfig.GetParameterValues(),
+	pd := &apiV2beta1.PipelineTaskDetail{
+		Name:           "ROOT",
+		DisplayName:    opts.RunDisplayName,
+		RunId:          opts.Run.GetRunId(),
+		Type:           apiV2beta1.PipelineTaskDetail_ROOT,
+		Inputs:         inputs,
+		TypeAttributes: &apiV2beta1.PipelineTaskDetail_TypeAttributes{},
+		State:          apiV2beta1.PipelineTaskDetail_RUNNING,
+		ScopePath:      opts.ScopePath.DotNotation(),
+		CreateTime:     timestamppb.Now(),
+		Pods: []*apiV2beta1.PipelineTaskDetail_TaskPod{
+			{
+				Name: opts.PodName,
+				Uid:  opts.PodUID,
+				Type: apiV2beta1.PipelineTaskDetail_DRIVER,
+			},
 		},
 	}
-	// TODO(Bobgy): validate executorInput matches component spec types
-	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
+	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{Task: pd})
 	if err != nil {
 		return nil, err
 	}
-	ecfg.ExecutionType = metadata.DagExecutionTypeName
-	ecfg.Name = fmt.Sprintf("run/%s", opts.RunID)
-	exec, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
-	if err != nil {
-		return nil, err
+	execution = &Execution{
+		TaskID: task.TaskId,
 	}
-	glog.Infof("Created execution: %s", exec)
-	// No need to return ExecutorInput, because tasks in the DAG will resolve
-	// needed info from MLMD.
-	return &Execution{ID: exec.GetID()}, nil
+	return execution, nil
 }

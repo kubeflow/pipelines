@@ -5,7 +5,7 @@ A dependent task that requires this one to succeed. Represented by either task_i
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **task_id** | **str** | System-generated ID of a task. | [optional] 
-**pod_name** | **str** | Name of the corresponding pod assigned by the orchestration engine. Also known as node_id. | [optional] 
+**name** | **str** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

@@ -13,7 +13,6 @@ resources:
 - viewer-controller
 - persistence-agent
 - cache
-- metadata-writer
 - istio-authorization-config.yaml
 - virtual-service.yaml
 patches:
@@ -23,7 +22,6 @@ patches:
 - path: scheduled-workflow/deployment-patch.yaml
 - path: viewer-controller/deployment-patch.yaml
 - path: persistence-agent/deployment-patch.yaml
-- path: metadata-writer/deployment-patch.yaml
 - path: cache/deployment-patch.yaml
 
 configurations:

@@ -3,8 +3,6 @@ kind: Kustomization
 
 resources:
 - ../../base/installs/multi-user
-- ../../base/metadata/base
-- ../../base/metadata/options/istio
 - ../../third-party/mysql/base
 - ../../third-party/mysql/options/istio
 - ../../third-party/seaweedfs/istio

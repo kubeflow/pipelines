@@ -288,6 +288,7 @@ func TestLoadSamplesMultiplePipelineVersionsInConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts)
+	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 }
 

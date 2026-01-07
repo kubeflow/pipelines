@@ -1,154 +1,19 @@
 package cacheutils
 
 import (
-	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
-
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 )
 
-const (
-	// MaxGRPCMessageSize contains max grpc message size supported by the client
-	MaxClientGRPCMessageSize = 100 * 1024 * 1024
-	// The endpoint uses Kubernetes service DNS name with namespace:
-	// https://kubernetes.io/docs/concepts/services-networking/service/#dns
-)
-
-type Client interface {
-	GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error)
-	CreateExecutionCache(ctx context.Context, task *api.Task) error
-	GenerateCacheKey(
-		inputs *pipelinespec.ExecutorInput_Inputs,
-		outputs *pipelinespec.ExecutorInput_Outputs,
-		outputParametersTypeMap map[string]string,
-		cmdArgs []string, image string,
-		pvcNames []string,
-	) (*cachekey.CacheKey, error)
-	GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error)
-}
-
-type disabledCacheClient struct{}
-
-var _ Client = &disabledCacheClient{}
-
-func (d disabledCacheClient) GenerateCacheKey(
-	*pipelinespec.ExecutorInput_Inputs,
-	*pipelinespec.ExecutorInput_Outputs,
-	map[string]string,
-	[]string,
-	string,
-	[]string,
-) (*cachekey.CacheKey, error) {
-	panic("GenerateCacheKey is not supposed to be called when cache is disabled")
-}
-
-func (d disabledCacheClient) GenerateFingerPrint(*cachekey.CacheKey) (string, error) {
-	panic("GenerateFingerPrint is not supposed to be called when cache is disabled")
-}
-
-func (d disabledCacheClient) GetExecutionCache(string, string, string) (string, error) {
-	panic("GetExecutionCache is not supposed to be called when cache is disabled")
-}
-
-func (d disabledCacheClient) CreateExecutionCache(context.Context, *api.Task) error {
-	panic("CreateExecutionCache is not supposed to be called when cache is disabled")
-}
-
-// Client is an KFP service client.
-type client struct {
-	svc api.TaskServiceClient
-}
-
-var _ Client = &client{}
-
-// NewClient creates a Client.
-func NewClient(mlPipelineServerAddress string, mlPipelineServerPort string, cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
-	if cacheDisabled {
-		return &disabledCacheClient{}, nil
-	}
-
-	creds := insecure.NewCredentials()
-	if tlsCfg != nil {
-		creds = credentials.NewTLS(tlsCfg)
-	}
-	cacheEndPoint := mlPipelineServerAddress + ":" + mlPipelineServerPort
-	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
-	conn, err := grpc.NewClient(
-		cacheEndPoint,
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
-		grpc.WithTransportCredentials(creds),
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
-	}
-
-	return &client{
-		svc: api.NewTaskServiceClient(conn),
-	}, nil
-}
-
-func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
-	fingerPrintPredicate := &api.Predicate{
-		Op:    api.Predicate_EQUALS,
-		Key:   "fingerprint",
-		Value: &api.Predicate_StringValue{StringValue: fingerPrint},
-	}
-	pipelineNamePredicate := &api.Predicate{
-		Op:    api.Predicate_EQUALS,
-		Key:   "pipelineName",
-		Value: &api.Predicate_StringValue{StringValue: pipelineName},
-	}
-	namespacePredicate := &api.Predicate{
-		Op:    api.Predicate_EQUALS,
-		Key:   "namespace",
-		Value: &api.Predicate_StringValue{StringValue: namespace},
-	}
-	filter := api.Filter{Predicates: []*api.Predicate{fingerPrintPredicate, pipelineNamePredicate, namespacePredicate}}
-
-	taskFilterJson, err := protojson.Marshal(&filter)
-	if err != nil {
-		return "", fmt.Errorf("failed to convert filter into JSON: %w", err)
-	}
-	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "created_at desc", PageSize: 1}
-	listTasksResponse, err := c.svc.ListTasksV1(context.Background(), listTasksReuqest)
-	if err != nil {
-		return "", fmt.Errorf("failed to list tasks: %w", err)
-	}
-	tasks := listTasksResponse.Tasks
-	if len(tasks) == 0 {
-		return "", nil
-	} else {
-		return tasks[0].GetMlmdExecutionID(), nil
-	}
-}
-
-func (c *client) CreateExecutionCache(ctx context.Context, task *api.Task) error {
-	req := &api.CreateTaskRequest{
-		Task: task,
-	}
-	_, err := c.svc.CreateTaskV1(ctx, req)
-	if err != nil {
-		return fmt.Errorf("failed to create task: %w", err)
-	}
-	return nil
-}
-
-func (c *client) GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error) {
+func GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error) {
 	cacheKeyJsonBytes, err := protojson.Marshal(cacheKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal cache key with protojson: %w", err)
@@ -170,7 +35,7 @@ func (c *client) GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error
 	return executionHashKey, nil
 }
 
-func (c *client) GenerateCacheKey(
+func GenerateCacheKey(
 	inputs *pipelinespec.ExecutorInput_Inputs,
 	outputs *pipelinespec.ExecutorInput_Outputs,
 	outputParametersTypeMap map[string]string,
