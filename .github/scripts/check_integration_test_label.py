@@ -1,28 +1,30 @@
 #!/usr/bin/env python3
-"""
-Script to check if integration-tests-verified label is present for main -> stable merges.
-Removes the label when new commits are pushed.
-Uses PyGithub SDK for GitHub API interactions.
+"""Script to check if integration-tests-verified label is present for main ->
+stable merges.
+
+Removes the label when new commits are pushed. Uses PyGithub SDK for
+GitHub API interactions.
 """
 
 import os
 import sys
+
 from github import Github
 
 
 def has_integration_test_label(pull_request):
     """Check if the integration-tests-verified label is present."""
     labels = [label.name for label in pull_request.labels]
-    return "integration-tests-verified" in labels
+    return 'integration-tests-verified' in labels
 
 
 def remove_integration_test_label(pull_request):
     """Remove the integration-tests-verified label if present."""
     try:
-        pull_request.remove_from_labels("integration-tests-verified")
+        pull_request.remove_from_labels('integration-tests-verified')
         return True
     except Exception as e:
-        print(f"⚠️ Failed to remove integration-tests-verified label: {e}")
+        print(f'⚠️ Failed to remove integration-tests-verified label: {e}')
         return False
 
 
@@ -37,14 +39,17 @@ Comment `/integration-tests-ok` on this PR **only after** running the integratio
 
 ### 📝 Steps:
 
-1. Run integration tests in OpenShift cluster with latest ODH nightly
+1. Run integration tests in OpenShift cluster with latest build
     1. Go to [this](https://jenkins-csb-rhods-opendatascience.dno.corp.redhat.com/job/devops/job/rhoai-test-flow/build?delay=0sec) Jenkins job
     2. Provide Cluster Name
+    3. PRODUCT=RHODS (for RHOAI deployment) or ODS (for ODH deployment)
+    4. CLUSTER_TYPE=selfmanaged
+    4. TEST_ENVIRONMENT=AWS
     3. Check Install_Cluster checkbox
     4. Check "DEPROVISION_AFTER_INSTALL_FAILURE" if you want to destroy the cluster on job failure automatically
     5. Check "ADD_ICSP" is not checked
-    6. Enter ODS_BUILD_URL=odh-nightly
-    7. Enter UPDATE_CHANNEL=odh-nightlies
+    6. Enter ODS_BUILD_URL=odh-nightly (for ODH deployment) or "latest build url from #rhoai-build-notifications w/o the https://" (for RHOAI deployment)
+    7. Enter UPDATE_CHANNEL=odh-nightlies (for ODH deployment) or fast (for RHOAI deployment)
     8. Uncheck RUN_TESTS
     10. Run the job
     11. Once the deployment is DONE and your cluster is available, update the DSPO version by following the instructions [here](https://github.com/opendatahub-io/opendatahub-operator/blob/main/hack/component-dev/README.md)
@@ -71,61 +76,65 @@ Only organization members and owners can use the `/integration-tests-ok` command
     # Check if instruction comment already exists
     comments = pull_request.get_issue_comments()
     for comment in comments:
-        if ("Integration Test Verification Required" in comment.body and
-            comment.user.type == "Bot"):
-            print("ℹ️ Instruction comment already exists")
+        if ('Integration Test Verification Required' in comment.body and
+                comment.user.type == 'Bot'):
+            print('ℹ️ Instruction comment already exists')
             return
 
     # Post new comment
     try:
         pull_request.create_issue_comment(instruction_comment)
-        print("✅ Posted instruction comment")
+        print('✅ Posted instruction comment')
     except Exception as e:
-        print(f"⚠️ Failed to post comment: {e}")
+        print(f'⚠️ Failed to post comment: {e}')
 
 
 def main():
     """Main function to check integration test requirement."""
     # Get environment variables
-    token = os.getenv("GITHUB_TOKEN")
-    pr_number = os.getenv("PR_NUMBER")
-    repo_owner = os.getenv("REPO_OWNER")
-    repo_name = os.getenv("REPO_NAME")
-    github_event_name = os.getenv("GITHUB_EVENT_NAME")
-    github_event_action = os.getenv("GITHUB_EVENT_ACTION")
+    token = os.getenv('GITHUB_TOKEN')
+    pr_number = os.getenv('PR_NUMBER')
+    repo_owner = os.getenv('REPO_OWNER')
+    repo_name = os.getenv('REPO_NAME')
+    github_event_name = os.getenv('GITHUB_EVENT_NAME')
+    github_event_action = os.getenv('GITHUB_EVENT_ACTION')
 
     if not all([token, pr_number, repo_owner, repo_name]):
-        print("❌ Missing required environment variables")
+        print('❌ Missing required environment variables')
         sys.exit(1)
 
     try:
         pr_number = int(pr_number)
     except ValueError:
-        print(f"❌ Invalid PR number: {pr_number}")
+        print(f'❌ Invalid PR number: {pr_number}')
         sys.exit(1)
 
-    print(f"🔍 Checking PR #{pr_number} in {repo_owner}/{repo_name}")
-    print(f"📝 Event: {github_event_name}, Action: {github_event_action}")
+    print(f'🔍 Checking PR #{pr_number} in {repo_owner}/{repo_name}')
+    print(f'📝 Event: {github_event_name}, Action: {github_event_action}')
 
     # Initialize GitHub client
     try:
         github_client = Github(token)
-        repo = github_client.get_repo(f"{repo_owner}/{repo_name}")
+        repo = github_client.get_repo(f'{repo_owner}/{repo_name}')
         pull_request = repo.get_pull(pr_number)
     except Exception as e:
-        print(f"❌ Error accessing GitHub API: {e}")
+        print(f'❌ Error accessing GitHub API: {e}')
         sys.exit(1)
 
     # If this is a synchronize event (new commits), remove the integration test label
     label_was_removed = False
-    if github_event_action == "synchronize":
-        print("🔄 New commits detected - checking for integration-tests-verified label")
+    if github_event_action == 'synchronize':
+        print(
+            '🔄 New commits detected - checking for integration-tests-verified label'
+        )
 
         if has_integration_test_label(pull_request):
-            print("🗑️ Removing integration-tests-verified label due to new commits")
+            print(
+                '🗑️ Removing integration-tests-verified label due to new commits'
+            )
 
             if remove_integration_test_label(pull_request):
-                print("✅ Successfully removed integration-tests-verified label")
+                print('✅ Successfully removed integration-tests-verified label')
                 label_was_removed = True
 
                 # Post a comment explaining the removal
@@ -144,46 +153,56 @@ Once you comment `/integration-tests-ok`, the label will be re-added and this wo
 
                 try:
                     pull_request.create_issue_comment(removal_comment)
-                    print("✅ Posted label removal notification")
+                    print('✅ Posted label removal notification')
                 except Exception as e:
-                    print(f"⚠️ Failed to post removal comment: {e}")
+                    print(f'⚠️ Failed to post removal comment: {e}')
             else:
-                print("⚠️ Failed to remove label")
+                print('⚠️ Failed to remove label')
         else:
-            print("ℹ️ No integration-tests-verified label found")
+            print('ℹ️ No integration-tests-verified label found')
 
     # Refresh PR to get updated labels if label was removed
     if label_was_removed:
         try:
             pull_request = repo.get_pull(pr_number)
         except Exception as e:
-            print(f"⚠️ Failed to refresh PR: {e}")
+            print(f'⚠️ Failed to refresh PR: {e}')
 
     # Check for integration test label
     has_label = has_integration_test_label(pull_request)
 
     if has_label:
-        print("✅ Integration test label verified - merge can proceed")
-        print("✅ Found integration-tests-verified label on PR")
+        print('✅ Integration test label verified - merge can proceed')
+        print('✅ Found integration-tests-verified label on PR')
         sys.exit(0)
     else:
-        print("❌ Integration test verification required to merge to stable")
+        print('❌ Integration test verification required to merge to stable')
 
         if label_was_removed:
-            print("\n🚫 WORKFLOW FAILED: Label was automatically removed due to new commits")
-            print("📋 TO PASS THIS CHECK:")
-            print("   1. Re-run integration tests in OpenShift cluster with latest ODH nightly")
-            print("   3. Comment '/integration-tests-ok' on this PR after tests pass")
-            print("   4. This workflow will automatically re-run and pass")
+            print(
+                '\n🚫 WORKFLOW FAILED: Label was automatically removed due to new commits'
+            )
+            print('📋 TO PASS THIS CHECK:')
+            print(
+                '   1. Re-run integration tests in OpenShift cluster with latest ODH nightly'
+            )
+            print(
+                "   3. Comment '/integration-tests-ok' on this PR after tests pass"
+            )
+            print('   4. This workflow will automatically re-run and pass')
         else:
             # Post instruction comment for normal cases
             post_instruction_comment(pull_request)
 
-            print("\n📋 Required: Comment '/integration-tests-ok' on this PR after running integration tests")
-            print("\n⚠️ Important: Only comment this after actually running the integration tests!")
+            print(
+                "\n📋 Required: Comment '/integration-tests-ok' on this PR after running integration tests"
+            )
+            print(
+                '\n⚠️ Important: Only comment this after actually running the integration tests!'
+            )
 
         sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

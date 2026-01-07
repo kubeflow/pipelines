@@ -6,12 +6,16 @@ source "./patch-csv.sh"
 set +o allexport
 
 export DEPLOYMENT_NAME="ds-pipeline-$DSPA_NAME"
+RANDOM_SUFFIX=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+export NAMESPACE="$NAMESPACE-$RANDOM_SUFFIX"
 
 TEST_LABEL="smoke"
 DSPO_OWNER="opendatahub-io"
 DSPO_REPO="data-science-pipelines-operator"
 DSPO_BRANCH="stable"
 DSP_TAG="stable"
+DEPLOY_DSPO="true"
+NUM_PARALLEL_NODES=10
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -35,12 +39,29 @@ while [ "$#" -gt 0 ]; do
       DSPO_BRANCH="${1#*=}"
       shift
       ;;
+    --deploy-dspo=*)
+      DEPLOY_DSPO="${1#*=}"
+      shift
+      ;;
+    --num-parallel-tests=*)
+      NUM_PARALLEL_NODES="${1#*=}"
+      shift
+      ;;
   esac
 done
 
 # 1. Create a temporary file to store dspa config
 dspa_deployment=$(mktemp)
 dspa_role_binding=$(mktemp)
+
+# Check if AWS credentials are provided to determine storage type
+if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
+  STORAGE_TYPE="s3"
+  echo "Using external S3 storage (AWS credentials detected)"
+else
+  STORAGE_TYPE="minio"
+  echo "Using embedded Minio storage (no AWS credentials provided)"
+fi
 
 # Create DSPA CR template
 cat <<EOF >> "$dspa_deployment"
@@ -61,6 +82,11 @@ spec:
     image: "quay.io/opendatahub/ds-pipelines-persistenceagent:$DSP_TAG"
   scheduledWorkflow:
     image: "quay.io/opendatahub/ds-pipelines-scheduledworkflow:$DSP_TAG"
+EOF
+
+# Add storage-specific configuration
+if [ "$STORAGE_TYPE" = "s3" ]; then
+  cat <<EOF >> "$dspa_deployment"
   objectStorage:
     externalStorage:
       bucket: $BUCKET
@@ -73,6 +99,16 @@ spec:
       scheme: https
   podToPodTLS: true
 EOF
+else
+  cat <<EOF >> "$dspa_deployment"
+  objectStorage:
+    enableExternalRoute: true
+    minio:
+      deploy: true
+      image: 'quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance'
+  podToPodTLS: true
+EOF
+fi
 
 cat <<EOF >> "$dspa_role_binding"
 kind: RoleBinding
@@ -91,17 +127,24 @@ roleRef:
 EOF
 
 #################### PATCH CSV #######################
-find_csv_and_update "$DSPO_OWNER" "$DSPO_REPO" "$DSPO_BRANCH"
+if [ "$DEPLOY_DSPO" == "true" ]; then
+  find_csv_and_update "$DSPO_OWNER" "$DSPO_REPO" "$DSPO_BRANCH"
+fi
 
 #################### DEPLOY DSPA #######################
 
 # Create Namespace
-oc create namespace $NAMESPACE
+oc create namespace "$NAMESPACE"
 
-# Create AWS Secret
-oc -n "$NAMESPACE" create secret generic "$SECRET_NAME" \
-  --from-literal=AWS_ACCESS_KEY="$AWS_ACCESS_KEY_ID" \
-  --from-literal=AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+# Create AWS Secret (only for S3 storage)
+if [ "$STORAGE_TYPE" = "s3" ]; then
+  echo "Creating AWS credentials secret for S3 storage"
+  oc -n "$NAMESPACE" create secret generic "$SECRET_NAME" \
+    --from-literal=AWS_ACCESS_KEY="$AWS_ACCESS_KEY_ID" \
+    --from-literal=AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+else
+  echo "Skipping AWS secret creation (using Minio storage)"
+fi
 
 # Create DSPA deployment
 echo "Creating DSPA deployment"
@@ -117,7 +160,7 @@ fi
 
 # Create Role Binding
 echo "Create role binding to allow service account access to DSPA API"
-oc apply -f $dspa_role_binding -n $NAMESPACE
+oc apply -f "$dspa_role_binding" -n "$NAMESPACE"
 
 # Get API URL
 echo "Fetching route to $DEPLOYMENT_NAME"
@@ -135,7 +178,7 @@ export API_TOKEN=$(oc create token "$DEPLOYMENT_NAME" --namespace "$NAMESPACE" -
 cd ../"$TEST_DIRECTORY" || exit
 echo "Running Tests now..."
 go run github.com/onsi/ginkgo/v2/ginkgo -r -v -p \
-  --nodes=10 \
+  --nodes=$NUM_PARALLEL_NODES \
   --keep-going \
   --label-filter="$TEST_LABEL" \
   -- -namespace="$NAMESPACE" \
@@ -143,7 +186,6 @@ go run github.com/onsi/ginkgo/v2/ginkgo -r -v -p \
   -authToken="$API_TOKEN" \
   -disableTlsCheck=true \
   -serviceAccountName=pipeline-runner-"$DSPA_NAME" \
-  -repoName="opendatahub-io/data-science-pipelines" \
   -baseImage="registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"
 
 # Cleanup
