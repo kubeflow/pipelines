@@ -530,6 +530,12 @@ func convertArtifactsToArtifactList(artifacts []*apiV2beta1.Artifact, downloaded
 			return nil, err
 		}
 		if downloadedToWorkspace {
+			if runtimeArtifact.Metadata == nil {
+				runtimeArtifact.Metadata = &structpb.Struct{
+					Fields: make(map[string]*structpb.Value),
+				}
+			}
+
 			runtimeArtifact.Metadata.Fields[common.WorkspaceMetadataField] = structpb.NewBoolValue(true)
 		}
 		runtimeArtifacts = append(runtimeArtifacts, runtimeArtifact)
