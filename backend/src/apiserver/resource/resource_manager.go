@@ -699,23 +699,30 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		// Create/update ConfigMap with semaphore limit
 		if err := r.upsertPipelineParallelismConfigMap(
 			ctx, k8sNamespace, run.PipelineVersionId, int(concurrencyLimit)); err != nil {
-			return nil, util.Wrap(err, "Failed to persist pipeline_version_concurrency_limit configuration")
-		}
-		// Only configure synchronization semaphores if ConfigMap was successfully created/updated
-		wf, ok := executionSpec.(*util.Workflow)
-		if ok && wf != nil && wf.Workflow != nil {
-			if wf.Spec.Synchronization == nil {
-				wf.Spec.Synchronization = &workflowapi.Synchronization{}
+			// In multi-user mode, ConfigMap creation may fail due to permissions.
+			// Log a warning and continue without the concurrency limit rather than failing the run.
+			if apierrors.IsForbidden(err) {
+				glog.Warningf("Failed to create pipeline_version_concurrency_limit ConfigMap in namespace %s due to insufficient permissions. Run will proceed without concurrency limit: %v", k8sNamespace, err)
+			} else {
+				return nil, util.Wrap(err, "Failed to persist pipeline_version_concurrency_limit configuration")
 			}
-			wf.Spec.Synchronization.Semaphores = []*workflowapi.SemaphoreRef{
-				{
-					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: pipelineParallelismConfigMapName,
+		} else {
+			// Only configure synchronization semaphores if ConfigMap was successfully created/updated
+			wf, ok := executionSpec.(*util.Workflow)
+			if ok && wf != nil && wf.Workflow != nil {
+				if wf.Spec.Synchronization == nil {
+					wf.Spec.Synchronization = &workflowapi.Synchronization{}
+				}
+				wf.Spec.Synchronization.Semaphores = []*workflowapi.SemaphoreRef{
+					{
+						ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: pipelineParallelismConfigMapName,
+							},
+							Key: run.PipelineVersionId,
 						},
-						Key: run.PipelineVersionId,
 					},
-				},
+				}
 			}
 		}
 	}
