@@ -428,10 +428,10 @@ func resolveInputParameter(
 			case "{{$.pipeline_task_uuid}}":
 				v = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
 				//work
-				case "{{$.pipeline_job_create_time_utc}}":
-					v = structpb.NewStringValue(opts.PipelineJobCreateTimeUTC)
-				case "{{$.pipeline_job_schedule_time_utc}}":
-					v = structpb.NewStringValue(opts.PipelineJobScheduleTimeUTC)
+			case "{{$.pipeline_job_create_time_utc}}":
+				v = structpb.NewStringValue(opts.PipelineJobCreateTimeUTC)
+			case "{{$.pipeline_job_schedule_time_utc}}":
+				v = structpb.NewStringValue(opts.PipelineJobScheduleTimeUTC)
 			default:
 				v = val
 			}
