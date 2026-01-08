@@ -175,7 +175,24 @@ export API_TOKEN=$(oc create token "$DEPLOYMENT_NAME" --namespace "$NAMESPACE" -
 
 #################### TESTS #######################
 # Run Tests
-cd ../"$TEST_DIRECTORY" || exit
+# Traverse up directories until we find a directory containing $TEST_DIRECTORY
+current_dir="$(pwd)"
+found_test_dir=""
+while [ "$current_dir" != "/" ]; do
+  if [ -d "$current_dir/$TEST_DIRECTORY" ]; then
+    found_test_dir="$current_dir/$TEST_DIRECTORY"
+    break
+  fi
+  current_dir="$(dirname "$current_dir")"
+done
+
+if [ -n "$found_test_dir" ]; then
+  echo "Found test directory at: $found_test_dir"
+  cd "$found_test_dir" || exit
+else
+  echo "Error: Could not find $TEST_DIRECTORY in any parent directory"
+  exit 1
+fi
 echo "Running Tests now..."
 go run github.com/onsi/ginkgo/v2/ginkgo -r -v -p \
   --nodes=$NUM_PARALLEL_NODES \
