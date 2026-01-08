@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -32,6 +33,23 @@ import (
 )
 
 var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
+
+// getRootDAGExecutionCreationTime retrieves the root DAG execution creation time from MLMD.
+func getRootDAGExecutionCreationTime(ctx context.Context, pipeline *metadata.Pipeline, mlmd *metadata.Client) (int64, error) {
+	if pipeline == nil {
+		return 0, fmt.Errorf("pipeline is nil")
+	}
+	return mlmd.GetRootDAGExecutionCreationTime(ctx, pipeline)
+}
+
+// formatTimestampUTC formats a timestamp in milliseconds since epoch to UTC ISO 8601 format (RFC3339).
+func formatTimestampUTC(millisSinceEpoch int64) string {
+	// Convert milliseconds to seconds and nanoseconds
+	sec := millisSinceEpoch / 1000
+	nsec := (millisSinceEpoch % 1000) * 1000000
+	t := time.Unix(sec, nsec).UTC()
+	return t.Format(time.RFC3339)
+}
 
 // setWorkspaceFlag sets the _kfp_workspace metadata flag on the provided
 // runtime artifact when the producing execution is an ImporterWorkspace.
@@ -427,6 +445,34 @@ func resolveInputParameter(
 				v = structpb.NewStringValue(opts.TaskName)
 			case "{{$.pipeline_task_uuid}}":
 				v = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
+			case "{{$.pipeline_job_create_time_utc}}":
+				// #region agent log
+				glog.V(4).Infof("Resolving placeholder {{$.pipeline_job_create_time_utc}}")
+				// #endregion
+				createTimeMs, err := getRootDAGExecutionCreationTime(ctx, pipeline, mlmd)
+				if err != nil {
+					return nil, paramError(fmt.Errorf("failed to get pipeline job create time: %w", err))
+				}
+				formattedTime := formatTimestampUTC(createTimeMs)
+				// #region agent log
+				glog.V(4).Infof("Resolved {{$.pipeline_job_create_time_utc}} to: %s (from %d ms)", formattedTime, createTimeMs)
+				// #endregion
+				v = structpb.NewStringValue(formattedTime)
+			case "{{$.pipeline_job_schedule_time_utc}}":
+				// Schedule time defaults to create time if not explicitly set
+				// For now, we use create time as schedule time (consistent with resource_manager.go:1402-1406)
+				// #region agent log
+				glog.V(4).Infof("Resolving placeholder {{$.pipeline_job_schedule_time_utc}}")
+				// #endregion
+				createTimeMs, err := getRootDAGExecutionCreationTime(ctx, pipeline, mlmd)
+				if err != nil {
+					return nil, paramError(fmt.Errorf("failed to get pipeline job schedule time: %w", err))
+				}
+				formattedTime := formatTimestampUTC(createTimeMs)
+				// #region agent log
+				glog.V(4).Infof("Resolved {{$.pipeline_job_schedule_time_utc}} to: %s (from %d ms)", formattedTime, createTimeMs)
+				// #endregion
+				v = structpb.NewStringValue(formattedTime)
 			default:
 				v = val
 			}

@@ -100,3 +100,7 @@ func (c *FakeClient) GetOrInsertArtifactType(ctx context.Context, schema string)
 func (c *FakeClient) FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error) {
 	return nil, nil
 }
+
+func (c *FakeClient) GetRootDAGExecutionCreationTime(ctx context.Context, pipeline *Pipeline) (int64, error) {
+	return 0, nil
+}
