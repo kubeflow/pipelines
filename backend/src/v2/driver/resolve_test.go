@@ -32,8 +32,8 @@ func TestValidateLiteralParameter(t *testing.T) {
 		errorContains string
 	}{
 		{
-			name:      "valid string literal match",
-			paramName: "environment",
+			name:      "valid input - string literal",
+			paramName: "test-parameter",
 			value:     structpb.NewStringValue("dev"),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_STRING,
@@ -46,22 +46,8 @@ func TestValidateLiteralParameter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "valid string literal match - last in list",
-			paramName: "environment",
-			value:     structpb.NewStringValue("prod"),
-			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
-				ParameterType: pipelinespec.ParameterType_STRING,
-				Literals: []*structpb.Value{
-					structpb.NewStringValue("dev"),
-					structpb.NewStringValue("staging"),
-					structpb.NewStringValue("prod"),
-				},
-			},
-			expectError: false,
-		},
-		{
-			name:      "invalid string literal - no match",
-			paramName: "environment",
+			name:      "invalid input - string literal",
+			paramName: "test-parameter",
 			value:     structpb.NewStringValue("test"),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_STRING,
@@ -72,11 +58,11 @@ func TestValidateLiteralParameter(t *testing.T) {
 				},
 			},
 			expectError:   true,
-			errorContains: "input parameter \"environment\" value does not match any of the allowed literal values",
+			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
 		},
 		{
-			name:      "valid number literal match - integer",
-			paramName: "replicas",
+			name:      "valid input - int literal",
+			paramName: "test-parameter",
 			value:     structpb.NewNumberValue(3),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_NUMBER_INTEGER,
@@ -89,8 +75,8 @@ func TestValidateLiteralParameter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "invalid number literal - no match",
-			paramName: "replicas",
+			name:      "invalid input - int literal",
+			paramName: "test-parameter",
 			value:     structpb.NewNumberValue(2),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_NUMBER_INTEGER,
@@ -101,11 +87,11 @@ func TestValidateLiteralParameter(t *testing.T) {
 				},
 			},
 			expectError:   true,
-			errorContains: "input parameter \"replicas\" value does not match any of the allowed literal values",
+			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
 		},
 		{
-			name:      "valid number literal match - double",
-			paramName: "threshold",
+			name:      "valid input - float literal",
+			paramName: "test-parameter",
 			value:     structpb.NewNumberValue(0.5),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_NUMBER_DOUBLE,
@@ -118,8 +104,23 @@ func TestValidateLiteralParameter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "valid boolean literal match - true",
-			paramName: "enable_feature",
+			name:      "invalid input - float literal",
+			paramName: "test-parameter",
+			value:     structpb.NewNumberValue(0.3),
+			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
+				ParameterType: pipelinespec.ParameterType_NUMBER_DOUBLE,
+				Literals: []*structpb.Value{
+					structpb.NewNumberValue(0.1),
+					structpb.NewNumberValue(0.5),
+					structpb.NewNumberValue(0.9),
+				},
+			},
+			expectError:   true,
+			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
+		},
+		{
+			name:      "valid input - boolean literal",
+			paramName: "test-parameter",
 			value:     structpb.NewBoolValue(true),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_BOOLEAN,
@@ -130,8 +131,8 @@ func TestValidateLiteralParameter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "invalid boolean literal - no match",
-			paramName: "enable_feature",
+			name:      "invalid input - boolean literal",
+			paramName: "test-parameter",
 			value:     structpb.NewBoolValue(false),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_BOOLEAN,
@@ -140,23 +141,11 @@ func TestValidateLiteralParameter(t *testing.T) {
 				},
 			},
 			expectError:   true,
-			errorContains: "input parameter \"enable_feature\" value does not match any of the allowed literal values",
+			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
 		},
 		{
-			name:      "valid boolean literal match - false",
-			paramName: "disable_cache",
-			value:     structpb.NewBoolValue(false),
-			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
-				ParameterType: pipelinespec.ParameterType_BOOLEAN,
-				Literals: []*structpb.Value{
-					structpb.NewBoolValue(false),
-				},
-			},
-			expectError: false,
-		},
-		{
-			name:      "backward compatibility - nil literals (any value allowed)",
-			paramName: "any_param",
+			name:      "valid input - nil literals field",
+			paramName: "test-parameter",
 			value:     structpb.NewStringValue("anything"),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_STRING,
@@ -165,8 +154,8 @@ func TestValidateLiteralParameter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "backward compatibility - empty literals array (any value allowed)",
-			paramName: "any_param",
+			name:      "valid input - empty literals field",
+			paramName: "test-parameter",
 			value:     structpb.NewStringValue("anything"),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_STRING,
@@ -175,8 +164,8 @@ func TestValidateLiteralParameter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "single literal value - match",
-			paramName: "fixed_value",
+			name:      "valid input - single-value literal",
+			paramName: "test-parameter",
 			value:     structpb.NewStringValue("only_option"),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_STRING,
@@ -187,8 +176,8 @@ func TestValidateLiteralParameter(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "single literal value - no match",
-			paramName: "fixed_value",
+			name:      "invalid input - single-value literal",
+			paramName: "test-parameter",
 			value:     structpb.NewStringValue("other"),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_STRING,
@@ -197,11 +186,11 @@ func TestValidateLiteralParameter(t *testing.T) {
 				},
 			},
 			expectError:   true,
-			errorContains: "input parameter \"fixed_value\" value does not match any of the allowed literal values",
+			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
 		},
 		{
-			name:      "case sensitive string matching",
-			paramName: "case_param",
+			name:      "invalid input - string literal, incorrect case",
+			paramName: "test-parameter",
 			value:     structpb.NewStringValue("Dev"),
 			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
 				ParameterType: pipelinespec.ParameterType_STRING,
@@ -210,7 +199,7 @@ func TestValidateLiteralParameter(t *testing.T) {
 				},
 			},
 			expectError:   true,
-			errorContains: "input parameter \"case_param\" value does not match any of the allowed literal values",
+			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
 		},
 	}
 
@@ -244,6 +233,6 @@ func TestValidateLiteralParameter_NilParamSpec(t *testing.T) {
 	}()
 
 	// With a nil paramSpec, GetLiterals() will return nil, so no validation occurs
-	err := validateLiteralParameter("test_param", value, &pipelinespec.ComponentInputsSpec_ParameterSpec{})
+	err := validateLiteralParameter("test-parameter", value, &pipelinespec.ComponentInputsSpec_ParameterSpec{})
 	assert.Nil(t, err, "Empty paramSpec should not cause validation error")
 }
