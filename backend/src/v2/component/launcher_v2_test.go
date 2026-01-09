@@ -348,7 +348,7 @@ func Test_NewLauncherV2(t *testing.T) {
 
 	disabledCacheClient, _ := cacheutils.NewClient("ml-pipeline.kubeflow", "8887", true, &tls.Config{})
 	var testLauncherV2Deps = client_manager.NewFakeClientManager(
-		fake.NewSimpleClientset(),
+		fake.NewClientset(),
 		metadata.NewFakeClient(),
 		disabledCacheClient,
 	)

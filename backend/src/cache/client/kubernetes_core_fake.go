@@ -41,7 +41,7 @@ func (c *FakeKuberneteCoreClient) ConfigMapClient(namespace string) v1.ConfigMap
 }
 
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
-	clientset := kubernetesfake.NewSimpleClientset() // nolint: staticcheck
+	clientset := kubernetesfake.NewClientset()
 	return &FakeKuberneteCoreClient{
 		podClientFake: &FakePodClient{},
 		coreClient:    clientset.CoreV1(),
