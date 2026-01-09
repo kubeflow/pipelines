@@ -503,21 +503,6 @@ func execute(
 	publishLogs string,
 	customCAPath string,
 ) (*pipelinespec.ExecutorOutput, error) {
-	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
-		return nil, err
-	}
-
-	if err := prepareOutputFolders(executorInput); err != nil {
-		return nil, err
-	}
-
-	var writer io.Writer
-	if publishLogs == "true" {
-		writer = getLogWriter(executorInput.Outputs.GetArtifacts())
-	} else {
-		writer = os.Stdout
-	}
-
 	// If a custom CA path is input, append to system CA and save to a temp file for executor access.
 	if customCAPath != "" {
 		var caBundleTmpPath string
@@ -539,6 +524,20 @@ func execute(
 			glog.Errorf("Error setting SSL_CERT_FILE environment variable, %s", err.Error())
 		}
 
+	}
+	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
+		return nil, err
+	}
+
+	if err := prepareOutputFolders(executorInput); err != nil {
+		return nil, err
+	}
+
+	var writer io.Writer
+	if publishLogs == "true" {
+		writer = getLogWriter(executorInput.Outputs.GetArtifacts())
+	} else {
+		writer = os.Stdout
 	}
 
 	// Prepare command that will execute end user code.
