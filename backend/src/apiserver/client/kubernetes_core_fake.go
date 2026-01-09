@@ -47,7 +47,7 @@ func (c *FakeKuberneteCoreClient) GetClientSet() kubernetes.Interface {
 }
 
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
-	clientset := kubernetesfake.NewSimpleClientset() // nolint: staticcheck
+	clientset := kubernetesfake.NewClientset()
 	return &FakeKuberneteCoreClient{
 		podClientFake: &FakePodClient{},
 		coreClient:    clientset.CoreV1(),
@@ -62,7 +62,7 @@ type FakeKubernetesCoreClientWithBadPodClient struct {
 }
 
 func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWithBadPodClient {
-	clientset := kubernetesfake.NewSimpleClientset() // nolint: staticcheck
+	clientset := kubernetesfake.NewClientset()
 	return &FakeKubernetesCoreClientWithBadPodClient{
 		podClientFake: &FakeBadPodClient{},
 		coreClient:    clientset.CoreV1(),
