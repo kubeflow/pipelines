@@ -16,7 +16,6 @@ import json
 import os
 import tempfile
 import textwrap
-import unittest
 from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -549,6 +548,7 @@ class TestClient(parameterized.TestCase):
 
 
 class TestGetLogs(parameterized.TestCase):
+    """Tests for the get_logs method in the KFP Client."""
 
     def setUp(self):
         self.client = client.Client(namespace='ns1')
@@ -573,7 +573,7 @@ class TestGetLogs(parameterized.TestCase):
 
         with patch.object(self.client, 'get_run', return_value=mock_run):
             with self.assertRaisesRegex(ValueError,
-                                        "No task details found for run"):
+                                        'No task details found for run'):
                 self.client.get_logs(run_id='test-run-123')
 
     def test_get_logs_success_single_component(self):
@@ -693,7 +693,7 @@ class TestGetLogs(parameterized.TestCase):
                 side_effect=Exception('API Error')):
 
             with self.assertRaisesRegex(RuntimeError,
-                                        "Failed to read artifact"):
+                                        'Failed to read artifact'):
                 self.client._read_artifact(
                     run_id='run-123',
                     node_id='node-123',
