@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""
-Functional test for get_logs() method.
+"""Functional test for get_logs() method.
+
 Requires a running Kubeflow Pipelines instance.
 """
 
-from kfp import dsl, compiler, Client
 import time
+
+from kfp import Client
+from kfp import compiler
+from kfp import dsl
 
 
 # 1. Define a simple pipeline
