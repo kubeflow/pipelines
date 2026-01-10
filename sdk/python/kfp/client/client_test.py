@@ -591,14 +591,23 @@ class TestGetLogs(parameterized.TestCase):
         mock_run.run_details = mock_run_details
 
         # Mock artifact response
-        mock_response = Mock()
-        mock_response.data = b'Component logs here'
+        import base64
+        import gzip
+        import io
+        log_content = b'Component logs here'
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+            f.write(log_content)
+        compressed_content = buf.getvalue()
+        mock_response = {
+            'data': base64.b64encode(compressed_content).decode('utf-8')
+        }
 
         with patch.object(self.client, 'get_run', return_value=mock_run):
             with patch.object(
-                    self.client._run_api,
-                    'run_service_read_artifact',
-                    return_value=mock_response):
+                    self.client._run_api.api_client,
+                    'call_api',
+                    return_value=mock_response) as mock_read:
 
                 result = self.client.get_logs(
                     run_id='test-run-123', component_name='test-component')
@@ -624,16 +633,23 @@ class TestGetLogs(parameterized.TestCase):
         mock_run.run_details = mock_run_details
 
         # Mock artifact responses
-        mock_response1 = Mock()
-        mock_response1.data = b'logs from component-1'
+        import base64
+        import gzip
+        import io
 
-        mock_response2 = Mock()
-        mock_response2.data = b'logs from component-2'
+        def create_mock_response(content):
+            buf = io.BytesIO()
+            with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+                f.write(content)
+            return {'data': base64.b64encode(buf.getvalue()).decode('utf-8')}
+
+        mock_response1 = create_mock_response(b'logs from component-1')
+        mock_response2 = create_mock_response(b'logs from component-2')
 
         with patch.object(self.client, 'get_run', return_value=mock_run):
             with patch.object(
-                    self.client._run_api,
-                    'run_service_read_artifact',
+                    self.client._run_api.api_client,
+                    'call_api',
                     side_effect=[mock_response1, mock_response2]):
 
                 result = self.client.get_logs(run_id='test-run-123')
@@ -656,13 +672,20 @@ class TestGetLogs(parameterized.TestCase):
         mock_run.run_id = 'test-run-123'
         mock_run.run_details = mock_run_details
 
-        mock_response = Mock()
-        mock_response.data = b'logs'
+        import base64
+        import gzip
+        import io
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+            f.write(b'logs')
+        mock_response = {
+            'data': base64.b64encode(buf.getvalue()).decode('utf-8')
+        }
 
         with patch.object(self.client, 'get_run', return_value=mock_run):
             with patch.object(
-                    self.client._run_api,
-                    'run_service_read_artifact',
+                    self.client._run_api.api_client,
+                    'call_api',
                     return_value=mock_response):
 
                 with self.assertRaisesRegex(
@@ -672,12 +695,19 @@ class TestGetLogs(parameterized.TestCase):
 
     def test_read_artifact_success(self):
         """Test _read_artifact successfully reads artifact."""
-        mock_response = Mock()
-        mock_response.data = b'artifact content'
+        import base64
+        import gzip
+        import io
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+            f.write(b'artifact content')
+        mock_response = {
+            'data': base64.b64encode(buf.getvalue()).decode('utf-8')
+        }
 
         with patch.object(
-                self.client._run_api,
-                'run_service_read_artifact',
+                self.client._run_api.api_client,
+                'call_api',
                 return_value=mock_response):
 
             result = self.client._read_artifact(
@@ -688,8 +718,8 @@ class TestGetLogs(parameterized.TestCase):
     def test_read_artifact_failure(self):
         """Test _read_artifact raises RuntimeError on failure."""
         with patch.object(
-                self.client._run_api,
-                'run_service_read_artifact',
+                self.client._run_api.api_client,
+                'call_api',
                 side_effect=Exception('API Error')):
 
             with self.assertRaisesRegex(RuntimeError,

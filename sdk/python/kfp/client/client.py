@@ -13,9 +13,12 @@
 # limitations under the License.
 """The SDK client for Kubeflow Pipelines API."""
 
+import base64
 import copy
 import dataclasses
 import datetime
+import gzip
+import io
 import json
 import logging
 import os
@@ -1477,15 +1480,35 @@ class Client:
         Raises:
             RuntimeError: If artifact cannot be retrieved.
         """
-        # Use the API client to read the artifact
+        # Use the API client to read the artifact via direct REST call
+        # as run_service_read_artifact is not available in the generated client.
         try:
-            response = self._run_api.run_service_read_artifact(
-                run_id=run_id, node_id=node_id, artifact_name=artifact_name)
+            resource_path = f'/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read'
+            # call_api returns the deserialized JSON response as a dict
+            response = self._run_api.api_client.call_api(
+                resource_path,
+                'GET',
+                auth_settings=['Bearer'],
+                _return_http_data_only=True)
 
-            # Decode bytes to string
-            if isinstance(response.data, bytes):
-                return response.data.decode('utf-8')
-            return str(response.data)
+            if not isinstance(response, dict) or 'data' not in response:
+                raise RuntimeError(
+                    f"Unexpected response format from artifact read: {response}"
+                )
+
+            # The response data is base64-encoded and often gzipped
+            base64_data = response['data']
+            decoded_data = base64.b64decode(base64_data)
+
+            # Try to decompress as gzip
+            try:
+                with gzip.GzipFile(fileobj=io.BytesIO(decoded_data)) as f:
+                    content = f.read()
+            except Exception:
+                # If not gzipped, use the decoded data directly
+                content = decoded_data
+
+            return content.decode('utf-8')
         except Exception as e:
             raise RuntimeError(
                 f"Failed to read artifact '{artifact_name}' from node "
