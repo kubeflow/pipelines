@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    'Client',
-]
-
 from kfp.client.client import Client
 from kfp.client.set_volume_credentials import ServiceAccountTokenVolumeCredentials
 from kfp.client.token_credentials_base import TokenCredentialsBase
+
+__all__ = [
+    'Client',
+]
 
 KF_PIPELINES_SA_TOKEN_ENV = 'KF_PIPELINES_SA_TOKEN_PATH'
 KF_PIPELINES_SA_TOKEN_PATH = '/var/run/secrets/kubeflow/pipelines/token'

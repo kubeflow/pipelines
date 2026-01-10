@@ -1493,7 +1493,7 @@ class Client:
 
             if not isinstance(response, dict) or 'data' not in response:
                 raise RuntimeError(
-                    f"Unexpected response format from artifact read: {response}"
+                    f'Unexpected response format from artifact read: {response}'
                 )
 
             # The response data is base64-encoded and often gzipped
@@ -1511,8 +1511,8 @@ class Client:
             return content.decode('utf-8')
         except Exception as e:
             raise RuntimeError(
-                f"Failed to read artifact '{artifact_name}' from node "
-                f"'{node_id}': {str(e)}")
+                f'Failed to read artifact \'{artifact_name}\' from node '
+                f'\'{node_id}\': {str(e)}')
 
     def wait_for_run_completion(
         self,

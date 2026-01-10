@@ -689,7 +689,7 @@ class TestGetLogs(parameterized.TestCase):
                     return_value=mock_response):
 
                 with self.assertRaisesRegex(
-                        ValueError, "Component 'test-component' not found"):
+                        ValueError, 'Component \'test-component\' not found'):
                     self.client.get_logs(
                         run_id='test-run-123', component_name='test-component')
 
