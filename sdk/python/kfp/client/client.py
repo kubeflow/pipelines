@@ -24,7 +24,7 @@ import tarfile
 import tempfile
 import time
 from types import ModuleType
-from typing import Any, Dict, List, Optional, TextIO
+from typing import Any, Dict, List, Optional, TextIO, Union
 import warnings
 import zipfile
 
@@ -1477,19 +1477,10 @@ class Client:
         Raises:
             RuntimeError: If artifact cannot be retrieved.
         """
+        # Use the API client to read the artifact
         try:
-            from kfp_server_api.models import ReadArtifactRequest
-        except ImportError:
-            raise ImportError(
-                'kfp_server_api package is required to read artifacts.')
-
-        # Construct the artifact request
-        artifact_request = ReadArtifactRequest(
-            run_id=run_id, node_id=node_id, artifact_name=artifact_name)
-
-        try:
-            # Use the API client to read the artifact
-            response = self._run_api.run_service_read_artifact(artifact_request)
+            response = self._run_api.run_service_read_artifact(
+                run_id=run_id, node_id=node_id, artifact_name=artifact_name)
 
             # Decode bytes to string
             if isinstance(response.data, bytes):
