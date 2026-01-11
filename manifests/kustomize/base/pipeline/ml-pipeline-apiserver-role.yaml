@@ -19,9 +19,15 @@ rules:
   resources:
   - configmaps
   verbs:
-  - get
-  - list
   - create
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - kfp-pipeline-config
+  verbs:
+  - get
   - update
   - patch
 - apiGroups:

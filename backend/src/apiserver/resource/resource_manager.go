@@ -158,7 +158,7 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 
 // extractPipelineVersionConcurrencyLimit extracts pipeline_version_concurrency_limit from the template's platform spec.
 // It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> pipelineVersionConcurrencyLimit
-func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int64, error) {
+func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int, error) {
 	if tmpl == nil || !tmpl.IsV2() {
 		return 0, nil
 	}
@@ -187,7 +187,7 @@ func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int64, erro
 	if value <= 0 {
 		return 0, fmt.Errorf("pipeline_version_concurrency_limit must be greater than 0, got %d", value)
 	}
-	return int64(value), nil
+	return int(value), nil
 }
 
 // deletePipelineParallelismConfigMapEntry removes a pipeline version's parallelism entry from a ConfigMap.
@@ -698,32 +698,30 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if concurrencyLimit > 0 && run.PipelineVersionId != "" {
 		// Create/update ConfigMap with semaphore limit
 		if err := r.upsertPipelineParallelismConfigMap(
-			ctx, k8sNamespace, run.PipelineVersionId, int(concurrencyLimit)); err != nil {
-			// In multi-user mode, ConfigMap creation may fail due to permissions.
-			// Log a warning and continue without the concurrency limit rather than failing the run.
-			if apierrors.IsForbidden(err) {
-				glog.Warningf("Failed to create pipeline_version_concurrency_limit ConfigMap in namespace %s due to insufficient permissions. Run will proceed without concurrency limit: %v", k8sNamespace, err)
-			} else {
-				return nil, util.Wrap(err, "Failed to persist pipeline_version_concurrency_limit configuration")
+			ctx, k8sNamespace, run.PipelineVersionId, concurrencyLimit); err != nil {
+			// In multi-user mode, provide a more helpful error message if it's a permission issue
+			if common.IsMultiUserMode() && apierrors.IsForbidden(err) {
+				return nil, util.Wrapf(err, "Failed to persist pipeline_version_concurrency_limit configuration. The API server needs ConfigMap create/update permissions in namespace %s. Please ensure the ml-pipeline service account has the necessary RBAC permissions", k8sNamespace)
 			}
-		} else {
-			// Only configure synchronization semaphores if ConfigMap was successfully created/updated
-			wf, ok := executionSpec.(*util.Workflow)
-			if ok && wf != nil && wf.Workflow != nil {
-				if wf.Spec.Synchronization == nil {
-					wf.Spec.Synchronization = &workflowapi.Synchronization{}
-				}
-				wf.Spec.Synchronization.Semaphores = []*workflowapi.SemaphoreRef{
-					{
-						ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: pipelineParallelismConfigMapName,
-							},
-							Key: run.PipelineVersionId,
+			return nil, util.Wrap(err, "Failed to persist pipeline_version_concurrency_limit configuration")
+		}
+		// Only configure synchronization semaphores if ConfigMap was successfully created/updated
+		wf, ok := executionSpec.(*util.Workflow)
+		if ok && wf != nil && wf.Workflow != nil {
+			if wf.Spec.Synchronization == nil {
+				wf.Spec.Synchronization = &workflowapi.Synchronization{}
+			}
+			wf.Spec.Synchronization.Semaphores = append(
+				wf.Spec.Synchronization.Semaphores,
+				&workflowapi.SemaphoreRef{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: pipelineParallelismConfigMapName,
 						},
+						Key: run.PipelineVersionId,
 					},
-				}
-			}
+				},
+			)
 		}
 	}
 

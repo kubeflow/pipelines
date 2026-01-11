@@ -110,10 +110,6 @@ class PipelineConfig:
     @pipeline_version_concurrency_limit.setter
     def pipeline_version_concurrency_limit(self, value: Optional[int]) -> None:
         if value is not None:
-            if not isinstance(value, int):
-                raise ValueError(
-                    'pipeline_version_concurrency_limit must be an integer if specified.'
-                )
             if value <= 0:
                 raise ValueError(
                     'pipeline_version_concurrency_limit must be a positive integer.'
