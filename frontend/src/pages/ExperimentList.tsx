@@ -153,6 +153,9 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       <Tooltip title={props.value} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
+          data-testid='experiment-name-link'
+          data-experiment-id={props.id}
+          data-experiment-name={props.value || ''}
           onClick={e => e.stopPropagation()}
           to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
         >

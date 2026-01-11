@@ -414,6 +414,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   role='checkbox'
                   aria-checked={selected}
                   tabIndex={-1}
+                  data-testid='table-row'
+                  data-row-id={row.id}
                   className={classes(
                     'tableRow',
                     css.row,
