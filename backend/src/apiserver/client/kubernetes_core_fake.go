@@ -57,17 +57,10 @@ func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
 
 type FakeKubernetesCoreClientWithBadPodClient struct {
 	podClientFake *FakeBadPodClient
-	coreClient    v1.CoreV1Interface
-	clientset     kubernetes.Interface
 }
 
 func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWithBadPodClient {
-	clientset := kubernetesfake.NewClientset()
-	return &FakeKubernetesCoreClientWithBadPodClient{
-		podClientFake: &FakeBadPodClient{},
-		coreClient:    clientset.CoreV1(),
-		clientset:     clientset,
-	}
+	return &FakeKubernetesCoreClientWithBadPodClient{&FakeBadPodClient{}}
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
@@ -75,11 +68,13 @@ func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
-	return c.coreClient.ConfigMaps(namespace)
+	clientset := kubernetesfake.NewClientset()
+	return clientset.CoreV1().ConfigMaps(namespace)
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) GetClientSet() kubernetes.Interface {
-	return c.clientset
+	// Return nil for fake implementation
+	return nil
 }
 
 func (c *FakePodClient) EvictV1(context.Context, *policyv1.Eviction) error {
