@@ -43,7 +43,7 @@ def importer(
       - s3://bucket/path - Amazon S3
       - oci://registry/path - OCI Registry
       - minio://bucket/path - MinIO
-      - huggingface://repo_id - HuggingFace Hub (KFP-specific scheme)
+      - huggingface://repo_id[/revision][?params] - HuggingFace Hub (KFP-specific scheme)
 
     Args:
       artifact_uri: The URI of the artifact to import. For HuggingFace,
