@@ -503,8 +503,14 @@ for param in base_params:
     if param in sig.parameters:
         kwargs[param] = locals()[param]
 for param, value in optional_params.items():
-    if value and param in sig.parameters:
-        kwargs[param] = value
+    if value:
+        if param in sig.parameters:
+            kwargs[param] = value
+        else:
+            import warnings
+            warnings.warn(
+                f"Optional parameter '{param}' was specified but is not supported by the installed version of huggingface-hub; it will be ignored."
+            )
 snapshot_download(**kwargs)
 `, repoID, revision, repoType, localPath, allowPatterns, ignorePatterns)
 
