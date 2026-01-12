@@ -11,28 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A minimal pipeline that explicitly tests the "no parallelism" scenario where pipeline_version_concurrency_limit is not set."""
+"""A minimal pipeline that customizes max_active_runs."""
 
 from kfp import compiler, dsl
 
 
 @dsl.component(base_image='python:3.9')
-def produce_message(msg: str) -> str:
+def produce_message(msg: str, sleep_seconds: int = 20) -> str:
+    import time
+
     print(f'Processing {msg}...')
+    time.sleep(sleep_seconds)
     return msg
 
 
 @dsl.pipeline(
-    name='pipeline-with-no-concurrency-limit',
-    # pipeline_config is not set, which means pipeline_version_concurrency_limit is None/unset
-    # This explicitly tests the "no concurrency limit" scenario
+    name='pipeline-with-max-active-runs',
+    pipeline_config=dsl.PipelineConfig(max_active_runs=2),
 )
-def pipeline_with_no_concurrency_limit():
-    produce_message(msg='test')
+def pipeline_with_max_active_runs():
+    loop_args = ['one', 'two', 'three', 'four', 'five']
+    with dsl.ParallelFor(items=loop_args) as item:
+        produce_message(msg=item)
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline_with_no_concurrency_limit,
+        pipeline_func=pipeline_with_max_active_runs,
         package_path=__file__.replace('.py', '.yaml'))
-

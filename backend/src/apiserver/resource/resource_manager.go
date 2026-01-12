@@ -156,9 +156,9 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 	}
 }
 
-// extractPipelineVersionConcurrencyLimit extracts pipeline_version_concurrency_limit from the template's platform spec.
-// It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> pipelineVersionConcurrencyLimit
-func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int32, error) {
+// extractMaxActiveRuns extracts max_active_runs from the template's platform spec.
+// It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> maxActiveRuns
+func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
 	if tmpl == nil || !tmpl.IsV2() {
 		return 0, nil
 	}
@@ -179,13 +179,13 @@ func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int32, erro
 	}
 	// Get pipeline config
 	pipelineConfig := kubernetesSpec.GetPipelineConfig()
-	if pipelineConfig == nil || pipelineConfig.PipelineVersionConcurrencyLimit == nil {
+	if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
 		return 0, nil
 	}
-	// Get the concurrency limit value
-	value := pipelineConfig.GetPipelineVersionConcurrencyLimit()
+	// Get the max active runs value
+	value := pipelineConfig.GetMaxActiveRuns()
 	if value <= 0 {
-		return 0, fmt.Errorf("pipeline_version_concurrency_limit must be greater than 0, got %d", value)
+		return 0, fmt.Errorf("max_active_runs must be greater than 0, got %d", value)
 	}
 	return value, nil
 }
@@ -690,20 +690,20 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
-	// Extract concurrency limit from template and configure synchronization semaphores
-	concurrencyLimit, err := extractPipelineVersionConcurrencyLimit(tmpl)
+	// Extract max active runs from template and configure synchronization semaphores
+	maxActiveRuns, err := extractMaxActiveRuns(tmpl)
 	if err != nil {
-		return nil, util.Wrap(err, "failed to extract pipeline_version_concurrency_limit")
+		return nil, util.Wrap(err, "failed to extract max_active_runs")
 	}
-	if concurrencyLimit > 0 && run.PipelineVersionId != "" {
+	if maxActiveRuns > 0 && run.PipelineVersionId != "" {
 		// Create/update ConfigMap with semaphore limit
 		if err := r.upsertPipelineParallelismConfigMap(
-			ctx, k8sNamespace, run.PipelineVersionId, int(concurrencyLimit)); err != nil {
+			ctx, k8sNamespace, run.PipelineVersionId, int(maxActiveRuns)); err != nil {
 			// In multi-user mode, provide a more helpful error message if it's a permission issue
 			if common.IsMultiUserMode() && apierrors.IsForbidden(err) {
-				return nil, util.Wrapf(err, "Failed to persist pipeline_version_concurrency_limit configuration. The API server needs ConfigMap create/update permissions in namespace %s. Please ensure the ml-pipeline service account has the necessary RBAC permissions", k8sNamespace)
+				return nil, util.Wrapf(err, "Failed to persist max_active_runs configuration. The API server needs ConfigMap create/update permissions in namespace %s. Please ensure the ml-pipeline service account has the necessary RBAC permissions", k8sNamespace)
 			}
-			return nil, util.Wrap(err, "Failed to persist pipeline_version_concurrency_limit configuration")
+			return nil, util.Wrap(err, "Failed to persist max_active_runs configuration")
 		}
 		// Only configure synchronization semaphores if ConfigMap was successfully created/updated
 		wf, ok := executionSpec.(*util.Workflow)

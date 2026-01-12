@@ -93,8 +93,8 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 
 }
 
-// PipelineVersionConcurrencyLimit returns the configured pipelineVersionConcurrencyLimit from a pipeline spec, if set and valid (>0).
-func PipelineVersionConcurrencyLimit(pipelineFilePath string) (int32, bool) {
+// MaxActiveRuns returns the configured maxActiveRuns from a pipeline spec, if set and valid (>0).
+func MaxActiveRuns(pipelineFilePath string) (int32, bool) {
 	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
 	if spec == nil || spec.PlatformSpec() == nil {
 		return 0, false
@@ -104,10 +104,10 @@ func PipelineVersionConcurrencyLimit(pipelineFilePath string) (int32, bool) {
 		return 0, false
 	}
 	cfg := k8sSpec.GetPipelineConfig()
-	if cfg == nil || cfg.PipelineVersionConcurrencyLimit == nil {
+	if cfg == nil || cfg.MaxActiveRuns == nil {
 		return 0, false
 	}
-	val := cfg.GetPipelineVersionConcurrencyLimit()
+	val := cfg.GetMaxActiveRuns()
 	if val <= 0 {
 		return 0, false
 	}
@@ -153,7 +153,7 @@ func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testC
 				// terminal
 			}
 		}
-		gomega.Expect(active).To(gomega.BeNumerically("<=", limit), "Active concurrent runs should respect pipeline_version_concurrency_limit")
+		gomega.Expect(active).To(gomega.BeNumerically("<=", limit), "Active concurrent runs should respect max_active_runs")
 		if allTerminal {
 			return
 		}
