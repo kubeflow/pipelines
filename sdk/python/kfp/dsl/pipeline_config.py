@@ -98,22 +98,20 @@ class PipelineConfig:
 
     def __init__(self,
                  workspace: Optional[WorkspaceConfig] = None,
-                 pipeline_version_concurrency_limit: Optional[int] = None):
-        self._pipeline_version_concurrency_limit = None
+                 max_active_runs: Optional[int] = None):
+        self._max_active_runs = None
         self.workspace = workspace
-        self.pipeline_version_concurrency_limit = pipeline_version_concurrency_limit
+        self.max_active_runs = max_active_runs
 
     @property
-    def pipeline_version_concurrency_limit(self) -> Optional[int]:
-        return self._pipeline_version_concurrency_limit
+    def max_active_runs(self) -> Optional[int]:
+        return self._max_active_runs
 
-    @pipeline_version_concurrency_limit.setter
-    def pipeline_version_concurrency_limit(self, value: Optional[int]) -> None:
+    @max_active_runs.setter
+    def max_active_runs(self, value: Optional[int]) -> None:
         if value is not None:
             if value <= 0:
-                raise ValueError(
-                    'pipeline_version_concurrency_limit must be a positive integer.'
-                )
-            self._pipeline_version_concurrency_limit = value
+                raise ValueError('max_active_runs must be a positive integer.')
+            self._max_active_runs = value
         else:
-            self._pipeline_version_concurrency_limit = None
+            self._max_active_runs = None

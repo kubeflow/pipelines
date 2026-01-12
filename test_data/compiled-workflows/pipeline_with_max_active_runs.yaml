@@ -2,13 +2,13 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: null
-  generateName: pipeline-with-no-concurrency-limit-
+  generateName: pipeline-with-max-active-runs-
 spec:
   arguments:
     parameters:
-    - name: components-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e
-      value: '{"executorLabel":"exec-produce-message","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e
+    - name: components-14768a47ea03450df8698ec5acec01a1129af4b5520ef67319316215033c4d68
+      value: '{"executorLabel":"exec-produce-message","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"},"sleep_seconds":{"defaultValue":20,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-14768a47ea03450df8698ec5acec01a1129af4b5520ef67319316215033c4d68
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","produce_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,10 +18,14 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        produce_message(msg: str) -\u003e str:\n    print(f''Processing {msg}...'')\n    return
+        produce_message(msg: str, sleep_seconds: int = 20) -\u003e str:\n    import
+        time\n\n    print(f''Processing {msg}...'')\n    time.sleep(sleep_seconds)\n    return
         msg\n\n"],"image":"python:3.9"}'
+    - name: components-comp-for-loop-2
+      value: '{"dag":{"tasks":{"produce-message":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"produce-message"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"STRING"}}}}'
     - name: components-root
-      value: '{"dag":{"tasks":{"produce-message":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"test"}}}},"taskInfo":{"name":"produce-message"}}}}}'
+      value: '{"dag":{"tasks":{"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"one\",
+        \"two\", \"three\", \"four\", \"five\"]"}},"taskInfo":{"name":"for-loop-2"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -35,7 +39,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - pipeline-with-no-concurrency-limit
+      - pipeline-with-max-active-runs
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -219,11 +223,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e}}'
+            value: '{{workflow.parameters.components-14768a47ea03450df8698ec5acec01a1129af4b5520ef67319316215033c4d68}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"test"}}}},"taskInfo":{"name":"produce-message"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-produce-message"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"produce-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d0dfc90139c43813f2211cd4a11fcb0addd99cd851201302dd81c4568ff3a77e}}'
+            value: '{{workflow.parameters.implementations-14768a47ea03450df8698ec5acec01a1129af4b5520ef67319316215033c4d68}}'
           - name: task-name
             value: produce-message
           - name: parent-dag-id
@@ -244,14 +248,14 @@ spec:
       parameters:
       - name: parent-dag-id
     metadata: {}
-    name: root
+    name: comp-for-loop-2
     outputs: {}
   - container:
       args:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - pipeline-with-no-concurrency-limit
+      - pipeline-with-max-active-runs
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -331,6 +335,81 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"one\",
+              \"two\", \"three\", \"four\", \"five\"]"}},"taskInfo":{"name":"for-loop-2"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-2
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-2-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"one\",
+              \"two\", \"three\", \"four\", \"five\"]"}},"taskInfo":{"name":"for-loop-2"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-2-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-2-for-loop-2-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: for-loop-2
+        template: comp-for-loop-2-for-loop-2-iterator
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
   - dag:
       tasks:
       - arguments:

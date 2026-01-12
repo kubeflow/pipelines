@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: pipeline-with-concurrency-limit
+# Name: pipeline-with-max-active-runs
 components:
   comp-for-loop-2:
     dag:
@@ -66,7 +66,7 @@ deploymentSpec:
           \    return msg\n\n"
         image: python:3.9
 pipelineInfo:
-  name: pipeline-with-concurrency-limit
+  name: pipeline-with-max-active-runs
 root:
   dag:
     tasks:
@@ -85,4 +85,4 @@ sdkVersion: kfp-2.15.2
 platforms:
   kubernetes:
     pipelineConfig:
-      pipelineVersionConcurrencyLimit: 2
+      maxActiveRuns: 2

@@ -146,14 +146,14 @@ from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline_loade
     my_pipeline as pipeline_in_pipeline_loaded_from_yaml
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_after import \
     my_pipeline as after_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_concurrency_limit import \
-    pipeline_with_concurrency_limit
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_condition import \
     my_pipeline as condition_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_if_placeholder import \
     pipeline_none
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_loops import \
     my_pipeline as loops_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_max_active_runs import \
+    pipeline_with_max_active_runs
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_metrics_outputs import \
     my_pipeline as metrics_outputs_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_nested_conditions import \
@@ -324,11 +324,11 @@ class TestPipelineCompilation:
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_outputs.yaml'
             ),
             TestData(
-                pipeline_name='pipeline-with-concurrency-limit',
-                pipeline_func=pipeline_with_concurrency_limit,
+                pipeline_name='pipeline-with-max-active-runs',
+                pipeline_func=pipeline_with_max_active_runs,
                 pipline_func_args=None,
-                compiled_file_name='pipeline_with_concurrency_limit.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_concurrency_limit.yaml'
+                compiled_file_name='pipeline_with_max_active_runs.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_max_active_runs.yaml'
             ),
             TestData(
                 pipeline_name='collected-param-pipeline',

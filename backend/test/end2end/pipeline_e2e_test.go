@@ -266,7 +266,7 @@ func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testCon
 	}
 	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
 	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
-	if limit, ok := e2e_utils.PipelineVersionConcurrencyLimit(pipelineFilePath); ok {
+	if limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath); ok {
 		e2e_utils.ValidateWorkflowParallelismAcrossRuns(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipelineVersion.PipelineVersionID, experimentID, limit, maxPipelineWaitTime)
 	}
 

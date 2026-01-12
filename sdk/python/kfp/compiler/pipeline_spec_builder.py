@@ -2310,10 +2310,9 @@ def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
     if workspace is not None:
         config_dict['workspace'] = workspace.get_workspace()
 
-    pipeline_version_concurrency_limit = pipelineConfig.pipeline_version_concurrency_limit
-    if pipeline_version_concurrency_limit is not None:
-        config_dict['pipelineVersionConcurrencyLimit'] = (
-            pipeline_version_concurrency_limit)
+    max_active_runs = pipelineConfig.max_active_runs
+    if max_active_runs is not None:
+        config_dict['maxActiveRuns'] = max_active_runs
 
     if config_dict:
         json_format.ParseDict({'pipelineConfig': config_dict},

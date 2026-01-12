@@ -152,10 +152,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 
 	if hasPipelineConfig {
 		pipelineConfig := kubernetesSpec.GetPipelineConfig()
-		if pipelineConfig.PipelineVersionConcurrencyLimit != nil {
-			value := pipelineConfig.GetPipelineVersionConcurrencyLimit()
+		if pipelineConfig.MaxActiveRuns != nil {
+			value := pipelineConfig.GetMaxActiveRuns()
 			if value <= 0 {
-				return nil, fmt.Errorf("pipelineVersionConcurrencyLimit must be greater than 0, got %d", value)
+				return nil, fmt.Errorf("maxActiveRuns must be greater than 0, got %d", value)
 			}
 		}
 	}
