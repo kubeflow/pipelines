@@ -28,7 +28,6 @@ import (
 type FakeKuberneteCoreClient struct {
 	podClientFake *FakePodClient
 	coreClient    v1.CoreV1Interface
-	clientset     kubernetes.Interface
 }
 
 func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
@@ -43,7 +42,8 @@ func (c *FakeKuberneteCoreClient) ConfigMapClient(namespace string) v1.ConfigMap
 }
 
 func (c *FakeKuberneteCoreClient) GetClientSet() kubernetes.Interface {
-	return c.clientset
+	// Return nil for fake implementation - tests that need this should use a mock
+	return nil
 }
 
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
@@ -51,16 +51,20 @@ func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
 	return &FakeKuberneteCoreClient{
 		podClientFake: &FakePodClient{},
 		coreClient:    clientset.CoreV1(),
-		clientset:     clientset,
 	}
 }
 
 type FakeKubernetesCoreClientWithBadPodClient struct {
 	podClientFake *FakeBadPodClient
+	coreClient    v1.CoreV1Interface
 }
 
 func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWithBadPodClient {
-	return &FakeKubernetesCoreClientWithBadPodClient{&FakeBadPodClient{}}
+	clientset := kubernetesfake.NewClientset()
+	return &FakeKubernetesCoreClientWithBadPodClient{
+		podClientFake: &FakeBadPodClient{},
+		coreClient:    clientset.CoreV1(),
+	}
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
@@ -68,8 +72,7 @@ func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
-	clientset := kubernetesfake.NewClientset()
-	return clientset.CoreV1().ConfigMaps(namespace)
+	return c.coreClient.ConfigMaps(namespace)
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) GetClientSet() kubernetes.Interface {
