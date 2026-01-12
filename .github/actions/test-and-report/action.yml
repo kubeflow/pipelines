@@ -66,6 +66,16 @@ runs:
       with:
         python-version: ${{ inputs.python_version }}
 
+    - name: Port-forward MinIO service for archived workflow logs
+      id: port-forward-minio
+      if: (!cancelled())
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        pkill -f "kubectl port-forward.*minio" || true
+        ./.github/resources/scripts/forward-port.sh -q "$NAMESPACE" "minio" 9000 9000
+      continue-on-error: true
+
     - name: Run Tests
       id: run-tests
       shell: bash
@@ -101,17 +111,23 @@ runs:
       run: |
         echo "=== Current disk usage ==="
         df -h
-        NAMESPACE=${{ env.NAMESPACE }}
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          NAMESPACE=${{ inputs.namespace }}
-        fi
+        NAMESPACE="${{ inputs.default_namespace }}"
         ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+      continue-on-error: true
 
-    - name: Install Junit2Html plugin and generate report
-      if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+    - name: Install Junit2Html plugin
+      id: install-junit2html
+      if: (!cancelled())
       shell: bash
       run: |
         pip install junit2html
+      continue-on-error: true
+
+    - name: Generate HTML report
+      id: generate-html-report
+      if: (!cancelled()) && steps.install-junit2html.outcome == 'success'
+      shell: bash
+      run: |
         junit2html ${{ inputs.test_directory }}/reports/junit.xml ${{ inputs.test_directory }}/reports/test-report.html
       continue-on-error: true
 
@@ -129,7 +145,7 @@ runs:
     - name: Upload HTML Report
       id: upload
       uses: actions/upload-artifact@v4
-      if: (!cancelled())
+      if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
@@ -139,26 +155,23 @@ runs:
     - name: Publish Test Summary With HTML Report
       id: publish
       uses: ./.github/actions/junit-summary
-      if: (!cancelled()) && steps.upload.outcome != 'failure'
+      if: always() && !cancelled()
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
         custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
       continue-on-error: true
 
-    - name: Publish Test Summary
-      id: summary
-      uses: ./.github/actions/junit-summary
-      if: (!cancelled()) && steps.upload.outcome == 'failure'
-      with:
-        xml_files: '${{ inputs.test_directory }}/reports'
-      continue-on-error: true
-
-    - name: Mark Workflow failure if test step failed
-      if: steps.run-tests.outcome != 'success' && !cancelled()
+    - name: Mark Workflow failure if test reporting failed
+      if: always() && !cancelled() && (
+        steps.install-junit2html.outcome == 'failure' ||
+        steps.generate-html-report.outcome == 'failure' ||
+        steps.upload.outcome != 'success' ||
+        steps.publish.outcome == 'failure'
+        )
       shell: bash
       run: exit 1
 
-    - name: Mark Workflow failure if test reporting failed
-      if: (steps.publish.outcome == 'failure' || steps.summary.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
+    - name: Mark Workflow failure if test step failed
+      if: steps.run-tests.outcome != 'success' && !cancelled()
       shell: bash
       run: exit 1
