@@ -158,7 +158,7 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 
 // extractPipelineVersionConcurrencyLimit extracts pipeline_version_concurrency_limit from the template's platform spec.
 // It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> pipelineVersionConcurrencyLimit
-func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int, error) {
+func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int32, error) {
 	if tmpl == nil || !tmpl.IsV2() {
 		return 0, nil
 	}
@@ -187,12 +187,12 @@ func extractPipelineVersionConcurrencyLimit(tmpl template.Template) (int, error)
 	if value <= 0 {
 		return 0, fmt.Errorf("pipeline_version_concurrency_limit must be greater than 0, got %d", value)
 	}
-	return int(value), nil
+	return value, nil
 }
 
 // deletePipelineParallelismConfigMapEntry removes a pipeline version's parallelism entry from a ConfigMap.
-// This function is currently unused but kept for future implementation of automatic cleanup.
-// nolint: unused
+// This is called during pipeline version deletion to clean up ConfigMap entries in all namespaces
+// where runs of that pipeline version exist.
 func (r *ResourceManager) deletePipelineParallelismConfigMapEntry(ctx context.Context, namespace, key string) error {
 	if key == "" {
 		return fmt.Errorf("key cannot be empty")
@@ -698,7 +698,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if concurrencyLimit > 0 && run.PipelineVersionId != "" {
 		// Create/update ConfigMap with semaphore limit
 		if err := r.upsertPipelineParallelismConfigMap(
-			ctx, k8sNamespace, run.PipelineVersionId, concurrencyLimit); err != nil {
+			ctx, k8sNamespace, run.PipelineVersionId, int(concurrencyLimit)); err != nil {
 			// In multi-user mode, provide a more helpful error message if it's a permission issue
 			if common.IsMultiUserMode() && apierrors.IsForbidden(err) {
 				return nil, util.Wrapf(err, "Failed to persist pipeline_version_concurrency_limit configuration. The API server needs ConfigMap create/update permissions in namespace %s. Please ensure the ml-pipeline service account has the necessary RBAC permissions", k8sNamespace)
@@ -1988,6 +1988,26 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersionId, model.PipelineVersionDeleting)
 	if err != nil {
 		return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING", pipelineVersionId)
+	}
+
+	// Clean up ConfigMap entries for this pipeline version before deletion.
+	// This identifies all namespaces where runs of this pipeline version exist
+	// and removes the corresponding ConfigMap entries to prevent bloat.
+	// We do this before deleting the pipeline version so we can still query for runs.
+	namespaces, err := r.runStore.GetDistinctNamespacesForPipelineVersion(pipelineVersionId)
+	if err != nil {
+		// Log the error but don't fail the deletion - cleanup is best-effort
+		glog.Warningf("Failed to get namespaces for pipeline version %s during cleanup: %v", pipelineVersionId, err)
+	} else {
+		ctx := context.Background()
+		for _, namespace := range namespaces {
+			if err := r.deletePipelineParallelismConfigMapEntry(ctx, namespace, pipelineVersionId); err != nil {
+				// Log the error but don't fail the deletion - cleanup is best-effort
+				glog.Warningf("Failed to delete ConfigMap entry for pipeline version %s in namespace %s: %v", pipelineVersionId, namespace, err)
+			} else {
+				glog.Infof("Successfully cleaned up ConfigMap entry for pipeline version %s in namespace %s", pipelineVersionId, namespace)
+			}
+		}
 	}
 
 	// Delete pipeline spec file and DB entry.
