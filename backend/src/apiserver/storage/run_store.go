@@ -99,7 +99,7 @@ type RunStoreInterface interface {
 	// Gets distinct namespaces where runs for a pipeline version exist.
 	// This is used to identify all namespaces that may contain ConfigMap entries
 	// for a pipeline version when cleaning up resources.
-	GetDistinctNamespacesForPipelineVersion(pipelineVersionId string) ([]string, error)
+	GetDistinctNamespacesForPipelineVersion(pipelineVersionID string) ([]string, error)
 }
 
 type RunStore struct {
@@ -802,15 +802,15 @@ func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, err
 // GetDistinctNamespacesForPipelineVersion returns distinct namespaces where runs
 // for the given pipeline version exist. This is used to identify all namespaces
 // that may contain ConfigMap entries for a pipeline version when cleaning up resources.
-func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionId string) ([]string, error) {
-	if pipelineVersionId == "" {
+func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionID string) ([]string, error) {
+	if pipelineVersionID == "" {
 		return nil, fmt.Errorf("pipeline version ID cannot be empty")
 	}
 
 	sql, args, err := sq.
 		Select("DISTINCT Namespace").
 		From("run_details").
-		Where(sq.Eq{"PipelineVersionId": pipelineVersionId}).
+		Where(sq.Eq{"PipelineVersionId": pipelineVersionID}).
 		Where(sq.NotEq{"Namespace": ""}).
 		ToSql()
 	if err != nil {
@@ -819,7 +819,7 @@ func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionId str
 
 	rows, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to query distinct namespaces for pipeline version %s: %v", pipelineVersionId, err)
+		return nil, util.NewInternalServerError(err, "Failed to query distinct namespaces for pipeline version %s: %v", pipelineVersionID, err)
 	}
 	defer rows.Close()
 
