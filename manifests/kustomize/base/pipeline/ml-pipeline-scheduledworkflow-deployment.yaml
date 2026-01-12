@@ -25,8 +25,10 @@ spec:
         env:
           - name: METRICS_PORT
             value: "9090"
-          - name: CLIENT_QPC
+          - name: CLIENT_QPS
             value: "10"
+          - name: "RESYNC_INTERVAL_SECONDS"
+            value: "30"
           - name: CLIENT_BURST
             value: "20"
           - name: LOG_LEVEL
@@ -40,6 +42,9 @@ spec:
               configMapKeyRef:
                 name: pipeline-install-config
                 key: cronScheduleTimezone
+        ports:
+          - name: http
+            containerPort: 9090
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
