@@ -68,12 +68,12 @@ var (
 
 	queueSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "scheduled_workflow_queue_size",
-		Help: "The total len of queue",
+		Help: "Current number of workflows in the queue",
 	})
 
-	processedWorkflowTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "scheduled_workflow_processed_size",
-		Help: "The total len of processed workflows",
+	processedWorkflowThroughput = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "scheduled_workflow_throughput_total",
+		Help: "Total number of workflows processed (throughput)",
 	})
 )
 
@@ -318,7 +318,7 @@ func (c *Controller) processNextWorkItem() bool {
 			processNextItemDuration.WithLabelValues("error").Observe(time.Since(startTime).Seconds())
 		} else {
 			processNextItemDuration.WithLabelValues("ok").Observe(time.Since(startTime).Seconds())
-			processedWorkflowTotal.Inc()
+			processedWorkflowThroughput.Inc()
 		}
 	}()
 	obj, shutdown := c.workqueue.Get()
@@ -453,11 +453,15 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 	// number for the current time.
 	nowEpoch := c.time.Now().Unix()
 
-	startTime = time.Time{}
 	// Get active workflows for this ScheduledWorkflow.
-	active, err := c.workflowClient.List(swf.Name,
-		false, /* active workflow */
-		0 /* retrieve all workflows */)
+	startTime = time.Time{}
+	active, err := c.workflowClient.List(
+		swf.Name,
+		// active workflow
+		false,
+		// retrieve all workflows
+		0,
+	)
 	if err != nil {
 		processNextItemOperationDuration.WithLabelValues("swflist", "error").Observe(time.Since(startTime).Seconds())
 		return false, true, swf,
@@ -654,21 +658,27 @@ func (c *Controller) updateStatus(
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
 	swfCopy.UpdateStatus(nowEpoch, submitted, nextScheduledEpoch, active, completed, c.location)
 
-	startTime := time.Now()
+	// Pre-update check: determine if the Workflow (wf) object has actually changed
+	// by comparing its Status.Conditions, Status.WorkflowHistory, and Labels
+	// with the previous copy (swfCopy). `updated` will be true if any of these
+	// fields were modified.
+	//
+	// This check prevents unconditional updates: the controller will only
+	// attempt to update the Workflow if meaningful fields have changed, avoiding
+	// unnecessary writes to the Kubernetes API
 	conditionsWasUpdated := !equality.Semantic.DeepEqual(swf.Status.Conditions, swfCopy.Status.Conditions)
 	workHistoryWasUpdated := !equality.Semantic.DeepEqual(swf.Status.WorkflowHistory, swfCopy.Status.WorkflowHistory)
 	labelsWasUpdated := !equality.Semantic.DeepEqual(swf.Labels, swfCopy.Labels)
 	var updated = conditionsWasUpdated ||
 		workHistoryWasUpdated ||
 		labelsWasUpdated
-	processNextItemOperationDuration.WithLabelValues("checkupdates", "ok").Observe(time.Since(startTime).Seconds())
 
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
 	if updated {
-		startTime = time.Now()
+		startTime := time.Now()
 		err := c.swfClient.Update(ctx, swf.Namespace, swfCopy)
 		if err != nil {
 			processNextItemOperationDuration.WithLabelValues("swfupdate", "error").Observe(time.Since(startTime).Seconds())
