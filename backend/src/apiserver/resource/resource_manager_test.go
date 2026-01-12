@@ -1937,7 +1937,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
-func TestCreateRun_PipelineVersionConcurrencyLimitConfigMap(t *testing.T) {
+func TestCreateRun_MaxActiveRunsConfigMap(t *testing.T) {
 	initEnvVars()
 
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
@@ -4155,7 +4155,7 @@ var v2SpecHelloWorldWithParallelism = v2SpecHelloWorld + `
 platforms:
   kubernetes:
     pipelineConfig:
-      pipelineVersionConcurrencyLimit: 5
+      maxActiveRuns: 5
 `
 
 var v2SpecHelloWorldMutated = `

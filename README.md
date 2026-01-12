@@ -42,7 +42,7 @@ See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pi
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
 
-> New in master: `dsl.PipelineConfig` now accepts an optional `pipeline_version_concurrency_limit` integer to cap concurrent runs for a pipeline version. The backend configures Argo Workflows synchronization semaphores to read the limit from a ConfigMap, enabling workflow-level concurrency control across multiple runs.
+> New in master: `dsl.PipelineConfig` now accepts an optional `max_active_runs` integer to cap concurrent runs for a pipeline version. The backend configures Argo Workflows synchronization semaphores to read the limit from a ConfigMap, enabling workflow-level concurrency control across multiple runs.
 
 ## Deep Wiki
 Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines). 

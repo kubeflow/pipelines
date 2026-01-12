@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: pipeline-with-no-concurrency-limit
+# Name: pipeline-without-max-active-runs
 components:
   comp-produce-message:
     executorLabel: exec-produce-message
@@ -43,7 +43,7 @@ deploymentSpec:
           \    return msg\n\n"
         image: python:3.9
 pipelineInfo:
-  name: pipeline-with-no-concurrency-limit
+  name: pipeline-without-max-active-runs
 root:
   dag:
     tasks:
