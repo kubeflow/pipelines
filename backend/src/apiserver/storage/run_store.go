@@ -802,7 +802,7 @@ func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, err
 // GetDistinctNamespacesForPipelineVersion returns distinct namespaces where runs
 // for the given pipeline version exist. This is used to identify all namespaces
 // that may contain ConfigMap entries for a pipeline version when cleaning up resources.
-func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionID string) ([]string, error) {
+func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionID string) (namespaces []string, err error) {
 	if pipelineVersionID == "" {
 		return nil, fmt.Errorf("pipeline version ID cannot be empty")
 	}
@@ -821,9 +821,13 @@ func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionID str
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to query distinct namespaces for pipeline version %s: %v", pipelineVersionID, err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = util.NewInternalServerError(closeErr, "Failed to close rows: %v", closeErr)
+		}
+	}()
 
-	var namespaces []string
+	namespaces = []string{}
 	for rows.Next() {
 		var namespace string
 		if err := rows.Scan(&namespace); err != nil {
