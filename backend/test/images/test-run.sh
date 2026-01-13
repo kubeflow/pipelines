@@ -136,6 +136,25 @@ fi
 # Create Namespace
 oc create namespace "$NAMESPACE"
 
+# Define cleanup function
+cleanup() {
+  echo "Cleaning up resources..."
+  if [ -n "$NAMESPACE" ] && oc get namespace "$NAMESPACE" &> /dev/null; then
+    echo "Deleting namespace: $NAMESPACE"
+    oc delete namespace "$NAMESPACE"
+  fi
+  # Clean up temporary files
+  if [ -n "$dspa_deployment" ] && [ -f "$dspa_deployment" ]; then
+    rm -f "$dspa_deployment"
+  fi
+  if [ -n "$dspa_role_binding" ] && [ -f "$dspa_role_binding" ]; then
+    rm -f "$dspa_role_binding"
+  fi
+}
+
+# Set trap to run cleanup on script exit (success or failure)
+trap cleanup EXIT
+
 # Create AWS Secret (only for S3 storage)
 if [ "$STORAGE_TYPE" = "s3" ]; then
   echo "Creating AWS credentials secret for S3 storage"
@@ -148,6 +167,7 @@ fi
 
 # Create DSPA deployment
 echo "Creating DSPA deployment"
+cat "$dspa_deployment"
 oc apply -n "$NAMESPACE" -f "$dspa_deployment"
 timeout 1m bash -c \
   "until oc -n $NAMESPACE get deployment $DEPLOYMENT_NAME &> /dev/null; do echo 'Waiting for the deployment $DEPLOYMENT_NAME...'; sleep 10; done"
@@ -204,7 +224,3 @@ go run github.com/onsi/ginkgo/v2/ginkgo -r -v -p \
   -disableTlsCheck=true \
   -serviceAccountName=pipeline-runner-"$DSPA_NAME" \
   -baseImage="registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"
-
-# Cleanup
-echo "Cleaning up the namespace"
-oc delete namespace "$NAMESPACE"

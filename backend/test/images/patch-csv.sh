@@ -108,7 +108,7 @@ apply_csv_patch_and_wait_for_operator() {
     fi
 
     # Wait up to 5 minutes for pod to be ready
-    if oc wait --for='jsonpath={.status.conditions[?(@.type=="Ready")].status}=True' po -l "$operator_label" -n "$namespace_name" --timeout=300s; then
+    if oc wait --for='jsonpath={.status.conditions[?(@.type=="Ready")].status}=True' po -l "$operator_label" -n "$namespace_name" --timeout=300s >&2; then
         echo "Operator pod is ready" >&2
     else
         echo "Warning: Operator pod did not become ready within timeout, continuing anyway..." >&2

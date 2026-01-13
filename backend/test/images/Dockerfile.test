@@ -49,7 +49,7 @@ COPY ./api ./api
 COPY ./kubernetes_platform ./kubernetes_platform
 COPY ./test_data ./test_data
 
-WORKDIR /dspa/backend/test
+WORKDIR /dspa/backend/test/images
 
 # Command to run the tests
 ENTRYPOINT ["bash", "test-run.sh"]
