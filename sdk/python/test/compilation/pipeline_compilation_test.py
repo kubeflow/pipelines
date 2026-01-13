@@ -180,6 +180,8 @@ from test_data.sdk_compiled_pipelines.valid.if_else_with_oneof_parameters import
     flip_coin_pipeline as if_else_oneof_params_pipeline
 from test_data.sdk_compiled_pipelines.valid.input_artifact import \
     input_artifact
+from test_data.sdk_compiled_pipelines.valid.literal_pipeline import \
+    literal_pipeline
 from test_data.sdk_compiled_pipelines.valid.long_running import \
     wait_awhile as long_running_pipeline
 from test_data.sdk_compiled_pipelines.valid.metrics_visualization_v2 import \
@@ -1125,6 +1127,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='placeholder_none_input_value.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/placeholder_with_if_placeholder_none_input_value.yaml'
+            ),
+            TestData(
+                pipeline_name='literal-pipeline',
+                pipeline_func=literal_pipeline,
+                pipline_func_args=None,
+                compiled_file_name='literal_pipeline.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/literal_pipeline.yaml'
             ),
         ],
         ids=str)
