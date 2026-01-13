@@ -383,7 +383,9 @@ class TestTaskInFinalState(unittest.TestCase):
 
     Many properties and methods will be blocked.
 
-    Also tests that the .output and .outputs behavior behaves as expected when the outputs are values, not placeholders, as will be the case when PipelineTask is in the state FINAL.
+    Also tests that the .output and .outputs behavior behaves as
+    expected when the outputs are values, not placeholders, as will be
+    the case when PipelineTask is in the state FINAL.
     """
 
     def test_output_property(self):

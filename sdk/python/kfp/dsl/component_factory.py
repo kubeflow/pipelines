@@ -21,8 +21,7 @@ import pathlib
 import re
 import tarfile
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -314,8 +313,8 @@ def get_name_to_specs(
             type_string, _ = type_utils.annotation_to_type_struct_and_literals(
                 annotation)
             name_to_input_specs[maybe_make_unique(
-                    name, list(name_to_input_specs))] = make_input_spec(
-                        type_string, func_param)
+                name, list(name_to_input_specs))] = make_input_spec(
+                    type_string, func_param)
 
     ### handle return annotations ###
     return_ann = signature.return_annotation
@@ -702,8 +701,7 @@ def create_notebook_component_from_func(
         notebook_relpath = nb_path.name
 
     # Build the helper source template with a placeholder for the embedded archive
-    from kfp.dsl.templates.notebook_executor import \
-        get_notebook_executor_source
+    from kfp.dsl.templates.notebook_executor import get_notebook_executor_source
     helper_template = get_notebook_executor_source('{embedded_archive}',
                                                    notebook_relpath)
 

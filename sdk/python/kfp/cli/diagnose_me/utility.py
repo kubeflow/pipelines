@@ -21,12 +21,13 @@ from typing import List, Text
 class ExecutorResponse(object):
     """Class for keeping track of output of _executor methods.
 
-    Data model for executing commands and capturing their response. This class
-    defines the data model layer for execution results, based on MVC design
-    pattern.
+    Data model for executing commands and capturing their response. This
+    class defines the data model layer for execution results, based on
+    MVC design pattern.
 
-    TODO() This class should be extended to contain data structure to better
-    represent the underlying data instaed of dict for various response types.
+    TODO() This class should be extended to contain data structure to
+    better represent the underlying data instaed of dict for various
+    response types.
     """
 
     def execute_command(self, command_list: List[Text]):

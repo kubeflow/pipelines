@@ -27,8 +27,7 @@ from kfp.dsl import placeholders
 from kfp.dsl import utils
 from kfp.dsl import v1_structures
 from kfp.dsl.component_task_config import TaskConfigPassthrough
-from kfp.dsl.container_component_artifact_channel import \
-    ContainerComponentArtifactChannel
+from kfp.dsl.container_component_artifact_channel import ContainerComponentArtifactChannel
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -45,7 +44,7 @@ class InputSpec:
         type: The type of the input.
         default (optional): the default value for the input.
         optional: Wether the input is optional. An input is optional when it has an explicit default value.
-        literals: Optional list of allowed Literal values for parameter inputs.
+        literals (optional): list of allowed input values.
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Input description.
     """
@@ -1023,6 +1022,7 @@ class ComponentSpec:
 
 def normalize_time_string(duration: str) -> str:
     """Normalizes a time string.
+
         Examples:
             - '1 hour' -> '1h'
             - '2 hours' -> '2h'
