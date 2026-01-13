@@ -830,17 +830,19 @@ func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionID str
 	namespaces = []string{}
 	for rows.Next() {
 		var namespace string
-		if err := rows.Scan(&namespace); err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to scan namespace: %v", err)
+		if scanErr := rows.Scan(&namespace); scanErr != nil {
+			err = util.NewInternalServerError(scanErr, "Failed to scan namespace: %v", scanErr)
+			return
 		}
 		if namespace != "" {
 			namespaces = append(namespaces, namespace)
 		}
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, util.NewInternalServerError(err, "Error iterating over namespace rows: %v", err)
+	if rowErr := rows.Err(); rowErr != nil {
+		err = util.NewInternalServerError(rowErr, "Error iterating over namespace rows: %v", rowErr)
+		return
 	}
 
-	return namespaces, nil
+	return
 }
