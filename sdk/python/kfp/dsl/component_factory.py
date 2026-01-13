@@ -314,8 +314,8 @@ def get_name_to_specs(
             type_string, _ = type_utils.annotation_to_type_struct_and_literals(
                 annotation)
             name_to_input_specs[maybe_make_unique(
-                    name, list(name_to_input_specs))] = make_input_spec(
-                        type_string, func_param)
+                name, list(name_to_input_specs))] = make_input_spec(
+                    type_string, func_param)
 
     ### handle return annotations ###
     return_ann = signature.return_annotation

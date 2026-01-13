@@ -376,7 +376,6 @@ def verify_type_compatibility(
                         warnings.warn(InconsistentTypeWarning(error_text))
 
     return types_are_compatible
-    
 
 
 def check_artifact_type_compatibility(given_type: str,
