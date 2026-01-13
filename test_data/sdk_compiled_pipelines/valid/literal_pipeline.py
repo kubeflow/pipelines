@@ -7,11 +7,9 @@ and produce stable IR output.
 import typing
 from kfp import dsl
 
-
 @dsl.component
 def literal_component(x: typing.Literal['a', 'b']) -> str:
     return x
-
 
 @dsl.pipeline(name='literal-pipeline')
 def literal_pipeline():

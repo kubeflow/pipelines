@@ -253,6 +253,8 @@ from test_data.sdk_compiled_pipelines.valid.two_step_pipeline import \
     my_pipeline as two_step_pipeline
 from test_data.sdk_compiled_pipelines.valid.xgboost_sample_pipeline import \
     xgboost_pipeline
+from test_data.sdk_compiled_pipelines.valid.literal_pipeline import \
+    literal_pipeline
 
 from ..test_utils.comparison_utils import ComparisonUtils
 from ..test_utils.file_utils import FileUtils
