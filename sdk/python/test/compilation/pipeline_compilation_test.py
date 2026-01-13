@@ -29,6 +29,8 @@ dsl.component = functools.partial(
 
 from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
     echo as arguments_parameters_echo
+from test_data.sdk_compiled_pipelines.valid.literal_pipeline import \
+    literal_pipeline
 from test_data.sdk_compiled_pipelines.valid.artifacts_complex import \
     math_pipeline as artifacts_complex_pipeline
 from test_data.sdk_compiled_pipelines.valid.artifacts_simple import \
@@ -1125,6 +1127,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='placeholder_none_input_value.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/placeholder_with_if_placeholder_none_input_value.yaml'
+            ),
+            TestData(
+                pipeline_name='literal-pipeline',
+                pipeline_func=literal_pipeline,
+                pipline_func_args=None,
+                compiled_file_name='literal_pipeline.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/literal_pipeline.yaml'
             ),
         ],
         ids=str)
