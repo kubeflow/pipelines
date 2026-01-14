@@ -1,9 +1,10 @@
 name: Trivy Vulnerability Scan
+
 on:
-  push:
-    branches:
-      - master
-  pull_request:
+  schedule:
+    # Every Friday at 19:39
+    - cron: '39 19 * * 5'
+
 jobs:
   build:
     name: Build
