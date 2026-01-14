@@ -6,6 +6,8 @@ source "./patch-csv.sh"
 set +o allexport
 
 export DEPLOYMENT_NAME="ds-pipeline-$DSPA_NAME"
+
+SKIP_DEPLOYMENT="${SKIP_DEPLOYMENT:-true}"
 RANDOM_SUFFIX=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
 export NAMESPACE="$NAMESPACE-$RANDOM_SUFFIX"
 
@@ -72,6 +74,10 @@ metadata:
   namespace: $NAMESPACE
 spec:
   dspVersion: v2
+EOF
+
+if [ "$SKIP_DEPLOYMENT" = "false" ]; then
+  cat <<EOF >> "$dspa_deployment"
   apiServer:
     image: "quay.io/opendatahub/ds-pipelines-api-server:$DSP_TAG"
     argoDriverImage: "quay.io/opendatahub/ds-pipelines-driver:$DSP_TAG"
@@ -83,6 +89,13 @@ spec:
   scheduledWorkflow:
     image: "quay.io/opendatahub/ds-pipelines-scheduledworkflow:$DSP_TAG"
 EOF
+else
+  cat <<EOF >> "$dspa_deployment"
+  apiServer:
+    cacheEnabled: true
+    enableSamplePipeline: false
+EOF
+fi
 
 # Add storage-specific configuration
 if [ "$STORAGE_TYPE" = "s3" ]; then
@@ -127,13 +140,14 @@ roleRef:
 EOF
 
 #################### PATCH CSV #######################
-if [ "$DEPLOY_DSPO" == "true" ]; then
+if [ "$DEPLOY_DSPO" == "true" ] && [ "$SKIP_DEPLOYMENT" = "false" ]; then
   find_csv_and_update "$DSPO_OWNER" "$DSPO_REPO" "$DSPO_BRANCH"
 fi
 
 #################### DEPLOY DSPA #######################
 
 # Create Namespace
+echo "Creating namespace: $NAMESPACE"
 oc create namespace "$NAMESPACE"
 
 # Define cleanup function
