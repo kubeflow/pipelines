@@ -1178,7 +1178,6 @@ message PipelineConfig {
   optional WorkspaceConfig workspace = 2;
 
   // Maximum number of concurrent runs allowed for this pipeline version.
-  // When set, Argo Workflows will use synchronization semaphores to limit
-  // the number of simultaneously running workflow instances for the same pipeline version.
+  // When set, limits the number of simultaneously active runs for the same pipeline version.
   optional int32 max_active_runs = 3;
 }
