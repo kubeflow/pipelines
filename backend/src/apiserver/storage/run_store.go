@@ -99,7 +99,7 @@ type RunStoreInterface interface {
 	// Gets distinct namespaces where runs for a pipeline version exist.
 	// This is used to identify all namespaces that may contain ConfigMap entries
 	// for a pipeline version when cleaning up resources.
-	GetDistinctNamespacesForPipelineVersion(pipelineVersionID string) ([]string, error)
+	GetRunNamespacesForPipelineVersion(pipelineVersionID string) ([]string, error)
 }
 
 type RunStore struct {
@@ -799,10 +799,10 @@ func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, err
 	return metrics, nil
 }
 
-// GetDistinctNamespacesForPipelineVersion returns distinct namespaces where runs
+// GetRunNamespacesForPipelineVersion returns distinct namespaces where runs
 // for the given pipeline version exist. This is used to identify all namespaces
 // that may contain ConfigMap entries for a pipeline version when cleaning up resources.
-func (s *RunStore) GetDistinctNamespacesForPipelineVersion(pipelineVersionID string) (namespaces []string, err error) {
+func (s *RunStore) GetRunNamespacesForPipelineVersion(pipelineVersionID string) (namespaces []string, err error) {
 	if pipelineVersionID == "" {
 		return nil, fmt.Errorf("pipeline version ID cannot be empty")
 	}

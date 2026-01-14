@@ -23,7 +23,7 @@ rules:
   resources:
   - configmaps
   resourceNames:
-  - kfp-pipeline-config
+  - kfp-argo-workflow-semaphores
   verbs:
   - get
   - update

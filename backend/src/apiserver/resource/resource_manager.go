@@ -23,7 +23,6 @@ import (
 	"reflect"
 	"strconv"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 
 	"github.com/cenkalti/backoff"
@@ -51,7 +50,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
-const pipelineParallelismConfigMapName = "kfp-pipeline-config"
+const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
 
 // Metric variables. Please prefix the metric names with resource_manager_.
 var (
@@ -167,7 +166,6 @@ func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
 	if !ok || v2Spec == nil {
 		return 0, nil
 	}
-	// Get the platform spec (already public method)
 	platformSpec := v2Spec.PlatformSpec()
 	if platformSpec == nil {
 		return 0, nil
@@ -193,95 +191,52 @@ func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
 // deletePipelineParallelismConfigMapEntry removes a pipeline version's parallelism entry from a ConfigMap.
 // This is called during pipeline version deletion to clean up ConfigMap entries in all namespaces
 // where runs of that pipeline version exist.
-func (r *ResourceManager) deletePipelineParallelismConfigMapEntry(ctx context.Context, namespace, key string) error {
+func (r *ResourceManager) deletePipelineParallelismConfigMapEntry(ctx context.Context, namespace, key string) {
 	if key == "" {
-		return fmt.Errorf("key cannot be empty")
+		glog.Warningf("Attempted to delete ConfigMap entry with empty key in namespace %s", namespace)
+		return
+	}
+
+	if ctx.Err() != nil {
+		glog.Warningf("Context canceled while deleting pipeline parallelism ConfigMap entry for key %s in namespace %s: %v", key, namespace, ctx.Err())
+		return
 	}
 
 	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
-	for {
-		if ctx.Err() != nil {
-			return util.Wrap(ctx.Err(), "context canceled while deleting pipeline parallelism ConfigMap entry")
-		}
-		current, err := configMaps.Get(ctx, pipelineParallelismConfigMapName, v1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			// ConfigMap doesn't exist, nothing to clean up
-			return nil
-		}
-		if err != nil {
-			return util.Wrap(err, "failed to retrieve pipeline parallelism ConfigMap for cleanup")
-		}
-
-		if current.Data == nil {
-			return nil
-		}
-		if _, ok := current.Data[key]; !ok {
-			// Key doesn't exist, nothing to clean up
-			return nil
-		}
-
-		delete(current.Data, key)
-		if _, err := configMaps.Update(ctx, current, v1.UpdateOptions{}); apierrors.IsConflict(err) {
-			continue
-		} else if err != nil {
-			return util.Wrap(err, "failed to delete pipeline parallelism ConfigMap entry")
-		}
-		return nil
+	// Use JSON merge patch to remove the key from ConfigMap data
+	// Setting the key to null in a merge patch removes it
+	patch := map[string]interface{}{
+		"data": map[string]interface{}{
+			key: nil,
+		},
 	}
-}
-
-func (r *ResourceManager) upsertPipelineParallelismConfigMap(ctx context.Context, namespace, key string, parallelism int) error {
-	if key == "" {
-		return fmt.Errorf("key cannot be empty")
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		glog.Warningf("Failed to marshal patch for deleting ConfigMap entry (key %s, namespace %s): %v", key, namespace, err)
+		return
 	}
 
-	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
-	value := strconv.Itoa(parallelism)
-
-	for {
-		if ctx.Err() != nil {
-			return util.Wrap(ctx.Err(), "context canceled while upserting pipeline parallelism ConfigMap")
-		}
-		current, err := configMaps.Get(ctx, pipelineParallelismConfigMapName, v1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			newConfigMap := &corev1.ConfigMap{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      pipelineParallelismConfigMapName,
-					Namespace: namespace,
-				},
-				Data: map[string]string{
-					key: value,
-				},
-			}
-			if _, err := configMaps.Create(ctx, newConfigMap, v1.CreateOptions{}); apierrors.IsAlreadyExists(err) {
-				continue
-			} else if err != nil {
-				return util.Wrap(err, "failed to create pipeline parallelism ConfigMap entry")
-			}
-			return nil
-		}
-		if err != nil {
-			return util.Wrap(err, "failed to retrieve pipeline parallelism ConfigMap")
-		}
-
-		if current.Data == nil {
-			current.Data = map[string]string{}
-		}
-		if existing, ok := current.Data[key]; ok && existing == value {
-			return nil
-		}
-
-		current.Data[key] = value
-		if _, err := configMaps.Update(ctx, current, v1.UpdateOptions{}); apierrors.IsConflict(err) {
-			continue
-		} else if err != nil {
-			return util.Wrap(err, "failed to update pipeline parallelism ConfigMap entry")
-		}
-		return nil
+	_, err = configMaps.Patch(ctx, pipelineParallelismConfigMapName, types.MergePatchType, patchBytes, v1.PatchOptions{})
+	if apierrors.IsNotFound(err) {
+		// ConfigMap doesn't exist, nothing to clean up
+		return
+	}
+	if err != nil {
+		glog.Warningf("Failed to delete pipeline parallelism ConfigMap entry (key %s, namespace %s): %v", key, namespace, err)
+		return
 	}
 }
 
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
+	return r.execClient.Execution(namespace)
+}
+
+func (r *ResourceManager) getWorkflowClientWithConfigMap(namespace string) util.ExecutionInterface {
+	if wc, ok := r.execClient.(*util.WorkflowClient); ok {
+		configMapClient := r.k8sCoreClient.ConfigMapClient(namespace)
+		return wc.ExecutionWithConfigMapClient(namespace, configMapClient)
+	}
+	// Fallback to regular Execution for other client types
 	return r.execClient.Execution(namespace)
 }
 
@@ -446,15 +401,9 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 		}
 
 		// Delete each pipeline version
+		// Use DeletePipelineVersion to ensure ConfigMap cleanup happens
 		for _, pipelineVersion := range pipelineVersions {
-			// Mark pipeline version as deleting so it's not visible to user.
-			err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersion.UUID, model.PipelineVersionDeleting)
-			if err != nil {
-				return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING during cascade delete", pipelineVersion.UUID)
-			}
-
-			// Delete the pipeline version from the database
-			err = r.pipelineStore.DeletePipelineVersion(pipelineVersion.UUID)
+			err = r.DeletePipelineVersion(pipelineVersion.UUID)
 			if err != nil {
 				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 			}
@@ -690,39 +639,19 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
-	// Extract max active runs from template and configure synchronization semaphores
+	// Extract max active runs from template and store in workflow annotations for WorkflowInterface.Create() to handle ConfigMap upsert.
+	// Semaphore configuration is handled in the Argo compiler during compilation.
 	maxActiveRuns, err := extractMaxActiveRuns(tmpl)
 	if err != nil {
 		return nil, util.Wrap(err, "failed to extract max_active_runs")
 	}
 	if maxActiveRuns > 0 && run.PipelineVersionId != "" {
-		// Create/update ConfigMap with semaphore limit
-		if err := r.upsertPipelineParallelismConfigMap(
-			ctx, k8sNamespace, run.PipelineVersionId, int(maxActiveRuns)); err != nil {
-			// In multi-user mode, provide a more helpful error message if it's a permission issue
-			if common.IsMultiUserMode() && apierrors.IsForbidden(err) {
-				return nil, util.Wrapf(err, "Failed to persist max_active_runs configuration. The API server needs ConfigMap create/update permissions in namespace %s. Please ensure the ml-pipeline service account has the necessary RBAC permissions", k8sNamespace)
-			}
-			return nil, util.Wrap(err, "Failed to persist max_active_runs configuration")
+		// Store pipeline version ID and max_active_runs in workflow annotations for WorkflowInterface.Create() to upsert ConfigMap.
+		if executionSpec.ExecutionObjectMeta().Annotations == nil {
+			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
 		}
-		// Only configure synchronization semaphores if ConfigMap was successfully created/updated
-		wf, ok := executionSpec.(*util.Workflow)
-		if ok && wf != nil && wf.Workflow != nil {
-			if wf.Spec.Synchronization == nil {
-				wf.Spec.Synchronization = &workflowapi.Synchronization{}
-			}
-			wf.Spec.Synchronization.Semaphores = append(
-				wf.Spec.Synchronization.Semaphores,
-				&workflowapi.SemaphoreRef{
-					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: pipelineParallelismConfigMapName,
-						},
-						Key: run.PipelineVersionId,
-					},
-				},
-			)
-		}
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionId] = run.PipelineVersionId
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
 	}
 
 	// assign OwnerReference to scheduledworkflow
@@ -738,7 +667,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		executionSpec.SetOwnerReferences(swf)
 	}
 
-	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
+	newExecSpec, err := r.getWorkflowClientWithConfigMap(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return nil, util.NewUnavailableServerError(err, "Failed to create a workflow for (%s) - try again later", executionSpec.ExecutionName())
@@ -1990,25 +1919,18 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 		return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING", pipelineVersionId)
 	}
 
-	// Clean up ConfigMap entries for this pipeline version before deletion.
-	// This identifies all namespaces where runs of this pipeline version exist
-	// and removes the corresponding ConfigMap entries to prevent bloat.
-	// We do this before deleting the pipeline version so we can still query for runs.
-	namespaces, err := r.runStore.GetDistinctNamespacesForPipelineVersion(pipelineVersionId)
-	if err != nil {
-		// Log the error but don't fail the deletion - cleanup is best-effort
-		glog.Warningf("Failed to get namespaces for pipeline version %s during cleanup: %v", pipelineVersionId, err)
-	} else {
-		ctx := context.Background()
-		for _, namespace := range namespaces {
-			if err := r.deletePipelineParallelismConfigMapEntry(ctx, namespace, pipelineVersionId); err != nil {
-				// Log the error but don't fail the deletion - cleanup is best-effort
-				glog.Warningf("Failed to delete ConfigMap entry for pipeline version %s in namespace %s: %v", pipelineVersionId, namespace, err)
-			} else {
-				glog.Infof("Successfully cleaned up ConfigMap entry for pipeline version %s in namespace %s", pipelineVersionId, namespace)
+	// Clean up engine-specific resources for this pipeline version asynchronously.
+	// This identifies all namespaces where runs of this pipeline version exist and delegates cleanup to the execution client.
+	defer func() {
+		go func() {
+			namespaces, err := r.runStore.GetRunNamespacesForPipelineVersion(pipelineVersionId)
+			if err != nil {
+				glog.Warningf("Failed to get namespaces for pipeline version %s during cleanup: %v", pipelineVersionId, err)
+				return
 			}
-		}
-	}
+			r.execClient.OnDeletePipelineVersion(pipelineVersionId, namespaces)
+		}()
+	}()
 
 	// Delete pipeline spec file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.

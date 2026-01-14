@@ -14,7 +14,7 @@ rules:
 - apiGroups:
   - ""
   resourceNames:
-  - kfp-pipeline-config
+  - kfp-argo-workflow-semaphores
   resources:
   - configmaps
   verbs:
