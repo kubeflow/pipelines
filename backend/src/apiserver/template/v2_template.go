@@ -367,7 +367,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			CacheDisabled:        t.templateOptions.CacheDisabled,
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
-			PipelineVersionId:    modelRun.PipelineVersionId,
+			PipelineVersionID:    modelRun.PipelineVersionId,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}

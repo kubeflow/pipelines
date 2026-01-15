@@ -49,7 +49,7 @@ type Options struct {
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 	MLPipelineTLSEnabled bool
 	// optional, pipeline version ID used for ConfigMap parallelism configuration
-	PipelineVersionId string
+	PipelineVersionID string
 }
 
 const (
@@ -161,7 +161,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 				return nil, fmt.Errorf("maxActiveRuns must be greater than 0, got %d", value)
 			}
 			// Configure synchronization semaphores if pipeline version ID is provided
-			if opts != nil && opts.PipelineVersionId != "" {
+			if opts != nil && opts.PipelineVersionID != "" {
 				if wf.Spec.Synchronization == nil {
 					wf.Spec.Synchronization = &wfapi.Synchronization{}
 				}
@@ -172,7 +172,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 							LocalObjectReference: k8score.LocalObjectReference{
 								Name: pipelineParallelismConfigMapName,
 							},
-							Key: opts.PipelineVersionId,
+							Key: opts.PipelineVersionID,
 						},
 					},
 				)

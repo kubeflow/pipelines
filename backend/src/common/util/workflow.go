@@ -875,8 +875,8 @@ func (wc *WorkflowClient) Compare(old, new interface{}) bool {
 	return newWorkflow.ResourceVersion != oldWorkflow.ResourceVersion
 }
 
-func (wc *WorkflowClient) OnDeletePipelineVersion(pipelineVersionId string, namespaces []string) {
-	if pipelineVersionId == "" || len(namespaces) == 0 {
+func (wc *WorkflowClient) OnDeletePipelineVersion(pipelineVersionID string, namespaces []string) {
+	if pipelineVersionID == "" || len(namespaces) == 0 {
 		return
 	}
 	// Clean up ConfigMap entries asynchronously to avoid blocking
@@ -894,7 +894,7 @@ func (wc *WorkflowClient) OnDeletePipelineVersion(pipelineVersionId string, name
 			}
 			ctx := context.Background()
 			for _, namespace := range namespaces {
-				deletePipelineParallelismConfigMapEntry(ctx, clientset.CoreV1().ConfigMaps(namespace), namespace, pipelineVersionId)
+				deletePipelineParallelismConfigMapEntry(ctx, clientset.CoreV1().ConfigMaps(namespace), namespace, pipelineVersionID)
 			}
 		}()
 	}()
@@ -959,14 +959,14 @@ func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpe
 }
 
 func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, workflow *Workflow) error {
-	if workflow.Workflow == nil || workflow.Workflow.Annotations == nil {
+	if workflow.Workflow == nil || workflow.Annotations == nil {
 		return nil
 	}
 
-	pipelineVersionId := workflow.Workflow.Annotations[AnnotationKeyPipelineVersionId]
-	maxActiveRunsStr := workflow.Workflow.Annotations[AnnotationKeyMaxActiveRuns]
+	pipelineVersionID := workflow.Annotations[AnnotationKeyPipelineVersionID]
+	maxActiveRunsStr := workflow.Annotations[AnnotationKeyMaxActiveRuns]
 
-	if pipelineVersionId == "" || maxActiveRunsStr == "" {
+	if pipelineVersionID == "" || maxActiveRunsStr == "" {
 		return nil
 	}
 
@@ -978,20 +978,20 @@ func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, 
 		return fmt.Errorf("max_active_runs must be greater than 0, got %d", maxActiveRuns)
 	}
 
-	namespace := workflow.Workflow.Namespace
+	namespace := workflow.Namespace
 	if namespace == "" {
 		return fmt.Errorf("workflow namespace is required for ConfigMap operations")
 	}
 
 	value := strconv.Itoa(maxActiveRuns)
 	configMapApply := applyv1.ConfigMap(pipelineParallelismConfigMapName, namespace).
-		WithData(map[string]string{pipelineVersionId: value})
+		WithData(map[string]string{pipelineVersionID: value})
 
 	// Use server-side apply which automatically handles both create and update.
 	// It will create the ConfigMap if it doesn't exist (NotFound) or update it if the value changed.
 	_, err = wfi.configMapClient.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
 	if err != nil {
-		glog.Warningf("Failed to persist max_active_runs configuration for pipeline version %s in namespace %s: %v", pipelineVersionId, namespace, err)
+		glog.Warningf("Failed to persist max_active_runs configuration for pipeline version %s in namespace %s: %v", pipelineVersionID, namespace, err)
 		return fmt.Errorf("failed to apply pipeline parallelism ConfigMap entry: %w", err)
 	}
 
