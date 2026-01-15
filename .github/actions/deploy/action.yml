@@ -31,7 +31,6 @@ inputs:
     description: "Enables artifact proxy"
     required: false
     default: 'false'
-
   argo_version:
     required: false
     description: "Argo version to use for the cluster"
@@ -100,12 +99,11 @@ runs:
           ARGS="${ARGS} --artifact-proxy"
         fi
 
-
-
         if [ -n "${{ inputs.argo_version }}" ]; then
           echo "Deploying with argo version ${{ inputs.argo_version }}"
           ARGS="${ARGS} --argo-version ${{ inputs.argo_version }}"
         fi
+
         if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
           ARGS="${ARGS} --tls-enabled"
         fi

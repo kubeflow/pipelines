@@ -64,7 +64,6 @@ jobs:
         k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
         argo_version: [ "v3.7.3", "v3.6.7", "v3.5.14"]
-
         proxy: [ "false" ]
         test_label: [ "E2ECritical" ]
         pod_to_pod_tls_enabled: [ "false" ]
@@ -107,7 +106,6 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
-
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
@@ -197,7 +195,6 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
-
           artifact_proxy: ${{ matrix.artifact_proxy }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
