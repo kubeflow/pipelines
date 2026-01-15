@@ -274,6 +274,40 @@ func Test_resolveContainerArgs(t *testing.T) {
 			expected: nil,
 			wantErr:  true,
 		},
+		{
+			name: "IfPresent with artifact present",
+			args: []string{
+				`{"IfPresent": {"InputName": "artifact", "Then": ["echo", "artifact-uri"], "Else": ["echo", "No artifact provided!"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{},
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"artifact": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{Uri: "gs://bucket/path"},
+							},
+						},
+					},
+				},
+			},
+			expected: []string{"echo", "artifact-uri"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with artifact absent",
+			args: []string{
+				`{"IfPresent": {"InputName": "artifact", "Then": ["echo", "artifact-uri"], "Else": ["echo", "No artifact provided!"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{},
+					Artifacts:       map[string]*pipelinespec.ArtifactList{},
+				},
+			},
+			expected: []string{"echo", "No artifact provided!"},
+			wantErr:  false,
+		},
 	}
 
 	for _, test := range tests {

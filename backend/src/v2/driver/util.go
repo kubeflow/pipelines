@@ -118,7 +118,11 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
 	}
 
-	_, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
+	// Check if input is present in parameter values OR artifacts
+	// InputName can refer to either a parameter or an artifact
+	_, isParameterPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
+	_, isArtifactPresent := executorInput.GetInputs().GetArtifacts()[ifPresent.IfPresent.InputName]
+	isPresent := isParameterPresent || isArtifactPresent
 	var values interface{}
 	if isPresent {
 		values = ifPresent.IfPresent.Then
