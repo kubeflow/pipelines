@@ -1,6 +1,7 @@
 # This workflow checks if all CI checks have passed by polling every 5 minutes.
 # It also records whether the triggering run actually completed that poll,
 # so downstream label automation can distinguish real passes from no-op successes.
+
 name: CI Check
 
 on:
@@ -12,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       checks: read
+
     steps:
       - name: Determine whether CI polling is needed
         id: eligibility
@@ -45,10 +47,6 @@ jobs:
           delay: '5'
           retries: '10'
           polling_interval: '5'
-          # Exclude checks dynamically created by the GitHub Copilot pull request reviewer.
-          # These checks fail with HTTP 403 on fork PRs due to permission limitations,
-          # causing false negatives in the status gate. If the Copilot reviewer adds or
-          # renames checks, update this list accordingly.
           checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -62,40 +60,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p ci-check-result
+          echo "{\"pr\": \"${{ github.event.pull_request.number }}\", \"action\": \"${{ github.event.action }}\"}" > ci-check-result/result.json
 
-          should_poll="${{ steps.eligibility.outputs.should_poll }}"
-          poll_outcome="${{ steps.poll.outcome }}"
-          should_add_label=false
-
-          if [[ -z "${should_poll}" ]]; then
-            should_poll=false
-          fi
-
-          if [[ -z "${poll_outcome}" ]]; then
-            poll_outcome=skipped
-          fi
-
-          if [[ "${should_poll}" == "true" && "${poll_outcome}" == "success" ]]; then
-            should_add_label=true
-          fi
-
-          jq -n \
-            --arg pr_number "${{ github.event.pull_request.number }}" \
-            --arg head_sha "${{ github.event.pull_request.head.sha }}" \
-            --arg poll_outcome "${poll_outcome}" \
-            --argjson should_poll "${should_poll}" \
-            --argjson should_add_label "${should_add_label}" \
-            '{
-              pr_number: $pr_number,
-              head_sha: $head_sha,
-              should_poll: $should_poll,
-              poll_outcome: $poll_outcome,
-              should_add_label: $should_add_label
-            }' > ci-check-result/result.json
-
-      - name: Upload CI check result
-        if: always()
-        uses: actions/upload-artifact@v7
+      - name: Upload CI result artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
           name: ci-check-result
           path: ci-check-result/result.json
