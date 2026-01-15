@@ -16,6 +16,9 @@ patches:
     kind: Deployment
     name: workflow-controller
     version: v1
+# Argo Workflow and the Agent communicate via the new WorkflowTaskSet CR,
+# so RBAC permissions are required for this resource.
+# Details: https://argo-workflows.readthedocs.io/en/latest/http-template/#argo-agent-rbac
 - path: workflow-controller-argo-role-patch.json
   target:
     group: rbac.authorization.k8s.io
