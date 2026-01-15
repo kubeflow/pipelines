@@ -448,9 +448,8 @@ Example (port-forward the API server service and test TLS locally):
 
 ```bash
 kubectl -n <namespace> port-forward svc/ml-pipeline 8443:443
-```
-Confirm the certificate presented by the server
-```bash
+
+# Confirm the certificate presented by the server
 openssl s_client -connect localhost:8443 -servername ml-pipeline 2>/dev/null | openssl x509 -noout -subject -issuer -dates
 ```
 
@@ -470,6 +469,30 @@ openssl x509 -enddate -noout -in server.crt
 ## Optional: automate restart after secret update
 
 Kubernetes does not automatically restart pods when a Secret changes. Options:
+
+Example: manually update the secret and restart the dependent deployments
+
+```bash
+NAMESPACE="<namespace>"
+SECRET_NAME="kfp-api-tls-cert"
+
+# Update the TLS secret (same command as above)
+kubectl create secret tls "${SECRET_NAME}" \
+  --cert=server.crt \
+  --key=server.key \
+  --dry-run=client -o yaml | kubectl apply -f - -n "${NAMESPACE}"
+
+# Restart dependent deployments (rolling restart)
+kubectl rollout restart deploy/ml-pipeline-apiserver -n "${NAMESPACE}"
+kubectl rollout restart deploy/ml-pipeline-persistenceagent -n "${NAMESPACE}"
+kubectl rollout restart deploy/metadata-envoy-deployment -n "${NAMESPACE}"
+kubectl rollout restart deploy/metadata-grpc-deployment -n "${NAMESPACE}"
+kubectl rollout restart deploy/ml-pipeline-scheduledworkflow -n "${NAMESPACE}"
+kubectl rollout restart deploy/ml-pipeline-ui -n "${NAMESPACE}"
+
+# Wait for rollouts
+kubectl rollout status deploy/ml-pipeline-apiserver -n "${NAMESPACE}"
+```
 
 * Use an operator or controller that watches the Secret and triggers kubectl `rollout restart` on dependent deployments.
 * Use `cert-manager` and the common checksum/annotation pattern to trigger a redeploy when the Secret changes. For example, add an annotation that contains a checksum of the secret; updating the annotation forces a rolling update:
