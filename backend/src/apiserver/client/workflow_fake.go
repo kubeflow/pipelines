@@ -25,16 +25,22 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	applyv1 "k8s.io/client-go/applyconfigurations/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type FakeWorkflowClient struct {
 	workflows       map[string]*v1alpha1.Workflow
 	lastGeneratedId int
+	configMapClient corev1client.ConfigMapInterface
 }
+
+const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
 
 func NewWorkflowClientFake() *FakeWorkflowClient {
 	return &FakeWorkflowClient{
@@ -53,6 +59,26 @@ func (c *FakeWorkflowClient) Create(ctx context.Context, execSpec util.Execution
 		workflow.Name = workflow.GenerateName + strconv.Itoa(c.lastGeneratedId)
 		workflow.GenerateName = ""
 	}
+
+	// Handle ConfigMap creation for pipeline parallelism if annotations are present
+	if c.configMapClient != nil && workflow.Workflow != nil && workflow.Annotations != nil {
+		pipelineVersionID := workflow.Annotations[util.AnnotationKeyPipelineVersionID]
+		maxActiveRunsStr := workflow.Annotations[util.AnnotationKeyMaxActiveRuns]
+		if pipelineVersionID != "" && maxActiveRunsStr != "" {
+			namespace := workflow.Namespace
+			if namespace != "" {
+				value := maxActiveRunsStr
+				configMapApply := applyv1.ConfigMap(pipelineParallelismConfigMapName, namespace).
+					WithData(map[string]string{pipelineVersionID: value})
+				_, err := c.configMapClient.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
+				if err != nil {
+					glog.Warningf("Failed to persist max_active_runs configuration for pipeline version %s in namespace %s: %v", pipelineVersionID, namespace, err)
+					// Don't fail the workflow creation, just log the warning
+				}
+			}
+		}
+	}
+
 	c.workflows[workflow.Name] = workflow.Workflow
 	return workflow, nil
 }
