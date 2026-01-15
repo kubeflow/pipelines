@@ -197,8 +197,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
           ? Deployments.KUBEFLOW
           : DEPLOYMENT_STR.toUpperCase() === Deployments.MARKETPLACE
-            ? Deployments.MARKETPLACE
-            : Deployments.NOT_SPECIFIED,
+          ? Deployments.MARKETPLACE
+          : Deployments.NOT_SPECIFIED,
       hideSideNav:
         HIDE_SIDENAV === undefined
           ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
