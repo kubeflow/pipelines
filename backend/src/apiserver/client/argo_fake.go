@@ -17,6 +17,7 @@ package client
 import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type FakeExecClient struct {
@@ -31,6 +32,15 @@ func (c *FakeExecClient) Execution(namespace string) util.ExecutionInterface {
 	if len(namespace) == 0 {
 		panic(util.NewResourceNotFoundError("Namespace", namespace))
 	}
+	return c.workflowClientFake
+}
+
+func (c *FakeExecClient) ExecutionWithConfigMapClient(namespace string, configMapClient corev1client.ConfigMapInterface) util.ExecutionInterface {
+	if len(namespace) == 0 {
+		panic(util.NewResourceNotFoundError("Namespace", namespace))
+	}
+	// Update the existing workflow client with ConfigMap support
+	c.workflowClientFake.configMapClient = configMapClient
 	return c.workflowClientFake
 }
 
