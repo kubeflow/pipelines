@@ -54,7 +54,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     MINIO_ACCESS_KEY = 'minio',
     MINIO_SECRET_KEY = 'minio123',
     MINIO_PORT = '9000',
-    MINIO_HOST = 'minio-service',
+    MINIO_HOST = 'seaweedfs',
     MINIO_NAMESPACE = 'kubeflow',
     MINIO_SSL = 'false',
     /** minio client use these to retrieve s3 objects/artifacts */
@@ -197,8 +197,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
           ? Deployments.KUBEFLOW
           : DEPLOYMENT_STR.toUpperCase() === Deployments.MARKETPLACE
-          ? Deployments.MARKETPLACE
-          : Deployments.NOT_SPECIFIED,
+            ? Deployments.MARKETPLACE
+            : Deployments.NOT_SPECIFIED,
       hideSideNav:
         HIDE_SIDENAV === undefined
           ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
