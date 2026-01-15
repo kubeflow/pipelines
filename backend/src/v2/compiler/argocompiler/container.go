@@ -169,6 +169,8 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 	return dagTask, outputs, nil
 }
 
+// Create the Argo Workflow executor plugin template for the container driver.
+// See https://argo-workflows.readthedocs.io/en/latest/executor_plugins/
 func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	name := "system-container-driver"
 	_, ok := c.templates[name]

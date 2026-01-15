@@ -91,6 +91,7 @@ func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWork
 	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }
 
+// ConfigurePluginSettings - Add/Remove cache_disabled args in the driver-plugin
 func ConfigurePluginSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
 	configuredWorkflow := workflow.DeepCopy()
 	for i, template := range configuredWorkflow.Spec.Templates {
