@@ -3146,6 +3146,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             <div
               aria-checked={false}
               className="tableRow row"
+              data-row-id="test-pipeline-version-id0"
+              data-testid="table-row"
               onClick={[Function]}
               role="checkbox"
               tabIndex={-1}
@@ -4378,6 +4380,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             <div
               aria-checked={false}
               className="tableRow row"
+              data-row-id="test-pipeline-version-id1"
+              data-testid="table-row"
               onClick={[Function]}
               role="checkbox"
               tabIndex={-1}
@@ -10166,6 +10170,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             <div
               aria-checked={false}
               className="tableRow row"
+              data-row-id="test-pipeline-version-id0"
+              data-testid="table-row"
               onClick={[Function]}
               role="checkbox"
               tabIndex={-1}
@@ -11398,6 +11404,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             <div
               aria-checked={false}
               className="tableRow row"
+              data-row-id="test-pipeline-version-id1"
+              data-testid="table-row"
               onClick={[Function]}
               role="checkbox"
               tabIndex={-1}
@@ -12630,6 +12638,8 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             <div
               aria-checked={false}
               className="tableRow row"
+              data-row-id="test-pipeline-version-id2"
+              data-testid="table-row"
               onClick={[Function]}
               role="checkbox"
               tabIndex={-1}

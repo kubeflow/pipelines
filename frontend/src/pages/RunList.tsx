@@ -217,6 +217,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
+          data-testid='run-name-link'
+          data-run-id={props.id}
+          data-run-name={props.value || ''}
           onClick={e => e.stopPropagation()}
           to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
         >
