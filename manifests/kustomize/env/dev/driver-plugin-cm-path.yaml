@@ -2,13 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ml-pipeline-driver-agent
-  labels:
-    workflows.argoproj.io/configmap-type: ExecutorPlugin
 data:
-  sidecar.automountServiceAccountToken: "true"
   sidecar.container: |
     name: driver-plugin
-    image: ghcr.io/kubeflow/kfp-driver:dummy
+    image: ghcr.io/kubeflow/kfp-driver:master
     ports:
       - containerPort: 8080
     resources:

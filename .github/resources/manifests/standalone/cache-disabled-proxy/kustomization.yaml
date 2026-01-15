@@ -9,3 +9,7 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: ../../base/driver-plugin-cm-path.yaml
+    target:
+      kind: ConfigMap
+      name: ml-pipeline-driver-agent
