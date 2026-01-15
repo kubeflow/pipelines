@@ -21,8 +21,7 @@ import pathlib
 import re
 import tarfile
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -311,7 +310,8 @@ def get_name_to_specs(
 
         # parameter type
         else:
-            type_string = type_utils._annotation_to_type_struct(annotation)
+            type_string, _ = type_utils.annotation_to_type_struct_and_literals(
+                annotation)
             name_to_input_specs[maybe_make_unique(
                 name, list(name_to_input_specs))] = make_input_spec(
                     type_string, func_param)
@@ -355,7 +355,7 @@ def get_name_to_specs(
             ' 0.1.32. Please use typing.NamedTuple to declare multiple'
             ' outputs.', DeprecationWarning)
         for output_name, output_type_annotation in return_ann.items():
-            output_type = type_utils._annotation_to_type_struct(
+            output_type, _ = type_utils.annotation_to_type_struct_and_literals(
                 output_type_annotation)
             name_to_output_specs[maybe_make_unique(
                 output_name, list(name_to_output_specs))] = output_type
@@ -385,17 +385,25 @@ def make_input_output_spec_args(annotation: Any) -> Dict[str, Any]:
     if is_artifact_list:
         annotation = type_annotations.get_inner_type(annotation)
 
+    literals = None
+
     if type_annotations.issubclass_of_artifact(annotation):
         typ = type_utils.create_bundled_artifact_type(annotation.schema_title,
                                                       annotation.schema_version)
     else:
-        typ = type_utils._annotation_to_type_struct(annotation)
-    return {'type': typ, 'is_artifact_list': is_artifact_list}
+        typ, literals = type_utils.annotation_to_type_struct_and_literals(
+            annotation)
+    return {
+        'type': typ,
+        'is_artifact_list': is_artifact_list,
+        'literals': literals,
+    }
 
 
 def make_output_spec(annotation: Any) -> structures.OutputSpec:
     annotation = canonicalize_annotation(annotation)
     args = make_input_output_spec_args(annotation)
+    args.pop('literals', None)
     return structures.OutputSpec(**args)
 
 
@@ -693,8 +701,7 @@ def create_notebook_component_from_func(
         notebook_relpath = nb_path.name
 
     # Build the helper source template with a placeholder for the embedded archive
-    from kfp.dsl.templates.notebook_executor import \
-        get_notebook_executor_source
+    from kfp.dsl.templates.notebook_executor import get_notebook_executor_source
     helper_template = get_notebook_executor_source('{embedded_archive}',
                                                    notebook_relpath)
 
