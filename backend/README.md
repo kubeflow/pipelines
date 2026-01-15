@@ -353,7 +353,7 @@ kind delete clusters dev-pipelines-api
 
 ### Context
 
-When pod-to-pod TLS is enabled, backend components (ml-pipeline-apiserver, metadata-envoy-deployment, metadata-grpc-deployment, ml-pipeline-persistenceagent, ml-pipeline-scheduledworkflow, and ml-pipeline-ui) use the TLS certificate stored in the Kubernetes TLS Secret `kfp-api-tls-cert`. These certificates expire and must be rotated periodically.
+When pod-to-pod TLS is enabled, backend components (`ml-pipeline-apiserver`, `metadata-envoy-deployment`, `metadata-grpc-deployment`, `ml-pipeline-persistenceagent`, `ml-pipeline-scheduledworkflow`, and `ml-pipeline-ui`) use the TLS certificate stored in the Kubernetes TLS Secret `kfp-api-tls-cert`. These certificates expire and must be rotated periodically.
 
 
 Important operational behaviour: updating a Kubernetes Secret does not cause running pods to read the updated secret automatically. Pods mount Secrets as files or reference them via environment variables at container start time. To pick up rotated certificates, you must restart the pods that read those secrets (a rolling restart of the affected deployments).
@@ -374,7 +374,7 @@ Which secrets and components are impacted:
 * `ml-pipeline-ui`
 
 > **Note**
-> The `pipelines-cache` / cache deployment generally does **not** require the CA cert for inbound TLS from pipeline components; confirm whether your deployment references the TLS secret before restarting it.
+> The `cache-server` deployment generally does **not** require the CA cert for inbound TLS from pipeline components; confirm whether your deployment references the TLS secret before restarting it.
 
 
 > **Note**
@@ -443,6 +443,16 @@ kubectl describe secret <secret-name> -n <namespace>
 ```
 
 Optional: connect to the API server over TLS (from inside cluster or via port-forward) to confirm certificate in use.
+
+Example (port-forward the API server service and test TLS locally):
+
+```bash
+kubectl -n <namespace> port-forward svc/ml-pipeline 8443:443
+```
+Confirm the certificate presented by the server
+```bash
+openssl s_client -connect localhost:8443 -servername ml-pipeline 2>/dev/null | openssl x509 -noout -subject -issuer -dates
+```
 
 ## Best practices & notes
 
