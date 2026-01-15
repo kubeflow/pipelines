@@ -188,45 +188,6 @@ func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
 	return value, nil
 }
 
-// deletePipelineParallelismConfigMapEntry removes a pipeline version's parallelism entry from a ConfigMap.
-// This is called during pipeline version deletion to clean up ConfigMap entries in all namespaces
-// where runs of that pipeline version exist.
-func (r *ResourceManager) deletePipelineParallelismConfigMapEntry(ctx context.Context, namespace, key string) {
-	if key == "" {
-		glog.Warningf("Attempted to delete ConfigMap entry with empty key in namespace %s", namespace)
-		return
-	}
-
-	if ctx.Err() != nil {
-		glog.Warningf("Context canceled while deleting pipeline parallelism ConfigMap entry for key %s in namespace %s: %v", key, namespace, ctx.Err())
-		return
-	}
-
-	configMaps := r.k8sCoreClient.ConfigMapClient(namespace)
-	// Use JSON merge patch to remove the key from ConfigMap data
-	// Setting the key to null in a merge patch removes it
-	patch := map[string]interface{}{
-		"data": map[string]interface{}{
-			key: nil,
-		},
-	}
-	patchBytes, err := json.Marshal(patch)
-	if err != nil {
-		glog.Warningf("Failed to marshal patch for deleting ConfigMap entry (key %s, namespace %s): %v", key, namespace, err)
-		return
-	}
-
-	_, err = configMaps.Patch(ctx, pipelineParallelismConfigMapName, types.MergePatchType, patchBytes, v1.PatchOptions{})
-	if apierrors.IsNotFound(err) {
-		// ConfigMap doesn't exist, nothing to clean up
-		return
-	}
-	if err != nil {
-		glog.Warningf("Failed to delete pipeline parallelism ConfigMap entry (key %s, namespace %s): %v", key, namespace, err)
-		return
-	}
-}
-
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
 	return r.execClient.Execution(namespace)
 }
@@ -650,7 +611,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if executionSpec.ExecutionObjectMeta().Annotations == nil {
 			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
 		}
-		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionId] = run.PipelineVersionId
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = run.PipelineVersionId
 		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
 	}
 

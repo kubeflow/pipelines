@@ -38,7 +38,7 @@ func (c *FakeExecClient) Compare(old, new interface{}) bool {
 	return false
 }
 
-func (c *FakeExecClient) OnDeletePipelineVersion(pipelineVersionId string, namespaces []string) {
+func (c *FakeExecClient) OnDeletePipelineVersion(pipelineVersionID string, namespaces []string) {
 	// No-op for fake client
 }
 
@@ -84,6 +84,6 @@ func (c *FakeExecClientWithBadWorkflow) Compare(old, new interface{}) bool {
 	return false
 }
 
-func (c *FakeExecClientWithBadWorkflow) OnDeletePipelineVersion(pipelineVersionId string, namespaces []string) {
+func (c *FakeExecClientWithBadWorkflow) OnDeletePipelineVersion(pipelineVersionID string, namespaces []string) {
 	// No-op for fake client
 }

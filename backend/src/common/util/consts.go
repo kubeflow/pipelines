@@ -61,8 +61,8 @@ const (
 	// To disable/enable cache for a single run, this label needs to be added in every step under a run.
 	LabelKeyCacheEnabled = "pipelines.kubeflow.org/cache_enabled"
 
-	// AnnotationKeyPipelineVersionId is a workflow annotation key for pipeline version ID used in ConfigMap parallelism configuration.
-	AnnotationKeyPipelineVersionId = "pipelines.kubeflow.org/pipeline_version_id"
+	// AnnotationKeyPipelineVersionID is a workflow annotation key for pipeline version ID used in ConfigMap parallelism configuration.
+	AnnotationKeyPipelineVersionID = "pipelines.kubeflow.org/pipeline_version_id"
 	// AnnotationKeyMaxActiveRuns is a workflow annotation key for max_active_runs value used in ConfigMap parallelism configuration.
 	AnnotationKeyMaxActiveRuns = "pipelines.kubeflow.org/max_active_runs"
 )
