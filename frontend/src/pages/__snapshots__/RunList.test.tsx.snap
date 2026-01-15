@@ -7025,6 +7025,9 @@ exports[`RunList renders run name as link to its details page 1`] = `
 >
   <Link
     className="link"
+    data-run-id="run-id"
+    data-run-name="test run"
+    data-testid="run-name-link"
     onClick={[Function]}
     replace={false}
     to="/runs/details/run-id"

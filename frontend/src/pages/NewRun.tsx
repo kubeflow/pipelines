@@ -748,6 +748,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     let experimentName = '';
     const breadcrumbs = [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }];
     if (experimentId) {
+      let experimentFetchError: Error | undefined;
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
         experimentName = experiment.name || '';
@@ -756,11 +757,34 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
         });
       } catch (err) {
-        await this.showPageError(
-          `Error: failed to retrieve associated experiment: ${experimentId}.`,
-          err,
-        );
-        logger.error(`Failed to retrieve associated experiment: ${experimentId}`, err);
+        experimentFetchError = err;
+      }
+
+      if (!experiment) {
+        try {
+          const v2Experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
+          experiment = {
+            id: v2Experiment.experiment_id,
+            name: v2Experiment.display_name,
+            description: v2Experiment.description,
+            created_at: v2Experiment.created_at,
+          };
+          experimentName = experiment.name || '';
+          breadcrumbs.push({
+            displayName: experimentName!,
+            href: RoutePage.EXPERIMENT_DETAILS.replace(
+              ':' + RouteParams.experimentId,
+              experimentId,
+            ),
+          });
+        } catch (err) {
+          const error = experimentFetchError || err;
+          await this.showPageError(
+            `Error: failed to retrieve associated experiment: ${experimentId}.`,
+            error,
+          );
+          logger.error(`Failed to retrieve associated experiment: ${experimentId}`, error);
+        }
       }
     }
 
