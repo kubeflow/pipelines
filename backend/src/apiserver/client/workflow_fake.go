@@ -25,7 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -70,7 +69,7 @@ func (c *FakeWorkflowClient) Create(ctx context.Context, execSpec util.Execution
 				value := maxActiveRunsStr
 				configMapApply := applyv1.ConfigMap(pipelineParallelismConfigMapName, namespace).
 					WithData(map[string]string{pipelineVersionID: value})
-				_, err := c.configMapClient.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
+				_, err := c.configMapClient.Apply(ctx, configMapApply, v1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
 				if err != nil {
 					glog.Warningf("Failed to persist max_active_runs configuration for pipeline version %s in namespace %s: %v", pipelineVersionID, namespace, err)
 					// Don't fail the workflow creation, just log the warning
