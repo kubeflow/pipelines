@@ -64,9 +64,6 @@ func (c *FakeWorkflowClient) Create(ctx context.Context, execSpec util.Execution
 		pipelineVersionID := workflow.Annotations[util.AnnotationKeyPipelineVersionID]
 		maxActiveRunsStr := workflow.Annotations[util.AnnotationKeyMaxActiveRuns]
 
-		if pipelineVersionID == "" || maxActiveRunsStr == "" {
-			// Skip ConfigMap creation if annotations are missing (matches real implementation's early return)
-		}
 		if pipelineVersionID != "" && maxActiveRunsStr != "" {
 			maxActiveRuns, err := strconv.Atoi(maxActiveRunsStr)
 			if err != nil {
