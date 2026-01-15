@@ -193,9 +193,13 @@ func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInte
 }
 
 func (r *ResourceManager) getWorkflowClientWithConfigMap(namespace string) util.ExecutionInterface {
+	configMapClient := r.k8sCoreClient.ConfigMapClient(namespace)
 	if wc, ok := r.execClient.(*util.WorkflowClient); ok {
-		configMapClient := r.k8sCoreClient.ConfigMapClient(namespace)
 		return wc.ExecutionWithConfigMapClient(namespace, configMapClient)
+	}
+	// Handle fake clients for testing
+	if fakeClient, ok := r.execClient.(*client.FakeExecClient); ok {
+		return fakeClient.ExecutionWithConfigMapClient(namespace, configMapClient)
 	}
 	// Fallback to regular Execution for other client types
 	return r.execClient.Execution(namespace)
