@@ -1989,7 +1989,7 @@ func TestCreateRun_MaxActiveRunsConfigMap(t *testing.T) {
 		context.Background(), pipelineParallelismConfigMapName, v1.GetOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, configMap.Data)
-		assert.Equal(t, "5", configMap.Data[version.UUID])
+	assert.Equal(t, "5", configMap.Data[version.UUID])
 
 	execSpec, err := store.ExecClientFake.Execution("kubeflow").Get(
 		context.Background(), createdRun.K8SName, v1.GetOptions{})
