@@ -29,6 +29,8 @@ import { color } from 'src/Css';
 import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 import { Edge, Node } from 'react-flow-renderer/dist/types';
 
+const MAX_SAFE_ELEMENTS = 200;
+
 export interface DagCanvasProps {
   elements: Elements<FlowElementDataBase>;
   setFlowElements: (elements: Elements<any>) => void;
