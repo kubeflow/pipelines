@@ -552,6 +552,8 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 	}, nil
 }
 
+// Create the Argo Workflow executor plugin template for the dag driver.
+// See https://argo-workflows.readthedocs.io/en/latest/executor_plugins/
 func (c *workflowCompiler) addDAGDriverTemplate() (string, error) {
 	name := "system-dag-driver"
 	_, ok := c.templates[name]

@@ -5,6 +5,8 @@ metadata:
     workflows.argoproj.io/configmap-type: ExecutorPlugin
   name: ml-pipeline-driver-agent
 data:
+  # The Argo Workflow executor plugin should be injected as a sidecar.
+  # Details: https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#configuration
   sidecar.automountServiceAccountToken: "true"
   sidecar.container: |
     image: ntny/kfp-driver:beta-poc04

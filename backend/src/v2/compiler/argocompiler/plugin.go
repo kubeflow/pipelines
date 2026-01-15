@@ -21,6 +21,8 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 )
 
+// Create the Argo Workflow executor plugin template with parameters.
+// // See https://argo-workflows.readthedocs.io/en/latest/executor_plugins/
 func driverPlugin(params map[string]interface{}) (*wfapi.Plugin, error) {
 	pluginConfig := map[string]interface{}{
 		"driver-plugin": map[string]interface{}{
