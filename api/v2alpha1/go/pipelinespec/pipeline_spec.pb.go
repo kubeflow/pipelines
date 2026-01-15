@@ -2762,8 +2762,7 @@ type PipelineConfig struct {
 	// The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
 	Workspace *WorkspaceConfig `protobuf:"bytes,2,opt,name=workspace,proto3,oneof" json:"workspace,omitempty"`
 	// Maximum number of concurrent runs allowed for this pipeline version.
-	// When set, Argo Workflows will use synchronization semaphores to limit
-	// the number of simultaneously running workflow instances for the same pipeline version.
+	// When set, limits the number of simultaneously active runs for the same pipeline version.
 	MaxActiveRuns *int32 `protobuf:"varint,3,opt,name=max_active_runs,json=maxActiveRuns,proto3,oneof" json:"max_active_runs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
