@@ -87,6 +87,10 @@ type Options struct {
 	MLMDServerPort string
 
 	CaCertPath string
+
+	// Added for resolving pipeline job time placeholders
+	PipelineJobCreateTimeUTC string
+	PipelineJobScheduleTimeUTC string
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
