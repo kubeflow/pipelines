@@ -16,6 +16,18 @@ runs:
     - name: Free up disk space on runner
       uses: ./.github/actions/github-disk-cleanup
 
+    - name: Pre-pull registry image
+      shell: bash
+      run: |
+        for attempt in 1 2 3; do
+          if docker pull registry:2; then
+            exit 0
+          fi
+          echo "registry:2 pull failed (attempt ${attempt}/3). Retrying..."
+          sleep $((attempt * 5))
+        done
+        exit 1
+
     - name: Create k8s Kind Cluster
       uses: helm/kind-action@v1.12.0
       id: cluster-create
