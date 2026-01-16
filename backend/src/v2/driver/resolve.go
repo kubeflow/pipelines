@@ -448,13 +448,44 @@ func resolveInputParameter(
 		if !ok {
 			return nil, fmt.Errorf("producer task, %v, not in tasks", producer.TaskName())
 		}
+		
+		exec := producer.GetExecution()
+		state := exec.GetLastKnownState().String()
+
+		var errStatus *status.Status
+
+		if state == "FAILED" {
+			customProps := exec.GetCustomProperties()
+
+			var message string
+			var code int32
+
+			if v, ok := customProps["error_message"]; ok {
+				message = v.GetStringValue()
+			} else if v, ok := customProps["status_message"]; ok {
+				message = v.GetStringValue()
+			}
+
+			if v, ok := customProps["error_code"]; ok {
+				code = int32(v.GetIntValue())
+			}
+
+			// Only attach error if we actually have something meaningful
+			if message != "" || code != 0 {
+				errStatus = &status.Status{
+					Code:    code,
+					Message: message,
+				}
+			}
+		}
+
 		finalStatus := pipelinespec.PipelineTaskFinalStatus{
-			State:                   producer.GetExecution().GetLastKnownState().String(),
+			State:                   state,
 			PipelineTaskName:        producer.TaskName(),
 			PipelineJobResourceName: opts.RunName,
-			// TODO: Implement fields "Message and "Code" below for Error status.
-			Error: &status.Status{},
+			Error:                   errStatus,
 		}
+
 		finalStatusJSON, err := protojson.Marshal(&finalStatus)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal PipelineTaskFinalStatus: %w", err)
