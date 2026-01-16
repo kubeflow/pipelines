@@ -247,6 +247,190 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			})
 		}
 	})
+
+	Context("Pipeline run parallelism tests >", Label(E2eEssential), func() {
+		var pipelineFile = "essential/pipeline_with_max_active_runs.yaml"
+		var pipelineDir = "valid"
+
+		It("Test 1: > MaxParallelism runs of a single pipeline version - only MaxParallelism runs should be active", func() {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
+
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+
+			// Launch (limit + 2) runs to exercise the semaphore
+			targetRuns := int(limit) + 2
+			runInfos := make([]e2e_utils.RunInfo, 0, targetRuns)
+			for i := 0; i < targetRuns; i++ {
+				created := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &uploadedPipelineVersion.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: uploadedPipelineVersion.PipelineVersionID,
+				})
+			}
+
+			versionLimitMap := map[string]int32{
+				uploadedPipelineVersion.PipelineVersionID: limit,
+			}
+			e2e_utils.ValidateParallelismAcrossRuns(runClient, testContext, runInfos, versionLimitMap, maxPipelineWaitTime)
+		})
+
+		It("Test 2: > MaxParallelism runs of a single pipeline but with different versions - all runs should be active", func() {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			version1 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+
+			// Upload a second version of the same pipeline
+			uploadParams := upload_params.NewUploadPipelineVersionParams()
+			uploadParams.Pipelineid = &uploadedPipeline.PipelineID
+			version2, uploadErr2 := pipelineUploadClient.UploadPipelineVersion(pipelineFilePath, uploadParams)
+			Expect(uploadErr2).To(BeNil(), "Failed to upload second pipeline version")
+
+			// Launch all runs for version1 first, then all runs for version2 (sequential batches)
+			targetRuns := int(limit) + 2
+			runInfos := make([]e2e_utils.RunInfo, 0, targetRuns*2)
+			// Launch all version1 runs first
+			for i := 0; i < targetRuns; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+			}
+			// Then launch all version2 runs
+			for i := 0; i < targetRuns; i++ {
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created2.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version2.PipelineVersionID,
+				})
+			}
+
+			// Both versions should have their own limits, so all runs from different versions should be active
+			versionLimitMap := map[string]int32{
+				version1.PipelineVersionID: limit,
+				version2.PipelineVersionID: limit,
+			}
+			e2e_utils.ValidateParallelismAcrossRuns(runClient, testContext, runInfos, versionLimitMap, maxPipelineWaitTime)
+		})
+
+		It("Test 3: > MaxParallelism runs, mix of single pipeline with different versions + same version - only MaxParallelism runs off the same version should be allowed but all runs from different versions should be allowed", func() {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			version1 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+
+			// Upload a second version of the same pipeline
+			uploadParams := upload_params.NewUploadPipelineVersionParams()
+			uploadParams.Pipelineid = &uploadedPipeline.PipelineID
+			version2, uploadErr2 := pipelineUploadClient.UploadPipelineVersion(pipelineFilePath, uploadParams)
+			Expect(uploadErr2).To(BeNil(), "Failed to upload second pipeline version")
+
+			// Test a MIX scenario: Launch runs to test dynamic mixing
+			runInfos := make([]e2e_utils.RunInfo, 0)
+
+			// Step 1: Launch runs from version1 (same version) to exceed the limit
+			version1Runs := int(limit) + 2
+			for i := 0; i < version1Runs; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+			}
+
+			// Step 2: Launch runs from version2 (different version) - should be allowed independently
+			version2Runs := int(limit) + 2
+			for i := 0; i < version2Runs; i++ {
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created2.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version2.PipelineVersionID,
+				})
+			}
+
+			// Step 3: Launch more runs from version1 (same version again) - should still be limited
+			additionalVersion1Runs := int(limit) + 1
+			for i := 0; i < additionalVersion1Runs; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+			}
+
+			// Verify: The mix of "different versions + same version" doesn't cause interference
+			versionLimitMap := map[string]int32{
+				version1.PipelineVersionID: limit,
+				version2.PipelineVersionID: limit,
+			}
+			e2e_utils.ValidateParallelismAcrossRuns(runClient, testContext, runInfos, versionLimitMap, maxPipelineWaitTime)
+		})
+
+		It("Test 4: > MaxParallelism runs different pipelines - all runs should be allowed", func() {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+
+			// Upload first pipeline
+			uploadedPipeline1, uploadErr1 := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr1).To(BeNil(), "Failed to upload first pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline1)
+			version1 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline1.PipelineID)
+
+			// Upload second pipeline (different pipeline, not just a version)
+			pipelineName2 := testContext.Pipeline.PipelineGeneratedName + "-pipeline2"
+			uploadedPipeline2, uploadErr2 := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &pipelineName2, nil)
+			Expect(uploadErr2).To(BeNil(), "Failed to upload second pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline2)
+			version2 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline2.PipelineID)
+
+			// Launch (limit + 2) runs for each pipeline
+			targetRuns := int(limit) + 2
+			runInfos := make([]e2e_utils.RunInfo, 0, targetRuns*2)
+			for i := 0; i < targetRuns; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline1.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline1.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline2.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, e2e_utils.RunInfo{
+					RunID:             created2.RunID,
+					PipelineID:        uploadedPipeline2.PipelineID,
+					PipelineVersionID: version2.PipelineVersionID,
+				})
+			}
+
+			// Each pipeline version should have its own limit, so runs from different pipelines should not interfere
+			versionLimitMap := map[string]int32{
+				version1.PipelineVersionID: limit,
+				version2.PipelineVersionID: limit,
+			}
+			e2e_utils.ValidateParallelismAcrossRuns(runClient, testContext, runInfos, versionLimitMap, maxPipelineWaitTime)
+		})
+	})
 })
 
 func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {
