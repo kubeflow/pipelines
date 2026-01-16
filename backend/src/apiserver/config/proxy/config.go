@@ -23,7 +23,7 @@ const (
 	HttpProxyEnv        = "HTTP_PROXY"
 	HttpsProxyEnv       = "HTTPS_PROXY"
 	NoProxyEnv          = "NO_PROXY"
-	defaultNoProxyValue = "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,minio-service.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"
+	defaultNoProxyValue = "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,seaweedfs.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"
 )
 
 type Config interface {

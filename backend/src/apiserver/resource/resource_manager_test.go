@@ -3647,7 +3647,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3693,7 +3693,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3739,7 +3739,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3901,7 +3901,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:

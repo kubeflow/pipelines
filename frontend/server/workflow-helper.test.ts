@@ -30,7 +30,7 @@ jest.mock('./k8s-helper');
 describe('workflow-helper', () => {
   const minioConfig = {
     accessKey: 'minio',
-    endPoint: 'minio-service.kubeflow',
+    endPoint: 'seaweedfs.kubeflow',
     secretKey: 'minio123',
   };
 
@@ -130,7 +130,7 @@ describe('workflow-helper', () => {
           '    key: accesskey\n' +
           '    name: mlpipeline-minio-artifact\n' +
           '  bucket: mlpipeline\n' +
-          '  endpoint: minio-service.kubeflow:9000\n' +
+          '  endpoint: seaweedfs.kubeflow:9000\n' +
           '  insecure: true\n' +
           '  keyFormat: foo\n' +
           '  secretKeySecret:\n' +
@@ -190,7 +190,7 @@ describe('workflow-helper', () => {
               s3: {
                 accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
                 bucket: 'bucket',
-                endpoint: 'minio-service.kubeflow',
+                endpoint: 'seaweedfs.kubeflow',
                 insecure: true,
                 key:
                   'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
@@ -241,7 +241,7 @@ describe('workflow-helper', () => {
       expect(mockedClient).toBeCalledTimes(1);
       expect(mockedClient).toBeCalledWith({
         accessKey: 'someSecret',
-        endPoint: 'minio-service.kubeflow',
+        endPoint: 'seaweedfs.kubeflow',
         port: 80,
         secretKey: 'someSecret',
         useSSL: false,

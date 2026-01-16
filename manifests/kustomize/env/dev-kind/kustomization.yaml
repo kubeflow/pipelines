@@ -57,7 +57,7 @@ patches:
     apiVersion: v1
     kind: Service
     metadata:
-      name: minio-service
+      name: seaweedfs
       namespace: kubeflow
     spec:
       ports:
