@@ -164,6 +164,64 @@ func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testC
 	}
 }
 
+// RunInfo tracks run information for parallelism validation
+type RunInfo struct {
+	RunID             string
+	PipelineID        string
+	PipelineVersionID string
+}
+
+// ValidateParallelismAcrossRuns validates parallelism limits across multiple runs with different pipeline/version combinations.
+// runInfos contains all runs to monitor, versionLimitMap maps pipelineVersionID to its max_active_runs limit.
+// For runs without max_active_runs, they should not be limited.
+func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, runInfos []RunInfo, versionLimitMap map[string]int32, maxPipelineWaitTime int) {
+	// Wait a bit for Argo to process the runs and enforce semaphore limits
+	time.Sleep(5 * time.Second)
+
+	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
+	pollInterval := 2 * time.Second
+
+	for {
+		// Track active runs per pipeline version
+		activeByVersion := make(map[string]int)
+		allTerminal := true
+
+		for _, runInfo := range runInfos {
+			run := testutil.GetPipelineRun(runClient, &runInfo.RunID)
+			if run.State == nil {
+				activeByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+				continue
+			}
+			switch *run.State {
+			case run_model.V2beta1RuntimeStateRUNNING:
+				activeByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+			case run_model.V2beta1RuntimeStatePENDING:
+				allTerminal = false
+			default:
+				// terminal
+			}
+		}
+
+		// Validate limits per version
+		for versionID, activeCount := range activeByVersion {
+			if limit, hasLimit := versionLimitMap[versionID]; hasLimit {
+				gomega.Expect(int32(activeCount)).To(gomega.BeNumerically("<=", limit),
+					fmt.Sprintf("Active concurrent runs for pipeline version %s should respect max_active_runs limit of %d, but found %d active", versionID, limit, activeCount))
+			}
+		}
+
+		if allTerminal {
+			return
+		}
+		if time.Now().After(timeout) {
+			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active runs by version: %v", activeByVersion))
+		}
+		time.Sleep(pollInterval)
+	}
+}
+
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
 func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, taskDetails []*run_model.V2beta1PipelineTaskDetail) {
 	failedTasks := make(map[string]string)
