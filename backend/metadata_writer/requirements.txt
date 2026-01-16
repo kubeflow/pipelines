@@ -61,7 +61,7 @@ six==1.17.0
     #   kubernetes
     #   ml-metadata
     #   python-dateutil
-urllib3==2.6.0
+urllib3==2.6.3
     # via
     #   kubernetes
     #   requests
