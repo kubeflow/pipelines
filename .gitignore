@@ -104,3 +104,11 @@ logs/
 
 # Project-local tools
 bin/
+# Local developer virtualenv (custom name)
+k/
+
+# Local repro / debug scripts
+repro_pvc_conditional.py
+
+# Local scratch directory (not repo kubernetes code)
+kubernetes/
