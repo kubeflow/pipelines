@@ -31,6 +31,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	goyaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -483,6 +484,20 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 					"invalid for root component", name)
 			default:
 				return util.NewInvalidInputError("input parameter %s requires type unknown", name)
+			}
+
+			// Validate against literal constraints if specified
+			if len(param.GetLiterals()) > 0 {
+				matched := false
+				for _, literal := range param.GetLiterals() {
+					if proto.Equal(input, literal) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					return util.NewInvalidInputError("input parameter %s value does not match any of the allowed literal values", name)
+				}
 			}
 		}
 	}

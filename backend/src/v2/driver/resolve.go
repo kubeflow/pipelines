@@ -28,10 +28,37 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
+
+// validateLiteralParameter validates a resolved parameter value against
+// the literal constraints defined in the parameter spec.
+// Returns nil if validation passes or if there are no literal constraints.
+func validateLiteralParameter(
+	paramName string,
+	value *structpb.Value,
+	paramSpec *pipelinespec.ComponentInputsSpec_ParameterSpec,
+) error {
+	literals := paramSpec.GetLiterals()
+	if len(literals) == 0 {
+		// No literal constraint
+		return nil
+	}
+
+	for _, literal := range literals {
+		if proto.Equal(value, literal) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf(
+		"input parameter %q value does not match any of the allowed literal values",
+		paramName,
+	)
+}
 
 // setWorkspaceFlag sets the _kfp_workspace metadata flag on the provided
 // runtime artifact when the producing execution is an ImporterWorkspace.
@@ -335,6 +362,13 @@ func resolveInputs(
 			}
 
 			return nil, err
+		}
+
+		// Validate against literal constraints if this parameter has them in the component spec
+		if componentParam, ok := opts.Component.GetInputDefinitions().GetParameters()[name]; ok && componentParam != nil {
+			if err := validateLiteralParameter(name, v, componentParam); err != nil {
+				return nil, fmt.Errorf("validating parameter %q: %w", name, err)
+			}
 		}
 
 		inputs.ParameterValues[name] = v
