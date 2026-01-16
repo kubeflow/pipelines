@@ -91,9 +91,27 @@ jobs:
         id: artifact-check
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        if: ${{ steps.artifact-check.outputs.exists == 'false' || github.ref_name == github.event.repository.default_branch }}
         id: setup-buildx
+        if: ${{ steps.artifact-check.outputs.exists == 'false' || github.ref_name == github.event.repository.default_branch }}
+        shell: bash
+        run: |
+          BUILDER_NAME="builder-${{ github.run_id }}-${{ github.job }}"
+          for attempt in 1 2 3; do
+            echo "Buildx setup attempt ${attempt}/3 (builder=${BUILDER_NAME})"
+            docker buildx rm -f "$BUILDER_NAME" >/dev/null 2>&1 || true
+            if ! docker buildx create --use --name "$BUILDER_NAME" --driver docker-container; then
+              echo "Buildx create failed (attempt ${attempt}/3)"
+            elif ! docker buildx inspect --bootstrap; then
+              echo "Buildx bootstrap failed (attempt ${attempt}/3)"
+            else
+              echo "Buildx setup succeeded (attempt ${attempt}/3)"
+              exit 0
+            fi
+            backoff=$((attempt * 10))
+            echo "Buildx setup failed (attempt ${attempt}/3). Retrying in ${backoff}s..."
+            sleep "$backoff"
+          done
+          exit 1
 
       - name: Build and save Docker image
         uses: docker/build-push-action@v5
