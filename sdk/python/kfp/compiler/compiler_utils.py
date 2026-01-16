@@ -173,6 +173,18 @@ def get_condition_channels_for_tasks(
 
     _get_condition_channels_for_tasks_helper(root_group, [])
     return conditions
+def _get_channels_from_platform_config(task):
+    """Extract PipelineChannels from task.platform_config (e.g. pvcMount)."""
+    channels = []
+    if not task.platform_config:
+        return channels
+
+    for cfg in task.platform_config.values():
+        channels.extend(
+            pipeline_channel.extract_pipeline_channels_from_any(cfg)
+        )
+
+    return channels
 
 
 def get_inputs_for_all_groups(
@@ -209,8 +221,10 @@ def get_inputs_for_all_groups(
         # task's inputs and all channels used in conditions for that task are
         # considered.
         task_condition_inputs = list(condition_channels[task.name])
+        platform_channels = _get_channels_from_platform_config(task)
 
-        for channel in task.channel_inputs + task_condition_inputs:
+        for channel in task.channel_inputs + platform_channels + task_condition_inputs:
+
 
             # If the value is already provided (immediate value), then no
             # need to expose it as input for its parent groups.
@@ -443,9 +457,9 @@ def get_outputs_for_all_groups(
     task_name_to_parent_groups: Mapping[str, List[str]],
     group_name_to_parent_groups: Mapping[str, List[str]],
     all_groups: List[tasks_group.TasksGroup],
-    pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel]
-) -> Tuple[DefaultDict[str, Dict[str, pipeline_channel.PipelineChannel]], Dict[
-        str, pipeline_channel.PipelineChannel]]:
+    pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel],
+    condition_channels: Mapping[str, Set[pipeline_channel.PipelineParameterChannel]],
+):
     """Gets a dictionary of all TasksGroup names to an inner dictionary. The
     inner dictionary is TasksGroup output keys to channels corresponding to
     those keys.
@@ -473,7 +487,15 @@ def get_outputs_for_all_groups(
     processed_oneofs: Set[pipeline_channel.OneOfMixin] = set()
     # handle dsl.Collected consumed by tasks
     for task in pipeline.tasks.values():
-        for channel in task.channel_inputs:
+          # task's inputs and all channels used in conditions for that task are considered
+        task_condition_inputs = list(condition_channels[task.name])
+        
+        # 🔹 NEW: include pipeline channels from platform_config (e.g. k8s.mount_pvc)
+        platform_channels = _get_channels_from_platform_config(task)
+
+        for channel in task.channel_inputs + platform_channels + task_condition_inputs:
+
+        
             # TODO: migrate Collected to OneOfMixin style implementation,
             # then simplify this logic to align with OneOfMixin logic
             if isinstance(channel, dsl.Collected):
