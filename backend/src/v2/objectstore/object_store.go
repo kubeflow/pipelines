@@ -251,26 +251,55 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	if err != nil {
 		return nil, err
 	}
-	if params.FromEnv {
+
+	// If fromEnv is true and we don't have endpoint/region configuration,
+	// return nil to use default AWS SDK configuration from environment.
+	// However, if we have endpoint/region info, we should still create a client
+	// with proper DNS resolution settings, using environment variables for credentials.
+	hasEndpointOrRegion := params.Endpoint != "" || params.Region != ""
+	if params.FromEnv && !hasEndpointOrRegion {
 		return nil, nil
 	}
-	creds, err := getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
-	if err != nil {
-		return nil, err
+
+	// Configure credentials: use environment variables if fromEnv is true,
+	// otherwise get credentials from Kubernetes secret.
+	var credsProvider *credentials.StaticCredentialsProvider
+	if !params.FromEnv {
+		creds, err := getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
+		if err != nil {
+			return nil, err
+		}
+		credsProvider = creds
 	}
-	s3Config, err := config.LoadDefaultConfig(ctx,
+
+	// Set default region if not provided (required for AWS SDK)
+	region := params.Region
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	// Build AWS config with credentials and region
+	configOptions := []func(*config.LoadOptions) error{
 		config.WithRetryer(func() aws.Retryer {
 			// Use standard retry logic with exponential backoff for transient S3 connection failures.
 			// The standard retryer implements exponential backoff with jitter, starting with a base delay
 			// and doubling the wait time between retries up to a maximum, helping to avoid thundering herd problems.
 			return retry.AddWithMaxAttempts(retry.NewStandard(), params.MaxRetries)
 		}),
-		config.WithCredentialsProvider(*creds),
-		config.WithRegion(*aws.String(params.Region)),
-	)
+		config.WithRegion(region),
+	}
+
+	// Add credentials provider only if not using environment variables
+	if credsProvider != nil {
+		configOptions = append(configOptions, config.WithCredentialsProvider(*credsProvider))
+	}
+	// If fromEnv is true, credentials will be loaded from environment by default
+
+	s3Config, err := config.LoadDefaultConfig(ctx, configOptions...)
 	if err != nil {
 		return nil, err
 	}
+
 	// AWS Specific:
 	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:
 	// 1) [https://]s3.amazonaws.com
@@ -278,11 +307,15 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	// for (1) the endpoint is not required, thus we skip it, otherwise the writer will fail to close due to region mismatch.
 	// https://aws.amazon.com/blogs/infrastructure-and-automation/best-practices-for-using-amazon-s3-endpoints-in-aws-cloudformation-templates/
 	// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
-	awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
+	awsEndpoint, err := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
+	if err != nil {
+		// This should never happen with a valid regex pattern, but handle it to satisfy linting
+		return nil, fmt.Errorf("failed to match S3 endpoint pattern: %w", err)
+	}
 	s3Options := func(o *s3.Options) {
 		o.UsePathStyle = *aws.Bool(params.ForcePathStyle)
 		o.EndpointOptions.DisableHTTPS = *aws.Bool(params.DisableSSL)
-		if !awsEndpoint {
+		if !awsEndpoint && params.Endpoint != "" {
 			// AWS SDK v2 requires BaseEndpoint to be a valid URI with scheme
 			endpoint := params.Endpoint
 			if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
@@ -296,9 +329,6 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 		}
 	}
 	s3Client := s3.NewFromConfig(s3Config, s3Options)
-	if s3Client == nil {
-		return nil, fmt.Errorf("Failed to create object store session, %v", err)
-	}
 	return s3Client, nil
 }
 

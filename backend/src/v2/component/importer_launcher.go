@@ -279,12 +279,24 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		return nil, fmt.Errorf("no provider scheme found in artifact URI: %s", artifactUri)
 	}
 
-	// Assume all imported artifacts will rely on execution environment for store provider session info
+	// Try to get session info from kfp-launcher ConfigMap first.
+	// This ensures proper endpoint/region configuration for DNS resolution.
+	// If ConfigMap is not available or doesn't have config, fall back to fromEnv.
 	storeSessionInfo := objectstore.SessionInfo{
 		Provider: provider,
 		Params: map[string]string{
 			"fromEnv": "true",
 		},
+	}
+	if cfg, err := config.FromConfigMap(ctx, l.k8sClient, l.launcherV2Options.Namespace); err != nil {
+		glog.Warningf("failed to load launcher config while resolving session info for artifact %q: %v", artifactUri, err)
+	} else if cfg != nil {
+		if sess, err := cfg.GetStoreSessionInfo(artifactUri); err != nil {
+			glog.Warningf("failed to resolve store session info for artifact %q: %v", artifactUri, err)
+		} else {
+			// Use ConfigMap session info if available, which includes endpoint/region for proper DNS resolution
+			storeSessionInfo = sess
+		}
 	}
 	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
 	if err != nil {
