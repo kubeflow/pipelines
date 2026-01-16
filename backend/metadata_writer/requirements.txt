@@ -36,7 +36,7 @@ oauthlib==3.3.1
     #   requests-oauthlib
 protobuf==4.25.8
     # via ml-metadata
-pyasn1==0.6.1
+pyasn1==0.6.2
     # via
     #   pyasn1-modules
     #   rsa
