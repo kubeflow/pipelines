@@ -48,7 +48,7 @@ googleapis-common-protos==1.70.0
 idna==3.10
     # via requests
 kfp==2.14.3
-    # via -r -
+    # via -r requirements.in
 kfp-pipeline-spec==2.14.0
     # via kfp
 kfp-server-api==2.14.3
@@ -68,7 +68,7 @@ protobuf==6.31.1
     #   kfp
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.1
+pyasn1==0.6.2
     # via
     #   pyasn1-modules
     #   rsa
