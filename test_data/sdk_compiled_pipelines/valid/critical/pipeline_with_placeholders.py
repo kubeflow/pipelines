@@ -24,17 +24,25 @@ def print_all_placeholders(
         job_id: str,
         task_name: str,
         task_id: str,
+        create_time: str,
+        schedule_time: str,
 ):
-    allPlaceholders = [job_name, job_resource_name, job_id, task_name, task_id]
+    allPlaceholders = [job_name, job_resource_name, job_id, task_name, task_id, create_time, schedule_time]
 
     for placeholder in allPlaceholders:
-        if "\{\{" in placeholder or placeholder == "":
+        if "{{" in placeholder or placeholder == "":
             raise RuntimeError(
                 "Expected the placeholder to be replaced with a value: " + placeholder
             )
 
     assert task_name == "print-all-placeholders"
     assert job_resource_name.startswith("pipeline-with-placeholders-")
+    
+    # Verify timestamp format (RFC3339/ISO 8601 format)
+    import re
+    timestamp_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'
+    assert re.match(timestamp_pattern, create_time), f"create_time should be in RFC3339 format, got: {create_time}"
+    assert re.match(timestamp_pattern, schedule_time), f"schedule_time should be in RFC3339 format, got: {schedule_time}"
 
     output = ", ".join(allPlaceholders)
     print(output)
@@ -48,6 +56,8 @@ def pipeline_with_placeholders():
         job_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
         task_name=dsl.PIPELINE_TASK_NAME_PLACEHOLDER,
         task_id=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
+        create_time=dsl.PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER,
+        schedule_time=dsl.PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER,
     ).set_caching_options(False)
 
 

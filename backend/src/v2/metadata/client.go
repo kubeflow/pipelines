@@ -105,6 +105,7 @@ type ClientInterface interface {
 	RecordArtifact(ctx context.Context, outputName, schema string, runtimeArtifact *pipelinespec.RuntimeArtifact, state pb.Artifact_State, bucketConfig *objectstore.Config) (*OutputArtifact, error)
 	GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error)
 	FindMatchedArtifact(ctx context.Context, artifactToMatch *pb.Artifact, pipelineContextId int64) (matchedArtifact *pb.Artifact, err error)
+	GetRootDAGExecutionCreationTime(ctx context.Context, pipeline *Pipeline) (int64, error)
 }
 
 // Client is an MLMD service client.
@@ -929,6 +930,53 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	}
 
 	return executionsMap, nil
+}
+
+// GetRootDAGExecutionCreationTime retrieves the root DAG execution creation time from the pipeline run context.
+// The root DAG execution is the DAG execution with type "system.DAGExecution" that has no parent_dag_id.
+func (c *Client) GetRootDAGExecutionCreationTime(ctx context.Context, pipeline *Pipeline) (int64, error) {
+	if pipeline == nil {
+		return 0, fmt.Errorf("pipeline is nil")
+	}
+	// Get execution type ID for DAG execution
+	dagExecutionTypeID, err := c.getExecutionTypeID(ctx, dagExecutionType)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get DAG execution type ID: %w", err)
+	}
+	// Query all executions in the pipeline run context
+	nextPageToken := ""
+	for {
+		res, err := c.svc.GetExecutionsByContext(ctx, &pb.GetExecutionsByContextRequest{
+			ContextId: pipeline.pipelineRunCtx.Id,
+			Options: &pb.ListOperationOptions{
+				FilterQuery:   nil, // Get all executions
+				NextPageToken: &nextPageToken,
+			},
+		})
+		if err != nil {
+			return 0, fmt.Errorf("failed to get executions from pipeline run context: %w", err)
+		}
+		executions := res.GetExecutions()
+		// Find the root DAG execution (type "system.DAGExecution" with no parent_dag_id)
+		for _, e := range executions {
+			if e.GetTypeId() == dagExecutionTypeID {
+				customProps := e.GetCustomProperties()
+				// Root DAG has no parent_dag_id custom property
+				if _, hasParent := customProps[keyParentDagID]; !hasParent {
+					createTimeMs := e.GetCreateTimeSinceEpoch()
+					if createTimeMs == 0 {
+						return 0, fmt.Errorf("root DAG execution has no creation time")
+					}
+					return createTimeMs, nil
+				}
+			}
+		}
+		nextPageToken = res.GetNextPageToken()
+		if nextPageToken == "" {
+			break
+		}
+	}
+	return 0, fmt.Errorf("root DAG execution not found in pipeline run context")
 }
 
 // GetEventsByArtifactIDs ...

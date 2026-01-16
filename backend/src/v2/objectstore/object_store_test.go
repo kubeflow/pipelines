@@ -289,6 +289,53 @@ func Test_createS3BucketSession(t *testing.T) {
 			wantErr:           true,
 			errorMsg:          "could not find specified keys",
 		},
+		{
+			msg: "Bucket with fromEnv=true but endpoint/region provided (DNS resolution fix for Issue #12525)",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"region":         "us-west-2",
+					"endpoint":       "s3.us-west-2.amazonaws.com",
+					"disableSSL":     "false",
+					"fromEnv":        "true",
+					"forcePathStyle": "true",
+					"maxRetries":     "5",
+				},
+			},
+			sessionSecret:     nil, // No secret needed when fromEnv=true
+			expectValidClient: true, // Client should be created with endpoint/region for DNS resolution
+			expectedRegion:    "us-west-2",
+			expectedEndpoint:  "s3.us-west-2.amazonaws.com",
+			expectedPathStyle: true,
+		},
+		{
+			msg: "Bucket with fromEnv=true but only region provided (no endpoint)",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"region":     "eu-central-1",
+					"fromEnv":    "true",
+					"maxRetries": "5",
+				},
+			},
+			sessionSecret:     nil,
+			expectValidClient: true, // Client should be created with region for proper AWS SDK configuration
+			expectedRegion:    "eu-central-1",
+		},
+		{
+			msg: "Bucket with fromEnv=true and no endpoint/region (should use default AWS SDK)",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			sessionSecret:     nil,
+			expectValidClient: false, // Should return nil to use default blob.OpenBucket
+		},
 	}
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
