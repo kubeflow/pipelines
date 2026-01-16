@@ -561,5 +561,111 @@ def pipeline_spec_from_file(filepath: str) -> str:
     return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
 
 
+class ToProtobufValueTest(unittest.TestCase):
+
+    def test_none_value(self):
+        result = pipeline_spec_builder.to_protobuf_value(None)
+        self.assertIsInstance(result, struct_pb2.Value)
+        self.assertEqual(result.null_value, struct_pb2.NULL_VALUE)
+
+    def test_bool_true(self):
+        result = pipeline_spec_builder.to_protobuf_value(True)
+        self.assertEqual(result.bool_value, True)
+
+    def test_bool_false(self):
+        result = pipeline_spec_builder.to_protobuf_value(False)
+        self.assertEqual(result.bool_value, False)
+
+    def test_string_value(self):
+        result = pipeline_spec_builder.to_protobuf_value("test")
+        self.assertEqual(result.string_value, "test")
+
+    def test_int_value(self):
+        result = pipeline_spec_builder.to_protobuf_value(42)
+        self.assertEqual(result.number_value, 42)
+
+    def test_float_value(self):
+        result = pipeline_spec_builder.to_protobuf_value(3.14)
+        self.assertAlmostEqual(result.number_value, 3.14)
+
+    def test_dict_value(self):
+        test_dict = {"key1": "value1", "key2": 123}
+        result = pipeline_spec_builder.to_protobuf_value(test_dict)
+        self.assertIsInstance(result.struct_value, struct_pb2.Struct)
+        self.assertEqual(result.struct_value.fields["key1"].string_value, "value1")
+        self.assertEqual(result.struct_value.fields["key2"].number_value, 123)
+
+    def test_dict_with_none_value(self):
+        test_dict = {"key1": "value1", "key2": None}
+        result = pipeline_spec_builder.to_protobuf_value(test_dict)
+        self.assertIsInstance(result.struct_value, struct_pb2.Struct)
+        self.assertEqual(result.struct_value.fields["key1"].string_value, "value1")
+        self.assertEqual(result.struct_value.fields["key2"].null_value, struct_pb2.NULL_VALUE)
+
+    def test_list_value(self):
+        test_list = ["string", 123, True]
+        result = pipeline_spec_builder.to_protobuf_value(test_list)
+        self.assertIsInstance(result.list_value, struct_pb2.ListValue)
+        self.assertEqual(len(result.list_value.values), 3)
+        self.assertEqual(result.list_value.values[0].string_value, "string")
+        self.assertEqual(result.list_value.values[1].number_value, 123)
+        self.assertEqual(result.list_value.values[2].bool_value, True)
+
+    def test_list_with_none_value(self):
+        test_list = ["string", None, 123]
+        result = pipeline_spec_builder.to_protobuf_value(test_list)
+        self.assertIsInstance(result.list_value, struct_pb2.ListValue)
+        self.assertEqual(len(result.list_value.values), 3)
+        self.assertEqual(result.list_value.values[0].string_value, "string")
+        self.assertEqual(result.list_value.values[1].null_value, struct_pb2.NULL_VALUE)
+        self.assertEqual(result.list_value.values[2].number_value, 123)
+
+    def test_nested_dict_with_none(self):
+        test_dict = {
+            "level1": {
+                "level2": {
+                    "value": None,
+                    "key": "test"
+                },
+                "null_key": None
+            }
+        }
+        result = pipeline_spec_builder.to_protobuf_value(test_dict)
+        level1 = result.struct_value.fields["level1"].struct_value
+        level2 = level1.fields["level2"].struct_value
+        self.assertEqual(level2.fields["value"].null_value, struct_pb2.NULL_VALUE)
+        self.assertEqual(level2.fields["key"].string_value, "test")
+        self.assertEqual(level1.fields["null_key"].null_value, struct_pb2.NULL_VALUE)
+
+    def test_mixed_nested_structure(self):
+        test_data = {
+            "string": "value",
+            "number": 42,
+            "list": [1, None, "three", {"nested": None}],
+            "dict": {"key": None},
+            "null": None
+        }
+        result = pipeline_spec_builder.to_protobuf_value(test_data)
+        
+        struct = result.struct_value
+        self.assertEqual(struct.fields["string"].string_value, "value")
+        self.assertEqual(struct.fields["number"].number_value, 42)
+        self.assertEqual(struct.fields["null"].null_value, struct_pb2.NULL_VALUE)
+        
+        list_values = struct.fields["list"].list_value.values
+        self.assertEqual(list_values[0].number_value, 1)
+        self.assertEqual(list_values[1].null_value, struct_pb2.NULL_VALUE)
+        self.assertEqual(list_values[2].string_value, "three")
+        self.assertEqual(list_values[3].struct_value.fields["nested"].null_value, struct_pb2.NULL_VALUE)
+        
+        self.assertEqual(struct.fields["dict"].struct_value.fields["key"].null_value, struct_pb2.NULL_VALUE)
+
+    def test_invalid_type_raises_error(self):
+        with self.assertRaises(ValueError) as context:
+            pipeline_spec_builder.to_protobuf_value(object())
+        
+        self.assertIn("Value must be one of the following types", str(context.exception))
+
+
 if __name__ == '__main__':
     unittest.main()

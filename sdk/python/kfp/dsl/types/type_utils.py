@@ -37,7 +37,7 @@ from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 
 DEFAULT_ARTIFACT_SCHEMA_VERSION = '0.0.1'
-PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
+PARAMETER_TYPES = Union[str, int, float, bool, dict, list, None]
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
 ARTIFACT_CLASSES_MAPPING = {
