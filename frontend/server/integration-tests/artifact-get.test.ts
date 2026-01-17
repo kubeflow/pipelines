@@ -838,6 +838,35 @@ describe('/artifacts', () => {
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(500, 'Failed to open volume.', done);
     });
+
+    it('rejects keys with encoded XSS payloads', done => {
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+      const request = requests(app.start());
+      request
+        .get(
+          '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=%3Cscript%3Ealert(1)%3C%2Fscript%3E',
+        )
+        .expect(500, 'Invalid object key', done);
+    });
+
+    it('rejects keys with repeated unsafe characters', done => {
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+      const request = requests(app.start());
+      request
+        .get(
+          '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=' +
+            '%2b['.repeat(300),
+        )
+        .expect(500, 'Invalid object key', done);
+    });
   });
 
   describe('/:source/:bucket/:key', () => {
