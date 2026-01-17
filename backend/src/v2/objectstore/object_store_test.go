@@ -292,7 +292,7 @@ func Test_createS3BucketSession(t *testing.T) {
 	}
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			fakeKubernetesClientset := fake.NewSimpleClientset()
+			fakeKubernetesClientset := fake.NewClientset()
 			ctx := context.Background()
 
 			if test.sessionSecret != nil {

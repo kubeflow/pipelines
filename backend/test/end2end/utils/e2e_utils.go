@@ -93,6 +93,157 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 
 }
 
+// MaxActiveRuns returns the configured maxActiveRuns from a pipeline spec, if set and valid (>0).
+func MaxActiveRuns(pipelineFilePath string) (int32, bool) {
+	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
+	if spec == nil || spec.PlatformSpec() == nil {
+		return 0, false
+	}
+	k8sSpec, ok := spec.PlatformSpec().GetPlatforms()["kubernetes"]
+	if !ok || k8sSpec == nil {
+		return 0, false
+	}
+	cfg := k8sSpec.GetPipelineConfig()
+	if cfg == nil || cfg.MaxActiveRuns == nil {
+		return 0, false
+	}
+	val := cfg.GetMaxActiveRuns()
+	if val <= 0 {
+		return 0, false
+	}
+	return val, true
+}
+
+// ValidateWorkflowParallelismAcrossRuns launches multiple runs for the same pipeline version
+// and asserts that no more than the configured limit are active concurrently.
+func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID string, pipelineVersionID string, experimentID *string, limit int32, maxPipelineWaitTime int) {
+	// Launch (limit + 2) runs to exercise the semaphore.
+	targetRuns := int(limit) + 2
+	runIDs := make([]string, 0, targetRuns)
+	for i := 0; i < targetRuns; i++ {
+		created := CreatePipelineRun(runClient, testContext, &pipelineID, &pipelineVersionID, experimentID, nil)
+		runIDs = append(runIDs, created.RunID)
+	}
+
+	// Wait a bit for Argo to process the runs and enforce semaphore limits
+	time.Sleep(5 * time.Second)
+
+	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
+	pollInterval := 2 * time.Second
+
+	for {
+		active := 0
+		allTerminal := true
+		for _, rid := range runIDs {
+			run := testutil.GetPipelineRun(runClient, &rid)
+			if run.State == nil {
+				active++
+				allTerminal = false
+				continue
+			}
+			switch *run.State {
+			case run_model.V2beta1RuntimeStateRUNNING:
+				// Only count RUNNING as active; PENDING may indicate waiting for semaphore
+				active++
+				allTerminal = false
+			case run_model.V2beta1RuntimeStatePENDING:
+				// PENDING runs might be waiting for semaphore, don't count as active
+				allTerminal = false
+			default:
+				// terminal
+			}
+		}
+		gomega.Expect(active).To(gomega.BeNumerically("<=", limit), "Active concurrent runs should respect max_active_runs")
+		if allTerminal {
+			return
+		}
+		if time.Now().After(timeout) {
+			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active=%d, limit=%d", active, limit))
+		}
+		time.Sleep(pollInterval)
+	}
+}
+
+// RunInfo tracks run information for parallelism validation
+type RunInfo struct {
+	RunID             string
+	PipelineID        string
+	PipelineVersionID string
+}
+
+// ValidateParallelismAcrossRuns validates parallelism limits across multiple runs with different pipeline/version combinations.
+// runInfos contains all runs to monitor, versionLimitMap maps pipelineVersionID to its max_active_runs limit.
+// For runs without max_active_runs, they should not be limited.
+func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, runInfos []RunInfo, versionLimitMap map[string]int32, maxPipelineWaitTime int) {
+	// Wait a bit for Argo to process the runs and enforce semaphore limits
+	time.Sleep(5 * time.Second)
+
+	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
+	pollInterval := 2 * time.Second
+	validationPassed := false
+
+	for {
+		// Track active runs per pipeline version
+		activeByVersion := make(map[string]int)
+		pendingByVersion := make(map[string]int)
+		allTerminal := true
+
+		for _, runInfo := range runInfos {
+			run := testutil.GetPipelineRun(runClient, &runInfo.RunID)
+			if run.State == nil {
+				activeByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+				continue
+			}
+			switch *run.State {
+			case run_model.V2beta1RuntimeStateRUNNING:
+				activeByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+			case run_model.V2beta1RuntimeStatePENDING:
+				pendingByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+			default:
+				// terminal
+			}
+		}
+
+		// Validate limits per version while runs are active
+		if len(activeByVersion) > 0 {
+			for versionID, activeCount := range activeByVersion {
+				if limit, hasLimit := versionLimitMap[versionID]; hasLimit {
+					gomega.Expect(int32(activeCount)).To(gomega.BeNumerically("<=", limit),
+						fmt.Sprintf("Active concurrent runs for pipeline version %s should respect max_active_runs limit of %d, but found %d active", versionID, limit, activeCount))
+				}
+			}
+			validationPassed = true
+		}
+
+		if allTerminal {
+			// If we validated at least once, we're good - runs can complete quickly
+			if validationPassed {
+				return
+			}
+			// If runs completed without ever being active, that's a problem
+			ginkgo.Fail(fmt.Sprintf("All runs completed before parallelism validation could be performed; runs may have completed too quickly or never started. Total runs: %d", len(runInfos)))
+		}
+
+		if time.Now().After(timeout) {
+			// If we never saw active runs, that's a problem
+			if !validationPassed {
+				ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to become active; active runs by version: %v, pending runs by version: %v, total runs: %d", activeByVersion, pendingByVersion, len(runInfos)))
+			}
+			// If we validated successfully and only PENDING runs remain, that's acceptable
+			if len(activeByVersion) == 0 && len(pendingByVersion) > 0 {
+				logger.Log("Validation passed. Some runs are still PENDING (waiting for semaphore), which is expected. Test passed.")
+				return
+			}
+			// If we validated but runs are still RUNNING, that's a timeout issue
+			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active runs by version: %v, pending runs by version: %v", activeByVersion, pendingByVersion))
+		}
+		time.Sleep(pollInterval)
+	}
+}
+
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
 func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, taskDetails []*run_model.V2beta1PipelineTaskDetail) {
 	failedTasks := make(map[string]string)

@@ -50,6 +50,8 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
+const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
+
 // Metric variables. Please prefix the metric names with resource_manager_.
 var (
 	extraLabels = []string{
@@ -153,7 +155,53 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 	}
 }
 
+// extractMaxActiveRuns extracts max_active_runs from the template's platform spec.
+// It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> maxActiveRuns
+func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
+	if tmpl == nil || !tmpl.IsV2() {
+		return 0, nil
+	}
+	// Type assertion: cast to V2Spec to access PlatformSpec()
+	v2Spec, ok := tmpl.(*template.V2Spec)
+	if !ok || v2Spec == nil {
+		return 0, nil
+	}
+	platformSpec := v2Spec.PlatformSpec()
+	if platformSpec == nil {
+		return 0, nil
+	}
+	// Get kubernetes platform config
+	kubernetesSpec, ok := platformSpec.Platforms["kubernetes"]
+	if !ok || kubernetesSpec == nil {
+		return 0, nil
+	}
+	// Get pipeline config
+	pipelineConfig := kubernetesSpec.GetPipelineConfig()
+	if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
+		return 0, nil
+	}
+	// Get the max active runs value
+	value := pipelineConfig.GetMaxActiveRuns()
+	if value <= 0 {
+		return 0, fmt.Errorf("max_active_runs must be greater than 0, got %d", value)
+	}
+	return value, nil
+}
+
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
+	return r.execClient.Execution(namespace)
+}
+
+func (r *ResourceManager) getWorkflowClientWithConfigMap(namespace string) util.ExecutionInterface {
+	configMapClient := r.k8sCoreClient.ConfigMapClient(namespace)
+	if wc, ok := r.execClient.(*util.WorkflowClient); ok {
+		return wc.ExecutionWithConfigMapClient(namespace, configMapClient)
+	}
+	// Handle fake clients for testing
+	if fakeClient, ok := r.execClient.(*client.FakeExecClient); ok {
+		return fakeClient.ExecutionWithConfigMapClient(namespace, configMapClient)
+	}
+	// Fallback to regular Execution for other client types
 	return r.execClient.Execution(namespace)
 }
 
@@ -318,15 +366,9 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 		}
 
 		// Delete each pipeline version
+		// Use DeletePipelineVersion to ensure ConfigMap cleanup happens
 		for _, pipelineVersion := range pipelineVersions {
-			// Mark pipeline version as deleting so it's not visible to user.
-			err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersion.UUID, model.PipelineVersionDeleting)
-			if err != nil {
-				return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING during cascade delete", pipelineVersion.UUID)
-			}
-
-			// Delete the pipeline version from the database
-			err = r.pipelineStore.DeletePipelineVersion(pipelineVersion.UUID)
+			err = r.DeletePipelineVersion(pipelineVersion.UUID)
 			if err != nil {
 				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 			}
@@ -562,6 +604,21 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
+	// Extract max active runs from template and store in workflow annotations for WorkflowInterface.Create() to handle ConfigMap upsert.
+	// Semaphore configuration is handled in the Argo compiler during compilation.
+	maxActiveRuns, err := extractMaxActiveRuns(tmpl)
+	if err != nil {
+		return nil, util.Wrap(err, "failed to extract max_active_runs")
+	}
+	if maxActiveRuns > 0 && run.PipelineVersionId != "" {
+		// Store pipeline version ID and max_active_runs in workflow annotations for WorkflowInterface.Create() to upsert ConfigMap.
+		if executionSpec.ExecutionObjectMeta().Annotations == nil {
+			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
+		}
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = run.PipelineVersionId
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
+	}
+
 	// assign OwnerReference to scheduledworkflow
 	if run.RecurringRunId != "" {
 		job, err := r.jobStore.GetJob(run.RecurringRunId)
@@ -575,7 +632,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		executionSpec.SetOwnerReferences(swf)
 	}
 
-	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
+	newExecSpec, err := r.getWorkflowClientWithConfigMap(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return nil, util.NewUnavailableServerError(err, "Failed to create a workflow for (%s) - try again later", executionSpec.ExecutionName())
@@ -1828,6 +1885,19 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	if err != nil {
 		return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING", pipelineVersionId)
 	}
+
+	// Clean up engine-specific resources for this pipeline version asynchronously.
+	// This identifies all namespaces where runs of this pipeline version exist and delegates cleanup to the execution client.
+	defer func() {
+		go func() {
+			namespaces, err := r.runStore.GetRunNamespacesForPipelineVersion(pipelineVersionId)
+			if err != nil {
+				glog.Warningf("Failed to get namespaces for pipeline version %s during cleanup: %v", pipelineVersionId, err)
+				return
+			}
+			r.execClient.OnDeletePipelineVersion(pipelineVersionId, namespaces)
+		}()
+	}()
 
 	// Delete pipeline spec file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.

@@ -1153,7 +1153,7 @@ implementation:
                 name='my-pipeline',
                 description='A simple test pipeline with platform spec',
                 pipeline_config=dsl.PipelineConfig(
-                    workspace=dsl.WorkspaceConfig(size='25Gi'),),
+                    workspace=dsl.WorkspaceConfig(size='25Gi')),
             )
             def my_pipeline(input1: str):
                 print_op(message=input1)

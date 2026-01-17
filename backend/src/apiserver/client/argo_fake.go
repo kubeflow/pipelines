@@ -17,6 +17,7 @@ package client
 import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type FakeExecClient struct {
@@ -34,8 +35,21 @@ func (c *FakeExecClient) Execution(namespace string) util.ExecutionInterface {
 	return c.workflowClientFake
 }
 
+func (c *FakeExecClient) ExecutionWithConfigMapClient(namespace string, configMapClient corev1client.ConfigMapInterface) util.ExecutionInterface {
+	if len(namespace) == 0 {
+		panic(util.NewResourceNotFoundError("Namespace", namespace))
+	}
+	// Update the existing workflow client with ConfigMap support
+	c.workflowClientFake.configMapClient = configMapClient
+	return c.workflowClientFake
+}
+
 func (c *FakeExecClient) Compare(old, new interface{}) bool {
 	return false
+}
+
+func (c *FakeExecClient) OnDeletePipelineVersion(pipelineVersionID string, namespaces []string) {
+	// No-op for fake client
 }
 
 func (c *FakeExecClient) GetWorkflowCount() int {
@@ -78,4 +92,8 @@ func (c *FakeExecClientWithBadWorkflow) Execution(namespace string) util.Executi
 
 func (c *FakeExecClientWithBadWorkflow) Compare(old, new interface{}) bool {
 	return false
+}
+
+func (c *FakeExecClientWithBadWorkflow) OnDeletePipelineVersion(pipelineVersionID string, namespaces []string) {
+	// No-op for fake client
 }
