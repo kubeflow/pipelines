@@ -14,18 +14,27 @@
 
 const debug = process.env.DEBUG == '1' || process.env.DEBUG == 'true';
 
+const seleniumHost = process.env.SELENIUM_HOST || '127.0.0.1';
+const seleniumPort = Number(process.env.SELENIUM_PORT || 4444);
+const baseUrl = process.env.KFP_BASE_URL || 'http://localhost:3000';
+
 exports.config = {
   runner: 'local',
-  host: '127.0.0.1',
-  port: 4444,
+  host: seleniumHost,
+  port: seleniumPort,
   maxInstances: 1,
-  baseUrl: 'http://localhost:3000',
+  baseUrl,
   capabilities: [
     {
       maxInstances: 1,
       browserName: 'chrome',
       'goog:chromeOptions': {
-        args: ['--headless', '--disable-gpu'],
+        args: [
+          '--headless',
+          '--disable-gpu',
+          '--no-sandbox',
+          '--disable-dev-shm-usage',
+        ],
       },
     },
   ],
