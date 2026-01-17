@@ -321,11 +321,14 @@ describe('UIServer apis', () => {
           done(err);
         });
     });
+  });
 
-    it('responds with 403 when authorization is rejected', done => {
-      // Set up a mock auth server that rejects authorization
-      const authPort = 3002;
-      const authServer = express()
+  describe('/k8s/pod with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3002;
+
+    beforeEach(() => {
+      authServer = express()
         .post('/apis/v1beta1/auth', (_, res) => {
           res.status(401).send('Unauthorized');
         })
@@ -338,16 +341,17 @@ describe('UIServer apis', () => {
           ML_PIPELINE_SERVICE_HOST: 'localhost',
         }),
       );
-      const authRequest = requests(app.start());
+    });
 
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+    afterEach(done => {
+      authServer.close(() => done());
+    });
+
+    it('responds with 403 when authorization is rejected', done => {
+      const authRequest = requests(app.start());
       authRequest
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
-        .expect(403, 'Access denied to namespace', err => {
-          authServer.close(() => {
-            done(err);
-          });
-        });
+        .expect(403, 'Access denied to namespace', done);
     });
   });
 
@@ -428,11 +432,14 @@ describe('UIServer apis', () => {
           done(err);
         });
     });
+  });
 
-    it('responds with 403 when authorization is rejected', done => {
-      // Set up a mock auth server that rejects authorization
-      const authPort = 3003;
-      const authServer = express()
+  describe('/k8s/pod/events with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3003;
+
+    beforeEach(() => {
+      authServer = express()
         .post('/apis/v1beta1/auth', (_, res) => {
           res.status(401).send('Unauthorized');
         })
@@ -445,16 +452,17 @@ describe('UIServer apis', () => {
           ML_PIPELINE_SERVICE_HOST: 'localhost',
         }),
       );
-      const authRequest = requests(app.start());
+    });
 
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+    afterEach(done => {
+      authServer.close(() => done());
+    });
+
+    it('responds with 403 when authorization is rejected', done => {
+      const authRequest = requests(app.start());
       authRequest
         .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
-        .expect(403, 'Access denied to namespace', err => {
-          authServer.close(() => {
-            done(err);
-          });
-        });
+        .expect(403, 'Access denied to namespace', done);
     });
   });
 
@@ -468,11 +476,14 @@ describe('UIServer apis', () => {
     it('asks for podname if not provided', done => {
       request.get('/k8s/pod/logs').expect(400, 'podname argument is required', done);
     });
+  });
 
-    it('responds with 403 when authorization is rejected', done => {
-      // Set up a mock auth server that rejects authorization
-      const authPort = 3004;
-      const authServer = express()
+  describe('/k8s/pod/logs with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3004;
+
+    beforeEach(() => {
+      authServer = express()
         .post('/apis/v1beta1/auth', (_, res) => {
           res.status(401).send('Unauthorized');
         })
@@ -485,16 +496,17 @@ describe('UIServer apis', () => {
           ML_PIPELINE_SERVICE_HOST: 'localhost',
         }),
       );
-      const authRequest = requests(app.start());
+    });
 
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+    afterEach(done => {
+      authServer.close(() => done());
+    });
+
+    it('responds with 403 when authorization is rejected', done => {
+      const authRequest = requests(app.start());
       authRequest
         .get('/k8s/pod/logs?podname=test-pod&podnamespace=test-ns')
-        .expect(403, 'Access denied to namespace', err => {
-          authServer.close(() => {
-            done(err);
-          });
-        });
+        .expect(403, 'Access denied to namespace', done);
     });
   });
 
