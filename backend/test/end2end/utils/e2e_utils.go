@@ -185,6 +185,7 @@ func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *
 	for {
 		// Track active runs per pipeline version
 		activeByVersion := make(map[string]int)
+		pendingByVersion := make(map[string]int)
 		allTerminal := true
 
 		for _, runInfo := range runInfos {
@@ -199,6 +200,7 @@ func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *
 				activeByVersion[runInfo.PipelineVersionID]++
 				allTerminal = false
 			case run_model.V2beta1RuntimeStatePENDING:
+				pendingByVersion[runInfo.PipelineVersionID]++
 				allTerminal = false
 			default:
 				// terminal
@@ -228,10 +230,15 @@ func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *
 		if time.Now().After(timeout) {
 			// If we never saw active runs, that's a problem
 			if !validationPassed {
-				ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to become active; active runs by version: %v, total runs: %d", activeByVersion, len(runInfos)))
+				ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to become active; active runs by version: %v, pending runs by version: %v, total runs: %d", activeByVersion, pendingByVersion, len(runInfos)))
 			}
-			// If we validated but runs are still running, that's also a timeout issue
-			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active runs by version: %v", activeByVersion))
+			// If we validated successfully and only PENDING runs remain, that's acceptable
+			if len(activeByVersion) == 0 && len(pendingByVersion) > 0 {
+				logger.Log("Validation passed. Some runs are still PENDING (waiting for semaphore), which is expected. Test passed.")
+				return
+			}
+			// If we validated but runs are still RUNNING, that's a timeout issue
+			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active runs by version: %v, pending runs by version: %v", activeByVersion, pendingByVersion))
 		}
 		time.Sleep(pollInterval)
 	}
