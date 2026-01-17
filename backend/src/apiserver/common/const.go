@@ -68,8 +68,8 @@ const (
 )
 
 const (
-	TLSCertCAPath = "/kfp/certs/ca.crt"
-	CABundleDir   = "/kfp/certs"
+	CustomCaCertPath = "/kfp/certs/ca.crt"
+	CABundleDir      = "/kfp/certs"
 )
 
 const (

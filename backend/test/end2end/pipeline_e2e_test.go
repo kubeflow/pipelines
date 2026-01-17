@@ -35,6 +35,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,9 +95,17 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 	})
 
 	AfterEach(func() {
-
-		// Delete pipelines created during the test
 		logger.Log("################### Global Cleanup after each test #####################")
+	})
+
+	ReportAfterEach(func(specReport types.SpecReport) {
+		if testContext == nil {
+			return
+		}
+		if specReport.Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
+			report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
+			AddReportEntry(testutil.ArchivedWorkflowLogsReportTitle, report)
+		}
 
 		logger.Log("Deleting %d run(s)", len(testContext.PipelineRun.CreatedRunIds))
 		for _, runID := range testContext.PipelineRun.CreatedRunIds {

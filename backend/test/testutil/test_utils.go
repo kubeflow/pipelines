@@ -22,6 +22,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -88,6 +89,24 @@ func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
 	if err != nil {
 		return
 	}
+}
+
+// GetWorkflowNameByRunID retrieves the Argo Workflow name for a given pipeline run ID
+// by querying the Kubernetes API using the pipeline/runid label.
+func GetWorkflowNameByRunID(namespace string, runID string) string {
+	cmd := exec.Command("kubectl", "get", "workflows", "-n", namespace,
+		"-l", fmt.Sprintf("pipeline/runid=%s", runID),
+		"-o", "jsonpath={.items[0].metadata.name}")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log("Failed to get workflow for run ID %s: %v, kubectl output: %s", runID, err, strings.TrimSpace(string(output)))
+		return ""
+	}
+	workflowName := strings.TrimSpace(string(output))
+	if workflowName == "" {
+		logger.Log("No workflow found for run ID %s", runID)
+	}
+	return workflowName
 }
 
 // GetNamespace - Get Namespace based on the deployment mode
@@ -222,4 +241,14 @@ func getBranchOrPR(pullNumber, branch string) string {
 		return fmt.Sprintf("PR #%s", pullNumber)
 	}
 	return fmt.Sprintf("branch '%s'", branch)
+}
+
+func ContainsEnvVar(envVarMap map[string]string, vars ...string) bool {
+	for _, entry := range vars {
+		_, ok := envVarMap[entry]
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
