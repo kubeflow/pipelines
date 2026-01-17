@@ -180,6 +180,7 @@ func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *
 
 	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
 	pollInterval := 2 * time.Second
+	validationPassed := false
 
 	for {
 		// Track active runs per pipeline version
@@ -204,18 +205,32 @@ func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *
 			}
 		}
 
-		// Validate limits per version
-		for versionID, activeCount := range activeByVersion {
-			if limit, hasLimit := versionLimitMap[versionID]; hasLimit {
-				gomega.Expect(int32(activeCount)).To(gomega.BeNumerically("<=", limit),
-					fmt.Sprintf("Active concurrent runs for pipeline version %s should respect max_active_runs limit of %d, but found %d active", versionID, limit, activeCount))
+		// Validate limits per version while runs are active
+		if len(activeByVersion) > 0 {
+			for versionID, activeCount := range activeByVersion {
+				if limit, hasLimit := versionLimitMap[versionID]; hasLimit {
+					gomega.Expect(int32(activeCount)).To(gomega.BeNumerically("<=", limit),
+						fmt.Sprintf("Active concurrent runs for pipeline version %s should respect max_active_runs limit of %d, but found %d active", versionID, limit, activeCount))
+				}
 			}
+			validationPassed = true
 		}
 
 		if allTerminal {
-			return
+			// If we validated at least once, we're good - runs can complete quickly
+			if validationPassed {
+				return
+			}
+			// If runs completed without ever being active, that's a problem
+			ginkgo.Fail(fmt.Sprintf("All runs completed before parallelism validation could be performed; runs may have completed too quickly or never started. Total runs: %d", len(runInfos)))
 		}
+
 		if time.Now().After(timeout) {
+			// If we never saw active runs, that's a problem
+			if !validationPassed {
+				ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to become active; active runs by version: %v, total runs: %d", activeByVersion, len(runInfos)))
+			}
+			// If we validated but runs are still running, that's also a timeout issue
 			ginkgo.Fail(fmt.Sprintf("Timed out waiting for runs to finish; active runs by version: %v", activeByVersion))
 		}
 		time.Sleep(pollInterval)
