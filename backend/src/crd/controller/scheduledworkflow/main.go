@@ -16,8 +16,10 @@ package main
 
 import (
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -27,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -37,17 +40,19 @@ import (
 )
 
 var (
-	logLevel                    string
-	masterURL                   string
-	kubeconfig                  string
-	namespace                   string
-	location                    *time.Location
-	clientQPS                   float64
-	clientBurst                 int
-	mlPipelineAPIServerName     string
-	mlPipelineServiceGRPCPort   string
-	mlPipelineServiceTLSEnabled bool
-	caCertPath                  string
+	logLevel                          string
+	masterURL                         string
+	kubeconfig                        string
+	namespace                         string
+	location                          *time.Location
+	clientQPS                         float64
+	clientBurst                       int
+	mlPipelineAPIServerName           string
+	mlPipelineServiceGRPCPort         string
+	mlPipelineServiceTLSEnabled       bool
+	caCertPath                        string
+	metricsPort                       string
+	recurringRunResyncIntervalSeconds int
 )
 
 const (
@@ -98,10 +103,15 @@ func main() {
 
 	var scheduleInformerFactory swfinformers.SharedInformerFactory
 	execInformer := commonutil.NewExecutionInformerOrFatal(commonutil.ArgoWorkflow, namespace, time.Second*30, clientParam)
+
+	if recurringRunResyncIntervalSeconds <= 0 {
+		log.Fatalf("recurringRunResyncInterval must be a positive number")
+	}
+	defaultResync := time.Second * time.Duration(recurringRunResyncIntervalSeconds)
 	if namespace == "" {
-		scheduleInformerFactory = swfinformers.NewSharedInformerFactory(scheduleClient, time.Second*30)
+		scheduleInformerFactory = swfinformers.NewSharedInformerFactory(scheduleClient, defaultResync)
 	} else {
-		scheduleInformerFactory = swfinformers.NewFilteredSharedInformerFactory(scheduleClient, time.Second*30, namespace, nil)
+		scheduleInformerFactory = swfinformers.NewFilteredSharedInformerFactory(scheduleClient, defaultResync, namespace, nil)
 	}
 
 	grpcAddress := fmt.Sprintf("%s:%s", mlPipelineAPIServerName, mlPipelineServiceGRPCPort)
@@ -148,8 +158,27 @@ func main() {
 	go scheduleInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
 
+	go startMetricsServer()
+
 	if err = controller.Run(2, stopCh); err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
+	}
+}
+
+func startMetricsServer() {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	addr := ":" + metricsPort
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+
+	log.Infof("Starting metrics server at %s...", addr)
+
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("Metrics server failed: %v", err)
 	}
 }
 
@@ -171,11 +200,13 @@ func init() {
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientQPS, "clientQPS", 5, "The maximum QPS to the master from this client.")
+	flag.StringVar(&metricsPort, "metricsPort", "9090", "The port for the metrics endpoint.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if ML pipeline API server serves over TLS.")
 	flag.StringVar(&caCertPath, caCertPathFlagName, "", "CA cert to connect to the ML pipeline API server.")
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
+	flag.IntVar(&recurringRunResyncIntervalSeconds, "recurringRunResyncIntervalSeconds", 30, "The full resync interval in seconds for recurring run reconciliations.")
 	var err error
 	location, err = util.GetLocation()
 	if err != nil {
