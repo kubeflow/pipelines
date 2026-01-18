@@ -14,15 +14,16 @@
 import inspect
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 import warnings
 
-from kfp import dsl
-from kfp.dsl import task_final_status
-from kfp.dsl.task_config import TaskConfig
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+if TYPE_CHECKING:
+    from kfp import dsl
+    from kfp.dsl import task_final_status
+    from kfp.dsl.task_config import TaskConfig
+    from kfp.dsl.types import artifact_types
+    from kfp.dsl.types import type_annotations
+    from kfp.dsl.types import type_utils
 
 
 class Executor:
@@ -44,18 +45,21 @@ class Executor:
         self.executor_output_path = self.executor_input['outputs']['outputFile']
 
         # drop executor_output.json part from the outputFile path
+        from kfp.dsl.types import artifact_types
         artifact_types.CONTAINER_TASK_ROOT = os.path.split(
             self.executor_output_path)[0]
 
-        self.input_artifacts: Dict[str, Union[dsl.Artifact,
-                                              List[dsl.Artifact]]] = {}
-        self.output_artifacts: Dict[str, dsl.Artifact] = {}
+        self.input_artifacts: Dict[str, Union['dsl.Artifact',
+                                              List['dsl.Artifact']]] = {}
+        self.output_artifacts: Dict[str, 'dsl.Artifact'] = {}
         self.assign_input_and_output_artifacts()
 
         self.return_annotation = inspect.signature(self.func).return_annotation
         self.excutor_output = {}
 
     def assign_input_and_output_artifacts(self) -> None:
+        from kfp.dsl.types import type_annotations
+        
         for name, artifacts in self.executor_input.get('inputs',
                                                        {}).get('artifacts',
                                                                {}).items():
@@ -111,6 +115,9 @@ class Executor:
         func: Callable,
         annotation: Optional[Any] = None,
     ) -> Any:
+        from kfp.dsl.types import artifact_types
+        from kfp.dsl.types import type_annotations
+
         annotation = func.__annotations__.get(
             name) if annotation is None else annotation
         if isinstance(annotation, type_annotations.InputPath):
@@ -127,10 +134,10 @@ class Executor:
         return create_artifact_instance(
             runtime_artifact, fallback_artifact_cls=artifact_cls)
 
-    def get_input_artifact(self, name: str) -> Optional[dsl.Artifact]:
+    def get_input_artifact(self, name: str):
         return self.input_artifacts.get(name)
 
-    def get_output_artifact(self, name: str) -> Optional[dsl.Artifact]:
+    def get_output_artifact(self, name: str) -> Optional['dsl.Artifact']:
         return self.output_artifacts.get(name)
 
     def get_input_parameter_value(
@@ -197,6 +204,8 @@ class Executor:
 
     def handle_single_return_value(self, output_name: str, annotation_type: Any,
                                    return_value: Any) -> None:
+        from kfp.dsl.types import artifact_types
+        
         if is_parameter(annotation_type):
             origin_type = getattr(annotation_type, '__origin__',
                                   None) or annotation_type
@@ -320,6 +329,12 @@ class Executor:
         Returns:
             Optional[str]: Returns the location of the executor_output file as a string if the file is written. Else, None.
         """
+
+        from kfp.dsl import task_final_status
+        from kfp.dsl.task_config import TaskConfig
+        from kfp.dsl.types import type_annotations
+        from kfp.dsl.types import artifact_types
+
         annotations = inspect.getfullargspec(self.func).annotations
 
         # Function arguments.
@@ -420,10 +435,16 @@ class Executor:
 
 def create_artifact_instance(
     runtime_artifact: Dict,
-    fallback_artifact_cls=dsl.Artifact,
+    fallback_artifact_cls=None,
 ) -> type:
     """Creates an artifact class instances from a runtime artifact
     dictionary."""
+    from kfp.dsl.types import artifact_types
+    from kfp import dsl
+    
+    if fallback_artifact_cls is None:
+        fallback_artifact_cls = dsl.Artifact
+
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
         schema_title, fallback_artifact_cls)
@@ -440,6 +461,8 @@ def create_artifact_instance(
 
 # TODO: merge with type_utils.is_parameter_type
 def is_parameter(annotation: Any) -> bool:
+    from kfp.dsl.types import type_utils
+
     if isinstance(annotation, type):
         if annotation in [str, int, float, bool, dict, list]:
             return True
@@ -453,6 +476,8 @@ def is_parameter(annotation: Any) -> bool:
 
 
 def is_artifact(annotation: Any) -> bool:
+    from kfp.dsl.types import type_annotations
+
     if type(annotation) == type:
         return type_annotations.is_artifact_class(annotation)
     return False
