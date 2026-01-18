@@ -16,6 +16,7 @@ package objectstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -38,6 +39,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+// ErrHuggingFaceNoBucket is returned when the HuggingFace provider is used
+// but it does not implement the blob.Bucket interface. Callers of OpenBucket
+// should check for this sentinel error and handle it explicitly.
+var ErrHuggingFaceNoBucket = errors.New("huggingface provider does not use the bucket interface")
 
 func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
 	defer func() {
@@ -79,10 +85,12 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 			if err1 != nil {
 				return nil, err1
 			}
-			if token != "" {
-				os.Setenv("HF_TOKEN", token)
+			if token == "" {
+				glog.Warning("Hugging Face provider selected but received an empty token from secret; downloads may fail for private repos")
+			} else {
+				glog.V(1).Info("Hugging Face token retrieved; caller must propagate it explicitly into the downloader's process environment (e.g., set HF_TOKEN in the command's Env)")
 			}
-			return nil, nil
+			return nil, ErrHuggingFaceNoBucket
 		}
 	}
 
@@ -276,8 +284,11 @@ func getHuggingFaceToken(ctx context.Context, namespace string, sessionInfo *Ses
 	return string(tokenBytes), nil
 }
 
-// GetHuggingFaceTokenFromSessionInfo extracts HF token from SessionInfo
-func GetHuggingFaceTokenFromSessionInfo(ctx context.Context, k8sClient kubernetes.Interface, namespace string, sessionInfo *SessionInfo) (string, error) {
+// GetHuggingFaceTokenFromK8sSecret retrieves the Hugging Face token from a Kubernetes Secret
+// as specified by the provided SessionInfo. It is a thin wrapper around the internal
+// getHuggingFaceToken helper and requires a Kubernetes client and namespace because
+// it reads Secret data from the cluster.
+func GetHuggingFaceTokenFromK8sSecret(ctx context.Context, k8sClient kubernetes.Interface, namespace string, sessionInfo *SessionInfo) (string, error) {
 	if sessionInfo == nil {
 		return "", nil
 	}

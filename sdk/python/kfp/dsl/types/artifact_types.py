@@ -116,9 +116,11 @@ class Artifact:
                 '/', '_')
             local_path = _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
         elif self.uri.startswith(RemotePrefix.HUGGINGFACE.value):
+            # Strip query parameters for local path generation
+            uri_without_query = self.uri.split('?')[0]
             local_path = (
                 _HUGGINGFACE_LOCAL_MOUNT_PREFIX +
-                self.uri[len(RemotePrefix.HUGGINGFACE.value):])
+                uri_without_query[len(RemotePrefix.HUGGINGFACE.value):])
 
         # If the artifact is already present in the pipeline workspace, map to the workspace path.
         # This is indicated by backend setting metadata['_kfp_workspace'] = True.

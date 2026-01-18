@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -350,15 +351,20 @@ func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactUR
 	}
 
 	pathParts := strings.Split(parts, "/")
-	if len(pathParts) < 1 {
+	// An empty path ("huggingface://") yields [""] after Split; treat this as invalid.
+	if len(pathParts) < 1 || (len(pathParts) == 1 && pathParts[0] == "") {
 		return fmt.Errorf("invalid HuggingFace URI format: %q, expected huggingface://repo_id[/revision]", artifactURI)
 	}
 
 	repoID := strings.Join(pathParts, "/")
 	revision := "main"
 
+	// Distinguish revisions from file paths: revisions typically don't have dots,
+	// while file paths often have extensions (.bin, .safetensors, .json, etc.
+	// If last part has no dot and looks like a revision, treat it as such.
 	if len(pathParts) >= 2 && pathParts[len(pathParts)-1] != "" {
 		lastPart := pathParts[len(pathParts)-1]
+		// Check if last part looks like a revision (no dot, not a known file extension)
 		if !strings.Contains(lastPart, ".") {
 			revision = lastPart
 			repoID = strings.Join(pathParts[:len(pathParts)-1], "/")
@@ -368,20 +374,31 @@ func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactUR
 	repoType := "model"
 	allowPatterns := ""
 	ignorePatterns := ""
+	supportedParams := map[string]bool{
+		"repo_type":       true,
+		"allow_patterns":  true,
+		"ignore_patterns": true,
+	}
 	if queryStr != "" {
-		params := strings.Split(queryStr, "&")
-		for _, param := range params {
-			kv := strings.Split(param, "=")
-			if len(kv) == 2 {
-				switch kv[0] {
-				case "repo_type":
-					repoType = kv[1]
-				case "allow_patterns":
-					allowPatterns = kv[1]
-				case "ignore_patterns":
-					ignorePatterns = kv[1]
-				}
+		vals, err := url.ParseQuery(queryStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse query parameters for %q: %w", artifactURI, err)
+		}
+		// Check for unsupported parameters and warn
+		for param := range vals {
+			if !supportedParams[param] {
+				glog.Warningf("Parameter %q is not supported by the KFP HuggingFace importer and will be ignored. "+
+					"Supported parameters: repo_type, allow_patterns, ignore_patterns", param)
 			}
+		}
+		if v := vals.Get("repo_type"); v != "" {
+			repoType = v
+		}
+		if v := vals.Get("allow_patterns"); v != "" {
+			allowPatterns = v
+		}
+		if v := vals.Get("ignore_patterns"); v != "" {
+			ignorePatterns = v
 		}
 	}
 
@@ -437,14 +454,26 @@ func (l *ImportLauncher) downloadHuggingFaceModel(ctx context.Context, repoID, r
 
 	hfToken := ""
 	if bucketConfig.SessionInfo != nil {
-		hfToken, _ = objectstore.GetHuggingFaceTokenFromSessionInfo(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig.SessionInfo)
+		token, err := objectstore.GetHuggingFaceTokenFromK8sSecret(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig.SessionInfo)
+		if err != nil {
+			glog.Warningf("Failed to retrieve HuggingFace token from session info: %v. Proceeding with unauthenticated download (public models only)", err)
+		} else {
+			hfToken = token
+		}
 	}
 
 	if err := os.MkdirAll(localPath, 0755); err != nil {
 		return fmt.Errorf("failed to create directory %q: %w", localPath, err)
 	}
 
-	isSpecificFile := strings.Contains(repoID, "/") && strings.Contains(repoID[strings.LastIndex(repoID, "/")+1:], ".")
+	// Detect if repoID points to a specific file: if the last path component contains a dot,
+	// it likely has a file extension (.bin, .safetensors, .json, etc.)
+	isSpecificFile := false
+	if strings.Contains(repoID, "/") {
+		lastSlashIdx := strings.LastIndex(repoID, "/")
+		lastComponent := repoID[lastSlashIdx+1:]
+		isSpecificFile = strings.Contains(lastComponent, ".")
+	}
 
 	if isSpecificFile {
 		lastSlash := strings.LastIndex(repoID, "/")

@@ -1,0 +1,169 @@
+# PIPELINE DEFINITION
+# Name: test-huggingface-e2e
+# Description: E2E test pipeline for HuggingFace functionality.
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-importer-2:
+    executorLabel: exec-importer-2
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-importer-3:
+    executorLabel: exec-importer-3
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-importer-4:
+    executorLabel: exec-importer-4
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-importer-5:
+    executorLabel: exec-importer-5
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: huggingface://gpt2
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    exec-importer-2:
+      importer:
+        artifactUri:
+          constant: huggingface://distilbert-base-uncased
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    exec-importer-3:
+      importer:
+        artifactUri:
+          constant: huggingface://squad?repo_type=dataset
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-importer-4:
+      importer:
+        artifactUri:
+          constant: huggingface://gpt2/config.json
+        typeSchema:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+    exec-importer-5:
+      importer:
+        artifactUri:
+          constant: huggingface://gpt2?allow_patterns=*.bin&ignore_patterns=*.safetensors
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+pipelineInfo:
+  description: E2E test pipeline for HuggingFace functionality.
+  name: test-huggingface-e2e
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://gpt2
+        taskInfo:
+          name: importer
+      importer-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-2
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://distilbert-base-uncased
+        taskInfo:
+          name: importer-2
+      importer-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-3
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://squad?repo_type=dataset
+        taskInfo:
+          name: importer-3
+      importer-4:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-4
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://gpt2/config.json
+        taskInfo:
+          name: importer-4
+      importer-5:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-5
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://gpt2?allow_patterns=*.bin&ignore_patterns=*.safetensors
+        taskInfo:
+          name: importer-5
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
