@@ -13,7 +13,7 @@
     "http-proxy-middleware": "^2.0.7",
     "js-yaml": "^4.1.0",
     "lodash": ">=4.17.21",
-    "minio": "~8.0.3",
+    "minio": "~8.0.6",
     "node-fetch": "2.6.7",
     "peek-stream": "^1.1.3",
     "portable-fetch": "^3.0.0",
