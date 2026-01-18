@@ -168,11 +168,31 @@ class OrchestratorUtils:
 
         copied_dag_arguments = copy.deepcopy(dag_arguments)
 
+        # Handle parameter inputs
         for input_name, input_spec in dag_inputs_spec.parameters.items():
             if input_name not in copied_dag_arguments:
                 copied_dag_arguments[
                     input_name] = executor_output_utils.pb2_value_to_python(
                         input_spec.default_value)
+
+        # Handle artifact inputs (Dataset, Model, etc.)
+        from kfp import dsl
+
+        for input_name in dag_inputs_spec.artifacts.keys():
+            if input_name in copied_dag_arguments:
+                artifact_value = copied_dag_arguments[input_name]
+                if not isinstance(artifact_value, dsl.Artifact):
+                    raise TypeError(
+                        f"Pipeline argument '{input_name}' must be an Artifact instance. "
+                        f"Got {type(artifact_value).__name__} instead.")
+
+                # Security: Validate URI to prevent path traversal attacks
+                if artifact_value.uri and '..' in artifact_value.uri:
+                    raise ValueError(
+                        f"Pipeline argument '{input_name}' has invalid artifact URI: "
+                        f"URI cannot contain path traversal sequences (..). "
+                        f"Got: {artifact_value.uri!r}")
+
         return copied_dag_arguments
 
     @classmethod
