@@ -124,6 +124,11 @@ export function getArtifactsHandler({
       res.status(500).send('Storage key is missing from artifact request');
       return;
     }
+    // Validate key length to prevent XSS attacks via error messages
+    if (key.length > 1024) {
+      res.status(400).send('Invalid storage key: key length exceeds maximum allowed size');
+      return;
+    }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
 
     let client: MinioClient;
@@ -135,7 +140,8 @@ export function getArtifactsHandler({
         try {
           client = await createMinioClient(minio, 'minio', providerInfo, namespace);
         } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
+          console.error('Failed to initialize Minio Client for Minio Provider:', e);
+          res.status(500).send('Failed to initialize Minio Client for Minio Provider');
           return;
         }
         await getMinioArtifactHandler(
@@ -152,7 +158,8 @@ export function getArtifactsHandler({
         try {
           client = await createMinioClient(aws, 's3', providerInfo, namespace);
         } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
+          console.error('Failed to initialize Minio Client for S3 Provider:', e);
+          res.status(500).send('Failed to initialize Minio Client for S3 Provider');
           return;
         }
         await getMinioArtifactHandler(
@@ -226,7 +233,10 @@ function getHttpArtifactsHandler(
     }
     const response = await fetch(url, { headers });
     response.body
-      .on('error', err => res.status(500).send(`Unable to retrieve artifact: ${err}`))
+      .on('error', err => {
+        console.error('Unable to retrieve artifact:', err);
+        res.status(500).send('Unable to retrieve artifact');
+      })
       .pipe(new PreviewStream({ peek }))
       .pipe(res);
   };
@@ -240,12 +250,15 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
+        .on('error', err => {
+          console.error('Failed to get object in bucket:', err);
+          res.status(500).send('Failed to get object in bucket');
+        })
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
-      console.error(err);
-      res.status(500).send(`Failed to get object in bucket: ${err}`);
+      console.error('Failed to get object in bucket:', err);
+      res.status(500).send('Failed to get object in bucket');
     }
   };
 }
@@ -352,10 +365,14 @@ function getGCSArtifactHandler(
               res.send(contents);
             }
           })
-          .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
+          .on('error', () => {
+            console.error('Failed to read file:', f.name);
+            res.status(500).send('Failed to read file');
+          });
       });
     } catch (err) {
-      res.status(500).send('Failed to download GCS file(s). Error: ' + err);
+      console.error('Failed to download GCS file(s):', err);
+      res.status(500).send('Failed to download GCS file(s)');
     }
   };
 }
