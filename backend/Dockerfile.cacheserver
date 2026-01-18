@@ -33,6 +33,8 @@ RUN GO111MODULE=on go build -o /bin/cache_server backend/src/cache/*.go
 
 FROM alpine
 
+RUN apk upgrade --no-cache
+
 RUN adduser -S appuser
 USER appuser
 
