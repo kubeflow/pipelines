@@ -16,6 +16,8 @@ spec:
       protocol: TCP
     - port: 3306
       protocol: TCP
+    - port: 5432
+      protocol: TCP
     - port: 8080
       protocol: TCP
     - port: 9000
