@@ -45,27 +45,36 @@ func NewDBDialect(name string) DBDialect {
 	switch name {
 	case "mysql":
 		return DBDialect{
-			name:            "mysql",
-			quoteIdentifier: func(id string) string { return fmt.Sprintf("`%s`", id) },
-			lengthFunc:      "CHAR_LENGTH",
+			name: "mysql",
+			quoteIdentifier: func(id string) string {
+				escaped := strings.ReplaceAll(id, "`", "``")
+				return fmt.Sprintf("`%s`", escaped)
+			},
+			lengthFunc: "CHAR_LENGTH",
 			statementBuilder: sq.StatementBuilder.
 				PlaceholderFormat(sq.Question),
 			existDatabaseErrHint: "database exists",
 		}
 	case "pgx":
 		return DBDialect{
-			name:            "pgx",
-			quoteIdentifier: func(id string) string { return fmt.Sprintf(`"%s"`, id) },
-			lengthFunc:      "CHAR_LENGTH",
+			name: "pgx",
+			quoteIdentifier: func(id string) string {
+				escaped := strings.ReplaceAll(id, `"`, `""`)
+				return fmt.Sprintf(`"%s"`, escaped)
+			},
+			lengthFunc: "CHAR_LENGTH",
 			statementBuilder: sq.StatementBuilder.
 				PlaceholderFormat(sq.Dollar),
 			existDatabaseErrHint: "already exists",
 		}
 	case "sqlite": // only for tests
 		return DBDialect{
-			name:            "sqlite",
-			quoteIdentifier: func(id string) string { return fmt.Sprintf(`"%s"`, id) },
-			lengthFunc:      "LENGTH",
+			name: "sqlite",
+			quoteIdentifier: func(id string) string {
+				escaped := strings.ReplaceAll(id, `"`, `""`)
+				return fmt.Sprintf(`"%s"`, escaped)
+			},
+			lengthFunc: "LENGTH",
 			statementBuilder: sq.StatementBuilder.
 				PlaceholderFormat(sq.Question),
 			existDatabaseErrHint: "",
