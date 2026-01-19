@@ -344,7 +344,7 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) er
 	sql, args, err := qb.
 		Select(quoteAll(q, taskColumns)...).
 		From(q("tasks")).
-		Where(sq.Eq{q("PodName"): podNames}).
+		Where(sq.Eq{q("PodName"): podNames, q("RunUUID"): runID}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to check existing tasks")

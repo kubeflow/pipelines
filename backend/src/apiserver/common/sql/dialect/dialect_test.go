@@ -151,6 +151,40 @@ func TestConcatAgg_EmptySeparator(t *testing.T) {
 	}
 }
 
+func TestQuoteIdentifier_EscapesEmbeddedQuotes(t *testing.T) {
+	testCases := []struct {
+		name        string
+		dialectName string
+		input       string
+		expected    string
+	}{
+		// PostgreSQL (pgx) - escapes double quotes
+		{"pgx_normal", "pgx", "column", `"column"`},
+		{"pgx_with_quote", "pgx", `column"name`, `"column""name"`},
+		{"pgx_injection_attempt", "pgx", `accuracy"; DROP TABLE x; --`, `"accuracy""; DROP TABLE x; --"`},
+		{"pgx_multiple_quotes", "pgx", `a"b"c`, `"a""b""c"`},
+
+		// MySQL - escapes backticks
+		{"mysql_normal", "mysql", "column", "`column`"},
+		{"mysql_with_backtick", "mysql", "column`name", "`column``name`"},
+		{"mysql_injection_attempt", "mysql", "accuracy`; DROP TABLE x; --", "`accuracy``; DROP TABLE x; --`"},
+		{"mysql_multiple_backticks", "mysql", "a`b`c", "`a``b``c`"},
+
+		// SQLite - escapes double quotes
+		{"sqlite_normal", "sqlite", "column", `"column"`},
+		{"sqlite_with_quote", "sqlite", `column"name`, `"column""name"`},
+		{"sqlite_injection_attempt", "sqlite", `accuracy"; DROP TABLE x; --`, `"accuracy""; DROP TABLE x; --"`},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := NewDBDialect(tc.dialectName)
+			result := d.QuoteIdentifier(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
 func TestEscapeSQLString(t *testing.T) {
 	testCases := []struct {
 		name  string

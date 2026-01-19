@@ -477,7 +477,7 @@ func TestQualifyIdentifier(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := qualifyIdentifier(tc.key, tc.quote)
+			got := QualifyIdentifier(tc.quote, tc.key)
 			assert.Equal(t, tc.want, got)
 		})
 	}

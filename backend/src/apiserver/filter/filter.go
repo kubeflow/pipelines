@@ -293,21 +293,21 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	return true, nil
 }
 
-// qualifyIdentifier quotes identifiers correctly when they are qualified with dots,
+// QualifyIdentifier quotes identifiers correctly when they are qualified with dots,
 // e.g. "experiments.Name" -> `"experiments"."Name"` (or the dialect's quote style).
 // If there is no dot, it simply quotes the key.
-func qualifyIdentifier(key string, quote func(string) string) string {
-	if quote == nil {
+func QualifyIdentifier(q func(string) string, key string) string {
+	if q == nil {
 		return key
 	}
 	if strings.Contains(key, ".") {
 		parts := strings.Split(key, ".")
 		for i := range parts {
-			parts[i] = quote(parts[i])
+			parts[i] = q(parts[i])
 		}
 		return strings.Join(parts, ".")
 	}
-	return quote(key)
+	return q(key)
 }
 
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
@@ -321,49 +321,49 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote func(string) strin
 
 	for k, vs := range f.eq {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.Eq{qualifyIdentifier(k, quote): v})
+			andExprs = append(andExprs, squirrel.Eq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
 	for k, vs := range f.neq {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.NotEq{qualifyIdentifier(k, quote): v})
+			andExprs = append(andExprs, squirrel.NotEq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
 	for k, vs := range f.gt {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.Gt{qualifyIdentifier(k, quote): v})
+			andExprs = append(andExprs, squirrel.Gt{QualifyIdentifier(quote, k): v})
 		}
 	}
 
 	for k, vs := range f.gte {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.GtOrEq{qualifyIdentifier(k, quote): v})
+			andExprs = append(andExprs, squirrel.GtOrEq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
 	for k, vs := range f.lt {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.Lt{qualifyIdentifier(k, quote): v})
+			andExprs = append(andExprs, squirrel.Lt{QualifyIdentifier(quote, k): v})
 		}
 	}
 
 	for k, vs := range f.lte {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.LtOrEq{qualifyIdentifier(k, quote): v})
+			andExprs = append(andExprs, squirrel.LtOrEq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
 	for k, vs := range f.in {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.Eq{qualifyIdentifier(k, quote): v})
+			andExprs = append(andExprs, squirrel.Eq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
 	for k, vs := range f.substring {
 		for _, v := range vs {
-			andExprs = append(andExprs, squirrel.Like{qualifyIdentifier(k, quote): fmt.Sprintf("%%%s%%", v)})
+			andExprs = append(andExprs, squirrel.Like{QualifyIdentifier(quote, k): fmt.Sprintf("%%%s%%", v)})
 		}
 	}
 

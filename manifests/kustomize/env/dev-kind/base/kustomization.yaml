@@ -29,20 +29,6 @@ patches:
     apiVersion: v1
     kind: Service
     metadata:
-      name: mysql
-      namespace: kubeflow
-    spec:
-      ports:
-        - $patch: replace
-        - port: 3306
-          protocol: TCP
-          targetPort: 3306
-          nodePort: 30330
-      type: NodePort
-- patch: |-
-    apiVersion: v1
-    kind: Service
-    metadata:
       name: metadata-grpc-service
       namespace: kubeflow
     spec:
@@ -80,6 +66,20 @@ patches:
           protocol: TCP
           targetPort: 8888
           nodePort: 30889
+      type: NodePort
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: mysql
+      namespace: kubeflow
+    spec:
+      ports:
+        - $patch: replace
+        - port: 3306
+          protocol: TCP
+          targetPort: 3306
+          nodePort: 30330
       type: NodePort
 - patch: |-
     apiVersion: apps/v1

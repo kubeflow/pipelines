@@ -297,6 +297,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 	tests := []struct {
 		name    string
 		tasks   []*model.Task
+		runID   string
 		want    []*model.Task
 		wantErr bool
 		errMsg  string
@@ -315,6 +316,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "1",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					UUID:              defaultFakeTaskIdFour,
@@ -347,6 +349,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "10",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					UUID:              defaultFakeTaskIdFive,
@@ -379,6 +382,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "10",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					Namespace:         "ns2",
@@ -397,6 +401,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 		{
 			"empty",
 			[]*model.Task{},
+			defaultFakeRunIdTwo,
 			[]*model.Task{},
 			false,
 			"",
@@ -447,6 +452,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "10",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					UUID:              defaultFakeTaskIdFour,
