@@ -63,7 +63,6 @@ jobs:
         k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
         argo_version: ["v3.7.3", "v3.6.7", "v3.5.14"]
-        storage: ["seaweedfs", "minio"]
         proxy: ["false"]
         test_label: ["E2ECritical"]
         pod_to_pod_tls_enabled: ["false"]
@@ -108,7 +107,7 @@ jobs:
           - db_type: "pgx"
             argo_version: "v3.5.14"
       fail-fast: false
-    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
+    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -178,7 +177,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_storage=${{ matrix.storage }}_dbType=${{ matrix.db_type }}"
+          report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_dbType=${{ matrix.db_type }}_tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
@@ -189,7 +188,6 @@ jobs:
       matrix:
         k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
-        storage: ["seaweedfs", "minio"]
         multi_user: ["true"]
         db_type: ["mysql", "pgx"]
         artifact_proxy: ["false"]
@@ -197,13 +195,12 @@ jobs:
         include:
           - multi_user: "true"
             artifact_proxy: "true"
-            storage: "seaweedfs"
             k8s_version: "v1.34.0"
             cache_enabled: "true"
             db_type: "mysql"
             test_label: "E2ECritical"
       fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} storage=${{ matrix.storage }} artifactProxy=${{ matrix.artifact_proxy }} dbType=${{ matrix.db_type }}
+    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -280,4 +277,4 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}_artifactProxy=${{ matrix.artifact_proxy }}_dbType=${{ matrix.db_type }}"
+          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_artifactProxy=${{ matrix.artifact_proxy }}_dbType=${{ matrix.db_type }}"
