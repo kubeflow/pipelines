@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"testing"
 	"time"
 
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
@@ -208,9 +207,3 @@ var _ = Describe("HuggingFace Importer E2E Tests", Label(FullRegression), func()
 		})
 	})
 })
-
-// TestHuggingFaceImporter is the entry point for the HuggingFace importer E2E test suite
-func TestHuggingFaceImporter(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "HuggingFace Importer E2E Test Suite")
-}
