@@ -51,3 +51,8 @@ def huggingface_pipeline():
     
     use_model_task = use_model(model=model_task.output)
     use_dataset_task = use_dataset(dataset=dataset_task.output)
+
+
+if __name__ == '__main__':
+    from kfp.compiler import Compiler
+    Compiler().compile(huggingface_pipeline, package_path='huggingface_importer_pipeline.yaml')
