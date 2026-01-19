@@ -68,6 +68,7 @@ jobs:
     env:
       ARTIFACT_NAME: "${{ matrix.image }}"
       ARTIFACTS_PATH: "images_${{ github.sha }}"
+      BUILDX_MAX_RETRIES: 3
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -96,19 +97,20 @@ jobs:
         shell: bash
         run: |
           BUILDER_NAME="builder-${{ github.run_id }}-${{ github.job }}"
-          for attempt in 1 2 3; do
-            echo "Buildx setup attempt ${attempt}/3 (builder=${BUILDER_NAME})"
+          MAX_RETRIES=${{ env.BUILDX_MAX_RETRIES }}
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "Buildx setup attempt ${attempt}/${MAX_RETRIES} (builder=${BUILDER_NAME})"
             docker buildx rm -f "$BUILDER_NAME" >/dev/null 2>&1 || true
             if ! docker buildx create --use --name "$BUILDER_NAME" --driver docker-container; then
-              echo "Buildx create failed (attempt ${attempt}/3)"
+              echo "Buildx create failed (attempt ${attempt}/${MAX_RETRIES})"
             elif ! docker buildx inspect --bootstrap; then
-              echo "Buildx bootstrap failed (attempt ${attempt}/3)"
+              echo "Buildx bootstrap failed (attempt ${attempt}/${MAX_RETRIES})"
             else
-              echo "Buildx setup succeeded (attempt ${attempt}/3)"
+              echo "Buildx setup succeeded (attempt ${attempt}/${MAX_RETRIES})"
               exit 0
             fi
             backoff=$((attempt * 10))
-            echo "Buildx setup failed (attempt ${attempt}/3). Retrying in ${backoff}s..."
+            echo "Buildx setup failed (attempt ${attempt}/${MAX_RETRIES}). Retrying in ${backoff}s..."
             sleep "$backoff"
           done
           exit 1
