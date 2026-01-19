@@ -142,38 +142,35 @@ if [ "${MULTI_USER}" == "true" ]; then
 fi
 
 # Manifests will be deployed according to the flag provided
+# Priority 1: Multi-user false + standalone (not kubernetes-native)
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
 
-  # Priority 1: TLS-enabled (mutually exclusive with other options)
+  # Priority 1.1: TLS-enabled (mutually exclusive with other options)
   if $POD_TO_POD_TLS_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
 
-  # Priority 2: PostgreSQL + MinIO combination
-  elif [ "${DB_TYPE}" == "pgx" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql-minio"
-
-  # Priority 3: PostgreSQL (with default SeaweedFS storage)
+  # Priority 1.2: PostgreSQL (with default SeaweedFS storage)
   elif [ "${DB_TYPE}" == "pgx" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
 
-  # Priority 4: Check for cache-disabled + proxy + minio combination
+  # Priority 1.3: Check for cache-disabled + proxy + minio combination
   elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
 
-  # Priority 5: Check for cache-disabled + proxy combination
+  # Priority 1.4: Check for cache-disabled + proxy combination
   elif $CACHE_DISABLED && $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
 
-  # Priority 6: Check for cache-disabled + minio combination
+  # Priority 1.5: Check for cache-disabled + minio combination
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
 
-  # Priority 7: Check for proxy + minio combination
+  # Priority 1.6: Check for proxy + minio combination
   elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
 
-  # Priority 8: Check for single flags (cache-disabled, proxy, or minio)
+  # Priority 1.7: Check for single flags (cache-disabled, proxy, or minio)
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
@@ -185,6 +182,7 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
+# Priority 2: Multi-user false + kubernetes-native
 elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/kubernetes-native"
   if $CACHE_DISABLED; then
@@ -192,30 +190,27 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
+# Priority 3: Multi-user true
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
 
-  # Priority 1: PostgreSQL + MinIO
-  if [ "${DB_TYPE}" == "pgx" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql-minio"
-
-  # Priority 2: PostgreSQL (with default SeaweedFS)
-  elif [ "${DB_TYPE}" == "pgx" ]; then
+  # Priority 3.1: PostgreSQL (with default SeaweedFS)
+  if [ "${DB_TYPE}" == "pgx" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
 
-  # Priority 3: Artifact proxy (MySQL + SeaweedFS)
+  # Priority 3.2: Artifact proxy (MySQL + SeaweedFS)
   elif $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
 
-  # Priority 4: Cache disabled + MinIO (MySQL + MinIO)
+  # Priority 3.3: Cache disabled + MinIO (MySQL + MinIO)
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
 
-  # Priority 5: MinIO (MySQL + MinIO)
+  # Priority 3.4: MinIO (MySQL + MinIO)
   elif [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
 
-  # Priority 6: Cache disabled (MySQL + SeaweedFS)
+  # Priority 3.5: Cache disabled (MySQL + SeaweedFS)
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
 
