@@ -389,7 +389,7 @@ kubectl -n <namespace> get deploy -o name \
   | grep -C3 "name: <secret-name>" || true
 ```
 
-### Certified rotation procedure
+### Certificate rotation procedure
 
 #### 1. Prepare/obtain new cert and key
 Generate or obtain new cert files: `server.crt` and `server.key` (PEM encoded).
