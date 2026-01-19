@@ -96,16 +96,6 @@ type Options struct {
 	*token
 }
 
-// SetSortByFieldPrefix sets the prefix for the sort-by field.
-func (o *Options) SetSortByFieldPrefix(prefix string) {
-	o.SortByFieldPrefix = prefix
-}
-
-// SetKeyFieldPrefix sets the prefix for the key field.
-func (o *Options) SetKeyFieldPrefix(prefix string) {
-	o.KeyFieldPrefix = prefix
-}
-
 func EmptyOptions() *Options {
 	return &Options{
 		PageSize: math.MaxInt32,
