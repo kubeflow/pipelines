@@ -3,6 +3,9 @@ MOD_ROOT=..
 KIND_NAME ?= dev-pipelines-api
 TLS_ENABLED ?= "false"
 DATABASE ?= mysql
+# TODO(kaikaila): Once postgres dev-kind manifests include webhook support (cert-manager, webhook configs),
+# change the default to true for all databases.
+WEBHOOK_PROXY_ENABLED ?= $(if $(filter mysql,$(DATABASE)),true,false)
 
 CERT_MANAGER_VERSION ?= v1.16.2
 
@@ -136,13 +139,13 @@ kind-cluster-agnostic-tls:
 # Example: make DATABASE=postgres dev-kind-cluster
 .PHONY: dev-kind-cluster
 dev-kind-cluster:
-	@if [ "$(DATABASE)" = "mysql" ]; then \
+	@if [ "$(WEBHOOK_PROXY_ENABLED)" = "true" ]; then \
 		${CONTAINER_ENGINE} build -t ${IMG_TAG_WEBHOOK_PROXY} -f $(CURDIR)/../tools/kind/Dockerfile.webhook-proxy $(CURDIR)/../tools/kind; \
 	fi
 	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config$(KIND_CONFIG_SUFFIX).yaml
 	kubectl config use-context kind-$(KIND_NAME)
 	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
-	@if [ "$(DATABASE)" = "mysql" ]; then \
+	@if [ "$(WEBHOOK_PROXY_ENABLED)" = "true" ]; then \
 		if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
 			kind --name ${KIND_NAME} load docker-image ${IMG_TAG_WEBHOOK_PROXY}; \
 		else \
@@ -153,7 +156,7 @@ dev-kind-cluster:
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind$(KUSTOMIZE_ENV_SUFFIX)
-	@if [ "$(DATABASE)" = "mysql" ]; then \
+	@if [ "$(WEBHOOK_PROXY_ENABLED)" = "true" ]; then \
 		kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml; \
 	fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/$(DB_DEPLOYMENT_NAME)
