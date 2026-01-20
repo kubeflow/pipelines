@@ -391,6 +391,29 @@ kubectl -n <namespace> get deploy -o name \
 
 ### Certificate rotation procedure
 
+> **Tip: helper scripts**
+> This repo also includes two optional helper scripts to simplify identifying impacted components and performing a rotation:
+>
+> - `scripts/find-tls-refs.sh`: lists pods/deployments in a namespace that reference a given TLS Secret.
+> - `scripts/rotate-tls.sh`: updates the TLS Secret and performs a rolling restart of all deployments that reference it.
+>
+> Examples:
+>
+> ```bash
+> # List deployments referencing the TLS Secret
+> ./scripts/find-tls-refs.sh <namespace> <secret-name>
+>
+> # Rotate certs and restart impacted deployments
+> ./scripts/rotate-tls.sh <namespace> <secret-name> <cert-file> <key-file>
+> ```
+>
+> For the default cert-manager setup:
+>
+> ```bash
+> ./scripts/find-tls-refs.sh kubeflow kfp-api-tls-cert
+> ./scripts/rotate-tls.sh kubeflow kfp-api-tls-cert server.crt server.key
+> ```
+
 #### 1. Prepare/obtain new cert and key
 Generate or obtain new cert files: `server.crt` and `server.key` (PEM encoded).
 
@@ -407,7 +430,7 @@ kubectl create secret tls <secret-name> \
 
 Example:
 
- ```bash
+```bash
  kubectl create secret tls kfp-api-tls-cert \
     --cert=server.crt \
     --key=server.key \
