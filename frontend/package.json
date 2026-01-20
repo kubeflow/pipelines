@@ -140,7 +140,7 @@
     "snapshot-diff": "^0.6.1",
     "swagger-ts-client": "^0.9.6",
     "tailwindcss": "^3.0.11",
-    "ts-node": "^7.0.1",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^1.1.8",
     "tsconfig-paths": "^3.10.1",
     "tslint-config-prettier": "^1.18.0",
