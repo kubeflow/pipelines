@@ -25,5 +25,13 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Cache pip
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Run isort tests
         run: ./test/presubmit-isort-sdk.sh
