@@ -45,6 +45,7 @@ var (
 	pipelineClient       *apiserver.PipelineClient
 	runClient            *apiserver.RunClient
 	experimentClient     *apiserver.ExperimentClient
+	recurringRunClient   *apiserver.RecurringRunClient
 	k8Client             *kubernetes.Clientset
 )
 
@@ -64,6 +65,7 @@ var _ = BeforeSuite(func() {
 	var newPipelineClient func() (*apiserver.PipelineClient, error)
 	var newRunClient func() (*apiserver.RunClient, error)
 	var newExperimentClient func() (*apiserver.ExperimentClient, error)
+	var newRecurringRunClient func() (*apiserver.RecurringRunClient, error)
 	clientConfig := testutil.GetClientConfig(*config.Namespace)
 	k8Client, err = testutil.CreateK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
@@ -85,6 +87,9 @@ var _ = BeforeSuite(func() {
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
+		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
+			return apiserver.NewKubeflowInClusterRecurringRunClient(*config.Namespace, *config.DebugMode, tlsCfg)
+		}
 	} else if *config.MultiUserMode || *config.AuthToken != "" {
 		if *config.AuthToken != "" {
 			logger.Log("Creating API Clients With Auth Token")
@@ -102,6 +107,9 @@ var _ = BeforeSuite(func() {
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewMultiUserRunClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
+		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
+			return apiserver.NewMultiUserRecurringRunClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
+		}
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
@@ -112,6 +120,9 @@ var _ = BeforeSuite(func() {
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
+		}
+		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
+			return apiserver.NewRecurringRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
@@ -132,6 +143,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to get Experiment client")
 	runClient, err = newRunClient()
 	Expect(err).To(BeNil(), "Failed to get Pipeline Run client")
+	recurringRunClient, err = newRecurringRunClient()
+	Expect(err).To(BeNil(), "Failed to get Recurring Run client")
 })
 
 var _ = BeforeEach(func() {
