@@ -4094,6 +4094,124 @@ schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
 
+// v2SpecWithIntLiterals is a v2 pipeline spec with integer literal parameter constraints for testing.
+var v2SpecWithIntLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        replicas:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-int-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            replicas:
+              componentInputParameter: replicas
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      replicas:
+        parameterType: NUMBER_INTEGER
+        literals:
+        - 1
+        - 3
+        - 5
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithFloatLiterals is a v2 pipeline spec with float literal parameter constraints for testing.
+var v2SpecWithFloatLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        threshold:
+          parameterType: NUMBER_DOUBLE
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-float-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            threshold:
+              componentInputParameter: threshold
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      threshold:
+        parameterType: NUMBER_DOUBLE
+        literals:
+        - 0.1
+        - 0.5
+        - 0.9
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithBoolLiterals is a v2 pipeline spec with boolean literal parameter constraints for testing.
+var v2SpecWithBoolLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        enable_feature:
+          parameterType: BOOLEAN
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-bool-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            enable_feature:
+              componentInputParameter: enable_feature
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      enable_feature:
+        parameterType: BOOLEAN
+        literals:
+        - true
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
 func TestCreateRun_LiteralParameterValidation(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -4116,258 +4234,40 @@ func TestCreateRun_LiteralParameterValidation(t *testing.T) {
 			errorContains: "does not match any of the allowed literal values",
 		},
 		{
-			name: "valid input - int literal",
-			pipelineSpec: `
-components:
-  comp-test:
-    executorLabel: exec-test
-    inputDefinitions:
-      parameters:
-        replicas:
-          parameterType: NUMBER_INTEGER
-deploymentSpec:
-  executors:
-    exec-test:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: test-int-literals
-root:
-  dag:
-    tasks:
-      test-task:
-        componentRef:
-          name: comp-test
-        inputs:
-          parameters:
-            replicas:
-              componentInputParameter: replicas
-        taskInfo:
-          name: test-task
-  inputDefinitions:
-    parameters:
-      replicas:
-        parameterType: NUMBER_INTEGER
-        literals:
-        - 1
-        - 3
-        - 5
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`,
+			name:          "valid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
 			runtimeParams: `{"replicas":3}`,
 			expectError:   false,
 		},
 		{
-			name: "invalid input - int literal",
-			pipelineSpec: `
-components:
-  comp-test:
-    executorLabel: exec-test
-    inputDefinitions:
-      parameters:
-        replicas:
-          parameterType: NUMBER_INTEGER
-deploymentSpec:
-  executors:
-    exec-test:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: test-int-literals
-root:
-  dag:
-    tasks:
-      test-task:
-        componentRef:
-          name: comp-test
-        inputs:
-          parameters:
-            replicas:
-              componentInputParameter: replicas
-        taskInfo:
-          name: test-task
-  inputDefinitions:
-    parameters:
-      replicas:
-        parameterType: NUMBER_INTEGER
-        literals:
-        - 1
-        - 3
-        - 5
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`,
+			name:          "invalid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
 			runtimeParams: `{"replicas":2}`,
 			expectError:   true,
 			errorContains: "does not match any of the allowed literal values",
 		},
 		{
-			name: "valid input - float literal",
-			pipelineSpec: `
-components:
-  comp-test:
-    executorLabel: exec-test
-    inputDefinitions:
-      parameters:
-        threshold:
-          parameterType: NUMBER_DOUBLE
-deploymentSpec:
-  executors:
-    exec-test:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: test-float-literals
-root:
-  dag:
-    tasks:
-      test-task:
-        componentRef:
-          name: comp-test
-        inputs:
-          parameters:
-            threshold:
-              componentInputParameter: threshold
-        taskInfo:
-          name: test-task
-  inputDefinitions:
-    parameters:
-      threshold:
-        parameterType: NUMBER_DOUBLE
-        literals:
-        - 0.1
-        - 0.5
-        - 0.9
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`,
+			name:          "valid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
 			runtimeParams: `{"threshold":0.5}`,
 			expectError:   false,
 		},
 		{
-			name: "invalid input - float literal",
-			pipelineSpec: `
-components:
-  comp-test:
-    executorLabel: exec-test
-    inputDefinitions:
-      parameters:
-        threshold:
-          parameterType: NUMBER_DOUBLE
-deploymentSpec:
-  executors:
-    exec-test:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: test-float-literals
-root:
-  dag:
-    tasks:
-      test-task:
-        componentRef:
-          name: comp-test
-        inputs:
-          parameters:
-            threshold:
-              componentInputParameter: threshold
-        taskInfo:
-          name: test-task
-  inputDefinitions:
-    parameters:
-      threshold:
-        parameterType: NUMBER_DOUBLE
-        literals:
-        - 0.1
-        - 0.5
-        - 0.9
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`,
+			name:          "invalid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
 			runtimeParams: `{"threshold":0.3}`,
 			expectError:   true,
 			errorContains: "does not match any of the allowed literal values",
 		},
 		{
-			name: "valid input - boolean literal",
-			pipelineSpec: `
-components:
-  comp-test:
-    executorLabel: exec-test
-    inputDefinitions:
-      parameters:
-        enable_feature:
-          parameterType: BOOLEAN
-deploymentSpec:
-  executors:
-    exec-test:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: test-bool-literals
-root:
-  dag:
-    tasks:
-      test-task:
-        componentRef:
-          name: comp-test
-        inputs:
-          parameters:
-            enable_feature:
-              componentInputParameter: enable_feature
-        taskInfo:
-          name: test-task
-  inputDefinitions:
-    parameters:
-      enable_feature:
-        parameterType: BOOLEAN
-        literals:
-        - true
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`,
+			name:          "valid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
 			runtimeParams: `{"enable_feature":true}`,
 			expectError:   false,
 		},
 		{
-			name: "invalid input - boolean literal",
-			pipelineSpec: `
-components:
-  comp-test:
-    executorLabel: exec-test
-    inputDefinitions:
-      parameters:
-        enable_feature:
-          parameterType: BOOLEAN
-deploymentSpec:
-  executors:
-    exec-test:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: test-bool-literals
-root:
-  dag:
-    tasks:
-      test-task:
-        componentRef:
-          name: comp-test
-        inputs:
-          parameters:
-            enable_feature:
-              componentInputParameter: enable_feature
-        taskInfo:
-          name: test-task
-  inputDefinitions:
-    parameters:
-      enable_feature:
-        parameterType: BOOLEAN
-        literals:
-        - true
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`,
+			name:          "invalid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
 			runtimeParams: `{"enable_feature":false}`,
 			expectError:   true,
 			errorContains: "does not match any of the allowed literal values",

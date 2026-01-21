@@ -61,6 +61,19 @@ func TestValidateLiteralParameter(t *testing.T) {
 			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
 		},
 		{
+			name:      "invalid input - string literal, incorrect case",
+			paramName: "test-parameter",
+			value:     structpb.NewStringValue("Dev"),
+			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
+				ParameterType: pipelinespec.ParameterType_STRING,
+				Literals: []*structpb.Value{
+					structpb.NewStringValue("dev"),
+				},
+			},
+			expectError:   true,
+			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
+		},
+		{
 			name:      "valid input - int literal",
 			paramName: "test-parameter",
 			value:     structpb.NewNumberValue(3),
@@ -183,19 +196,6 @@ func TestValidateLiteralParameter(t *testing.T) {
 				ParameterType: pipelinespec.ParameterType_STRING,
 				Literals: []*structpb.Value{
 					structpb.NewStringValue("only_option"),
-				},
-			},
-			expectError:   true,
-			errorContains: "input parameter \"test-parameter\" value does not match any of the allowed literal values",
-		},
-		{
-			name:      "invalid input - string literal, incorrect case",
-			paramName: "test-parameter",
-			value:     structpb.NewStringValue("Dev"),
-			paramSpec: &pipelinespec.ComponentInputsSpec_ParameterSpec{
-				ParameterType: pipelinespec.ParameterType_STRING,
-				Literals: []*structpb.Value{
-					structpb.NewStringValue("dev"),
 				},
 			},
 			expectError:   true,
