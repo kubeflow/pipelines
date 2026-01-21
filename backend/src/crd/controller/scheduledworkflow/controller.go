@@ -662,19 +662,22 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 // extractMaxActiveRunsFromWorkflow extracts max_active_runs from embedded workflow spec.
 // It extracts the pipeline version ID from semaphores and looks up max_active_runs
 // from the pipeline version API (since it's not stored in the compiled workflow).
-func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workflow *commonutil.Workflow, fallbackPipelineVersionId, pipelineId string) (maxActiveRuns int32, pipelineVersionID string) {
-	if workflow.Workflow == nil || workflow.Workflow.Spec.Synchronization == nil {
-		return 0, fallbackPipelineVersionId
+func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workflow *commonutil.Workflow, fallbackPipelineVersionID, pipelineID string) (maxActiveRuns int32, pipelineVersionID string) {
+	if workflow == nil || workflow.Workflow == nil {
+		return 0, fallbackPipelineVersionID
+	}
+	if workflow.Spec.Synchronization == nil {
+		return 0, fallbackPipelineVersionID
 	}
 
 	const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
-	for _, semaphore := range workflow.Workflow.Spec.Synchronization.Semaphores {
+	for _, semaphore := range workflow.Spec.Synchronization.Semaphores {
 		if semaphore.ConfigMapKeyRef != nil &&
 			semaphore.ConfigMapKeyRef.Name == pipelineParallelismConfigMapName &&
 			semaphore.ConfigMapKeyRef.Key != "" {
 			pipelineVersionID = semaphore.ConfigMapKeyRef.Key
 
-			if c.pipelineClient == nil || pipelineId == "" {
+			if c.pipelineClient == nil || pipelineID == "" {
 				return 0, pipelineVersionID
 			}
 
@@ -685,7 +688,7 @@ func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workf
 			}
 
 			pipelineVersion, err := c.pipelineClient.GetPipelineVersion(ctx, &api.GetPipelineVersionRequest{
-				PipelineId:        pipelineId,
+				PipelineId:        pipelineID,
 				PipelineVersionId: pipelineVersionID,
 			})
 			if err != nil || pipelineVersion == nil || pipelineVersion.PipelineSpec == nil {
@@ -729,7 +732,7 @@ func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workf
 		}
 	}
 
-	return 0, fallbackPipelineVersionId
+	return 0, fallbackPipelineVersionID
 }
 
 func (c *Controller) updateStatus(
