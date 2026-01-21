@@ -9,13 +9,13 @@ from kfp import dsl
 
 
 @dsl.component
-def literal_component(x: typing.Literal['a', 'b']) -> str:
-    return x
+def literal_component(literal_param: typing.Literal['a', 'b']):
+    print(literal_param)
 
 
 @dsl.pipeline(name='literal-pipeline')
 def literal_pipeline():
-    literal_component(x='a')
+    literal_component(literal_param='a')
 
 
 if __name__ == '__main__':

@@ -1023,7 +1023,6 @@ class ComponentSpec:
 
 def normalize_time_string(duration: str) -> str:
     """Normalizes a time string.
-
         Examples:
             - '1 hour' -> '1h'
             - '2 hours' -> '2h'

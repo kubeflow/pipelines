@@ -5,11 +5,7 @@ components:
     executorLabel: exec-literal-component
     inputDefinitions:
       parameters:
-        x:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        Output:
+        literal_param:
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -39,8 +35,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef literal_component(x: typing.Literal['a', 'b']) -> str:\n    return\
-          \ x\n\n"
+          \ *\n\ndef literal_component(literal_param: typing.Literal['a', 'b']):\n\
+          \    print(literal_param)\n\n"
         image: python:3.11
 pipelineInfo:
   name: literal-pipeline
@@ -54,7 +50,7 @@ root:
           name: comp-literal-component
         inputs:
           parameters:
-            x:
+            literal_param:
               runtimeValue:
                 constant: a
         taskInfo:
