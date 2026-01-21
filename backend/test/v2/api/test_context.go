@@ -28,8 +28,9 @@ type TestContext struct {
 	// Pipeline Context
 	Pipeline Pipeline
 
-	PipelineRun PipelineRun
-	Experiment  Experiment
+	PipelineRun  PipelineRun
+	RecurringRun RecurringRun
+	Experiment   Experiment
 }
 
 type Pipeline struct {
@@ -41,6 +42,10 @@ type Pipeline struct {
 
 type PipelineRun struct {
 	CreatedRunIds []string
+}
+
+type RecurringRun struct {
+	CreatedRecurringRunIds []string
 }
 
 type Experiment struct {
