@@ -892,22 +892,23 @@ func (wc *WorkflowClient) OnDeletePipelineVersion(pipelineVersionID string, name
 				glog.Warningf("Failed to create Kubernetes clientset for ConfigMap cleanup: %v", err)
 				return
 			}
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 			for _, namespace := range namespaces {
-				deletePipelineParallelismConfigMapEntry(ctx, clientset.CoreV1().ConfigMaps(namespace), namespace, pipelineVersionID)
+				if err := deletePipelineParallelismConfigMapEntry(ctx, clientset.CoreV1().ConfigMaps(namespace), namespace, pipelineVersionID); err != nil {
+					glog.Warningf("Failed to delete pipeline parallelism ConfigMap entry: %v", err)
+				}
 			}
 		}()
 	}()
 }
 
-func deletePipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.ConfigMapInterface, namespace, key string) {
+func deletePipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.ConfigMapInterface, namespace, key string) error {
 	if key == "" {
-		glog.Warningf("Attempted to delete ConfigMap entry with empty key in namespace %s", namespace)
-		return
+		return fmt.Errorf("attempted to delete ConfigMap entry with empty key in namespace %s", namespace)
 	}
 	if ctx.Err() != nil {
-		glog.Warningf("Context canceled while deleting pipeline parallelism ConfigMap entry for key %s in namespace %s: %v", key, namespace, ctx.Err())
-		return
+		return fmt.Errorf("context canceled while deleting pipeline parallelism ConfigMap entry for key %s in namespace %s: %w", key, namespace, ctx.Err())
 	}
 	// Use JSON merge patch to remove the key from ConfigMap.
 	patch := map[string]interface{}{
@@ -917,18 +918,17 @@ func deletePipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.
 	}
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
-		glog.Warningf("Failed to marshal patch for deleting ConfigMap entry (key %s, namespace %s): %v", key, namespace, err)
-		return
+		return fmt.Errorf("failed to marshal patch for deleting ConfigMap entry (key %s, namespace %s): %w", key, namespace, err)
 	}
 	_, err = configMaps.Patch(ctx, pipelineParallelismConfigMapName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 	if apierrors.IsNotFound(err) {
 		// ConfigMap doesn't exist, nothing to clean up
-		return
+		return nil
 	}
 	if err != nil {
-		glog.Warningf("Failed to delete pipeline parallelism ConfigMap entry (key %s, namespace %s): %v", key, namespace, err)
-		return
+		return fmt.Errorf("failed to delete pipeline parallelism ConfigMap entry (key %s, namespace %s): %w", key, namespace, err)
 	}
+	return nil
 }
 
 type WorkflowInterface struct {
@@ -991,7 +991,6 @@ func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, 
 	// It will create the ConfigMap if it doesn't exist (NotFound) or update it if the value changed.
 	_, err = wfi.configMapClient.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
 	if err != nil {
-		glog.Warningf("Failed to persist max_active_runs configuration for pipeline version %s in namespace %s: %v", pipelineVersionID, namespace, err)
 		return fmt.Errorf("failed to apply pipeline parallelism ConfigMap entry: %w", err)
 	}
 
