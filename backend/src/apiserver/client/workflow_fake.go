@@ -67,24 +67,21 @@ func (c *FakeWorkflowClient) Create(ctx context.Context, execSpec util.Execution
 		if pipelineVersionID != "" && maxActiveRunsStr != "" {
 			maxActiveRuns, err := strconv.Atoi(maxActiveRunsStr)
 			if err != nil {
-				glog.Warningf("Invalid max_active_runs annotation value: %v", err)
+				return nil, fmt.Errorf("invalid max_active_runs annotation value: %w", err)
 			}
 			if maxActiveRuns <= 0 {
-				glog.Warningf("max_active_runs must be greater than 0, got %d", maxActiveRuns)
+				return nil, fmt.Errorf("max_active_runs must be greater than 0, got %d", maxActiveRuns)
 			}
 			namespace := workflow.Namespace
 			if namespace == "" {
-				glog.Warningf("Workflow namespace is required for ConfigMap operations")
-				// Don't fail the workflow creation, just log the warning
+				return nil, fmt.Errorf("workflow namespace is required for ConfigMap operations")
 			}
-			if err == nil && maxActiveRuns > 0 && namespace != "" {
-				value := strconv.Itoa(maxActiveRuns)
-				configMapApply := applyv1.ConfigMap(pipelineParallelismConfigMapName, namespace).
-					WithData(map[string]string{pipelineVersionID: value})
-				_, err := c.configMapClient.Apply(ctx, configMapApply, v1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
-				if err != nil {
-					glog.Warningf("Failed to persist max_active_runs configuration for pipeline version %s in namespace %s: %v", pipelineVersionID, namespace, err)
-				}
+			value := strconv.Itoa(maxActiveRuns)
+			configMapApply := applyv1.ConfigMap(pipelineParallelismConfigMapName, namespace).
+				WithData(map[string]string{pipelineVersionID: value})
+			_, err = c.configMapClient.Apply(ctx, configMapApply, v1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
+			if err != nil {
+				return nil, fmt.Errorf("failed to apply pipeline parallelism ConfigMap entry: %w", err)
 			}
 		}
 	}

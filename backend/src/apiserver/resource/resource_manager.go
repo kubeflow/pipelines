@@ -22,6 +22,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"time"
 
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 
@@ -1888,9 +1889,16 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	// This identifies all namespaces where runs of this pipeline version exist and delegates cleanup to the execution client.
 	defer func() {
 		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
 			namespaces, err := r.runStore.GetRunNamespacesForPipelineVersion(pipelineVersionId)
 			if err != nil {
 				glog.Warningf("Failed to get namespaces for pipeline version %s during cleanup: %v", pipelineVersionId, err)
+				return
+			}
+			if ctx.Err() != nil {
+				glog.Warningf("Context canceled or timed out before cleanup for pipeline version %s: %v", pipelineVersionId, ctx.Err())
 				return
 			}
 			r.execClient.OnDeletePipelineVersion(pipelineVersionId, namespaces)

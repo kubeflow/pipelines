@@ -21,6 +21,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
@@ -34,6 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -90,6 +92,7 @@ type Controller struct {
 	swfClient      *client.ScheduledWorkflowClient
 	workflowClient *client.WorkflowClient
 	runClient      api.RunServiceClient
+	pipelineClient api.PipelineServiceClient
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -115,6 +118,7 @@ func NewController(
 	swfClientSet swfclientset.Interface,
 	workflowClientSet commonutil.ExecutionClient,
 	runClient api.RunServiceClient,
+	pipelineClient api.PipelineServiceClient,
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	executionInformer commonutil.ExecutionInformer,
 	time commonutil.TimeInterface,
@@ -139,6 +143,7 @@ func NewController(
 		kubeClient:     client.NewKubeClient(kubeClientSet, recorder),
 		swfClient:      client.NewScheduledWorkflowClient(swfClientSet, swfInformer),
 		runClient:      runClient,
+		pipelineClient: pipelineClient,
 		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
@@ -582,6 +587,16 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			return false, "", err
 		}
 
+		// Extract max_active_runs and set annotations before Create() to match CreateRun path behavior.
+		if workflow, ok := newWorkflow.(*commonutil.Workflow); ok {
+			if maxActiveRuns, pipelineVersionID := c.extractMaxActiveRunsFromWorkflow(ctx, workflow, swf.Spec.PipelineVersionId, swf.Spec.PipelineId); maxActiveRuns > 0 && pipelineVersionID != "" {
+				if workflow.ExecutionObjectMeta().Annotations == nil {
+					workflow.ExecutionObjectMeta().Annotations = make(map[string]string)
+				}
+				workflow.ExecutionObjectMeta().Annotations[commonutil.AnnotationKeyPipelineVersionID] = pipelineVersionID
+				workflow.ExecutionObjectMeta().Annotations[commonutil.AnnotationKeyMaxActiveRuns] = fmt.Sprintf("%d", maxActiveRuns)
+			}
+		}
 		createdWorkflow, err := c.workflowClient.Create(ctx, swf.Namespace, newWorkflow)
 		if err != nil {
 			return false, "", err
@@ -642,6 +657,79 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	}
 
 	return true, run.DisplayName, nil
+}
+
+// extractMaxActiveRunsFromWorkflow extracts max_active_runs from embedded workflow spec.
+// It extracts the pipeline version ID from semaphores and looks up max_active_runs
+// from the pipeline version API (since it's not stored in the compiled workflow).
+func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workflow *commonutil.Workflow, fallbackPipelineVersionId, pipelineId string) (maxActiveRuns int32, pipelineVersionID string) {
+	if workflow.Workflow == nil || workflow.Workflow.Spec.Synchronization == nil {
+		return 0, fallbackPipelineVersionId
+	}
+
+	const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
+	for _, semaphore := range workflow.Workflow.Spec.Synchronization.Semaphores {
+		if semaphore.ConfigMapKeyRef != nil &&
+			semaphore.ConfigMapKeyRef.Name == pipelineParallelismConfigMapName &&
+			semaphore.ConfigMapKeyRef.Key != "" {
+			pipelineVersionID = semaphore.ConfigMapKeyRef.Key
+
+			if c.pipelineClient == nil || pipelineId == "" {
+				return 0, pipelineVersionID
+			}
+
+			if c.tokenSrc != nil {
+				if token, err := c.tokenSrc.Token(); err == nil {
+					ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
+				}
+			}
+
+			pipelineVersion, err := c.pipelineClient.GetPipelineVersion(ctx, &api.GetPipelineVersionRequest{
+				PipelineId:        pipelineId,
+				PipelineVersionId: pipelineVersionID,
+			})
+			if err != nil || pipelineVersion == nil || pipelineVersion.PipelineSpec == nil {
+				return 0, pipelineVersionID
+			}
+
+			specBytes, err := protojson.Marshal(pipelineVersion.PipelineSpec)
+			if err != nil {
+				return 0, pipelineVersionID
+			}
+
+			tmpl, err := template.New(specBytes, template.TemplateOptions{})
+			if err != nil || tmpl == nil || !tmpl.IsV2() {
+				return 0, pipelineVersionID
+			}
+
+			v2Spec, ok := tmpl.(*template.V2Spec)
+			if !ok || v2Spec == nil {
+				return 0, pipelineVersionID
+			}
+
+			platformSpec := v2Spec.PlatformSpec()
+			if platformSpec == nil {
+				return 0, pipelineVersionID
+			}
+
+			k8sSpec, ok := platformSpec.Platforms["kubernetes"]
+			if !ok || k8sSpec == nil {
+				return 0, pipelineVersionID
+			}
+
+			pipelineConfig := k8sSpec.GetPipelineConfig()
+			if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
+				return 0, pipelineVersionID
+			}
+
+			maxActiveRuns = pipelineConfig.GetMaxActiveRuns()
+			if maxActiveRuns > 0 {
+				return maxActiveRuns, pipelineVersionID
+			}
+		}
+	}
+
+	return 0, fallbackPipelineVersionId
 }
 
 func (c *Controller) updateStatus(
