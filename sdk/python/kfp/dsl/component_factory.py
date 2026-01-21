@@ -311,8 +311,13 @@ def get_name_to_specs(
 
         # parameter type
         else:
-            type_string, _ = type_utils.annotation_to_type_struct_and_literals(
-                annotation)
+            result = type_utils._annotation_to_type_struct(annotation)
+            # _annotation_to_type_struct returns (type_struct, literals) for Literal types
+            # and just type_struct for other types
+            if isinstance(result, tuple):
+                type_string, _ = result
+            else:
+                type_string = result
             name_to_input_specs[maybe_make_unique(
                 name, list(name_to_input_specs))] = make_input_spec(
                     type_string, func_param)
@@ -356,7 +361,7 @@ def get_name_to_specs(
             ' 0.1.32. Please use typing.NamedTuple to declare multiple'
             ' outputs.', DeprecationWarning)
         for output_name, output_type_annotation in return_ann.items():
-            output_type, _ = type_utils.annotation_to_type_struct_and_literals(
+            output_type, _ = type_utils._annotation_to_type_struct(
                 output_type_annotation)
             name_to_output_specs[maybe_make_unique(
                 output_name, list(name_to_output_specs))] = output_type
@@ -392,8 +397,13 @@ def make_input_output_spec_args(annotation: Any) -> Dict[str, Any]:
         typ = type_utils.create_bundled_artifact_type(annotation.schema_title,
                                                       annotation.schema_version)
     else:
-        typ, literals = type_utils.annotation_to_type_struct_and_literals(
-            annotation)
+        result = type_utils._annotation_to_type_struct(annotation)
+        # _annotation_to_type_struct returns (type_struct, literals) for Literal types
+        # and just type_struct for other types
+        if isinstance(result, tuple):
+            typ, literals = result
+        else:
+            typ = result
     return {
         'type': typ,
         'is_artifact_list': is_artifact_list,

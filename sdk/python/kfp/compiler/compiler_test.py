@@ -188,15 +188,15 @@ def print_artifact(a: Input[Artifact]):
 
 class TestCompilePipeline(parameterized.TestCase):
 
-    def test_compile_pipeline_with_literal_single_type_valid(self):
+    def test_compile_pipeline_with_literal_input_valid(self):
 
         @dsl.component
-        def literal_comp(x: typing.Literal['a', 'b']):
-            return x
+        def literal_component(literal_param: typing.Literal['a', 'b']):
+            print(literal_param)
 
         @dsl.pipeline(name='test-literal-pipeline')
         def literal_pipeline():
-            literal_comp(x='a')
+            literal_component(literal_param='a')
 
         with tempfile.TemporaryDirectory() as tmpdir:
             target_file = os.path.join(tmpdir, 'result.yaml')
@@ -206,13 +206,15 @@ class TestCompilePipeline(parameterized.TestCase):
             )
             self.assertTrue(os.path.exists(target_file))
 
-    def test_literal_mixed_elements_should_raise_type_error(self):
+
+    def test_compile_pipeline_with_literal_input_mixed_types_invalid(self):
         # Mixed-type Literal should be rejected at component definition time
         with self.assertRaises(TypeError):
 
             @dsl.component
-            def bad_literal(x: typing.Literal[1, 2, 'a']):
-                return x
+            def literal_component_with_mixed_types(literal_param: typing.Literal[1, 2, 'a']):
+                print(literal_param)
+
 
     def test_can_use_dsl_attribute_on_kfp(self):
 
