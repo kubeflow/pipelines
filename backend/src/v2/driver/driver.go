@@ -89,7 +89,7 @@ type Options struct {
 	CaCertPath string
 
 	PipelineJobCreateTimeUTC string
-	
+
 	PipelineJobScheduleTimeUTC string
 }
 
