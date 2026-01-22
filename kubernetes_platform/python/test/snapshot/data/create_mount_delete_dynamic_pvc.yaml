@@ -25,6 +25,16 @@ components:
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
           isOptional: true
           parameterType: STRUCT
+        data_source:
+          description: Specifies the data source for the PVC. This can be used to
+            create a PVC from a VolumeSnapshot or to clone an existing PVC.
+            Should be a dictionary with ``'api_group'``, ``'kind'``, and
+            ``'name'`` keys. For example:
+            ``{'api_group': 'snapshot.storage.k8s.io', 'kind': 'VolumeSnapshot', 'name': 'my-snapshot'}``.
+            Corresponds to `PersistentVolumeClaim.spec.dataSource
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+          isOptional: true
+          parameterType: STRUCT
         pvc_name:
           description: 'Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
@@ -177,6 +187,12 @@ root:
               runtimeValue:
                 constant:
                 - ReadWriteOnce
+            data_source:
+              runtimeValue:
+                constant:
+                  api_group: snapshot.storage.k8s.io
+                  kind: VolumeSnapshot
+                  name: my-snap
             pvc_name_suffix:
               runtimeValue:
                 constant: -my-pvc
