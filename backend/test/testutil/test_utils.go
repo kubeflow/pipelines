@@ -141,6 +141,12 @@ func ReplaceSDKInPipelineSpec(pipelineFilePath string) []byte {
 	newPackagePath := getPackagePath("sdk/python")
 	modifiedPipelineSpec := kfpPattern.ReplaceAllString(pipelineFileString, newPackagePath)
 
+	// Shorten default sleep durations so parallelism tests complete faster.
+	sleepDefaultPattern := regexp.MustCompile(`sleep_seconds:\s*int\s*=\s*20`)
+	modifiedPipelineSpec = sleepDefaultPattern.ReplaceAllString(modifiedPipelineSpec, "sleep_seconds: int = 5")
+	sleepYamlDefaultPattern := regexp.MustCompile(`defaultValue:\s*20\.0?`)
+	modifiedPipelineSpec = sleepYamlDefaultPattern.ReplaceAllString(modifiedPipelineSpec, "defaultValue: 5.0")
+
 	return []byte(modifiedPipelineSpec)
 }
 
