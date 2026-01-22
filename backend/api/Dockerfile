@@ -77,7 +77,7 @@ RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRP
 
 # Needed for buildling python packages requiring protoc
 RUN apt-get update && apt-get install -y python3-pip
-RUN apt-get -y upgrade python3-pip && pip3 install --upgrade setuptools wheel --break-system-packages
+RUN apt-get -y upgrade python3-pip && pip3 install --upgrade setuptools --break-system-packages && pip3 install --upgrade --ignore-installed wheel --break-system-packages
 
 # WORKAROUND: https://github.com/docker-library/golang/issues/225#issuecomment-403170792
 ENV XDG_CACHE_HOME=/tmp/.cache

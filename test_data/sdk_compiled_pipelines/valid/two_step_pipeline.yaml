@@ -55,22 +55,22 @@ pipelineInfo:
 root:
   dag:
     tasks:
-      read-from-gcs:
+      consumer:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-read-from-gcs
         dependentTasks:
-        - write-to-gcs
+        - producer
         inputs:
           artifacts:
             input_gcs_path:
               taskOutputArtifact:
                 outputArtifactKey: output_gcs_path
-                producerTask: write-to-gcs
+                producerTask: producer
         taskInfo:
           name: Consumer
-      write-to-gcs:
+      producer:
         cachingOptions:
           enableCache: true
         componentRef:
@@ -88,4 +88,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.3
+sdkVersion: kfp-2.15.2
