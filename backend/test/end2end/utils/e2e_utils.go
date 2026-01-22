@@ -120,9 +120,8 @@ func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testC
 	// Launch (limit + 2) runs to exercise the semaphore.
 	targetRuns := int(limit) + 2
 	runIDs := make([]string, 0, targetRuns)
-	shortRunParams := map[string]interface{}{"sleep_seconds": 5}
 	for i := 0; i < targetRuns; i++ {
-		created := CreatePipelineRun(runClient, testContext, &pipelineID, &pipelineVersionID, experimentID, shortRunParams)
+		created := CreatePipelineRun(runClient, testContext, &pipelineID, &pipelineVersionID, experimentID, nil)
 		runIDs = append(runIDs, created.RunID)
 	}
 
