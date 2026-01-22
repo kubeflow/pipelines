@@ -519,7 +519,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			latestVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
 			Expect(latestVersion.PipelineVersionID).NotTo(BeEmpty(), "Expected latest pipeline version to have an ID")
 
-			effectiveLimit := limit
+			effectiveLimit := int64(limit)
 			if effectiveLimit < 1 {
 				effectiveLimit = 1
 			} else if effectiveLimit > 10 {
@@ -573,7 +573,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			Expect(err).NotTo(HaveOccurred(), "Failed to marshal pipeline spec")
 			Expect(protojson.Unmarshal(specBytes, pipelineSpec)).To(Succeed(), "Failed to unmarshal pipeline spec")
 
-			effectiveLimit := limit
+			effectiveLimit := int64(limit)
 			if effectiveLimit < 1 {
 				effectiveLimit = 1
 			} else if effectiveLimit > 10 {
