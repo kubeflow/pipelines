@@ -496,7 +496,8 @@ class TestCompilePipeline(parameterized.TestCase):
         task_keys = list(my_pipeline.pipeline_spec.root.dag.tasks.keys())
         self.assertEqual(len(task_keys), 1)
         # Task key should be truncated to max_task_name_length (15)
-        self.assertLessEqual(len(task_keys[0]), 20)  # Allow some room for suffix
+        self.assertLessEqual(len(task_keys[0]),
+                             20)  # Allow some room for suffix
 
     def test_set_display_name_in_loop(self):
         """Test that display_name works for tasks inside ParallelFor loops."""
@@ -513,7 +514,8 @@ class TestCompilePipeline(parameterized.TestCase):
 
         # Find the loop component
         loop_component = None
-        for comp_name, comp_spec in my_pipeline.pipeline_spec.components.items():
+        for comp_name, comp_spec in my_pipeline.pipeline_spec.components.items(
+        ):
             if comp_spec.dag and 'loop-task' in comp_spec.dag.tasks:
                 loop_component = comp_spec
                 break
