@@ -83,6 +83,11 @@ runs:
       shell: bash
       run: |
         NAMESPACE="${{ inputs.default_namespace }}"
+        if ! kubectl version --request-timeout=5s >/dev/null 2>&1; then
+          echo "Kubernetes API server is not reachable; skipping KFP API readiness check."
+          exit 0
+        fi
+
         echo "Waiting for ml-pipeline deployment to become ready in namespace ${NAMESPACE}..."
         kubectl rollout status deploy/ml-pipeline -n "$NAMESPACE" --timeout=5m
 
