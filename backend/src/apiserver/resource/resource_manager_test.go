@@ -4047,6 +4047,32 @@ schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
 
+//nolint:unused // Kept for potential future use
+var v2SpecHelloWorldMutated = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: pipelines/p1/versions/v1
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        taskInfo:
+          name: hello-world
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
 // v2SpecWithLiterals is a v2 pipeline spec with literal parameter constraints for testing.
 var v2SpecWithLiterals = `
 components:
