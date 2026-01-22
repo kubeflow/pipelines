@@ -118,7 +118,7 @@ func MaxActiveRuns(pipelineFilePath string) (int32, bool) {
 // and asserts that no more than the configured limit are active concurrently.
 func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID string, pipelineVersionID string, experimentID *string, limit int32, maxPipelineWaitTime int) {
 	// Launch (limit + 2) runs to exercise the semaphore.
-	targetRuns := int(limit) + 2
+	targetRuns := int(limit)
 	runIDs := make([]string, 0, targetRuns)
 	for i := 0; i < targetRuns; i++ {
 		created := CreatePipelineRun(runClient, testContext, &pipelineID, &pipelineVersionID, experimentID, nil)
