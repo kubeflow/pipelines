@@ -537,13 +537,14 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 					Trigger: &recurring_run_model.V2beta1Trigger{
 						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
-							IntervalSecond: recurringIntervalSeconds,
+							IntervalSecond: 5,
 						},
 					},
 				},
 			}
 			recurringRun, err := recurringRunClient.Create(createParams)
 			Expect(err).To(BeNil(), "Failed to create recurring run referencing pipeline ID")
+			Expect(recurringRun).NotTo(BeNil(), "Recurring run response should not be nil")
 			testContext.RecurringRun.CreatedRecurringRunIds = append(testContext.RecurringRun.CreatedRecurringRunIds, recurringRun.RecurringRunID)
 
 			targetRuns := int(limit) + 2
@@ -589,13 +590,14 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 					Trigger: &recurring_run_model.V2beta1Trigger{
 						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
-							IntervalSecond: recurringIntervalSeconds,
+							IntervalSecond: 5,
 						},
 					},
 				},
 			}
 			recurringRun, err := recurringRunClient.Create(createParams)
 			Expect(err).To(BeNil(), "Failed to create recurring run with embedded workflow spec")
+			Expect(recurringRun).NotTo(BeNil(), "Recurring run response should not be nil")
 			testContext.RecurringRun.CreatedRecurringRunIds = append(testContext.RecurringRun.CreatedRecurringRunIds, recurringRun.RecurringRunID)
 
 			targetRuns := int(limit) + 2
