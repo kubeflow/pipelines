@@ -88,8 +88,8 @@ type Options struct {
 
 	CaCertPath string
 
-	// Added for resolving pipeline job time placeholders
 	PipelineJobCreateTimeUTC string
+	
 	PipelineJobScheduleTimeUTC string
 }
 
