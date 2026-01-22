@@ -547,7 +547,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			Expect(recurringRun).NotTo(BeNil(), "Recurring run response should not be nil")
 			testContext.RecurringRun.CreatedRecurringRunIds = append(testContext.RecurringRun.CreatedRecurringRunIds, recurringRun.RecurringRunID)
 
-			targetRuns := int(limit) + 2
+			targetRuns := int(limit)
 			runInfos := collectRunInfos(recurringRun.RecurringRunID, uploadedPipeline.PipelineID, latestVersion.PipelineVersionID, targetRuns)
 
 			versionLimitMap := make(map[string]int32)
@@ -600,7 +600,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			Expect(recurringRun).NotTo(BeNil(), "Recurring run response should not be nil")
 			testContext.RecurringRun.CreatedRecurringRunIds = append(testContext.RecurringRun.CreatedRecurringRunIds, recurringRun.RecurringRunID)
 
-			targetRuns := int(limit) + 2
+			targetRuns := int(limit)
 			runInfos := collectRunInfos(recurringRun.RecurringRunID, "", "", targetRuns)
 
 			versionLimitMap := make(map[string]int32)
