@@ -78,6 +78,34 @@ runs:
         sleep 5
       continue-on-error: true
 
+    - name: Ensure KFP API server is reachable
+      if: (!cancelled())
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        echo "Waiting for ml-pipeline deployment to become ready in namespace ${NAMESPACE}..."
+        kubectl rollout status deploy/ml-pipeline -n "$NAMESPACE" --timeout=5m
+
+        echo "Starting port-forward for KFP API service..."
+        pkill -f "kubectl port-forward.*ml-pipeline" || true
+        kubectl port-forward -n "$NAMESPACE" svc/ml-pipeline 8888:8888 > /tmp/kfp-port-forward.log 2>&1 &
+        KFP_PORT_FORWARD_PID=$!
+        echo "KFP_PORT_FORWARD_PID=$KFP_PORT_FORWARD_PID" >> "$GITHUB_ENV"
+
+        echo "Checking KFP API health..."
+        for i in {1..30}; do
+          if curl -sf http://localhost:8888/apis/v2beta1/healthz > /dev/null; then
+            echo "KFP API server is ready."
+            break
+          fi
+          if [[ $i -eq 30 ]]; then
+            echo "KFP API server did not become reachable within expected time."
+            exit 1
+          fi
+          echo "Waiting for KFP API server..."
+          sleep 5
+        done
+
     - name: Run Tests
       id: run-tests
       shell: bash
@@ -179,6 +207,15 @@ runs:
         )
       shell: bash
       run: exit 1
+
+    - name: Stop KFP API port-forward
+      if: always()
+      shell: bash
+      run: |
+        if [[ -n "${KFP_PORT_FORWARD_PID:-}" ]]; then
+          echo "Stopping KFP API port-forward (PID ${KFP_PORT_FORWARD_PID})..."
+          kill "${KFP_PORT_FORWARD_PID}" || true
+        fi
 
     - name: Mark Workflow failure if test step failed
       if: steps.run-tests.outcome != 'success' && !cancelled()
