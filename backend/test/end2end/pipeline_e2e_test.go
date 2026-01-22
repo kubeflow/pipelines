@@ -275,8 +275,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			// Launch (limit + 2) runs to exercise the semaphore
 			targetRuns := int(limit) + 2
 			runInfos := make([]e2e_utils.RunInfo, 0, targetRuns)
+			shortRunParams := map[string]interface{}{"sleep_seconds": 5}
 			for i := 0; i < targetRuns; i++ {
-				created := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &uploadedPipelineVersion.PipelineVersionID, experimentID, nil)
+				created := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &uploadedPipelineVersion.PipelineVersionID, experimentID, shortRunParams)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created.RunID,
 					PipelineID:        uploadedPipeline.PipelineID,
@@ -309,9 +310,10 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			// Launch all runs for version1 first, then all runs for version2 (sequential batches)
 			targetRuns := int(limit) + 2
 			runInfos := make([]e2e_utils.RunInfo, 0, targetRuns*2)
+			shortRunParams := map[string]interface{}{"sleep_seconds": 5}
 			// Launch all version1 runs first
 			for i := 0; i < targetRuns; i++ {
-				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, shortRunParams)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created1.RunID,
 					PipelineID:        uploadedPipeline.PipelineID,
@@ -320,7 +322,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			}
 			// Then launch all version2 runs
 			for i := 0; i < targetRuns; i++ {
-				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, shortRunParams)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created2.RunID,
 					PipelineID:        uploadedPipeline.PipelineID,
@@ -354,11 +356,12 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 			// Test a MIX scenario: Launch runs to test dynamic mixing
 			runInfos := make([]e2e_utils.RunInfo, 0)
+			shortRunParams := map[string]interface{}{"sleep_seconds": 5}
 
 			// Step 1: Launch runs from version1 (same version) to exceed the limit
 			version1Runs := int(limit) + 2
 			for i := 0; i < version1Runs; i++ {
-				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, shortRunParams)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created1.RunID,
 					PipelineID:        uploadedPipeline.PipelineID,
@@ -369,7 +372,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			// Step 2: Launch runs from version2 (different version) - should be allowed independently
 			version2Runs := int(limit) + 2
 			for i := 0; i < version2Runs; i++ {
-				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, shortRunParams)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created2.RunID,
 					PipelineID:        uploadedPipeline.PipelineID,
@@ -380,7 +383,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			// Step 3: Launch more runs from version1 (same version again) - should still be limited
 			additionalVersion1Runs := int(limit) + 1
 			for i := 0; i < additionalVersion1Runs; i++ {
-				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, shortRunParams)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created1.RunID,
 					PipelineID:        uploadedPipeline.PipelineID,
@@ -417,14 +420,16 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			// Launch (limit + 2) runs for each pipeline
 			targetRuns := int(limit) + 2
 			runInfos := make([]e2e_utils.RunInfo, 0, targetRuns*2)
+			shortRunParams1 := map[string]interface{}{"sleep_seconds": 5}
+			shortRunParams2 := map[string]interface{}{"sleep_seconds": 5}
 			for i := 0; i < targetRuns; i++ {
-				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline1.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline1.PipelineID, &version1.PipelineVersionID, experimentID, shortRunParams1)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created1.RunID,
 					PipelineID:        uploadedPipeline1.PipelineID,
 					PipelineVersionID: version1.PipelineVersionID,
 				})
-				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline2.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline2.PipelineID, &version2.PipelineVersionID, experimentID, shortRunParams2)
 				runInfos = append(runInfos, e2e_utils.RunInfo{
 					RunID:             created2.RunID,
 					PipelineID:        uploadedPipeline2.PipelineID,
@@ -535,6 +540,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 					},
 					MaxConcurrency: effectiveLimit,
 					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
+					RuntimeConfig: &recurring_run_model.V2beta1RuntimeConfig{
+						Parameters: map[string]interface{}{"sleep_seconds": 5},
+					},
 					Trigger: &recurring_run_model.V2beta1Trigger{
 						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
 							IntervalSecond: recurringIntervalSeconds,
@@ -587,6 +595,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 					PipelineSpec:   pipelineSpec,
 					MaxConcurrency: effectiveLimit,
 					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
+					RuntimeConfig: &recurring_run_model.V2beta1RuntimeConfig{
+						Parameters: map[string]interface{}{"sleep_seconds": 5},
+					},
 					Trigger: &recurring_run_model.V2beta1Trigger{
 						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
 							IntervalSecond: recurringIntervalSeconds,
