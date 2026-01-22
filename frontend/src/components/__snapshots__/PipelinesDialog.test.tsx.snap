@@ -261,6 +261,8 @@ Object {
                     <div
                       aria-checked="false"
                       class="tableRow row"
+                      data-row-id="run-pipeline-id"
+                      data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >
@@ -324,6 +326,8 @@ Object {
                     <div
                       aria-checked="false"
                       class="tableRow row"
+                      data-row-id="run-pipeline-id"
+                      data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >
@@ -792,6 +796,8 @@ Object {
                     <div
                       aria-checked="false"
                       class="tableRow row"
+                      data-row-id="run-pipeline-id"
+                      data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >
@@ -855,6 +861,8 @@ Object {
                     <div
                       aria-checked="false"
                       class="tableRow row"
+                      data-row-id="run-pipeline-id"
+                      data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >

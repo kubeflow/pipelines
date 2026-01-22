@@ -64,7 +64,7 @@ jobs:
       - name: Frontend integration tests
         id: tests
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}
-        run: docker run --net=host kfp-frontend-integration-test:local --remote-run true
+        run: docker run --net=host kfp-frontend-integration-test:local
         continue-on-error: true
 
       - name: Collect failed logs

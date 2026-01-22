@@ -169,6 +169,9 @@ exports[`ExperimentList renders experiment names as links to their details pages
 >
   <Link
     className="link"
+    data-experiment-id="experiment-id"
+    data-experiment-name="experiment name"
+    data-testid="experiment-name-link"
     onClick={[Function]}
     replace={false}
     to="/experiments/details/experiment-id"
