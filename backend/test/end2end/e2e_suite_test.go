@@ -145,6 +145,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to get Pipeline Run client")
 	recurringRunClient, err = newRecurringRunClient()
 	Expect(err).To(BeNil(), "Failed to get Recurring Run client")
+	Expect(recurringRunClient).NotTo(BeNil(), "Recurring Run client is nil")
+	_, _, _, err = testutil.ListAllRecurringRuns(recurringRunClient, testutil.GetNamespace())
+	Expect(err).To(BeNil(), "Failed to reach Recurring Run API")
 })
 
 var _ = BeforeEach(func() {
