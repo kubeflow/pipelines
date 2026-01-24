@@ -36,14 +36,14 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 			envVars: map[string]string{
 				HttpProxyEnv: "http_proxy",
 			},
-			expectedConfig: newConfig("http_proxy", "", defaultNoProxyValue),
+			expectedConfig: newConfig("http_proxy", "", getDefaultNoProxyValue()),
 		},
 		{
 			envVars: map[string]string{
 				HttpProxyEnv:  "http_proxy",
 				HttpsProxyEnv: "https_proxy",
 			},
-			expectedConfig: newConfig("http_proxy", "https_proxy", defaultNoProxyValue),
+			expectedConfig: newConfig("http_proxy", "https_proxy", getDefaultNoProxyValue()),
 		},
 		{
 			envVars: map[string]string{
@@ -56,7 +56,7 @@ func TestNewConfigFromEnvVars(t *testing.T) {
 			envVars: map[string]string{
 				HttpsProxyEnv: "https_proxy",
 			},
-			expectedConfig: newConfig("", "https_proxy", defaultNoProxyValue),
+			expectedConfig: newConfig("", "https_proxy", getDefaultNoProxyValue()),
 		},
 		{
 			envVars: map[string]string{

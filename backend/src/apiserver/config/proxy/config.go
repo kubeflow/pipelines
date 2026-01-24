@@ -16,15 +16,22 @@ package proxy
 import (
 	"os"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	k8score "k8s.io/api/core/v1"
 )
 
 const (
-	HttpProxyEnv        = "HTTP_PROXY"
-	HttpsProxyEnv       = "HTTPS_PROXY"
-	NoProxyEnv          = "NO_PROXY"
-	defaultNoProxyValue = "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,minio-service.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"
+	HttpProxyEnv  = "HTTP_PROXY"
+	HttpsProxyEnv = "HTTPS_PROXY"
+	NoProxyEnv    = "NO_PROXY"
 )
+
+// getDefaultNoProxyValue returns the default NO_PROXY value with the correct cluster domain.
+// This uses GetClusterDomain() to support clusters with custom DNS domains (e.g., cluster.test).
+func getDefaultNoProxyValue() string {
+	clusterDomain := common.GetClusterDomain()
+	return "localhost,127.0.0.1,.svc." + clusterDomain + ",kubernetes.default.svc,minio-service.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"
+}
 
 type Config interface {
 	GetHttpProxy() string
@@ -68,7 +75,7 @@ func newConfigFromEnv() Config {
 	noProxyValue, isNoProxySet := os.LookupEnv(NoProxyEnv)
 
 	if (isHttpProxySet || isHttpsProxySet) && !isNoProxySet {
-		return newConfig(httpProxyValue, httpsProxyValue, defaultNoProxyValue)
+		return newConfig(httpProxyValue, httpsProxyValue, getDefaultNoProxyValue())
 	}
 
 	return newConfig(httpProxyValue, httpsProxyValue, noProxyValue)
