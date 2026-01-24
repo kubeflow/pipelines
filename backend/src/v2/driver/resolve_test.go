@@ -237,6 +237,8 @@ func TestValidateLiteralParameter_NilParamSpec(t *testing.T) {
 	// With a nil paramSpec, GetLiterals() will return nil, so no validation occurs
 	err := validateLiteralParameter("test-parameter", value, &pipelinespec.ComponentInputsSpec_ParameterSpec{})
 	assert.Nil(t, err, "Empty paramSpec should not cause validation error")
+}
+
 func TestResolvePipelineJobCreateTimePlaceholder(t *testing.T) {
 	ctx := context.Background()
 
