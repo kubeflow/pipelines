@@ -27,7 +27,7 @@ import {
 import { getTensorboardHandlers } from './handlers/tensorboard';
 import { getAuthorizeFn } from './helpers/auth';
 import { getPodLogsHandler } from './handlers/pod-logs';
-import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
+import { getPodInfoHandlers } from './handlers/pod-info';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
@@ -199,7 +199,7 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName, authorizeFn),
     );
   }
 
@@ -225,11 +225,12 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName, authorizeFn),
     );
   }
 
   /** Pod info */
+  const { podInfoHandler, podEventsHandler } = getPodInfoHandlers(authorizeFn);
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
 
