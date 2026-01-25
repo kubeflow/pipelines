@@ -18,6 +18,17 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: wait-for-ml-pipeline
+        image: curlimages/curl:8.5.0
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z ml-pipeline 8888; do
+            sleep 5
+          done
+          sleep 10
       containers:
       - env:
           - name: NAMESPACE
