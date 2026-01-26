@@ -80,7 +80,8 @@ class Executor:
                         raise TypeError(
                             f"Input '{name}' expects a single artifact type but "
                             f"received a union {inner_annotation!r}.")
-                    while type_annotations.is_list_of_artifacts(inner_annotation):
+                    while type_annotations.is_list_of_artifacts(
+                            inner_annotation):
                         inner_annotation = type_annotations.get_inner_type(
                             inner_annotation)
                         if isinstance(inner_annotation, tuple):
