@@ -76,6 +76,23 @@ class Executor:
                     inner_annotation = type_annotations.get_inner_type(
                         annotation)
 
+                    if isinstance(inner_annotation, tuple):
+                        raise TypeError(
+                            f"Input '{name}' expects a single artifact type but "
+                            f"received a union {inner_annotation!r}.")
+                    while type_annotations.is_list_of_artifacts(inner_annotation):
+                        inner_annotation = type_annotations.get_inner_type(
+                            inner_annotation)
+                        if isinstance(inner_annotation, tuple):
+                            raise TypeError(
+                                f"Input '{name}' expects a single artifact type but "
+                                f"received a union {inner_annotation!r}.")
+                    if not type_annotations.is_artifact_class(inner_annotation):
+                        raise TypeError(
+                            f"Input '{name}' expects a list of artifacts, but "
+                            f"received {annotation!r} whose inner type "
+                            f"{inner_annotation!r} is not an artifact.")
+
                     self.input_artifacts[name] = [
                         self.make_artifact(
                             msg,
@@ -113,6 +130,25 @@ class Executor:
     ) -> Any:
         annotation = func.__annotations__.get(
             name) if annotation is None else annotation
+        if type_annotations.is_list_of_artifacts(annotation):
+            inner_annotation = type_annotations.get_inner_type(annotation)
+            if isinstance(inner_annotation, tuple):
+                raise TypeError(
+                    f"Input '{name}' expects a single artifact type but "
+                    f"received a union {inner_annotation!r}.")
+            while type_annotations.is_list_of_artifacts(inner_annotation):
+                inner_annotation = type_annotations.get_inner_type(
+                    inner_annotation)
+                if isinstance(inner_annotation, tuple):
+                    raise TypeError(
+                        f"Input '{name}' expects a single artifact type but "
+                        f"received a union {inner_annotation!r}.")
+            if not type_annotations.is_artifact_class(inner_annotation):
+                raise TypeError(
+                    f"Input '{name}' expects a list of artifacts, but "
+                    f"received {annotation!r} whose inner type "
+                    f"{inner_annotation!r} is not an artifact.")
+            annotation = inner_annotation
         if isinstance(annotation, type_annotations.InputPath):
             schema_title, _ = annotation.type.split('@')
             if schema_title in artifact_types._SCHEMA_TITLE_TO_TYPE:
