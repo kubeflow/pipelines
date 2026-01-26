@@ -39,6 +39,10 @@ on:
         type: string
         description: 'Provide the docker file name'
         required: true
+      platforms:
+        type: string
+        required: true
+        description: e.g, linux/amd64 or linux/arm64
       push:
         type: boolean
         default: false
@@ -91,6 +95,11 @@ on:
         default: ''
         description: 'Provide the docker file name'
         required: true
+      platforms:
+        type: string
+        default: ''
+        required: true
+        description: 'Provide the target architecture e.g, linux/amd64, linux/arm64'
       push:
         type: boolean
         default: false
@@ -105,11 +114,12 @@ env:
   SET_LATEST: ${{ inputs.set_latest }}
   ADD_SHA_TAG: ${{ inputs.add_sha_tag }}
   CACHE_PATH: '/tmp/.buildx-cache'
+  BUILDX_BUILDER: 'poly-builder'
 
 jobs:
   build-and-push-images:
     continue-on-error: false
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     permissions:
       contents: read
       packages: write
@@ -127,6 +137,24 @@ jobs:
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Setup SSH from Host
+      - name: Setup SSH from Host
+        run: |
+          # 1. Start a fresh agent for THIS workflow job
+          eval $(ssh-agent -s)
+          
+          # 2. Add the specific key residing on the machine's disk
+          # (Assuming the runner user has access to this file)
+          ssh-add /home/ubuntu/.ssh/id_ed25519_oci_cncf_kubeflow
+          
+          # 3. Export the socket so the NEXT steps (Docker) can see it
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
 
       - name: Check if image tag already exists
         id: check_tag
@@ -169,6 +197,7 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.check_tag.outcome == 'success'
         with:
+          platforms: ${{ inputs.platforms }}
           context: ${{ inputs.image_context }}
           file: ${{ inputs.docker_file }}
           push: ${{ inputs.push }}
