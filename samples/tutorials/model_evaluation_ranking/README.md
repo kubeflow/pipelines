@@ -1,25 +1,49 @@
 # Model evaluation with ranking metrics
 
-This tutorial demonstrates how to evaluate ranking or recommendation-style models
-in Kubeflow Pipelines using common ranking metrics such as DCG and NDCG.
+This sample demonstrates how ranking or recommendation-style models can be
+evaluated in Kubeflow Pipelines using common ranking metrics such as
+Discounted Cumulative Gain (DCG) and Normalized DCG (NDCG).
 
-## What this tutorial shows
+The goal of this example is to show how evaluation logic can be structured
+and integrated into a Kubeflow Pipeline, rather than to provide a full
+end-to-end training workflow.
 
-- How to define an evaluation component in a Kubeflow Pipeline
-- How to compute DCG and NDCG for ranked predictions
-- How to interpret ranking metrics in an end-to-end pipeline run
+## What this sample demonstrates
 
-## Structure
+- How to implement DCG and NDCG metrics for ranked predictions
+- How to encapsulate ranking evaluation logic in a reusable evaluation helper
+- How to wrap the evaluation logic as a Kubeflow Pipelines component
+- How an evaluation component can be wired into a simple Kubeflow Pipeline
 
-- `evaluate_ranking.py`: Defines a simple pipeline with an evaluation step
-- `metrics.py`: Implements DCG and NDCG computation on a toy dataset
+## File structure
 
-## Prerequisites
+- `metrics.py`  
+  Implements DCG and NDCG computations.
 
-- Kubeflow Pipelines SDK installed
-- Basic familiarity with Python-based KFP components
+- `evaluation.py`  
+  Provides a helper function to evaluate ranking predictions across multiple
+  queries and aggregate metrics.
+
+- `component.py`  
+  Defines a Kubeflow Pipelines component that performs ranking evaluation.
+
+- `pipeline.py`  
+  Illustrates how the evaluation component can be invoked inside a Kubeflow
+  Pipeline using a small, synthetic example.
+
+## Usage
+
+This sample is intended as a **reference example**.
+
+The pipeline definition in `pipeline.py` is provided to demonstrate how the
+ranking evaluation component can be integrated into a Kubeflow Pipeline.
+It is not intended to be executed as-is by end users.
+
+Users can adapt the evaluation component and pipeline structure shown here
+to fit their own Kubeflow Pipelines workflows and datasets.
 
 ## Notes
 
-This tutorial uses a small, synthetic dataset to keep the example minimal
-and focused on evaluation logic rather than model training.
+- The example uses a small synthetic dataset to keep the focus on evaluation
+  logic rather than model training or infrastructure configuration.
+- No changes to Kubeflow Pipelines core code are required to use this sample.
