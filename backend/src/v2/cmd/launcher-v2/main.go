@@ -32,7 +32,11 @@ var (
 	pipelineName            = flag.String("pipeline_name", "", "pipeline context name")
 	runID                   = flag.String("run_id", "", "pipeline run uid")
 	parentDagID             = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
+<<<<<<< HEAD
 	executorType            = flag.String("executor_type", "container", "The type of the ExecutorSpec")
+=======
+	executorType            = flag.String("executor_type", "", "The type of the ExecutorSpec")
+>>>>>>> 38a11e43e (Remove defaults from driver and launcher; enforce API-provided config)
 	executionID             = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON       = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	componentSpecJSON       = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
@@ -40,12 +44,21 @@ var (
 	taskSpecJSON            = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
 	podName                 = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID                  = flag.String("pod_uid", "", "Kubernetes Pod UID.")
+<<<<<<< HEAD
 	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline.kubeflow", "The name of the ML pipeline API server address.")
 	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
 	mlmdServerAddress       = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort          = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
 	logLevel                = flag.String("log_level", "1", "The verbosity level to log.")
 	publishLogs             = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+=======
+	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "", "The name of the ML pipeline API server address.")
+	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "", "The port of the ML pipeline API server.")
+	mlmdServerAddress       = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
+	mlmdServerPort          = flag.String("mlmd_server_port", "", "The MLMD gRPC server port.")
+	logLevel                = flag.String("log_level", "", "The verbosity level to log.")
+	publishLogs             = flag.String("publish_logs", "", "Whether to publish component logs to the object store")
+>>>>>>> 38a11e43e (Remove defaults from driver and launcher; enforce API-provided config)
 	cacheDisabledFlag       = flag.Bool("cache_disabled", false, "Disable cache globally.")
 	caCertPath              = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 	mlPipelineTLSEnabled    = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
@@ -61,6 +74,15 @@ func main() {
 
 func run() error {
 	flag.Parse()
+	if *copy != "" {
+		// copy is used to copy this binary to a shared volume
+		// this is a special command, ignore all other flags by returning
+		// early
+		return component.CopyThisBinary(*copy)
+	}
+	if err := validate(); err != nil {
+		return err
+	}
 	ctx := context.Background()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
@@ -69,12 +91,6 @@ func run() error {
 		glog.Warningf("Failed to set log level: %s", err.Error())
 	}
 
-	if *copy != "" {
-		// copy is used to copy this binary to a shared volume
-		// this is a special command, ignore all other flags by returning
-		// early
-		return component.CopyThisBinary(*copy)
-	}
 	namespace, err := config.InPodNamespace()
 	if err != nil {
 		return err
@@ -140,6 +156,40 @@ func run() error {
 	}
 	return fmt.Errorf("unsupported executor type %s", *executorType)
 
+}
+
+func validate() error {
+	if *executorType == "" {
+		return fmt.Errorf("argument --executor_type must be specified")
+	}
+	if *mlPipelineServerAddress == "" {
+		return fmt.Errorf("argument --ml_pipeline_server_address must be specified")
+	}
+	if *mlPipelineServerPort == "" {
+		return fmt.Errorf("argument --ml_pipeline_server_port must be specified")
+	}
+	if *mlmdServerAddress == "" {
+		return fmt.Errorf("argument --mlmd_server_address must be specified")
+	}
+	if *mlmdServerPort == "" {
+		return fmt.Errorf("argument --mlmd_server_port must be specified")
+	}
+	if *publishLogs == "" {
+		return fmt.Errorf("argument --publish_logs must be specified")
+	}
+	if *logLevel == "" {
+		return fmt.Errorf("argument --log_level must be specified")
+	}
+	if *componentSpecJSON == "" {
+		return fmt.Errorf("argument --component_spec must be specified")
+	}
+	if *executorType == "importer" && *importerSpecJSON == "" {
+		return fmt.Errorf("argument --importer_spec must be specified for importer")
+	}
+	if *executorType == "container" && *executorInputJSON == "" {
+		return fmt.Errorf("argument --executor_input must be specified for container")
+	}
+	return nil
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.
