@@ -152,7 +152,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 	}
 
-	const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
 	if hasPipelineConfig {
 		pipelineConfig := kubernetesSpec.GetPipelineConfig()
 		if pipelineConfig.MaxActiveRuns != nil {
@@ -170,7 +169,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 					&wfapi.SemaphoreRef{
 						ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
 							LocalObjectReference: k8score.LocalObjectReference{
-								Name: pipelineParallelismConfigMapName,
+								Name: util.PipelineParallelismConfigMapName,
 							},
 							Key: opts.PipelineVersionID,
 						},

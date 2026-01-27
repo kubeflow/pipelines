@@ -1179,5 +1179,6 @@ message PipelineConfig {
 
   // Maximum number of concurrent runs allowed for this pipeline version.
   // When set, limits the number of simultaneously active runs for the same pipeline version.
+  // When unset or zero, no concurrency limit is enforced.
   optional int32 max_active_runs = 3;
 }
