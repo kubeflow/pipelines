@@ -212,6 +212,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
 		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
+		"--pipeline_job_create_time_utc", "{{workflow.creationTimestamp}}",
+		"--pipeline_job_schedule_time_utc", "{{workflow.scheduledTime}}",
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
