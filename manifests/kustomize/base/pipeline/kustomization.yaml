@@ -37,11 +37,11 @@ resources:
   - public_configmap_role.yaml
   - public_configmap_role_binding.yaml
 configMapGenerator:
-- name: kubeflow-pipelines-public
-  literals:
-    - kubeflow_pipelines_version=latest
-  options:
-    disableNameSuffixHash: true
+  - name: kubeflow-pipelines-public
+    literals:
+      - kubeflow_pipelines_version=latest
+    options:
+      disableNameSuffixHash: true
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newTag: 2.15.0
