@@ -323,6 +323,38 @@ describe('UIServer apis', () => {
     });
   });
 
+  describe('/k8s/pod with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3002;
+
+    beforeEach(() => {
+      authServer = express()
+        .post('/apis/v1beta1/auth', (_, res) => {
+          res.status(401).send('Unauthorized');
+        })
+        .listen(authPort);
+
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: 'true',
+          ML_PIPELINE_SERVICE_PORT: `${authPort}`,
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
+    });
+
+    afterEach(done => {
+      authServer.close(() => done());
+    });
+
+    it('responds with 403 when authorization is rejected', done => {
+      const authRequest = requests(app.start());
+      authRequest
+        .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
+        .expect(403, 'Access denied to namespace', done);
+    });
+  });
+
   describe('/k8s/pod/events', () => {
     let request: requests.SuperTest<requests.Test>;
     beforeEach(() => {
@@ -402,8 +434,81 @@ describe('UIServer apis', () => {
     });
   });
 
-  // TODO: Add integration tests for k8s helper related endpoints
-  // describe('/k8s/pod/logs', () => {});
+  describe('/k8s/pod/events with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3003;
+
+    beforeEach(() => {
+      authServer = express()
+        .post('/apis/v1beta1/auth', (_, res) => {
+          res.status(401).send('Unauthorized');
+        })
+        .listen(authPort);
+
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: 'true',
+          ML_PIPELINE_SERVICE_PORT: `${authPort}`,
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
+    });
+
+    afterEach(done => {
+      authServer.close(() => done());
+    });
+
+    it('responds with 403 when authorization is rejected', done => {
+      const authRequest = requests(app.start());
+      authRequest
+        .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
+        .expect(403, 'Access denied to namespace', done);
+    });
+  });
+
+  describe('/k8s/pod/logs', () => {
+    let request: requests.SuperTest<requests.Test>;
+    beforeEach(() => {
+      app = new UIServer(loadConfigs(argv, {}));
+      request = requests(app.start());
+    });
+
+    it('asks for podname if not provided', done => {
+      request.get('/k8s/pod/logs').expect(400, 'podname argument is required', done);
+    });
+  });
+
+  describe('/k8s/pod/logs with authorization enabled', () => {
+    let authServer: Server;
+    const authPort = 3004;
+
+    beforeEach(() => {
+      authServer = express()
+        .post('/apis/v1beta1/auth', (_, res) => {
+          res.status(401).send('Unauthorized');
+        })
+        .listen(authPort);
+
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: 'true',
+          ML_PIPELINE_SERVICE_PORT: `${authPort}`,
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
+    });
+
+    afterEach(done => {
+      authServer.close(() => done());
+    });
+
+    it('responds with 403 when authorization is rejected', done => {
+      const authRequest = requests(app.start());
+      authRequest
+        .get('/k8s/pod/logs?podname=test-pod&podnamespace=test-ns')
+        .expect(403, 'Access denied to namespace', done);
+    });
+  });
 
   describe('/apis/v1beta1/', () => {
     let request: requests.SuperTest<requests.Test>;
