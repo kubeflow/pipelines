@@ -42,6 +42,10 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
+  - path: ../../base/scheduled-workflow-env.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline-scheduledworkflow
   - path: ../../base/grpc-specs.yaml
     target:
       kind: Deployment
