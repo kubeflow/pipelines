@@ -956,14 +956,15 @@ func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpe
 	return &Workflow{Workflow: revWorkflow}, nil
 }
 
-func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, workflow *Workflow) error {
-	if workflow.Workflow == nil || workflow.Annotations == nil {
+// EnsurePipelineParallelismConfigMap ensures the ConfigMap entry tracking max_active_runs is present.
+// It parses the pipeline version annotations and upserts the corresponding semaphore counter.
+func EnsurePipelineParallelismConfigMap(ctx context.Context, configMaps v1.ConfigMapInterface, namespace string, annotations map[string]string) error {
+	if configMaps == nil || annotations == nil {
 		return nil
 	}
 
-	pipelineVersionID := workflow.Annotations[AnnotationKeyPipelineVersionID]
-	maxActiveRunsStr := workflow.Annotations[AnnotationKeyMaxActiveRuns]
-
+	pipelineVersionID := annotations[AnnotationKeyPipelineVersionID]
+	maxActiveRunsStr := annotations[AnnotationKeyMaxActiveRuns]
 	if pipelineVersionID == "" || maxActiveRunsStr == "" {
 		return nil
 	}
@@ -972,13 +973,19 @@ func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("invalid max_active_runs annotation value: %w", err)
 	}
-	if maxActiveRuns <= 0 {
-		return fmt.Errorf("max_active_runs must be greater than 0, got %d", maxActiveRuns)
-	}
 
-	namespace := workflow.Namespace
+	return applyPipelineParallelismConfigMapEntry(ctx, configMaps, namespace, pipelineVersionID, maxActiveRuns)
+}
+
+func applyPipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.ConfigMapInterface, namespace, pipelineVersionID string, maxActiveRuns int) error {
 	if namespace == "" {
 		return fmt.Errorf("workflow namespace is required for ConfigMap operations")
+	}
+	if pipelineVersionID == "" {
+		return fmt.Errorf("pipeline version ID is required for ConfigMap operations")
+	}
+	if maxActiveRuns <= 0 {
+		return fmt.Errorf("max_active_runs must be greater than 0, got %d", maxActiveRuns)
 	}
 
 	value := strconv.Itoa(maxActiveRuns)
@@ -987,12 +994,21 @@ func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, 
 
 	// Use server-side apply which automatically handles both create and update.
 	// It will create the ConfigMap if it doesn't exist (NotFound) or update it if the value changed.
-	_, err = wfi.configMapClient.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
+	_, err := configMaps.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
 	if err != nil {
 		return fmt.Errorf("failed to apply pipeline parallelism ConfigMap entry: %w", err)
 	}
-
 	return nil
+}
+
+func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, workflow *Workflow) error {
+	if workflow.Workflow == nil {
+		return fmt.Errorf("workflow cannot be nil")
+	}
+	if workflow.Annotations == nil {
+		return nil
+	}
+	return EnsurePipelineParallelismConfigMap(ctx, wfi.configMapClient, workflow.Namespace, workflow.Annotations)
 }
 
 func (wfi *WorkflowInterface) Update(ctx context.Context, execution ExecutionSpec, opts metav1.UpdateOptions) (ExecutionSpec, error) {

@@ -165,24 +165,12 @@ func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
 	if !ok || v2Spec == nil {
 		return 0, nil
 	}
-	platformSpec := v2Spec.PlatformSpec()
-	if platformSpec == nil {
-		return 0, nil
+	value, okValue, err := v2Spec.MaxActiveRuns()
+	if err != nil {
+		return 0, err
 	}
-	// Get kubernetes platform config
-	kubernetesSpec, ok := platformSpec.Platforms["kubernetes"]
-	if !ok || kubernetesSpec == nil {
+	if !okValue {
 		return 0, nil
-	}
-	// Get pipeline config
-	pipelineConfig := kubernetesSpec.GetPipelineConfig()
-	if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
-		return 0, nil
-	}
-	// Get the max active runs value
-	value := pipelineConfig.GetMaxActiveRuns()
-	if value <= 0 {
-		return 0, fmt.Errorf("max_active_runs must be greater than 0, got %d", value)
 	}
 	return value, nil
 }
@@ -192,16 +180,7 @@ func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInte
 }
 
 func (r *ResourceManager) getWorkflowClientWithConfigMap(namespace string) util.ExecutionInterface {
-	configMapClient := r.k8sCoreClient.ConfigMapClient(namespace)
-	if wc, ok := r.execClient.(*util.WorkflowClient); ok {
-		return wc.ExecutionWithConfigMapClient(namespace, configMapClient)
-	}
-	// Handle fake clients for testing
-	if fakeClient, ok := r.execClient.(*client.FakeExecClient); ok {
-		return fakeClient.ExecutionWithConfigMapClient(namespace, configMapClient)
-	}
-	// Fallback to regular Execution for other client types
-	return r.execClient.Execution(namespace)
+	return r.execClient.ExecutionWithConfigMapClient(namespace, r.k8sCoreClient.ConfigMapClient(namespace))
 }
 
 func (r *ResourceManager) getScheduledWorkflowClient(namespace string) scheduledworkflowclient.ScheduledWorkflowInterface {

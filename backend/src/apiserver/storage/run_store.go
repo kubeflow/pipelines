@@ -832,7 +832,7 @@ func (s *RunStore) GetRunNamespacesForPipelineVersion(pipelineVersionID string) 
 		var namespace string
 		if scanErr := rows.Scan(&namespace); scanErr != nil {
 			err = util.NewInternalServerError(scanErr, "Failed to scan namespace: %v", scanErr)
-			return
+			return nil, err
 		}
 		if namespace != "" {
 			namespaces = append(namespaces, namespace)
@@ -841,8 +841,8 @@ func (s *RunStore) GetRunNamespacesForPipelineVersion(pipelineVersionID string) 
 
 	if rowErr := rows.Err(); rowErr != nil {
 		err = util.NewInternalServerError(rowErr, "Error iterating over namespace rows: %v", rowErr)
-		return
+		return nil, err
 	}
 
-	return
+	return namespaces, err
 }

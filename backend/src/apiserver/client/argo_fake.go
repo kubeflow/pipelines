@@ -90,6 +90,11 @@ func (c *FakeExecClientWithBadWorkflow) Execution(namespace string) util.Executi
 	return c.workflowClientFake
 }
 
+func (c *FakeExecClientWithBadWorkflow) ExecutionWithConfigMapClient(namespace string, configMapClient corev1client.ConfigMapInterface) util.ExecutionInterface {
+	c.workflowClientFake.configMapClient = configMapClient
+	return c.workflowClientFake
+}
+
 func (c *FakeExecClientWithBadWorkflow) Compare(old, new interface{}) bool {
 	return false
 }

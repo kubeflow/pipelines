@@ -589,7 +589,8 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 		// Extract max_active_runs and set annotations before Create() to match CreateRun path behavior.
 		if workflow, ok := newWorkflow.(*commonutil.Workflow); ok {
-			if maxActiveRuns, pipelineVersionID := c.extractMaxActiveRunsFromWorkflow(ctx, workflow, swf.Spec.PipelineVersionId, swf.Spec.PipelineId); maxActiveRuns > 0 && pipelineVersionID != "" {
+			maxActiveRuns, pipelineVersionID := c.extractMaxActiveRunsFromWorkflow(ctx, workflow, swf.Spec.PipelineVersionId, swf.Spec.PipelineId)
+			if maxActiveRuns > 0 && pipelineVersionID != "" {
 				if workflow.ExecutionObjectMeta().Annotations == nil {
 					workflow.ExecutionObjectMeta().Annotations = make(map[string]string)
 				}
@@ -709,24 +710,12 @@ func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workf
 				return 0, pipelineVersionID
 			}
 
-			platformSpec := v2Spec.PlatformSpec()
-			if platformSpec == nil {
+			value, okValue, err := v2Spec.MaxActiveRuns()
+			if err != nil {
 				return 0, pipelineVersionID
 			}
-
-			k8sSpec, ok := platformSpec.Platforms["kubernetes"]
-			if !ok || k8sSpec == nil {
-				return 0, pipelineVersionID
-			}
-
-			pipelineConfig := k8sSpec.GetPipelineConfig()
-			if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
-				return 0, pipelineVersionID
-			}
-
-			maxActiveRuns = pipelineConfig.GetMaxActiveRuns()
-			if maxActiveRuns > 0 {
-				return maxActiveRuns, pipelineVersionID
+			if okValue && value > 0 {
+				return value, pipelineVersionID
 			}
 		}
 	}

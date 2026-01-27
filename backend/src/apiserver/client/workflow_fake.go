@@ -29,7 +29,6 @@ import (
 	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	applyv1 "k8s.io/client-go/applyconfigurations/core/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -38,8 +37,6 @@ type FakeWorkflowClient struct {
 	lastGeneratedId int
 	configMapClient corev1client.ConfigMapInterface
 }
-
-const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
 
 func NewWorkflowClientFake() *FakeWorkflowClient {
 	return &FakeWorkflowClient{
@@ -60,29 +57,9 @@ func (c *FakeWorkflowClient) Create(ctx context.Context, execSpec util.Execution
 	}
 
 	// Handle ConfigMap creation for pipeline parallelism if annotations are present
-	if c.configMapClient != nil && workflow.Workflow != nil && workflow.Annotations != nil {
-		pipelineVersionID := workflow.Annotations[util.AnnotationKeyPipelineVersionID]
-		maxActiveRunsStr := workflow.Annotations[util.AnnotationKeyMaxActiveRuns]
-
-		if pipelineVersionID != "" && maxActiveRunsStr != "" {
-			maxActiveRuns, err := strconv.Atoi(maxActiveRunsStr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid max_active_runs annotation value: %w", err)
-			}
-			if maxActiveRuns <= 0 {
-				return nil, fmt.Errorf("max_active_runs must be greater than 0, got %d", maxActiveRuns)
-			}
-			namespace := workflow.Namespace
-			if namespace == "" {
-				return nil, fmt.Errorf("workflow namespace is required for ConfigMap operations")
-			}
-			value := strconv.Itoa(maxActiveRuns)
-			configMapApply := applyv1.ConfigMap(pipelineParallelismConfigMapName, namespace).
-				WithData(map[string]string{pipelineVersionID: value})
-			_, err = c.configMapClient.Apply(ctx, configMapApply, v1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
-			if err != nil {
-				return nil, fmt.Errorf("failed to apply pipeline parallelism ConfigMap entry: %w", err)
-			}
+	if c.configMapClient != nil && workflow.Workflow != nil {
+		if err := util.EnsurePipelineParallelismConfigMap(ctx, c.configMapClient, workflow.Namespace, workflow.Annotations); err != nil {
+			return nil, err
 		}
 	}
 
