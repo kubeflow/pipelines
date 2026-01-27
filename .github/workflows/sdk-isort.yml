@@ -24,6 +24,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: 3.9
+          cache: 'pip'
 
       - name: Run isort tests
         run: ./test/presubmit-isort-sdk.sh
