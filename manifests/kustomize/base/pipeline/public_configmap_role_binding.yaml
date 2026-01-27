@@ -9,6 +9,6 @@ roleRef:
   kind: Role
   name: kubeflow-pipelines-public
 subjects:
-  - kind: Group
-    apiGroup: rbac.authorization.k8s.io
-    name: system:authenticated
+ - kind: Group
+   apiGroup: rbac.authorization.k8s.io
+   name: system:authenticated

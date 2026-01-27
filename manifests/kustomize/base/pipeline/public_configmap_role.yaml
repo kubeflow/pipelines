@@ -5,13 +5,13 @@ metadata:
     app: ml-pipeline
   name: kubeflow-pipelines-public
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    resourceNames:
-      - kubeflow-pipelines-public
-    verbs:
-      - get
-      - list
-      - watch
+ - apiGroups:
+   - ""
+   resources:
+   - configmaps
+   resourceNames:
+   - kubeflow-pipelines-public
+   verbs:
+   - get
+   - list
+   - watch
