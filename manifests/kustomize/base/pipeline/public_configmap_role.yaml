@@ -1,6 +1,8 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    app: ml-pipeline
   name: kubeflow-pipelines-public
 rules:
   - apiGroups:
