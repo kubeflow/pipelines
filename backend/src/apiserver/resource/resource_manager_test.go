@@ -4047,7 +4047,7 @@ schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
 
-//nolint:unused // Kept for potential future use
+//nolint:unused // Kept for testing pipeline name mutation scenarios (mutated pipelineInfo.name differs from v2SpecHelloWorld)
 var v2SpecHelloWorldMutated = `
 components:
   comp-hello-world:
@@ -4323,12 +4323,12 @@ func TestCreateRun_LiteralParameterValidation(t *testing.T) {
 			_, err := manager.CreateRun(context.Background(), apiRun)
 
 			if tt.expectError {
-				assert.NotNil(t, err)
+				require.Error(t, err)
 				if tt.errorContains != "" {
-					assert.Contains(t, err.Error(), tt.errorContains)
+					assert.ErrorContains(t, err, tt.errorContains)
 				}
 			} else {
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}

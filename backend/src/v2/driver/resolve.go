@@ -34,15 +34,14 @@ import (
 
 var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
 
-// validateLiteralParameter validates a resolved parameter value against
+// ValidateLiteralParameter validates a resolved parameter value against
 // the literal constraints defined in the parameter spec.
 // Returns nil if validation passes or if there are no literal constraints.
-func validateLiteralParameter(
+func ValidateLiteralParameter(
 	paramName string,
 	value *structpb.Value,
-	paramSpec *pipelinespec.ComponentInputsSpec_ParameterSpec,
+	literals []*structpb.Value,
 ) error {
-	literals := paramSpec.GetLiterals()
 	if len(literals) == 0 {
 		// No literal constraint
 		return nil
@@ -55,8 +54,8 @@ func validateLiteralParameter(
 	}
 
 	return fmt.Errorf(
-		"input parameter %q value does not match any of the allowed literal values",
-		paramName,
+		"input parameter %q value %v does not match any of the allowed literal values: %v",
+		paramName, value, literals,
 	)
 }
 
@@ -366,7 +365,7 @@ func resolveInputs(
 
 		// Validate against literal constraints if this parameter has them in the component spec
 		if componentParam, ok := opts.Component.GetInputDefinitions().GetParameters()[name]; ok && componentParam != nil {
-			if err := validateLiteralParameter(name, v, componentParam); err != nil {
+			if err := ValidateLiteralParameter(name, v, componentParam.GetLiterals()); err != nil {
 				return nil, fmt.Errorf("validating parameter %q: %w", name, err)
 			}
 		}
