@@ -51,8 +51,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
-const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
-
 // Metric variables. Please prefix the metric names with resource_manager_.
 var (
 	extraLabels = []string{

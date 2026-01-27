@@ -1986,7 +1986,7 @@ func TestCreateRun_MaxActiveRunsConfigMap(t *testing.T) {
 	require.NotNil(t, createdRun)
 
 	configMap, err := store.k8sCoreClientFake.ConfigMapClient("kubeflow").Get(
-		context.Background(), pipelineParallelismConfigMapName, v1.GetOptions{})
+		context.Background(), util.PipelineParallelismConfigMapName, v1.GetOptions{})
 	require.NoError(t, err)
 	require.NotNil(t, configMap.Data)
 	assert.Equal(t, "5", configMap.Data[version.UUID])
@@ -2002,7 +2002,7 @@ func TestCreateRun_MaxActiveRunsConfigMap(t *testing.T) {
 	require.Len(t, workflow.Spec.Synchronization.Semaphores, 1)
 	semaphore := workflow.Spec.Synchronization.Semaphores[0]
 	assert.NotNil(t, semaphore.ConfigMapKeyRef)
-	assert.Equal(t, pipelineParallelismConfigMapName, semaphore.ConfigMapKeyRef.Name)
+	assert.Equal(t, util.PipelineParallelismConfigMapName, semaphore.ConfigMapKeyRef.Name)
 	assert.Equal(t, version.UUID, semaphore.ConfigMapKeyRef.Key)
 }
 

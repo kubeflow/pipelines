@@ -670,10 +670,9 @@ func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workf
 		return 0, fallbackPipelineVersionID
 	}
 
-	const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
 	for _, semaphore := range workflow.Spec.Synchronization.Semaphores {
 		if semaphore.ConfigMapKeyRef != nil &&
-			semaphore.ConfigMapKeyRef.Name == pipelineParallelismConfigMapName &&
+			semaphore.ConfigMapKeyRef.Name == commonutil.PipelineParallelismConfigMapName &&
 			semaphore.ConfigMapKeyRef.Key != "" {
 			pipelineVersionID = semaphore.ConfigMapKeyRef.Key
 

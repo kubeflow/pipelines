@@ -65,6 +65,9 @@ const (
 	AnnotationKeyPipelineVersionID = "pipelines.kubeflow.org/pipeline_version_id"
 	// AnnotationKeyMaxActiveRuns is a workflow annotation key for max_active_runs value used in ConfigMap parallelism configuration.
 	AnnotationKeyMaxActiveRuns = "pipelines.kubeflow.org/max_active_runs"
+
+	// PipelineParallelismConfigMapName is the ConfigMap used to coordinate pipeline run semaphore limits.
+	PipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
 )
 
 // GetMaxParameterBytes returns the maximum byte size of parameters.

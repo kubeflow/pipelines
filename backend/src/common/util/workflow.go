@@ -920,7 +920,7 @@ func deletePipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.
 	if err != nil {
 		return fmt.Errorf("failed to marshal patch for deleting ConfigMap entry (key %s, namespace %s): %w", key, namespace, err)
 	}
-	_, err = configMaps.Patch(ctx, pipelineParallelismConfigMapName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+	_, err = configMaps.Patch(ctx, PipelineParallelismConfigMapName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 	if apierrors.IsNotFound(err) {
 		// ConfigMap doesn't exist, nothing to clean up
 		return nil
@@ -936,8 +936,6 @@ type WorkflowInterface struct {
 	informer          v1alpha1.WorkflowInformer
 	configMapClient   v1.ConfigMapInterface
 }
-
-const pipelineParallelismConfigMapName = "kfp-argo-workflow-semaphores"
 
 func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpec, opts metav1.CreateOptions) (ExecutionSpec, error) {
 	workflow, ok := execution.(*Workflow)
@@ -984,7 +982,7 @@ func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, 
 	}
 
 	value := strconv.Itoa(maxActiveRuns)
-	configMapApply := applyv1.ConfigMap(pipelineParallelismConfigMapName, namespace).
+	configMapApply := applyv1.ConfigMap(PipelineParallelismConfigMapName, namespace).
 		WithData(map[string]string{pipelineVersionID: value})
 
 	// Use server-side apply which automatically handles both create and update.
