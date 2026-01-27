@@ -13,6 +13,9 @@
 # limitations under the License.
 
 # Pin to a specific version of invert proxy agent
+# NOTE: This image may not have ARM64 support. For full ARM64 compatibility,
+# verify that gcr.io/inverting-proxy/agent provides multi-arch images or
+# find an alternative base image.
 FROM gcr.io/inverting-proxy/agent@sha256:694d6c1bf299585b530c923c3728cd2c45083f3b396ec83ff799cef1c9dc7474
 
 # We need --allow-releaseinfo-change, because of https://github.com/kubeflow/pipelines/issues/6311#issuecomment-899224137.
@@ -30,7 +33,9 @@ RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 # Install kubectl
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+# Use TARGETARCH for multi-architecture support (amd64, arm64)
+ARG TARGETARCH
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl
 RUN chmod +x ./kubectl
 RUN mv kubectl /usr/local/bin/
 
