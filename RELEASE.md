@@ -152,9 +152,9 @@ You can inspect the changes by navigating to the temporary directory it creates.
 Once you are comfortable with the changes, press `y` and hit `Enter`.
 If you choose no, you can always push manually later.
 
-When updating manifests for a new release, also ensure that the public version ConfigMap reflects the new control-plane version:
+In addition, verify that the public version ConfigMap reflects the new control-plane version used for this release:
 
-- In `manifests/kustomize/base/pipeline/kustomization.yaml`, set the `kubeflow_pipelines_version` literal under `configMapGenerator` for the `kubeflow-pipelines-public` ConfigMap to the release tag with a `v` prefix (for example, `kubeflow_pipelines_version=v2.0.0-rc.1`). Update this value whenever cutting a new release.
+- In `manifests/kustomize/base/pipeline/kustomization.yaml`, set the `kubeflow_pipelines_version` literal under the `configMapGenerator` for the `kubeflow-pipelines-public` ConfigMap to the release tag with a `v` prefix (for example, `kubeflow_pipelines_version=v2.0.0-rc.1`).
 
 > [!Note]
 > the script will clone kubeflow/pipelines repo into a temporary location on your computer, 
