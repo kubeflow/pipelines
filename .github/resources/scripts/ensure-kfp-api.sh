@@ -42,7 +42,7 @@ declare -a CURL_OPTS=(-sf)
 
 if [[ "${TLS_ENABLED}" == "true" ]]; then
   SCHEME="https"
-  TARGET_HOST="${SERVICE_NAME}.${NAMESPACE}.svc.cluster.local"
+  TARGET_HOST="${SERVICE_NAME}.${NAMESPACE}"
   CURL_OPTS+=(--resolve "${TARGET_HOST}:${API_PORT}:127.0.0.1")
   if [[ -n "${CA_CERT_PATH}" ]]; then
     CURL_OPTS+=(--cacert "${CA_CERT_PATH}")
@@ -50,6 +50,8 @@ if [[ "${TLS_ENABLED}" == "true" ]]; then
     CURL_OPTS+=(-k)
   fi
 fi
+
+log "Probing ${SCHEME}://${TARGET_HOST}:${API_PORT}/apis/v2beta1/healthz"
 
 for attempt in {1..30}; do
   if curl "${CURL_OPTS[@]}" "${SCHEME}://${TARGET_HOST}:${API_PORT}/apis/v2beta1/healthz" >/dev/null; then
