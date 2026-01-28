@@ -19,6 +19,7 @@ import {
   findFileOnPodVolume,
   parseJSONString,
   isAllowedResourceName,
+  isAllowedObjectKey,
 } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
@@ -122,6 +123,10 @@ export function getArtifactsHandler({
     }
     if (!key) {
       res.status(500).send('Storage key is missing from artifact request');
+      return;
+    }
+    if (!isAllowedObjectKey(key)) {
+      res.status(500).send('Invalid object key');
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
