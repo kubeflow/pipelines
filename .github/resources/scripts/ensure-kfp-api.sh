@@ -28,6 +28,9 @@ dump_ml_pipeline_logs() {
 
   log "Current pods in namespace ${NAMESPACE}:"
   kubectl -n "${NAMESPACE}" get pods -o wide || true
+
+  log "Listing TLS cert directory contents inside ${SERVICE_NAME} deployment:"
+  kubectl -n "${NAMESPACE}" exec deploy/"${SERVICE_NAME}" -- ls -lah /etc/pki/tls/certs || true
 }
 
 if ! kubectl version --request-timeout=5s >/dev/null 2>&1; then
