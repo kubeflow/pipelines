@@ -286,20 +286,20 @@ func (s *JobServerV1) DisableJob(ctx context.Context, request *apiv1beta1.Disabl
 	return &emptypb.Empty{}, nil
 }
 
-func (s *BaseJobServer) deleteJob(ctx context.Context, jobId string) error {
-	err := s.canAccessJob(ctx, jobId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+func (s *BaseJobServer) deleteJob(ctx context.Context, jobID string, propagationPolicy apiv2beta1.DeletePropagationPolicy) error {
+	err := s.canAccessJob(ctx, jobID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
 
-	return s.resourceManager.DeleteJob(ctx, jobId)
+	return s.resourceManager.DeleteJob(ctx, jobID, propagationPolicy)
 }
 
 func (s *JobServerV1) DeleteJob(ctx context.Context, request *apiv1beta1.DeleteJobRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteJobRequests.Inc()
 	}
-	err := s.deleteJob(ctx, request.GetId())
+	err := s.deleteJob(ctx, request.GetId(), apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to disable a recurring run")
 	}
@@ -411,9 +411,9 @@ func (s *JobServer) DeleteRecurringRun(ctx context.Context, request *apiv2beta1.
 	if s.options.CollectMetrics {
 		deleteJobRequests.Inc()
 	}
-	err := s.deleteJob(ctx, request.GetRecurringRunId())
+	err := s.deleteJob(ctx, request.GetRecurringRunId(), request.GetPropagationPolicy())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to disable a recurring run")
+		return nil, util.Wrap(err, "Failed to delete a recurring run")
 	}
 	if s.options.CollectMetrics {
 		jobCount.Dec()
