@@ -14,7 +14,7 @@
 
 # 1. Build api server application
 FROM golang:1.24-bookworm AS builder
-RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends cmake clang musl-dev openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -38,9 +38,9 @@ ARG TARGETARCH
 RUN echo "Building for architecture: ${TARGETARCH}"
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION=v3.7.3
+ENV ARGO_VERSION=v3.7.6
 RUN curl -sL -H "Accept: application/octet-stream" \
-        https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz \
+    https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz \
     -o argo-linux-$TARGETARCH.gz && \
     gunzip argo-linux-$TARGETARCH.gz && \
     chmod +x argo-linux-$TARGETARCH && \
@@ -70,7 +70,7 @@ ENV LOG_LEVEL=info
 WORKDIR /bin
 
 # Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
-RUN apt-get update && apt-get install -y ca-certificates wget
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends ca-certificates wget && rm -rf /var/lib/apt/lists/*
 
 COPY backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
