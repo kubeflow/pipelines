@@ -577,7 +577,6 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
 		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
-		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.driverImage != DefaultDriverImage {
 		args = append(args,
