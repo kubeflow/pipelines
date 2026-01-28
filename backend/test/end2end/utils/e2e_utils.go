@@ -156,7 +156,9 @@ func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testC
 			validationPassed = true
 		}
 		if allTerminal {
-			gomega.Expect(validationPassed).To(gomega.BeTrue(), "All runs completed before parallelism validation could be performed")
+			if !validationPassed {
+				ginkgo.Fail("All runs completed before parallelism validation could be performed; runs may have completed too quickly or never started")
+			}
 			return
 		}
 		if time.Now().After(timeout) {
@@ -221,12 +223,10 @@ func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, runInfos []Ru
 		}
 
 		if allTerminal {
-			// If we validated at least once, we're good - runs can complete quickly
-			if validationPassed {
-				return
+			if !validationPassed {
+				ginkgo.Fail(fmt.Sprintf("All runs completed before parallelism validation could be performed; runs may have completed too quickly or never started. Total runs: %d", len(runInfos)))
 			}
-			// If runs completed without ever being active, that's a problem
-			ginkgo.Fail(fmt.Sprintf("All runs completed before parallelism validation could be performed; runs may have completed too quickly or never started. Total runs: %d", len(runInfos)))
+			return
 		}
 
 		if time.Now().After(timeout) {
