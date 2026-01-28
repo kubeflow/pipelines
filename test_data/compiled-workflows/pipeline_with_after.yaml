@@ -69,10 +69,6 @@ spec:
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
-      - --pipeline_job_create_time_utc
-      - '{{workflow.creationTimestamp}}'
-      - --pipeline_job_schedule_time_utc
-      - '{{workflow.scheduledTime}}'
       command:
       - driver
       env:
@@ -340,10 +336,6 @@ spec:
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
-      - --pipeline_job_create_time_utc
-      - '{{workflow.creationTimestamp}}'
-      - --pipeline_job_schedule_time_utc
-      - '{{workflow.scheduledTime}}'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest
