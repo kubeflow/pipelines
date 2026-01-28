@@ -1,0 +1,292 @@
+apiVersion: pipelines.kubeflow.org/v2beta1
+kind: PipelineVersion
+metadata:
+  name: huggingface-model-test
+spec:
+  description: Pipeline to test HuggingFace Hub model import.
+  displayName: huggingface-model-test
+  pipelineName: huggingface-model-test
+  pipelineSpec:
+    components:
+      comp-analyze-model:
+        executorLabel: exec-analyze-model
+        inputDefinitions:
+          artifacts:
+            model:
+              artifactType:
+                schemaTitle: system.Model
+                schemaVersion: 0.0.1
+        outputDefinitions:
+          parameters:
+            Output:
+              parameterType: STRING
+      comp-analyze-model-2:
+        executorLabel: exec-analyze-model-2
+        inputDefinitions:
+          artifacts:
+            model:
+              artifactType:
+                schemaTitle: system.Model
+                schemaVersion: 0.0.1
+        outputDefinitions:
+          parameters:
+            Output:
+              parameterType: STRING
+      comp-importer:
+        executorLabel: exec-importer
+        inputDefinitions:
+          parameters:
+            uri:
+              parameterType: STRING
+        outputDefinitions:
+          artifacts:
+            artifact:
+              artifactType:
+                schemaTitle: system.Model
+                schemaVersion: 0.0.1
+      comp-importer-2:
+        executorLabel: exec-importer-2
+        inputDefinitions:
+          parameters:
+            uri:
+              parameterType: STRING
+        outputDefinitions:
+          artifacts:
+            artifact:
+              artifactType:
+                schemaTitle: system.Model
+                schemaVersion: 0.0.1
+      comp-importer-3:
+        executorLabel: exec-importer-3
+        inputDefinitions:
+          parameters:
+            uri:
+              parameterType: STRING
+        outputDefinitions:
+          artifacts:
+            artifact:
+              artifactType:
+                schemaTitle: system.Dataset
+                schemaVersion: 0.0.1
+      comp-importer-4:
+        executorLabel: exec-importer-4
+        inputDefinitions:
+          parameters:
+            uri:
+              parameterType: STRING
+        outputDefinitions:
+          artifacts:
+            artifact:
+              artifactType:
+                schemaTitle: system.Artifact
+                schemaVersion: 0.0.1
+    deploymentSpec:
+      executors:
+        exec-analyze-model:
+          container:
+            args:
+            - --executor_input
+            - '{{$}}'
+            - --function_to_execute
+            - analyze_model
+            command:
+            - sh
+            - -c
+            - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip\
+              \ || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\
+              \nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location\
+              \ 'transformers' 'torch'  &&  python3 -m pip install --quiet --no-warn-script-location\
+              \ 'kfp==2.15.2' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+              3.9\"' && \"$0\" \"$@\"\n"
+            - sh
+            - -ec
+            - 'program_path=$(mktemp -d)
+
+
+              printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+              _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+              '
+            - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing\
+              \ import *\n\ndef analyze_model(model: dsl.Model) -> str:\n    \"\"\"\
+              Analyze a HuggingFace model and return basic info.\"\"\"\n    import\
+              \ os\n    import json\n\n    # Check what files are available\n    model_path\
+              \ = model.path\n    print(f\"Model path: {model_path}\")\n\n    files\
+              \ = []\n    if os.path.exists(model_path):\n        for root, dirs,\
+              \ file_list in os.walk(model_path):\n            for file in file_list:\n\
+              \                rel_path = os.path.relpath(os.path.join(root, file),\
+              \ model_path)\n                files.append(rel_path)\n            \
+              \    if len(files) <= 10:  # Limit output\n                    print(f\"\
+              Found file: {rel_path}\")\n\n    # Try to read config if available\n\
+              \    config_path = os.path.join(model_path, \"config.json\")\n    config_info\
+              \ = \"No config.json found\"\n    if os.path.exists(config_path):\n\
+              \        try:\n            with open(config_path) as f:\n          \
+              \      config = json.load(f)\n                config_info = f\"Model\
+              \ type: {config.get('model_type', 'unknown')}, Architecture: {config.get('architecture',\
+              \ 'unknown')}\"\n        except Exception as e:\n            config_info\
+              \ = f\"Error reading config: {e}\"\n\n    result = f\"Model analysis:\\\
+              n- Files found: {len(files)}\\n- Config: {config_info}\\n- Model URI:\
+              \ {model.uri}\"\n    print(result)\n    return result\n\n"
+            image: python:3.11
+        exec-analyze-model-2:
+          container:
+            args:
+            - --executor_input
+            - '{{$}}'
+            - --function_to_execute
+            - analyze_model
+            command:
+            - sh
+            - -c
+            - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip\
+              \ || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\
+              \nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location\
+              \ 'transformers' 'torch'  &&  python3 -m pip install --quiet --no-warn-script-location\
+              \ 'kfp==2.15.2' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+              3.9\"' && \"$0\" \"$@\"\n"
+            - sh
+            - -ec
+            - 'program_path=$(mktemp -d)
+
+
+              printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+              _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+              '
+            - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing\
+              \ import *\n\ndef analyze_model(model: dsl.Model) -> str:\n    \"\"\"\
+              Analyze a HuggingFace model and return basic info.\"\"\"\n    import\
+              \ os\n    import json\n\n    # Check what files are available\n    model_path\
+              \ = model.path\n    print(f\"Model path: {model_path}\")\n\n    files\
+              \ = []\n    if os.path.exists(model_path):\n        for root, dirs,\
+              \ file_list in os.walk(model_path):\n            for file in file_list:\n\
+              \                rel_path = os.path.relpath(os.path.join(root, file),\
+              \ model_path)\n                files.append(rel_path)\n            \
+              \    if len(files) <= 10:  # Limit output\n                    print(f\"\
+              Found file: {rel_path}\")\n\n    # Try to read config if available\n\
+              \    config_path = os.path.join(model_path, \"config.json\")\n    config_info\
+              \ = \"No config.json found\"\n    if os.path.exists(config_path):\n\
+              \        try:\n            with open(config_path) as f:\n          \
+              \      config = json.load(f)\n                config_info = f\"Model\
+              \ type: {config.get('model_type', 'unknown')}, Architecture: {config.get('architecture',\
+              \ 'unknown')}\"\n        except Exception as e:\n            config_info\
+              \ = f\"Error reading config: {e}\"\n\n    result = f\"Model analysis:\\\
+              n- Files found: {len(files)}\\n- Config: {config_info}\\n- Model URI:\
+              \ {model.uri}\"\n    print(result)\n    return result\n\n"
+            image: python:3.11
+        exec-importer:
+          importer:
+            artifactUri:
+              constant: huggingface://gpt2
+            typeSchema:
+              schemaTitle: system.Model
+              schemaVersion: 0.0.1
+        exec-importer-2:
+          importer:
+            artifactUri:
+              constant: huggingface://gpt2/main
+            typeSchema:
+              schemaTitle: system.Model
+              schemaVersion: 0.0.1
+        exec-importer-3:
+          importer:
+            artifactUri:
+              constant: huggingface://squad?repo_type=dataset
+            typeSchema:
+              schemaTitle: system.Dataset
+              schemaVersion: 0.0.1
+        exec-importer-4:
+          importer:
+            artifactUri:
+              constant: huggingface://gpt2/tokenizer.json
+            typeSchema:
+              schemaTitle: system.Artifact
+              schemaVersion: 0.0.1
+    pipelineInfo:
+      description: Pipeline to test HuggingFace Hub model import.
+      name: huggingface-model-test
+    root:
+      dag:
+        tasks:
+          analyze-model:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-analyze-model
+            dependentTasks:
+            - importer
+            inputs:
+              artifacts:
+                model:
+                  taskOutputArtifact:
+                    outputArtifactKey: artifact
+                    producerTask: importer
+            taskInfo:
+              name: Analyze GPT-2 Model
+          analyze-model-2:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-analyze-model-2
+            dependentTasks:
+            - importer-2
+            inputs:
+              artifacts:
+                model:
+                  taskOutputArtifact:
+                    outputArtifactKey: artifact
+                    producerTask: importer-2
+            taskInfo:
+              name: Analyze GPT-2 Main Branch
+          importer:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-importer
+            inputs:
+              parameters:
+                uri:
+                  runtimeValue:
+                    constant: huggingface://gpt2
+            taskInfo:
+              name: importer
+          importer-2:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-importer-2
+            inputs:
+              parameters:
+                uri:
+                  runtimeValue:
+                    constant: huggingface://gpt2/main
+            taskInfo:
+              name: importer-2
+          importer-3:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-importer-3
+            inputs:
+              parameters:
+                uri:
+                  runtimeValue:
+                    constant: huggingface://squad?repo_type=dataset
+            taskInfo:
+              name: importer-3
+          importer-4:
+            cachingOptions:
+              enableCache: true
+            componentRef:
+              name: comp-importer-4
+            inputs:
+              parameters:
+                uri:
+                  runtimeValue:
+                    constant: huggingface://gpt2/tokenizer.json
+            taskInfo:
+              name: importer-4
+    schemaVersion: 2.1.0
+    sdkVersion: kfp-2.15.2
