@@ -71,6 +71,7 @@ jobs:
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           pipeline_store: ${{ matrix.pipeline_store }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          storage_backend: minio
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
