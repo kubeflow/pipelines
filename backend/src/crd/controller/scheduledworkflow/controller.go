@@ -679,7 +679,8 @@ func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workf
 		workflow.ExecutionObjectMeta().Annotations[commonutil.AnnotationKeyPipelineVersionID] = id
 	}
 	if workflow.Spec.Synchronization == nil {
-		return 0, fmt.Errorf("workflow missing synchronization block; cannot derive max_active_runs")
+		// No concurrency limit configured; nothing to enforce.
+		return 0, nil
 	}
 
 	var pipelineVersionID string
@@ -698,7 +699,8 @@ func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workf
 	}
 
 	if pipelineVersionID == "" {
-		return 0, fmt.Errorf("no pipeline version ID found in workflow synchronization semaphores")
+		// The workflow does not reference the parallelism semaphore; no limit applies.
+		return 0, nil
 	}
 
 	if c.pipelineClient == nil || pipelineID == "" {
