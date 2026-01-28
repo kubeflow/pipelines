@@ -33,6 +33,11 @@ spec:
     labels:
       pipelines.kubeflow.org/v2_component: "true"
   serviceAccountName: pipeline-runner
+  synchronization:
+    semaphores:
+    - configMapKeyRef:
+        key: test-version-id
+        name: kfp-argo-workflow-semaphores
   templates:
   - container:
       args:
