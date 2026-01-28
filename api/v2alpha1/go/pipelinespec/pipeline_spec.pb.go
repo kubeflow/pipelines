@@ -2763,6 +2763,7 @@ type PipelineConfig struct {
 	Workspace *WorkspaceConfig `protobuf:"bytes,2,opt,name=workspace,proto3,oneof" json:"workspace,omitempty"`
 	// Maximum number of concurrent runs allowed for this pipeline version.
 	// When set, limits the number of simultaneously active runs for the same pipeline version.
+	// When unset or zero, no concurrency limit is enforced.
 	MaxActiveRuns *int32 `protobuf:"varint,3,opt,name=max_active_runs,json=maxActiveRuns,proto3,oneof" json:"max_active_runs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
