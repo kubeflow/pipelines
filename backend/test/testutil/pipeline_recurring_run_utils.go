@@ -43,13 +43,9 @@ func GetRecurringRun(client *api_server.RecurringRunClient, runID string) *recur
 }
 
 func DeleteRecurringRun(client *api_server.RecurringRunClient, runID string) {
-	if runID == "" {
-		return
-	}
-	if client == nil {
-		logger.Log("Skipping deletion of recurring run id=%s because recurring run client is nil", runID)
-		return
-	}
+	gomega.Expect(runID).NotTo(gomega.BeEmpty(), "Recurring run ID must be provided")
+	gomega.Expect(client).NotTo(gomega.BeNil(), "Recurring run client must be initialized")
+
 	parameters := &recurring_run_params.RecurringRunServiceDeleteRecurringRunParams{
 		RecurringRunID: runID,
 	}
