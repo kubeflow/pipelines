@@ -39,7 +39,7 @@ resources:
 configMapGenerator:
   - name: kubeflow-pipelines-public
     literals:
-      - kubeflow_pipelines_version=latest
+      - kubeflow_pipelines_version=dev
     options:
       disableNameSuffixHash: true
 images:
