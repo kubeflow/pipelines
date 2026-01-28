@@ -23,6 +23,7 @@ import {
   getArtifactsHandler,
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
+  getArtifactsAuthMiddleware,
 } from './handlers/artifacts';
 import { getTensorboardHandlers } from './handlers/tensorboard';
 import { getAuthorizeFn } from './helpers/auth';
@@ -125,7 +126,25 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
+  /** Authorize function - created early so it can be used by artifact handlers */
+  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+
+  /**
+   * Artifact Authorization Middleware
+   * Security fix for https://github.com/kubeflow/pipelines/issues/9889
+   * This middleware validates namespace access before allowing artifact retrieval,
+   * preventing unauthorized cross-namespace artifact access.
+   */
+  const artifactsAuthMiddleware = getArtifactsAuthMiddleware(
+    authorizeFn,
+    options.auth.enabled,
+    options.auth.kubeflowUserIdHeader,
+  );
+
   /** Artifact */
+  // Apply authorization middleware to all artifact routes when auth is enabled
+  registerHandler(app.get, '/artifacts/*', artifactsAuthMiddleware);
+
   registerHandler(
     app.get,
     '/artifacts/*',
@@ -162,9 +181,6 @@ function createUIServer(options: UIConfigs) {
       options: options,
     }),
   );
-
-  /** Authorize function */
-  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
 
   /** Tensorboard viewer */
   const {

@@ -486,7 +486,10 @@ describe('MetricsTab with V1 metrics', () => {
                   {
                     name: 'AWS_ACCESS_KEY_ID',
                     valueFrom: {
-                      secretKeyRef: { name: 'mlpipeline-minio-artifact', key: 'accesskey' },
+                      secretKeyRef: {
+                        name: 'mlpipeline-minio-artifact',
+                        key: 'accesskey',
+                      },
                     },
                   },
                   {
