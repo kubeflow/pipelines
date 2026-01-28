@@ -63,6 +63,9 @@ var (
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
+	pipelineJobCreateTimeUTC   = flag.String("pipeline_job_create_time_utc", "", "pipeline job create time in UTC")
+	pipelineJobScheduleTimeUTC = flag.String("pipeline_job_schedule_time_utc", "", "pipeline job schedule time in UTC")
+
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
 	containerSpecJson = flag.String("container", "{}", "container spec")
@@ -197,27 +200,29 @@ func drive() (err error) {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:            *pipelineName,
-		RunID:                   *runID,
-		RunName:                 *runName,
-		RunDisplayName:          *runDisplayName,
-		Namespace:               namespace,
-		Component:               componentSpec,
-		Task:                    taskSpec,
-		DAGExecutionID:          *dagExecutionID,
-		IterationIndex:          *iterationIndex,
-		PipelineLogLevel:        *logLevel,
-		PublishLogs:             *publishLogs,
-		CacheDisabled:           *cacheDisabledFlag,
-		DriverType:              *driverType,
-		TaskName:                *taskName,
-		MLPipelineServerAddress: *mlPipelineServerAddress,
-		MLPipelineServerPort:    *mlPipelineServerPort,
-		MLMDServerAddress:       *mlmdServerAddress,
-		MLMDServerPort:          *mlmdServerPort,
-		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
-		MLMDTLSEnabled:          *metadataTLSEnabled,
-		CaCertPath:              *caCertPath,
+		PipelineName:               *pipelineName,
+		RunID:                      *runID,
+		RunName:                    *runName,
+		RunDisplayName:             *runDisplayName,
+		Namespace:                  namespace,
+		Component:                  componentSpec,
+		Task:                       taskSpec,
+		DAGExecutionID:             *dagExecutionID,
+		IterationIndex:             *iterationIndex,
+		PipelineLogLevel:           *logLevel,
+		PublishLogs:                *publishLogs,
+		CacheDisabled:              *cacheDisabledFlag,
+		DriverType:                 *driverType,
+		TaskName:                   *taskName,
+		MLPipelineServerAddress:    *mlPipelineServerAddress,
+		MLPipelineServerPort:       *mlPipelineServerPort,
+		MLMDServerAddress:          *mlmdServerAddress,
+		MLMDServerPort:             *mlmdServerPort,
+		MLPipelineTLSEnabled:       *mlPipelineTLSEnabled,
+		MLMDTLSEnabled:             *metadataTLSEnabled,
+		CaCertPath:                 *caCertPath,
+		PipelineJobCreateTimeUTC:   *pipelineJobCreateTimeUTC,
+		PipelineJobScheduleTimeUTC: *pipelineJobScheduleTimeUTC,
 	}
 	var execution *driver.Execution
 	var driverErr error

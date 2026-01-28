@@ -578,6 +578,12 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
+	if c.driverImage != DefaultDriverImage {
+		args = append(args,
+			"--pipeline_job_create_time_utc", "{{workflow.creationTimestamp}}",
+			"--pipeline_job_schedule_time_utc", "{{workflow.scheduledTime}}",
+		)
+	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}

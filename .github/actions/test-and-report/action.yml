@@ -67,6 +67,8 @@ inputs:
 runs:
   using: "composite"
   steps:
+
+
     - name: Port-forward MinIO service for archived workflow logs
       id: port-forward-minio
       if: (!cancelled())
@@ -74,8 +76,7 @@ runs:
       run: |
         NAMESPACE="${{ inputs.default_namespace }}"
         pkill -f "kubectl port-forward.*minio" || true
-        kubectl port-forward -n "$NAMESPACE" service/minio-service 9000:9000 > /dev/null 2>&1 &
-        sleep 5
+        ./.github/resources/scripts/forward-port.sh -q "$NAMESPACE" "minio" 9000 9000
       continue-on-error: true
 
     - name: Run Tests
