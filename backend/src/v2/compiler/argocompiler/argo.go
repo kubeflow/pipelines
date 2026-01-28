@@ -159,23 +159,23 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			if value <= 0 {
 				return nil, fmt.Errorf("maxActiveRuns must be greater than 0, got %d", value)
 			}
-			// Configure synchronization semaphores if pipeline version ID is provided
-			if opts != nil && opts.PipelineVersionID != "" {
-				if wf.Spec.Synchronization == nil {
-					wf.Spec.Synchronization = &wfapi.Synchronization{}
-				}
-				wf.Spec.Synchronization.Semaphores = append(
-					wf.Spec.Synchronization.Semaphores,
-					&wfapi.SemaphoreRef{
-						ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-							LocalObjectReference: k8score.LocalObjectReference{
-								Name: util.PipelineParallelismConfigMapName,
-							},
-							Key: opts.PipelineVersionID,
-						},
-					},
-				)
+			if opts == nil || opts.PipelineVersionID == "" {
+				return nil, fmt.Errorf("maxActiveRuns requires a pipeline version ID to enforce concurrency limits")
 			}
+			if wf.Spec.Synchronization == nil {
+				wf.Spec.Synchronization = &wfapi.Synchronization{}
+			}
+			wf.Spec.Synchronization.Semaphores = append(
+				wf.Spec.Synchronization.Semaphores,
+				&wfapi.SemaphoreRef{
+					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+						LocalObjectReference: k8score.LocalObjectReference{
+							Name: util.PipelineParallelismConfigMapName,
+						},
+						Key: opts.PipelineVersionID,
+					},
+				},
+			)
 		}
 	}
 

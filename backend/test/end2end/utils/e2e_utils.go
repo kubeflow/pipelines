@@ -93,25 +93,21 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 
 }
 
-// MaxActiveRuns returns the configured maxActiveRuns from a pipeline spec, if set and valid (>0).
-func MaxActiveRuns(pipelineFilePath string) (int32, bool) {
+// MaxActiveRuns returns the configured maxActiveRuns from a pipeline spec.
+func MaxActiveRuns(pipelineFilePath string) (int32, error) {
 	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
 	if spec == nil || spec.PlatformSpec() == nil {
-		return 0, false
+		return 0, fmt.Errorf("pipeline spec %q missing platform configuration", pipelineFilePath)
 	}
 	k8sSpec, ok := spec.PlatformSpec().GetPlatforms()["kubernetes"]
 	if !ok || k8sSpec == nil {
-		return 0, false
+		return 0, fmt.Errorf("pipeline spec %q missing kubernetes platform configuration", pipelineFilePath)
 	}
 	cfg := k8sSpec.GetPipelineConfig()
 	if cfg == nil || cfg.MaxActiveRuns == nil {
-		return 0, false
+		return 0, fmt.Errorf("pipeline spec %q does not specify max_active_runs", pipelineFilePath)
 	}
-	val := cfg.GetMaxActiveRuns()
-	if val <= 0 {
-		return 0, false
-	}
-	return val, true
+	return cfg.GetMaxActiveRuns(), nil
 }
 
 // ValidateWorkflowParallelismAcrossRuns launches multiple runs for the same pipeline version
@@ -130,6 +126,8 @@ func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testC
 
 	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
 	pollInterval := 2 * time.Second
+
+	validationPassed := false
 
 	for {
 		active := 0
@@ -154,7 +152,11 @@ func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testC
 			}
 		}
 		gomega.Expect(active).To(gomega.BeNumerically("<=", limit), "Active concurrent runs should respect max_active_runs")
+		if active > 0 {
+			validationPassed = true
+		}
 		if allTerminal {
+			gomega.Expect(validationPassed).To(gomega.BeTrue(), "All runs completed before parallelism validation could be performed")
 			return
 		}
 		if time.Now().After(timeout) {
@@ -174,7 +176,7 @@ type RunInfo struct {
 // ValidateParallelismAcrossRuns validates parallelism limits across multiple runs with different pipeline/version combinations.
 // runInfos contains all runs to monitor, versionLimitMap maps pipelineVersionID to its max_active_runs limit.
 // For runs without max_active_runs, they should not be limited.
-func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, runInfos []RunInfo, versionLimitMap map[string]int32, maxPipelineWaitTime int) {
+func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, runInfos []RunInfo, versionLimitMap map[string]int32, maxPipelineWaitTime int) {
 	// Wait a bit for Argo to process the runs and enforce semaphore limits
 	time.Sleep(5 * time.Second)
 
