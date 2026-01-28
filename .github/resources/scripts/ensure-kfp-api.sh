@@ -12,6 +12,24 @@ log() {
   echo "[ensure-kfp-api] $*"
 }
 
+dump_ml_pipeline_logs() {
+  if ! command -v kubectl >/dev/null 2>&1; then
+    log "kubectl not available; skipping ml-pipeline log collection."
+    return
+  fi
+
+  log "ml-pipeline deployment logs (last 200 lines):"
+  kubectl -n "${NAMESPACE}" logs deploy/"${SERVICE_NAME}" --tail=200 || true
+
+  if [[ -d /tmp ]]; then
+    mkdir -p /tmp/kfp-debug
+    kubectl -n "${NAMESPACE}" logs deploy/"${SERVICE_NAME}" > /tmp/kfp-debug/ml-pipeline.log || true
+  fi
+
+  log "Current pods in namespace ${NAMESPACE}:"
+  kubectl -n "${NAMESPACE}" get pods -o wide || true
+}
+
 if ! kubectl version --request-timeout=5s >/dev/null 2>&1; then
   log "Kubernetes API server is not reachable; skipping KFP API readiness check."
   exit 0
@@ -77,6 +95,7 @@ for attempt in {1..30}; do
     if [[ -n "${OUTPUT}" ]]; then
       log "Last curl output: ${OUTPUT}"
     fi
+    dump_ml_pipeline_logs
     exit 1
   fi
 
@@ -91,6 +110,7 @@ for attempt in {1..30}; do
     else
       log "Port-forward log ${PORT_FORWARD_LOG} not found."
     fi
+    dump_ml_pipeline_logs
     exit 1
   fi
 
