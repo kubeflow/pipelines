@@ -2507,7 +2507,7 @@ func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *te
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
-	store, manager, pipeline, _ := initWithPipeline(t)
+	store, manager, pipeline, pipelineVersion := initWithPipeline(t)
 	defer store.Close()
 	apiExperiment := &model.Experiment{Name: "e1"}
 	experiment, _ := manager.CreateExperiment(apiExperiment)
@@ -2542,8 +2542,10 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		UpdatedAtInSec: 4,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: pipeline.UUID,
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineId:        pipeline.UUID,
+			PipelineName:      pipelineVersion.Name,
+			PipelineVersionId: pipelineVersion.UUID,
+			Parameters:        "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		ExperimentId: experiment.UUID,
 	}
