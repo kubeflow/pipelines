@@ -292,8 +292,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 		It("Test 2: > MaxParallelism runs of a single pipeline but with different versions - all runs should be active", func() {
 			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
-			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
-			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+			limit, err := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
 
 			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
@@ -338,8 +339,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 		It("Test 3: > MaxParallelism runs, mix of single pipeline with different versions + same version - only MaxParallelism runs off the same version should be allowed but all runs from different versions should be allowed", func() {
 			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
-			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
-			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+			limit, err := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
 
 			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
@@ -398,8 +400,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 		It("Test 4: > MaxParallelism runs different pipelines - all runs should be allowed", func() {
 			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
-			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
-			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+			limit, err := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
 
 			// Upload first pipeline
 			uploadedPipeline1, uploadErr1 := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
@@ -563,8 +566,9 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 		It("Recurring run with embedded workflow spec respects max_active_runs", func() {
 			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
-			limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath)
-			Expect(ok).To(BeTrue(), "Pipeline should have max_active_runs configured")
+			limit, err := e2e_utils.MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
 			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
 
 			specTemplate := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
@@ -633,7 +637,7 @@ func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testCon
 	}
 	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
 	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
-	if limit, ok := e2e_utils.MaxActiveRuns(pipelineFilePath); ok {
+	if limit, err := e2e_utils.MaxActiveRuns(pipelineFilePath); err == nil {
 		e2e_utils.ValidateWorkflowParallelismAcrossRuns(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipelineVersion.PipelineVersionID, experimentID, limit, maxPipelineWaitTime)
 	}
 

@@ -48,6 +48,11 @@ func ParsePointersToString(s *string) string {
 	}
 }
 
+// EnsurePipelineVersionID generates a deterministic placeholder pipeline version ID for tests.
+func EnsurePipelineVersionID() string {
+	return "test-version-id"
+}
+
 // GetRandomString - Get a random string of length x
 func GetRandomString(length int) string {
 	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
