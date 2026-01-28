@@ -1,6 +1,5 @@
-# RecurringRunMode
+# V2beta1DeletePropagationPolicy
 
-Required input. User setting to enable or disable the recurring run. Only used for creation of recurring runs. Later updates use enable/disable API.   - DISABLE: The recurring run won't schedule any run if disabled.
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
