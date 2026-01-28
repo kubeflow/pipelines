@@ -39,7 +39,9 @@ RUN apt-get update \
 
 # install yq==3
 # Released in https://github.com/mikefarah/yq/releases/tag/3.4.1
-RUN curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 && \
+# Use TARGETARCH for multi-architecture support
+ARG TARGETARCH
+RUN curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_${TARGETARCH} && \
     chmod +x /usr/local/bin/yq
 
 # Make all files accessible to non-root users.
@@ -49,6 +51,8 @@ RUN chmod -R 777 $NVM_DIR && \
 # Configure npm cache location
 RUN npm config set cache /tmp/.npm --global
 
-RUN curl -L -H "Accept: application/octet-stream" \
-        https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz \
+# Map TARGETARCH to git-cliff naming convention (amd64 -> x86_64, arm64 -> aarch64)
+RUN GIT_CLIFF_ARCH=$(case ${TARGETARCH} in amd64) echo "x86_64";; arm64) echo "aarch64";; *) echo "x86_64";; esac) && \
+    curl -L -H "Accept: application/octet-stream" \
+        https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-${GIT_CLIFF_ARCH}-unknown-linux-gnu.tar.gz \
     | tar -xz --strip-components=1 -C /usr/local/bin git-cliff-${GIT_CLIFF_VERSION}/git-cliff
