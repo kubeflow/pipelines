@@ -102,6 +102,20 @@ message PvcMount {
     string sub_path = 6;
 }
 
+// TypedLocalObjectReference contains enough information to let you locate the
+// typed referenced object inside the same namespace.
+// Corresponds to Kubernetes TypedLocalObjectReference.
+message TypedLocalObjectReference {
+    // APIGroup is the group for the resource being referenced.
+    // If APIGroup is not specified, the specified Kind must be in the core API group.
+    // For any other third-party types, APIGroup is required.
+    string api_group = 1;
+    // Kind is the type of resource being referenced.
+    string kind = 2;
+    // Name is the name of resource being referenced.
+    string name = 3;
+}
+
 message CreatePvc {
     oneof name {
         // Name of the PVC, if not dynamically generated.
@@ -123,6 +137,9 @@ message CreatePvc {
     string volume_name = 7;
     // Corresponds to PersistentVolumeClaim.metadata.annotations field.
     google.protobuf.Struct annotations = 8;
+    // Corresponds to PersistentVolumeClaim.spec.dataSource field.
+    // This can be used to create a PVC from a VolumeSnapshot or clone from an existing PVC.
+    TypedLocalObjectReference data_source = 9;
 }
 
 message DeletePvc {

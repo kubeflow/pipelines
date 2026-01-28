@@ -41,6 +41,11 @@ def my_pipeline():
         access_modes=['ReadWriteOnce'],
         size='5Mi',
         storage_class_name='standard',
+        data_source={
+            'api_group': 'snapshot.storage.k8s.io',
+            'kind': 'VolumeSnapshot',
+            'name': 'my-snap',
+        },
     )
 
     task1 = producer()
