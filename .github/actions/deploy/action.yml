@@ -46,6 +46,10 @@ inputs:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
     default: 'false'
+  skip_metadata_envoy:
+    description: "Skip deploying metadata-envoy (no image required)."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -66,6 +70,10 @@ runs:
       run: |
         APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy"  )
         for app in "${APPS[@]}"; do
+          if [[ "${{ inputs.skip_metadata_envoy }}" == "true" && "${app}" == "metadata-envoy" ]]; then
+            echo "[deploy] skip_metadata_envoy=true; not loading metadata-envoy image"
+            continue
+          fi
           tar_path="${{ inputs.image_path }}/$app/$app.tar"
           if [[ ! -f "${tar_path}" ]]; then
             echo "[deploy] ${app} artifact not found; skipping (not built for this lane)"
@@ -119,6 +127,10 @@ runs:
         fi
         if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
           ARGS="${ARGS} --tls-enabled"
+        fi
+        if [ "${{ inputs.skip_metadata_envoy }}" = "true" ]; then
+          echo "Skipping metadata-envoy deployment"
+          ARGS="${ARGS} --skip-metadata-envoy"
         fi
         echo "ARGS=$ARGS" >> "$GITHUB_OUTPUT"
 
