@@ -29,8 +29,17 @@ dump_ml_pipeline_logs() {
   log "Current pods in namespace ${NAMESPACE}:"
   kubectl -n "${NAMESPACE}" get pods -o wide || true
 
-  log "Listing TLS cert directory contents inside ${SERVICE_NAME} deployment:"
+  log "Inspecting TLS certificate paths inside ${SERVICE_NAME} deployment:"
+  kubectl -n "${NAMESPACE}" exec deploy/"${SERVICE_NAME}" -- ls -lah /etc || true
+  kubectl -n "${NAMESPACE}" exec deploy/"${SERVICE_NAME}" -- ls -lah /etc/pki || true
+  kubectl -n "${NAMESPACE}" exec deploy/"${SERVICE_NAME}" -- ls -lah /etc/pki/tls || true
   kubectl -n "${NAMESPACE}" exec deploy/"${SERVICE_NAME}" -- ls -lah /etc/pki/tls/certs || true
+
+  log "ml-pipeline container command line:"
+  kubectl -n "${NAMESPACE}" exec deploy/"${SERVICE_NAME}" -- cat /proc/1/cmdline || true
+
+  log "ml-pipeline container TLS-related environment variables:"
+  kubectl -n "${NAMESPACE}" exec deploy/"${SERVICE_NAME}" -- env | grep -E 'TLS|CERT' || true
 }
 
 if ! kubectl version --request-timeout=5s >/dev/null 2>&1; then
