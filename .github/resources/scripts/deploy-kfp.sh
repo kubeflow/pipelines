@@ -34,6 +34,7 @@ STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
 SEAWEEDFS_INIT_TIMEOUT=300s
+SKIP_METADATA_ENVOY=false
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -76,6 +77,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --tls-enabled)
       POD_TO_POD_TLS_ENABLED=true
+      shift
+      ;;
+    --skip-metadata-envoy)
+      SKIP_METADATA_ENVOY=true
       shift
       ;;
   esac
@@ -143,6 +148,8 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
+  elif $POD_TO_POD_TLS_ENABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
   elif [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
   elif $CACHE_DISABLED && $USE_PROXY; then
@@ -153,8 +160,6 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
   elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
-  elif $POD_TO_POD_TLS_ENABLED; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
@@ -188,6 +193,13 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
   exit 1
+fi
+
+if [ "${SKIP_METADATA_ENVOY}" == "true" ]; then
+  echo "Skipping metadata-envoy; removing deployment/service/configmap before readiness checks..."
+  kubectl -n kubeflow delete deployment/metadata-envoy-deployment --ignore-not-found
+  kubectl -n kubeflow delete service/metadata-envoy-service --ignore-not-found
+  kubectl -n kubeflow delete configmap/metadata-envoy-configmap --ignore-not-found
 fi
 
 # Check if all pods are running - (10 minutes)
