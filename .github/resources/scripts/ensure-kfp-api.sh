@@ -37,10 +37,13 @@ else
 fi
 
 SCHEME="http"
+TARGET_HOST="localhost"
 declare -a CURL_OPTS=(-sf)
 
 if [[ "${TLS_ENABLED}" == "true" ]]; then
   SCHEME="https"
+  TARGET_HOST="${SERVICE_NAME}.${NAMESPACE}.svc.cluster.local"
+  CURL_OPTS+=(--resolve "${TARGET_HOST}:${API_PORT}:127.0.0.1")
   if [[ -n "${CA_CERT_PATH}" ]]; then
     CURL_OPTS+=(--cacert "${CA_CERT_PATH}")
   else
@@ -49,7 +52,7 @@ if [[ "${TLS_ENABLED}" == "true" ]]; then
 fi
 
 for attempt in {1..30}; do
-  if curl "${CURL_OPTS[@]}" "${SCHEME}://localhost:${API_PORT}/apis/v2beta1/healthz" >/dev/null; then
+  if curl "${CURL_OPTS[@]}" "${SCHEME}://${TARGET_HOST}:${API_PORT}/apis/v2beta1/healthz" >/dev/null; then
     log "KFP API server is ready."
     exit 0
   fi

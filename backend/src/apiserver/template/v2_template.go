@@ -148,6 +148,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
 		}
+		if modelJob.PipelineVersionId != "" {
+			opts.PipelineVersionID = modelJob.PipelineVersionId
+		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
