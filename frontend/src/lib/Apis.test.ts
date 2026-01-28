@@ -253,7 +253,7 @@ describe('Apis', () => {
                   },
                   {
                     name: 'S3_ENDPOINT',
-                    value: 'http://minio-service:9000',
+                    value: 'http://seaweedfs:9000',
                   },
                   {
                     name: 'S3_USE_HTTPS',

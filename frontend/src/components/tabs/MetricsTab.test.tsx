@@ -499,7 +499,7 @@ describe('MetricsTab with V1 metrics', () => {
                     },
                   },
                   { name: 'AWS_REGION', value: 'minio' },
-                  { name: 'S3_ENDPOINT', value: 'minio-service:9000' },
+                  { name: 'S3_ENDPOINT', value: 'seaweedfs:9000' },
                   { name: 'S3_USE_HTTPS', value: '0' },
                   { name: 'S3_VERIFY_SSL', value: '0' },
                 ],
