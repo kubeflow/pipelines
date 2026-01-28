@@ -18,6 +18,38 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: wait-for-mysql
+        image: curlimages/curl:8.5.0
+        env:
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbHost
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbPort
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z "${MYSQL_HOST}" "${MYSQL_PORT}"; do
+            sleep 5
+          done
+          sleep 10
+      - name: wait-for-metadata-grpc
+        image: curlimages/curl:8.5.0
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z metadata-grpc-service 8080; do
+            sleep 5
+          done
+          sleep 10
       containers:
         - env:
             # Whether or not to publish component logs to the object store.
