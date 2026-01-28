@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"time"
 
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 
 	"github.com/cenkalti/backoff"
@@ -595,6 +596,39 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = run.PipelineVersionId
 		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
+
+		// Ensure the Argo workflow semaphore references the correct pipeline version ID so runtime enforcement matches the ConfigMap entry.
+		if wf, ok := executionSpec.(*util.Workflow); ok && wf != nil {
+			if wf.Spec.Synchronization == nil {
+				wf.Spec.Synchronization = &workflowapi.Synchronization{}
+			}
+			foundSemaphore := false
+			for _, semaphore := range wf.Spec.Synchronization.Semaphores {
+				if semaphore == nil {
+					continue
+				}
+				if semaphore.ConfigMapKeyRef == nil {
+					continue
+				}
+				if semaphore.ConfigMapKeyRef.Name == util.PipelineParallelismConfigMapName {
+					semaphore.ConfigMapKeyRef.Key = run.PipelineVersionId
+					foundSemaphore = true
+				}
+			}
+			if !foundSemaphore {
+				wf.Spec.Synchronization.Semaphores = append(
+					wf.Spec.Synchronization.Semaphores,
+					&workflowapi.SemaphoreRef{
+						ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: util.PipelineParallelismConfigMapName,
+							},
+							Key: run.PipelineVersionId,
+						},
+					},
+				)
+			}
+		}
 	}
 
 	// assign OwnerReference to scheduledworkflow
