@@ -226,7 +226,7 @@ function getHttpArtifactsHandler(
     }
     const response = await fetch(url, { headers });
     response.body
-      .on('error', err => res.status(500).send(`Unable to retrieve artifact: ${err}`))
+      .on('error', () => res.status(500).send(`Unable to retrieve artifact`))
       .pipe(new PreviewStream({ peek }))
       .pipe(res);
   };
@@ -240,12 +240,12 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
+        .on('error', () => res.status(500).send('Failed to retrieve artifact'))
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
       console.error(err);
-      res.status(500).send(`Failed to get object in bucket: ${err}`);
+      res.status(500).send('Failed to retrieve artifact');
     }
   };
 }
