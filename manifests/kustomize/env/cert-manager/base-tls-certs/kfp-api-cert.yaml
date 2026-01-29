@@ -14,7 +14,6 @@ spec:
     - metadata-grpc-service
     - metadata-grpc-service.kubeflow
     - metadata-grpc-service.$(kfp-namespace).svc.cluster.local
-    - localhost
   ipAddresses:
     # Necessary for running TLS-enabled cluster locally.
     - 127.0.0.1
