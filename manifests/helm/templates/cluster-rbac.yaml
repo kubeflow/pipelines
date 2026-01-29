@@ -1,0 +1,56 @@
+{{- if and .Values.components.cacheDeployer.enabled (not .Values.webhook.certManager.enabled) }}
+# Cache Deployer ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubeflow-pipelines-cache-deployer-clusterrole
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: kubeflow-pipelines-cache-deployer-clusterrole
+rules:
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - certificatesigningrequests
+      - certificatesigningrequests/approval
+    verbs:
+      - create
+      - delete
+      - get
+      - update
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - signers
+    resourceNames:
+      - kubernetes.io/*
+    verbs:
+      - approve
+
+---
+# Cache Deployer ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-clusterrolebinding
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubeflow-pipelines-cache-deployer-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: kubeflow-pipelines-cache-deployer-sa
+    namespace: {{ include "kubeflow-pipelines.namespace" . }}
+{{- end }}
