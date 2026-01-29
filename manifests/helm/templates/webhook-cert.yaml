@@ -1,0 +1,52 @@
+{{- if and .Values.components.apiserver.enabled .Values.kubernetesNative.enabled .Values.webhook.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kfp-api-webhook-cert
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+spec:
+  commonName: kfp-api-webhook-cert
+  isCA: true
+  duration: 8760h    # 1 year
+  renewBefore: 720h  # 30 days before expiry
+  dnsNames:
+    - ml-pipeline
+    - ml-pipeline.{{ include "kubeflow-pipelines.namespace" . }}
+    - ml-pipeline.{{ include "kubeflow-pipelines.namespace" . }}.svc
+    - ml-pipeline.{{ include "kubeflow-pipelines.namespace" . }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: kfp-api-webhook-selfsigned-issuer
+  secretName: kfp-api-webhook-cert
+{{- end }}
+
+---
+{{- if and .Values.components.cache.enabled .Values.webhook.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kfp-cache-webhook-cert
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+spec:
+  commonName: kfp-cache-webhook-cert
+  isCA: true
+  duration: 8760h    # 1 year
+  renewBefore: 720h  # 30 days before expiry
+  dnsNames:
+    - cache-server
+    - cache-server.{{ include "kubeflow-pipelines.namespace" . }}
+    - cache-server.{{ include "kubeflow-pipelines.namespace" . }}.svc
+    - cache-server.{{ include "kubeflow-pipelines.namespace" . }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: kfp-api-webhook-selfsigned-issuer
+  secretName: webhook-server-tls
+{{- end }}

@@ -1,0 +1,146 @@
+{{- if .Values.components.scheduledworkflow.enabled }}
+# Scheduled Workflow Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-scheduledworkflow
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-scheduledworkflow
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+    {{- include "kubeflow-pipelines.serviceaccount-annotations" . | nindent 4 }}
+
+---
+# Scheduled Workflow Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-scheduledworkflow-role
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-scheduledworkflow-role
+rules:
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - scheduledworkflows
+      - scheduledworkflows/finalizers
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - pipelines.kubeflow.org
+    resources:
+      - runs
+    verbs:
+      - create
+  - apiGroups:
+      - ''
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+
+---
+# Scheduled Workflow RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-scheduledworkflow-binding
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ml-pipeline-scheduledworkflow-role
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-scheduledworkflow
+    namespace: {{ include "kubeflow-pipelines.namespace" . }}
+
+---
+# Scheduled Workflow Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-scheduledworkflow
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-scheduledworkflow
+spec:
+  replicas: {{ .Values.components.scheduledworkflow.replicas }}
+  selector:
+    matchLabels:
+      app: ml-pipeline-scheduledworkflow
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-scheduledworkflow
+        {{- include "kubeflow-pipelines.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- include "kubeflow-pipelines.config-checksum" . | nindent 8 }}
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: ml-pipeline-scheduledworkflow
+      containers:
+        - name: ml-pipeline-scheduledworkflow
+          image: {{ .Values.images.registry }}/kfp-scheduled-workflow-controller:{{ .Values.images.tag }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          env:
+            - name: LOG_LEVEL
+              value: "info"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CRON_SCHEDULE_TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: cronScheduleTimezone
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - mountPath: /var/run/secrets/kubeflow/tokens
+              name: scheduledworkflow-sa-token
+      volumes:
+        - name: scheduledworkflow-sa-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: scheduledworkflow-sa-token
+                  expirationSeconds: 3600
+                  audience: pipelines.kubeflow.org
+{{- end }}
