@@ -82,17 +82,19 @@ jobs:
             echo "registry=${{ env.REGISTRY }}"
           } >> "$GITHUB_OUTPUT"
 
-      # Check if the image tarball already exists or not, if yes, then skip building the image
-      - name: Check artifact exists
-        uses: ./.github/actions/check-artifact-exists
+      # Check if the image was already built for this SHA using cache
+      - name: Check if already built
+        id: cache-check
         if: ${{ github.ref_name != github.event.repository.default_branch }}
+        uses: actions/cache@v5
         with:
-          artifact_name: ${{ env.ARTIFACT_NAME }}
-        id: artifact-check
+          path: .build-marker-${{ matrix.image }}
+          key: image-built-${{ matrix.image }}-${{ github.sha }}
+          lookup-only: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        if: ${{ steps.artifact-check.outputs.exists == 'false' || github.ref_name == github.event.repository.default_branch }}
+        if: ${{ steps.cache-check.outputs.cache-hit != 'true' || github.ref_name == github.event.repository.default_branch }}
         id: setup-buildx
 
       - name: Build and save Docker image
@@ -126,3 +128,14 @@ jobs:
           retention-days: 1
         # Continue the workflow even if the upload failed, because upload can fail if other jobs were able to upload artifact first before the current one
         continue-on-error: true
+
+      - name: Create build marker
+        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
+        run: echo "built" > .build-marker-${{ matrix.image }}
+
+      - name: Save build marker to cache
+        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
+        uses: actions/cache/save@v5
+        with:
+          path: .build-marker-${{ matrix.image }}
+          key: image-built-${{ matrix.image }}-${{ github.sha }}
