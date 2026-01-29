@@ -1,0 +1,13 @@
+{{- if and .Values.webhook.certManager.enabled (or (and .Values.components.apiserver.enabled .Values.kubernetesNative.enabled) .Values.components.cache.enabled) }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: kfp-api-webhook-selfsigned-issuer
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+spec:
+  selfSigned: {}
+{{- end }}

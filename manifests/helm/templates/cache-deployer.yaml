@@ -1,0 +1,103 @@
+{{- if and .Values.components.cacheDeployer.enabled (not .Values.webhook.certManager.enabled) }}
+# Cache Deployer Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-cache-deployer-sa
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: cache-deployer
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+    {{- include "kubeflow-pipelines.serviceaccount-annotations" . | nindent 4 }}
+
+---
+# Cache Deployer Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubeflow-pipelines-cache-deployer-role
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: cache-deployer
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+      - delete
+      - get
+      - patch
+      - list
+
+---
+# Cache Deployer RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-binding
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: cache-deployer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-deployer-role
+subjects:
+  - kind: ServiceAccount
+    name: kubeflow-pipelines-cache-deployer-sa
+    namespace: {{ include "kubeflow-pipelines.namespace" . }}
+
+---
+# Cache Deployer Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-deployer-deployment
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: cache-deployer
+spec:
+  replicas: {{ .Values.components.cacheDeployer.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: cache-deployer
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: cache-deployer
+        {{- include "kubeflow-pipelines.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- include "kubeflow-pipelines.config-checksum" . | nindent 8 }}
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
+      containers:
+        - name: main
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          image: {{ .Values.images.registry }}/kfp-cache-deployer:{{ .Values.images.tag }}
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE_TO_WATCH
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      restartPolicy: Always
+{{- end }}
