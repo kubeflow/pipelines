@@ -573,6 +573,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 
 - `_KFP_RUNTIME=true`: Disables SDK imports during task execution
 - `LOCAL_API_SERVER=true`: Enables local API server testing mode when running integration tests on a Kind cluster
+- `OBJECT_STORAGE_NAMESPACE_SECRET_NAME`: Name of the Kubernetes secret in each namespace containing object storage credentials (default: `mlpipeline-minio-artifact`). Used for multi-user credential isolation.
 
 ## Troubleshooting and pitfalls
 
