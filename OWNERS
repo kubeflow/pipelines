@@ -3,12 +3,15 @@ approvers:
   - dsp-developers
   - gmfrasca
   - HumairAK
+  - hbelmiro
   - mprahl
+  - nsingla
 reviewers:
   - gmfrasca
   - hbelmiro
   - HumairAK
   - VaniHaripriya
   - mprahl
+  - nsingla
 emeritus_approvers:
   - harshad16
