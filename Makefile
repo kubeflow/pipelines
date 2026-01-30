@@ -20,3 +20,7 @@ ginkgo:
 	mkdir -p $(BIN_DIR)
 	GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@latest
 	@echo "Ginkgo installed to $(BIN_DIR)/ginkgo"
+
+.PHONY: test-sdk-docformatter
+test-sdk-docformatter:
+	./test/presubmit-docformatter-sdk.sh

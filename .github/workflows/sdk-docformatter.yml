@@ -26,4 +26,4 @@ jobs:
           cache: 'pip'
 
       - name: Run docformatter tests
-        run: ./test/presubmit-docformatter-sdk.sh
+        run: make test-sdk-docformatter
