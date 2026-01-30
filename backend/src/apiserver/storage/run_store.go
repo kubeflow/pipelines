@@ -95,6 +95,11 @@ type RunStoreInterface interface {
 
 	// Terminates a run.
 	TerminateRun(runId string) error
+
+	// Gets distinct namespaces where runs for a pipeline version exist.
+	// This is used to identify all namespaces that may contain ConfigMap entries
+	// for a pipeline version when cleaning up resources.
+	GetRunNamespacesForPipelineVersion(pipelineVersionID string) ([]string, error)
 }
 
 type RunStore struct {
@@ -792,4 +797,52 @@ func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, err
 		)
 	}
 	return metrics, nil
+}
+
+// GetRunNamespacesForPipelineVersion returns distinct namespaces where runs
+// for the given pipeline version exist. This is used to identify all namespaces
+// that may contain ConfigMap entries for a pipeline version when cleaning up resources.
+func (s *RunStore) GetRunNamespacesForPipelineVersion(pipelineVersionID string) (namespaces []string, err error) {
+	if pipelineVersionID == "" {
+		return nil, fmt.Errorf("pipeline version ID cannot be empty")
+	}
+
+	sql, args, err := sq.
+		Select("DISTINCT Namespace").
+		From("run_details").
+		Where(sq.Eq{"PipelineVersionId": pipelineVersionID}).
+		Where(sq.NotEq{"Namespace": ""}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build query for distinct namespaces: %v", err)
+	}
+
+	rows, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to query distinct namespaces for pipeline version %s: %v", pipelineVersionID, err)
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = util.NewInternalServerError(closeErr, "Failed to close rows: %v", closeErr)
+		}
+	}()
+
+	namespaces = []string{}
+	for rows.Next() {
+		var namespace string
+		if scanErr := rows.Scan(&namespace); scanErr != nil {
+			err = util.NewInternalServerError(scanErr, "Failed to scan namespace: %v", scanErr)
+			return nil, err
+		}
+		if namespace != "" {
+			namespaces = append(namespaces, namespace)
+		}
+	}
+
+	if rowErr := rows.Err(); rowErr != nil {
+		err = util.NewInternalServerError(rowErr, "Error iterating over namespace rows: %v", rowErr)
+		return nil, err
+	}
+
+	return namespaces, err
 }

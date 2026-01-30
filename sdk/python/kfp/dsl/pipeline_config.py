@@ -96,5 +96,22 @@ class WorkspaceConfig:
 class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
-    def __init__(self, workspace: Optional[WorkspaceConfig] = None):
+    def __init__(self,
+                 workspace: Optional[WorkspaceConfig] = None,
+                 max_active_runs: Optional[int] = None):
+        self._max_active_runs = None
         self.workspace = workspace
+        self.max_active_runs = max_active_runs
+
+    @property
+    def max_active_runs(self) -> Optional[int]:
+        return self._max_active_runs
+
+    @max_active_runs.setter
+    def max_active_runs(self, value: Optional[int]) -> None:
+        if value is not None:
+            if value <= 0:
+                raise ValueError('max_active_runs must be a positive integer.')
+            self._max_active_runs = value
+        else:
+            self._max_active_runs = None
