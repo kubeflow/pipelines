@@ -82,6 +82,10 @@ jobs:
             echo "registry=${{ env.REGISTRY }}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
       # Check if the image was already built for this SHA using cache
       - name: Check if already built
         id: cache-check
@@ -89,7 +93,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .build-marker-${{ matrix.image }}
-          key: image-built-${{ matrix.image }}-${{ github.sha }}
+          key: image-built-${{ matrix.image }}-${{ github.sha }}-${{ steps.date.outputs.date }}
           lookup-only: true
 
       - name: Set up Docker Buildx
@@ -138,4 +142,4 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: .build-marker-${{ matrix.image }}
-          key: image-built-${{ matrix.image }}-${{ github.sha }}
+          key: image-built-${{ matrix.image }}-${{ github.sha }}-${{ steps.date.outputs.date }}
