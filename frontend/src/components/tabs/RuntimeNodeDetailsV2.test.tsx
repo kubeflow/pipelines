@@ -17,6 +17,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { Apis } from 'src/lib/Apis';
+import * as MlmdUtils from 'src/mlmd/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
@@ -69,6 +70,9 @@ describe('RuntimeNodeDetailsV2', () => {
   it('shows error when failing to get logs details', async () => {
     const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
     TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'Failed to retrieve pod logs');
+    // Also mock MLMD artifact retrieval to fail since it's used as fallback
+    const getLinkedArtifactsSpy = jest.spyOn(MlmdUtils, 'getLinkedArtifactsByExecution');
+    getLinkedArtifactsSpy.mockRejectedValueOnce(new Error('MLMD unavailable'));
     render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
@@ -96,7 +100,9 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalled();
     });
 
-    screen.getByText('Failed to retrieve pod logs.');
+    await waitFor(() => {
+      screen.getByText('Failed to retrieve pod logs.');
+    });
   });
 
   it('displays logs details on side panel of execution node', async () => {
