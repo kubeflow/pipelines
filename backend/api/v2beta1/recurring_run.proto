@@ -47,7 +47,7 @@ service RecurringRunService {
       };
     }
 
-  // Finds all recurring runs given experiment and namespace. 
+  // Finds all recurring runs given experiment and namespace.
   // If experiment ID is not specified, find all recurring runs across all experiments.
   rpc ListRecurringRuns(ListRecurringRunsRequest) returns (ListRecurringRunsResponse) {
     option (google.api.http) = {
@@ -55,7 +55,7 @@ service RecurringRunService {
     };
   }
 
-  // Restarts a recurring run that was previously stopped. All runs associated with the 
+  // Restarts a recurring run that was previously stopped. All runs associated with the
   // recurring run will continue.
   rpc EnableRecurringRun(EnableRecurringRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
@@ -88,7 +88,7 @@ message RecurringRun {
   // Optional input field. Describes the purpose of the recurring run.
   string description = 3;
 
-  // Required input field. Specifies the source of the pipeline spec for this 
+  // Required input field. Specifies the source of the pipeline spec for this
   // recurring run. Can be either a pipeline id, pipeline version id, or a pipeline spec.
   oneof pipeline_source {
     // This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
@@ -99,7 +99,7 @@ message RecurringRun {
     PipelineVersionReference pipeline_version_reference = 18;
   }
 
-  // Runtime config of the pipeline. 
+  // Runtime config of the pipeline.
   RuntimeConfig runtime_config = 6;
 
   // Optional input field. Specifies which Kubernetes service account this recurring run uses.
@@ -114,7 +114,7 @@ message RecurringRun {
   Trigger trigger = 9;
 
   // Required input.
-  // User setting to enable or disable the recurring run. 
+  // User setting to enable or disable the recurring run.
   // Only used for creation of recurring runs. Later updates use enable/disable API.
   enum Mode {
     MODE_UNSPECIFIED = 0;
@@ -172,7 +172,7 @@ message ListRecurringRunsRequest {
   // ListRecurringRuns call or can be omitted when fetching the first page.
   string page_token = 1;
 
-  // The number of recurring runs to be listed per page. If there are more recurring runs 
+  // The number of recurring runs to be listed per page. If there are more recurring runs
   // than this number, the response message will contain a nextPageToken field you can use
   // to fetch the next page.
   int32 page_size = 2;
@@ -181,7 +181,7 @@ message ListRecurringRunsRequest {
   // Ascending by default.
   string sort_by = 3;
 
-  // Optional input. The namespace the recurring runs belong to. 
+  // Optional input. The namespace the recurring runs belong to.
   string namespace = 4;
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
@@ -208,6 +208,13 @@ message EnableRecurringRunRequest {
   string recurring_run_id = 1;
 }
 
+enum DeletePropagationPolicy {
+    DELETE_PROPAGATION_POLICY_UNSPECIFIED = 0;
+    FOREGROUND = 1;
+    BACKGROUND = 2;
+    ORPHAN = 3;
+}
+
 message DisableRecurringRunRequest {
   // The ID of the recurring runs to be disabled.
   string recurring_run_id = 1;
@@ -216,6 +223,9 @@ message DisableRecurringRunRequest {
 message DeleteRecurringRunRequest {
   // The ID of the recurring run to be deleted.
   string recurring_run_id = 1;
+
+  // Optional input field. Set the propagation policy when deleting the recurring run.
+  DeletePropagationPolicy propagation_policy = 2;
 }
 
 // CronSchedule allow scheduling the recurring run with unix-like cron.
