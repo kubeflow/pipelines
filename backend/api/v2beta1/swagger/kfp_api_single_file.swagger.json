@@ -869,7 +869,7 @@
     },
     "/apis/v2beta1/recurringruns": {
       "get": {
-        "summary": "Finds all recurring runs given experiment and namespace. \nIf experiment ID is not specified, find all recurring runs across all experiments.",
+        "summary": "Finds all recurring runs given experiment and namespace.\nIf experiment ID is not specified, find all recurring runs across all experiments.",
         "operationId": "RecurringRunService_ListRecurringRuns",
         "responses": {
           "200": {
@@ -895,7 +895,7 @@
           },
           {
             "name": "page_size",
-            "description": "The number of recurring runs to be listed per page. If there are more recurring runs \nthan this number, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
+            "description": "The number of recurring runs to be listed per page. If there are more recurring runs\nthan this number, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -1023,6 +1023,20 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "propagation_policy",
+            "description": "Optional input field. Set the propagation policy when deleting the recurring run.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "DELETE_PROPAGATION_POLICY_UNSPECIFIED",
+              "FOREGROUND",
+              "BACKGROUND",
+              "ORPHAN"
+            ],
+            "default": "DELETE_PROPAGATION_POLICY_UNSPECIFIED"
           }
         ],
         "tags": [
@@ -1065,7 +1079,7 @@
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}:enable": {
       "post": {
-        "summary": "Restarts a recurring run that was previously stopped. All runs associated with the \nrecurring run will continue.",
+        "summary": "Restarts a recurring run that was previously stopped. All runs associated with the\nrecurring run will continue.",
         "operationId": "RecurringRunService_EnableRecurringRun",
         "responses": {
           "200": {
@@ -1966,7 +1980,7 @@
         "DISABLE"
       ],
       "default": "MODE_UNSPECIFIED",
-      "description": "Required input.\nUser setting to enable or disable the recurring run. \nOnly used for creation of recurring runs. Later updates use enable/disable API.\n\n - DISABLE: The recurring run won't schedule any run if disabled."
+      "description": "Required input.\nUser setting to enable or disable the recurring run.\nOnly used for creation of recurring runs. Later updates use enable/disable API.\n\n - DISABLE: The recurring run won't schedule any run if disabled."
     },
     "v2beta1CronSchedule": {
       "type": "object",
@@ -1987,6 +2001,16 @@
         }
       },
       "description": "CronSchedule allow scheduling the recurring run with unix-like cron."
+    },
+    "v2beta1DeletePropagationPolicy": {
+      "type": "string",
+      "enum": [
+        "DELETE_PROPAGATION_POLICY_UNSPECIFIED",
+        "FOREGROUND",
+        "BACKGROUND",
+        "ORPHAN"
+      ],
+      "default": "DELETE_PROPAGATION_POLICY_UNSPECIFIED"
     },
     "v2beta1ListRecurringRunsResponse": {
       "type": "object",

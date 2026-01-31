@@ -1,5 +1,13 @@
-FROM ghcr.io/kubeflow/kfp-selenium-standalone-chrome-gcloud-nodejs:main-e21bbbaf225dc0d5470df55d6d7254b7e2dd066c
-#To build this image: cd selenium-standalone-chrome-gcloud-nodejs.Docker && make push
+# Multi-arch Selenium image supporting amd64 and arm64
+FROM selenium/standalone-chromium:143.0
+
+USER root
+RUN apt-get update -qqy && \
+    apt-get install -qqy curl && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+USER seluser
 
 COPY --chown=seluser . /src
 

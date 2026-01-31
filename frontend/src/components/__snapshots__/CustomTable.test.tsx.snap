@@ -123,6 +123,8 @@ exports[`CustomTable renders a collapsed row 1`] = `
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -352,6 +354,8 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -558,6 +562,8 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -602,6 +608,8 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row2"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -826,6 +834,8 @@ exports[`CustomTable renders an expanded row 1`] = `
       <div
         aria-checked={false}
         className="tableRow row expandedRow"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -1055,6 +1065,8 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       <div
         aria-checked={false}
         className="tableRow row expandedRow"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -1610,6 +1622,8 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row2"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -1834,6 +1848,8 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -1878,6 +1894,8 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row2"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -2461,6 +2479,8 @@ exports[`CustomTable renders some rows 1`] = `
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -2505,6 +2525,8 @@ exports[`CustomTable renders some rows 1`] = `
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row2"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -3211,6 +3233,8 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -3247,6 +3271,8 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row2"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -3463,6 +3489,8 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row1"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}
@@ -3507,6 +3535,8 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       <div
         aria-checked={false}
         className="tableRow row"
+        data-row-id="row2"
+        data-testid="table-row"
         onClick={[Function]}
         role="checkbox"
         tabIndex={-1}

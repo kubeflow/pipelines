@@ -133,7 +133,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow
+      - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address
@@ -371,7 +371,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow
+      - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address

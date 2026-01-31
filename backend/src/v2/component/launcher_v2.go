@@ -163,6 +163,14 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 	}
 }
 
+// OpenBucketConfig stores the parameters that are passed into the objectstore.OpenBucket function.
+type OpenBucketConfig struct {
+	ctx       context.Context
+	k8sClient kubernetes.Interface
+	namespace string
+	config    *objectstore.Config
+}
+
 // Execute calls executeV2, updates the cache, and publishes the results to MLMD.
 func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	defer func() {
@@ -219,7 +227,20 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	bucket, err := objectstore.OpenBucket(ctx, l.clientManager.K8sClient(), l.options.Namespace, bucketConfig)
+
+	openBucketConfig := &OpenBucketConfig{
+		ctx:       ctx,
+		k8sClient: l.clientManager.K8sClient(),
+		namespace: l.options.Namespace,
+		config:    bucketConfig,
+	}
+
+	bucket, err := objectstore.OpenBucket(
+		openBucketConfig.ctx,
+		openBucketConfig.k8sClient,
+		openBucketConfig.namespace,
+		openBucketConfig.config,
+	)
 	if err != nil {
 		return err
 	}
@@ -239,6 +260,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		l.clientManager.K8sClient(),
 		l.options.PublishLogs,
 		l.options.CaCertPath,
+		openBucketConfig,
 	)
 	if err != nil {
 		return err
@@ -362,6 +384,7 @@ func executeV2(
 	k8sClient kubernetes.Interface,
 	publishLogs string,
 	customCAPath string,
+	openBucketConfig *OpenBucketConfig,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 
 	// Add parameter default values to executorInput, if there is not already a user input.
@@ -398,13 +421,13 @@ func executeV2(
 	if err != nil && executeErr == nil {
 		return nil, nil, err
 	}
-	// TODO(Bobgy): should we log metadata per each artifact, or batched after uploading all artifacts.
+
 	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
 		bucketConfig:   bucketConfig,
 		bucket:         bucket,
 		metadataClient: metadataClient,
 	})
-	if err != nil && executeErr == nil {
+	if err != nil {
 		return nil, nil, err
 	}
 	// TODO(Bobgy): only return executor output. Merge info in output artifacts
@@ -612,7 +635,12 @@ type uploadOutputArtifactsOptions struct {
 	metadataClient metadata.ClientInterface
 }
 
-func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, opts uploadOutputArtifactsOptions) ([]*metadata.OutputArtifact, error) {
+func uploadOutputArtifacts(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	executorOutput *pipelinespec.ExecutorOutput,
+	opts uploadOutputArtifactsOptions,
+) ([]*metadata.OutputArtifact, error) {
 	// Register artifacts with MLMD.
 	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
 	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
