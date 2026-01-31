@@ -20,6 +20,7 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/golang/glog"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -186,6 +187,12 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 	if err != nil {
 		return nil, nil, util.NewInvalidInputError("invalid pipeline spec URL: %v", pipelineUrlStr)
 	}
+
+	if err := validation.ValidatePipelineURL(pipelineUrl.String()); err != nil {
+		glog.Warningf("Pipeline URL validation failed: %v", err)
+		return nil, nil, util.NewInvalidInputError("Pipeline URL validation failed")
+	}
+
 	resp, err := s.httpClient.Get(pipelineUrl.String())
 	if err != nil {
 		return nil, nil, util.NewInternalServerError(err, "error downloading the pipeline spec from %v", pipelineUrl.String())
@@ -622,7 +629,7 @@ func NewPipelineServer(resourceManager *resource.ResourceManager, options *Pipel
 	return &PipelineServer{
 		BasePipelineServer: &BasePipelineServer{
 			resourceManager: resourceManager,
-			httpClient:      http.DefaultClient,
+			httpClient:      validation.SafePipelineHTTPClient(),
 			options:         options,
 		},
 	}
@@ -632,7 +639,7 @@ func NewPipelineServerV1(resourceManager *resource.ResourceManager, options *Pip
 	return &PipelineServerV1{
 		BasePipelineServer: &BasePipelineServer{
 			resourceManager: resourceManager,
-			httpClient:      http.DefaultClient,
+			httpClient:      validation.SafePipelineHTTPClient(),
 			options:         options,
 		},
 	}
@@ -698,6 +705,10 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. Please specify a valid URL", pv.PipelineSpecURI)
 	}
 
+	if err := validation.ValidatePipelineURL(pipelineUrl.String()); err != nil {
+		glog.Warningf("Pipeline URL validation failed: %v", err)
+		return nil, util.NewInvalidInputError("Pipeline URL validation failed")
+	}
 	resp, err := s.httpClient.Get(pipelineUrl.String())
 	if err != nil || resp.StatusCode != http.StatusOK {
 		if err == nil {
