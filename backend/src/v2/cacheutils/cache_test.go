@@ -98,9 +98,11 @@ func TestGenerateCacheKey(t *testing.T) {
 			cmdArgs: []string{"sh", "ec", "test"},
 			image:   "python:3.11",
 			want: &cachekey.CacheKey{
+				// CRITICAL: Artifact identifiers now include URIs in "name@uri" format
+				// to ensure different data sources produce different cache keys.
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-					"dataset_one": {ArtifactNames: []string{"1"}},
-					"dataset_two": {ArtifactNames: []string{"2"}},
+					"dataset_one": {ArtifactNames: []string{"1@gs://some-bucket/dataset-one"}},
+					"dataset_two": {ArtifactNames: []string{"2@gs://some-bucket/dataset-two"}},
 				},
 				InputParameterValues: map[string]*structpb.Value{
 					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
@@ -187,8 +189,9 @@ func TestGenerateCacheKey(t *testing.T) {
 			image:    "python:3.11",
 			pvcNames: []string{"workspace-pvc", "data-pvc"},
 			want: &cachekey.CacheKey{
+				// CRITICAL: Artifact identifiers now include URIs in "name@uri" format
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
-					"dataset_one": {ArtifactNames: []string{"1"}},
+					"dataset_one": {ArtifactNames: []string{"1@gs://some-bucket/dataset-one"}},
 				},
 				InputParameterValues: map[string]*structpb.Value{
 					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
@@ -351,6 +354,129 @@ func TestGenerateFingerPrint(t *testing.T) {
 			assert.Equal(t, test.fingerPrint, testFingerPrint)
 		})
 	}
+}
+
+// TestGenerateFingerPrint_ConsidersArtifactURIs verifies that different artifact URIs
+// produce different fingerprints, even when artifact names are identical.
+// This test validates the fix for the critical cache key bug where only artifact names
+// (not URIs) were included in the cache key, causing incorrect cache reuse across
+// different data sources.
+func TestGenerateFingerPrint_ConsidersArtifactURIs(t *testing.T) {
+	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
+	require.NoError(t, err)
+
+	// Create two inputs with same artifact name but different URIs
+	inputsWithURIA := &pipelinespec.ExecutorInput_Inputs{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"dataset": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Name: "data",
+						Uri:  "gs://bucket-a/dataset/v1",
+					},
+				},
+			},
+		},
+	}
+
+	inputsWithURIB := &pipelinespec.ExecutorInput_Inputs{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"dataset": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Name: "data", // Same name as above
+						Uri:  "gs://bucket-b/dataset/v2", // Different URI
+					},
+				},
+			},
+		},
+	}
+
+	inputsWithSameURI := &pipelinespec.ExecutorInput_Inputs{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"dataset": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Name: "data",
+						Uri:  "gs://bucket-a/dataset/v1", // Same URI as inputsWithURIA
+					},
+				},
+			},
+		},
+	}
+
+	outputs := &pipelinespec.ExecutorInput_Outputs{
+		Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
+			"output": {OutputFile: "/tmp/output"},
+		},
+	}
+	outputParamTypes := map[string]string{"output": "STRING"}
+
+	// Generate cache keys
+	cacheKeyA, err := cacheClient.GenerateCacheKey(inputsWithURIA, outputs, outputParamTypes, []string{"echo"}, "python:3.11", nil)
+	require.NoError(t, err)
+
+	cacheKeyB, err := cacheClient.GenerateCacheKey(inputsWithURIB, outputs, outputParamTypes, []string{"echo"}, "python:3.11", nil)
+	require.NoError(t, err)
+
+	cacheKeySameAsA, err := cacheClient.GenerateCacheKey(inputsWithSameURI, outputs, outputParamTypes, []string{"echo"}, "python:3.11", nil)
+	require.NoError(t, err)
+
+	// Generate fingerprints
+	fingerprintA, err := cacheClient.GenerateFingerPrint(cacheKeyA)
+	require.NoError(t, err)
+
+	fingerprintB, err := cacheClient.GenerateFingerPrint(cacheKeyB)
+	require.NoError(t, err)
+
+	fingerprintSameAsA, err := cacheClient.GenerateFingerPrint(cacheKeySameAsA)
+	require.NoError(t, err)
+
+	// CRITICAL ASSERTIONS:
+	// Different URIs MUST produce different fingerprints to prevent incorrect cache reuse
+	assert.NotEqual(t, fingerprintA, fingerprintB,
+		"CRITICAL BUG: Same artifact name with different URIs produced same fingerprint! "+
+			"This would cause incorrect cache reuse across different data sources.")
+
+	// Same URIs should produce same fingerprints (cache hit is correct)
+	assert.Equal(t, fingerprintA, fingerprintSameAsA,
+		"Same artifact name and URI should produce same fingerprint for correct cache hits.")
+
+	// Verify the cache key contains the URI in the artifact identifier
+	assert.Contains(t, cacheKeyA.InputArtifactNames["dataset"].ArtifactNames[0], "gs://bucket-a/dataset/v1",
+		"Cache key should contain the artifact URI")
+	assert.Contains(t, cacheKeyB.InputArtifactNames["dataset"].ArtifactNames[0], "gs://bucket-b/dataset/v2",
+		"Cache key should contain the artifact URI")
+}
+
+// TestGenerateCacheKey_ArtifactWithoutURI verifies that artifacts without URIs
+// still work correctly (backward compatibility).
+func TestGenerateCacheKey_ArtifactWithoutURI(t *testing.T) {
+	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
+	require.NoError(t, err)
+
+	inputsNoURI := &pipelinespec.ExecutorInput_Inputs{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"dataset": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Name: "data",
+						Uri:  "", // No URI
+					},
+				},
+			},
+		},
+	}
+
+	outputs := &pipelinespec.ExecutorInput_Outputs{}
+	outputParamTypes := map[string]string{}
+
+	cacheKey, err := cacheClient.GenerateCacheKey(inputsNoURI, outputs, outputParamTypes, []string{"echo"}, "python:3.11", nil)
+	require.NoError(t, err)
+
+	// When URI is empty, the artifact identifier should just be the name
+	assert.Equal(t, "data", cacheKey.InputArtifactNames["dataset"].ArtifactNames[0],
+		"Artifact without URI should use just the name as identifier")
 }
 
 func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
