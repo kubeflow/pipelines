@@ -206,15 +206,14 @@ class TestCompilePipeline(parameterized.TestCase):
             )
             self.assertTrue(os.path.exists(target_file))
 
-
     def test_compile_pipeline_with_literal_input_mixed_types_invalid(self):
         # Mixed-type Literal should be rejected at component definition time
         with self.assertRaises(TypeError):
 
             @dsl.component
-            def literal_component_with_mixed_types(literal_param: typing.Literal[1, 2, 'a']):
+            def literal_component_with_mixed_types(
+                    literal_param: typing.Literal[1, 2, 'a']):
                 print_op(message=literal_param)
-
 
     def test_can_use_dsl_attribute_on_kfp(self):
 
