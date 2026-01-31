@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import re
+import tempfile
 from typing import List
 import unittest
 
@@ -226,6 +228,62 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 "--index-url https://myurl.org/simple kfp '--no-deps' "
                 '\'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
             ]))
+
+    def test_with_use_local_pip_config_merges_index_url(self):
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://local.pypi.org/simple\ntrusted-host = local.pypi.org\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=packages_to_install,
+                use_local_pip_config=True,
+            )
+
+            command_str = ' '.join(command)
+            self.assertIn('--index-url https://local.pypi.org/simple',
+                          command_str)
+            self.assertIn('--trusted-host local.pypi.org', command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
+
+    def test_use_local_pip_config_explicit_params_override(self):
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://local.pypi.org/simple\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=packages_to_install,
+                pip_index_urls=['https://explicit.pypi.org/simple'],
+                use_local_pip_config=True,
+            )
+
+            command_str = ' '.join(command)
+            self.assertIn('--index-url https://explicit.pypi.org/simple',
+                          command_str)
+            self.assertNotIn('--index-url https://local.pypi.org/simple',
+                             command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
 
 
 class TestInvalidParameterName(unittest.TestCase):

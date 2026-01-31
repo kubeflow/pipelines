@@ -25,6 +25,7 @@ def notebook_component(
     pip_index_urls: Optional[List[str]] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    use_local_pip_config: bool = False,
     kfp_package_path: Optional[str] = None,
     install_kfp_package: bool = True,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
@@ -43,6 +44,8 @@ def notebook_component(
         pip_index_urls: Optional pip index URLs for installation.
         pip_trusted_hosts: Optional pip trusted hosts.
         use_venv: Whether to create and use a venv inside the container.
+        use_local_pip_config: Whether to inherit safe pip config settings from the user's local pip.conf/pip.ini.
+            Only non-sensitive fields are extracted. Credentials must be provided via environment variables.
         kfp_package_path: Optional KFP package path to install.
         install_kfp_package: Whether to auto-install KFP when appropriate.
         task_config_passthroughs: Optional task config passthroughs.
@@ -80,6 +83,7 @@ def notebook_component(
             pip_index_urls=pip_index_urls,
             pip_trusted_hosts=pip_trusted_hosts,
             use_venv=use_venv,
+            use_local_pip_config=use_local_pip_config,
             kfp_package_path=kfp_package_path,
             install_kfp_package=install_kfp_package,
             task_config_passthroughs=formatted_passthroughs,
@@ -94,6 +98,7 @@ def notebook_component(
         pip_index_urls=pip_index_urls,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
+        use_local_pip_config=use_local_pip_config,
         kfp_package_path=kfp_package_path,
         install_kfp_package=install_kfp_package,
         task_config_passthroughs=formatted_passthroughs,

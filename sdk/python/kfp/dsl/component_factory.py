@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import base64
+import configparser
 import dataclasses
 import gzip
 import inspect
 import io
 import itertools
+import os
 import pathlib
 import re
 import tarfile
@@ -65,6 +67,7 @@ class ComponentInfo():
     pip_index_urls: Optional[List[str]] = None
     pip_trusted_hosts: Optional[List[str]] = None
     use_venv: bool = False
+    use_local_pip_config: bool = False
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None
 
 
@@ -77,6 +80,153 @@ REGISTERED_MODULES = None
 def _python_function_name_to_component_name(name):
     name_with_spaces = re.sub(' +', ' ', name.replace('_', ' ')).strip(' ')
     return name_with_spaces[0].upper() + name_with_spaces[1:]
+
+
+def _parse_local_pip_config() -> Dict[str, Any]:
+    """Parse local pip config and extract safe (non-sensitive) options.
+
+    Returns:
+        Dict[str, Any]: A dict of safe pip options. Credentials and
+        authentication-related settings are excluded.
+    """
+    config = configparser.ConfigParser()
+    config_paths = []
+
+    if 'PIP_CONFIG_FILE' in os.environ:
+        config_paths.append(os.environ['PIP_CONFIG_FILE'])
+
+    if os.name == 'nt':
+        config_paths.extend([
+            os.path.expanduser('~\\pip\\pip.ini'),
+            os.path.expanduser('~\\AppData\\Roaming\\pip\\pip.ini'),
+            'C:\\ProgramData\\pip\\pip.ini',
+        ])
+    else:
+        config_paths.extend([
+            os.path.expanduser('~/.config/pip/pip.conf'),
+            os.path.expanduser('~/.pip/pip.conf'),
+            '/etc/pip.conf',
+        ])
+
+    for config_path in config_paths:
+        if os.path.exists(config_path):
+            try:
+                config.read(config_path)
+                break
+            except Exception:
+                continue
+
+    if not config.sections():
+        return {}
+
+    safe_config: Dict[str, Any] = {}
+
+    def _has_embedded_credentials(url: str) -> bool:
+        if '://' not in url or '@' not in url:
+            return False
+        userinfo = url.split('://', 1)[1].split('@', 1)[0]
+        return ':' in userinfo
+
+    for section in ['global', 'install']:
+        if not config.has_section(section):
+            continue
+
+        for key in ['index-url', 'index_url']:
+            if config.has_option(section, key):
+                url = config.get(section, key)
+                if _has_embedded_credentials(url):
+                    warnings.warn(
+                        'Skipping index-url from pip config because it contains embedded credentials. '
+                        'Provide credentials via environment variables or secrets.',
+                        UserWarning,
+                    )
+                else:
+                    safe_config['index-url'] = url
+
+        for key in ['extra-index-url', 'extra_index_url']:
+            if config.has_option(section, key):
+                urls = config.get(section, key).split()
+                filtered = [
+                    url for url in urls if not _has_embedded_credentials(url)
+                ]
+                if filtered:
+                    safe_config.setdefault('extra-index-url', []).extend(
+                        filtered)
+
+        for key in ['trusted-host', 'trusted_host']:
+            if config.has_option(section, key):
+                hosts = config.get(section, key).split()
+                if hosts:
+                    safe_config.setdefault('trusted-host', []).extend(hosts)
+
+        if config.has_option(section, 'timeout'):
+            safe_config['timeout'] = config.get(section, 'timeout')
+
+        if config.has_option(section, 'retries'):
+            safe_config['retries'] = config.get(section, 'retries')
+
+        for key in ['no-cache-dir', 'no_cache_dir']:
+            if config.has_option(section, key):
+                value = config.get(section, key).strip().lower()
+                if value in ('1', 'true', 'yes', 'on'):
+                    safe_config['no-cache-dir'] = True
+
+        for key in ['disable-pip-version-check', 'disable_pip_version_check']:
+            if config.has_option(section, key):
+                value = config.get(section, key).strip().lower()
+                if value in ('1', 'true', 'yes', 'on'):
+                    safe_config['disable-pip-version-check'] = True
+
+    return safe_config
+
+
+def _merge_pip_config_with_explicit_params(
+    local_config: Dict[str, Any],
+    pip_index_urls: Optional[List[str]],
+    pip_trusted_hosts: Optional[List[str]],
+) -> Tuple[List[str], List[str]]:
+    """Merge local pip config with explicit parameters.
+
+    Explicit parameters take precedence when provided (including empty lists).
+    """
+    merged_index_urls: List[str] = []
+    merged_trusted_hosts: List[str] = []
+
+    if pip_index_urls is None:
+        if 'index-url' in local_config:
+            merged_index_urls.append(local_config['index-url'])
+        extra_urls = local_config.get('extra-index-url', [])
+        if isinstance(extra_urls, list):
+            merged_index_urls.extend(extra_urls)
+        elif extra_urls:
+            merged_index_urls.append(extra_urls)
+    else:
+        merged_index_urls.extend(pip_index_urls)
+
+    if pip_trusted_hosts is None:
+        trusted_hosts = local_config.get('trusted-host', [])
+        if isinstance(trusted_hosts, list):
+            merged_trusted_hosts.extend(trusted_hosts)
+        elif trusted_hosts:
+            merged_trusted_hosts.append(trusted_hosts)
+    else:
+        merged_trusted_hosts.extend(pip_trusted_hosts)
+
+    return merged_index_urls, merged_trusted_hosts
+
+
+def _make_pip_extra_options(local_config: Dict[str, Any]) -> str:
+    options = []
+    if 'timeout' in local_config:
+        options.append(f"--timeout {local_config['timeout']}")
+    if 'retries' in local_config:
+        options.append(f"--retries {local_config['retries']}")
+    if local_config.get('no-cache-dir'):
+        options.append('--no-cache-dir')
+    if local_config.get('disable-pip-version-check'):
+        options.append('--disable-pip-version-check')
+
+    return (' '.join(options) + ' ') if options else ''
 
 
 def make_index_url_options(pip_index_urls: Optional[List[str]],
@@ -159,6 +309,7 @@ def _get_packages_to_install_command(
     target_image: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    use_local_pip_config: bool = False,
 ) -> List[str]:
     packages_to_install = packages_to_install or []
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
@@ -169,8 +320,19 @@ def _get_packages_to_install_command(
     if not inject_kfp_install and not packages_to_install:
         return []
     pip_install_strings = []
+    local_config: Dict[str, Any] = {}
+    if use_local_pip_config:
+        local_config = _parse_local_pip_config()
+        pip_index_urls, pip_trusted_hosts = _merge_pip_config_with_explicit_params(
+            local_config,
+            pip_index_urls,
+            pip_trusted_hosts,
+        )
+
+    extra_pip_options = _make_pip_extra_options(local_config)
     index_url_options = make_index_url_options(pip_index_urls,
                                                pip_trusted_hosts)
+    pip_options = f'{index_url_options}{extra_pip_options}'
 
     # Install packages before KFP. This allows us to
     # control where we source kfp-pipeline-spec.
@@ -180,7 +342,7 @@ def _get_packages_to_install_command(
     if packages_to_install:
         user_packages_pip_install_command = make_pip_install_command(
             install_parts=packages_to_install,
-            index_url_options=index_url_options,
+            index_url_options=pip_options,
         )
         pip_install_strings.append(user_packages_pip_install_command)
         if inject_kfp_install:
@@ -192,7 +354,7 @@ def _get_packages_to_install_command(
         if kfp_package_path:
             kfp_pip_install_command = make_pip_install_command(
                 install_parts=[kfp_package_path],
-                index_url_options=index_url_options,
+                index_url_options=pip_options,
             )
         else:
             kfp_pip_install_command = make_pip_install_command(
@@ -201,7 +363,7 @@ def _get_packages_to_install_command(
                     '--no-deps',
                     'typing-extensions>=3.7.4,<5; python_version<"3.9"',
                 ],
-                index_url_options=index_url_options,
+                index_url_options=pip_options,
             )
         pip_install_strings.append(kfp_pip_install_command)
 
@@ -648,6 +810,7 @@ def create_notebook_component_from_func(
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    use_local_pip_config: bool = False,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
 ) -> python_component.PythonComponent:
     """Builds a notebook-based component by delegating to
@@ -712,6 +875,7 @@ def create_notebook_component_from_func(
         kfp_package_path=kfp_package_path,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
+        use_local_pip_config=use_local_pip_config,
         additional_funcs=None,
         task_config_passthroughs=task_config_passthroughs,
     )
@@ -741,6 +905,7 @@ def create_component_from_func(
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    use_local_pip_config: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
     _helper_source_template: Optional[str] = None,
@@ -759,6 +924,7 @@ def create_component_from_func(
         pip_index_urls=pip_index_urls,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
+        use_local_pip_config=use_local_pip_config,
     )
 
     command = []
@@ -813,6 +979,7 @@ def create_component_from_func(
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
         pip_trusted_hosts=pip_trusted_hosts,
+        use_local_pip_config=use_local_pip_config,
         task_config_passthroughs=task_config_passthroughs)
 
     if REGISTERED_MODULES is not None:

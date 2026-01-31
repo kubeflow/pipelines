@@ -33,6 +33,7 @@ def component(
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    use_local_pip_config: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
     embedded_artifact_path: Optional[str] = None,
     task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
@@ -96,6 +97,10 @@ def component(
         use_venv: Specifies if the component should be executed in a virtual environment.
             The environment will be created in a temporary directory and will inherit the system site packages.
             This is useful in restricted environments where most of the system is read-only.
+        use_local_pip_config: Specifies if the component should inherit safe pip configuration settings from
+            the user's local pip.conf/pip.ini. Only non-sensitive fields (index-url, extra-index-url,
+            trusted-host, timeout, retries, no-cache-dir, disable-pip-version-check) are extracted.
+            Credentials and authentication settings are excluded for security.
         additional_funcs: List of additional functions to include in the component.
             These functions will be available to the main function. This is useful for adding util functions that
             are shared across multiple components but are not packaged as an importable Python package.
@@ -159,6 +164,7 @@ def component(
             kfp_package_path=kfp_package_path,
             pip_trusted_hosts=pip_trusted_hosts,
             use_venv=use_venv,
+            use_local_pip_config=use_local_pip_config,
             additional_funcs=additional_funcs,
             task_config_passthroughs=task_config_passthroughs_formatted)
 
@@ -174,5 +180,6 @@ def component(
         kfp_package_path=kfp_package_path,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
+        use_local_pip_config=use_local_pip_config,
         additional_funcs=additional_funcs,
         task_config_passthroughs=task_config_passthroughs_formatted)
