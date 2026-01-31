@@ -18,6 +18,18 @@ spec:
         seccompProfile:
           type: RuntimeDefault
     
+      initContainers:
+      - name: wait-for-metadata-grpc
+        image: curlimages/curl:8.5.0
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z metadata-grpc-service 8080; do
+            sleep 5
+          done
+          sleep 10
+
       containers:
       - name: main
         image: ghcr.io/kubeflow/kfp-metadata-writer:dummy
