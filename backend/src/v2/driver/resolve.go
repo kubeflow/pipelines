@@ -1099,6 +1099,7 @@ func InferIndexedTaskName(producerTaskName string, dag *metadata.Execution) stri
 		glog.Infof("Attempting to retrieve outputs from a ParallelFor iteration")
 	}
 	return producerTaskName
+	
 }
 
 // Helper for checking if collecting outputs is required for downstream tasks.
