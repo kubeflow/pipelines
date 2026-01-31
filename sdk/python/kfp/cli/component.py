@@ -160,6 +160,7 @@ class ComponentBuilder():
         self._target_image = None
         self._pip_index_urls = None
         self._pip_trusted_hosts = None
+        self._pip_extra_options = ''
         self._load_components()
 
     def _load_components(self):
@@ -220,11 +221,30 @@ class ComponentBuilder():
 
         pip_index_urls = []
         pip_trusted_hosts = []
+        use_local_pip_config_any = False
         for comp in self._components:
             if comp.pip_index_urls is not None:
                 pip_index_urls.extend(comp.pip_index_urls)
             if comp.pip_trusted_hosts is not None:
                 pip_trusted_hosts.extend(comp.pip_trusted_hosts)
+            if comp.use_local_pip_config:
+                use_local_pip_config_any = True
+        
+        # If any component requests local pip config, parse and merge it
+        if use_local_pip_config_any:
+            from kfp.dsl import component_factory
+            local_config = component_factory._parse_local_pip_config()
+            pip_index_urls_merged, pip_trusted_hosts_merged = component_factory._merge_pip_config_with_explicit_params(
+                local_config,
+                pip_index_urls if pip_index_urls else None,
+                pip_trusted_hosts if pip_trusted_hosts else None,
+            )
+            if pip_index_urls_merged:
+                pip_index_urls = pip_index_urls_merged
+            if pip_trusted_hosts_merged:
+                pip_trusted_hosts = pip_trusted_hosts_merged
+            self._pip_extra_options = component_factory._make_pip_extra_options(local_config)
+        
         if pip_index_urls:
             self._pip_index_urls = list(dict.fromkeys(pip_index_urls))
         if pip_trusted_hosts:
@@ -288,13 +308,19 @@ class ComponentBuilder():
     def maybe_generate_dockerfile(self, overwrite_dockerfile: bool = False):
         index_urls_options = component_factory.make_index_url_options(
             self._pip_index_urls, self._pip_trusted_hosts)
+        
+        # Combine index URLs options with extra pip options
+        pip_options = index_urls_options
+        if self._pip_extra_options:
+            pip_options = f'{pip_options} {self._pip_extra_options}'.strip()
+        
         dockerfile_contents = _DOCKERFILE_TEMPLATE.format(
             base_image=self._base_image,
             maybe_copy_kfp_package=self._maybe_copy_kfp_package,
             component_root_dir=_COMPONENT_ROOT_DIR,
             kfp_package_path=self._kfp_package_path,
             requirements_file=_REQUIREMENTS_TXT,
-            index_urls=index_urls_options,
+            index_urls=pip_options,
         )
 
         self._maybe_write_file(_DOCKERFILE, dockerfile_contents,

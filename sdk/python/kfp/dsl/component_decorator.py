@@ -36,7 +36,8 @@ def component(
     additional_funcs: Optional[List[Callable]] = None,
     embedded_artifact_path: Optional[str] = None,
     task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
-                                                  TaskConfigField]]] = None):
+                                                  TaskConfigField]]] = None,
+    use_local_pip_config: bool = False):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
@@ -102,6 +103,10 @@ def component(
         task_config_passthroughs: List of task configurations (e.g. resources, env, volumes etc.) to pass through
             to the component. This is useful when the component launches another Kubernetes resource (for example,
             a Kubeflow Trainer job). Use this in conjunction with dsl.TaskConfig.
+        use_local_pip_config: Whether to inherit safe pip configuration settings from the user's local pip.conf/pip.ini.
+            When True, safe options (index-url, extra-index-url, trusted-host, timeout, retries, no-cache-dir,
+            disable-pip-version-check) are extracted and applied. Explicit parameters take precedence over local config.
+            Defaults to False.
 
     Returns:
         A component task factory that can be used in pipeline definitions.
@@ -160,7 +165,8 @@ def component(
             pip_trusted_hosts=pip_trusted_hosts,
             use_venv=use_venv,
             additional_funcs=additional_funcs,
-            task_config_passthroughs=task_config_passthroughs_formatted)
+            task_config_passthroughs=task_config_passthroughs_formatted,
+            use_local_pip_config=use_local_pip_config)
 
     return component_factory.create_component_from_func(
         func,
@@ -175,4 +181,5 @@ def component(
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
         additional_funcs=additional_funcs,
-        task_config_passthroughs=task_config_passthroughs_formatted)
+        task_config_passthroughs=task_config_passthroughs_formatted,
+        use_local_pip_config=use_local_pip_config)
