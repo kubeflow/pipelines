@@ -192,7 +192,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.component
         def literal_component(literal_param: typing.Literal['a', 'b']):
-            print(literal_param)
+            print_op(message=literal_param)
 
         @dsl.pipeline(name='test-literal-pipeline')
         def literal_pipeline():
@@ -213,7 +213,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
             @dsl.component
             def literal_component_with_mixed_types(literal_param: typing.Literal[1, 2, 'a']):
-                print(literal_param)
+                print_op(message=literal_param)
 
 
     def test_can_use_dsl_attribute_on_kfp(self):
