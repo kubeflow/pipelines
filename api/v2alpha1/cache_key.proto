@@ -21,6 +21,10 @@ import "google/protobuf/struct.proto";
 import "pipeline_spec.proto";
 
 message CacheKey {
+  // Input artifact identifiers. Each string in ArtifactNameList now uses the format
+  // "name@uri" to include both the artifact name and URI, ensuring different data
+  // sources produce different cache keys. Previously only names were used, which
+  // caused incorrect cache reuse when artifacts had the same name but different URIs.
   map<string, ArtifactNameList> inputArtifactNames = 1;
   map<string, Value> inputParameters = 2 [deprecated = true];
   map<string, RuntimeArtifact> outputArtifactsSpec = 3;
@@ -36,5 +40,8 @@ message ContainerSpec {
 }
 
 message ArtifactNameList {
+  // Artifact identifiers. Format: "name@uri" when URI is present, or just "name"
+  // when URI is empty. This format ensures cache keys differ for artifacts with
+  // the same name but different data sources.
   repeated string artifactNames = 1;
 }
