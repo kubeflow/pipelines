@@ -61,6 +61,14 @@ RecurringRunServiceDeleteRecurringRunParams contains all the parameters to send 
 */
 type RecurringRunServiceDeleteRecurringRunParams struct {
 
+	/* PropagationPolicy.
+
+	   Optional input field. Set the propagation policy when deleting the recurring run.
+
+	   Default: "DELETE_PROPAGATION_POLICY_UNSPECIFIED"
+	*/
+	PropagationPolicy *string
+
 	/* RecurringRunID.
 
 	   The ID of the recurring run to be deleted.
@@ -84,7 +92,18 @@ func (o *RecurringRunServiceDeleteRecurringRunParams) WithDefaults() *RecurringR
 //
 // All values with no default are reset to their zero value.
 func (o *RecurringRunServiceDeleteRecurringRunParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		propagationPolicyDefault = string("DELETE_PROPAGATION_POLICY_UNSPECIFIED")
+	)
+
+	val := RecurringRunServiceDeleteRecurringRunParams{
+		PropagationPolicy: &propagationPolicyDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the recurring run service delete recurring run params
@@ -120,6 +139,17 @@ func (o *RecurringRunServiceDeleteRecurringRunParams) SetHTTPClient(client *http
 	o.HTTPClient = client
 }
 
+// WithPropagationPolicy adds the propagationPolicy to the recurring run service delete recurring run params
+func (o *RecurringRunServiceDeleteRecurringRunParams) WithPropagationPolicy(propagationPolicy *string) *RecurringRunServiceDeleteRecurringRunParams {
+	o.SetPropagationPolicy(propagationPolicy)
+	return o
+}
+
+// SetPropagationPolicy adds the propagationPolicy to the recurring run service delete recurring run params
+func (o *RecurringRunServiceDeleteRecurringRunParams) SetPropagationPolicy(propagationPolicy *string) {
+	o.PropagationPolicy = propagationPolicy
+}
+
 // WithRecurringRunID adds the recurringRunID to the recurring run service delete recurring run params
 func (o *RecurringRunServiceDeleteRecurringRunParams) WithRecurringRunID(recurringRunID string) *RecurringRunServiceDeleteRecurringRunParams {
 	o.SetRecurringRunID(recurringRunID)
@@ -138,6 +168,23 @@ func (o *RecurringRunServiceDeleteRecurringRunParams) WriteToRequest(r runtime.C
 		return err
 	}
 	var res []error
+
+	if o.PropagationPolicy != nil {
+
+		// query param propagation_policy
+		var qrPropagationPolicy string
+
+		if o.PropagationPolicy != nil {
+			qrPropagationPolicy = *o.PropagationPolicy
+		}
+		qPropagationPolicy := qrPropagationPolicy
+		if qPropagationPolicy != "" {
+
+			if err := r.SetQueryParam("propagation_policy", qPropagationPolicy); err != nil {
+				return err
+			}
+		}
+	}
 
 	// path param recurring_run_id
 	if err := r.SetPathParam("recurring_run_id", o.RecurringRunID); err != nil {
