@@ -400,7 +400,7 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 }
 
 // Creates a pipeline and a pipeline version.
-// This is used when two resources need to be created in a single DB transaction.
+// This is used when two resources need to be created in a single DB transaction
 func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
 	// Fetch pipeline spec, verify it, and parse parameters
 	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
