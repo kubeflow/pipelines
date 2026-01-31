@@ -1025,6 +1025,7 @@ func makeVolumeMountPatch(
 				PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{ClaimName: pvcName},
 			},
 		}
+		
 		volumeMounts = append(volumeMounts, volumeMount)
 		volumes = append(volumes, volume)
 	}

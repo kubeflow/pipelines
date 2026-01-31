@@ -124,6 +124,7 @@ func NewLauncherV2(
 	}, nil
 }
 
+
 // stopWaitingArtifacts will create empty files to tell Modelcar sidecar containers to stop. Any errors encountered are
 // logged since this is meant as a deferred function at the end of the launcher's execution.
 func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
