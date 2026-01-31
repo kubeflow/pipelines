@@ -400,7 +400,7 @@ func executeV2(
 		return nil, nil, err
 	}
 
-	executorOutput, err := execute(
+	executorOutput, executeErr := execute(
 		ctx,
 		executorInput,
 		compiledCmd,
@@ -412,14 +412,12 @@ func executeV2(
 		publishLogs,
 		customCAPath,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
+
 	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
 	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.
 	// Because of the difference, we cannot put parameter collection logic in one method.
 	err = collectOutputParameters(executorInput, executorOutput, component)
-	if err != nil {
+	if err != nil && executeErr == nil {
 		return nil, nil, err
 	}
 
@@ -428,35 +426,12 @@ func executeV2(
 		bucket:         bucket,
 		metadataClient: metadataClient,
 	})
-
 	if err != nil {
-		glog.Errorf("Failed to upload output artifacts: %v", err)
-
-		glog.Info("Refreshing credentials before retrying artifacts upload.")
-		bucket, err = objectstore.OpenBucket(
-			openBucketConfig.ctx,
-			openBucketConfig.k8sClient,
-			openBucketConfig.namespace,
-			openBucketConfig.config,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		glog.Info("Executing second uploadOutputArtifacts attempt.")
-		outputArtifacts, err = uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
-			bucketConfig:   bucketConfig,
-			bucket:         bucket,
-			metadataClient: metadataClient,
-		})
-		if err != nil {
-			return nil, nil, err
-		}
+		return nil, nil, err
 	}
-
 	// TODO(Bobgy): only return executor output. Merge info in output artifacts
 	// to executor output.
-	return executorOutput, outputArtifacts, nil
+	return executorOutput, outputArtifacts, executeErr
 }
 
 // collectOutputParameters collect output parameters from local disk and add them
@@ -595,11 +570,12 @@ func execute(
 	defer glog.Flush()
 
 	// Execute end user code.
-	if err := command.Run(); err != nil {
-		return nil, err
+	runErr := command.Run()
+	executorOutput, outputErr := getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+	if runErr != nil {
+		return executorOutput, runErr
 	}
-
-	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+	return executorOutput, outputErr
 }
 
 // Create a temp file that contains the system CA bundle (and custom CA if it has been mounted).
