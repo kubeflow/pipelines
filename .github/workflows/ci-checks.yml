@@ -43,6 +43,7 @@ jobs:
           echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
           echo ${{ github.event.action }} >> ./pr/event_action
       - uses: actions/upload-artifact@v4
+        if: failure()
         with:
           name: pr
           path: pr/
