@@ -227,6 +227,182 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 '\'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
+    def test_with_use_local_pip_config_merges_index_url(self):
+        import os
+        import tempfile
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://local.pypi.org/simple\ntrusted-host = local.pypi.org\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=packages_to_install,
+                use_local_pip_config=True,
+            )
+
+            command_str = ' '.join(command)
+            self.assertIn('--index-url https://local.pypi.org/simple', command_str)
+            self.assertIn('--trusted-host local.pypi.org', command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
+
+    def test_use_local_pip_config_explicit_params_override(self):
+        import os
+        import tempfile
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://local.pypi.org/simple\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=packages_to_install,
+                pip_index_urls=['https://explicit.pypi.org/simple'],
+                use_local_pip_config=True,
+            )
+
+            command_str = ' '.join(command)
+            self.assertIn('--index-url https://explicit.pypi.org/simple', command_str)
+            self.assertNotIn('--index-url https://local.pypi.org/simple', command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
+
+    def test_use_local_pip_config_with_extra_index_url(self):
+        import os
+        import tempfile
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://primary.pypi.org/simple\nextra-index-url =\n    https://extra1.pypi.org/simple\n    https://extra2.pypi.org/simple\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=packages_to_install,
+                use_local_pip_config=True,
+            )
+
+            command_str = ' '.join(command)
+            self.assertIn('--index-url https://primary.pypi.org/simple', command_str)
+            self.assertIn('--extra-index-url https://extra1.pypi.org/simple', command_str)
+            self.assertIn('--extra-index-url https://extra2.pypi.org/simple', command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
+
+    def test_use_local_pip_config_filters_credentials(self):
+        import os
+        import tempfile
+        import warnings
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://user:pass@private.pypi.org/simple\ntrusted-host = private.pypi.org\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                command = component_factory._get_packages_to_install_command(
+                    packages_to_install=packages_to_install,
+                    use_local_pip_config=True,
+                )
+                # Verify that a credential warning was issued
+                self.assertTrue(any('credentials' in str(warning.message).lower() for warning in w))
+
+            command_str = ' '.join(command)
+            # The index-url with credentials should NOT be in the command
+            self.assertNotIn('user:pass', command_str)
+            self.assertNotIn('https://user:pass@private.pypi.org/simple', command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
+
+    def test_use_local_pip_config_with_timeout_and_retries(self):
+        import os
+        import tempfile
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://local.pypi.org/simple\ntimeout = 60\nretries = 3\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=packages_to_install,
+                use_local_pip_config=True,
+            )
+
+            command_str = ' '.join(command)
+            self.assertIn('--timeout 60', command_str)
+            self.assertIn('--retries 3', command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
+
+    def test_use_local_pip_config_with_boolean_flags(self):
+        import os
+        import tempfile
+        packages_to_install = ['package1']
+        config_contents = '[global]\nindex-url = https://local.pypi.org/simple\nno-cache-dir = true\ndisable-pip-version-check = true\n'
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+            temp_config.write(config_contents)
+            temp_config_path = temp_config.name
+
+        original_config = os.environ.get('PIP_CONFIG_FILE')
+        os.environ['PIP_CONFIG_FILE'] = temp_config_path
+        try:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=packages_to_install,
+                use_local_pip_config=True,
+            )
+
+            command_str = ' '.join(command)
+            self.assertIn('--no-cache-dir', command_str)
+            self.assertIn('--disable-pip-version-check', command_str)
+        finally:
+            if original_config is None:
+                os.environ.pop('PIP_CONFIG_FILE', None)
+            else:
+                os.environ['PIP_CONFIG_FILE'] = original_config
+            os.unlink(temp_config_path)
+
 
 class TestInvalidParameterName(unittest.TestCase):
 
