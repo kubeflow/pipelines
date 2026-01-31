@@ -19,7 +19,7 @@ spec:
 
       initContainers:
         - name: generate-config
-          image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+          image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.16.0
           imagePullPolicy: IfNotPresent
           command: [ "/bin/sh", "-ec" ]
           args:
