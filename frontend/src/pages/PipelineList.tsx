@@ -30,6 +30,7 @@ import { Description } from 'src/components/Description';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
+import { errorToMessage } from 'src/lib/Utils';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { formatDateString } from 'src/lib/Utils';
@@ -177,7 +178,8 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of pipelines.', err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError('Error: failed to retrieve list of pipelines.', error);
     }
 
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });

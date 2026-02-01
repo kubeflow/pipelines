@@ -1,0 +1,1676 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk ft7h3sp"
+  >
+    <div
+      class="page_f1flacxk"
+    >
+      <div
+        class="cardRow_ff0uehn"
+      >
+        <div
+          class="MuiPaper-root-1828 MuiPaper-elevation0-1830 MuiPaper-rounded-1829 card_f5jobr4 recurringRunsCard_folh6x0 cardActive_fk7v9nw"
+          id="recurringRunsCard"
+        >
+          <div>
+            <div
+              class="cardTitle_fhfhxfi"
+            >
+              <span>
+                Recurring run configs
+              </span>
+              <button
+                class="MuiButtonBase-root-1881 MuiButton-root-1855 MuiButton-text-1857 MuiButton-flat-1860 cardBtn_fvbhv23"
+                id="manageExperimentRecurringRunsBtn"
+                tabindex="0"
+                type="button"
+              >
+                <span
+                  class="MuiButton-label-1856"
+                >
+                  Manage
+                </span>
+              </button>
+            </div>
+            <div
+              class="cardContent_fscn48d recurringRunsActive_f1ek4ghs"
+            >
+              1 active
+            </div>
+          </div>
+        </div>
+        <div
+          class="MuiPaper-root-1828 MuiPaper-elevation0-1830 MuiPaper-rounded-1829 card_f5jobr4 runStatsCard_folh6x0"
+          id="experimentDescriptionCard"
+        >
+          <div
+            class="cardTitle_fhfhxfi"
+          >
+            <span>
+              Experiment description
+            </span>
+            <button
+              class="MuiButtonBase-root-1881 MuiButton-root-1855 MuiButton-text-1857 MuiButton-flat-1860 popOutIcon_fr5sfkk popOutButton"
+              id="expandExperimentDescriptionBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-1856"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-1892"
+                  focusable="false"
+                  role="presentation"
+                  style="font-size: 18px;"
+                  title="Read more"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                  <path
+                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="MuiTouchRipple-root-2014"
+              />
+            </button>
+          </div>
+          <div
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+          >
+            mock experiment description
+          </div>
+        </div>
+      </div>
+      <div
+        class="root_f1vld0bw"
+      >
+        <div
+          style="min-width: 100px;"
+        >
+          <div
+            class="breadcrumbs_farqb1 flex_f16jawj4"
+          />
+          <div
+            class="flex_f16jawj4"
+          >
+            <span
+              class="pageName_fe4yf9p ellipsis_f15ay66x"
+              data-testid="page-title"
+            >
+              Runs
+            </span>
+          </div>
+        </div>
+        <div
+          class="actions_ffoeey"
+        >
+          <div
+            class=""
+            style="min-width: 130px;"
+            title="Create a new run"
+          >
+            <button
+              class="MuiButtonBase-root-1881 MuiButton-root-1855 MuiButton-text-1857 MuiButton-textSecondary-1859 MuiButton-flat-1860 MuiButton-flatSecondary-1862 root_f1gmzqw4 buttonAction_f1olq6uy"
+              id="createNewRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-1856"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-1892 icon_f1ojihnt"
+                  focusable="false"
+                  role="presentation"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                </svg>
+                <span>
+                  Create run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root-2014"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 195px;"
+            title="Create a new recurring run"
+          >
+            <button
+              class="MuiButtonBase-root-1881 MuiButton-root-1855 MuiButton-text-1857 MuiButton-textPrimary-1858 MuiButton-flat-1860 MuiButton-flatPrimary-1861 root_f1gmzqw4"
+              id="createNewRecurringRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-1856"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-1892 icon_f1ojihnt"
+                  focusable="false"
+                  role="presentation"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                </svg>
+                <span>
+                  Create recurring run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root-2014"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 125px;"
+            title="Select multiple runs to compare"
+          >
+            <button
+              class="MuiButtonBase-root-1881 MuiButtonBase-disabled-1882 MuiButton-root-1855 MuiButton-text-1857 MuiButton-textSecondary-1859 MuiButton-flat-1860 MuiButton-flatSecondary-1862 MuiButton-disabled-1875 root_f1gmzqw4"
+              disabled=""
+              id="compareBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-1856"
+              >
+                <span>
+                  Compare runs
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 100px;"
+            title="Select a run to clone"
+          >
+            <button
+              class="MuiButtonBase-root-1881 MuiButtonBase-disabled-1882 MuiButton-root-1855 MuiButton-text-1857 MuiButton-textSecondary-1859 MuiButton-flat-1860 MuiButton-flatSecondary-1862 MuiButton-disabled-1875 root_f1gmzqw4"
+              disabled=""
+              id="cloneBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-1856"
+              >
+                <span>
+                  Clone run
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            title="Select at least one resource to archive"
+          >
+            <button
+              class="MuiButtonBase-root-1881 MuiButtonBase-disabled-1882 MuiButton-root-1855 MuiButton-text-1857 MuiButton-textSecondary-1859 MuiButton-flat-1860 MuiButton-flatSecondary-1862 MuiButton-disabled-1875 root_f1gmzqw4"
+              disabled=""
+              id="archiveBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-1856"
+              >
+                <span>
+                  Archive
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="page_f1flacxk f1h5lfj6"
+      >
+        <div
+          class="tabs_ff8rz57"
+        >
+          <div
+            class="indicator_fp4eggn"
+            style="left: -5px; width: 5px; display: block;"
+          />
+          <span
+            style="display: inline-block; min-width: 20px; width: 20px;"
+          />
+          <button
+            class="MuiButtonBase-root-1881 MuiButton-root-1855 MuiButton-text-1857 MuiButton-flat-1860 button_ff2g68i active_fz0wpsl"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label-1856"
+            >
+              <span>
+                Active
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root-2014"
+            />
+          </button>
+          <button
+            class="MuiButtonBase-root-1881 MuiButton-root-1855 MuiButton-text-1857 MuiButton-flat-1860 button_ff2g68i"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label-1856"
+            >
+              <span>
+                Archived
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root-2014"
+            />
+          </button>
+        </div>
+        <div>
+          <div
+            class="pageOverflowHidden_f15djeb2"
+          >
+            <div>
+              <div
+                class="MuiFormControl-root-1901 filterBox_frxzdj2"
+                spellcheck="false"
+                style="height: 48px; max-width: 100%; width: 100%;"
+              >
+                <label
+                  class="MuiFormLabel-root-1916 MuiInputLabel-root-1905 noMargin_fl8qkup MuiInputLabel-formControl-1910 MuiInputLabel-animated-1913 MuiInputLabel-shrink-1912 MuiInputLabel-outlined-1915"
+                  data-shrink="true"
+                  for="tableFilterBox"
+                >
+                  Filter runs
+                </label>
+                <div
+                  class="MuiInputBase-root-1936 MuiOutlinedInput-root-1923 noLeftPadding_f106pxd4 MuiInputBase-formControl-1937 MuiInputBase-adornedStart-1940 MuiOutlinedInput-adornedStart-1926"
+                >
+                  <fieldset
+                    aria-hidden="true"
+                    class="MuiPrivateNotchedOutline-root-1953 MuiOutlinedInput-notchedOutline-1930 filterBorderRadius_f1ypp5hy"
+                    style="padding-left: 8px;"
+                  >
+                    <legend
+                      class="MuiPrivateNotchedOutline-legend-1954"
+                      style="width: 0px;"
+                    >
+                      <span>
+                        ​
+                      </span>
+                    </legend>
+                  </fieldset>
+                  <div
+                    class="MuiInputAdornment-root-1955 MuiInputAdornment-positionEnd-1958"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-1892"
+                      focusable="false"
+                      role="presentation"
+                      style="color: rgb(128, 134, 139); padding-right: 16px;"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                      />
+                      <path
+                        d="M0 0h24v24H0z"
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    aria-invalid="false"
+                    class="MuiInputBase-input-1946 MuiOutlinedInput-input-1931 MuiInputBase-inputAdornedStart-1951 MuiOutlinedInput-inputAdornedStart-1934"
+                    id="tableFilterBox"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              class="header_f15jqnss"
+            >
+              <div
+                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+              >
+                <span
+                  class="MuiButtonBase-root-1881 MuiIconButton-root-1970 MuiPrivateSwitchBase-root-1966 MuiCheckbox-root-1960 MuiCheckbox-colorPrimary-1964"
+                >
+                  <span
+                    class="MuiIconButton-label-1975"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-1892"
+                      focusable="false"
+                      role="presentation"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                    <input
+                      class="MuiPrivateSwitchBase-input-1969"
+                      data-indeterminate="false"
+                      type="checkbox"
+                      value=""
+                    />
+                  </span>
+                  <span
+                    class="MuiTouchRipple-root-2014"
+                  />
+                </span>
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 30%;"
+                title="Run name"
+              >
+                Run name
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Status"
+              >
+                Status
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Duration"
+              >
+                Duration
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Pipeline Version"
+              >
+                Pipeline Version
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Recurring Run"
+              >
+                Recurring Run
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Start time"
+              >
+                Start time
+              </div>
+            </div>
+            <div
+              class="scrollContainer_fea2b5v"
+              style="min-height: 60px;"
+            >
+              <div
+                class="emptyMessage_f1v5g0b7"
+              >
+                No available runs found for this experiment.
+              </div>
+            </div>
+            <div
+              class="footer_f1fl9hjk"
+            >
+              <span
+                class="fzbgmju"
+              >
+                Rows per page:
+              </span>
+              <div
+                class="MuiFormControl-root-1901 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+              >
+                <div
+                  class="MuiInputBase-root-1936 MuiInput-root-1983 MuiInputBase-formControl-1937 MuiInput-formControl-1984"
+                >
+                  <div
+                    class="MuiSelect-root-1976"
+                  >
+                    <div
+                      aria-haspopup="true"
+                      aria-pressed="false"
+                      class="MuiSelect-select-1977 MuiSelect-selectMenu-1980 MuiInputBase-input-1946 MuiInput-input-1991"
+                      role="button"
+                      tabindex="0"
+                    >
+                      10
+                    </div>
+                    <input
+                      type="hidden"
+                      value="10"
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-1892 MuiSelect-icon-1982"
+                      focusable="false"
+                      role="presentation"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M7 10l5 5 5-5z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <button
+                class="MuiButtonBase-root-1881 MuiButtonBase-disabled-1882 MuiIconButton-root-1970 MuiIconButton-disabled-1974"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label-1975"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root-1892"
+                    focusable="false"
+                    role="presentation"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                    />
+                    <path
+                      d="M0 0h24v24H0z"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+              </button>
+              <button
+                class="MuiButtonBase-root-1881 MuiButtonBase-disabled-1882 MuiIconButton-root-1970 MuiIconButton-disabled-1974"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label-1975"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root-1892"
+                    focusable="false"
+                    role="presentation"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                    />
+                    <path
+                      d="M0 0h24v24H0z"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk ft7h3sp"
+  >
+    <div
+      class="page_f1flacxk"
+    >
+      <div
+        class="cardRow_ff0uehn"
+      >
+        <div
+          class="MuiPaper-root-1 MuiPaper-elevation0-3 MuiPaper-rounded-2 card_f5jobr4 recurringRunsCard_folh6x0"
+          id="recurringRunsCard"
+        >
+          <div>
+            <div
+              class="cardTitle_fhfhxfi"
+            >
+              <span>
+                Recurring run configs
+              </span>
+              <button
+                class="MuiButtonBase-root-54 MuiButton-root-28 MuiButton-text-30 MuiButton-flat-33 cardBtn_fvbhv23"
+                id="manageExperimentRecurringRunsBtn"
+                tabindex="0"
+                type="button"
+              >
+                <span
+                  class="MuiButton-label-29"
+                >
+                  Manage
+                </span>
+              </button>
+            </div>
+            <div
+              class="cardContent_fscn48d"
+            >
+              0 active
+            </div>
+          </div>
+        </div>
+        <div
+          class="MuiPaper-root-1 MuiPaper-elevation0-3 MuiPaper-rounded-2 card_f5jobr4 runStatsCard_folh6x0"
+          id="experimentDescriptionCard"
+        >
+          <div
+            class="cardTitle_fhfhxfi"
+          >
+            <span>
+              Experiment description
+            </span>
+            <button
+              class="MuiButtonBase-root-54 MuiButton-root-28 MuiButton-text-30 MuiButton-flat-33 popOutIcon_fr5sfkk popOutButton"
+              id="expandExperimentDescriptionBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-29"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-65"
+                  focusable="false"
+                  role="presentation"
+                  style="font-size: 18px;"
+                  title="Read more"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                  <path
+                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="MuiTouchRipple-root-187"
+              />
+            </button>
+          </div>
+          <div
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+          >
+            mock experiment description
+          </div>
+        </div>
+      </div>
+      <div
+        class="root_f1vld0bw"
+      >
+        <div
+          style="min-width: 100px;"
+        >
+          <div
+            class="breadcrumbs_farqb1 flex_f16jawj4"
+          />
+          <div
+            class="flex_f16jawj4"
+          >
+            <span
+              class="pageName_fe4yf9p ellipsis_f15ay66x"
+              data-testid="page-title"
+            >
+              Runs
+            </span>
+          </div>
+        </div>
+        <div
+          class="actions_ffoeey"
+        >
+          <div
+            class=""
+            style="min-width: 130px;"
+            title="Create a new run"
+          >
+            <button
+              class="MuiButtonBase-root-54 MuiButton-root-28 MuiButton-text-30 MuiButton-textSecondary-32 MuiButton-flat-33 MuiButton-flatSecondary-35 root_f1gmzqw4 buttonAction_f1olq6uy"
+              id="createNewRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-29"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-65 icon_f1ojihnt"
+                  focusable="false"
+                  role="presentation"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                </svg>
+                <span>
+                  Create run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root-187"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 195px;"
+            title="Create a new recurring run"
+          >
+            <button
+              class="MuiButtonBase-root-54 MuiButton-root-28 MuiButton-text-30 MuiButton-textPrimary-31 MuiButton-flat-33 MuiButton-flatPrimary-34 root_f1gmzqw4"
+              id="createNewRecurringRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-29"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-65 icon_f1ojihnt"
+                  focusable="false"
+                  role="presentation"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                </svg>
+                <span>
+                  Create recurring run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root-187"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 125px;"
+            title="Select multiple runs to compare"
+          >
+            <button
+              class="MuiButtonBase-root-54 MuiButtonBase-disabled-55 MuiButton-root-28 MuiButton-text-30 MuiButton-textSecondary-32 MuiButton-flat-33 MuiButton-flatSecondary-35 MuiButton-disabled-48 root_f1gmzqw4"
+              disabled=""
+              id="compareBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-29"
+              >
+                <span>
+                  Compare runs
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 100px;"
+            title="Select a run to clone"
+          >
+            <button
+              class="MuiButtonBase-root-54 MuiButtonBase-disabled-55 MuiButton-root-28 MuiButton-text-30 MuiButton-textSecondary-32 MuiButton-flat-33 MuiButton-flatSecondary-35 MuiButton-disabled-48 root_f1gmzqw4"
+              disabled=""
+              id="cloneBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-29"
+              >
+                <span>
+                  Clone run
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            title="Select at least one resource to archive"
+          >
+            <button
+              class="MuiButtonBase-root-54 MuiButtonBase-disabled-55 MuiButton-root-28 MuiButton-text-30 MuiButton-textSecondary-32 MuiButton-flat-33 MuiButton-flatSecondary-35 MuiButton-disabled-48 root_f1gmzqw4"
+              disabled=""
+              id="archiveBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-29"
+              >
+                <span>
+                  Archive
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="page_f1flacxk f1h5lfj6"
+      >
+        <div
+          class="tabs_ff8rz57"
+        >
+          <div
+            class="indicator_fp4eggn"
+            style="left: -5px; width: 5px; display: block;"
+          />
+          <span
+            style="display: inline-block; min-width: 20px; width: 20px;"
+          />
+          <button
+            class="MuiButtonBase-root-54 MuiButton-root-28 MuiButton-text-30 MuiButton-flat-33 button_ff2g68i active_fz0wpsl"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label-29"
+            >
+              <span>
+                Active
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root-187"
+            />
+          </button>
+          <button
+            class="MuiButtonBase-root-54 MuiButton-root-28 MuiButton-text-30 MuiButton-flat-33 button_ff2g68i"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label-29"
+            >
+              <span>
+                Archived
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root-187"
+            />
+          </button>
+        </div>
+        <div>
+          <div
+            class="pageOverflowHidden_f15djeb2"
+          >
+            <div>
+              <div
+                class="MuiFormControl-root-74 filterBox_frxzdj2"
+                spellcheck="false"
+                style="height: 48px; max-width: 100%; width: 100%;"
+              >
+                <label
+                  class="MuiFormLabel-root-89 MuiInputLabel-root-78 noMargin_fl8qkup MuiInputLabel-formControl-83 MuiInputLabel-animated-86 MuiInputLabel-shrink-85 MuiInputLabel-outlined-88"
+                  data-shrink="true"
+                  for="tableFilterBox"
+                >
+                  Filter runs
+                </label>
+                <div
+                  class="MuiInputBase-root-109 MuiOutlinedInput-root-96 noLeftPadding_f106pxd4 MuiInputBase-formControl-110 MuiInputBase-adornedStart-113 MuiOutlinedInput-adornedStart-99"
+                >
+                  <fieldset
+                    aria-hidden="true"
+                    class="MuiPrivateNotchedOutline-root-126 MuiOutlinedInput-notchedOutline-103 filterBorderRadius_f1ypp5hy"
+                    style="padding-left: 8px;"
+                  >
+                    <legend
+                      class="MuiPrivateNotchedOutline-legend-127"
+                      style="width: 0px;"
+                    >
+                      <span>
+                        ​
+                      </span>
+                    </legend>
+                  </fieldset>
+                  <div
+                    class="MuiInputAdornment-root-128 MuiInputAdornment-positionEnd-131"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-65"
+                      focusable="false"
+                      role="presentation"
+                      style="color: rgb(128, 134, 139); padding-right: 16px;"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                      />
+                      <path
+                        d="M0 0h24v24H0z"
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    aria-invalid="false"
+                    class="MuiInputBase-input-119 MuiOutlinedInput-input-104 MuiInputBase-inputAdornedStart-124 MuiOutlinedInput-inputAdornedStart-107"
+                    id="tableFilterBox"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              class="header_f15jqnss"
+            >
+              <div
+                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+              >
+                <span
+                  class="MuiButtonBase-root-54 MuiIconButton-root-143 MuiPrivateSwitchBase-root-139 MuiCheckbox-root-133 MuiCheckbox-colorPrimary-137"
+                >
+                  <span
+                    class="MuiIconButton-label-148"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-65"
+                      focusable="false"
+                      role="presentation"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                    <input
+                      class="MuiPrivateSwitchBase-input-142"
+                      data-indeterminate="false"
+                      type="checkbox"
+                      value=""
+                    />
+                  </span>
+                  <span
+                    class="MuiTouchRipple-root-187"
+                  />
+                </span>
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 30%;"
+                title="Run name"
+              >
+                Run name
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Status"
+              >
+                Status
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Duration"
+              >
+                Duration
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Pipeline Version"
+              >
+                Pipeline Version
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Recurring Run"
+              >
+                Recurring Run
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Start time"
+              >
+                Start time
+              </div>
+            </div>
+            <div
+              class="scrollContainer_fea2b5v"
+              style="min-height: 60px;"
+            >
+              <div
+                class="emptyMessage_f1v5g0b7"
+              >
+                No available runs found for this experiment.
+              </div>
+            </div>
+            <div
+              class="footer_f1fl9hjk"
+            >
+              <span
+                class="fzbgmju"
+              >
+                Rows per page:
+              </span>
+              <div
+                class="MuiFormControl-root-74 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+              >
+                <div
+                  class="MuiInputBase-root-109 MuiInput-root-156 MuiInputBase-formControl-110 MuiInput-formControl-157"
+                >
+                  <div
+                    class="MuiSelect-root-149"
+                  >
+                    <div
+                      aria-haspopup="true"
+                      aria-pressed="false"
+                      class="MuiSelect-select-150 MuiSelect-selectMenu-153 MuiInputBase-input-119 MuiInput-input-164"
+                      role="button"
+                      tabindex="0"
+                    >
+                      10
+                    </div>
+                    <input
+                      type="hidden"
+                      value="10"
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-65 MuiSelect-icon-155"
+                      focusable="false"
+                      role="presentation"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M7 10l5 5 5-5z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <button
+                class="MuiButtonBase-root-54 MuiButtonBase-disabled-55 MuiIconButton-root-143 MuiIconButton-disabled-147"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label-148"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root-65"
+                    focusable="false"
+                    role="presentation"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                    />
+                    <path
+                      d="M0 0h24v24H0z"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+              </button>
+              <button
+                class="MuiButtonBase-root-54 MuiButtonBase-disabled-55 MuiIconButton-root-143 MuiIconButton-disabled-147"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label-148"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root-65"
+                    focusable="false"
+                    role="presentation"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                    />
+                    <path
+                      d="M0 0h24v24H0z"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`ExperimentDetails > uses an empty string if the experiment has no description 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk ft7h3sp"
+  >
+    <div
+      class="page_f1flacxk"
+    >
+      <div
+        class="cardRow_ff0uehn"
+      >
+        <div
+          class="MuiPaper-root-610 MuiPaper-elevation0-612 MuiPaper-rounded-611 card_f5jobr4 recurringRunsCard_folh6x0"
+          id="recurringRunsCard"
+        >
+          <div>
+            <div
+              class="cardTitle_fhfhxfi"
+            >
+              <span>
+                Recurring run configs
+              </span>
+              <button
+                class="MuiButtonBase-root-663 MuiButton-root-637 MuiButton-text-639 MuiButton-flat-642 cardBtn_fvbhv23"
+                id="manageExperimentRecurringRunsBtn"
+                tabindex="0"
+                type="button"
+              >
+                <span
+                  class="MuiButton-label-638"
+                >
+                  Manage
+                </span>
+              </button>
+            </div>
+            <div
+              class="cardContent_fscn48d"
+            >
+              0 active
+            </div>
+          </div>
+        </div>
+        <div
+          class="MuiPaper-root-610 MuiPaper-elevation0-612 MuiPaper-rounded-611 card_f5jobr4 runStatsCard_folh6x0"
+          id="experimentDescriptionCard"
+        >
+          <div
+            class="cardTitle_fhfhxfi"
+          >
+            <span>
+              Experiment description
+            </span>
+            <button
+              class="MuiButtonBase-root-663 MuiButton-root-637 MuiButton-text-639 MuiButton-flat-642 popOutIcon_fr5sfkk popOutButton"
+              id="expandExperimentDescriptionBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-638"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-674"
+                  focusable="false"
+                  role="presentation"
+                  style="font-size: 18px;"
+                  title="Read more"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                  <path
+                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="MuiTouchRipple-root-796"
+              />
+            </button>
+          </div>
+          <div
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+          />
+        </div>
+      </div>
+      <div
+        class="root_f1vld0bw"
+      >
+        <div
+          style="min-width: 100px;"
+        >
+          <div
+            class="breadcrumbs_farqb1 flex_f16jawj4"
+          />
+          <div
+            class="flex_f16jawj4"
+          >
+            <span
+              class="pageName_fe4yf9p ellipsis_f15ay66x"
+              data-testid="page-title"
+            >
+              Runs
+            </span>
+          </div>
+        </div>
+        <div
+          class="actions_ffoeey"
+        >
+          <div
+            class=""
+            style="min-width: 130px;"
+            title="Create a new run"
+          >
+            <button
+              class="MuiButtonBase-root-663 MuiButton-root-637 MuiButton-text-639 MuiButton-textSecondary-641 MuiButton-flat-642 MuiButton-flatSecondary-644 root_f1gmzqw4 buttonAction_f1olq6uy"
+              id="createNewRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-638"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-674 icon_f1ojihnt"
+                  focusable="false"
+                  role="presentation"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                </svg>
+                <span>
+                  Create run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root-796"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 195px;"
+            title="Create a new recurring run"
+          >
+            <button
+              class="MuiButtonBase-root-663 MuiButton-root-637 MuiButton-text-639 MuiButton-textPrimary-640 MuiButton-flat-642 MuiButton-flatPrimary-643 root_f1gmzqw4"
+              id="createNewRecurringRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-638"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root-674 icon_f1ojihnt"
+                  focusable="false"
+                  role="presentation"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                  <path
+                    d="M0 0h24v24H0z"
+                    fill="none"
+                  />
+                </svg>
+                <span>
+                  Create recurring run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root-796"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 125px;"
+            title="Select multiple runs to compare"
+          >
+            <button
+              class="MuiButtonBase-root-663 MuiButtonBase-disabled-664 MuiButton-root-637 MuiButton-text-639 MuiButton-textSecondary-641 MuiButton-flat-642 MuiButton-flatSecondary-644 MuiButton-disabled-657 root_f1gmzqw4"
+              disabled=""
+              id="compareBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-638"
+              >
+                <span>
+                  Compare runs
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 100px;"
+            title="Select a run to clone"
+          >
+            <button
+              class="MuiButtonBase-root-663 MuiButtonBase-disabled-664 MuiButton-root-637 MuiButton-text-639 MuiButton-textSecondary-641 MuiButton-flat-642 MuiButton-flatSecondary-644 MuiButton-disabled-657 root_f1gmzqw4"
+              disabled=""
+              id="cloneBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-638"
+              >
+                <span>
+                  Clone run
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            title="Select at least one resource to archive"
+          >
+            <button
+              class="MuiButtonBase-root-663 MuiButtonBase-disabled-664 MuiButton-root-637 MuiButton-text-639 MuiButton-textSecondary-641 MuiButton-flat-642 MuiButton-flatSecondary-644 MuiButton-disabled-657 root_f1gmzqw4"
+              disabled=""
+              id="archiveBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label-638"
+              >
+                <span>
+                  Archive
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="page_f1flacxk f1h5lfj6"
+      >
+        <div
+          class="tabs_ff8rz57"
+        >
+          <div
+            class="indicator_fp4eggn"
+            style="left: -5px; width: 5px; display: block;"
+          />
+          <span
+            style="display: inline-block; min-width: 20px; width: 20px;"
+          />
+          <button
+            class="MuiButtonBase-root-663 MuiButton-root-637 MuiButton-text-639 MuiButton-flat-642 button_ff2g68i active_fz0wpsl"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label-638"
+            >
+              <span>
+                Active
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root-796"
+            />
+          </button>
+          <button
+            class="MuiButtonBase-root-663 MuiButton-root-637 MuiButton-text-639 MuiButton-flat-642 button_ff2g68i"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label-638"
+            >
+              <span>
+                Archived
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root-796"
+            />
+          </button>
+        </div>
+        <div>
+          <div
+            class="pageOverflowHidden_f15djeb2"
+          >
+            <div>
+              <div
+                class="MuiFormControl-root-683 filterBox_frxzdj2"
+                spellcheck="false"
+                style="height: 48px; max-width: 100%; width: 100%;"
+              >
+                <label
+                  class="MuiFormLabel-root-698 MuiInputLabel-root-687 noMargin_fl8qkup MuiInputLabel-formControl-692 MuiInputLabel-animated-695 MuiInputLabel-shrink-694 MuiInputLabel-outlined-697"
+                  data-shrink="true"
+                  for="tableFilterBox"
+                >
+                  Filter runs
+                </label>
+                <div
+                  class="MuiInputBase-root-718 MuiOutlinedInput-root-705 noLeftPadding_f106pxd4 MuiInputBase-formControl-719 MuiInputBase-adornedStart-722 MuiOutlinedInput-adornedStart-708"
+                >
+                  <fieldset
+                    aria-hidden="true"
+                    class="MuiPrivateNotchedOutline-root-735 MuiOutlinedInput-notchedOutline-712 filterBorderRadius_f1ypp5hy"
+                    style="padding-left: 8px;"
+                  >
+                    <legend
+                      class="MuiPrivateNotchedOutline-legend-736"
+                      style="width: 0px;"
+                    >
+                      <span>
+                        ​
+                      </span>
+                    </legend>
+                  </fieldset>
+                  <div
+                    class="MuiInputAdornment-root-737 MuiInputAdornment-positionEnd-740"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-674"
+                      focusable="false"
+                      role="presentation"
+                      style="color: rgb(128, 134, 139); padding-right: 16px;"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                      />
+                      <path
+                        d="M0 0h24v24H0z"
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    aria-invalid="false"
+                    class="MuiInputBase-input-728 MuiOutlinedInput-input-713 MuiInputBase-inputAdornedStart-733 MuiOutlinedInput-inputAdornedStart-716"
+                    id="tableFilterBox"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              class="header_f15jqnss"
+            >
+              <div
+                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+              >
+                <span
+                  class="MuiButtonBase-root-663 MuiIconButton-root-752 MuiPrivateSwitchBase-root-748 MuiCheckbox-root-742 MuiCheckbox-colorPrimary-746"
+                >
+                  <span
+                    class="MuiIconButton-label-757"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-674"
+                      focusable="false"
+                      role="presentation"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                    <input
+                      class="MuiPrivateSwitchBase-input-751"
+                      data-indeterminate="false"
+                      type="checkbox"
+                      value=""
+                    />
+                  </span>
+                  <span
+                    class="MuiTouchRipple-root-796"
+                  />
+                </span>
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 30%;"
+                title="Run name"
+              >
+                Run name
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Status"
+              >
+                Status
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Duration"
+              >
+                Duration
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Pipeline Version"
+              >
+                Pipeline Version
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Recurring Run"
+              >
+                Recurring Run
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Start time"
+              >
+                Start time
+              </div>
+            </div>
+            <div
+              class="scrollContainer_fea2b5v"
+              style="min-height: 60px;"
+            >
+              <div
+                class="emptyMessage_f1v5g0b7"
+              >
+                No available runs found for this experiment.
+              </div>
+            </div>
+            <div
+              class="footer_f1fl9hjk"
+            >
+              <span
+                class="fzbgmju"
+              >
+                Rows per page:
+              </span>
+              <div
+                class="MuiFormControl-root-683 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+              >
+                <div
+                  class="MuiInputBase-root-718 MuiInput-root-765 MuiInputBase-formControl-719 MuiInput-formControl-766"
+                >
+                  <div
+                    class="MuiSelect-root-758"
+                  >
+                    <div
+                      aria-haspopup="true"
+                      aria-pressed="false"
+                      class="MuiSelect-select-759 MuiSelect-selectMenu-762 MuiInputBase-input-728 MuiInput-input-773"
+                      role="button"
+                      tabindex="0"
+                    >
+                      10
+                    </div>
+                    <input
+                      type="hidden"
+                      value="10"
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root-674 MuiSelect-icon-764"
+                      focusable="false"
+                      role="presentation"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M7 10l5 5 5-5z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <button
+                class="MuiButtonBase-root-663 MuiButtonBase-disabled-664 MuiIconButton-root-752 MuiIconButton-disabled-756"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label-757"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root-674"
+                    focusable="false"
+                    role="presentation"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                    />
+                    <path
+                      d="M0 0h24v24H0z"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+              </button>
+              <button
+                class="MuiButtonBase-root-663 MuiButtonBase-disabled-664 MuiIconButton-root-752 MuiIconButton-disabled-756"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label-757"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root-674"
+                    focusable="false"
+                    role="presentation"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                    />
+                    <path
+                      d="M0 0h24v24H0z"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;

@@ -113,7 +113,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           .catch(() => ''),
       ),
     );
-    this.setState({ links: ids.map(getPipelineLink) });
+    this.setStateSafe({ links: ids.map(getPipelineLink) });
   }
 
   public async refresh() {

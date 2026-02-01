@@ -1,0 +1,1294 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RunList > handles no pipeline id given 1`] = `
+<DocumentFragment>
+  <div>
+    -
+  </div>
+</DocumentFragment>
+`;
+
+exports[`RunList > handles no pipeline name 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    href="/pipelines/details/?fromRun=run-id"
+  >
+    [View pipeline]
+  </a>
+</DocumentFragment>
+`;
+
+exports[`RunList > in archived state > renders the empty experience 1`] = `
+<DocumentFragment>
+  <div>
+    <div
+      class="pageOverflowHidden_f15djeb2"
+    >
+      <div>
+        <div
+          class="MuiFormControl-root-142 filterBox_frxzdj2"
+          spellcheck="false"
+          style="height: 48px; max-width: 100%; width: 100%;"
+        >
+          <label
+            class="MuiFormLabel-root-157 MuiInputLabel-root-146 noMargin_fl8qkup MuiInputLabel-formControl-151 MuiInputLabel-animated-154 MuiInputLabel-shrink-153 MuiInputLabel-outlined-156"
+            data-shrink="true"
+            for="tableFilterBox"
+          >
+            Filter runs
+          </label>
+          <div
+            class="MuiInputBase-root-177 MuiOutlinedInput-root-164 noLeftPadding_f106pxd4 MuiInputBase-formControl-178 MuiInputBase-adornedStart-181 MuiOutlinedInput-adornedStart-167"
+          >
+            <fieldset
+              aria-hidden="true"
+              class="MuiPrivateNotchedOutline-root-194 MuiOutlinedInput-notchedOutline-171 filterBorderRadius_f1ypp5hy"
+              style="padding-left: 8px;"
+            >
+              <legend
+                class="MuiPrivateNotchedOutline-legend-195"
+                style="width: 0px;"
+              >
+                <span>
+                  ​
+                </span>
+              </legend>
+            </fieldset>
+            <div
+              class="MuiInputAdornment-root-196 MuiInputAdornment-positionEnd-199"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-201"
+                focusable="false"
+                role="presentation"
+                style="color: rgb(128, 134, 139); padding-right: 16px;"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                />
+                <path
+                  d="M0 0h24v24H0z"
+                  fill="none"
+                />
+              </svg>
+            </div>
+            <input
+              aria-invalid="false"
+              class="MuiInputBase-input-187 MuiOutlinedInput-input-172 MuiInputBase-inputAdornedStart-192 MuiOutlinedInput-inputAdornedStart-175"
+              id="tableFilterBox"
+              type="text"
+              value=""
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        class="header_f15jqnss"
+      >
+        <div
+          class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiIconButton-root-220 MuiPrivateSwitchBase-root-216 MuiCheckbox-root-210 MuiCheckbox-colorPrimary-214"
+          >
+            <span
+              class="MuiIconButton-label-225"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-201"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                />
+              </svg>
+              <input
+                class="MuiPrivateSwitchBase-input-219"
+                data-indeterminate="false"
+                type="checkbox"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-266"
+            />
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 25%;"
+          title="Run name"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiTableSortLabel-root-237 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Sort"
+          >
+            Run name
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201 MuiTableSortLabel-icon-239 MuiTableSortLabel-iconDirectionDesc-240"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Status"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiTableSortLabel-root-237 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Status
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201 MuiTableSortLabel-icon-239 MuiTableSortLabel-iconDirectionDesc-240"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Duration"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiTableSortLabel-root-237 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Duration
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201 MuiTableSortLabel-icon-239 MuiTableSortLabel-iconDirectionDesc-240"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Experiment"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiTableSortLabel-root-237 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Experiment
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201 MuiTableSortLabel-icon-239 MuiTableSortLabel-iconDirectionDesc-240"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Pipeline Version"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiTableSortLabel-root-237 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Pipeline Version
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201 MuiTableSortLabel-icon-239 MuiTableSortLabel-iconDirectionDesc-240"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Recurring Run"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiTableSortLabel-root-237 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Recurring Run
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201 MuiTableSortLabel-icon-239 MuiTableSortLabel-iconDirectionDesc-240"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Start time"
+        >
+          <span
+            class="MuiButtonBase-root-226 MuiTableSortLabel-root-237 MuiTableSortLabel-active-238 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Sort"
+          >
+            Start time
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201 MuiTableSortLabel-icon-239 MuiTableSortLabel-iconDirectionDesc-240"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+      </div>
+      <div
+        class="scrollContainer_fea2b5v"
+        style="min-height: 60px;"
+      >
+        <div
+          class="emptyMessage_f1v5g0b7"
+        >
+          No archived runs found.
+        </div>
+      </div>
+      <div
+        class="footer_f1fl9hjk"
+      >
+        <span
+          class="fzbgmju"
+        >
+          Rows per page:
+        </span>
+        <div
+          class="MuiFormControl-root-142 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+        >
+          <div
+            class="MuiInputBase-root-177 MuiInput-root-249 MuiInputBase-formControl-178 MuiInput-formControl-250"
+          >
+            <div
+              class="MuiSelect-root-242"
+            >
+              <div
+                aria-haspopup="true"
+                aria-pressed="false"
+                class="MuiSelect-select-243 MuiSelect-selectMenu-246 MuiInputBase-input-187 MuiInput-input-257"
+                role="button"
+                tabindex="0"
+              >
+                10
+              </div>
+              <input
+                type="hidden"
+                value="10"
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-201 MuiSelect-icon-248"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <button
+          class="MuiButtonBase-root-226 MuiButtonBase-disabled-227 MuiIconButton-root-220 MuiIconButton-disabled-224"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiIconButton-label-225"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+              />
+              <path
+                d="M0 0h24v24H0z"
+                fill="none"
+              />
+            </svg>
+          </span>
+        </button>
+        <button
+          class="MuiButtonBase-root-226 MuiButtonBase-disabled-227 MuiIconButton-root-220 MuiIconButton-disabled-224"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiIconButton-label-225"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-201"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+              />
+              <path
+                d="M0 0h24v24H0z"
+                fill="none"
+              />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`RunList > reloads the run when refresh is called 1`] = `
+<DocumentFragment>
+  <div>
+    <div
+      class="pageOverflowHidden_f15djeb2"
+    >
+      <div>
+        <div
+          class="MuiFormControl-root-847 filterBox_frxzdj2"
+          spellcheck="false"
+          style="height: 48px; max-width: 100%; width: 100%;"
+        >
+          <label
+            class="MuiFormLabel-root-862 MuiInputLabel-root-851 noMargin_fl8qkup MuiInputLabel-formControl-856 MuiInputLabel-animated-859 MuiInputLabel-shrink-858 MuiInputLabel-outlined-861"
+            data-shrink="true"
+            for="tableFilterBox"
+          >
+            Filter runs
+          </label>
+          <div
+            class="MuiInputBase-root-882 MuiOutlinedInput-root-869 noLeftPadding_f106pxd4 MuiInputBase-formControl-883 MuiInputBase-adornedStart-886 MuiOutlinedInput-adornedStart-872"
+          >
+            <fieldset
+              aria-hidden="true"
+              class="MuiPrivateNotchedOutline-root-899 MuiOutlinedInput-notchedOutline-876 filterBorderRadius_f1ypp5hy"
+              style="padding-left: 8px;"
+            >
+              <legend
+                class="MuiPrivateNotchedOutline-legend-900"
+                style="width: 0px;"
+              >
+                <span>
+                  ​
+                </span>
+              </legend>
+            </fieldset>
+            <div
+              class="MuiInputAdornment-root-901 MuiInputAdornment-positionEnd-904"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-906"
+                focusable="false"
+                role="presentation"
+                style="color: rgb(128, 134, 139); padding-right: 16px;"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                />
+                <path
+                  d="M0 0h24v24H0z"
+                  fill="none"
+                />
+              </svg>
+            </div>
+            <input
+              aria-invalid="false"
+              class="MuiInputBase-input-892 MuiOutlinedInput-input-877 MuiInputBase-inputAdornedStart-897 MuiOutlinedInput-inputAdornedStart-880"
+              id="tableFilterBox"
+              type="text"
+              value=""
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        class="header_f15jqnss"
+      >
+        <div
+          class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiIconButton-root-925 MuiPrivateSwitchBase-root-921 MuiCheckbox-root-915 MuiCheckbox-colorPrimary-919"
+          >
+            <span
+              class="MuiIconButton-label-930"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-906"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                />
+              </svg>
+              <input
+                class="MuiPrivateSwitchBase-input-924"
+                data-indeterminate="false"
+                type="checkbox"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-971"
+            />
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 25%;"
+          title="Run name"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiTableSortLabel-root-942 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Sort"
+          >
+            Run name
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906 MuiTableSortLabel-icon-944 MuiTableSortLabel-iconDirectionDesc-945"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Status"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiTableSortLabel-root-942 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Status
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906 MuiTableSortLabel-icon-944 MuiTableSortLabel-iconDirectionDesc-945"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Duration"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiTableSortLabel-root-942 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Duration
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906 MuiTableSortLabel-icon-944 MuiTableSortLabel-iconDirectionDesc-945"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Experiment"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiTableSortLabel-root-942 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Experiment
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906 MuiTableSortLabel-icon-944 MuiTableSortLabel-iconDirectionDesc-945"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Pipeline Version"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiTableSortLabel-root-942 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Pipeline Version
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906 MuiTableSortLabel-icon-944 MuiTableSortLabel-iconDirectionDesc-945"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Recurring Run"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiTableSortLabel-root-942 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Recurring Run
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906 MuiTableSortLabel-icon-944 MuiTableSortLabel-iconDirectionDesc-945"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Start time"
+        >
+          <span
+            class="MuiButtonBase-root-931 MuiTableSortLabel-root-942 MuiTableSortLabel-active-943 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Sort"
+          >
+            Start time
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906 MuiTableSortLabel-icon-944 MuiTableSortLabel-iconDirectionDesc-945"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+      </div>
+      <div
+        class="scrollContainer_fea2b5v"
+        style="min-height: 60px;"
+      >
+        <div
+          class="emptyMessage_f1v5g0b7"
+        >
+          No available runs found.
+        </div>
+      </div>
+      <div
+        class="footer_f1fl9hjk"
+      >
+        <span
+          class="fzbgmju"
+        >
+          Rows per page:
+        </span>
+        <div
+          class="MuiFormControl-root-847 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+        >
+          <div
+            class="MuiInputBase-root-882 MuiInput-root-954 MuiInputBase-formControl-883 MuiInput-formControl-955"
+          >
+            <div
+              class="MuiSelect-root-947"
+            >
+              <div
+                aria-haspopup="true"
+                aria-pressed="false"
+                class="MuiSelect-select-948 MuiSelect-selectMenu-951 MuiInputBase-input-892 MuiInput-input-962"
+                role="button"
+                tabindex="0"
+              >
+                10
+              </div>
+              <input
+                type="hidden"
+                value="10"
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-906 MuiSelect-icon-953"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <button
+          class="MuiButtonBase-root-931 MuiButtonBase-disabled-932 MuiIconButton-root-925 MuiIconButton-disabled-929"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiIconButton-label-930"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+              />
+              <path
+                d="M0 0h24v24H0z"
+                fill="none"
+              />
+            </svg>
+          </span>
+        </button>
+        <button
+          class="MuiButtonBase-root-931 MuiButtonBase-disabled-932 MuiIconButton-root-925 MuiIconButton-disabled-929"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiIconButton-label-930"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-906"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+              />
+              <path
+                d="M0 0h24v24H0z"
+                fill="none"
+              />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`RunList > renders experiment name as link to its details page 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    href="/experiments/details/experiment-id"
+  >
+    test experiment
+  </a>
+</DocumentFragment>
+`;
+
+exports[`RunList > renders no experiment name 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    href="/experiments/details/experiment-id"
+  />
+</DocumentFragment>
+`;
+
+exports[`RunList > renders pipeline name as link to its details page 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    href="/pipelines/details/pipeline-id"
+    title="test pipeline"
+  >
+    test pipeline
+  </a>
+</DocumentFragment>
+`;
+
+exports[`RunList > renders pipeline name as link to its details page 2`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    href="/recurringrun/details/recurring-run-id"
+  >
+    [View config]
+  </a>
+</DocumentFragment>
+`;
+
+exports[`RunList > renders pipeline version name as link to its details page 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    href="/pipelines/details/pipeline-id/version/version-id"
+    title="test pipeline version"
+  >
+    test pipeline version
+  </a>
+</DocumentFragment>
+`;
+
+exports[`RunList > renders run name as link to its details page 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    data-run-id="run-id"
+    data-run-name="test run"
+    data-testid="run-name-link"
+    href="/runs/details/run-id"
+    title="test run"
+  >
+    test run
+  </a>
+</DocumentFragment>
+`;
+
+exports[`RunList > renders status as icon 1`] = `
+<DocumentFragment>
+  <div
+    class=""
+  >
+    <svg
+      aria-hidden="true"
+      class="MuiSvgIcon-root-2855"
+      data-testid="node-status-sign"
+      focusable="false"
+      role="presentation"
+      style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M0 0h24v24H0z"
+        fill="none"
+      />
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+      />
+    </svg>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`RunList > renders the empty experience 1`] = `
+<DocumentFragment>
+  <div>
+    <div
+      class="pageOverflowHidden_f15djeb2"
+    >
+      <div>
+        <div
+          class="MuiFormControl-root-1 filterBox_frxzdj2"
+          spellcheck="false"
+          style="height: 48px; max-width: 100%; width: 100%;"
+        >
+          <label
+            class="MuiFormLabel-root-16 MuiInputLabel-root-5 noMargin_fl8qkup MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
+            data-shrink="true"
+            for="tableFilterBox"
+          >
+            Filter runs
+          </label>
+          <div
+            class="MuiInputBase-root-36 MuiOutlinedInput-root-23 noLeftPadding_f106pxd4 MuiInputBase-formControl-37 MuiInputBase-adornedStart-40 MuiOutlinedInput-adornedStart-26"
+          >
+            <fieldset
+              aria-hidden="true"
+              class="MuiPrivateNotchedOutline-root-53 MuiOutlinedInput-notchedOutline-30 filterBorderRadius_f1ypp5hy"
+              style="padding-left: 8px;"
+            >
+              <legend
+                class="MuiPrivateNotchedOutline-legend-54"
+                style="width: 0px;"
+              >
+                <span>
+                  ​
+                </span>
+              </legend>
+            </fieldset>
+            <div
+              class="MuiInputAdornment-root-55 MuiInputAdornment-positionEnd-58"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-60"
+                focusable="false"
+                role="presentation"
+                style="color: rgb(128, 134, 139); padding-right: 16px;"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                />
+                <path
+                  d="M0 0h24v24H0z"
+                  fill="none"
+                />
+              </svg>
+            </div>
+            <input
+              aria-invalid="false"
+              class="MuiInputBase-input-46 MuiOutlinedInput-input-31 MuiInputBase-inputAdornedStart-51 MuiOutlinedInput-inputAdornedStart-34"
+              id="tableFilterBox"
+              type="text"
+              value=""
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        class="header_f15jqnss"
+      >
+        <div
+          class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiIconButton-root-79 MuiPrivateSwitchBase-root-75 MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73"
+          >
+            <span
+              class="MuiIconButton-label-84"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-60"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                />
+              </svg>
+              <input
+                class="MuiPrivateSwitchBase-input-78"
+                data-indeterminate="false"
+                type="checkbox"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-125"
+            />
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 25%;"
+          title="Run name"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiTableSortLabel-root-96 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Sort"
+          >
+            Run name
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-98 MuiTableSortLabel-iconDirectionDesc-99"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Status"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiTableSortLabel-root-96 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Status
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-98 MuiTableSortLabel-iconDirectionDesc-99"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Duration"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiTableSortLabel-root-96 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Duration
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-98 MuiTableSortLabel-iconDirectionDesc-99"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Experiment"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiTableSortLabel-root-96 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Experiment
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-98 MuiTableSortLabel-iconDirectionDesc-99"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Pipeline Version"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiTableSortLabel-root-96 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Pipeline Version
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-98 MuiTableSortLabel-iconDirectionDesc-99"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 8.333333333333332%;"
+          title="Recurring Run"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiTableSortLabel-root-96 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Cannot sort by this column"
+          >
+            Recurring Run
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-98 MuiTableSortLabel-iconDirectionDesc-99"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName_f1kdqshe"
+          style="width: 16.666666666666664%;"
+          title="Start time"
+        >
+          <span
+            class="MuiButtonBase-root-85 MuiTableSortLabel-root-96 MuiTableSortLabel-active-97 ellipsis_f15ay66x"
+            role="button"
+            tabindex="0"
+            title="Sort"
+          >
+            Start time
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60 MuiTableSortLabel-icon-98 MuiTableSortLabel-iconDirectionDesc-99"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+      </div>
+      <div
+        class="scrollContainer_fea2b5v"
+        style="min-height: 60px;"
+      >
+        <div
+          class="emptyMessage_f1v5g0b7"
+        >
+          No available runs found.
+        </div>
+      </div>
+      <div
+        class="footer_f1fl9hjk"
+      >
+        <span
+          class="fzbgmju"
+        >
+          Rows per page:
+        </span>
+        <div
+          class="MuiFormControl-root-1 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+        >
+          <div
+            class="MuiInputBase-root-36 MuiInput-root-108 MuiInputBase-formControl-37 MuiInput-formControl-109"
+          >
+            <div
+              class="MuiSelect-root-101"
+            >
+              <div
+                aria-haspopup="true"
+                aria-pressed="false"
+                class="MuiSelect-select-102 MuiSelect-selectMenu-105 MuiInputBase-input-46 MuiInput-input-116"
+                role="button"
+                tabindex="0"
+              >
+                10
+              </div>
+              <input
+                type="hidden"
+                value="10"
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-60 MuiSelect-icon-107"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <button
+          class="MuiButtonBase-root-85 MuiButtonBase-disabled-86 MuiIconButton-root-79 MuiIconButton-disabled-83"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiIconButton-label-84"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+              />
+              <path
+                d="M0 0h24v24H0z"
+                fill="none"
+              />
+            </svg>
+          </span>
+        </button>
+        <button
+          class="MuiButtonBase-root-85 MuiButtonBase-disabled-86 MuiIconButton-root-79 MuiIconButton-disabled-83"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiIconButton-label-84"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root-60"
+              focusable="false"
+              role="presentation"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+              />
+              <path
+                d="M0 0h24v24H0z"
+                fill="none"
+              />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`RunList > shows "View pipeline" button if pipeline is embedded in run 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f3dwag7"
+    href="/pipelines/details/?fromRun=run-id"
+  >
+    [View pipeline]
+  </a>
+</DocumentFragment>
+`;

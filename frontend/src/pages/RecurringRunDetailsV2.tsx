@@ -187,9 +187,13 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
     toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
       run.status !== V2beta1RecurringRunStatus.ENABLED;
 
+    if (!this._isMounted) {
+      return;
+    }
+
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
-    this.setState({ run });
+    this.setStateSafe({ run });
   }
 
   private _deleteCallback(_: string[], success: boolean): void {

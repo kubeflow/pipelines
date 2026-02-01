@@ -320,7 +320,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                         disabled={!this.state.reducedGraph}
                         checked={showReducedGraph}
                         onChange={_ => {
-                          this.setState({ showReducedGraph: !this.state.showReducedGraph });
+                          this.setStateSafe({ showReducedGraph: !this.state.showReducedGraph });
                         }}
                       />
 
@@ -722,6 +722,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   };
 
   public componentWillUnmount(): void {
+    super.componentWillUnmount();
     this._stopAutoRefresh();
     window.removeEventListener('focus', this.onFocusHandler);
     window.removeEventListener('blur', this.onBlurHandler);
@@ -747,7 +748,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     try {
       const allowCustomVisualizations = await Apis.areCustomVisualizationsAllowed();
-      this.setState({ allowCustomVisualizations });
+      this.setStateSafe({ allowCustomVisualizations });
     } catch (err) {
       this.showPageError('Error: Unable to enable custom visualizations.', err);
     }
@@ -911,7 +912,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         }
       }
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, error);
       logger.error('Error loading run:', runId, err);
     }
 
@@ -1116,7 +1118,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         return;
       }
     }
-    this.setState({ isGeneratingVisualization: true });
+    this.setStateSafe({ isGeneratingVisualization: true });
     const visualizationData: ApiVisualization = {
       arguments: visualizationArguments,
       source,
@@ -1130,14 +1132,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         nodeId,
       };
       generatedVisualizations.push(generatedVisualization);
-      this.setState({ generatedVisualizations });
+      this.setStateSafe({ generatedVisualizations });
     } catch (err) {
       this.showPageError(
         'Unable to generate visualization, an unexpected error was encountered.',
         err,
       );
     } finally {
-      this.setState({ isGeneratingVisualization: false });
+      this.setStateSafe({ isGeneratingVisualization: false });
     }
   }
 }
