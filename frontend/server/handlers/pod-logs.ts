@@ -21,6 +21,8 @@ import {
   toGetPodLogsStream,
 } from '../workflow-helper';
 import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs';
+import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
+import { AuthorizeFn } from '../helpers/auth';
 
 /**
  * Returns a handler which attempts to retrieve the logs for the specific pod,
@@ -30,6 +32,7 @@ import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs';
  * - retrieve log archive with the provided argo archive settings
  * @param argoOptions fallback options to retrieve log archive
  * @param artifactsOptions configs and credentials for the different artifact backend
+ * @param authorizeFn function to authorize namespace access
  */
 export function getPodLogsHandler(
   argoOptions: ArgoConfigs,
@@ -38,6 +41,7 @@ export function getPodLogsHandler(
     aws: AWSConfigs;
   },
   podLogContainerName: string,
+  authorizeFn: AuthorizeFn,
 ): Handler {
   const {
     archiveLogs,
@@ -81,6 +85,28 @@ export function getPodLogsHandler(
     // This is optional.
     // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
     const podNamespace = decodeURIComponent((req.query.podnamespace as string) || '') || undefined;
+
+    // Check access to namespace if podNamespace is provided
+    if (podNamespace) {
+      try {
+        const authError = await authorizeFn(
+          {
+            verb: AuthorizeRequestVerb.GET,
+            resources: AuthorizeRequestResources.VIEWERS,
+            namespace: podNamespace,
+          },
+          req,
+        );
+        if (authError) {
+          res.status(403).send('Access denied to namespace');
+          return;
+        }
+      } catch (error) {
+        console.error('Authorization error:', error);
+        res.status(500).send('Authorization check failed');
+        return;
+      }
+    }
 
     try {
       const stream = await getPodLogsStream(podName, createdAt, podNamespace);

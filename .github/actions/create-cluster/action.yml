@@ -16,6 +16,25 @@ runs:
     - name: Free up disk space on runner
       uses: ./.github/actions/github-disk-cleanup
 
+    - name: Restore Kind node image cache
+      id: kind-node-cache
+      uses: actions/cache@v5
+      with:
+        path: /tmp/kind-node-${{ inputs.k8s_version }}.tar
+        key: kind-node-${{ runner.os }}-${{ inputs.k8s_version }}
+
+    - name: Load Kind node image from cache
+      if: ${{ steps.kind-node-cache.outputs.cache-hit == 'true' }}
+      shell: bash
+      run: docker load -i /tmp/kind-node-${{ inputs.k8s_version }}.tar
+
+    - name: Pull and cache Kind node image
+      if: ${{ steps.kind-node-cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: |
+        docker pull kindest/node:${{ inputs.k8s_version }}
+        docker save kindest/node:${{ inputs.k8s_version }} -o /tmp/kind-node-${{ inputs.k8s_version }}.tar
+
     - name: Create k8s Kind Cluster
       uses: helm/kind-action@v1.12.0
       id: cluster-create
