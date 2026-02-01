@@ -51,6 +51,12 @@ var (
 	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "MLMD server port")
 
 	serverPort = flag.String("server_port", ":8080", "Server port")
+
+	// CACertPath Path to the CA certificate
+	// Default "/etc/ssl/certs/ca-certificates/" is the path where the Argo executor sidecar expects the CA certificate.
+	// If a Secret named `argo-workflows-agent-ca-certificates` exists in the cluster,
+	// Argo will automatically mount it here in the sidecar container.
+	CACertPath = flag.String("ca_cert_path", "/etc/ssl/certs/ca-certificates/", "Path to the CA certificate")
 )
 
 func main() {

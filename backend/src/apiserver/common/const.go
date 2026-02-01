@@ -69,6 +69,10 @@ const (
 
 const (
 	CustomCaCertPath = "/kfp/certs/ca.crt"
+	// DriverCaCertPath is the path to the client CA certificate.
+	// The Driver, based on the Argo Workflow Executor Plugin, expects the CA certificate key
+	// to be mounted from the Secret at this path: /etc/ssl/certs/ca-certificates/ca.crt.
+	DriverCaCertPath = "/etc/ssl/certs/ca-certificates/ca.crt"
 	CABundleDir      = "/kfp/certs"
 )
 

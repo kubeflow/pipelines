@@ -24,3 +24,31 @@ spec:
     kind: Issuer
     name: kfp-api-tls-selfsigned-issuer
   secretName: kfp-api-tls-cert
+---
+# Necessary for mounting TLS CA certificate (created by cert-manager) to driver executor plugin
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argo-workflows-agent-ca-certificates
+spec:
+  commonName: argo-workflows-agent-ca-certificates
+  isCA: true
+  dnsNames:
+    - ml-pipeline
+    - ml-pipeline.kubeflow
+    - ml-pipeline.$(kfp-namespace).svc.cluster.local
+    - ml-pipeline-scheduledworkflow
+    - metadata-envoy
+    - metadata-envoy-service
+    - metadata-grpc-service
+    - metadata-grpc-service.kubeflow
+    - metadata-grpc-service.$(kfp-namespace).svc.cluster.local
+    # localhost included here because cert is used in KFP pod-to-pod TLS-enabled testing against localhost base URL
+    - localhost
+  ipAddresses:
+    # Necessary for running TLS-enabled cluster locally.
+    - 127.0.0.1
+  issuerRef:
+    kind: Issuer
+    name: kfp-api-tls-selfsigned-issuer
+  secretName: argo-workflows-agent-ca-certificates
