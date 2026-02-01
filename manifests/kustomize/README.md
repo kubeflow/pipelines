@@ -4,7 +4,7 @@ This folder contains [Kubeflow Pipelines Standalone](https://www.kubeflow.org/do
 Kustomize manifests.
 
 Kubeflow Pipelines Standalone is one option to install Kubeflow Pipelines. You can review all other options in
-[Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/installation/overview/).
+[Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
 
 ## Install options for different envs
 
