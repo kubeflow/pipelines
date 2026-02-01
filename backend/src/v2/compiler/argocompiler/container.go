@@ -206,11 +206,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 		"metadata_tls_enabled":       common.GetMetadataTLSEnabled(),
 	}
 
-	setCABundle := false
 	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to container driver.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args["ca_cert_path"] = common.CustomCaCertPath
-		setCABundle = true
+		args["ca_cert_path"] = common.DriverCaCertPath
 	}
 
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
@@ -248,10 +246,6 @@ func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 		Plugin: containerDriverPlugin,
 	}
 	applySecurityContextToTemplate(template)
-	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
-	if setCABundle {
-		ConfigureCustomCABundle(template)
-	}
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
 	return name, err

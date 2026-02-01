@@ -109,73 +109,7 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
   serviceAccountName: pipeline-runner
   templates:
-  - container:
-      args:
-      - --type
-      - CONTAINER
-      - --pipeline_name
-      - pipeline-with-loops-and-conditions-multi-layers
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --kubernetes_config
-      - '{{inputs.parameters.kubernetes-config}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-    inputs:
+  - inputs:
       parameters:
       - name: component
       - name: task
@@ -193,16 +127,44 @@ spec:
       - name: pod-spec-patch
         valueFrom:
           default: ""
-          path: /tmp/outputs/pod-spec-patch
+          jsonPath: $.pod-spec-patch
       - default: "false"
         name: cached-decision
         valueFrom:
           default: "false"
-          path: /tmp/outputs/cached-decision
+          jsonPath: $.cached-decision
       - name: condition
         valueFrom:
           default: "true"
-          path: /tmp/outputs/condition
+          jsonPath: $.condition
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          cached_decision_path: '{{outputs.parameters.cached-decision.path}}'
+          component: '{{inputs.parameters.component}}'
+          condition_path: '{{outputs.parameters.condition.path}}'
+          container: '{{inputs.parameters.container}}'
+          dag_execution_id: '{{inputs.parameters.parent-dag-id}}'
+          http_proxy: ""
+          https_proxy: ""
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          kubernetes_config: '{{inputs.parameters.kubernetes-config}}'
+          metadata_tls_enabled: false
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          mlmd_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          mlmd_server_port: "8887"
+          no_proxy: ""
+          pipeline_name: pipeline-with-loops-and-conditions-multi-layers
+          pod_spec_patch_path: '{{outputs.parameters.pod-spec-patch.path}}'
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          task: '{{inputs.parameters.task}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: CONTAINER
   - dag:
       tasks:
       - arguments:
@@ -265,7 +227,7 @@ spec:
       resources:
         limits:
           cpu: 500m
-          memory: 128Mi
+          memory: 256Mi
         requests:
           cpu: 100m
       volumeMounts:
@@ -389,62 +351,7 @@ spec:
     metadata: {}
     name: comp-for-loop-7
     outputs: {}
-  - container:
-      args:
-      - --type
-      - '{{inputs.parameters.driver-type}}'
-      - --pipeline_name
-      - pipeline-with-loops-and-conditions-multi-layers
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --runtime_config
-      - '{{inputs.parameters.runtime-config}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
-      - --iteration_count_path
-      - '{{outputs.parameters.iteration-count.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow.svc.cluster.local
-      - --ml_pipeline_server_port
-      - "8887"
-      - --mlmd_server_address
-      - metadata-grpc-service.kubeflow.svc.cluster.local
-      - --mlmd_server_port
-      - "8080"
-      command:
-      - driver
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-    inputs:
+  - inputs:
       parameters:
       - name: component
       - default: ""
@@ -474,6 +381,33 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          component: '{{inputs.parameters.component}}'
+          condition_path: '{{outputs.parameters.condition.path}}'
+          dag_execution_id: '{{inputs.parameters.parent-dag-id}}'
+          execution_id_path: '{{outputs.parameters.execution-id.path}}'
+          http_proxy: ""
+          https_proxy: ""
+          iteration_count_path: '{{outputs.parameters.iteration-count.path}}'
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          metadata_tls_enabled: false
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          mlmd_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          mlmd_server_port: "8887"
+          no_proxy: ""
+          pipeline_name: pipeline-with-loops-and-conditions-multi-layers
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          runtime_config: '{{inputs.parameters.runtime-config}}'
+          task: '{{inputs.parameters.task}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: '{{inputs.parameters.driver-type}}'
   - dag:
       tasks:
       - arguments:
