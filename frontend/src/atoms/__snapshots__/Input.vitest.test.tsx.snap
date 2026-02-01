@@ -1,0 +1,71 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Input > accepts height and width as prop overrides 1`] = `
+<DocumentFragment>
+  <div
+    class="MuiFormControl-root-37 textField_f7kh2f6"
+    spellcheck="false"
+    style="height: 123px; max-width: 600px; width: 456px;"
+  >
+    <div
+      class="MuiInputBase-root-54 MuiOutlinedInput-root-41 MuiInputBase-formControl-55"
+    >
+      <fieldset
+        aria-hidden="true"
+        class="MuiPrivateNotchedOutline-root-71 MuiOutlinedInput-notchedOutline-48"
+        style="padding-left: 8px;"
+      >
+        <legend
+          class="MuiPrivateNotchedOutline-legend-72"
+          style="width: 0px;"
+        >
+          <span>
+            ​
+          </span>
+        </legend>
+      </fieldset>
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input-64 MuiOutlinedInput-input-49"
+        type="text"
+        value="some input value"
+      />
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Input > renders with the right styles by default 1`] = `
+<DocumentFragment>
+  <div
+    class="MuiFormControl-root-1 textField_f7kh2f6"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <div
+      class="MuiInputBase-root-18 MuiOutlinedInput-root-5 MuiInputBase-formControl-19"
+    >
+      <fieldset
+        aria-hidden="true"
+        class="MuiPrivateNotchedOutline-root-35 MuiOutlinedInput-notchedOutline-12"
+        style="padding-left: 8px;"
+      >
+        <legend
+          class="MuiPrivateNotchedOutline-legend-36"
+          style="width: 0px;"
+        >
+          <span>
+            ​
+          </span>
+        </legend>
+      </fieldset>
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input-28 MuiOutlinedInput-input-13"
+        type="text"
+        value="some input value"
+      />
+    </div>
+  </div>
+</DocumentFragment>
+`;

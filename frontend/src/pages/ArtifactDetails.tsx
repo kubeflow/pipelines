@@ -36,7 +36,13 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { logger, serviceErrorToString, titleCase } from '../lib/Utils';
+import {
+  errorToMessage,
+  isServiceError,
+  logger,
+  serviceErrorToString,
+  titleCase,
+} from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
 
@@ -195,7 +201,14 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       });
       this.setState({ artifact, artifactType });
     } catch (err) {
-      this.showPageError(serviceErrorToString(err));
+      if (isServiceError(err)) {
+        this.showPageError(serviceErrorToString(err));
+      } else {
+        const errorMessage = await errorToMessage(err);
+        this.showPageError(
+          errorMessage ? `Error: ${errorMessage}` : 'Error: failed to load artifact.',
+        );
+      }
     }
   };
 

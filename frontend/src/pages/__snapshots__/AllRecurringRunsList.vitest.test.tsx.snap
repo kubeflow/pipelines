@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AllRecurringRunsList > renders all recurring runs 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk f9qqjqd"
+  >
+    <div
+      data-testid="recurring-run-list"
+    />
+  </div>
+</DocumentFragment>
+`;

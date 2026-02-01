@@ -32,7 +32,7 @@ export interface PageProps extends RouteComponentProps {
 
 export type PageErrorHandler = (
   message: string,
-  error?: Error,
+  error?: unknown,
   mode?: 'error' | 'warning',
   refresh?: () => Promise<void>,
 ) => Promise<void>;
