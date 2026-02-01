@@ -68,7 +68,7 @@ describe('/artifacts', () => {
 
       const configs = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
-        MINIO_HOST: 'minio-service',
+        MINIO_HOST: 'seaweedfs',
         MINIO_NAMESPACE: 'kubeflow',
         MINIO_PORT: '9000',
         MINIO_SECRET_KEY: 'minio123',
@@ -82,7 +82,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'minio',
-            endPoint: 'minio-service.kubeflow',
+            endPoint: 'seaweedfs.kubeflow',
             port: 9000,
             secretKey: 'minio123',
             useSSL: false,

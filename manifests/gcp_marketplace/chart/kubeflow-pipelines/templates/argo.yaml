@@ -848,7 +848,7 @@ data:
   artifactRepository: |
     archiveLogs: true
     s3:
-      endpoint: "minio-service.{{ .Release.Namespace }}:9000"
+      endpoint: "seaweedfs.{{ .Release.Namespace }}:9000"
       bucket: "{{ if .Values.managedstorage.enabled }}{{ .Values.managedstorage.gcsBucketName }}{{ else }}mlpipeline{{ end }}"
       # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
       # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
