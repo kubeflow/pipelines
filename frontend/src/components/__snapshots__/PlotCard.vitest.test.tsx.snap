@@ -1,0 +1,74 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PlotCard > renders a confusion matrix plot card 1`] = `
+<DocumentFragment>
+  <div>
+    <div
+      class="MuiPaper-root-1 MuiPaper-elevation2-5 MuiPaper-rounded-2 plotCard_f19uaync plotCard"
+    >
+      <div
+        class="plotHeader_fnedsm"
+      >
+        <div
+          class="plotTitle_f3tuma5"
+          title="test title"
+        >
+          test title
+        </div>
+        <div>
+          <button
+            class="MuiButtonBase-root-54 MuiButton-root-28 MuiButton-text-30 MuiButton-flat-33 popOutButton"
+            style="padding: 4px; min-height: 0; min-width: 0;"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiButton-label-29"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-65 popoutIcon_f4cg11h"
+                focusable="false"
+                role="presentation"
+                title="Pop out"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M0 0h24v24H0z"
+                  fill="none"
+                />
+                <path
+                  d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root-90"
+            />
+          </button>
+        </div>
+      </div>
+      <div
+        class="flex_f16jawj4 root_flfw1tb"
+      >
+        <table>
+          <tbody>
+            <tr>
+              <td
+                class="cell_f1cowfye"
+                style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255);"
+              >
+                <div
+                  class="overlay_fecblze"
+                  style="opacity: 0;"
+                />
+                1
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;

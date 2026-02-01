@@ -1,0 +1,381 @@
+/*
+ * Copyright 2018 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { NodePhase } from './StatusUtils';
+import {
+  decodeCompressedNodes,
+  enabledDisplayString,
+  enabledDisplayStringV2,
+  errorToMessage,
+  formatDateString,
+  generateMinioArtifactUrl,
+  generateS3ArtifactUrl,
+  getRunDuration,
+  getRunDurationFromWorkflow,
+  logger,
+  mergeApiParametersByNames,
+} from './Utils';
+import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { expectErrors } from 'src/TestUtils';
+
+describe('Utils', () => {
+  describe('log', () => {
+    it('logs to console', () => {
+      // tslint:disable-next-line:no-console
+      const backup = console.log;
+      global.console.log = vi.fn();
+      logger.verbose('something to console');
+      // tslint:disable-next-line:no-console
+      expect(console.log).toBeCalledWith('something to console');
+      global.console.log = backup;
+    });
+
+    it('logs to console error', () => {
+      // tslint:disable-next-line:no-console
+      const backup = console.error;
+      global.console.error = vi.fn();
+      logger.error('something to console error');
+      // tslint:disable-next-line:no-console
+      expect(console.error).toBeCalledWith('something to console error');
+      global.console.error = backup;
+    });
+  });
+
+  describe('formatDateString', () => {
+    it('handles an ISO format date string', () => {
+      const d = new Date(2018, 1, 13, 9, 55);
+      expect(formatDateString(d.toISOString())).toBe(d.toLocaleString());
+    });
+
+    it('handles a locale format date string', () => {
+      const d = new Date(2018, 1, 13, 9, 55);
+      expect(formatDateString(d.toLocaleString())).toBe(d.toLocaleString());
+    });
+
+    it('handles a date', () => {
+      const d = new Date(2018, 1, 13, 9, 55);
+      expect(formatDateString(d)).toBe(d.toLocaleString());
+    });
+
+    it('handles undefined', () => {
+      expect(formatDateString(undefined)).toBe('-');
+    });
+  });
+
+  describe('errorToMessage', () => {
+    it('handles an Error instance', async () => {
+      expect(await errorToMessage(new Error('test error'))).toBe('test error');
+    });
+
+    it('handles object with text() method that returns a string', async () => {
+      const mockResponse = {
+        text: () => 'direct string response',
+      };
+      const result = await errorToMessage(mockResponse);
+      expect(result).toBe('direct string response');
+    });
+
+    it('handles plain object input', async () => {
+      const errorObj = { message: 'error message', code: 500 };
+      const result = await errorToMessage(errorObj);
+      expect(result).toBe(JSON.stringify(errorObj));
+    });
+
+    it('handles string input', async () => {
+      expect(await errorToMessage('string error')).toBe('"string error"');
+    });
+
+    it('handles undefined input', async () => {
+      expect(await errorToMessage(undefined)).toBe('');
+    });
+
+    it('handles array input', async () => {
+      expect(await errorToMessage([1, 'error', { key: 'value' }])).toBe(
+        '[1,"error",{"key":"value"}]',
+      );
+    });
+
+    it('handles number input', async () => {
+      expect(await errorToMessage(404)).toBe('404');
+    });
+  });
+
+  describe('enabledDisplayString', () => {
+    it('handles undefined', () => {
+      expect(enabledDisplayString(undefined, true)).toBe('-');
+      expect(enabledDisplayString(undefined, false)).toBe('-');
+    });
+
+    it('handles a trigger according to the enabled flag', () => {
+      expect(enabledDisplayString({}, true)).toBe('Yes');
+      expect(enabledDisplayString({}, false)).toBe('No');
+    });
+
+    it('handles a trigger according to the enabled flag (v2)', () => {
+      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.ENABLED)).toBe('Yes');
+      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.DISABLED)).toBe('No');
+      expect(enabledDisplayStringV2({}, V2beta1RecurringRunStatus.STATUSUNSPECIFIED)).toBe(
+        'Unknown',
+      );
+    });
+  });
+
+  describe('getRunDuration', () => {
+    it('handles no run', () => {
+      expect(getRunDuration()).toBe('-');
+    });
+
+    it('handles no status', () => {
+      const run = {} as any;
+      expect(getRunDuration(run)).toBe('-');
+    });
+
+    it('handles no created_at', () => {
+      const run = {
+        finished_at: 'some end',
+      } as any;
+      expect(getRunDuration(run)).toBe('-');
+    });
+
+    it('handles no finished_at', () => {
+      const run = {
+        created_at: 'some start',
+      } as any;
+      expect(getRunDuration(run)).toBe('-');
+    });
+
+    it('handles run which has not finished', () => {
+      const run = {
+        created_at: new Date(2018, 1, 2, 3, 55, 30).toISOString(),
+        finished_at: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
+        status: NodePhase.RUNNING,
+      } as any;
+      expect(getRunDuration(run)).toBe('-');
+    });
+
+    it('computes seconds', () => {
+      const run = {
+        created_at: new Date(2018, 1, 3, 3, 55, 30).toISOString(),
+        finished_at: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
+        status: NodePhase.SUCCEEDED,
+      } as any;
+      expect(getRunDuration(run)).toBe('0:00:55');
+    });
+
+    it('computes minutes/seconds', () => {
+      const run = {
+        created_at: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
+        finished_at: new Date(2018, 1, 3, 3, 59, 25).toISOString(),
+        status: NodePhase.SUCCEEDED,
+      } as any;
+      expect(getRunDuration(run)).toBe('0:04:15');
+    });
+
+    it('computes hours/minutes/seconds', () => {
+      const run = {
+        created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
+        finished_at: new Date(2018, 1, 3, 4, 55, 10).toISOString(),
+        status: NodePhase.SUCCEEDED,
+      } as any;
+      expect(getRunDuration(run)).toBe('25:00:00');
+    });
+
+    it('computes padded hours/minutes/seconds', () => {
+      const run = {
+        created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
+        finished_at: new Date(2018, 1, 3, 4, 56, 11).toISOString(),
+        status: NodePhase.SUCCEEDED,
+      } as any;
+      expect(getRunDuration(run)).toBe('25:01:01');
+    });
+
+    it('shows negative sign if start date is after end date', () => {
+      const run = {
+        created_at: new Date(2018, 1, 2, 3, 55, 13).toISOString(),
+        finished_at: new Date(2018, 1, 2, 3, 55, 11).toISOString(),
+        status: NodePhase.SUCCEEDED,
+      } as any;
+      expect(getRunDuration(run)).toBe('-0:00:02');
+    });
+  });
+
+  describe('getRunDurationFromWorkflow', () => {
+    it('handles no workflow', () => {
+      expect(getRunDurationFromWorkflow()).toBe('-');
+    });
+
+    it('handles no status', () => {
+      const workflow = {} as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('-');
+    });
+
+    it('handles no start date', () => {
+      const workflow = {
+        status: {
+          finishedAt: 'some end',
+        },
+      } as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('-');
+    });
+
+    it('handles no end date', () => {
+      const workflow = {
+        status: {
+          startedAt: 'some end',
+        },
+      } as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('-');
+    });
+
+    it('computes seconds run time if status is provided', () => {
+      const workflow = {
+        status: {
+          finishedAt: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 30).toISOString(),
+        },
+      } as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('0:00:55');
+    });
+
+    it('computes minutes/seconds run time if status is provided', () => {
+      const workflow = {
+        status: {
+          finishedAt: new Date(2018, 1, 3, 3, 59, 25).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
+        },
+      } as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('0:04:15');
+    });
+
+    it('computes hours/minutes/seconds run time if status is provided', () => {
+      const workflow = {
+        status: {
+          finishedAt: new Date(2018, 1, 3, 4, 55, 10).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
+        },
+      } as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('1:00:00');
+    });
+
+    it('computes padded hours/minutes/seconds run time if status is provided', () => {
+      const workflow = {
+        status: {
+          finishedAt: new Date(2018, 1, 3, 4, 56, 11).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
+        },
+      } as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('1:01:01');
+    });
+
+    it('shows negative sign if start date is after end date', () => {
+      const workflow = {
+        status: {
+          finishedAt: new Date(2018, 1, 2, 3, 55, 11).toISOString(),
+          startedAt: new Date(2018, 1, 2, 3, 55, 13).toISOString(),
+        },
+      } as any;
+      expect(getRunDurationFromWorkflow(workflow)).toBe('-0:00:02');
+    });
+  });
+
+  describe('generateMinioArtifactUrl', () => {
+    it('handles minio:// URIs', () => {
+      expect(generateMinioArtifactUrl('minio://my-bucket/a/b/c')).toBe(
+        'artifacts/minio/my-bucket/a/b/c',
+      );
+    });
+
+    it('handles non-minio URIs', () => {
+      expect(generateMinioArtifactUrl('minio://my-bucket-a-b-c')).toBe(undefined);
+    });
+
+    it('handles broken minio URIs', () => {
+      expect(generateMinioArtifactUrl('ZZZ://my-bucket/a/b/c')).toBe(undefined);
+    });
+  });
+
+  describe('generateS3ArtifactUrl', () => {
+    it('handles s3:// URIs', () => {
+      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe('artifacts/s3/my-bucket/a/b/c');
+    });
+  });
+
+  describe('decodeCompressedNodes', () => {
+    it('decompress encoded gzipped json', async () => {
+      let compressedNodes =
+        'H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
+      await expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({
+        nodes: [{ name: 'node1', id: 1 }],
+      });
+
+      compressedNodes = 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA';
+      await expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({
+        node1: { id: 'node1' },
+      });
+    });
+
+    it('raise exception if failed to decompress data', async () => {
+      const assertErrors = expectErrors();
+      let compressedNodes = 'I4sIAAAAAAACE6tWystPSS1WslKIrlxNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
+      await expect(decodeCompressedNodes(compressedNodes)).rejects.toEqual(
+        'failed to ungzip data: incorrect header check',
+      );
+      assertErrors();
+    });
+  });
+
+  describe('mergeApiParametersByNames', () => {
+    it('empty main params', () => {
+      expect(
+        mergeApiParametersByNames([], [{ name: 'testParam1', value: 'overwrittenValue1' }]),
+      ).toEqual([]);
+    });
+
+    it('redundant params in extra', () => {
+      expect(
+        mergeApiParametersByNames(
+          [{ name: 'testParam1', value: 'value1' }],
+          [
+            { name: 'testParam1', value: 'overwrittenValue1' },
+            { name: 'testParam2', value: 'overwrittenValue2' },
+          ],
+        ),
+      ).toEqual([{ name: 'testParam1', value: 'overwrittenValue1' }]);
+    });
+    it('empty extra params', () => {
+      expect(mergeApiParametersByNames([{ name: 'testParam1', value: 'value1' }], [])).toEqual([
+        { name: 'testParam1', value: 'value1' },
+      ]);
+    });
+    it('different params', () => {
+      expect(
+        mergeApiParametersByNames(
+          [
+            { name: 'testParam1', value: 'value1' },
+            { name: 'testParam2', value: 'value2' },
+          ],
+          [
+            { name: 'testParam3', value: 'overwrittenValue3' },
+            { name: 'testParam4', value: 'overwrittenValue4' },
+          ],
+        ),
+      ).toEqual([
+        { name: 'testParam1', value: 'value1' },
+        { name: 'testParam2', value: 'value2' },
+      ]);
+    });
+  });
+});
