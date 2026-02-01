@@ -72,7 +72,7 @@ ReactDOM.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
-    <NamespaceContext.Provider value={process.env.REACT_APP_NAMESPACE || undefined}>
+    <NamespaceContext.Provider value={import.meta.env.VITE_NAMESPACE || undefined}>
       {app}
     </NamespaceContext.Provider>
   ),

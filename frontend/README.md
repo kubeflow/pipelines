@@ -77,18 +77,17 @@ Server listening at http://localhost:3001
 
 Follow this link, and you should be directed to the KFP UI the same as before, except this time you are using the UI running in your local environment!
 
-If you enjoy hot reloading when developing the client side React code, you can subsequently run the following command: 
+If you enjoy hot reloading when developing the client side React code, you can subsequently run the following command:
 
 ```bash
 npm run start
 ```
 
-You should see something like the following output:
+You should see output indicating the Vite dev server is running, for example:
 
 ```bash
-You can now view pipelines-frontend in the browser.
-
-  Local:            http://localhost:3000
+VITE v7.x ready in ...
+➜  Local:   http://localhost:3000/
 ...
 ```
 

@@ -230,9 +230,23 @@ export function s(items: any[] | number): string {
   return length === 1 ? '' : 's';
 }
 
-interface ServiceError {
+export interface ServiceError {
   message: string;
-  code?: number;
+  code?: number | string;
+}
+
+export function isServiceError(error: unknown): error is ServiceError {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  if (!('message' in error) || typeof (error as ServiceError).message !== 'string') {
+    return false;
+  }
+  if (!('code' in error)) {
+    return true;
+  }
+  const code = (error as ServiceError).code;
+  return typeof code === 'number' || typeof code === 'string';
 }
 
 export function serviceErrorToString(error: ServiceError): string {
