@@ -424,6 +424,21 @@ def server_factory(frontend_image,
                             "secretkey": base64.b64encode(s3_access_key["AccessKey"]["SecretAccessKey"].encode('utf-8')).decode("utf-8"),
                     },
                 })
+                desired_resources.append({
+                    # https://argo-workflows.readthedocs.io/en/latest/service-account-secrets/
+                    {
+                        "apiVersion": "v1",
+                        "kind": "Secret",
+                        "metadata": {
+                            "name": "default-editor.service-account-token",
+                            "namespace": namespace,
+                            "annotations": {
+                                "kubernetes.io/service-account.name": "default-editor"
+                            }
+                        },
+                        "type": "kubernetes.io/service-account-token"
+                    },
+                })
 
             return {"status": desired_status, "attachments": desired_resources}
 
