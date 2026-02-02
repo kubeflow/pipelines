@@ -21,7 +21,10 @@ import {
   toGetPodLogsStream,
 } from '../workflow-helper.js';
 import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs.js';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth/index.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 
 /**

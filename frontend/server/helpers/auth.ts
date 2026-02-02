@@ -27,11 +27,7 @@ export const getAuthorizeFn = (
   },
 ) => {
   const { apiServerAddress } = otherConfigs;
-  const authService = new AuthServiceApi(
-    { basePath: apiServerAddress },
-    undefined,
-    fetch as any,
-  );
+  const authService = new AuthServiceApi({ basePath: apiServerAddress }, undefined, fetch as any);
   const authorize: AuthorizeFn = async ({ resources, verb, namespace }, req) => {
     if (!authConfigs.enabled) {
       return undefined;

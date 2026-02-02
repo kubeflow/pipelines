@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { vi, describe, it, expect, afterEach, beforeEach, type Mock } from 'vitest';
+import { vi, describe, it, expect, afterEach, beforeEach, Mock } from 'vitest';
 import { Storage as GCSStorage } from '@google-cloud/storage';
 import * as fs from 'fs';
 import * as minio from 'minio';

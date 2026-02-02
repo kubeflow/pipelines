@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { vi, describe, it, expect, afterEach, beforeEach, type SpyInstance } from 'vitest';
+import { vi, describe, it, expect, afterEach, beforeEach, SpyInstance } from 'vitest';
 import express from 'express';
 import * as fs from 'fs';
 import { Server } from 'http';

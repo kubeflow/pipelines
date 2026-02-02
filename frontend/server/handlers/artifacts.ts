@@ -30,8 +30,8 @@ import { URL } from 'url';
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
-import type { StorageOptions } from '@google-cloud/storage';
-import type { CredentialBody } from 'google-auth-library';
+import { StorageOptions } from '@google-cloud/storage';
+import { CredentialBody } from 'google-auth-library';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs

@@ -14,7 +14,10 @@
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper.js';
 import { ViewerTensorboardConfig } from '../configs.js';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth/index.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 import { parseError, isAllowedResourceName } from '../utils.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 

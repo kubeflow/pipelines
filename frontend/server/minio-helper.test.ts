@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';

@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { vi, describe, it, expect, afterEach, beforeEach, type Mock, type SpyInstance } from 'vitest';
+import { vi, describe, it, expect, afterEach, beforeEach, Mock, SpyInstance } from 'vitest';
 import {
   TEST_ONLY as K8S_TEST_EXPORT,
   getPodLogs,
@@ -292,10 +292,7 @@ describe('k8s-helper', () => {
     let readNamespacedConfigMapSpy: SpyInstance;
 
     beforeEach(() => {
-      readNamespacedConfigMapSpy = vi.spyOn(
-        K8S_TEST_EXPORT.k8sV1Client,
-        'readNamespacedConfigMap',
-      );
+      readNamespacedConfigMapSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedConfigMap');
     });
 
     afterEach(() => {
