@@ -84,14 +84,14 @@ def _python_function_name_to_component_name(name):
 
 def _has_embedded_credentials(url: str) -> bool:
     """Return True if the URL appears to contain embedded credentials.
-    
-    Any occurrence of '@' after the scheme separator '://' is treated as
+
+    Any occurrence of "@" after the scheme separator "//" is treated as
     potentially sensitive userinfo, regardless of whether a password
-    (i.e., a ':' in the userinfo) is present.
-    
+    (i.e., a ":" in the userinfo) is present.
+
     Args:
         url: The URL to check.
-        
+
     Returns:
         True if the URL contains potential credentials, False otherwise.
     """
@@ -106,11 +106,11 @@ def _has_embedded_credentials(url: str) -> bool:
 
 def _sanitize_positive_int(value: Any, name: str) -> Optional[int]:
     """Sanitize a config value expected to be a non-negative integer.
-    
+
     Args:
         value: The value to sanitize.
         name: The name of the config option (for warning messages).
-        
+
     Returns:
         The integer value if valid, otherwise None.
     """
@@ -141,13 +141,13 @@ def _sanitize_positive_int(value: Any, name: str) -> Optional[int]:
 
 
 def _parse_local_pip_config() -> Dict[str, Any]:
-    """Parse safe pip configuration from the user's local pip.conf/pip.ini.
-    
+    """Parse safe pip configuration from local pip.conf/pip.ini.
+
     Looks for pip config in standard locations:
     - ~/.config/pip/pip.conf (Unix/Linux/macOS)
     - ~/.pip/pip.ini (Windows)
     - $PIP_CONFIG_FILE environment variable
-    
+
     Only extracts safe, non-sensitive options:
     - index-url
     - extra-index-url
@@ -156,28 +156,28 @@ def _parse_local_pip_config() -> Dict[str, Any]:
     - retries
     - no-cache-dir
     - disable-pip-version-check
-    
+
     Filters out URLs with embedded credentials and warns the user.
-    
+
     Returns:
-        Dict[str, Any]: Dictionary of safe pip configuration options.
+        Dictionary of safe pip configuration options.
     """
     config_paths = []
-    
+
     # Check environment variable first
     if 'PIP_CONFIG_FILE' in os.environ:
         config_paths.append(os.environ['PIP_CONFIG_FILE'])
-    
+
     # Check standard locations
     home = pathlib.Path.home()
     config_paths.extend([
         home / '.config' / 'pip' / 'pip.conf',
         home / '.pip' / 'pip.ini',
     ])
-    
+
     safe_config: Dict[str, Any] = {}
     config = configparser.ConfigParser()
-    
+
     # Try to read the first existing config file
     for config_path in config_paths:
         if isinstance(config_path, str):
@@ -192,12 +192,12 @@ def _parse_local_pip_config() -> Dict[str, Any]:
                     UserWarning,
                 )
                 continue
-    
+
     # Extract safe options from 'global' and 'install' sections
     for section in ['global', 'install']:
         if not config.has_section(section):
             continue
-            
+
         # Handle index-url (single value)
         if config.has_option(section, 'index-url'):
             url = config.get(section, 'index-url').strip()
@@ -208,17 +208,20 @@ def _parse_local_pip_config() -> Dict[str, Any]:
                     UserWarning,
                 )
             else:
-                if 'index-url' in safe_config and safe_config['index-url'] != url:
+                if 'index-url' in safe_config and safe_config[
+                        'index-url'] != url:
                     warnings.warn(
                         f'Multiple index-url values found in pip config; using value from [{section}] section.',
                         UserWarning,
                     )
                 safe_config['index-url'] = url
-        
+
         # Handle extra-index-url (multiple values, space-separated)
         if config.has_option(section, 'extra-index-url'):
             urls = config.get(section, 'extra-index-url').split()
-            filtered = [url for url in urls if not _has_embedded_credentials(url)]
+            filtered = [
+                url for url in urls if not _has_embedded_credentials(url)
+            ]
             skipped = [url for url in urls if _has_embedded_credentials(url)]
             if skipped:
                 warnings.warn(
@@ -233,7 +236,7 @@ def _parse_local_pip_config() -> Dict[str, Any]:
                         UserWarning,
                     )
                 safe_config['extra-index-url'] = filtered
-        
+
         # Handle trusted-host (multiple values, space-separated)
         if config.has_option(section, 'trusted-host'):
             hosts = config.get(section, 'trusted-host').split()
@@ -243,10 +246,13 @@ def _parse_local_pip_config() -> Dict[str, Any]:
                     UserWarning,
                 )
             safe_config['trusted-host'] = hosts
-        
+
         # Handle timeout (integer)
         if config.has_option(section, 'timeout'):
-            timeout = _sanitize_positive_int(config.get(section, 'timeout'), 'timeout')
+            timeout = _sanitize_positive_int(
+                config.get(section, 'timeout'),
+                'timeout',
+            )
             if timeout is not None:
                 if 'timeout' in safe_config:
                     warnings.warn(
@@ -254,10 +260,13 @@ def _parse_local_pip_config() -> Dict[str, Any]:
                         UserWarning,
                     )
                 safe_config['timeout'] = timeout
-        
+
         # Handle retries (integer)
         if config.has_option(section, 'retries'):
-            retries = _sanitize_positive_int(config.get(section, 'retries'), 'retries')
+            retries = _sanitize_positive_int(
+                config.get(section, 'retries'),
+                'retries',
+            )
             if retries is not None:
                 if 'retries' in safe_config:
                     warnings.warn(
@@ -265,14 +274,20 @@ def _parse_local_pip_config() -> Dict[str, Any]:
                         UserWarning,
                     )
                 safe_config['retries'] = retries
-        
+
         # Handle boolean flags
         if config.has_option(section, 'no-cache-dir'):
-            safe_config['no-cache-dir'] = config.getboolean(section, 'no-cache-dir')
-        
+            safe_config['no-cache-dir'] = config.getboolean(
+                section,
+                'no-cache-dir',
+            )
+
         if config.has_option(section, 'disable-pip-version-check'):
-            safe_config['disable-pip-version-check'] = config.getboolean(section, 'disable-pip-version-check')
-    
+            safe_config['disable-pip-version-check'] = config.getboolean(
+                section,
+                'disable-pip-version-check',
+            )
+
     return safe_config
 
 
@@ -282,21 +297,22 @@ def _merge_pip_config_with_explicit_params(
     pip_trusted_hosts: Optional[List[str]],
 ) -> Tuple[Optional[List[str]], Optional[List[str]]]:
     """Merge local pip config with explicit parameters.
-    
+
     Explicit parameters always take precedence. This function only uses local
     config values when explicit parameters are not provided (None).
-    
+
     Args:
         local_config: Dictionary of safe pip configuration from local pip.conf.
         pip_index_urls: Explicit pip index URLs (takes precedence if provided).
-        pip_trusted_hosts: Explicit pip trusted hosts (takes precedence if provided).
-        
+        pip_trusted_hosts: Explicit pip trusted hosts (takes precedence if
+            provided).
+
     Returns:
-        Tuple[Optional[List[str]], Optional[List[str]]]: Merged (index_urls, trusted_hosts).
+        Merged ``(index_urls, trusted_hosts)`` tuple.
     """
     merged_index_urls = pip_index_urls
     merged_trusted_hosts = pip_trusted_hosts
-    
+
     # Use local config only if explicit params are None (not provided)
     if pip_index_urls is None:
         if 'index-url' in local_config:
@@ -307,41 +323,42 @@ def _merge_pip_config_with_explicit_params(
                 merged_index_urls = extra
             else:
                 merged_index_urls = merged_index_urls + extra
-    
+
     if pip_trusted_hosts is None:
         if 'trusted-host' in local_config:
             merged_trusted_hosts = local_config['trusted-host']
-    
+
     return merged_index_urls, merged_trusted_hosts
 
 
 def _make_pip_extra_options(local_config: Dict[str, Any]) -> str:
     """Convert local pip config to pip install command-line options.
-    
-    Handles: timeout, retries, no-cache-dir, disable-pip-version-check.
-    
+
+    Handles timeout, retries, no-cache-dir, and disable-pip-version-check.
+
     Args:
         local_config: Dictionary of safe pip configuration from local pip.conf.
-        
+
     Returns:
-        str: Space-separated pip install options (e.g., "--timeout 60 --retries 3").
+        Space-separated pip install options, for example ``--timeout 60
+        --retries 3``.
     """
     options = []
-    
+
     timeout = local_config.get('timeout')
     if timeout is not None:
         options.append(f'--timeout {timeout}')
-    
+
     retries = local_config.get('retries')
     if retries is not None:
         options.append(f'--retries {retries}')
-    
+
     if local_config.get('no-cache-dir', False):
         options.append('--no-cache-dir')
-    
+
     if local_config.get('disable-pip-version-check', False):
         options.append('--disable-pip-version-check')
-    
+
     return ' '.join(options)
 
 
@@ -436,7 +453,7 @@ def _get_packages_to_install_command(
     if not inject_kfp_install and not packages_to_install:
         return []
     pip_install_strings = []
-    
+
     # Parse local pip config if requested
     local_pip_config: Dict[str, Any] = {}
     extra_pip_options = ''
@@ -448,10 +465,10 @@ def _get_packages_to_install_command(
             pip_trusted_hosts if pip_trusted_hosts is not None else None,
         )
         extra_pip_options = _make_pip_extra_options(local_pip_config)
-    
+
     index_url_options = make_index_url_options(pip_index_urls,
                                                pip_trusted_hosts)
-    
+
     # Combine index URL options with extra options
     if extra_pip_options:
         index_url_options = f'{index_url_options} {extra_pip_options}'.strip()

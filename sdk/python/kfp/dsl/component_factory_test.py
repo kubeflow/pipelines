@@ -233,7 +233,8 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         packages_to_install = ['package1']
         config_contents = '[global]\nindex-url = https://local.pypi.org/simple\ntrusted-host = local.pypi.org\n'
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+        with tempfile.NamedTemporaryFile(
+                mode='w', delete=False, suffix='.conf') as temp_config:
             temp_config.write(config_contents)
             temp_config_path = temp_config.name
 
@@ -246,7 +247,8 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             )
 
             command_str = ' '.join(command)
-            self.assertIn('--index-url https://local.pypi.org/simple', command_str)
+            self.assertIn('--index-url https://local.pypi.org/simple',
+                          command_str)
             self.assertIn('--trusted-host local.pypi.org', command_str)
         finally:
             if original_config is None:
@@ -261,7 +263,8 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         packages_to_install = ['package1']
         config_contents = '[global]\nindex-url = https://local.pypi.org/simple\n'
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+        with tempfile.NamedTemporaryFile(
+                mode='w', delete=False, suffix='.conf') as temp_config:
             temp_config.write(config_contents)
             temp_config_path = temp_config.name
 
@@ -275,8 +278,10 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             )
 
             command_str = ' '.join(command)
-            self.assertIn('--index-url https://explicit.pypi.org/simple', command_str)
-            self.assertNotIn('--index-url https://local.pypi.org/simple', command_str)
+            self.assertIn('--index-url https://explicit.pypi.org/simple',
+                          command_str)
+            self.assertNotIn('--index-url https://local.pypi.org/simple',
+                             command_str)
         finally:
             if original_config is None:
                 os.environ.pop('PIP_CONFIG_FILE', None)
@@ -290,7 +295,8 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         packages_to_install = ['package1']
         config_contents = '[global]\nindex-url = https://primary.pypi.org/simple\nextra-index-url =\n    https://extra1.pypi.org/simple\n    https://extra2.pypi.org/simple\n'
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+        with tempfile.NamedTemporaryFile(
+                mode='w', delete=False, suffix='.conf') as temp_config:
             temp_config.write(config_contents)
             temp_config_path = temp_config.name
 
@@ -303,9 +309,12 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             )
 
             command_str = ' '.join(command)
-            self.assertIn('--index-url https://primary.pypi.org/simple', command_str)
-            self.assertIn('--extra-index-url https://extra1.pypi.org/simple', command_str)
-            self.assertIn('--extra-index-url https://extra2.pypi.org/simple', command_str)
+            self.assertIn('--index-url https://primary.pypi.org/simple',
+                          command_str)
+            self.assertIn('--extra-index-url https://extra1.pypi.org/simple',
+                          command_str)
+            self.assertIn('--extra-index-url https://extra2.pypi.org/simple',
+                          command_str)
         finally:
             if original_config is None:
                 os.environ.pop('PIP_CONFIG_FILE', None)
@@ -320,7 +329,8 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         packages_to_install = ['package1']
         config_contents = '[global]\nindex-url = https://user:pass@private.pypi.org/simple\ntrusted-host = private.pypi.org\n'
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+        with tempfile.NamedTemporaryFile(
+                mode='w', delete=False, suffix='.conf') as temp_config:
             temp_config.write(config_contents)
             temp_config_path = temp_config.name
 
@@ -328,18 +338,21 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         os.environ['PIP_CONFIG_FILE'] = temp_config_path
         try:
             with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
+                warnings.simplefilter('always')
                 command = component_factory._get_packages_to_install_command(
                     packages_to_install=packages_to_install,
                     use_local_pip_config=True,
                 )
                 # Verify that a credential warning was issued
-                self.assertTrue(any('credentials' in str(warning.message).lower() for warning in w))
+                self.assertTrue(
+                    any('credentials' in str(warning.message).lower()
+                        for warning in w))
 
             command_str = ' '.join(command)
             # The index-url with credentials should NOT be in the command
             self.assertNotIn('user:pass', command_str)
-            self.assertNotIn('https://user:pass@private.pypi.org/simple', command_str)
+            self.assertNotIn('https://user:pass@private.pypi.org/simple',
+                             command_str)
         finally:
             if original_config is None:
                 os.environ.pop('PIP_CONFIG_FILE', None)
@@ -353,7 +366,8 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         packages_to_install = ['package1']
         config_contents = '[global]\nindex-url = https://local.pypi.org/simple\ntimeout = 60\nretries = 3\n'
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+        with tempfile.NamedTemporaryFile(
+                mode='w', delete=False, suffix='.conf') as temp_config:
             temp_config.write(config_contents)
             temp_config_path = temp_config.name
 
@@ -381,7 +395,8 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         packages_to_install = ['package1']
         config_contents = '[global]\nindex-url = https://local.pypi.org/simple\nno-cache-dir = true\ndisable-pip-version-check = true\n'
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+        with tempfile.NamedTemporaryFile(
+                mode='w', delete=False, suffix='.conf') as temp_config:
             temp_config.write(config_contents)
             temp_config_path = temp_config.name
 
