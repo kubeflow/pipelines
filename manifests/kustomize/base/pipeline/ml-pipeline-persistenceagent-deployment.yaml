@@ -25,7 +25,7 @@ spec:
         - sh
         - -c
         - |
-          timeout=600
+          timeout=300
           elapsed=0
           until wget -q -O /dev/null http://ml-pipeline:8888/apis/v1beta1/healthz; do
             if [ $elapsed -ge $timeout ]; then

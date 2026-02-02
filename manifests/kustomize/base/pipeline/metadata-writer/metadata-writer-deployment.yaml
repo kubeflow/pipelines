@@ -25,7 +25,7 @@ spec:
         - sh
         - -c
         - |
-          timeout=600
+          timeout=300
           elapsed=0
           until nc -z metadata-grpc-service 8080; do
             if [ $elapsed -ge $timeout ]; then
@@ -34,7 +34,6 @@ spec:
             sleep 5
             elapsed=$((elapsed + 5))
           done
-          sleep 10
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
