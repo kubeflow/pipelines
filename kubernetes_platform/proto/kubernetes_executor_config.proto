@@ -109,7 +109,7 @@ message TypedLocalObjectReference {
     // APIGroup is the group for the resource being referenced.
     // If APIGroup is not specified, the specified Kind must be in the core API group.
     // For any other third-party types, APIGroup is required.
-    string api_group = 1;
+    optional string api_group = 1;
     // Kind is the type of resource being referenced.
     string kind = 2;
     // Name is the name of resource being referenced.

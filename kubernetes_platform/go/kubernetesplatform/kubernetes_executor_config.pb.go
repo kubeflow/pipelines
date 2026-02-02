@@ -562,7 +562,7 @@ type TypedLocalObjectReference struct {
 	// APIGroup is the group for the resource being referenced.
 	// If APIGroup is not specified, the specified Kind must be in the core API group.
 	// For any other third-party types, APIGroup is required.
-	ApiGroup string `protobuf:"bytes,1,opt,name=api_group,json=apiGroup,proto3" json:"api_group,omitempty"`
+	ApiGroup *string `protobuf:"bytes,1,opt,name=api_group,json=apiGroup,proto3,oneof" json:"api_group,omitempty"`
 	// Kind is the type of resource being referenced.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Name is the name of resource being referenced.
@@ -602,8 +602,8 @@ func (*TypedLocalObjectReference) Descriptor() ([]byte, []int) {
 }
 
 func (x *TypedLocalObjectReference) GetApiGroup() string {
-	if x != nil {
-		return x.ApiGroup
+	if x != nil && x.ApiGroup != nil {
+		return *x.ApiGroup
 	}
 	return ""
 }
@@ -1910,11 +1910,13 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"mount_path\x18\x04 \x01(\tR\tmountPath\x12]\n" +
 	"\x12pvc_name_parameter\x18\x05 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x10pvcNameParameter\x12\x19\n" +
 	"\bsub_path\x18\x06 \x01(\tR\asubPathB\x0f\n" +
-	"\rpvc_reference\"`\n" +
-	"\x19TypedLocalObjectReference\x12\x1b\n" +
-	"\tapi_group\x18\x01 \x01(\tR\bapiGroup\x12\x12\n" +
+	"\rpvc_reference\"s\n" +
+	"\x19TypedLocalObjectReference\x12 \n" +
+	"\tapi_group\x18\x01 \x01(\tH\x00R\bapiGroup\x88\x01\x01\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"\x9b\x03\n" +
+	"\x04name\x18\x03 \x01(\tR\x04nameB\f\n" +
+	"\n" +
+	"_api_group\"\x9b\x03\n" +
 	"\tCreatePvc\x12\x1b\n" +
 	"\bpvc_name\x18\x01 \x01(\tH\x00R\apvcName\x12(\n" +
 	"\x0fpvc_name_suffix\x18\x02 \x01(\tH\x00R\rpvcNameSuffix\x12!\n" +
@@ -2137,6 +2139,7 @@ func file_kubernetes_executor_config_proto_init() {
 		(*PvcMount_Constant)(nil),
 		(*PvcMount_ComponentInputParameter)(nil),
 	}
+	file_kubernetes_executor_config_proto_msgTypes[5].OneofWrappers = []any{}
 	file_kubernetes_executor_config_proto_msgTypes[6].OneofWrappers = []any{
 		(*CreatePvc_PvcName)(nil),
 		(*CreatePvc_PvcNameSuffix)(nil),

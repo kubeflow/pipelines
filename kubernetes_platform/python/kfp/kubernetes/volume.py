@@ -72,9 +72,9 @@ def CreatePVC(
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
         data_source: Specifies the data source for the PVC. This can be used to
             create a PVC from a VolumeSnapshot or to clone an existing PVC.
-            Should be a dictionary with ``'api_group'``, ``'kind'``, and
+            Should be a dictionary with ``'apiGroup'``, ``'kind'``, and
             ``'name'`` keys. For example:
-            ``{'api_group': 'snapshot.storage.k8s.io', 'kind': 'VolumeSnapshot', 'name': 'my-snapshot'}``.
+            ``{'apiGroup': 'snapshot.storage.k8s.io', 'kind': 'VolumeSnapshot', 'name': 'my-snapshot'}``.
             Corresponds to `PersistentVolumeClaim.spec.dataSource
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
 

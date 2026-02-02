@@ -42,7 +42,7 @@ def my_pipeline():
         size='5Mi',
         storage_class_name='standard',
         data_source={
-            'api_group': 'snapshot.storage.k8s.io',
+            'apiGroup': 'snapshot.storage.k8s.io',
             'kind': 'VolumeSnapshot',
             'name': 'my-snap',
         },
