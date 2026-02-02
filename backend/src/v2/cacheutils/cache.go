@@ -187,10 +187,8 @@ func (c *client) GenerateCacheKey(
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
 		inputArtifactNameList := cachekey.ArtifactNameList{ArtifactNames: make([]string, 0)}
 		for _, artifact := range inputArtifactList.Artifacts {
-			// CRITICAL FIX: Include both name AND URI in the cache key identifier.
-			// Previously only the name was used, which caused incorrect cache reuse
-			// when different data sources had artifacts with the same logical name.
-			// The format "name@uri" ensures different URIs produce different cache keys.
+			// Include artifact URI in the cache key to prevent incorrect cache reuse
+			// when different data sources share the same artifact name. Format: "name@uri".
 			artifactIdentifier := artifact.GetName()
 			if uri := artifact.GetUri(); uri != "" {
 				artifactIdentifier = artifact.GetName() + "@" + uri
