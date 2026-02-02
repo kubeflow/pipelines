@@ -26,6 +26,7 @@
     "@types/supertest": "^2.0.8",
     "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
+    "@vitest/coverage-v8": "^3.2.4",
     "prettier": "1.19.1",
     "supertest": "^4.0.2",
     "tslint": "^5.20.1",
