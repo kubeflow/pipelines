@@ -145,23 +145,27 @@ describe('minio-helper', () => {
     const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
     const tarBuffer = zlib.gunzipSync(tarGzBuffer);
 
-    it('return the content for the 1st file inside a tarball', done => {
+    it('return the content for the 1st file inside a tarball', async () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end(tarBuffer);
-      stream.on('end', () => {
-        expect(maybeTar.read().toString()).toBe('hello world\n');
-        done();
+      await new Promise<void>(resolve => {
+        stream.on('end', () => {
+          expect(maybeTar.read().toString()).toBe('hello world\n');
+          resolve();
+        });
       });
     });
 
-    it('return the content normal if is not a tarball', done => {
+    it('return the content normal if is not a tarball', async () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end('hello world');
-      stream.on('end', () => {
-        expect(maybeTar.read().toString()).toBe('hello world');
-        done();
+      await new Promise<void>(resolve => {
+        stream.on('end', () => {
+          expect(maybeTar.read().toString()).toBe('hello world');
+          resolve();
+        });
       });
     });
   });
