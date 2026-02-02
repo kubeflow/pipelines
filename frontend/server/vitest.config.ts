@@ -6,10 +6,6 @@ export default defineConfig({
     environment: 'node',
     exclude: ['node_modules', 'dist'],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    maxWorkers: 1,
   },
 });

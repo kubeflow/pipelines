@@ -376,12 +376,14 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(() => ({
-        bucket: () => ({
-          getFiles: () =>
-            Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
-        }),
-      }));
+      mockedGcsStorage.mockImplementationOnce(function() {
+        return {
+          bucket: () => ({
+            getFiles: () =>
+              Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
+          }),
+        };
+      });
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
       const request = requests(app.app);
@@ -569,12 +571,14 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(() => ({
-        bucket: () => ({
-          getFiles: () =>
-            Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
-        }),
-      }));
+      mockedGcsStorage.mockImplementationOnce(function() {
+        return {
+          bucket: () => ({
+            getFiles: () =>
+              Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
+          }),
+        };
+      });
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
@@ -589,12 +593,14 @@ describe('/artifacts', () => {
       const mockedGcsStorage: Mock = GCSStorage as any;
       const stream = new PassThrough();
       stream.end(artifactContent);
-      mockedGcsStorage.mockImplementationOnce(() => ({
-        bucket: () => ({
-          getFiles: () =>
-            Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
-        }),
-      }));
+      mockedGcsStorage.mockImplementationOnce(function() {
+        return {
+          bucket: () => ({
+            getFiles: () =>
+              Promise.resolve([[{ name: 'hello/world.txt', createReadStream: () => stream }]]),
+          }),
+        };
+      });
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 

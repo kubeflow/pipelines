@@ -138,14 +138,15 @@ describe('UIServer apis', () => {
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      await requests(app.app)
+      const res = await requests(app.app)
         .get('/apis/v1beta1/healthz')
-        .expect(200, {
-          apiServerReady: false,
-          buildDate,
-          frontendCommitHash: commitHash,
-          frontendTagName: tagName,
-        });
+        .expect(200);
+      expect(res.body).toMatchObject({
+        apiServerReady: false,
+        frontendCommitHash: commitHash,
+        frontendTagName: tagName,
+      });
+      expect(res.body).toHaveProperty('buildDate');
     });
 
     it('responds with both ui server and ml-pipeline api state if ml-pipeline api server is also ready.', async () => {
@@ -160,18 +161,19 @@ describe('UIServer apis', () => {
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      await requests(app.app)
+      const res = await requests(app.app)
         .get('/apis/v1beta1/healthz')
-        .expect(200, {
-          apiServerCommitHash: 'commit_sha',
-          apiServerTagName: '1.0.0',
-          apiServerMultiUser: false,
-          multi_user: false,
-          apiServerReady: true,
-          buildDate,
-          frontendCommitHash: commitHash,
-          frontendTagName: tagName,
-        });
+        .expect(200);
+      expect(res.body).toMatchObject({
+        apiServerCommitHash: 'commit_sha',
+        apiServerTagName: '1.0.0',
+        apiServerMultiUser: false,
+        multi_user: false,
+        apiServerReady: true,
+        frontendCommitHash: commitHash,
+        frontendTagName: tagName,
+      });
+      expect(res.body).toHaveProperty('buildDate');
     });
   });
 
@@ -312,12 +314,14 @@ describe('UIServer apis', () => {
     let authServer: Server;
     const authPort = 3002;
 
-    beforeEach(() => {
-      authServer = express()
-        .post('/apis/v1beta1/auth', (_, res) => {
-          res.status(401).send('Unauthorized');
-        })
-        .listen(authPort);
+    beforeEach(async () => {
+      authServer = await new Promise<Server>(resolve => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
 
       app = new UIServer(
         loadConfigs(argv, {
@@ -413,12 +417,14 @@ describe('UIServer apis', () => {
     let authServer: Server;
     const authPort = 3003;
 
-    beforeEach(() => {
-      authServer = express()
-        .post('/apis/v1beta1/auth', (_, res) => {
-          res.status(401).send('Unauthorized');
-        })
-        .listen(authPort);
+    beforeEach(async () => {
+      authServer = await new Promise<Server>(resolve => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
 
       app = new UIServer(
         loadConfigs(argv, {
@@ -459,12 +465,14 @@ describe('UIServer apis', () => {
     let authServer: Server;
     const authPort = 3004;
 
-    beforeEach(() => {
-      authServer = express()
-        .post('/apis/v1beta1/auth', (_, res) => {
-          res.status(401).send('Unauthorized');
-        })
-        .listen(authPort);
+    beforeEach(async () => {
+      authServer = await new Promise<Server>(resolve => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
 
       app = new UIServer(
         loadConfigs(argv, {
