@@ -20,15 +20,34 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: wait-for-ml-pipeline
-        image: curlimages/curl:8.5.0
+        image: ghcr.io/containerd/busybox:1.36
         command:
         - sh
         - -c
         - |
-          until nc -z ml-pipeline 8888; do
+          timeout=600
+          elapsed=0
+          until wget -q -O /dev/null http://ml-pipeline:8888/apis/v1beta1/healthz; do
+            if [ $elapsed -ge $timeout ]; then
+              exit 1
+            fi
             sleep 5
+            elapsed=$((elapsed + 5))
           done
-          sleep 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
       containers:
       - env:
           - name: NAMESPACE
