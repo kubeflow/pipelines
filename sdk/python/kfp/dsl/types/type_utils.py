@@ -606,8 +606,29 @@ def _annotation_to_type_struct(annotation):
     origin = get_origin(annotation)
 
     if origin is not None:
+
+        # Check for Literal by name and type
         origin_name = getattr(origin, '__name__', '')
-        if origin_name == 'Literal':
+        is_literal = origin_name == 'Literal'
+
+        if not is_literal:
+            try:
+                import typing
+                if hasattr(typing, 'Literal') and origin is typing.Literal:
+                    is_literal = True
+            except ImportError:
+                pass
+
+        if not is_literal:
+            try:
+                import typing_extensions
+                if hasattr(typing_extensions,
+                           'Literal') and origin is typing_extensions.Literal:
+                    is_literal = True
+            except ImportError:
+                pass
+
+        if is_literal:
             args = get_args(annotation)
             if not args:
                 return None, None
