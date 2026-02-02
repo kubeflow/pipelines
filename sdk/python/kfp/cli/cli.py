@@ -56,7 +56,6 @@ def _install_completion(shell: str) -> None:
 
     os.makedirs(os.path.dirname(source_file), exist_ok=True)
 
-
     if os.path.exists(source_file):
         with open(source_file, 'r') as f:
             content = f.read()
