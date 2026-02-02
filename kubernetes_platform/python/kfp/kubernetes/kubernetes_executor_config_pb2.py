@@ -12,8 +12,8 @@ from google.protobuf.internal import builder as _builder
 _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     6,
-    33,
-    2,
+    31,
+    1,
     '',
     'kubernetes_executor_config.proto'
 )

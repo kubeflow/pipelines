@@ -31,11 +31,11 @@ components:
 
             create a PVC from a VolumeSnapshot or to clone an existing PVC.
 
-            Should be a dictionary with ``''api_group''``, ``''kind''``, and
+            Should be a dictionary with ``''apiGroup''``, ``''kind''``, and
 
             ``''name''`` keys. For example:
 
-            ``{''api_group'': ''snapshot.storage.k8s.io'', ''kind'': ''VolumeSnapshot'',
+            ``{''apiGroup'': ''snapshot.storage.k8s.io'', ''kind'': ''VolumeSnapshot'',
             ''name'': ''my-snapshot''}``.
 
             Corresponds to `PersistentVolumeClaim.spec.dataSource
