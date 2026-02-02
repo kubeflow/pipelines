@@ -616,8 +616,7 @@ def _annotation_to_type_struct(annotation):
             if len(elem_types) > 1:
                 raise TypeError(
                     'Literal parameters must contain values of a single type.'
-                    f' Got mixed types: {[type(v).__name__ for v in args]}'
-                )
+                    f' Got mixed types: {[type(v).__name__ for v in args]}')
 
             elem_type = next(iter(elem_types))
             if elem_type is str:
@@ -631,8 +630,7 @@ def _annotation_to_type_struct(annotation):
             else:
                 raise TypeError(
                     f'Unsupported Literal element type: {elem_type!r}. '
-                    'Only str, int, float, bool are supported.'
-                )
+                    'Only str, int, float, bool are supported.')
 
             return type_struct, list(args)
 
@@ -666,6 +664,7 @@ def _annotation_to_type_struct(annotation):
         schema_title = str(annotation)
     type_struct = get_canonical_type_name_for_type(schema_title)
     return type_struct or schema_title
+
 
 def is_typed_named_tuple_annotation(annotation: Any) -> bool:
     return hasattr(annotation, '_fields') and hasattr(annotation,
