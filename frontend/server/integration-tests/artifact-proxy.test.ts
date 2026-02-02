@@ -1,17 +1,18 @@
-import { UIServer } from '../app';
-import { commonSetup, buildQuery } from './test-helper';
+import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { UIServer } from '../app.js';
+import { commonSetup, buildQuery } from './test-helper.js';
 import requests from 'supertest';
-import { loadConfigs } from '../configs';
-import * as minioHelper from '../minio-helper';
+import { loadConfigs } from '../configs.js';
+import * as minioHelper from '../minio-helper.js';
 import { PassThrough } from 'stream';
 import express from 'express';
 import { Server } from 'http';
-import * as artifactsHandler from '../handlers/artifacts';
+import * as artifactsHandler from '../handlers/artifacts.js';
 
 beforeEach(() => {
-  jest.spyOn(global.console, 'info').mockImplementation();
-  jest.spyOn(global.console, 'log').mockImplementation();
-  jest.spyOn(global.console, 'debug').mockImplementation();
+  vi.spyOn(global.console, 'info').mockImplementation(() => {});
+  vi.spyOn(global.console, 'log').mockImplementation(() => {});
+  vi.spyOn(global.console, 'debug').mockImplementation(() => {});
 });
 
 const commonParams = {
@@ -31,7 +32,7 @@ describe('/artifacts/get namespaced proxy', () => {
   });
 
   function setupMinioArtifactDeps({ content }: { content: string }) {
-    const getObjectStreamSpy = jest.spyOn(minioHelper, 'getObjectStream');
+    const getObjectStreamSpy = vi.spyOn(minioHelper, 'getObjectStream');
     const objStream = new PassThrough();
     objStream.end(content);
     getObjectStreamSpy.mockImplementationOnce(() => Promise.resolve(objStream));
@@ -53,7 +54,7 @@ describe('/artifacts/get namespaced proxy', () => {
       res.status(200).send(response);
     });
     artifactServerInUserNamespace = artifactService.listen(port);
-    const getArtifactServiceGetterSpy = jest
+    const getArtifactServiceGetterSpy = vi
       .spyOn(artifactsHandler, 'getArtifactServiceGetter')
       .mockImplementation(() => () => `http://localhost:${port}`);
     return { receivedUrls, getArtifactServiceGetterSpy, response };

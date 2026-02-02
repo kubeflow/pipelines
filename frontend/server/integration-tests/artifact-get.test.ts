@@ -12,26 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { vi, describe, it, expect, afterEach, beforeEach, type Mock } from 'vitest';
 import { Storage as GCSStorage } from '@google-cloud/storage';
 import * as fs from 'fs';
 import * as minio from 'minio';
-import fetch from 'node-fetch';
 import * as path from 'path';
 import { PassThrough } from 'stream';
 import requests from 'supertest';
-import { UIServer } from '../app';
-import { loadConfigs } from '../configs';
-import * as serverInfo from '../helpers/server-info';
-import { commonSetup, mkTempDir } from './test-helper';
-import { getK8sSecret } from '../k8s-helper';
+import { UIServer } from '../app.js';
+import { loadConfigs } from '../configs.js';
+import * as serverInfo from '../helpers/server-info.js';
+import { commonSetup, mkTempDir } from './test-helper.js';
+import { getK8sSecret } from '../k8s-helper.js';
 
 const MinioClient = minio.Client;
-jest.mock('minio');
-jest.mock('node-fetch');
-jest.mock('@google-cloud/storage');
-jest.mock('../k8s-helper');
+vi.mock('minio');
+vi.mock('@google-cloud/storage');
+vi.mock('../k8s-helper');
 
-const mockedFetch: jest.Mock = fetch as any;
+const mockedFetch = vi.fn();
+vi.stubGlobal('fetch', mockedFetch);
 
 describe('/artifacts', () => {
   let app: UIServer;
@@ -64,7 +64,7 @@ describe('/artifacts', () => {
 
   describe('/get', () => {
     it('responds with a minio artifact if source=minio', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const mockedMinioClient: Mock = minio.Client as any;
 
       const configs = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
@@ -92,7 +92,7 @@ describe('/artifacts', () => {
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Env', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const mockedMinioClient: Mock = minio.Client as any;
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
@@ -114,7 +114,7 @@ describe('/artifacts', () => {
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Load Configs', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const mockedMinioClient: Mock = minio.Client as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',
@@ -138,8 +138,8 @@ describe('/artifacts', () => {
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
-      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      const mockedMinioClient: Mock = minio.Client as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('someSecret');
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
@@ -185,9 +185,9 @@ describe('/artifacts', () => {
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', done => {
-      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
-      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const mockedMinioClient: Mock = minio.Client as any;
       const namespace = 'kubeflow';
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
@@ -239,9 +239,9 @@ describe('/artifacts', () => {
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default namespace when no namespace is provided, as specified in ENV', done => {
-      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
-      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const mockedMinioClient: Mock = minio.Client as any;
       const namespace = 'notkubeflow';
       const configs = loadConfigs(argv, { FRONTEND_SERVER_NAMESPACE: namespace });
       app = new UIServer(configs);
@@ -293,8 +293,8 @@ describe('/artifacts', () => {
     });
 
     it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
-      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      const mockedMinioClient: Mock = minio.Client as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('someSecret');
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
@@ -335,8 +335,8 @@ describe('/artifacts', () => {
     });
 
     it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs, with endpoint port', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
-      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      const mockedMinioClient: Mock = minio.Client as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('someSecret');
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
@@ -378,8 +378,8 @@ describe('/artifacts', () => {
 
     it('responds with artifact if source is gcs, and creds are sourced from Provider Configs', done => {
       const artifactContent = 'hello world';
-      const mockedGcsStorage: jest.Mock = GCSStorage as any;
-      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      const mockedGcsStorage: Mock = GCSStorage as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('{"private_key":"testkey","client_email":"testemail"}');
       const stream = new PassThrough();
       stream.write(artifactContent);
@@ -424,7 +424,7 @@ describe('/artifacts', () => {
     });
 
     it('responds with partial s3 artifact if peek=5 flag is set', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const mockedMinioClient: Mock = minio.Client as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',
@@ -449,7 +449,7 @@ describe('/artifacts', () => {
     });
 
     it('responds with a s3 artifact from bucket in non-default region if source=s3', done => {
-      const mockedMinioClient: jest.Mock = minio.Client as any;
+      const mockedMinioClient: Mock = minio.Client as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',
@@ -500,7 +500,7 @@ describe('/artifacts', () => {
 
     it('responds with partial http artifact if peek=5 flag is set', done => {
       const artifactContent = 'hello world';
-      const mockedFetch: jest.Mock = fetch as any;
+      const mockedFetch: Mock = fetch as any;
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({
@@ -588,7 +588,7 @@ describe('/artifacts', () => {
 
     it('responds with a gcs artifact if source=gcs', done => {
       const artifactContent = 'hello world';
-      const mockedGcsStorage: jest.Mock = GCSStorage as any;
+      const mockedGcsStorage: Mock = GCSStorage as any;
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
@@ -609,7 +609,7 @@ describe('/artifacts', () => {
 
     it('responds with a partial gcs artifact if peek=5 is set', done => {
       const artifactContent = 'hello world';
-      const mockedGcsStorage: jest.Mock = GCSStorage as any;
+      const mockedGcsStorage: Mock = GCSStorage as any;
       const stream = new PassThrough();
       stream.end(artifactContent);
       mockedGcsStorage.mockImplementationOnce(() => ({
@@ -632,7 +632,7 @@ describe('/artifacts', () => {
       const tempPath = path.join(mkTempDir(), 'content');
       fs.writeFileSync(tempPath, artifactContent);
 
-      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+      vi.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
             spec: {
@@ -676,7 +676,7 @@ describe('/artifacts', () => {
       const tempPath = path.join(mkTempDir(), 'content');
       fs.writeFileSync(tempPath, artifactContent);
 
-      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+      vi.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
             spec: {
@@ -715,7 +715,7 @@ describe('/artifacts', () => {
     });
 
     it('responds error with a not exist volume', done => {
-      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+      vi.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
             metadata: {
@@ -757,7 +757,7 @@ describe('/artifacts', () => {
     });
 
     it('responds error with a not exist volume mount path if source=volume', done => {
-      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+      vi.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
             metadata: {
@@ -800,7 +800,7 @@ describe('/artifacts', () => {
     });
 
     it('responds error with a not exist volume mount artifact if source=volume', done => {
-      jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
+      vi.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
             spec: {

@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Handler } from 'express';
-import * as k8sHelper from '../k8s-helper';
+import * as k8sHelper from '../k8s-helper.js';
 import {
   createPodLogsMinioRequestConfig,
   composePodLogsStreamHandler,
   getPodLogsStreamFromK8s,
   getPodLogsStreamFromWorkflow,
   toGetPodLogsStream,
-} from '../workflow-helper';
-import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
-import { AuthorizeFn } from '../helpers/auth';
+} from '../workflow-helper.js';
+import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs.js';
+import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth/index.js';
+import { AuthorizeFn } from '../helpers/auth.js';
 
 /**
  * Returns a handler which attempts to retrieve the logs for the specific pod,

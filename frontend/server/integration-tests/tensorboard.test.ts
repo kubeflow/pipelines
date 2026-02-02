@@ -12,20 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { vi, describe, it, expect, afterEach, beforeEach, type SpyInstance } from 'vitest';
 import express from 'express';
 import * as fs from 'fs';
 import { Server } from 'http';
 import * as path from 'path';
 import requests from 'supertest';
-import { UIServer } from '../app';
-import { loadConfigs } from '../configs';
-import { TEST_ONLY as K8S_TEST_EXPORT } from '../k8s-helper';
-import { buildQuery, commonSetup, mkTempDir } from './test-helper';
+import { UIServer } from '../app.js';
+import { loadConfigs } from '../configs.js';
+import { TEST_ONLY as K8S_TEST_EXPORT } from '../k8s-helper.js';
+import { buildQuery, commonSetup, mkTempDir } from './test-helper.js';
 
 beforeEach(() => {
-  jest.spyOn(global.console, 'info').mockImplementation();
-  jest.spyOn(global.console, 'log').mockImplementation();
-  jest.spyOn(global.console, 'debug').mockImplementation();
+  vi.spyOn(global.console, 'info').mockImplementation(() => {});
+  vi.spyOn(global.console, 'log').mockImplementation(() => {});
+  vi.spyOn(global.console, 'debug').mockImplementation(() => {});
 });
 
 describe('/apps/tensorboard', () => {
@@ -73,9 +74,9 @@ describe('/apps/tensorboard', () => {
     },
   };
 
-  let k8sGetCustomObjectSpy: jest.SpyInstance;
-  let k8sDeleteCustomObjectSpy: jest.SpyInstance;
-  let k8sCreateCustomObjectSpy: jest.SpyInstance;
+  let k8sGetCustomObjectSpy: SpyInstance;
+  let k8sDeleteCustomObjectSpy: SpyInstance;
+  let k8sCreateCustomObjectSpy: SpyInstance;
   let kfpApiServer: Server;
 
   function newGetTensorboardResponse({
@@ -104,15 +105,15 @@ describe('/apps/tensorboard', () => {
   }
 
   beforeEach(() => {
-    k8sGetCustomObjectSpy = jest.spyOn(
+    k8sGetCustomObjectSpy = vi.spyOn(
       K8S_TEST_EXPORT.k8sV1CustomObjectClient,
       'getNamespacedCustomObject',
     );
-    k8sDeleteCustomObjectSpy = jest.spyOn(
+    k8sDeleteCustomObjectSpy = vi.spyOn(
       K8S_TEST_EXPORT.k8sV1CustomObjectClient,
       'deleteNamespacedCustomObject',
     );
-    k8sCreateCustomObjectSpy = jest.spyOn(
+    k8sCreateCustomObjectSpy = vi.spyOn(
       K8S_TEST_EXPORT.k8sV1CustomObjectClient,
       'createNamespacedCustomObject',
     );
@@ -213,8 +214,8 @@ describe('/apps/tensorboard', () => {
     });
 
     it('rejects user requests when KFP auth api rejected', done => {
-      const errorSpy = jest.spyOn(console, 'error');
-      errorSpy.mockImplementation();
+      const errorSpy = vi.spyOn(console, 'error');
+      errorSpy.mockImplementation(() => {});
 
       const apiServerPort = 3001;
       kfpApiServer = express()
@@ -278,12 +279,14 @@ describe('/apps/tensorboard', () => {
           err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                               Array [
-                                "kubeflow.org",
-                                "v1beta1",
-                                "test-ns",
-                                "viewers",
-                                "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
-                              ]
+                                Object {
+                                  "group": "kubeflow.org",
+                                  "version": "v1beta1",
+                                  "namespace": "test-ns",
+                                  "plural": "viewers",
+                                  "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                                },
+                                ]
                           `);
             done(err);
           },
@@ -347,51 +350,57 @@ describe('/apps/tensorboard', () => {
           err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
-                  "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
-                ]
+                  Object {
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                  },
+                  ]
               `);
             expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
                   Object {
-                    "apiVersion": "kubeflow.org/v1beta1",
-                    "kind": "Viewer",
-                    "metadata": Object {
-                      "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
-                      "namespace": "test-ns",
-                    },
-                    "spec": Object {
-                      "podTemplateSpec": Object {
-                        "spec": Object {
-                          "containers": Array [
-                            Object {},
-                          ],
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "body": Object {
+                      "apiVersion": "kubeflow.org/v1beta1",
+                      "kind": "Viewer",
+                      "metadata": Object {
+                        "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                        "namespace": "test-ns",
+                      },
+                      "spec": Object {
+                        "podTemplateSpec": Object {
+                          "spec": Object {
+                            "containers": Array [
+                              Object {},
+                            ],
+                          },
                         },
+                        "tensorboardSpec": Object {
+                          "logDir": "log-dir-1",
+                          "tensorflowImage": "tensorflow/tensorflow:2.0.0",
+                        },
+                        "type": "tensorboard",
                       },
-                      "tensorboardSpec": Object {
-                        "logDir": "log-dir-1",
-                        "tensorflowImage": "tensorflow/tensorflow:2.0.0",
-                      },
-                      "type": "tensorboard",
                     },
                   },
-                ]
+                  ]
               `);
             expect(k8sGetCustomObjectSpy.mock.calls[1]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
-                  "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
-                ]
+                  Object {
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                  },
+                  ]
               `);
             done(err);
           },
@@ -425,7 +434,7 @@ describe('/apps/tensorboard', () => {
         )
         .expect(200, err => {
           expect(
-            k8sCreateCustomObjectSpy.mock.calls[0][4].spec.tensorboardSpec.tensorflowImage,
+            k8sCreateCustomObjectSpy.mock.calls[0][0].body.spec.tensorboardSpec.tensorflowImage,
           ).toEqual(image);
           done(err);
         });
@@ -470,77 +479,83 @@ describe('/apps/tensorboard', () => {
           err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
-                  "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
-                ]
+                  Object {
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "name": "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
+                  },
+                  ]
               `);
             expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
                   Object {
-                    "apiVersion": "kubeflow.org/v1beta1",
-                    "kind": "Viewer",
-                    "metadata": Object {
-                      "name": "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
-                      "namespace": "test-ns",
-                    },
-                    "spec": Object {
-                      "podTemplateSpec": Object {
-                        "spec": Object {
-                          "containers": Array [
-                            Object {
-                              "volumeMounts": Array [
-                                Object {
-                                  "mountPath": "/logs",
-                                  "name": "tensorboard",
-                                },
-                                Object {
-                                  "mountPath": "/data",
-                                  "name": "data",
-                                  "subPath": "tensorboard",
-                                },
-                              ],
-                            },
-                          ],
-                          "volumes": Array [
-                            Object {
-                              "name": "tensorboard",
-                              "persistentVolumeClaim": Object {
-                                "claimName": "logs",
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "body": Object {
+                      "apiVersion": "kubeflow.org/v1beta1",
+                      "kind": "Viewer",
+                      "metadata": Object {
+                        "name": "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
+                        "namespace": "test-ns",
+                      },
+                      "spec": Object {
+                        "podTemplateSpec": Object {
+                          "spec": Object {
+                            "containers": Array [
+                              Object {
+                                "volumeMounts": Array [
+                                  Object {
+                                    "mountPath": "/logs",
+                                    "name": "tensorboard",
+                                  },
+                                  Object {
+                                    "mountPath": "/data",
+                                    "name": "data",
+                                    "subPath": "tensorboard",
+                                  },
+                                ],
                               },
-                            },
-                            Object {
-                              "name": "data",
-                              "persistentVolumeClaim": Object {
-                                "claimName": "data",
+                            ],
+                            "volumes": Array [
+                              Object {
+                                "name": "tensorboard",
+                                "persistentVolumeClaim": Object {
+                                  "claimName": "logs",
+                                },
                               },
-                            },
-                          ],
+                              Object {
+                                "name": "data",
+                                "persistentVolumeClaim": Object {
+                                  "claimName": "data",
+                                },
+                              },
+                            ],
+                          },
                         },
+                        "tensorboardSpec": Object {
+                          "logDir": "Series1:/logs/log-dir-1,Series2:/logs/log-dir-2",
+                          "tensorflowImage": "tensorflow/tensorflow:2.0.0",
+                        },
+                        "type": "tensorboard",
                       },
-                      "tensorboardSpec": Object {
-                        "logDir": "Series1:/logs/log-dir-1,Series2:/logs/log-dir-2",
-                        "tensorflowImage": "tensorflow/tensorflow:2.0.0",
-                      },
-                      "type": "tensorboard",
                     },
                   },
-                ]
+                  ]
               `);
             expect(k8sGetCustomObjectSpy.mock.calls[1]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
-                  "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
-                ]
+                  Object {
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "name": "viewer-a800f945f0934d978f9cce9959b82ff44dac8493",
+                  },
+                  ]
               `);
             done(err);
           },
@@ -586,77 +601,83 @@ describe('/apps/tensorboard', () => {
           err => {
             expect(k8sGetCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
-                  "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
-                ]
+                  Object {
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "name": "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
+                  },
+                  ]
               `);
             expect(k8sCreateCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
                   Object {
-                    "apiVersion": "kubeflow.org/v1beta1",
-                    "kind": "Viewer",
-                    "metadata": Object {
-                      "name": "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
-                      "namespace": "test-ns",
-                    },
-                    "spec": Object {
-                      "podTemplateSpec": Object {
-                        "spec": Object {
-                          "containers": Array [
-                            Object {
-                              "volumeMounts": Array [
-                                Object {
-                                  "mountPath": "/logs",
-                                  "name": "tensorboard",
-                                },
-                                Object {
-                                  "mountPath": "/data",
-                                  "name": "data",
-                                  "subPath": "tensorboard",
-                                },
-                              ],
-                            },
-                          ],
-                          "volumes": Array [
-                            Object {
-                              "name": "tensorboard",
-                              "persistentVolumeClaim": Object {
-                                "claimName": "logs",
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "body": Object {
+                      "apiVersion": "kubeflow.org/v1beta1",
+                      "kind": "Viewer",
+                      "metadata": Object {
+                        "name": "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
+                        "namespace": "test-ns",
+                      },
+                      "spec": Object {
+                        "podTemplateSpec": Object {
+                          "spec": Object {
+                            "containers": Array [
+                              Object {
+                                "volumeMounts": Array [
+                                  Object {
+                                    "mountPath": "/logs",
+                                    "name": "tensorboard",
+                                  },
+                                  Object {
+                                    "mountPath": "/data",
+                                    "name": "data",
+                                    "subPath": "tensorboard",
+                                  },
+                                ],
                               },
-                            },
-                            Object {
-                              "name": "data",
-                              "persistentVolumeClaim": Object {
-                                "claimName": "data",
+                            ],
+                            "volumes": Array [
+                              Object {
+                                "name": "tensorboard",
+                                "persistentVolumeClaim": Object {
+                                  "claimName": "logs",
+                                },
                               },
-                            },
-                          ],
+                              Object {
+                                "name": "data",
+                                "persistentVolumeClaim": Object {
+                                  "claimName": "data",
+                                },
+                              },
+                            ],
+                          },
                         },
+                        "tensorboardSpec": Object {
+                          "logDir": "Series1:/data/log-dir-1,Series2:/data/log-dir-2",
+                          "tensorflowImage": "tensorflow/tensorflow:2.0.0",
+                        },
+                        "type": "tensorboard",
                       },
-                      "tensorboardSpec": Object {
-                        "logDir": "Series1:/data/log-dir-1,Series2:/data/log-dir-2",
-                        "tensorflowImage": "tensorflow/tensorflow:2.0.0",
-                      },
-                      "type": "tensorboard",
                     },
                   },
-                ]
+                  ]
               `);
             expect(k8sGetCustomObjectSpy.mock.calls[1]).toMatchInlineSnapshot(`
                 Array [
-                  "kubeflow.org",
-                  "v1beta1",
-                  "test-ns",
-                  "viewers",
-                  "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
-                ]
+                  Object {
+                    "group": "kubeflow.org",
+                    "version": "v1beta1",
+                    "namespace": "test-ns",
+                    "plural": "viewers",
+                    "name": "viewer-82d7d06a6ecb1e4dcba66d06b884d6445a88e4ca",
+                  },
+                  ]
               `);
             done(err);
           },
@@ -664,8 +685,8 @@ describe('/apps/tensorboard', () => {
     });
 
     it('creates tensorboard viewer with not exist volume and return error', done => {
-      const errorSpy = jest.spyOn(console, 'error');
-      errorSpy.mockImplementation();
+      const errorSpy = vi.spyOn(console, 'error');
+      errorSpy.mockImplementation(() => {});
 
       k8sGetCustomObjectSpy.mockImplementation(() => {
         return Promise.reject('Not found');
@@ -694,8 +715,8 @@ describe('/apps/tensorboard', () => {
     });
 
     it('creates tensorboard viewer with not exist subPath volume mount and return error', done => {
-      const errorSpy = jest.spyOn(console, 'error');
-      errorSpy.mockImplementation();
+      const errorSpy = vi.spyOn(console, 'error');
+      errorSpy.mockImplementation(() => {});
 
       k8sGetCustomObjectSpy.mockImplementation(() => {
         return Promise.reject('Not found');
@@ -724,8 +745,8 @@ describe('/apps/tensorboard', () => {
     });
 
     it('returns error when there is an existing tensorboard with different version', done => {
-      const errorSpy = jest.spyOn(console, 'error');
-      errorSpy.mockImplementation();
+      const errorSpy = vi.spyOn(console, 'error');
+      errorSpy.mockImplementation(() => {});
       k8sGetCustomObjectSpy.mockImplementation(() =>
         Promise.resolve(
           newGetTensorboardResponse({
@@ -814,12 +835,14 @@ describe('/apps/tensorboard', () => {
         .expect(200, 'Tensorboard deleted.', err => {
           expect(k8sDeleteCustomObjectSpy.mock.calls[0]).toMatchInlineSnapshot(`
               Array [
-                "kubeflow.org",
-                "v1beta1",
-                "test-ns",
-                "viewers",
-                "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
-              ]
+                Object {
+                  "group": "kubeflow.org",
+                  "version": "v1beta1",
+                  "namespace": "test-ns",
+                  "plural": "viewers",
+                  "name": "viewer-5e1404e679e27b0f0b8ecee8fe515830eaa736c5",
+                },
+                ]
             `);
           done(err);
         });

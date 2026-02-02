@@ -11,23 +11,22 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { vi, describe, it, expect, afterEach, beforeEach, type Mock } from 'vitest';
 import express from 'express';
 
-import fetch from 'node-fetch';
 import requests from 'supertest';
 
-import { UIServer } from './app';
-import { loadConfigs } from './configs';
-import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
+import { UIServer } from './app.js';
+import { loadConfigs } from './configs.js';
+import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper.js';
 import { Server } from 'http';
-import { commonSetup } from './integration-tests/test-helper';
+import { commonSetup } from './integration-tests/test-helper.js';
 
-jest.mock('node-fetch');
+const mockedFetch = vi.fn();
+vi.stubGlobal('fetch', mockedFetch);
 
 // TODO: move sections of tests here to individual files in `frontend/server/integration-tests/`
 // for better organization and shorter/more focused tests.
-
-const mockedFetch: jest.Mock = fetch as any;
 
 describe('UIServer apis', () => {
   let app: UIServer;
@@ -268,7 +267,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with pod info in JSON', done => {
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      const readPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
       readPodSpy.mockImplementation(() =>
         Promise.resolve({
           body: { kind: 'Pod' }, // only body is used
@@ -283,7 +282,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with error when failed to retrieve pod info', done => {
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      const readPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
       readPodSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -292,7 +291,7 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
       request
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
         .expect(500, 'Could not get pod test-pod in namespace test-ns', () => {
@@ -302,7 +301,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with error when invalid resource name', done => {
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      const readPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
       readPodSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -311,7 +310,7 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
       request
         .get(
           '/k8s/pod?podname=test-pod-name&podnamespace=test-namespace%7d%7dt93g1%3Cscript%3Ealert(1)%3C%2fscript%3Ej66h',
@@ -373,7 +372,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with pod info in JSON', done => {
-      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      const listEventSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
       listEventSpy.mockImplementation(() =>
         Promise.resolve({
           body: { kind: 'EventList' }, // only body is used
@@ -394,7 +393,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with error when failed to retrieve pod info', done => {
-      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      const listEventSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
       listEventSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -403,7 +402,7 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
       request
         .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
         .expect(500, 'Error when listing pod events for pod test-pod in namespace test-ns', err => {
@@ -413,7 +412,7 @@ describe('UIServer apis', () => {
     });
 
     it('responds with error when invalid resource name', done => {
-      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      const listEventSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
       listEventSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -422,7 +421,7 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
       request
         .get(
           '/k8s/pod/events?podname=test-pod-name&podnamespace=test-namespace%7d%7dt93g1%3Cscript%3Ealert(1)%3C%2fscript%3Ej66h',
