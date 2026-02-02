@@ -32,11 +32,7 @@ var (
 	pipelineName            = flag.String("pipeline_name", "", "pipeline context name")
 	runID                   = flag.String("run_id", "", "pipeline run uid")
 	parentDagID             = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
-<<<<<<< HEAD
-	executorType            = flag.String("executor_type", "container", "The type of the ExecutorSpec")
-=======
 	executorType            = flag.String("executor_type", "", "The type of the ExecutorSpec")
->>>>>>> 38a11e43e (Remove defaults from driver and launcher; enforce API-provided config)
 	executionID             = flag.Int64("execution_id", 0, "Execution ID of this task.")
 	executorInputJSON       = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	componentSpecJSON       = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
@@ -44,21 +40,12 @@ var (
 	taskSpecJSON            = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
 	podName                 = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID                  = flag.String("pod_uid", "", "Kubernetes Pod UID.")
-<<<<<<< HEAD
-	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline.kubeflow", "The name of the ML pipeline API server address.")
-	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
-	mlmdServerAddress       = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
-	mlmdServerPort          = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
-	logLevel                = flag.String("log_level", "1", "The verbosity level to log.")
-	publishLogs             = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-=======
 	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "", "The name of the ML pipeline API server address.")
 	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "", "The port of the ML pipeline API server.")
 	mlmdServerAddress       = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
 	mlmdServerPort          = flag.String("mlmd_server_port", "", "The MLMD gRPC server port.")
 	logLevel                = flag.String("log_level", "", "The verbosity level to log.")
 	publishLogs             = flag.String("publish_logs", "", "Whether to publish component logs to the object store")
->>>>>>> 38a11e43e (Remove defaults from driver and launcher; enforce API-provided config)
 	cacheDisabledFlag       = flag.Bool("cache_disabled", false, "Disable cache globally.")
 	caCertPath              = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 	mlPipelineTLSEnabled    = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")

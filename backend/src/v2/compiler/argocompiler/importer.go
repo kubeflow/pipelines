@@ -82,11 +82,8 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		fmt.Sprintf("$(%s)", component.EnvPodName),
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
-<<<<<<< HEAD
-=======
 		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
 		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
->>>>>>> 38a11e43e (Remove defaults from driver and launcher; enforce API-provided config)
 		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
@@ -117,10 +114,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
 		publishLogs = value
 	}
-<<<<<<< HEAD
-=======
 	args = append(args, "--publish_logs", publishLogs)
->>>>>>> 38a11e43e (Remove defaults from driver and launcher; enforce API-provided config)
 
 	var volumeMounts []k8score.VolumeMount
 	var volumes []k8score.Volume
