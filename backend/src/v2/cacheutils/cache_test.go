@@ -384,7 +384,7 @@ func TestGenerateFingerPrint_ConsidersArtifactURIs(t *testing.T) {
 			"dataset": {
 				Artifacts: []*pipelinespec.RuntimeArtifact{
 					{
-						Name: "data", // Same name as above
+						Name: "data",                     // Same name as above
 						Uri:  "gs://bucket-b/dataset/v2", // Different URI
 					},
 				},
