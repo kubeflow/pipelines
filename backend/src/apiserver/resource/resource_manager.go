@@ -25,7 +25,6 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 
 	"github.com/cenkalti/backoff"
