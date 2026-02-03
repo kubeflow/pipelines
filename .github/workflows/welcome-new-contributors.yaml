@@ -1,10 +1,6 @@
 name: Welcome new contributors
 
-on:
-  pull_request_target:
-    types: [opened]
-  issues:
-    types: [opened]
+on: [pull_request_target, issues]
 
 permissions:
   contents: write
