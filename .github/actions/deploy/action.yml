@@ -74,14 +74,9 @@ runs:
             echo "[deploy] skip_metadata_envoy=true; not loading metadata-envoy image"
             continue
           fi
-          tar_path="${{ inputs.image_path }}/$app/$app.tar"
-          if [[ ! -f "${tar_path}" ]]; then
-            echo "[deploy] ${app} artifact not found; skipping (not built for this lane)"
-            continue
-          fi
-          docker image load -i "${tar_path}"
+          docker image load -i ${{ inputs.image_path }}/$app/$app.tar
           docker push ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
-          rm "${tar_path}"
+          rm ${{ inputs.image_path }}/$app/$app.tar
           docker image rm ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
         done  
 

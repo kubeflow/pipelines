@@ -62,7 +62,6 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-          storage_backend: minio
 
       - name: Forward MySQL port
         id: forward-mysql-port
