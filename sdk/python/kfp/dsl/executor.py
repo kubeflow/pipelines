@@ -68,13 +68,29 @@ class Executor:
                 is_list_of_artifacts = (
                     type_annotations.is_Input_Output_artifact_annotation(
                         annotation) and
-                    type_annotations.is_list_of_artifacts(annotation.__origin__)
+                    type_annotations.is_list_of_artifacts(
+                        annotation.__args__[0])
                 ) or type_annotations.is_list_of_artifacts(annotation)
                 if is_list_of_artifacts:
                     # Get the annotation of the inner type of the list
                     # to use when creating the artifacts
-                    inner_annotation = type_annotations.get_inner_type(
-                        annotation)
+                    # For Input[List[Dataset]], we need to extract Dataset,
+                    # not List[Dataset]
+                    if type_annotations.is_Input_Output_artifact_annotation(
+                            annotation):
+                        # Strip Input/Output wrapper first
+                        inner_type = (
+                            type_annotations.strip_Input_or_Output_marker(
+                                annotation))
+                        # Then extract inner type from List if it's a list
+                        if type_annotations.is_list_of_artifacts(inner_type):
+                            inner_annotation = (
+                                type_annotations.get_inner_type(inner_type))
+                        else:
+                            inner_annotation = inner_type
+                    else:
+                        inner_annotation = type_annotations.get_inner_type(
+                            annotation)
 
                     self.input_artifacts[name] = [
                         self.make_artifact(
@@ -124,6 +140,11 @@ class Executor:
                 )
         else:
             artifact_cls = annotation
+            # Handle case where annotation is a List type
+            # (e.g., List[Dataset])
+            # Extract the inner type if it's a list
+            if type_annotations.is_list_of_artifacts(artifact_cls):
+                artifact_cls = type_annotations.get_inner_type(artifact_cls)
         return create_artifact_instance(
             runtime_artifact, fallback_artifact_cls=artifact_cls)
 
@@ -424,6 +445,13 @@ def create_artifact_instance(
 ) -> type:
     """Creates an artifact class instances from a runtime artifact
     dictionary."""
+    # Handle case where fallback_artifact_cls is a List type
+    # (e.g., List[Dataset])
+    # Extract the inner type if it's a list
+    if type_annotations.is_list_of_artifacts(fallback_artifact_cls):
+        fallback_artifact_cls = type_annotations.get_inner_type(
+            fallback_artifact_cls)
+    
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
         schema_title, fallback_artifact_cls)
