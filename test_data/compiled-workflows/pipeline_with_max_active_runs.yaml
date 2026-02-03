@@ -7,7 +7,7 @@ spec:
   arguments:
     parameters:
     - name: components-14768a47ea03450df8698ec5acec01a1129af4b5520ef67319316215033c4d68
-      value: '{"executorLabel":"exec-produce-message","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"},"sleep_seconds":{"defaultValue":20,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+      value: '{"executorLabel":"exec-produce-message","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"},"sleep_seconds":{"defaultValue":5,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-14768a47ea03450df8698ec5acec01a1129af4b5520ef67319316215033c4d68
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","produce_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        produce_message(msg: str, sleep_seconds: int = 20) -\u003e str:\n    import
+        produce_message(msg: str, sleep_seconds: int = 5) -\u003e str:\n    import
         time\n\n    print(f''Processing {msg}...'')\n    time.sleep(sleep_seconds)\n    return
         msg\n\n"],"image":"python:3.9"}'
     - name: components-comp-for-loop-2
