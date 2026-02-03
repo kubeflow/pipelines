@@ -1197,6 +1197,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	} else if job.PipelineId == "" {
 		return nil, errors.New("Cannot create a job with an empty pipeline ID")
 	} else {
+		latestVersion, err := r.GetLatestPipelineVersion(job.PipelineId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to fetch latest pipeline version while creating a recurring run")
+		}
+		job.PipelineVersionId = latestVersion.UUID
+		job.PipelineName = latestVersion.Name
+
 		// Validate the input parameters on the latest pipeline version. The latest pipeline version is not stored
 		// in the ScheduledWorkflow. It's just to help the user with up front validation at recurring run creation
 		// time.
