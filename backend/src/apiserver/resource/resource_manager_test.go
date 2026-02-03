@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -1937,75 +1936,6 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
-func TestCreateRun_MaxActiveRunsConfigMap(t *testing.T) {
-	initEnvVars()
-
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer func() {
-		if err := store.Close(); err != nil {
-			t.Errorf("Failed to close store: %v", err)
-		}
-	}()
-
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-
-	pipeline, err := manager.CreatePipeline(createPipeline("parallelism-pipeline", "", "kubeflow"))
-	require.NoError(t, err)
-
-	require.NotNil(t, store)
-	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
-	require.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-
-	pv := createPipelineVersion(
-		pipeline.UUID,
-		"parallelism-version",
-		"",
-		"",
-		v2SpecHelloWorldWithParallelism,
-		"",
-		"kubeflow",
-	)
-	version, err := manager.CreatePipelineVersion(pv)
-	require.NoError(t, err)
-
-	run := &model.Run{
-		DisplayName: "run-with-parallelism",
-		Namespace:   "kubeflow",
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:        pipeline.UUID,
-			PipelineVersionId: version.UUID,
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters: "{\"text\":\"hello\"}",
-			},
-		},
-	}
-
-	createdRun, err := manager.CreateRun(context.Background(), run)
-	require.NoError(t, err)
-	require.NotNil(t, createdRun)
-
-	configMap, err := store.k8sCoreClientFake.ConfigMapClient("kubeflow").Get(
-		context.Background(), util.PipelineParallelismConfigMapName, v1.GetOptions{})
-	require.NoError(t, err)
-	require.NotNil(t, configMap.Data)
-	assert.Equal(t, "5", configMap.Data[version.UUID])
-
-	execSpec, err := store.ExecClientFake.Execution("kubeflow").Get(
-		context.Background(), createdRun.K8SName, v1.GetOptions{})
-	require.NoError(t, err)
-	workflow, ok := execSpec.(*util.Workflow)
-	require.True(t, ok)
-	// Check that synchronization semaphores are configured to read from ConfigMap
-	require.NotNil(t, workflow.Spec.Synchronization)
-	require.NotNil(t, workflow.Spec.Synchronization.Semaphores)
-	require.Len(t, workflow.Spec.Synchronization.Semaphores, 1)
-	semaphore := workflow.Spec.Synchronization.Semaphores[0]
-	assert.NotNil(t, semaphore.ConfigMapKeyRef)
-	assert.Equal(t, util.PipelineParallelismConfigMapName, semaphore.ConfigMapKeyRef.Name)
-	assert.Equal(t, version.UUID, semaphore.ConfigMapKeyRef.Key)
-}
-
 func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	// Create experiment, pipeline, and pipeline version.
 	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
@@ -2507,7 +2437,7 @@ func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *te
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
-	store, manager, pipeline, pipelineVersion := initWithPipeline(t)
+	store, manager, pipeline, _ := initWithPipeline(t)
 	defer store.Close()
 	apiExperiment := &model.Experiment{Name: "e1"}
 	experiment, _ := manager.CreateExperiment(apiExperiment)
@@ -2542,10 +2472,8 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		UpdatedAtInSec: 4,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:        pipeline.UUID,
-			PipelineName:      pipelineVersion.Name,
-			PipelineVersionId: pipelineVersion.UUID,
-			Parameters:        "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineId: pipeline.UUID,
+			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		ExperimentId: experiment.UUID,
 	}
@@ -2841,40 +2769,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
-	assert.Nil(t, err)
-
-	_, err = manager.GetJob(job.UUID)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
-}
-
-func TestDeleteJob_WithForegroundPolicy(t *testing.T) {
-	store, manager, job := initWithJob(t)
-	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_FOREGROUND)
-	assert.Nil(t, err)
-
-	_, err = manager.GetJob(job.UUID)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
-}
-
-func TestDeleteJob_WithBackgroundPolicy(t *testing.T) {
-	store, manager, job := initWithJob(t)
-	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_BACKGROUND)
-	assert.Nil(t, err)
-
-	_, err = manager.GetJob(job.UUID)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
-}
-
-func TestDeleteJob_WithOrphanPolicy(t *testing.T) {
-	store, manager, job := initWithJob(t)
-	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -2886,7 +2781,7 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	err := manager.DeleteJob(context.Background(), "1", apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -2896,7 +2791,7 @@ func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check if the scheduled workflow exists")
 }
@@ -2909,7 +2804,7 @@ func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
 
 	// Now deleting job should still succeed when the swf CR is already deleted.
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
@@ -2924,7 +2819,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -4150,14 +4045,6 @@ root:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
-`
-
-var v2SpecHelloWorldWithParallelism = v2SpecHelloWorld + `
----
-platforms:
-  kubernetes:
-    pipelineConfig:
-      maxActiveRuns: 5
 `
 
 var v2SpecHelloWorldMutated = `

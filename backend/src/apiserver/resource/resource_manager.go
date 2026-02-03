@@ -1205,14 +1205,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		latestVersion, err := r.GetLatestPipelineVersion(job.PipelineId)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to fetch latest pipeline version for recurring run")
-		}
-		job.PipelineVersionId = latestVersion.UUID
-		job.PipelineId = latestVersion.PipelineId
-		job.PipelineName = latestVersion.Name
-
 		templateOptions := template.TemplateOptions{
 			CacheDisabled:        r.options.CacheDisabled,
 			DefaultWorkspace:     r.options.DefaultWorkspace,
