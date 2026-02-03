@@ -32,6 +32,23 @@ $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/api-server:latest
 ```
 
+> **Building on Apple Silicon**: When building on Apple Silicon (M1/M2/M3), QEMU emulation causes issues with FIPS builds. Use `FIPS_ENABLED=0` to disable FIPS.
+>
+> ```bash
+> # Build all amd64 images
+> FIPS_ENABLED=0 make -C backend image_all
+>
+> # Build arm64 images for local Kind testing
+> FIPS_ENABLED=0 TARGETARCH=arm64 make -C backend image_all
+> ```
+>
+> **Build options:**
+> - `FIPS_ENABLED=0`: Disables FIPS (required for Apple Silicon)
+> - `FIPS_ENABLED=1` (default): FIPS-compliant build for production
+> - `TARGETARCH=arm64|amd64`: Target architecture (default: amd64)
+>
+> Production images are built on amd64 CI runners with FIPS enabled.
+
 To build the scheduled workflow controller image and upload it to GCR:
 
 ```bash
