@@ -628,9 +628,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 // ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
 func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
-	filterContext := &model.FilterContext{
-		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: common.GetPodNamespace()},
-	}
+	filterContext := model.EmptyFilterContext()
 
 	opts := list.EmptyOptions()
 
