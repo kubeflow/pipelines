@@ -27,13 +27,14 @@ spec:
         - |
           timeout=300
           elapsed=0
-          until wget -q -O /dev/null http://ml-pipeline:8888/apis/v1beta1/healthz; do
+          until nc -z ml-pipeline 8888; do
             if [ $elapsed -ge $timeout ]; then
               exit 1
             fi
             sleep 5
             elapsed=$((elapsed + 5))
           done
+          sleep 10
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
