@@ -48,12 +48,15 @@ COPY ${SOURCE_CODE}/ ./
 
 # FIPS_ENABLED=1 (default): FIPS-compliant build with strictfipsruntime (requires CGO)
 # FIPS_ENABLED=0: Non-FIPS build for local development on Apple Silicon (pure Go, no CGO)
-RUN if [ "${FIPS_ENABLED}" != "0" ] && [ "${FIPS_ENABLED}" != "1" ]; then \
-      echo "ERROR: FIPS_ENABLED must be '0' or '1', got '${FIPS_ENABLED}'" && exit 1; \
+RUN if [ "${FIPS_ENABLED}" = "0" ]; then \
+      GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+        go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go; \
     elif [ "${FIPS_ENABLED}" = "1" ]; then \
-      GO111MODULE=on CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOEXPERIMENT=strictfipsruntime go build -tags strictfipsruntime -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go; \
+      GO111MODULE=on CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+        GOEXPERIMENT=strictfipsruntime \
+        go build -tags strictfipsruntime -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go; \
     else \
-      GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go; \
+      echo "ERROR: FIPS_ENABLED must be '0' or '1', got '${FIPS_ENABLED}'" && exit 1; \
     fi
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
