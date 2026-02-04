@@ -1263,6 +1263,55 @@ class ExecutorTest(parameterized.TestCase):
 
         self.assertDictEqual(output_metadata, {})
 
+    def test_list_of_artifact_input(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_datasets": {
+            "artifacts": [
+              {
+                "metadata": {"rows": 10},
+                "name": "datasets/0",
+                "type": {
+                  "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/output/input_dataset_0"
+              },
+              {
+                "metadata": {"rows": 20},
+                "name": "datasets/1",
+                "type": {
+                  "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/output/input_dataset_1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_datasets: Input[List[Dataset]]):
+            self.assertIsInstance(input_datasets, list)
+            self.assertLen(input_datasets, 2)
+            for index, artifact in enumerate(input_datasets):
+                self.assertIsInstance(artifact, Dataset)
+                self.assertEqual(artifact.name, f'datasets/{index}')
+                self.assertEqual(
+                    artifact.uri,
+                    f'gs://some-bucket/output/input_dataset_{index}')
+                self.assertEqual(artifact.metadata['rows'], (index + 1) * 10)
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
     def test_single_artifact_input_pythonic(self):
         executor_input = """\
     {
