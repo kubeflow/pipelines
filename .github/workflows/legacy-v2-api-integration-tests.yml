@@ -87,6 +87,11 @@ jobs:
         run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
         continue-on-error: true
 
+      - name: Debug TLS cert secret before tests
+        if: ${{ always() && matrix.pod_to_pod_tls_enabled }}
+        run: |
+          kubectl get secret kfp-api-tls-cert -n kubeflow 
+
       - name: API integration tests v2
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
@@ -97,11 +102,10 @@ jobs:
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
         continue-on-error: true
 
-      - name: Debug TLS cert secret
+      - name: Debug TLS cert secret after tests
         if: ${{ always() && matrix.pod_to_pod_tls_enabled }}
         run: |
-          echo "=== Trying to get kfp-api-tls-cert secret ==="
-          kubectl get secret kfp-api-tls-cert -n kubeflow || echo "Secret not found"
+          kubectl get secret kfp-api-tls-cert -n kubeflow 
 
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
