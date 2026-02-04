@@ -145,8 +145,7 @@ export const ExternalLinks = {
 
 export interface DialogProps {
   buttons?: Array<{ onClick?: () => any; text: string }>;
-  // TODO: This should be generalized to any react component.
-  content?: string;
+  content?: string | React.ReactNode;
   onClose?: () => any;
   open?: boolean;
   title?: string;

@@ -464,10 +464,15 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
      *
      * @summary Deletes a recurring run.
      * @param {string} recurring_run_id The ID of the recurring run to be deleted.
+     * @param {string} [propagation_policy] Optional. Set the propagation policy when deleting.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
+    deleteRecurringRun(
+      recurring_run_id: string,
+      propagation_policy?: string,
+      options: any = {},
+    ): FetchArgs {
       // verify required parameter 'recurring_run_id' is not null or undefined
       if (recurring_run_id === null || recurring_run_id === undefined) {
         throw new RequiredError(
@@ -483,6 +488,10 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
       const localVarRequestOptions = Object.assign({ method: 'DELETE' }, options);
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
+
+      if (propagation_policy !== undefined) {
+        localVarQueryParameter['propagation_policy'] = propagation_policy;
+      }
 
       localVarUrlObj.query = Object.assign(
         {},
@@ -719,16 +728,18 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
      *
      * @summary Deletes a recurring run.
      * @param {string} recurring_run_id The ID of the recurring run to be deleted.
+     * @param {string} [propagation_policy] Optional. Set the propagation policy when deleting.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     deleteRecurringRun(
       recurring_run_id: string,
+      propagation_policy?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
       const localVarFetchArgs = RecurringRunServiceApiFetchParamCreator(
         configuration,
-      ).deleteRecurringRun(recurring_run_id, options);
+      ).deleteRecurringRun(recurring_run_id, propagation_policy, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -883,14 +894,16 @@ export const RecurringRunServiceApiFactory = function(
      *
      * @summary Deletes a recurring run.
      * @param {string} recurring_run_id The ID of the recurring run to be deleted.
+     * @param {string} [propagation_policy] Optional. Set the propagation policy when deleting.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRecurringRun(recurring_run_id: string, options?: any) {
-      return RecurringRunServiceApiFp(configuration).deleteRecurringRun(recurring_run_id, options)(
-        fetch,
-        basePath,
-      );
+    deleteRecurringRun(recurring_run_id: string, propagation_policy?: string, options?: any) {
+      return RecurringRunServiceApiFp(configuration).deleteRecurringRun(
+        recurring_run_id,
+        propagation_policy,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -991,13 +1004,15 @@ export class RecurringRunServiceApi extends BaseAPI {
    *
    * @summary Deletes a recurring run.
    * @param {string} recurring_run_id The ID of the recurring run to be deleted.
+   * @param {string} [propagation_policy] Optional. Set the propagation policy when deleting.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RecurringRunServiceApi
    */
-  public deleteRecurringRun(recurring_run_id: string, options?: any) {
+  public deleteRecurringRun(recurring_run_id: string, propagation_policy?: string, options?: any) {
     return RecurringRunServiceApiFp(this.configuration).deleteRecurringRun(
       recurring_run_id,
+      propagation_policy,
       options,
     )(this.fetch, this.basePath);
   }
