@@ -12,11 +12,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install build tool
+    - name: Setup uv
       shell: bash
       run: |
-        pip install --upgrade pip
-        pip install build==${{inputs.build_version}}
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Build & install kfp-server-api dist
       id: install-kfp-server-api
@@ -24,8 +24,8 @@ runs:
       working-directory: backend/api/v2beta1/python_http_client
       run: |
         rm -rf dist/
-        python -m build .
-        pip install dist/*.whl
+        uv build
+        uv pip install --system dist/*.whl
 
     - name: Build kfp dist
       id: install-kfp
@@ -33,8 +33,8 @@ runs:
       working-directory: sdk/python
       run: |
         rm -rf dist/
-        python -m build .
-        pip install dist/*.whl
+        uv build
+        uv pip install --system dist/*.whl
 
     - name: Generate kfp-kubernetes python proto files from source
       id: generate-kfp-kubernetes-proto-files
@@ -51,14 +51,14 @@ runs:
       run: make golang
 
     # kfp is installed transitively
-    # --find-links ensures pip first looks in the sdk/python/dist folder
+    # --find-links ensures uv first looks in the sdk/python/dist folder
     # outputted from generate-kfp-kubernetes-proto-files step before looking at pypi
     - name: Install kfp & kfp-kubernetes from source
       id: install-kfp-kubernetes
       shell: bash
       if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
       run: |
-        pip install -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
+        uv pip install --system -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
 
     # testing reinstalling kfp package from source with no deps
     - name: Reinstall kfp from source with no deps
@@ -67,4 +67,4 @@ runs:
       if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
       working-directory: ./sdk/python
       run: |
-        pip install . -I --no-deps
+        uv pip install --system . -I --no-deps
