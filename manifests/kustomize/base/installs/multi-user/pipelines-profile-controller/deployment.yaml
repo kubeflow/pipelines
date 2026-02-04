@@ -23,7 +23,7 @@ spec:
             drop:
             - ALL
         # We just need an image with the python botocore library installed
-        image: docker.io/alpine/k8s:1.32.3
+        image: docker.io/alpine/k8s:1.32.4
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:

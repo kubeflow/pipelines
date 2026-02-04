@@ -301,7 +301,7 @@ tzdata==2025.2
     # via pandas
 uritemplate==3.0.1
     # via google-api-python-client
-urllib3==2.5.0
+urllib3==2.6.0
     # via requests
 wcwidth==0.2.13
     # via prompt-toolkit
@@ -317,6 +317,9 @@ wheel==0.46.2
     # via astunparse
 wrapt==1.14.2
     # via tensorflow
+
+# Explicitly pin setuptools for CVE-2024-6345
+setuptools>=70.0.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
