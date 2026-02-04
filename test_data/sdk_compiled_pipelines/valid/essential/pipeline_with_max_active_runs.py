@@ -17,7 +17,7 @@ from kfp import compiler, dsl
 
 
 @dsl.component(base_image='python:3.9')
-def produce_message(msg: str, sleep_seconds: int = 20) -> str:
+def produce_message(msg: str, sleep_seconds: int = 5) -> str:
     import time
 
     print(f'Processing {msg}...')

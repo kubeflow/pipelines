@@ -61,7 +61,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef produce_message(msg: str, sleep_seconds: int = 20) -> str:\n\
+          \ *\n\ndef produce_message(msg: str, sleep_seconds: int = 5) -> str:\n\
           \    import time\n\n    print(f'Processing {msg}...')\n    time.sleep(sleep_seconds)\n\
           \    return msg\n\n"
         image: python:3.9
