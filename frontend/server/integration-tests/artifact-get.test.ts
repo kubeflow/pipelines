@@ -83,6 +83,7 @@ describe('/artifacts', () => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'minio',
             endPoint: 'minio-service.kubeflow',
+            namespaceSecretName: 'mlpipeline-minio-artifact',
             port: 9000,
             secretKey: 'minio123',
             useSSL: false,
@@ -184,7 +185,12 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', done => {
+    // Note: The following two tests were updated as part of the security fix for Issue #9889(https://github.com/kubeflow/pipelines/issues/9889).
+    // Previously, these tests verified that a default namespace was used when none was provided.
+    // This was insecure behavior, now the namespace must be explicitly provided.
+    // The tests now verify that providing an explicit namespace works correctly.
+
+    it('responds with artifact if source is S3, and credentials are sourced from Provider Configurations, with explicit namespace', done => {
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: jest.Mock = minio.Client as any;
@@ -206,7 +212,7 @@ describe('/artifacts', () => {
       };
       request
         .get(
-          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
@@ -238,7 +244,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default namespace when no namespace is provided, as specified in ENV', done => {
+    it('responds with artifact if source is AWS S3, and credentialss are sourced from Provider Configurations, with explicit non-default namespace', done => {
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: jest.Mock = minio.Client as any;
@@ -260,7 +266,7 @@ describe('/artifacts', () => {
       };
       request
         .get(
-          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
