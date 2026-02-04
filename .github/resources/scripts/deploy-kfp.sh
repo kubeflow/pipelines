@@ -31,6 +31,7 @@ CACHE_DISABLED=false
 ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
+DB_TYPE=""
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
 SEAWEEDFS_INIT_TIMEOUT=300s
@@ -62,6 +63,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --storage)
       STORAGE_BACKEND="$2"
+      shift 2
+      ;;
+    --db-type)
+      DB_TYPE="$2"
       shift 2
       ;;
     --argo-version)
@@ -137,27 +142,47 @@ if [ "${MULTI_USER}" == "true" ]; then
 fi
 
 # Manifests will be deployed according to the flag provided
+# Priority 1: Multi-user false + standalone (not kubernetes-native)
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
-  if $CACHE_DISABLED; then
+
+  # Priority 1.1: TLS-enabled (mutually exclusive with other options)
+  if $POD_TO_POD_TLS_ENABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+
+  # Priority 1.2: PostgreSQL (with default SeaweedFS storage)
+  elif [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
+
+  # Priority 1.3: Check for cache-disabled + proxy + minio combination
+  elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
+
+  # Priority 1.4: Check for cache-disabled + proxy combination
+  elif $CACHE_DISABLED && $USE_PROXY; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+
+  # Priority 1.5: Check for cache-disabled + minio combination
+  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+
+  # Priority 1.6: Check for proxy + minio combination
+  elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
+
+  # Priority 1.7: Check for single flags (cache-disabled, proxy, or minio)
+  elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
   elif [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED && $USE_PROXY; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
-  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
-  elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
-  elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
-  elif $POD_TO_POD_TLS_ENABLED; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+
+  # Default: seaweedfs with cache enabled
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
+# Priority 2: Multi-user false + kubernetes-native
 elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/kubernetes-native"
   if $CACHE_DISABLED; then
@@ -165,16 +190,31 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
+# Priority 3: Multi-user true
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+
+  # Priority 3.1: PostgreSQL (with default SeaweedFS)
+  if [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
+
+  # Priority 3.2: Artifact proxy (MySQL + SeaweedFS)
+  elif $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
-  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
+
+  # Priority 3.3: Cache disabled + MinIO (MySQL + MinIO)
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+
+  # Priority 3.4: MinIO (MySQL + MinIO)
+  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
+
+  # Priority 3.5: Cache disabled (MySQL + SeaweedFS)
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+
+  # Default: MySQL + SeaweedFS
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
