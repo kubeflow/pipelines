@@ -229,7 +229,7 @@ class ComponentBuilder():
                 pip_trusted_hosts.extend(comp.pip_trusted_hosts)
             if comp.use_local_pip_config:
                 use_local_pip_config_any = True
-        
+
         # If any component requests local pip config, parse and merge it
         if use_local_pip_config_any:
             from kfp.dsl import component_factory
@@ -243,8 +243,9 @@ class ComponentBuilder():
                 pip_index_urls = pip_index_urls_merged
             if pip_trusted_hosts_merged:
                 pip_trusted_hosts = pip_trusted_hosts_merged
-            self._pip_extra_options = component_factory._make_pip_extra_options(local_config)
-        
+            self._pip_extra_options = component_factory._make_pip_extra_options(
+                local_config)
+
         if pip_index_urls:
             self._pip_index_urls = list(dict.fromkeys(pip_index_urls))
         if pip_trusted_hosts:
@@ -308,12 +309,12 @@ class ComponentBuilder():
     def maybe_generate_dockerfile(self, overwrite_dockerfile: bool = False):
         index_urls_options = component_factory.make_index_url_options(
             self._pip_index_urls, self._pip_trusted_hosts)
-        
+
         # Combine index URLs options with extra pip options
         pip_options = index_urls_options
         if self._pip_extra_options:
             pip_options = f'{pip_options} {self._pip_extra_options}'.strip()
-        
+
         dockerfile_contents = _DOCKERFILE_TEMPLATE.format(
             base_image=self._base_image,
             maybe_copy_kfp_package=self._maybe_copy_kfp_package,
