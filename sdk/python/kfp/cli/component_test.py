@@ -619,9 +619,10 @@ class Test(unittest.TestCase):
             target_image='custom-image',
             use_local_pip_config=True)
         _write_components('components.py', component)
-        
+
         config_contents = '[global]\nindex-url = https://local.pypi.org/simple\ntrusted-host = local.pypi.org\n'
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.conf') as temp_config:
+        with tempfile.NamedTemporaryFile(
+                mode='w', delete=False, suffix='.conf') as temp_config:
             temp_config.write(config_contents)
             temp_config_path = temp_config.name
 

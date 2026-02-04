@@ -22,22 +22,22 @@ from kfp.dsl.component_task_config import TaskConfigPassthrough
 
 
 def component(
-    func: Optional[Callable] = None,
-    *,
-    base_image: Optional[str] = None,
-    target_image: Optional[str] = None,
-    packages_to_install: List[str] = None,
-    pip_index_urls: Optional[List[str]] = None,
-    output_component_file: Optional[str] = None,
-    install_kfp_package: bool = True,
-    kfp_package_path: Optional[str] = None,
-    pip_trusted_hosts: Optional[List[str]] = None,
-    use_venv: bool = False,
-    additional_funcs: Optional[List[Callable]] = None,
-    embedded_artifact_path: Optional[str] = None,
-    task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
-                                                  TaskConfigField]]] = None,
-    use_local_pip_config: bool = False):
+        func: Optional[Callable] = None,
+        *,
+        base_image: Optional[str] = None,
+        target_image: Optional[str] = None,
+        packages_to_install: List[str] = None,
+        pip_index_urls: Optional[List[str]] = None,
+        output_component_file: Optional[str] = None,
+        install_kfp_package: bool = True,
+        kfp_package_path: Optional[str] = None,
+        pip_trusted_hosts: Optional[List[str]] = None,
+        use_venv: bool = False,
+        additional_funcs: Optional[List[Callable]] = None,
+        embedded_artifact_path: Optional[str] = None,
+        task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
+                                                      TaskConfigField]]] = None,
+        use_local_pip_config: bool = False):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
