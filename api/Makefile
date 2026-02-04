@@ -38,16 +38,17 @@ clean-go:
 
 # Build Python package using pre-built image
 .PHONY: python
-python: python fetch-protos
+python: fetch-protos
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+		    pip install --user --break-system-packages uv && \
+		    cd api/v2alpha1/python && \
 		    python3 generate_proto.py && \
-            python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		    ~/.local/bin/uv build --package kfp-pipeline-spec'
 
 # Build and locally install Python package using editable mode for development.
 .PHONY: python-dev

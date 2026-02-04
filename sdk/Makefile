@@ -16,14 +16,16 @@
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 
 .PHONY: python
-python: python
+python:
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
-			python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+			pip install --user --break-system-packages uv && \
+			cd sdk/python && \
+			uv build --package kfp'
 
 .PHONY: clean-python
 clean-python:
