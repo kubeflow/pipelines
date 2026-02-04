@@ -104,7 +104,8 @@ class Executor:
 
     def _resolve_list_artifact_inner_type(self, input_name: str,
                                           list_annotation: Any) -> Any:
-        """Unwraps nested list annotations and validates the inner artifact type."""
+        """Unwraps nested list annotations and validates the inner artifact
+        type."""
         inner_annotation = type_annotations.get_inner_type(list_annotation)
 
         if inner_annotation is None:
