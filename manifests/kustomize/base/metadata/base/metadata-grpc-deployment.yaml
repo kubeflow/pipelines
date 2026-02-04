@@ -44,6 +44,7 @@ spec:
             sleep 5
             elapsed=$((elapsed + 5))
           done
+          sleep 10
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
