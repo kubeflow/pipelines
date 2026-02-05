@@ -14,6 +14,7 @@
 
 # Contact one of chensun, HumairAK if this remote image needs an update.
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
+UV_VERSION=0.6.6
 
 .PHONY: python
 python:
@@ -23,9 +24,8 @@ python:
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-			pip install --user --break-system-packages uv && \
-			cd sdk/python && \
-			uv build --package kfp'
+			pip install --user --break-system-packages uv==$(UV_VERSION) && \
+			~/.local/bin/uv build --package kfp --out sdk/python/dist'
 
 .PHONY: clean-python
 clean-python:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
+UV_VERSION=0.6.6
 
 # Set USE_FIND_LINKS=true to use local sdk and pipeline_spec for buildling python builds rather than pulling from pypi
 # applies to `make python` and make pythone-dev` commands.
@@ -53,10 +54,11 @@ python: proto/kubernetes_executor_config.proto fetch-protos
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-		    pip install --user --break-system-packages uv && \
+		    pip install --user --break-system-packages uv==$(UV_VERSION) && \
 		    cd kubernetes_platform/python && \
 		    python3 generate_proto.py && \
-		    ~/.local/bin/uv build --package kfp-kubernetes'
+		    cd /go/src/github.com/kubeflow/pipelines && \
+		    ~/.local/bin/uv build --package kfp-kubernetes --out kubernetes_platform/python/dist'
 
 # Build and install in editable mode using pre-built image
 .PHONY: python-dev
