@@ -428,6 +428,34 @@ def server_factory(frontend_image,
                     # https://argo-workflows.readthedocs.io/en/latest/service-account-secrets/
                     {
                         "apiVersion": "v1",
+                        "kind": "ServiceAccount",
+                        "metadata": {
+                            "name": "ml-pipeline-driver-agent-executor-plugin",
+                            "namespace": namespace,
+                            "labels": {
+                                "application-crd-id": "kubeflow-pipelines"
+                            }
+                        },
+                        "secrets": [
+                            {
+                                "name": "ml-pipeline-driver-agent-executor-plugin.service-account-token"
+                            }
+                        ]
+                    },
+                    {
+                        "apiVersion": "v1",
+                        "kind": "Secret",
+                        "metadata": {
+                            "name": "ml-pipeline-driver-agent-executor-plugin.service-account-token",
+                            "namespace": namespace,
+                            "annotations": {
+                                "kubernetes.io/service-account.name": "ml-pipeline-driver-agent-executor-plugin"
+                            }
+                        },
+                        "type": "kubernetes.io/service-account-token"
+                    },
+                    {
+                        "apiVersion": "v1",
                         "kind": "Secret",
                         "metadata": {
                             "name": "default-editor.service-account-token",
