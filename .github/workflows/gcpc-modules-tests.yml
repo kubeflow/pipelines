@@ -23,12 +23,12 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install protobuf-compiler
-        run: sudo apt update && sudo apt install -y protobuf-compiler
+      - name: Install protobuf dependencies & generate proto files
+        uses: ./.github/actions/protobuf
 
-      - name: Generate API proto files
-        working-directory: ./api
-        run: make clean python
+      - name: Install workspace packages
+        run: |
+          uv pip install --no-deps -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
 
       - name: Install google-cloud component
         run: uv pip install components/google-cloud

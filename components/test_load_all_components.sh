@@ -23,10 +23,8 @@
 
 cd "$(dirname "$0")"
 
-PYTHONPATH="$PYTHONPATH:../sdk/python"
-
 echo "Testing loading all components"
-find . -name component.yaml | python3 -c '
+find . -name component.yaml | uv run python -c '
 import sys
 import kfp
 
