@@ -79,6 +79,13 @@ var (
 		Name: "resource_manager_workflow_runs_failed",
 		Help: "The current number of failed workflow runs",
 	}, extraLabels)
+
+	// Gap in seconds between creating an execution spec (Argo or other backend) for a recurring run and reporting it via the persistence agent.
+	recurringPipelineRunReportGap = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "resource_manager_recurring_run_report_gap",
+		Help:    "Recurring Run Report Delay",
+		Buckets: prometheus.ExponentialBuckets(0.5, 2, 10), // 0.5s -> 4min
+	})
 )
 
 type ClientManagerInterface interface {
