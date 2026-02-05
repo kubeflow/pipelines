@@ -1355,8 +1355,8 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string) error {
 
 // Creates new tasks or updates existing ones.
 // This is not a part of internal API exposed to persistence agent only.
-func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task) ([]*model.Task, error) {
-	tasks, err := r.taskStore.CreateOrUpdateTasks(t)
+func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task, runID string) ([]*model.Task, error) {
+	tasks, err := r.taskStore.CreateOrUpdateTasks(t, runID)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create or update tasks")
 	}
@@ -1505,6 +1505,10 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			},
 		}
 		run, err = r.runStore.CreateRun(run)
+		if r.options.CollectMetrics && !execStatus.StartedAtTime().Time.IsZero() {
+			reportGap := time.Since(execStatus.StartedAtTime().Time).Seconds()
+			recurringPipelineRunReportGap.Observe(reportGap)
+		}
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to report a workflow due to error creating run %s", runId)
 		} else {
