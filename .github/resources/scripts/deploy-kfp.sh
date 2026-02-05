@@ -203,10 +203,10 @@ if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
   wait_for_seaweedfs_init kubeflow "${SEAWEEDFS_INIT_TIMEOUT}" || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
   then
-    echo "SeaweedFS init job did not complete successfully."
+    echo "SeaweedFS S3 authentication setup did not complete successfully."
     exit 1
   fi
-  echo "SeaweedFS init job completed successfully."
+  echo "SeaweedFS S3 authentication is ready."
 fi
 
 if [ "${MULTI_USER}" == "true" ]; then
