@@ -30,5 +30,9 @@ jobs:
         with:
           generate_golang_proto: "false"
 
+      - name: Install workspace packages
+        run: |
+          uv pip install -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
+
       - name: Run SDK upgrade tests
         run: ./test/presubmit-test-sdk-upgrade.sh
