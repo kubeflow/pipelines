@@ -25,9 +25,12 @@ runs:
       run: |
         rm -rf dist/
         uv build
-        shopt -s nullglob
-        wheels=(dist/*.whl)
-        uv pip install --system "${wheels[@]}"
+        wheel_file=$(ls dist/*.whl 2>/dev/null | head -n1)
+        if [ -z "$wheel_file" ]; then
+          echo "Error: No wheel file found"
+          exit 1
+        fi
+        uv pip install --system "$wheel_file"
 
     - name: Build kfp dist
       id: install-kfp
@@ -36,9 +39,12 @@ runs:
       run: |
         rm -rf dist/
         uv build
-        shopt -s nullglob
-        wheels=(dist/*.whl)
-        uv pip install --system "${wheels[@]}"
+        wheel_file=$(ls dist/*.whl 2>/dev/null | head -n1)
+        if [ -z "$wheel_file" ]; then
+          echo "Error: No wheel file found"
+          exit 1
+        fi
+        uv pip install --system "$wheel_file"
 
     - name: Generate kfp-kubernetes python proto files from source
       id: generate-kfp-kubernetes-proto-files
