@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"sort"
+	"strings"
 	"time"
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
@@ -121,11 +122,24 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 				}
 			case run_model.V2beta1RuntimeStateFAILED:
 				{
+					agentLogsNotYetAcquired := true
 					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
 					for _, childTask := range task.ChildTasks {
 						podName := childTask.PodName
+						isDriver := strings.Contains(task.DisplayName, "-driver")
 						if podName != "" {
-							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
+							if isDriver {
+								if agentLogsNotYetAcquired {
+									logger.Log("Capturing pod logs for task executor agent, with pod name %s", podName)
+									podName += "-agent"
+									agentLogsNotYetAcquired = false
+								} else {
+									logger.Log("Logs from agent pod was already captured")
+									continue
+								}
+							} else {
+								logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
+							}
 							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 							logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
 							logger.Log("Attaching pod logs to the report")
