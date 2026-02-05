@@ -82,7 +82,7 @@ wait_for_seaweedfs_init () {
         current_time=$(date +%s)
         elapsed=$((current_time - start_time))
         
-        if [ "$elapsed" -ge "$timeout_seconds" ]; then
+        if [[ "$elapsed" -ge "$timeout_seconds" ]]; then
             echo "ERROR: Timeout waiting for SeaweedFS S3 authentication after ${elapsed}s"
             kubectl -n "$namespace" logs deploy/seaweedfs --tail=50 || true
             return 1
