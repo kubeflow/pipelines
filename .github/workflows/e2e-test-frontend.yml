@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   frontend-integration-test:
     runs-on: ubuntu-latest
