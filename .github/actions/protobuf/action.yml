@@ -57,7 +57,13 @@ runs:
     - name: Install kfp-pipeline-spec from source
       shell: bash
       run: |
-        uv pip install --system api/v2alpha1/python/dist/*.whl
+        shopt -s nullglob
+        wheels=(api/v2alpha1/python/dist/*.whl)
+        if [ ${#wheels[@]} -eq 0 ]; then
+          echo "Error: No wheel files found in api/v2alpha1/python/dist/"
+          exit 1
+        fi
+        uv pip install --system "${wheels[@]}"
 
     - name: Generate kfp-pipeline-spec golang files
       if: ${{ inputs.generate_golang_proto == 'true' }}

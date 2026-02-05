@@ -25,7 +25,9 @@ runs:
       run: |
         rm -rf dist/
         uv build
-        uv pip install --system dist/*.whl
+        shopt -s nullglob
+        wheels=(dist/*.whl)
+        uv pip install --system "${wheels[@]}"
 
     - name: Build kfp dist
       id: install-kfp
@@ -34,7 +36,9 @@ runs:
       run: |
         rm -rf dist/
         uv build
-        uv pip install --system dist/*.whl
+        shopt -s nullglob
+        wheels=(dist/*.whl)
+        uv pip install --system "${wheels[@]}"
 
     - name: Generate kfp-kubernetes python proto files from source
       id: generate-kfp-kubernetes-proto-files
