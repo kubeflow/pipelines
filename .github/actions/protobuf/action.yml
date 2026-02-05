@@ -38,16 +38,10 @@ runs:
         rm $PROTOC_ZIP
         protoc --version
 
-    - name: Setup uv
-      shell: bash
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-
     - name: Install protobuf dependencies with uv
       shell: bash
       run: |
-        uv pip install --system setuptools==${{inputs.setuptools_version}} wheel==${{inputs.wheels_version}} protobuf==${{inputs.protobuf_python_version}}
+        uv pip install setuptools==${{inputs.setuptools_version}} wheel==${{inputs.wheels_version}} protobuf==${{inputs.protobuf_python_version}}
 
     - name: Generate API proto files
       working-directory: ./api
@@ -62,7 +56,7 @@ runs:
           echo "Error: No wheel files found in api/v2alpha1/python/dist/"
           exit 1
         fi
-        uv pip install --system "$wheel_file"
+        uv pip install "$wheel_file"
 
     - name: Generate kfp-pipeline-spec golang files
       if: ${{ inputs.generate_golang_proto == 'true' }}
