@@ -45,7 +45,7 @@ spec:
                   name: pipeline-install-config
                   key: bucketName
             - name: OBJECTSTORECONFIG_HOST
-              value: "minio-service.kubeflow"
+              value: "seaweedfs.kubeflow"
             - name: OBJECTSTORECONFIG_PORT
               value: "9000"
             # relic variables
