@@ -47,9 +47,9 @@ jobs:
         run: |
           cd api
           make python
-          cd v2alpha1/python
-          uv build --package kfp-pipeline-spec
-          twine check dist/*
+          cd ..
+          uv build --package kfp-pipeline-spec --out api/v2alpha1/python/dist
+          uv run twine check api/v2alpha1/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -84,10 +84,9 @@ jobs:
 
       - name: Build kfp-server-api
         run: |
-          cd backend/api/v2beta1/python_http_client
-          rm -rf dist
-          uv build --package kfp-server-api
-          twine check dist/*
+          rm -rf backend/api/v2beta1/python_http_client/dist
+          uv build --package kfp-server-api --out backend/api/v2beta1/python_http_client/dist
+          uv run twine check backend/api/v2beta1/python_http_client/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -126,9 +125,9 @@ jobs:
         run: |
           cd sdk
           make python
-          cd python
-          uv build --package kfp
-          twine check dist/*
+          cd ..
+          uv build --package kfp --out sdk/python/dist
+          uv run twine check sdk/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -167,9 +166,9 @@ jobs:
         run: |
           cd kubernetes_platform
           make python
-          cd python
-          uv build --package kfp-kubernetes
-          twine check dist/*
+          cd ..
+          uv build --package kfp-kubernetes --out kubernetes_platform/python/dist
+          uv run twine check kubernetes_platform/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
