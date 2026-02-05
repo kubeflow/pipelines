@@ -24,14 +24,11 @@ jobs:
           python-version: "3.10"
           extra: docs
 
-      - name: Generate proto files
+      - name: Generate proto files and install packages
         run: |
           make -C api python
           make -C kubernetes_platform python
-
-      - name: Install workspace packages
-        run: |
-          uv pip install -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
+          uv pip install --no-deps -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
 
       - name: Build KFP SDK Docs
         working-directory: docs/sdk
