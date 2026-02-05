@@ -12,12 +12,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup uv
-      shell: bash
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-
     - name: Build & install kfp-server-api dist
       id: install-kfp-server-api
       shell: bash
@@ -30,7 +24,7 @@ runs:
           echo "Error: No wheel file found"
           exit 1
         fi
-        uv pip install --system "$wheel_file"
+        uv pip install "$wheel_file"
 
     - name: Build kfp dist
       id: install-kfp
@@ -44,7 +38,7 @@ runs:
           echo "Error: No wheel file found"
           exit 1
         fi
-        uv pip install --system "$wheel_file"
+        uv pip install "$wheel_file"
 
     - name: Generate kfp-kubernetes python proto files from source
       id: generate-kfp-kubernetes-proto-files
@@ -68,7 +62,7 @@ runs:
       shell: bash
       if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
       run: |
-        uv pip install --system -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
+        uv pip install -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
 
     # testing reinstalling kfp package from source with no deps
     - name: Reinstall kfp from source with no deps
@@ -77,4 +71,4 @@ runs:
       if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
       working-directory: ./sdk/python
       run: |
-        uv pip install --system . -I --no-deps
+        uv pip install . -I --no-deps
