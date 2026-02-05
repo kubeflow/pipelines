@@ -19,7 +19,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   kfp-kubernetes-native-migration-tests:
     runs-on: ubuntu-24.04

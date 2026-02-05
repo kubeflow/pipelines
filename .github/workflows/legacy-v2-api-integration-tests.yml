@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   api-integration-tests-v2:
     runs-on: ubuntu-latest
