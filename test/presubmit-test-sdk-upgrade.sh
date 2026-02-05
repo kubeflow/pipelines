@@ -15,6 +15,11 @@
 
 set -ex
 
+# This test verifies that upgrading from the latest PyPI release to HEAD works correctly.
+# We intentionally use pip (not uv) for the initial install and final upgrade to simulate
+# the real-world upgrade path that users would experience. uv is only used for building
+# the packages from source.
+
 # Install the latest released version of KFP from PyPI
 python3 -m pip install --upgrade pip
 python3 -m pip install kfp
