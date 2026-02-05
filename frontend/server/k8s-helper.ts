@@ -19,7 +19,7 @@ import {
   V1Pod,
   V1ConfigMap,
 } from '@kubernetes/client-node';
-import * as crypto from 'crypto-js';
+import crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper.js';
 import { parseError, findFileOnPodVolume, isAllowedResourceName } from './utils.js';
