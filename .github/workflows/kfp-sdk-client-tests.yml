@@ -24,7 +24,7 @@ env:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   sdk-client-tests:
     runs-on: ubuntu-24.04
