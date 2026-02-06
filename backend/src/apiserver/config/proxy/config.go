@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	HttpProxyEnv  = "HTTP_PROXY"
-	HttpsProxyEnv = "HTTPS_PROXY"
+	HTTPProxyEnv  = "HTTP_PROXY"
+	HTTPSProxyEnv = "HTTPS_PROXY"
 	NoProxyEnv    = "NO_PROXY"
 )
 
@@ -70,11 +70,11 @@ func newConfig(httpProxy string, httpsProxy string, noProxy string) Config {
 }
 
 func newConfigFromEnv() Config {
-	httpProxyValue, isHttpProxySet := os.LookupEnv(HttpProxyEnv)
-	httpsProxyValue, isHttpsProxySet := os.LookupEnv(HttpsProxyEnv)
+	httpProxyValue, isHTTPProxySet := os.LookupEnv(HTTPProxyEnv)
+	httpsProxyValue, isHTTPSProxySet := os.LookupEnv(HTTPSProxyEnv)
 	noProxyValue, isNoProxySet := os.LookupEnv(NoProxyEnv)
 
-	if (isHttpProxySet || isHttpsProxySet) && !isNoProxySet {
+	if (isHTTPProxySet || isHTTPSProxySet) && !isNoProxySet {
 		return newConfig(httpProxyValue, httpsProxyValue, getDefaultNoProxyValue())
 	}
 
