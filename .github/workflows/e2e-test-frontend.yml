@@ -7,6 +7,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/e2e-test-frontend.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/actions/deploy/**'
+      - '.github/resources/**'
       - 'frontend/**'
       - 'manifests/kustomize/**'
       - 'test/server-integration-test/**'

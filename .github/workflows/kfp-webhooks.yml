@@ -7,8 +7,10 @@ on:
   pull_request:
     paths:
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
+      - '.github/workflows/image-builds.yml'
       - 'backend/**'
       - '!**/*.md'
       - '!**/OWNERS'

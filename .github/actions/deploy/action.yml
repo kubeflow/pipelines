@@ -59,7 +59,7 @@ runs:
     - name: Download Docker Images
       uses: actions/download-artifact@v6
       with:
-        path: "images_${{ github.sha }}"
+        path: "images_${{ github.run_id }}"
 
     - name: Load Docker Images
       shell: bash
