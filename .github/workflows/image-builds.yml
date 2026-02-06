@@ -67,7 +67,7 @@ jobs:
             context: .
     env:
       ARTIFACT_NAME: "${{ matrix.image }}"
-      ARTIFACTS_PATH: "images_${{ github.sha }}"
+      ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
