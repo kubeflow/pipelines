@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as os from 'os';
-import { loadConfigs } from './configs';
+import { loadConfigs } from './configs.js';
 
 describe('loadConfigs', () => {
   it('should throw error if no static dir provided', () => {

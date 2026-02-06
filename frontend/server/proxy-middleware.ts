@@ -15,7 +15,7 @@
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
   const index = referer.indexOf(proxyPrefix);

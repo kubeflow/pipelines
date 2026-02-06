@@ -30,6 +30,12 @@ inputs:
     required: false
     default: '3.9'
     description: "Python version to use"
+  report_python_version:
+    required: false
+    # Reporting uses a newer cached runtime to avoid setup-python
+    # rate-limit downloads and to keep junit2html/junit summary tooling stable.
+    default: '3.11'
+    description: "Python version to use for test reporting steps"
   test_directory:
     required: true
     description: "Test Working Directory"
@@ -61,10 +67,16 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ inputs.python_version }}
+    - name: Port-forward MinIO service for archived workflow logs
+      id: port-forward-minio
+      if: (!cancelled())
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        pkill -f "kubectl port-forward.*minio" || true
+        kubectl port-forward -n "$NAMESPACE" service/minio-service 9000:9000 > /dev/null 2>&1 &
+        sleep 5
+      continue-on-error: true
 
     - name: Run Tests
       id: run-tests
@@ -91,7 +103,7 @@ runs:
         fi
         PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
         REPO_NAME="${{ github.repository }}"
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} -v --label-filter=${{ inputs.test_label }} -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
@@ -101,17 +113,30 @@ runs:
       run: |
         echo "=== Current disk usage ==="
         df -h
-        NAMESPACE=${{ env.NAMESPACE }}
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          NAMESPACE=${{ inputs.namespace }}
-        fi
+        NAMESPACE="${{ inputs.default_namespace }}"
         ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+      continue-on-error: true
 
-    - name: Install Junit2Html plugin and generate report
-      if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+    - name: Set up Python for reporting
+      uses: actions/setup-python@v6
+      if: (!cancelled())
+      with:
+        python-version: ${{ inputs.report_python_version }}
+        cache: 'pip'
+
+    - name: Install Junit2Html plugin
+      id: install-junit2html
+      if: (!cancelled())
       shell: bash
       run: |
         pip install junit2html
+      continue-on-error: true
+
+    - name: Generate HTML report
+      id: generate-html-report
+      if: (!cancelled()) && steps.install-junit2html.outcome == 'success'
+      shell: bash
+      run: |
         junit2html ${{ inputs.test_directory }}/reports/junit.xml ${{ inputs.test_directory }}/reports/test-report.html
       continue-on-error: true
 
@@ -129,7 +154,7 @@ runs:
     - name: Upload HTML Report
       id: upload
       uses: actions/upload-artifact@v4
-      if: (!cancelled())
+      if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
@@ -139,26 +164,23 @@ runs:
     - name: Publish Test Summary With HTML Report
       id: publish
       uses: ./.github/actions/junit-summary
-      if: (!cancelled()) && steps.upload.outcome != 'failure'
+      if: always() && !cancelled()
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
         custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
       continue-on-error: true
 
-    - name: Publish Test Summary
-      id: summary
-      uses: ./.github/actions/junit-summary
-      if: (!cancelled()) && steps.upload.outcome == 'failure'
-      with:
-        xml_files: '${{ inputs.test_directory }}/reports'
-      continue-on-error: true
-
-    - name: Mark Workflow failure if test step failed
-      if: steps.run-tests.outcome != 'success' && !cancelled()
+    - name: Mark Workflow failure if test reporting failed
+      if: always() && !cancelled() && (
+        steps.install-junit2html.outcome == 'failure' ||
+        steps.generate-html-report.outcome == 'failure' ||
+        steps.upload.outcome != 'success' ||
+        steps.publish.outcome == 'failure'
+        )
       shell: bash
       run: exit 1
 
-    - name: Mark Workflow failure if test reporting failed
-      if: (steps.publish.outcome == 'failure' || steps.summary.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
+    - name: Mark Workflow failure if test step failed
+      if: steps.run-tests.outcome != 'success' && !cancelled()
       shell: bash
       run: exit 1

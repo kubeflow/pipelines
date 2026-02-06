@@ -8,12 +8,14 @@ spec:
   dnsNames:
     - ml-pipeline
     - ml-pipeline.kubeflow
+    - ml-pipeline.$(kfp-namespace).svc.cluster.local
     - ml-pipeline-scheduledworkflow
     - metadata-envoy
     - metadata-envoy-service
     - metadata-grpc-service
     - metadata-grpc-service.kubeflow
     - metadata-grpc-service.$(kfp-namespace).svc.cluster.local
+    # localhost included here because cert is used in KFP pod-to-pod TLS-enabled testing against localhost base URL
     - localhost
   ipAddresses:
     # Necessary for running TLS-enabled cluster locally.

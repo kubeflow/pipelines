@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2025-09-24
+- Last updated: 2026-01-20
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 16)
 
 ### Maintenance (agents and contributors)
@@ -450,6 +450,8 @@ The frontend includes several generated code components:
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
+- The `create-cluster` action caches Kind node images by Kubernetes version to reduce Docker Hub pulls.
+- Python workflows use `actions/cache@v5` for pip cache to reduce repeated dependency installs.
 
 ### Code style and formatting
 

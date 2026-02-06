@@ -54,7 +54,7 @@ concurrency:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   api-test-standalone:
     needs: build

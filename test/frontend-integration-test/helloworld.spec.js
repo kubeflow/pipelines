@@ -34,7 +34,7 @@ async function getValueFromDetailsTable(key) {
 }
 
 async function clearDefaultInput() {
-  await browser.keys(['Control', 'a'])
+  await browser.keys(['Control', 'a']);
   await browser.keys('Backspace');
 }
 
@@ -65,7 +65,10 @@ describe('deploy helloworld sample run', () => {
 
   it('shows a 4-node static graph', async () => {
     const nodeSelector = '.graphNode';
-    await $(nodeSelector);
+    await browser.waitUntil(async () => {
+      const nodes = await $$(nodeSelector);
+      return nodes.length === 4;
+    }, waitTimeout);
     const nodes = await $$(nodeSelector);
     assert(nodes.length === 4, 'should have a 4-node graph, instead has: ' + nodes.length);
   });
@@ -86,8 +89,31 @@ describe('deploy helloworld sample run', () => {
     await $('#choosePipelineBtn').waitForDisplayed();
     await $('#choosePipelineBtn').click();
 
-    await $('.tableRow').waitForDisplayed();
-    await $('.tableRow').click();
+    await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
+    try {
+      await browser.waitUntil(
+        async () => (await $$('[data-testid="table-row"]')).length > 0,
+        waitTimeout,
+        'expected at least one pipeline row to appear',
+      );
+    } catch (err) {
+      const rowCount = await browser.execute(
+        () => document.querySelectorAll('[data-testid="table-row"]').length,
+      );
+      const emptyMessage = await browser.execute(() => {
+        const emptyEl = document.querySelector('.emptyMessage');
+        return emptyEl ? emptyEl.textContent : null;
+      });
+      console.log('PIPELINE_SELECTOR_ROW_COUNT', rowCount);
+      console.log('PIPELINE_SELECTOR_EMPTY_MESSAGE', emptyMessage);
+      await browser.saveScreenshot(
+        process.env.PIPELINE_SELECTOR_SCREENSHOT || '/tmp/kfp-pipeline-selector.png',
+      );
+      throw err;
+    }
+    const pipelineRows = await $$('[data-testid="table-row"]');
+    assert(pipelineRows.length > 0, 'expected at least one pipeline row');
+    await pipelineRows[0].click();
 
     await $('#usePipelineBtn').click();
 
@@ -96,8 +122,15 @@ describe('deploy helloworld sample run', () => {
     await $('#choosePipelineVersionBtn').waitForDisplayed();
     await $('#choosePipelineVersionBtn').click();
 
-    await $('.tableRow').waitForDisplayed();
-    await $('.tableRow').click();
+    await $('#pipelineVersionSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
+    await browser.waitUntil(
+      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      waitTimeout,
+      'expected at least one pipeline version row to appear',
+    );
+    const pipelineVersionRows = await $$('[data-testid="table-row"]');
+    assert(pipelineVersionRows.length > 0, 'expected at least one pipeline version row');
+    await pipelineVersionRows[0].click();
 
     await $('#usePipelineVersionBtn').click();
 
@@ -122,40 +155,33 @@ describe('deploy helloworld sample run', () => {
     await $('#startNewRunBtn').click();
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('redirects back to experiment page', async () => {
+  it('redirects back to experiment page', async () => {
     await browser.waitUntil(async () => {
       return new URL(await browser.getUrl()).hash.startsWith('#/experiments/details/');
     }, waitTimeout);
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('finds the new run in the list of runs, navigates to it', async () => {
+  it('finds the new run in the list of runs, navigates to it', async () => {
     let attempts = 30;
+    const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
 
     // Wait for a reasonable amount of time until the run starts
-    while (attempts && !$('.tableRow a').isExisting()) {
+    while (attempts && !(await $(runLinkSelector).isExisting())) {
       await browser.pause(1000);
       await $('#refreshBtn').click();
       --attempts;
     }
 
     assert(attempts, 'waited for 30 seconds but run did not start.');
-
-    assert.equal(await $$('.tableRow').length, 1, 'should only show one run');
-
-    // Navigate to details of the deployed run by clicking its anchor element
-    await browser.execute('document.querySelector(".tableRow a").click()');
+    await $(runLinkSelector).click();
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('switches to config tab', async () => {
+  it('switches to config tab', async () => {
     await $('button=Config').waitForDisplayed({ timeout: waitTimeout });
     await $('button=Config').click();
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('waits for run to finish', async () => {
+  it('waits for run to finish', async () => {
     let status = await getValueFromDetailsTable('Status');
 
     let attempts = 0;
@@ -176,8 +202,7 @@ describe('deploy helloworld sample run', () => {
     );
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('displays run created at date correctly', async () => {
+  it('displays run created at date correctly', async () => {
     const date = await getValueFromDetailsTable('Created at');
     assert(
       Date.now() - new Date(date) < 10 * 60 * 1000,
@@ -185,39 +210,33 @@ describe('deploy helloworld sample run', () => {
     );
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('displays run description inputs correctly', async () => {
+  it('displays run description inputs correctly', async () => {
     const descriptionValue = await getValueFromDetailsTable('Description');
     assert.equal(descriptionValue, runDescription, 'run description is not shown correctly');
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('displays run inputs correctly', async () => {
+  it('displays run inputs correctly', async () => {
     const paramValue = await getValueFromDetailsTable('message');
     assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('switches back to graph tab', async () => {
+  it('switches back to graph tab', async () => {
     await $('button=Graph').click();
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('has a 4-node graph', async () => {
+  it('has a 4-node graph', async () => {
     const nodeSelector = '.graphNode';
-    const nodes = await $$(nodeSelector).length;
+    const nodes = (await $$(nodeSelector)).length;
     assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('opens the side panel when graph node is clicked', async () => {
+  it('opens the side panel when graph node is clicked', async () => {
     await $('.graphNode').click();
     await browser.pause(1000);
     await $('button=Logs').waitForDisplayed();
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('shows logs from node', async () => {
+  it('shows logs from node', async () => {
     await $('button=Logs').click();
     await $('#logViewer').waitForDisplayed();
     await browser.waitUntil(async () => {
@@ -226,28 +245,53 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('navigates to the runs page', async () => {
+  it('navigates to the runs page', async () => {
     await $('#runsBtn').click();
     await browser.waitUntil(async () => {
       return new URL(await browser.getUrl()).hash.startsWith('#/runs');
     }, waitTimeout);
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('creates a new run without selecting an experiment', async () => {
+  it('creates a new run without selecting an experiment', async () => {
     await $('#createNewRunBtn').waitForDisplayed();
     await $('#createNewRunBtn').click();
 
     await $('#choosePipelineBtn').waitForDisplayed();
     await $('#choosePipelineBtn').click();
 
-    await $('.tableRow').waitForDisplayed();
-    await $('.tableRow').click();
+    await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
+    await browser.waitUntil(
+      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      waitTimeout,
+      'expected at least one pipeline row to appear',
+    );
+    const pipelineRows = await $$('[data-testid="table-row"]');
+    assert(pipelineRows.length > 0, 'expected at least one pipeline row');
+    await pipelineRows[0].click();
 
     await $('#usePipelineBtn').click();
 
     await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
+
+    await $('#choosePipelineVersionBtn').waitForDisplayed();
+    await $('#choosePipelineVersionBtn').click();
+
+    await $('#pipelineVersionSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
+    await browser.waitUntil(
+      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      waitTimeout,
+      'expected at least one pipeline version row to appear',
+    );
+    const pipelineVersionRows = await $$('[data-testid="table-row"]');
+    assert(pipelineVersionRows.length > 0, 'expected at least one pipeline version row');
+    await pipelineVersionRows[0].click();
+
+    await $('#usePipelineVersionBtn').click();
+
+    await $('#pipelineVersionSelectorDialog').waitForDisplayed({
+      timeout: waitTimeout,
+      reverse: true,
+    });
 
     await $('#runNameInput').click();
     await browser.keys(runWithoutExperimentName);
@@ -263,8 +307,7 @@ describe('deploy helloworld sample run', () => {
     await $('#startNewRunBtn').click();
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('redirects back to all runs page', async () => {
+  it('redirects back to all runs page', async () => {
     await browser.waitUntil(
       async () => {
         return new URL(await browser.getUrl()).hash === '#/runs';
@@ -274,44 +317,68 @@ describe('deploy helloworld sample run', () => {
     );
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('displays both runs in all runs page', async () => {
-    await $('.tableRow').waitForDisplayed();
-    const rows = await $$('.tableRow').length;
-    assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
+  it('displays both runs in all runs page', async () => {
+    await $('#tableFilterBox').waitForDisplayed();
+
+    const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
+    await $('#tableFilterBox').click();
+    await clearDefaultInput();
+    await browser.keys(runName);
+    await browser.waitUntil(
+      async () => (await $(runLinkSelector).isExisting()),
+      waitTimeout,
+      `expected run named ${runName} to appear in runs list`,
+    );
+
+    const runWithoutExperimentLinkSelector =
+      `[data-testid="run-name-link"][data-run-name*="${runWithoutExperimentName}"]`;
+    await $('#tableFilterBox').click();
+    await clearDefaultInput();
+    await browser.keys(runWithoutExperimentName);
+    await browser.waitUntil(
+      async () => (await $(runWithoutExperimentLinkSelector).isExisting()),
+      waitTimeout,
+      `expected run named ${runWithoutExperimentName} to appear in runs list`,
+    );
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('navigates back to the experiment list', async () => {
+  it('navigates back to the experiment list', async () => {
     await $('button=Experiments').click();
     await browser.waitUntil(async () => {
       return new URL(await browser.getUrl()).hash.startsWith('#/experiments');
     }, waitTimeout);
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('displays both experiments in the list', async () => {
-    await $('.tableRow').waitForDisplayed();
-    const rows = await $$('.tableRow').length;
+  it('displays both experiments in the list', async () => {
+    await $('[data-testid="experiment-name-link"]').waitForDisplayed();
+    const rows = (await $$('[data-testid="experiment-name-link"]')).length;
+    const experimentLinkSelector =
+      `[data-testid="experiment-name-link"][data-experiment-name="${experimentName}"]`;
+    assert(rows >= 2, `expected at least two experiments, got: ${rows}`);
     assert(
-      rows === 2,
-      'there should now be two experiments in the table, instead there are: ' + rows,
+      await $(experimentLinkSelector).isExisting(),
+      `expected experiment named ${experimentName} to exist`,
     );
   });
 
-  // Skipped while https://github.com/kubeflow/pipelines/issues/10881 is not resolved
-  it.skip('filters the experiment list', async () => {
-    // Enter "hello" into filter bar
+  it('filters the experiment list', async () => {
     await $('#tableFilterBox').click();
-    await browser.keys(experimentName.substring(0, 5));
+    await clearDefaultInput();
+    await browser.keys(experimentName);
     // Wait for the list to refresh
     await browser.pause(2000);
 
-    await $('.tableRow').waitForDisplayed();
-    const rows = await $$('.tableRow').length;
+    await $('[data-testid="experiment-name-link"]').waitForDisplayed();
+    const rows = (await $$('[data-testid="experiment-name-link"]')).length;
+    const experimentLinkSelector =
+      `[data-testid="experiment-name-link"][data-experiment-name="${experimentName}"]`;
     assert(
       rows === 1,
       'there should now be one experiment in the table, instead there are: ' + rows,
+    );
+    assert(
+      await $(experimentLinkSelector).isExisting(),
+      `expected experiment named ${experimentName} to exist after filtering`,
     );
   });
 

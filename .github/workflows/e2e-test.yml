@@ -52,7 +52,7 @@ concurrency:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest

@@ -504,7 +504,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := taskStore.patchWithExistingTasks(tt.tasks)
+			err := taskStore.patchWithExistingTasks(tt.tasks, defaultFakeRunIdTwo)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
@@ -611,7 +611,7 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := taskStore.CreateOrUpdateTasks(tt.tasks)
+			got, err := taskStore.CreateOrUpdateTasks(tt.tasks, defaultFakeRunIdTwo)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.want, got)
 		})
