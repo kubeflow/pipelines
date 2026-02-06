@@ -61,47 +61,6 @@ wait_for_pods () {
     python "${C_DIR}"/kfp-readiness/wait_for_pods.py
 }
 
-wait_for_seaweedfs_init () {
-    # Wait for SeaweedFS S3 authentication to be configured via postStart lifecycle hook.
-    # The postStart hook creates the mlpipeline bucket and configures the kubeflow-admin
-    # identity with S3 credentials. This function polls until that configuration is complete.
-    local namespace="$1"
-    local timeout="$2"
-    local start_time
-    local timeout_seconds
-    
-    start_time=$(date +%s)
-    timeout_seconds=${timeout%s}  # Remove 's' suffix if present
-    
-    echo "Waiting for SeaweedFS S3 authentication to be configured..."
-    
-    while true; do
-        local current_time
-        local elapsed
-        
-        current_time=$(date +%s)
-        elapsed=$((current_time - start_time))
-        
-        if [[ "$elapsed" -ge "$timeout_seconds" ]]; then
-            echo "ERROR: Timeout waiting for SeaweedFS S3 authentication after ${elapsed}s"
-            kubectl -n "$namespace" logs deploy/seaweedfs --tail=50 || true
-            return 1
-        fi
-        
-        # Check if S3 auth is configured by verifying kubeflow-admin identity exists.
-        # The s3.configure command without arguments lists all configured identities.
-        # We suppress stderr to avoid noise from connection errors during startup.
-        if kubectl -n "$namespace" exec deploy/seaweedfs -c seaweedfs -- \
-            /bin/sh -c "echo 's3.configure' | /usr/bin/weed shell 2>/dev/null" 2>/dev/null | grep -q "kubeflow-admin"; then
-            echo "SeaweedFS S3 authentication is configured (${elapsed}s elapsed)"
-            return 0
-        fi
-        
-        echo "Waiting for SeaweedFS S3 auth... (${elapsed}s elapsed)"
-        sleep 5
-    done
-}
-
 deploy_with_retries () {
     if [[ $# -ne 4 ]]
     then
