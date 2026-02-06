@@ -251,23 +251,42 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	if err != nil {
 		return nil, err
 	}
-	if params.FromEnv {
+
+	// Fetch credentials from Kubernetes Secret only if not using environment credentials
+	var creds *credentials.StaticCredentialsProvider
+	if !params.FromEnv {
+		creds, err = getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// If FromEnv is true and no endpoint/region is specified, return nil to use default blob.OpenBucket
+	if params.FromEnv && params.Endpoint == "" && params.Region == "" {
 		return nil, nil
 	}
-	creds, err := getS3BucketCredential(ctx, client, namespace, params.SecretName, params.SecretKeyKey, params.AccessKeyKey)
-	if err != nil {
-		return nil, err
-	}
-	s3Config, err := config.LoadDefaultConfig(ctx,
+
+	// Build config options
+	configOpts := []func(*config.LoadOptions) error{
 		config.WithRetryer(func() aws.Retryer {
 			// Use standard retry logic with exponential backoff for transient S3 connection failures.
 			// The standard retryer implements exponential backoff with jitter, starting with a base delay
 			// and doubling the wait time between retries up to a maximum, helping to avoid thundering herd problems.
 			return retry.AddWithMaxAttempts(retry.NewStandard(), params.MaxRetries)
 		}),
-		config.WithCredentialsProvider(*creds),
-		config.WithRegion(*aws.String(params.Region)),
-	)
+	}
+
+	// Add credentials provider only if we have credentials from K8s Secret
+	if creds != nil {
+		configOpts = append(configOpts, config.WithCredentialsProvider(*creds))
+	}
+
+	// Add region if specified
+	if params.Region != "" {
+		configOpts = append(configOpts, config.WithRegion(*aws.String(params.Region)))
+	}
+
+	s3Config, err := config.LoadDefaultConfig(ctx, configOpts...)
 	if err != nil {
 		return nil, err
 	}
