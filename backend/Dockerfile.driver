@@ -14,12 +14,17 @@
 
 # Build arguments
 ARG SOURCE_CODE=.
+ARG FIPS_ENABLED=1
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 
 FROM registry.access.redhat.com/ubi9/go-toolset:1.24 AS builder
 
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
+ARG FIPS_ENABLED
+ARG TARGETOS
 ARG TARGETARCH
 
 ## Switch to root as required for some operations
@@ -35,7 +40,18 @@ RUN GO111MODULE=on go mod download
 # Copy the source
 COPY ${SOURCE_CODE}/ ./
 
-RUN GO111MODULE=on CGO_ENABLED=1 GOOS=linux GOARCH=${TARGETARCH:-amd64} GOEXPERIMENT=strictfipsruntime go build -tags 'netgo strictfipsruntime' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
+# FIPS_ENABLED=1 (default): FIPS-compliant build with strictfipsruntime (requires CGO)
+# FIPS_ENABLED=0: Non-FIPS build for local development on Apple Silicon (pure Go, no CGO)
+RUN if [ "${FIPS_ENABLED}" = "0" ]; then \
+      GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+        go build -tags netgo -o /bin/driver ./backend/src/v2/cmd/driver/*.go; \
+    elif [ "${FIPS_ENABLED}" = "1" ]; then \
+      GO111MODULE=on CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+        GOEXPERIMENT=strictfipsruntime \
+        go build -tags 'netgo strictfipsruntime' -o /bin/driver ./backend/src/v2/cmd/driver/*.go; \
+    else \
+      echo "ERROR: FIPS_ENABLED must be '0' or '1', got '${FIPS_ENABLED}'" && exit 1; \
+    fi
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
 
