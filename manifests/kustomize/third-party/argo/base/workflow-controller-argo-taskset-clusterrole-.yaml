@@ -1,0 +1,24 @@
+# Argo Workflow and the Agent communicate via the new WorkflowTaskSet CR,
+# so RBAC permissions are required for this resource.
+# Details: https://argo-workflows.readthedocs.io/en/latest/http-template/#argo-agent-rbac
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argo-workflowtaskset-status
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtasksets/status"]
+    verbs: ["get","list","watch","update","patch","delete","create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-workflowtaskset-status-binding
+subjects:
+  - kind: ServiceAccount
+    name: argo
+    namespace: kubeflow
+roleRef:
+  kind: ClusterRole
+  name: argo-workflowtaskset-status
+  apiGroup: rbac.authorization.k8s.io
