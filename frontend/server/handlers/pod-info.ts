@@ -13,9 +13,12 @@
 // limitations under the License.
 
 import { Handler } from 'express';
-import * as k8sHelper from '../k8s-helper';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
-import { AuthorizeFn } from '../helpers/auth';
+import * as k8sHelper from '../k8s-helper.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
+import { AuthorizeFn } from '../helpers/auth.js';
 
 /**
  * Get pod info handlers.
