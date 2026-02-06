@@ -112,7 +112,6 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
            timeout: int, version: str, args: List[str]):
     """Submit a pipeline run."""
     client_obj: client.Client = ctx.obj['client']
-    namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
     if not run_name:
         run_name = experiment_name
@@ -165,7 +164,6 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
 def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
     """Get information about a pipeline run."""
     client_obj: client.Client = ctx.obj['client']
-    namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
     if detail:
         output_format = 'json'
