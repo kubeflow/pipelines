@@ -194,7 +194,11 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 
 func GetMLPipelineServerConfig() *ServerConfig {
 	return &ServerConfig{
+<<<<<<< HEAD
 		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc.cluster.local",
+=======
+		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
+>>>>>>> c3d669c52 (add CLUSTER_DOMAIN env var to deployment and unit tests for GetClusterDomain)
 		Port:    mlPipelineGrpcServicePort,
 	}
 }
