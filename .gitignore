@@ -104,3 +104,7 @@ logs/
 
 # Project-local tools
 bin/
+
+# UI Smoke Test working directory
+.ui-smoke-test/
+scripts/ui-smoke-test/node_modules/
