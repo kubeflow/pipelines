@@ -34,6 +34,7 @@ STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
 SEAWEEDFS_INIT_TIMEOUT=300s
+SKIP_METADATA_ENVOY=false
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -76,6 +77,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --tls-enabled)
       POD_TO_POD_TLS_ENABLED=true
+      shift
+      ;;
+    --skip-metadata-envoy)
+      SKIP_METADATA_ENVOY=true
       shift
       ;;
   esac
@@ -188,6 +193,13 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
   exit 1
+fi
+
+if [ "${SKIP_METADATA_ENVOY}" == "true" ]; then
+  echo "Skipping metadata-envoy; removing deployment/service/configmap before readiness checks..."
+  kubectl -n kubeflow delete deployment/metadata-envoy-deployment --ignore-not-found
+  kubectl -n kubeflow delete service/metadata-envoy-service --ignore-not-found
+  kubectl -n kubeflow delete configmap/metadata-envoy-configmap --ignore-not-found
 fi
 
 # Check if all pods are running - (10 minutes)

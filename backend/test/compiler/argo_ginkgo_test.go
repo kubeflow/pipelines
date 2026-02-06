@@ -118,6 +118,7 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 				It(fmt.Sprintf("When I compile %s pipeline spec, then the compiled yaml should be %s", pipelineSpecFileName, compiledWorkflowFileName), func() {
 					testutil.CheckIfSkipping(pipelineSpecFileName)
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
+					param.compilerOptions.PipelineVersionID = testutil.EnsurePipelineVersionID()
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
 					if *createMissingGoldenFiles || *updateGoldenFiles {
 						var configuredWorkflow *v1alpha1.Workflow
@@ -140,4 +141,14 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 			}
 		})
 	}
+})
+
+var _ = Describe("Compiler validation >", Label(NEGATIVE, WorkflowCompiler), func() {
+	It("fails when max_active_runs is set without a pipeline version ID", func() {
+		pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDirectory, "essential", "pipeline_with_max_active_runs.yaml")
+		pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, false, nil)
+		_, err := argocompiler.Compile(pipelineSpecs, platformSpec, &argocompiler.Options{})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("maxActiveRuns requires a pipeline version ID to enforce concurrency limits"))
+	})
 })

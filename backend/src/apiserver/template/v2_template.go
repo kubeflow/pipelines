@@ -85,6 +85,27 @@ func (t *V2Spec) PlatformSpec() *pipelinespec.PlatformSpec {
 	return t.platformSpec
 }
 
+// MaxActiveRuns returns the configured max_active_runs from the Kubernetes platform spec.
+// The second return value indicates whether the field was explicitly set.
+func (t *V2Spec) MaxActiveRuns() (int32, bool, error) {
+	if t.platformSpec == nil {
+		return 0, false, nil
+	}
+	kubernetesSpec, ok := t.platformSpec.Platforms["kubernetes"]
+	if !ok || kubernetesSpec == nil {
+		return 0, false, nil
+	}
+	pipelineConfig := kubernetesSpec.GetPipelineConfig()
+	if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
+		return 0, false, nil
+	}
+	value := pipelineConfig.GetMaxActiveRuns()
+	if value <= 0 {
+		return 0, false, fmt.Errorf("max_active_runs must be greater than 0, got %d", value)
+	}
+	return value, true, nil
+}
+
 // Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
@@ -126,6 +147,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			CacheDisabled:        t.templateOptions.CacheDisabled,
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+		}
+		if modelJob.PipelineVersionId != "" {
+			opts.PipelineVersionID = modelJob.PipelineVersionId
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -367,6 +391,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			CacheDisabled:        t.templateOptions.CacheDisabled,
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+			PipelineVersionID:    modelRun.PipelineVersionId,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
