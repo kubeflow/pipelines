@@ -495,6 +495,13 @@ describe('UIServer apis', () => {
         .get('/k8s/pod/logs?podname=test-pod&podnamespace=test-ns')
         .expect(403, 'Access denied to namespace');
     });
+
+    it('asks for podnamespace if not provided when authorization is enabled', async () => {
+      const authRequest = requests(app.app);
+      await authRequest
+        .get('/k8s/pod/logs?podname=test-pod')
+        .expect(422, 'podnamespace argument is required');
+    });
   });
 
   describe('/apis/v1beta1/', () => {
