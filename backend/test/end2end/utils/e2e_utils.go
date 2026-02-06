@@ -75,7 +75,11 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
 	if *updatedRun.State == run_model.V2beta1RuntimeStateRUNNING {
-		logger.Log("Pipeline run did not finish, checking workflow controller logs")
+		logger.Log("Pipeline run did not finish")
+		logger.Log("Checking Argo WF events")
+		events := testutil.DescribeArgoWorkflow(k8Client, *config.Namespace)
+		ginkgo.AddReportEntry("Argo WF Events", events)
+		logger.Log("Checking workflow controller logs")
 		podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 		logger.Log("Attaching Workflow Controller logs to the report")
 		ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
