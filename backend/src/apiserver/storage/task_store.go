@@ -46,6 +46,8 @@ var taskColumns = []string{
 	"MLMDInputs",
 	"MLMDOutputs",
 	"ChildrenPods",
+	"PodStatus",
+	"PodEvents",
 }
 
 var taskColumnsWithPayload = append(taskColumns, "Payload")
@@ -112,6 +114,20 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to marshal children pods in a new run")
 	}
 
+	podStatusString := ""
+	if newTask.PodStatus != nil {
+		if status, err := json.Marshal(newTask.PodStatus); err == nil {
+			podStatusString = string(status)
+		}
+	}
+
+	podEventsString := ""
+	if len(newTask.PodEvents) > 0 {
+		if events, err := json.Marshal(newTask.PodEvents); err == nil {
+			podEventsString = string(events)
+		}
+	}
+
 	sql, args, err := sq.
 		Insert(table_name).
 		SetMap(
@@ -133,6 +149,8 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"MLMDInputs":        newTask.MLMDInputs,
 				"MLMDOutputs":       newTask.MLMDOutputs,
 				"ChildrenPods":      childrenPodsString,
+				"PodStatus":         podStatusString,
+				"PodEvents":         podEventsString,
 				"Payload":           newTask.ToString(),
 			},
 		).
@@ -153,7 +171,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	var tasks []*model.Task
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, podName, mlmdExecutionID, fingerprint string
-		var name, parentTaskId, state, stateHistory, inputs, outputs, children sql.NullString
+		var name, parentTaskId, state, stateHistory, inputs, outputs, children, podStatus, podEvents sql.NullString
 		var createdTimestamp, startedTimestamp, finishedTimestamp sql.NullInt64
 		err := rows.Scan(
 			&uuid,
@@ -173,6 +191,8 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			&inputs,
 			&outputs,
 			&children,
+			&podStatus,
+			&podEvents,
 		)
 		if err != nil {
 			fmt.Printf("scan error is %v", err)
@@ -185,6 +205,14 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 		var childrenPods []string
 		if children.Valid {
 			json.Unmarshal([]byte(children.String), &childrenPods)
+		}
+		var podStatusParsed *model.PodStatus
+		if podStatus.Valid && podStatus.String != "" {
+			json.Unmarshal([]byte(podStatus.String), &podStatusParsed)
+		}
+		var podEventsParsed []*model.PodEvent
+		if podEvents.Valid && podEvents.String != "" {
+			json.Unmarshal([]byte(podEvents.String), &podEventsParsed)
 		}
 		task := &model.Task{
 			UUID:              uuid,
@@ -203,6 +231,8 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			MLMDInputs:        model.LargeText(inputs.String),
 			MLMDOutputs:       model.LargeText(outputs.String),
 			ChildrenPods:      childrenPods,
+			PodStatus:         podStatusParsed,
+			PodEvents:         podEventsParsed,
 		}
 		tasks = append(tasks, task)
 	}
@@ -379,6 +409,18 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				}
 				stateHistoryString = string(history)
 			}
+			podStatusString := ""
+			if t.PodStatus != nil {
+				if status, err := json.Marshal(t.PodStatus); err == nil {
+					podStatusString = string(status)
+				}
+			}
+			podEventsString := ""
+			if len(t.PodEvents) > 0 {
+				if events, err := json.Marshal(t.PodEvents); err == nil {
+					podEventsString = string(events)
+				}
+			}
 			sqlInsert = sqlInsert.Values(
 				t.UUID,
 				t.Namespace,
@@ -397,6 +439,8 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.MLMDInputs,
 				t.MLMDOutputs,
 				childrenPodsString,
+				podStatusString,
+				podEventsString,
 				t.ToString(),
 			)
 		}
@@ -489,5 +533,13 @@ func patchTask(original *model.Task, patch *model.Task) {
 	}
 	if len(original.ChildrenPods) == 0 {
 		original.ChildrenPods = patch.ChildrenPods
+	}
+	// For PodStatus and PodEvents, we always keep the latest (original) if it exists,
+	// otherwise use the patch value. This ensures events are accumulated over time.
+	if original.PodStatus == nil && patch.PodStatus != nil {
+		original.PodStatus = patch.PodStatus
+	}
+	if len(original.PodEvents) == 0 && len(patch.PodEvents) > 0 {
+		original.PodEvents = patch.PodEvents
 	}
 }

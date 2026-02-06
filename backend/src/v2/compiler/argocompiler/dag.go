@@ -603,6 +603,11 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 
 	t := &wfapi.Template{
 		Name: name,
+		Metadata: wfapi.Metadata{
+			Labels: map[string]string{
+				"pipelines.kubeflow.org/task_name": inputParameter(paramTaskName),
+			},
+		},
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent}, // Required.
