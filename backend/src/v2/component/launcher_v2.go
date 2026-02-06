@@ -390,7 +390,16 @@ func executeV2(
 		customCAPath,
 	)
 	if err != nil {
-		return nil, nil, err
+		// Upload partial artifacts and return them with the error
+		outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         bucket,
+			metadataClient: metadataClient,
+		})
+		if err != nil {
+			glog.Warningf("failed to upload output artifacts after execution error: %v", err)
+		}
+		return executorOutput, outputArtifacts, err
 	}
 	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
 	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.

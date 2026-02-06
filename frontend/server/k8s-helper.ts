@@ -322,6 +322,88 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
 }
 
 /**
+ * Lists pods by run ID label.
+ * This is useful for finding pods that failed early (e.g., ImagePullBackOff)
+ * before the KFP driver/launcher could record the pod name in MLMD.
+ * Tries multiple label selectors to support different KFP versions.
+ *
+ * @param runId - The pipeline run ID
+ * @param podNamespace - The namespace to search in
+ * @param taskName - Optional task name to filter pods
+ */
+export async function listPodsByRunId(
+  runId: string,
+  podNamespace: string,
+  taskName?: string,
+): Promise<Result<V1Pod[]>> {
+  console.log('[listPodsByRunId] Called with:', { runId, podNamespace, taskName });
+  try {
+    if (!isAllowedResourceName(runId) || !isAllowedResourceName(podNamespace)) {
+      console.log('[listPodsByRunId] Invalid resource name');
+      return [undefined, { message: 'Invalid resource name' }];
+    }
+
+    // Try multiple label selectors to support different KFP versions
+    // KFP v2 with Argo uses different labels than KFP v1
+    const labelSelectors = [
+      `pipeline/runid=${runId}`,                      // KFP v1/v2 common label
+      `pipelines.kubeflow.org/run_id=${runId}`,       // Alternative KFP label
+      `workflows.argoproj.io/workflow=${runId}`,      // Argo workflow label (workflow name = run ID)
+    ];
+    console.log('[listPodsByRunId] Will try label selectors:', labelSelectors);
+
+    let allPods: V1Pod[] = [];
+
+    for (const labelSelector of labelSelectors) {
+      try {
+        const { body } = await k8sV1Client.listNamespacedPod(
+          podNamespace,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          labelSelector,
+        );
+        if (body.items && body.items.length > 0) {
+          allPods = [...allPods, ...body.items];
+        }
+      } catch (err) {
+        // Continue trying other selectors - this is expected for non-matching labels
+      }
+    }
+
+    // Deduplicate pods by name
+    const uniquePods = allPods.reduce((acc: V1Pod[], pod) => {
+      if (!acc.find(p => p.metadata?.name === pod.metadata?.name)) {
+        acc.push(pod);
+      }
+      return acc;
+    }, []);
+
+    // If task name provided, try to filter (but don't require it)
+    let filteredPods = uniquePods;
+    if (taskName && isAllowedResourceName(taskName) && uniquePods.length > 1) {
+      const taskFilteredPods = uniquePods.filter(pod => {
+        const labels = pod.metadata?.labels || {};
+        return (
+          labels['pipelines.kubeflow.org/task_name'] === taskName ||
+          labels['component'] === taskName ||
+          pod.metadata?.name?.includes(taskName)
+        );
+      });
+      if (taskFilteredPods.length > 0) {
+        filteredPods = taskFilteredPods;
+      }
+    }
+
+    return [filteredPods, undefined];
+  } catch (error) {
+    const userMessage = `Error listing pods for run ${runId} in namespace ${podNamespace}`;
+    return [undefined, { message: userMessage, additionalInfo: error }];
+  }
+}
+
+/**
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
  */

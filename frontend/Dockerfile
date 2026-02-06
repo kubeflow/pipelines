@@ -8,11 +8,11 @@ ENV TAG_NAME=${TAG_NAME}
 
 ARG DATE
 
-WORKDIR ./src
+WORKDIR /src
 
 COPY . .
 
-WORKDIR ./frontend
+WORKDIR /src/frontend
 
 RUN npm ci && npm run postinstall
 RUN npm run build
@@ -24,8 +24,8 @@ RUN mkdir -p ./server/dist && \
 
 FROM node:22.19-${BASE_IMAGE}
 
-COPY --from=build ./src/frontend/server /server
-COPY --from=build ./src/frontend/build /client
+COPY --from=build /src/frontend/server /server
+COPY --from=build /src/frontend/build /client
 
 WORKDIR /server
 

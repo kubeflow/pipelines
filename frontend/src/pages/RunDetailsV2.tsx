@@ -13,7 +13,8 @@
 // limitations under the License.
 
 import * as React from 'react';
-import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
+import { MouseEvent as ReactMouseEvent, useContext, useEffect, useState } from 'react';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
@@ -157,7 +158,32 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     () => getExperiment(experimentId),
     {},
   );
-  const namespace = experiment?.namespace;
+
+  // Get namespace from multiple sources (in order of preference):
+  // 1. Experiment namespace
+  // 2. Kubeflow Central Dashboard context
+  // 3. URL query params (ns or namespace)
+  const contextNamespace = useContext(NamespaceContext);
+  const getNamespaceFromUrl = (): string | undefined => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('ns') || urlParams.get('namespace') || undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const urlNamespace = getNamespaceFromUrl();
+  const namespace = experiment?.namespace || contextNamespace || urlNamespace;
+
+  // Debug logging to help identify namespace resolution issues
+  console.log('[RunDetailsV2] Namespace resolution:', {
+    experimentNamespace: experiment?.namespace,
+    contextNamespace,
+    urlNamespace,
+    resolvedNamespace: namespace,
+    experimentId: experiment?.experiment_id,
+    runId,
+  });
 
   // Update page title and experiment information.
   useEffect(() => {

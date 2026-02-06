@@ -44,6 +44,45 @@ type Task struct {
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	ChildrenPods       []string         `gorm:"-;"`
 	Payload            LargeText        `gorm:"column:Payload; default:null;"`
+	// PodStatus stores the last known pod status for debugging even after pod termination.
+	PodStatusString LargeText  `gorm:"column:PodStatus; default:null;"`
+	PodStatus       *PodStatus `gorm:"-;"`
+	// PodEvents stores the pod events for debugging even after pod termination.
+	PodEventsString LargeText   `gorm:"column:PodEvents; default:null;"`
+	PodEvents       []*PodEvent `gorm:"-;"`
+}
+
+// PodStatus represents the status of a Kubernetes pod.
+type PodStatus struct {
+	Phase             string             `json:"phase"`
+	Message           string             `json:"message"`
+	Reason            string             `json:"reason"`
+	PodIP             string             `json:"podIP"`
+	NodeName          string             `json:"nodeName"`
+	LastUpdated       int64              `json:"lastUpdated"`
+	ContainerStatuses []*ContainerStatus `json:"containerStatuses"`
+}
+
+// ContainerStatus represents the status of a container in a pod.
+type ContainerStatus struct {
+	Name         string `json:"name"`
+	Ready        bool   `json:"ready"`
+	RestartCount int32  `json:"restartCount"`
+	State        string `json:"state"`
+	Reason       string `json:"reason"`
+	Message      string `json:"message"`
+	ExitCode     int32  `json:"exitCode"`
+}
+
+// PodEvent represents a Kubernetes event associated with a pod.
+type PodEvent struct {
+	Type           string `json:"type"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+	FirstTimestamp int64  `json:"firstTimestamp"`
+	LastTimestamp  int64  `json:"lastTimestamp"`
+	Count          int32  `json:"count"`
+	Source         string `json:"source"`
 }
 
 func (t Task) ToString() string {

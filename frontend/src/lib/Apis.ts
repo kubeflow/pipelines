@@ -130,10 +130,17 @@ export class Apis {
   /**
    * Get pod info
    */
-  public static async getPodInfo(podName: string, podNamespace: string): Promise<JSONObject> {
-    const query = `k8s/pod?podname=${encodeURIComponent(podName)}&podnamespace=${encodeURIComponent(
+  public static async getPodInfo(
+    podName: string,
+    podNamespace: string,
+    runId?: string,
+    taskName?: string,
+  ): Promise<JSONObject> {
+    let query = `k8s/pod?podname=${encodeURIComponent(podName)}&podnamespace=${encodeURIComponent(
       podNamespace,
     )}`;
+    if (runId) query += `&runid=${encodeURIComponent(runId)}`;
+    if (taskName) query += `&taskname=${encodeURIComponent(taskName)}`;
     const podInfo = await this._fetch(query);
     return JSON.parse(podInfo);
   }
@@ -141,12 +148,39 @@ export class Apis {
   /**
    * Get pod events
    */
-  public static async getPodEvents(podName: string, podNamespace: string): Promise<JSONObject> {
-    const query = `k8s/pod/events?podname=${encodeURIComponent(
+  public static async getPodEvents(
+    podName: string,
+    podNamespace: string,
+    runId?: string,
+    taskName?: string,
+  ): Promise<JSONObject> {
+    let query = `k8s/pod/events?podname=${encodeURIComponent(
       podName,
     )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    if (runId) query += `&runid=${encodeURIComponent(runId)}`;
+    if (taskName) query += `&taskname=${encodeURIComponent(taskName)}`;
     const eventList = await this._fetch(query);
     return JSON.parse(eventList);
+  }
+
+  /**
+   * Get pods by run ID label.
+   * This is useful for finding pods that failed early (e.g., ImagePullBackOff)
+   * before the pod name could be recorded in MLMD.
+   */
+  public static async getPodsByRunId(
+    runId: string,
+    podNamespace: string,
+    taskName?: string,
+  ): Promise<JSONObject[]> {
+    let query = `k8s/pods/byRunId?runid=${encodeURIComponent(
+      runId,
+    )}&podnamespace=${encodeURIComponent(podNamespace)}`;
+    if (taskName) {
+      query += `&taskname=${encodeURIComponent(taskName)}`;
+    }
+    const pods = await this._fetch(query);
+    return JSON.parse(pods);
   }
 
   public static get basePath(): string {
