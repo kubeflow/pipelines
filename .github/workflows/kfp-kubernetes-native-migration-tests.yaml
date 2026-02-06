@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/deploy/**"
       - ".github/resources/**"
       - "tools/k8s-native/**"
       - "test/kfp-kubernetes-native-migration-tests/**"

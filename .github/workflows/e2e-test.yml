@@ -15,7 +15,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
