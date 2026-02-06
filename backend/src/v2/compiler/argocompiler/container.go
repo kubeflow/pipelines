@@ -208,7 +208,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 
 	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to container driver.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args["ca_cert_path"] = common.DriverCaCertPath
+		args["ca_cert_path"] = common.CustomCaCertPath
 	}
 
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {

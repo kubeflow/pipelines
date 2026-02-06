@@ -78,7 +78,7 @@ jobs:
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled }}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
       - name: Forward MLMD port
@@ -90,7 +90,7 @@ jobs:
       - name: Debug TLS cert secret before tests
         if: ${{ always() && matrix.pod_to_pod_tls_enabled }}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow 
+          kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow 
 
       - name: API integration tests v2
         id: tests
@@ -105,12 +105,12 @@ jobs:
       - name: Debug TLS cert secret after tests
         if: ${{ always() && matrix.pod_to_pod_tls_enabled }}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow 
+          kubectl get secret argo-workflows-agent-ca-certificates-n kubeflow 
 
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow
+          kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 

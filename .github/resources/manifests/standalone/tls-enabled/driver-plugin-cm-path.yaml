@@ -20,6 +20,6 @@ data:
       runAsUser: 65534
     volumeMounts:
     - name: argo-workflows-agent-ca-certificates
-      mountPath: /etc/ssl/certs/ca-certificates
+      mountPath: /kfp/certs
       readOnly: true
   

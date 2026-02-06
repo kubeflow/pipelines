@@ -96,12 +96,6 @@ kind-cluster-agnostic:
 	# Deploy KFP
 	@if [ "${TLS_ENABLED}" = "true" ]; then \
     		    kubectl apply -k $(CURDIR)/../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls; \
-                echo "Waiting for certificate to be ready..."; \
-                sleep 10; \
-                echo "Copying secret..."; \
-                kubectl -n kubeflow get secret kfp-api-tls-cert -o json | \
-                    jq 'del(.metadata.uid, .metadata.resourceVersion, .metadata.creationTimestamp, .metadata.managedFields) | .metadata.name = "argo-workflows-agent-ca-certificates"' | \
-                    kubectl apply -f -; \
     	else \
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
      fi

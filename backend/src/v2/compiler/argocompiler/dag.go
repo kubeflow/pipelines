@@ -589,7 +589,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() (string, error) {
 	}
 	// If CABUNDLE_SECRET_NAME add ca_cert_path arg to DAG driver.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args["ca_cert_path"] = common.DriverCaCertPath
+		args["ca_cert_path"] = common.CustomCaCertPath
 	}
 
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
