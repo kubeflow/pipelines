@@ -30,6 +30,12 @@ inputs:
     required: false
     default: '3.9'
     description: "Python version to use"
+  report_python_version:
+    required: false
+    # Reporting uses a newer cached runtime to avoid setup-python
+    # rate-limit downloads and to keep junit2html/junit summary tooling stable.
+    default: '3.11'
+    description: "Python version to use for test reporting steps"
   test_directory:
     required: true
     description: "Test Working Directory"
@@ -61,11 +67,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ inputs.python_version }}
-
     - name: Port-forward MinIO service for archived workflow logs
       id: port-forward-minio
       if: (!cancelled())
@@ -102,7 +103,7 @@ runs:
         fi
         PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
         REPO_NAME="${{ github.repository }}"
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} -v --label-filter=${{ inputs.test_label }} -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
@@ -115,6 +116,13 @@ runs:
         NAMESPACE="${{ inputs.default_namespace }}"
         ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
       continue-on-error: true
+
+    - name: Set up Python for reporting
+      uses: actions/setup-python@v6
+      if: (!cancelled())
+      with:
+        python-version: ${{ inputs.report_python_version }}
+        cache: 'pip'
 
     - name: Install Junit2Html plugin
       id: install-junit2html

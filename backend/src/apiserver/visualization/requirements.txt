@@ -166,6 +166,7 @@ packaging==25.0
     #   ipykernel
     #   nbconvert
     #   tensorflow
+    #   wheel
 pandas==2.3.2
     # via itables
 pandocfilters==1.5.1
@@ -196,7 +197,7 @@ ptyprocess==0.7.0
     # via pexpect
 pyarrow==14.0.1
     # via -r requirements.in
-pyasn1==0.6.1
+pyasn1==0.6.2
     # via
     #   pyasn1-modules
     #   rsa
@@ -312,7 +313,7 @@ werkzeug==3.1.5
     # via
     #   -r requirements.in
     #   tensorboard
-wheel==0.45.1
+wheel==0.46.2
     # via astunparse
 wrapt==1.14.2
     # via tensorflow

@@ -71,10 +71,8 @@ class Executor:
                     type_annotations.is_list_of_artifacts(annotation.__origin__)
                 ) or type_annotations.is_list_of_artifacts(annotation)
                 if is_list_of_artifacts:
-                    # Get the annotation of the inner type of the list
-                    # to use when creating the artifacts
-                    inner_annotation = type_annotations.get_inner_type(
-                        annotation)
+                    inner_annotation = self._resolve_list_artifact_inner_type(
+                        input_name=name, list_annotation=annotation)
 
                     self.input_artifacts[name] = [
                         self.make_artifact(
@@ -104,6 +102,41 @@ class Executor:
                 self.output_artifacts[name] = output_artifact
                 makedirs_recursively(output_artifact.path)
 
+    def _resolve_list_artifact_inner_type(self, input_name: str,
+                                          list_annotation: Any) -> Any:
+        """Unwraps nested list annotations and validates the inner artifact
+        type."""
+        inner_annotation = type_annotations.get_inner_type(list_annotation)
+
+        if inner_annotation is None:
+            raise TypeError(
+                f"Input '{input_name}' expects a list of artifacts, but "
+                f'received {list_annotation!r} without an inner type.')
+
+        while type_annotations.is_list_of_artifacts(inner_annotation):
+            if isinstance(inner_annotation, tuple):
+                raise TypeError(
+                    f"Input '{input_name}' expects a single artifact type but "
+                    f'received a union {inner_annotation!r}.')
+            inner_annotation = type_annotations.get_inner_type(inner_annotation)
+            if inner_annotation is None:
+                raise TypeError(
+                    f"Input '{input_name}' expects a list of artifacts, but "
+                    f'could not determine the inner annotation from '
+                    f'{list_annotation!r}.')
+
+        if isinstance(inner_annotation, tuple):
+            raise TypeError(
+                f"Input '{input_name}' expects a single artifact type but "
+                f'received a union {inner_annotation!r}.')
+        if not type_annotations.is_artifact_class(inner_annotation):
+            raise TypeError(
+                f"Input '{input_name}' expects a list of artifacts, but "
+                f'received {list_annotation!r} whose inner type '
+                f'{inner_annotation!r} is not an artifact.')
+
+        return inner_annotation
+
     def make_artifact(
         self,
         runtime_artifact: Dict,
@@ -113,6 +146,9 @@ class Executor:
     ) -> Any:
         annotation = func.__annotations__.get(
             name) if annotation is None else annotation
+        if type_annotations.is_list_of_artifacts(annotation):
+            annotation = self._resolve_list_artifact_inner_type(
+                input_name=name, list_annotation=annotation)
         if isinstance(annotation, type_annotations.InputPath):
             schema_title, _ = annotation.type.split('@')
             if schema_title in artifact_types._SCHEMA_TITLE_TO_TYPE:

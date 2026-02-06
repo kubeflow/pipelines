@@ -12,29 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import { Application, static as StaticHandler } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-import { UIConfigs } from './configs';
-import { getAddress } from './utils';
-import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+import { UIConfigs } from './configs.js';
+import { getAddress } from './utils.js';
+import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
   getArtifactsHandler,
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
-} from './handlers/artifacts';
-import { getTensorboardHandlers } from './handlers/tensorboard';
-import { getAuthorizeFn } from './helpers/auth';
-import { getPodLogsHandler } from './handlers/pod-logs';
-import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
-import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
-import { getAllowCustomVisualizationsHandler } from './handlers/vis';
-import { getIndexHTMLHandler } from './handlers/index-html';
+} from './handlers/artifacts.js';
+import { getTensorboardHandlers } from './handlers/tensorboard.js';
+import { getAuthorizeFn } from './helpers/auth.js';
+import { getPodLogsHandler } from './handlers/pod-logs.js';
+import { getPodInfoHandlers } from './handlers/pod-info.js';
+import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata.js';
+import { getAllowCustomVisualizationsHandler } from './handlers/vis.js';
+import { getIndexHTMLHandler } from './handlers/index-html.js';
 
-import proxyMiddleware from './proxy-middleware';
+import proxyMiddleware from './proxy-middleware.js';
 import { Server } from 'http';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
@@ -199,7 +202,7 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName, authorizeFn),
     );
   }
 
@@ -225,11 +228,12 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName),
+      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName, authorizeFn),
     );
   }
 
   /** Pod info */
+  const { podInfoHandler, podEventsHandler } = getPodInfoHandlers(authorizeFn);
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
 

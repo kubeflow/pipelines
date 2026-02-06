@@ -103,6 +103,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 				fakeKubernetesClientset,
 				"false",
 				"",
+				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 			)
 
 			if test.wantErr {
@@ -165,6 +166,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				fakeKubernetesClientset,
 				"false",
 				"",
+				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 			)
 
 			if test.wantErr {

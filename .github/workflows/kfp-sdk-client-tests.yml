@@ -24,7 +24,7 @@ env:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   sdk-client-tests:
     runs-on: ubuntu-24.04
@@ -43,6 +43,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Create KFP cluster
         id: create-kfp-cluster
