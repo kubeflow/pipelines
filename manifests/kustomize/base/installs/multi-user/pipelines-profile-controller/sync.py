@@ -424,7 +424,7 @@ def server_factory(frontend_image,
                             "secretkey": base64.b64encode(s3_access_key["AccessKey"]["SecretAccessKey"].encode('utf-8')).decode("utf-8"),
                     },
                 })
-                desired_resources.append({
+                desired_resources.extend([
                     # https://argo-workflows.readthedocs.io/en/latest/service-account-secrets/
                     {
                         "apiVersion": "v1",
@@ -449,7 +449,8 @@ def server_factory(frontend_image,
                             "name": "ml-pipeline-driver-agent-executor-plugin.service-account-token",
                             "namespace": namespace,
                             "annotations": {
-                                "kubernetes.io/service-account.name": "ml-pipeline-driver-agent-executor-plugin"
+                                "kubernetes.io/service-account.name":
+                                    "ml-pipeline-driver-agent-executor-plugin"
                             }
                         },
                         "type": "kubernetes.io/service-account-token"
@@ -466,7 +467,7 @@ def server_factory(frontend_image,
                         },
                         "type": "kubernetes.io/service-account-token"
                     },
-                })
+                ])
 
             return {"status": desired_status, "attachments": desired_resources}
 
