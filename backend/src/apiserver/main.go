@@ -100,7 +100,7 @@ func initCerts() (*tls.Config, error) {
 		return nil, err
 	}
 	tlsCfg := &tls.Config{
-		ServerName:   common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc.cluster.local",
+		ServerName:   common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Certificates: []tls.Certificate{serverCert},
 	}
 	glog.Info("TLS cert key/pair loaded.")
