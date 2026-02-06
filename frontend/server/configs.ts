@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as path from 'path';
-import { loadJSON } from './utils';
-import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts';
+import { loadJSON } from './utils.js';
+import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts.js';
 export const BASEPATH = '/pipeline';
 export const apiVersion1 = 'v1beta1';
 export const apiVersion1Prefix = `apis/${apiVersion1}`;

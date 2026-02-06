@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { UIServer } from './app';
-import { loadConfigs } from './configs';
+import { UIServer } from './app.js';
+import { loadConfigs } from './configs.js';
 
 const configs = loadConfigs(process.argv, process.env);
 if (process.env.NODE_ENV !== 'test') {
