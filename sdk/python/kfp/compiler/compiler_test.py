@@ -626,12 +626,11 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.Condition context\.'
-        ):
+                r'Illegal task dependency .* within a dsl\.If context .*'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
-                with dsl.Condition(val == False):
+                with dsl.If(val == False):
                     producer_task = producer_op()
 
                 dummy_op(msg=producer_task.output)
@@ -640,7 +639,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline(val: bool):
-            with dsl.Condition(val == False):
+            with dsl.If(val == False):
                 producer_task = producer_op()
                 dummy_op(msg=producer_task.output)
 
