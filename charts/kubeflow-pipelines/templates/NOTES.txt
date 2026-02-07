@@ -1,0 +1,23 @@
+Kubeflow Pipelines has been installed.
+
+Mode: {{ if .Values.multiUser.enabled }}Multi-User{{ else }}Single-User{{ end }}
+Database: {{ .Values.database.type }}
+Object Store: {{ .Values.objectStore.type }}
+Namespace: {{ .Release.Namespace }}
+
+{{- if .Values.multiUser.enabled }}
+
+Multi-user mode requires:
+  - Istio service mesh
+  - Metacontroller
+  - Kubeflow Profile Controller
+
+To access the UI, use the Istio ingress gateway at /pipeline.
+{{- else }}
+
+To access the UI, port-forward the ml-pipeline-ui service:
+
+  kubectl port-forward -n {{ .Release.Namespace }} svc/ml-pipeline-ui 3000:80
+
+Then visit http://localhost:3000
+{{- end }}

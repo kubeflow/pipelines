@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline-scheduledworkflow
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  name: ml-pipeline-scheduledworkflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-scheduledworkflow
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-scheduledworkflow
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - image: "{{ .Values.scheduledWorkflow.image.repository }}:{{ .Values.scheduledWorkflow.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        name: ml-pipeline-scheduledworkflow
+        env:
+        - name: METRICS_PORT
+          value: "9090"
+        - name: CLIENT_QPS
+          value: "10"
+        - name: RESYNC_INTERVAL_SECONDS
+          value: "30"
+        - name: CLIENT_BURST
+          value: "20"
+        - name: LOG_LEVEL
+          value: "info"
+        {{- if .Values.multiUser.enabled }}
+        - name: NAMESPACE
+          value: ""
+        {{- else }}
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- end }}
+        - name: CRON_SCHEDULE_TIMEZONE
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: cronScheduleTimezone
+        ports:
+        - name: http
+          containerPort: 9090
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /var/run/secrets/kubeflow/tokens
+          name: scheduledworkflow-sa-token
+        {{- with .Values.scheduledWorkflow.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      serviceAccountName: ml-pipeline-scheduledworkflow
+      volumes:
+      - name: scheduledworkflow-sa-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: scheduledworkflow-sa-token
+              expirationSeconds: 3600
+              audience: pipelines.kubeflow.org
+      {{- with .Values.scheduledWorkflow.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduledWorkflow.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduledWorkflow.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

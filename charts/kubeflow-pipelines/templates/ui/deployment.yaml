@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline-ui
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  name: ml-pipeline-ui
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-ui
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-ui
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: config-volume
+        configMap:
+          name: ml-pipeline-ui-configmap
+      containers:
+      - image: "{{ .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        name: ml-pipeline-ui
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        env:
+          - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
+            value: /etc/config/viewer-pod-template.json
+          - name: MINIO_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MINIO_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "kubeflow-pipelines.objectStoreSecretName" . }}
+                key: accesskey
+          - name: MINIO_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "kubeflow-pipelines.objectStoreSecretName" . }}
+                key: secretkey
+          - name: ALLOW_CUSTOM_VISUALIZATIONS
+            value: "true"
+          - name: FRONTEND_SERVER_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: ARGO_ARCHIVE_LOGS
+            value: "true"
+          - name: DISABLE_GKE_METADATA
+            value: "true"
+          - name: ARTIFACTS_SERVICE_PROXY_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACTS_PROXY_ENABLED
+                optional: true
+          {{- if .Values.multiUser.enabled }}
+          - name: DEPLOYMENT
+            value: KUBEFLOW
+          - name: ARTIFACTS_SERVICE_PROXY_NAME
+            value: ml-pipeline-ui-artifact
+          - name: ARTIFACTS_SERVICE_PROXY_PORT
+            value: "80"
+          - name: ENABLE_AUTHZ
+            value: "true"
+          - name: KUBEFLOW_USERID_HEADER
+            value: kubeflow-userid
+          - name: KUBEFLOW_USERID_PREFIX
+            value: ""
+          {{- end }}
+        readinessProbe:
+          httpGet:
+            path: /apis/v1beta1/healthz
+            port: 3000
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /apis/v1beta1/healthz
+            port: 3000
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        {{- with .Values.ui.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      serviceAccountName: ml-pipeline-ui
+      {{- with .Values.ui.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ui.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ui.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

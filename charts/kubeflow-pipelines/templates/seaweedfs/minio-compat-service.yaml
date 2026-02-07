@@ -1,0 +1,17 @@
+{{- if eq .Values.objectStore.type "seaweedfs" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  labels:
+    app: seaweedfs
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: seaweedfs
+  ports:
+  - name: http
+    port: 9000
+    protocol: TCP
+    targetPort: 8333
+{{- end }}

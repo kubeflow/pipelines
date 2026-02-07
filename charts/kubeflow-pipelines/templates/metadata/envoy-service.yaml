@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: metadata-envoy
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  name: metadata-envoy-service
+spec:
+  selector:
+    component: metadata-envoy
+  type: ClusterIP
+  ports:
+  - port: 9090
+    protocol: TCP
+    name: md-envoy

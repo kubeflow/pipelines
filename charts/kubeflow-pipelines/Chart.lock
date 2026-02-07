@@ -1,0 +1,18 @@
+dependencies:
+- name: argo-workflows
+  repository: https://argoproj.github.io/argo-helm
+  version: 0.45.28
+- name: mysql
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.3.5
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 16.7.27
+- name: minio
+  repository: https://charts.min.io/
+  version: 5.4.0
+- name: metacontroller-helm
+  repository: oci://ghcr.io/metacontroller
+  version: 4.12.5
+digest: sha256:1ce37263c14866c9f9f960a6a2f4a1cd34855903bbe3882bee84fd2be3f181a0
+generated: "2026-02-07T10:51:05.312995-05:00"

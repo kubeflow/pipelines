@@ -1,0 +1,20 @@
+{{- if and .Values.compat.enabled .Values.compat.mysql.deployment (not .Values.mysql.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mysql
+    {{- if .Values.compat.applicationCrdIdLabel }}
+    application-crd-id: kubeflow-pipelines
+    {{- end }}
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  ports:
+    - port: 3306
+      protocol: TCP
+      targetPort: 3306
+  selector:
+    app: mysql
+{{- end }}
