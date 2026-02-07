@@ -2,24 +2,37 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"maps"
+	"os/exec"
 	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+)
+
+var (
+	workflowClient     versioned.Interface
+	workflowClientOnce sync.Once
+	workflowClientErr  error
 )
 
 // CreatePipelineRun - Create a pipeline run
@@ -90,61 +103,224 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 			gomega.Expect(len(actualTaskDetails)).To(gomega.BeNumerically(">=", len(expectedTaskDetails)), "Number of created DAG tasks should be >= number of expected tasks")
 		}
 	}
-
 }
 
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
 func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, taskDetails []*run_model.V2beta1PipelineTaskDetail) {
 	failedTasks := make(map[string]string)
+	archivedLogCache := make(map[string]string)
+	namespace := testutil.GetNamespace()
 	sort.Slice(taskDetails, func(i, j int) bool {
 		return time.Time(taskDetails[i].EndTime).After(time.Time(taskDetails[j].EndTime)) // Sort Tasks by End Time in descending order
 	})
 	for _, task := range taskDetails {
-		if task.State != nil {
-			switch *task.State {
-			case run_model.V2beta1RuntimeStateSUCCEEDED:
-				{
-					logger.Log("SUCCEEDED - Task %s for run %s has finished successfully", task.DisplayName, task.RunID)
-				}
-			case run_model.V2beta1RuntimeStateRUNNING:
-				{
-					logger.Log("RUNNING - Task %s for Run %s is running", task.DisplayName, task.RunID)
+		if task.State == nil {
+			continue
+		}
 
-				}
-			case run_model.V2beta1RuntimeStateSKIPPED:
-				{
-					logger.Log("SKIPPED - Task %s for Run %s skipped", task.DisplayName, task.RunID)
-				}
-			case run_model.V2beta1RuntimeStateCANCELED:
-				{
-					logger.Log("CANCELED - Task %s for Run %s canceled", task.DisplayName, task.RunID)
-				}
-			case run_model.V2beta1RuntimeStateFAILED:
-				{
-					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
-					for _, childTask := range task.ChildTasks {
-						podName := childTask.PodName
-						if podName != "" {
-							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
-							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
-							logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
-							logger.Log("Attaching pod logs to the report")
-							ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.DisplayName), podLog)
-							logger.Log("Attached pod logs to the report")
-						}
-					}
-					failedTasks[task.DisplayName] = string(*task.State)
-				}
-			default:
-				{
-					logger.Log("UNKNOWN state - Task %s for Run %s has an UNKNOWN state", task.DisplayName, task.RunID)
+		switch *task.State {
+		case run_model.V2beta1RuntimeStateSUCCEEDED:
+			logger.Log("SUCCEEDED - Task %s for run %s has finished successfully", task.DisplayName, task.RunID)
+		case run_model.V2beta1RuntimeStateRUNNING:
+			logger.Log("RUNNING - Task %s for Run %s is running", task.DisplayName, task.RunID)
+		case run_model.V2beta1RuntimeStateSKIPPED:
+			logger.Log("SKIPPED - Task %s for Run %s skipped", task.DisplayName, task.RunID)
+		case run_model.V2beta1RuntimeStateCANCELED:
+			logger.Log("CANCELED - Task %s for Run %s canceled", task.DisplayName, task.RunID)
+		case run_model.V2beta1RuntimeStateFAILED:
+			logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
+
+			podNames := map[string]struct{}{}
+			if task.PodName != "" {
+				podNames[task.PodName] = struct{}{}
+			}
+			for _, childTask := range task.ChildTasks {
+				if childTask.PodName != "" {
+					podNames[childTask.PodName] = struct{}{}
 				}
 			}
+
+			if len(podNames) == 0 {
+				logger.Log("Task %s for Run %s did not report any pod names", task.DisplayName, task.RunID)
+				failedTasks[task.DisplayName] = string(*task.State)
+				continue
+			}
+
+			var combinedLog strings.Builder
+			for podName := range podNames {
+				logger.Log("Collecting logs for task %s pod %s", task.DisplayName, podName)
+				combinedLog.WriteString(fmt.Sprintf("===== Pod: %s =====\n", podName))
+
+				podLog := testutil.ReadPodLogs(k8Client, namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+				missingPod := false
+				meaningful, missingPod := hasMeaningfulLogs(podLog)
+				switch {
+				case meaningful:
+					combinedLog.WriteString("----- Live Logs (kubectl) -----\n")
+					combinedLog.WriteString(podLog)
+					if !strings.HasSuffix(podLog, "\n") {
+						combinedLog.WriteString("\n")
+					}
+				case strings.TrimSpace(podLog) != "":
+					combinedLog.WriteString(podLog)
+					if !strings.HasSuffix(podLog, "\n") {
+						combinedLog.WriteString("\n")
+					}
+					if missingPod {
+						combinedLog.WriteString("Pod logs unavailable; pod not found. Falling back to archived logs.\n")
+					} else {
+						combinedLog.WriteString("Live logs unavailable via kubectl logs.\n")
+					}
+				default:
+					if missingPod {
+						combinedLog.WriteString("Pod logs unavailable; pod not found. Falling back to archived logs.\n")
+					} else {
+						combinedLog.WriteString("Live logs unavailable via kubectl logs.\n")
+					}
+				}
+
+				if missingPod {
+					archivedLog, err := getArchivedLogWithCache(archivedLogCache, k8Client, namespace, task.RunID, podName)
+					if err != nil {
+						logger.Log("Failed to retrieve archived logs for pod %s: %v", podName, err)
+						combinedLog.WriteString(fmt.Sprintf("Failed to retrieve archived logs via Argo Workflows: %v\n", err))
+					} else if strings.TrimSpace(archivedLog) != "" {
+						combinedLog.WriteString("----- Archived Logs (Argo) -----\n")
+						combinedLog.WriteString(archivedLog)
+						if !strings.HasSuffix(archivedLog, "\n") {
+							combinedLog.WriteString("\n")
+						}
+					} else {
+						combinedLog.WriteString("Archived logs were empty.\n")
+					}
+				}
+
+				combinedLog.WriteString("\n")
+			}
+
+			entryContent := combinedLog.String()
+			if strings.TrimSpace(entryContent) == "" {
+				entryContent = fmt.Sprintf("No logs were available for failed task %s", task.DisplayName)
+			}
+
+			logger.Log("Attaching logs to report for task %s", task.DisplayName)
+			ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.DisplayName), entryContent)
+			logger.Log("Attached logs to the report for task %s", task.DisplayName)
+
+			failedTasks[task.DisplayName] = string(*task.State)
+		default:
+			logger.Log("UNKNOWN state - Task %s for Run %s has an UNKNOWN state", task.DisplayName, task.RunID)
 		}
 	}
 	if len(failedTasks) > 0 {
 		logger.Log("Found failed tasks: %v", maps.Keys(failedTasks))
 	}
+}
+
+func getArchivedLogWithCache(cache map[string]string, k8Client *kubernetes.Clientset, namespace, runID, podName string) (string, error) {
+	cacheKey := fmt.Sprintf("%s::%s", runID, podName)
+	if val, ok := cache[cacheKey]; ok {
+		return val, nil
+	}
+
+	logContent, err := retrieveArchivedLogs(k8Client, namespace, runID, podName)
+	if err != nil {
+		return "", err
+	}
+
+	cache[cacheKey] = logContent
+	return logContent, nil
+}
+
+func retrieveArchivedLogs(k8Client *kubernetes.Clientset, namespace, runID, podName string) (string, error) {
+	workflowName, err := resolveWorkflowNameForRun(k8Client, namespace, runID)
+	if err != nil {
+		return "", err
+	}
+
+	cliPath, err := ensureArgoCLI()
+	if err != nil {
+		return "", err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, cliPath, "logs", workflowName, podName, "-n", namespace, "--no-color")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("argo logs command timed out after 30s\n%s", string(output))
+		}
+		return "", fmt.Errorf("argo logs command failed: %w\n%s", err, string(output))
+	}
+
+	return string(output), nil
+}
+
+func hasMeaningfulLogs(logText string) (bool, bool) {
+	trimmed := strings.TrimSpace(logText)
+	if trimmed == "" {
+		return false, false
+	}
+	lower := strings.ToLower(trimmed)
+
+	missingPod := strings.Contains(lower, "not found")
+	if strings.Contains(lower, "no pod logs available") ||
+		strings.Contains(lower, "could not find pod containing container") ||
+		strings.Contains(lower, "failed to stream pod logs") {
+		return false, missingPod
+	}
+
+	return true, missingPod
+}
+
+func ensureArgoCLI() (string, error) {
+	return exec.LookPath("argo")
+}
+
+func resolveWorkflowNameForRun(k8Client *kubernetes.Clientset, namespace, runID string) (string, error) {
+	if runID == "" {
+		return "", fmt.Errorf("run ID is empty")
+	}
+
+	wfClient, err := getWorkflowClient()
+	if err != nil {
+		return "", err
+	}
+
+	labelSelector := fmt.Sprintf("%s=%s", util.LabelKeyWorkflowRunId, runID)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	workflows, err := wfClient.ArgoprojV1alpha1().Workflows(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("listing workflows timed out after 10s for run ID %s", runID)
+		}
+		return "", fmt.Errorf("failed to list workflows: %w", err)
+	}
+
+	if len(workflows.Items) == 0 {
+		return "", fmt.Errorf("no workflow found in namespace %s with run ID %s", namespace, runID)
+	}
+
+	return workflows.Items[0].Name, nil
+}
+
+func getWorkflowClient() (versioned.Interface, error) {
+	workflowClientOnce.Do(func() {
+		restConfig, err := util.GetKubernetesConfig()
+		if err != nil {
+			workflowClientErr = fmt.Errorf("failed to create kubernetes config: %w", err)
+			return
+		}
+
+		workflowClient, workflowClientErr = versioned.NewForConfig(restConfig)
+	})
+	return workflowClient, workflowClientErr
 }
 
 type TaskDetails struct {
@@ -156,7 +332,7 @@ type TaskDetails struct {
 
 // GetTasksFromWorkflow - Get tasks from a compiled workflow
 func GetTasksFromWorkflow(workflow *v1alpha1.Workflow) []TaskDetails {
-	var containers = make(map[string]*v1.Container)
+	containers := make(map[string]*v1.Container)
 	var tasks []TaskDetails
 	for _, template := range workflow.Spec.Templates {
 		if template.Container != nil {
