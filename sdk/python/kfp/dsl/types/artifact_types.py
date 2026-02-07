@@ -24,6 +24,7 @@ _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
 _S3_LOCAL_MOUNT_PREFIX = '/s3/'
 _OCI_LOCAL_MOUNT_PREFIX = '/oci/'
+_HUGGINGFACE_LOCAL_MOUNT_PREFIX = '/huggingface/'
 
 
 class RemotePrefix(enum.Enum):
@@ -31,6 +32,7 @@ class RemotePrefix(enum.Enum):
     MINIO = 'minio://'
     S3 = 's3://'
     OCI = 'oci://'
+    HUGGINGFACE = 'huggingface://'
 
 
 class Artifact:
@@ -113,6 +115,12 @@ class Artifact:
             escaped_uri = self.uri[len(RemotePrefix.OCI.value):].replace(
                 '/', '_')
             local_path = _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
+        elif self.uri.startswith(RemotePrefix.HUGGINGFACE.value):
+            # Strip query parameters for local path generation
+            uri_without_query = self.uri.split('?')[0]
+            local_path = (
+                _HUGGINGFACE_LOCAL_MOUNT_PREFIX +
+                uri_without_query[len(RemotePrefix.HUGGINGFACE.value):])
 
         # If the artifact is already present in the pipeline workspace, map to the workspace path.
         # This is indicated by backend setting metadata['_kfp_workspace'] = True.
@@ -157,6 +165,9 @@ def convert_local_path_to_remote_path(path: str) -> str:
             remote_path = remote_path[:-len('/models')]
 
         return RemotePrefix.OCI.value + remote_path
+    elif path.startswith(_HUGGINGFACE_LOCAL_MOUNT_PREFIX):
+        return (RemotePrefix.HUGGINGFACE.value +
+                path[len(_HUGGINGFACE_LOCAL_MOUNT_PREFIX):])
 
     return path
 
