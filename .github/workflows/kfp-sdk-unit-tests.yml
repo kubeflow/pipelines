@@ -27,24 +27,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
+    - name: Setup Python with uv
+      uses: ./.github/actions/setup-python
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
 
-    - name: Install protobuf dependencies & kfp-pipeline-spec
-      id: install-protobuf-deps
+    - name: Install protobuf dependencies & generate proto files
       uses: ./.github/actions/protobuf
 
-    - name: Install kfp & kfp-kubernetes from source
-      id: install-kfp-k8s-deps
-      uses: ./.github/actions/kfp-k8s
-
-    - name: Install Test dependencies
+    - name: Install workspace packages
       run: |
-        pip install pytest-cov
-        pip install -r sdk/python/requirements-dev.txt
+        uv pip install --no-deps -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
 
     - name: Run SDK Tests
       id: run-tests

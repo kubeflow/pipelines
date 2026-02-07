@@ -22,33 +22,32 @@ repos:
         args:
           - --select=W605
   # required formatting jobs (run these last)
+  # Python linting (uses versions from uv.lock)
 
   # add comment "noqa" to ignore an import that should not be removed
   # (e.g., for an import with desired side-effects)
-  - repo: https://github.com/hadialqattan/pycln
-    rev: v2.5.0
+  - repo: local
     hooks:
       - id: pycln
         name: pycln
-        language: python
-        entry: pycln --all
-  - repo: https://github.com/pycqa/isort
-    rev: 5.11.5
-    hooks:
+        entry: uv run pycln --all
+        language: system
+        types: [python]
       - id: isort
         name: isort
-        entry: isort --profile google
-  - repo: https://github.com/google/yapf
-    rev: "v0.32.0"
-    hooks:
+        entry: uv run isort --profile google
+        language: system
+        types: [python]
       - id: yapf
-  - repo: https://github.com/pycqa/docformatter
-    rev: v1.7.7
-    hooks:
+        name: yapf
+        entry: uv run yapf -i
+        language: system
+        types: [python]
       - id: docformatter
         name: docformatter
-        language: python
-        entry: docformatter -i -r
+        entry: uv run docformatter -i -r
+        language: system
+        types: [python]
         # docformatter messes up certain sphinx link formatting.
         # The kubernetes_platform/python docstrings are heavy on links, so ignore.
         exclude: (sdk/python/kfp/compiler/compiler_test.py|kubernetes_platform/python/)
