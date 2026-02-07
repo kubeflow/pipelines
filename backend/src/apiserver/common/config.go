@@ -40,6 +40,10 @@ const (
 	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
 	MLPipelineServiceName                   string = "ML_PIPELINE_SERVICE_NAME"
 	MetadataServiceName                     string = "METADATA_SERVICE_NAME"
+	PipelineURLAllowedDomains               string = "PIPELINE_URL_ALLOWED_DOMAINS"
+	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
+	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
+	PipelineURLValidationEnabled            string = "PIPELINE_URL_VALIDATION_ENABLED"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
