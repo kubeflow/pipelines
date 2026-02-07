@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -441,6 +442,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 		DAG: &wfapi.DAGTemplate{
 			Tasks: iterationTasks,
 		},
+		RetryStrategy: c.getParallelForItemRetryStrategy(componentName),
 	}
 	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-"+name)
 	if err != nil {
@@ -706,4 +708,50 @@ func depends(deps []string) string {
 		builder.WriteString(".Succeeded")
 	}
 	return builder.String()
+}
+
+func (c *workflowCompiler) getParallelForItemRetryStrategy(componentName string) *wfapi.RetryStrategy {
+	component, ok := c.spec.Components[componentName]
+	if !ok {
+		return nil
+	}
+	dag := component.GetDag()
+	if dag == nil {
+		return nil
+	}
+	// Only lift retry strategy if there is exactly one task in the loop body.
+	if len(dag.GetTasks()) != 1 {
+		return nil
+	}
+	// Get the single task
+	var task *pipelinespec.PipelineTaskSpec
+	for _, t := range dag.GetTasks() {
+		task = t
+		break
+	}
+	if task == nil || task.GetRetryPolicy() == nil {
+		return nil
+	}
+	
+	retryPolicy := task.GetRetryPolicy()
+	backoff := &wfapi.Backoff{
+		Factor: &intstr.IntOrString{
+			Type:   intstr.String,
+			StrVal: fmt.Sprintf("%f", retryPolicy.GetBackoffFactor()),
+		},
+	}
+	if retryPolicy.GetBackoffDuration() != nil {
+		backoff.Duration = fmt.Sprintf("%ds", retryPolicy.GetBackoffDuration().Seconds)
+	}
+	if retryPolicy.GetBackoffMaxDuration() != nil {
+		backoff.MaxDuration = fmt.Sprintf("%ds", retryPolicy.GetBackoffMaxDuration().Seconds)
+	}
+
+	return &wfapi.RetryStrategy{
+		Limit: &intstr.IntOrString{
+			Type:   intstr.String,
+			StrVal: strconv.FormatInt(int64(retryPolicy.MaxRetryCount), 10),
+		},
+		Backoff: backoff,
+	}
 }
