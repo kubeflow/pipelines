@@ -253,7 +253,6 @@ def server_factory(frontend_image,
                 },
             ]
 
-            # Add artifact fetcher related resources if enabled
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
                     {
@@ -424,37 +423,12 @@ def server_factory(frontend_image,
                             "secretkey": base64.b64encode(s3_access_key["AccessKey"]["SecretAccessKey"].encode('utf-8')).decode("utf-8"),
                     },
                 })
+
+                # Argo Workflow Executor Plugin Necessary Resources
+                agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
+                secret_name = f"{agent_sa_name}.service-account-token"
+
                 desired_resources.extend([
-                    # https://argo-workflows.readthedocs.io/en/latest/service-account-secrets/
-                    {
-                        "apiVersion": "v1",
-                        "kind": "ServiceAccount",
-                        "metadata": {
-                            "name": "ml-pipeline-driver-agent-executor-plugin",
-                            "namespace": namespace,
-                            "labels": {
-                                "application-crd-id": "kubeflow-pipelines"
-                            }
-                        },
-                        "secrets": [
-                            {
-                                "name": "ml-pipeline-driver-agent-executor-plugin.service-account-token"
-                            }
-                        ]
-                    },
-                    {
-                        "apiVersion": "v1",
-                        "kind": "Secret",
-                        "metadata": {
-                            "name": "ml-pipeline-driver-agent-executor-plugin.service-account-token",
-                            "namespace": namespace,
-                            "annotations": {
-                                "kubernetes.io/service-account.name":
-                                    "ml-pipeline-driver-agent-executor-plugin"
-                            }
-                        },
-                        "type": "kubernetes.io/service-account-token"
-                    },
                     {
                         "apiVersion": "v1",
                         "kind": "Secret",
@@ -466,6 +440,64 @@ def server_factory(frontend_image,
                             }
                         },
                         "type": "kubernetes.io/service-account-token"
+                    },
+                    {
+                        "apiVersion": "v1",
+                        "kind": "ServiceAccount",
+                        "metadata": {
+                            "name": agent_sa_name,
+                            "namespace": namespace,
+                            "labels": {
+                                "application-crd-id": "kubeflow-pipelines",
+                            },
+                        },
+                    },
+                    {
+                        "apiVersion": "v1",
+                        "kind": "Secret",
+                        "metadata": {
+                            "name": secret_name,
+                            "namespace": namespace,
+                            "annotations": {
+                                "kubernetes.io/service-account.name": agent_sa_name,
+                            },
+                        },
+                        "type": "kubernetes.io/service-account-token",
+                    },
+                    {
+                        "apiVersion": "rbac.authorization.k8s.io/v1",
+                        "kind": "Role",
+                        "metadata": {
+                            "name": "configmap-reader",
+                            "namespace": namespace,
+                        },
+                        "rules": [
+                            {
+                                "apiGroups": [""],
+                                "resources": ["configmaps"],
+                                "verbs": ["get", "list", "watch"],
+                            }
+                        ],
+                    },
+                    {
+                        "apiVersion": "rbac.authorization.k8s.io/v1",
+                        "kind": "RoleBinding",
+                        "metadata": {
+                            "name": "configmap-reader-binding",
+                            "namespace": namespace,
+                        },
+                        "subjects": [
+                            {
+                                "kind": "ServiceAccount",
+                                "name": agent_sa_name,
+                                "namespace": namespace,
+                            }
+                        ],
+                        "roleRef": {
+                            "kind": "Role",
+                            "name": "configmap-reader",
+                            "apiGroup": "rbac.authorization.k8s.io",
+                        },
                     },
                 ])
 
