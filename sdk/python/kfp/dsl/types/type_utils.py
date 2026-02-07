@@ -357,6 +357,24 @@ def verify_type_compatibility(
         else:
             warnings.warn(InconsistentTypeWarning(error_text))
 
+    # If expected parameter has Literal values, validate given constant against them.
+    # Skip check for artifact channels / pipeline channels.
+    if types_are_compatible and expected_is_param:
+        literals = getattr(expected_spec, 'literals', None)
+        if literals is not None:
+            # avoid circular import
+            from kfp.dsl import pipeline_channel
+            if not isinstance(given_value, pipeline_channel.PipelineChannel):
+                if given_value not in literals:
+                    error_text = (
+                        error_message_prefix +
+                        f'Argument value {given_value!r} is not one of the allowed Literal values {literals!r}'
+                    )
+                    if raise_on_error:
+                        raise InconsistentTypeException(error_text)
+                    else:
+                        warnings.warn(InconsistentTypeWarning(error_text))
+
     return types_are_compatible
 
 
@@ -586,6 +604,57 @@ def _annotation_to_type_struct(annotation):
         return annotation
 
     origin = get_origin(annotation)
+
+    if origin is not None:
+
+        # Check for Literal by name and type
+        origin_name = getattr(origin, '__name__', '')
+        is_literal = origin_name == 'Literal'
+
+        if not is_literal:
+            try:
+                import typing
+                if hasattr(typing, 'Literal') and origin is typing.Literal:
+                    is_literal = True
+            except ImportError:
+                pass
+
+        if not is_literal:
+            try:
+                import typing_extensions
+                if hasattr(typing_extensions,
+                           'Literal') and origin is typing_extensions.Literal:
+                    is_literal = True
+            except ImportError:
+                pass
+
+        if is_literal:
+            args = get_args(annotation)
+            if not args:
+                return None, None
+
+            elem_types = {type(v) for v in args}
+            if len(elem_types) > 1:
+                raise TypeError(
+                    'Literal parameters must contain values of a single type.'
+                    f' Got mixed types: {[type(v).__name__ for v in args]}')
+
+            elem_type = next(iter(elem_types))
+            if elem_type is str:
+                type_struct = 'String'
+            elif elem_type is int:
+                type_struct = 'Integer'
+            elif elem_type is float:
+                type_struct = 'Float'
+            elif elem_type is bool:
+                type_struct = 'Boolean'
+            else:
+                raise TypeError(
+                    f'Unsupported Literal element type: {elem_type!r}. '
+                    'Only str, int, float, bool are supported.')
+
+            return type_struct, list(args)
+
     if origin in {list, dict}:
         annotation_module = getattr(annotation, '__module__', None)
         if annotation_module in ('typing', 'typing_extensions'):
