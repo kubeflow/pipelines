@@ -30,16 +30,23 @@ const LABEL_TEXT_COLOR = '#ffffff';
 const DIVIDER_WIDTH = 4;
 const DIVIDER_COLOR = '#4a4e69';
 
+function escapeXml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 async function createLabeledImage(imagePath, label, width, height) {
   /**
    * Creates an image with a label header
    */
+  const safeLabel = escapeXml(label);
+  // Use smaller font for long labels (e.g. with SHA info)
+  const fontSize = label.length > 30 ? 13 : 16;
   const labelSvg = `
     <svg width="${width}" height="${LABEL_HEIGHT}">
       <rect width="100%" height="100%" fill="${LABEL_BACKGROUND}"/>
       <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-            font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="${LABEL_TEXT_COLOR}">
-        ${label}
+            font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${LABEL_TEXT_COLOR}">
+        ${safeLabel}
       </text>
     </svg>
   `;
@@ -112,7 +119,7 @@ async function createDivider(height) {
   }).png();
 }
 
-async function generateComparison(pageName, mainPath, prPath, outputPath) {
+async function generateComparison(pageName, mainPath, prPath, outputPath, mainLabel, prLabel) {
   /**
    * Generates a side-by-side comparison image
    */
@@ -135,8 +142,8 @@ async function generateComparison(pageName, mainPath, prPath, outputPath) {
   const totalHeight = height + LABEL_HEIGHT;
 
   // Create labeled images
-  const mainImage = await createLabeledImage(mainPath, 'main (base)', width, height);
-  const prImage = await createLabeledImage(prPath, 'PR (head)', width, height);
+  const mainImage = await createLabeledImage(mainPath, mainLabel, width, height);
+  const prImage = await createLabeledImage(prPath, prLabel, width, height);
   const divider = await createDivider(totalHeight);
 
   // Combine side by side
@@ -224,6 +231,21 @@ async function main() {
     process.exit(1);
   }
 
+  // Read labels from manifest files if available, otherwise use defaults
+  let mainLabel = 'main (base)';
+  let prLabel = 'PR (head)';
+  try {
+    const mainManifest = JSON.parse(fs.readFileSync(path.join(MAIN_DIR, 'manifest.json'), 'utf8'));
+    if (mainManifest.label) mainLabel = mainManifest.label;
+  } catch (e) { /* use default */ }
+  try {
+    const prManifest = JSON.parse(fs.readFileSync(path.join(PR_DIR, 'manifest.json'), 'utf8'));
+    if (prManifest.label) prLabel = prManifest.label;
+  } catch (e) { /* use default */ }
+
+  console.log(`Main label: ${mainLabel}`);
+  console.log(`PR label: ${prLabel}`);
+
   const results = [];
 
   for (const filename of allPages) {
@@ -233,7 +255,7 @@ async function main() {
     const outputPath = path.join(OUTPUT_DIR, filename);
 
     try {
-      await generateComparison(pageName, mainPath, prPath, outputPath);
+      await generateComparison(pageName, mainPath, prPath, outputPath, mainLabel, prLabel);
 
       // Calculate diff percentage
       const diffPercent = await calculateDiff(mainPath, prPath);
@@ -260,6 +282,8 @@ async function main() {
   const summaryPath = path.join(OUTPUT_DIR, 'summary.json');
   fs.writeFileSync(summaryPath, JSON.stringify({
     timestamp: new Date().toISOString(),
+    mainLabel,
+    prLabel,
     results,
     stats: {
       total: results.length,
