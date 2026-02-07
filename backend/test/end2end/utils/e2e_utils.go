@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"sort"
+	"strings"
 	"time"
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
@@ -74,7 +75,11 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
 	if *updatedRun.State == run_model.V2beta1RuntimeStateRUNNING {
-		logger.Log("Pipeline run did not finish, checking workflow controller logs")
+		logger.Log("Pipeline run did not finish")
+		logger.Log("Checking Argo WF events")
+		events := testutil.DescribeArgoWorkflow(k8Client, *config.Namespace)
+		ginkgo.AddReportEntry("Argo WF Events", events)
+		logger.Log("Checking workflow controller logs")
 		podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 		logger.Log("Attaching Workflow Controller logs to the report")
 		ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
@@ -83,6 +88,13 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	} else {
 		if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
 			logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
+			logger.Log("Checking Argo WF events")
+			events := testutil.DescribeArgoWorkflow(k8Client, *config.Namespace)
+			ginkgo.AddReportEntry("Argo WF Events", events)
+			logger.Log("Checking workflow controller logs")
+			podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+			logger.Log("Attaching Workflow Controller logs to the report")
+			ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
 			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTaskDetails)
 			ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
 		} else {
@@ -121,11 +133,24 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 				}
 			case run_model.V2beta1RuntimeStateFAILED:
 				{
+					agentLogsNotYetAcquired := true
 					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
 					for _, childTask := range task.ChildTasks {
 						podName := childTask.PodName
+						isDriver := strings.Contains(task.DisplayName, "-driver")
 						if podName != "" {
-							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
+							if isDriver {
+								if agentLogsNotYetAcquired {
+									logger.Log("Capturing pod logs for task executor agent, with pod name %s", podName)
+									podName += "-agent"
+									agentLogsNotYetAcquired = false
+								} else {
+									logger.Log("Logs from agent pod was already captured")
+									continue
+								}
+							} else {
+								logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
+							}
 							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 							logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
 							logger.Log("Attaching pod logs to the report")

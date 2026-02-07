@@ -34,6 +34,7 @@ resources:
   - container-builder-sa.yaml
   - viewer-sa.yaml
   - kfp-launcher-configmap.yaml
+  - ml-pipeline-driver-plugin-cm.yaml
   - public_configmap_role.yaml
   - public_configmap_role_binding.yaml
 configMapGenerator:

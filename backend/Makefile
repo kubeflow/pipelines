@@ -95,7 +95,7 @@ kind-cluster-agnostic:
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
 	# Deploy KFP
 	@if [ "${TLS_ENABLED}" = "true" ]; then \
-    		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls; \
+    		    kubectl apply -k $(CURDIR)/../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls; \
     	else \
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
      fi

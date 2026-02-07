@@ -52,7 +52,13 @@ function display_pod_info {
             kubectl describe pod "${POD_NAME}" -n "${NAMESPACE}" | grep -A 100 Events || echo "No events found for pod ${POD_NAME}."
 
             echo "----- LOGS -----"
-            kubectl logs "${POD_NAME}" -n "${NAMESPACE}" || echo "No logs found for pod ${POD_NAME}."
+            if [[ "${POD_NAME}" == *-agent* ]]; then
+                kubectl logs "${POD_NAME}" -n "${NAMESPACE}" -c driver-plugin || \
+                    echo "No logs found for pod ${POD_NAME}."
+            else
+                kubectl logs "${POD_NAME}" -n "${NAMESPACE}" || \
+                    echo "No logs found for pod ${POD_NAME}."
+            fi
 
             echo "==========================="
             echo ""

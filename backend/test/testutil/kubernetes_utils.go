@@ -25,7 +25,6 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-
 	"github.com/onsi/gomega"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
@@ -44,6 +43,22 @@ func CreateK8sClient() (*kubernetes.Clientset, error) {
 		return nil, clientErr
 	}
 	return k8sClient, nil
+}
+
+func DescribeArgoWorkflow(client *kubernetes.Clientset, namespace string) string {
+	var allEvents []string
+	events, err := client.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{
+		FieldSelector: "involvedObject.kind=Workflow",
+	})
+	if err != nil {
+		logger.Log("failed to list Argo WF events: %v", err)
+	}
+	for _, e := range events.Items {
+		eventStr := fmt.Sprintf("- name: %s type: %s  reason: %s  message: %s  lastTimestamp: %s",
+			e.Name, e.Type, e.Reason, e.Message, e.LastTimestamp)
+		allEvents = append(allEvents, eventStr)
+	}
+	return strings.Join(allEvents, ";\n")
 }
 
 // ReadContainerLogs - Read pod logs from a specific container
