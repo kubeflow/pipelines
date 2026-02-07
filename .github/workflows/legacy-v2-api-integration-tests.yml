@@ -102,11 +102,6 @@ jobs:
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
         continue-on-error: true
 
-      - name: Debug TLS cert secret after tests
-        if: ${{ always() && matrix.pod_to_pod_tls_enabled }}
-        run: |
-          kubectl get secret argo-workflows-agent-ca-certificates-n kubeflow 
-
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
