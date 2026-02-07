@@ -230,12 +230,17 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		setCABundle = true
 	}
 
+	logLevel := "1"
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		logLevel = value
 	}
+	args = append(args, "--log_level", logLevel)
+
+	publishLogs := "true"
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		publishLogs = value
 	}
+	args = append(args, "--publish_logs", publishLogs)
 
 	t := &wfapi.Template{
 		Name: name,
@@ -426,12 +431,17 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	logLevel := "1"
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		logLevel = value
 	}
+	args = append(args, "--log_level", logLevel)
+
+	publishLogs := "true"
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		publishLogs = value
 	}
+	args = append(args, "--publish_logs", publishLogs)
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
 		Inputs: wfapi.Inputs{
