@@ -88,6 +88,13 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	} else {
 		if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
 			logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
+			logger.Log("Checking Argo WF events")
+			events := testutil.DescribeArgoWorkflow(k8Client, *config.Namespace)
+			ginkgo.AddReportEntry("Argo WF Events", events)
+			logger.Log("Checking workflow controller logs")
+			podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+			logger.Log("Attaching Workflow Controller logs to the report")
+			ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
 			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTaskDetails)
 			ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
 		} else {
