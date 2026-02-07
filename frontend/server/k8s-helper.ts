@@ -39,6 +39,9 @@ const workflowGroup = 'argoproj.io';
 const workflowVersion = 'v1alpha1';
 const workflowPlural = 'workflows';
 
+// Default Kubernetes cluster domain
+const DEFAULT_CLUSTER_DOMAIN = 'cluster.local';
+
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
@@ -146,6 +149,7 @@ export async function newTensorboardInstance(
 export async function getTensorboardInstance(
   logdir: string,
   namespace: string,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<{ podAddress: string; tfVersion: string; image: string }> {
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject(
@@ -166,11 +170,11 @@ export async function getTensorboardInstance(
       // if check logdir and then create Viewer CRD with same name will break anyway.
       // TODO fix hash collision
       (viewer: any) => {
-        if (viewer && viewer.body && viewer.body.spec.type === 'tensorboard') {
-          const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
-          const image = viewer.body.spec.tensorboardSpec.tensorflowImage;
+        if (viewer && viewer.spec && viewer.spec.type === 'tensorboard') {
+          const address = `http://${viewer.metadata.name}-service.${namespace}.svc.${clusterDomain}:80/tensorboard/${viewer.metadata.name}/`;
+          const image = viewer.spec.tensorboardSpec.tensorflowImage;
           const tfImageParts = image.split(':', 2);
-          const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
+          const tfVersion = tfImageParts.length === 2 ? tfImageParts[1] : '';
           return { podAddress: address, tfVersion: tfVersion, image };
         } else {
           return { podAddress: '', tfVersion: '', image: '' };

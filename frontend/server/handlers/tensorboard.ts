@@ -54,7 +54,13 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      res.send(await k8sHelper.getTensorboardInstance(logdir as string, namespace as string));
+      res.send(
+        await k8sHelper.getTensorboardInstance(
+          logdir as string,
+          namespace as string,
+          tensorboardConfig.clusterDomain,
+        ),
+      );
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);

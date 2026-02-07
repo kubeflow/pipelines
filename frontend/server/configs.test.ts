@@ -26,4 +26,18 @@ describe('loadConfigs', () => {
     expect(configs.server.port).toBe(3000);
     expect(configs.server.staticDir).toBe(tmpdir);
   });
+
+  it('default clusterDomain should be cluster.local', () => {
+    const tmpdir = os.tmpdir();
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {});
+    expect(configs.viewer.tensorboard.clusterDomain).toBe('cluster.local');
+  });
+
+  it('clusterDomain should use CLUSTER_DOMAIN env var when set', () => {
+    const tmpdir = os.tmpdir();
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+      CLUSTER_DOMAIN: 'cluster.corp',
+    });
+    expect(configs.viewer.tensorboard.clusterDomain).toBe('cluster.corp');
+  });
 });
