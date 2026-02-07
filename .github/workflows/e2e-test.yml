@@ -236,6 +236,11 @@ jobs:
         run: |
           ./test/artifact-proxy/test-artifact-proxy.sh "$USER_NAMESPACE"
 
+      - name: Debug Created SA All Namespaces
+        if: ${{ always() }}
+        run: |
+          kubectl get sa --all-namespaces
+
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         if: ${{ steps.configure.outcome == 'success' }}

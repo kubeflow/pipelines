@@ -427,7 +427,6 @@ def server_factory(frontend_image,
                 # Argo Workflow Executor Plugin Necessary Resources
                 agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
                 secret_name = f"{agent_sa_name}.service-account-token"
-
                 desired_resources.extend([
                     {
                         "apiVersion": "v1",
