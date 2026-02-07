@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Handler } from 'express';
-import * as k8sHelper from '../k8s-helper';
-import { ViewerTensorboardConfig } from '../configs';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
-import { parseError, isAllowedResourceName } from '../utils';
-import { AuthorizeFn } from '../helpers/auth';
+import * as k8sHelper from '../k8s-helper.js';
+import { ViewerTensorboardConfig } from '../configs.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
+import { parseError, isAllowedResourceName } from '../utils.js';
+import { AuthorizeFn } from '../helpers/auth.js';
 
 export const getTensorboardHandlers = (
   tensorboardConfig: ViewerTensorboardConfig,

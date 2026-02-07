@@ -1,12 +1,11 @@
 import { Request, Response } from 'express';
-import portableFetch from 'portable-fetch';
-import { AuthConfigs } from '../configs';
+import { AuthConfigs } from '../configs.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
   AuthServiceApi,
-} from '../src/generated/apis/auth';
-import { parseError, ErrorDetails } from '../utils';
+} from '../src/generated/apis/auth/index.js';
+import { parseError, ErrorDetails } from '../utils.js';
 
 export type AuthorizeFn = (
   {
@@ -28,13 +27,7 @@ export const getAuthorizeFn = (
   },
 ) => {
   const { apiServerAddress } = otherConfigs;
-  // TODO: Use portable-fetch instead of node-fetch in other parts too. The generated api here only
-  // supports portable-fetch.
-  const authService = new AuthServiceApi(
-    { basePath: apiServerAddress },
-    undefined,
-    portableFetch as any,
-  );
+  const authService = new AuthServiceApi({ basePath: apiServerAddress }, undefined, fetch as any);
   const authorize: AuthorizeFn = async ({ resources, verb, namespace }, req) => {
     if (!authConfigs.enabled) {
       return undefined;

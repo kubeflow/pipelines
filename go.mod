@@ -74,6 +74,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.67
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.58.3
 	github.com/aws/smithy-go v1.22.3
+	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
