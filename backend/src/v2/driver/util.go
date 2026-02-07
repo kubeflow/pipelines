@@ -159,6 +159,13 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	var resolvedArgs []string
 	for _, arg := range args {
+		// Skip args containing output placeholders - these need to be resolved by Argo at runtime
+		// Example: {{$.outputs.parameters['sum'].output_file}}
+		if strings.Contains(arg, "$.outputs") {
+			resolvedArgs = append(resolvedArgs, arg)
+			continue
+		}
+
 		switch {
 		case isInputParameterChannel(arg):
 			resolvedArg, err := resolvePodSpecInputRuntimeParameter(arg, executorInput)

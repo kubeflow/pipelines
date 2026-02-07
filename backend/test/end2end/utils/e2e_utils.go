@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"maps"
 	"sort"
-	"strings"
 	"time"
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
@@ -167,8 +166,7 @@ func GetTasksFromWorkflow(workflow *v1alpha1.Workflow) []TaskDetails {
 	for _, template := range workflow.Spec.Templates {
 		if template.DAG != nil {
 			for _, task := range template.DAG.Tasks {
-				// Skip system driver and executor tasks - only count user-defined component tasks
-				if strings.HasSuffix(task.Name, "-driver") || task.Name == "executor" {
+				if task.When == "" {
 					continue
 				}
 

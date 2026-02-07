@@ -274,6 +274,27 @@ func Test_resolveContainerArgs(t *testing.T) {
 			expected: nil,
 			wantErr:  true,
 		},
+		{
+			name: "output parameter placeholder should be preserved",
+			args: []string{
+				"sh",
+				"-c",
+				"mkdir -p /tmp/kfp/outputs && echo {{$.inputs.parameters['result']}} > {{$.outputs.parameters['sum'].output_file}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"result": structpb.NewStringValue("12"),
+					},
+				},
+			},
+			expected: []string{
+				"sh",
+				"-c",
+				"mkdir -p /tmp/kfp/outputs && echo {{$.inputs.parameters['result']}} > {{$.outputs.parameters['sum'].output_file}}",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, test := range tests {
