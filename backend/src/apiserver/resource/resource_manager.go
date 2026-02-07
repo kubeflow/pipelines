@@ -22,7 +22,9 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"time"
 
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 
 	"github.com/cenkalti/backoff"
@@ -77,6 +79,20 @@ var (
 		Name: "resource_manager_workflow_runs_failed",
 		Help: "The current number of failed workflow runs",
 	}, extraLabels)
+
+	// Gap in seconds between creating an execution spec (Argo or other backend) for a recurring run and reporting it via the persistence agent.
+	recurringPipelineRunReportGap = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "resource_manager_recurring_run_report_gap",
+		Help:    "Recurring Run Report Delay",
+		Buckets: prometheus.ExponentialBuckets(0.5, 2, 10), // 0.5s -> 4min
+	})
+
+	// Map API enum values to Kubernetes DeletionPropagation values
+	propagationPolicyMap = map[apiv2beta1.DeletePropagationPolicy]v1.DeletionPropagation{
+		apiv2beta1.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
+		apiv2beta1.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
+		apiv2beta1.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
+	}
 )
 
 type ClientManagerInterface interface {
@@ -620,9 +636,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 // ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
 func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
-	filterContext := &model.FilterContext{
-		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: common.GetPodNamespace()},
-	}
+	filterContext := model.EmptyFilterContext()
 
 	opts := list.EmptyOptions()
 
@@ -1244,38 +1258,44 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 }
 
 // Deletes a recurring run with given id.
-func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string) error {
-	job, err := r.GetJob(jobId)
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy apiv2beta1.DeletePropagationPolicy) error {
+	job, err := r.GetJob(jobID)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobId)
+		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)
 	}
 
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
 		k8sNamespace = common.GetPodNamespace()
 	}
-	err = r.getScheduledWorkflowClient(k8sNamespace).Delete(ctx, job.K8SName, &v1.DeleteOptions{})
+
+	deleteOptions := &v1.DeleteOptions{}
+	if policy, exists := propagationPolicyMap[propagationPolicy]; exists {
+		deleteOptions.PropagationPolicy = &policy
+	}
+
+	err = r.getScheduledWorkflowClient(k8sNamespace).Delete(ctx, job.K8SName, deleteOptions)
 	if err != nil {
 		if !util.IsNotFound(err) {
-			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists", jobId)
+			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists", jobID)
 		}
 		// The ScheduledWorkflow was not found.
-		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' (k8s namespace %v) because it was not found", jobId, job.K8SName, job.Namespace, k8sNamespace)
+		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' (k8s namespace %v) because it was not found", jobID, job.K8SName, job.Namespace, k8sNamespace)
 		// Continue the execution, because we want to delete the
 		// ScheduledWorkflow. We can skip deleting the ScheduledWorkflow
 		// when it no longer exists.
 	}
-	err = r.jobStore.DeleteJob(jobId)
+	err = r.jobStore.DeleteJob(jobID)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete recurring run %v", jobId)
+		return util.Wrapf(err, "Failed to delete recurring run %v", jobID)
 	}
 	return nil
 }
 
 // Creates new tasks or updates existing ones.
 // This is not a part of internal API exposed to persistence agent only.
-func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task) ([]*model.Task, error) {
-	tasks, err := r.taskStore.CreateOrUpdateTasks(t)
+func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task, runID string) ([]*model.Task, error) {
+	tasks, err := r.taskStore.CreateOrUpdateTasks(t, runID)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create or update tasks")
 	}
@@ -1424,6 +1444,10 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			},
 		}
 		run, err = r.runStore.CreateRun(run)
+		if r.options.CollectMetrics && !execStatus.StartedAtTime().Time.IsZero() {
+			reportGap := time.Since(execStatus.StartedAtTime().Time).Seconds()
+			recurringPipelineRunReportGap.Observe(reportGap)
+		}
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to report a workflow due to error creating run %s", runId)
 		} else {

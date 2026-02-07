@@ -23,25 +23,25 @@ jobs:
     steps:
       - name: Check if author is a Kubeflow GitHub member
         id: membership-check
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const username = context.payload.pull_request.user.login;
-            const org = context.repo.owner;
-            try {
-              const res = await github.rest.orgs.checkMembershipForUser({
-                org,
-                username
-              });
-              core.setOutput("is_member", true);
-            } catch (error) {
-              if (error.status === 404) {
-                // User is not a member
-                core.setOutput("is_member", false);
-              } else {
-                throw error;
-              }
-            }
+        env:
+          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::group::PR Information"
+          echo "PR Number: #$PR_NUMBER"
+          echo "PR Author: $PR_AUTHOR"
+          echo "Author Association: $AUTHOR_ASSOCIATION"
+          echo "::endgroup::"
+          
+          # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
+          if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
+            echo "::notice::Author '$PR_AUTHOR' is a trusted contributor (association: $AUTHOR_ASSOCIATION). Auto-approving workflow runs."
+            echo "is_member=true" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::Author '$PR_AUTHOR' is not a trusted contributor (association: $AUTHOR_ASSOCIATION). Checking for 'ok-to-test' label."
+            echo "is_member=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Approve Pending Workflow Runs
         if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
