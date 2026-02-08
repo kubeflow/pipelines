@@ -273,6 +273,33 @@ describe('/apps/tensorboard', () => {
         ]
       `);
     });
+
+    it('gets tensorboard url with custom cluster domain (defensive normalization)', done => {
+      // Test both with and without leading dot
+      app = new UIServer(loadConfigs(argv, { CLUSTER_DOMAIN: 'cluster.test' }));
+      k8sGetCustomObjectSpy.mockImplementation(() =>
+        Promise.resolve(
+          newGetTensorboardResponse({
+            name: 'viewer-abcdefg',
+            logDir: 'log-dir-1',
+            tensorflowImage: 'tensorflow:2.0.0',
+          }),
+        ),
+      );
+
+      requests(app.start())
+        .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+        .expect(
+          200,
+          JSON.stringify({
+            podAddress:
+              'http://viewer-abcdefg-service.test-ns.cluster.test:80/tensorboard/viewer-abcdefg/',
+            tfVersion: '2.0.0',
+            image: 'tensorflow:2.0.0',
+          }),
+          done,
+        );
+    });
   });
 
   describe('post (create)', () => {

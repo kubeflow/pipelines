@@ -40,7 +40,7 @@ const workflowVersion = 'v1alpha1';
 const workflowPlural = 'workflows';
 
 // Default Kubernetes cluster domain
-const DEFAULT_CLUSTER_DOMAIN = 'cluster.local';
+const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
@@ -105,8 +105,9 @@ export async function newTensorboardInstance(
   tfImageName: string,
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace);
+  const currentPod = await getTensorboardInstance(logdir, namespace, clusterDomain);
   if (currentPod.podAddress) {
     if (tfversion === currentPod.tfVersion) {
       return;
@@ -169,9 +170,12 @@ export async function getTensorboardInstance(
       // but if there is a hash collision, not check logdir will return error tensorboard link
       // if check logdir and then create Viewer CRD with same name will break anyway.
       // TODO fix hash collision
-      (viewer: any) => {
+      (response: any) => {
+        const viewer = response.body || response;
         if (viewer && viewer.spec && viewer.spec.type === 'tensorboard') {
-          const address = `http://${viewer.metadata.name}-service.${namespace}.svc.${clusterDomain}:80/tensorboard/${viewer.metadata.name}/`;
+          // Normalize clusterDomain to ensure leading dot
+          const normalizedDomain = clusterDomain.startsWith('.') ? clusterDomain : `.${clusterDomain}`;
+          const address = `http://${viewer.metadata.name}-service.${namespace}${normalizedDomain}:80/tensorboard/${viewer.metadata.name}/`;
           const image = viewer.spec.tensorboardSpec.tensorflowImage;
           const tfImageParts = image.split(':', 2);
           const tfVersion = tfImageParts.length === 2 ? tfImageParts[1] : '';
@@ -198,8 +202,12 @@ export async function getTensorboardInstance(
  * and returns the deleted podAddress
  */
 
-export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace);
+export async function deleteTensorboardInstance(
+  logdir: string,
+  namespace: string,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
+): Promise<void> {
+  const currentPod = await getTensorboardInstance(logdir, namespace, clusterDomain);
   if (!currentPod.podAddress) {
     return;
   }
@@ -223,6 +231,7 @@ export function waitForTensorboardInstance(
   logdir: string,
   namespace: string,
   timeout: number,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -231,7 +240,7 @@ export function waitForTensorboardInstance(
         clearInterval(handle);
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
+      const tensorboardInstance = await getTensorboardInstance(logdir, namespace, clusterDomain);
       const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
         clearInterval(handle);

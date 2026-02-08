@@ -135,7 +135,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
      */
     KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
     FRONTEND_SERVER_NAMESPACE = 'kubeflow',
-    CLUSTER_DOMAIN = 'cluster.local',
+    CLUSTER_DOMAIN = '.svc.cluster.local',
   } = env;
 
   return {
@@ -198,8 +198,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
           ? Deployments.KUBEFLOW
           : DEPLOYMENT_STR.toUpperCase() === Deployments.MARKETPLACE
-          ? Deployments.MARKETPLACE
-          : Deployments.NOT_SPECIFIED,
+            ? Deployments.MARKETPLACE
+            : Deployments.NOT_SPECIFIED,
       hideSideNav:
         HIDE_SIDENAV === undefined
           ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW

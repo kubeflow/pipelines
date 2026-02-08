@@ -27,10 +27,10 @@ describe('loadConfigs', () => {
     expect(configs.server.staticDir).toBe(tmpdir);
   });
 
-  it('default clusterDomain should be cluster.local', () => {
+  it('default clusterDomain should be .svc.cluster.local', () => {
     const tmpdir = os.tmpdir();
     const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {});
-    expect(configs.viewer.tensorboard.clusterDomain).toBe('cluster.local');
+    expect(configs.viewer.tensorboard.clusterDomain).toBe('.svc.cluster.local');
   });
 
   it('clusterDomain should use CLUSTER_DOMAIN env var when set', () => {
