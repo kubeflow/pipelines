@@ -556,7 +556,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		ConfigureCustomCABundle(executor)
 	}
-	applySecurityContextToTemplate(executor)
+	applySecurityContextToExecutorTemplate(executor)
 
 	// If retry policy is set, add retryStrategy to executor
 	if taskRetrySpec != nil {

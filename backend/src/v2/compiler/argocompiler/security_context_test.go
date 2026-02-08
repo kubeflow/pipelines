@@ -84,6 +84,17 @@ func TestApplyPodSecurityContext_ExistingContext(t *testing.T) {
 	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
 }
 
+func TestApplyPodSecurityContext_ExistingWithRunAsNonRootFalse(t *testing.T) {
+	sc := &k8score.PodSecurityContext{
+		RunAsNonRoot: boolPtr(false),
+	}
+	applyPodSecurityContext(&sc)
+
+	// Should preserve explicitly-set RunAsNonRoot
+	assert.False(t, *sc.RunAsNonRoot)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+}
+
 func TestApplyPodSecurityContext_ExistingWithSeccomp(t *testing.T) {
 	localhostProfile := "my-profile.json"
 	sc := &k8score.PodSecurityContext{
@@ -228,4 +239,119 @@ func TestApplySecurityContextToTemplate_NoContainer(t *testing.T) {
 	// Pod security context should still be applied
 	assert.NotNil(t, tmpl.SecurityContext)
 	assert.True(t, *tmpl.SecurityContext.RunAsNonRoot)
+}
+
+// --- Executor template tests (user containers) ---
+
+func TestDefaultUserContainerSecurityContext(t *testing.T) {
+	sc := defaultUserContainerSecurityContext()
+
+	assert.NotNil(t, sc)
+	assert.NotNil(t, sc.AllowPrivilegeEscalation)
+	assert.False(t, *sc.AllowPrivilegeEscalation)
+	assert.NotNil(t, sc.Capabilities)
+	assert.Equal(t, []k8score.Capability{"ALL"}, sc.Capabilities.Drop)
+	assert.NotNil(t, sc.SeccompProfile)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+	// Must NOT set RunAsNonRoot - user images may run as root
+	assert.Nil(t, sc.RunAsNonRoot)
+}
+
+func TestApplyUserContainerSecurityContext_NilContainer(t *testing.T) {
+	// Should not panic
+	applyUserContainerSecurityContext(nil)
+}
+
+func TestApplyUserContainerSecurityContext_NilSecurityContext(t *testing.T) {
+	c := &k8score.Container{Name: "user"}
+	applyUserContainerSecurityContext(c)
+
+	assert.NotNil(t, c.SecurityContext)
+	assert.False(t, *c.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, c.SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, c.SecurityContext.SeccompProfile.Type)
+	// Must NOT set RunAsNonRoot
+	assert.Nil(t, c.SecurityContext.RunAsNonRoot)
+}
+
+func TestApplyUserContainerSecurityContext_PartialSecurityContext(t *testing.T) {
+	c := &k8score.Container{
+		Name: "user",
+		SecurityContext: &k8score.SecurityContext{
+			RunAsUser: int64Ptr(1000),
+		},
+	}
+	applyUserContainerSecurityContext(c)
+
+	assert.Equal(t, int64(1000), *c.SecurityContext.RunAsUser)
+	assert.False(t, *c.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, c.SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, c.SecurityContext.SeccompProfile.Type)
+	// Must NOT set RunAsNonRoot
+	assert.Nil(t, c.SecurityContext.RunAsNonRoot)
+}
+
+func TestApplyPodSeccompProfileOnly_NilContext(t *testing.T) {
+	var sc *k8score.PodSecurityContext
+	applyPodSeccompProfileOnly(&sc)
+
+	assert.NotNil(t, sc)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+	// Must NOT set RunAsNonRoot
+	assert.Nil(t, sc.RunAsNonRoot)
+}
+
+func TestApplyPodSeccompProfileOnly_ExistingContext(t *testing.T) {
+	sc := &k8score.PodSecurityContext{
+		RunAsUser: int64Ptr(1000),
+	}
+	applyPodSeccompProfileOnly(&sc)
+
+	assert.Equal(t, int64(1000), *sc.RunAsUser)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+	// Must NOT set RunAsNonRoot
+	assert.Nil(t, sc.RunAsNonRoot)
+}
+
+func TestApplySecurityContextToExecutorTemplate_NilTemplate(t *testing.T) {
+	// Should not panic
+	applySecurityContextToExecutorTemplate(nil)
+}
+
+func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t *testing.T) {
+	tmpl := &wfapi.Template{
+		Container: &k8score.Container{Name: "user-container"},
+		InitContainers: []wfapi.UserContainer{
+			{Container: k8score.Container{Name: "kfp-launcher"}},
+		},
+		Sidecars: []wfapi.UserContainer{
+			{Container: k8score.Container{Name: "sidecar"}},
+		},
+	}
+	applySecurityContextToExecutorTemplate(tmpl)
+
+	// Pod security context: SeccompProfile only, no RunAsNonRoot
+	assert.NotNil(t, tmpl.SecurityContext)
+	assert.Nil(t, tmpl.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, tmpl.SecurityContext.SeccompProfile.Type)
+
+	// Main container (user): no RunAsNonRoot
+	assert.NotNil(t, tmpl.Container.SecurityContext)
+	assert.Nil(t, tmpl.Container.SecurityContext.RunAsNonRoot)
+	assert.False(t, *tmpl.Container.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, tmpl.Container.SecurityContext.Capabilities.Drop)
+
+	// Init containers (system): full security WITH RunAsNonRoot
+	for _, ic := range tmpl.InitContainers {
+		assert.NotNil(t, ic.SecurityContext)
+		assert.True(t, *ic.SecurityContext.RunAsNonRoot)
+		assert.False(t, *ic.SecurityContext.AllowPrivilegeEscalation)
+	}
+
+	// Sidecars: no RunAsNonRoot (could be user-specified)
+	for _, sc := range tmpl.Sidecars {
+		assert.NotNil(t, sc.SecurityContext)
+		assert.Nil(t, sc.SecurityContext.RunAsNonRoot)
+		assert.False(t, *sc.SecurityContext.AllowPrivilegeEscalation)
+	}
 }

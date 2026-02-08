@@ -59,8 +59,10 @@ func applyPodSecurityContext(sc **k8score.PodSecurityContext) {
 		*sc = defaultPodSecurityContext()
 		return
 	}
-	runAsNonRoot := true
-	(*sc).RunAsNonRoot = &runAsNonRoot
+	if (*sc).RunAsNonRoot == nil {
+		runAsNonRoot := true
+		(*sc).RunAsNonRoot = &runAsNonRoot
+	}
 	if (*sc).SeccompProfile == nil {
 		(*sc).SeccompProfile = &k8score.SeccompProfile{
 			Type: k8score.SeccompProfileTypeRuntimeDefault,
@@ -99,5 +101,75 @@ func applySecurityContextToContainer(c *k8score.Container) {
 func applySecurityContextToUserContainers(containers []wfapi.UserContainer) {
 	for i := range containers {
 		applySecurityContextToContainer(&containers[i].Container)
+	}
+}
+
+// applySecurityContextToExecutorTemplate applies security defaults to executor
+// templates without enforcing runAsNonRoot on the pod or main container, since
+// user-specified images (e.g. python:3.12) may run as root. Init containers
+// (KFP system images like the launcher) still get the full security context.
+func applySecurityContextToExecutorTemplate(t *wfapi.Template) {
+	if t == nil {
+		return
+	}
+	applyPodSeccompProfileOnly(&t.SecurityContext)
+	applyUserContainerSecurityContext(t.Container)
+	// Init containers use KFP system images (e.g. launcher) that support non-root.
+	applySecurityContextToUserContainers(t.InitContainers)
+	for i := range t.Sidecars {
+		applyUserContainerSecurityContext(&t.Sidecars[i].Container)
+	}
+}
+
+func applyPodSeccompProfileOnly(sc **k8score.PodSecurityContext) {
+	if *sc == nil {
+		*sc = &k8score.PodSecurityContext{
+			SeccompProfile: &k8score.SeccompProfile{
+				Type: k8score.SeccompProfileTypeRuntimeDefault,
+			},
+		}
+		return
+	}
+	if (*sc).SeccompProfile == nil {
+		(*sc).SeccompProfile = &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		}
+	}
+}
+
+func defaultUserContainerSecurityContext() *k8score.SecurityContext {
+	allowPrivilegeEscalation := false
+	return &k8score.SecurityContext{
+		AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+		Capabilities: &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		},
+		SeccompProfile: &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		},
+	}
+}
+
+func applyUserContainerSecurityContext(c *k8score.Container) {
+	if c == nil {
+		return
+	}
+	if c.SecurityContext == nil {
+		c.SecurityContext = defaultUserContainerSecurityContext()
+		return
+	}
+	if c.SecurityContext.AllowPrivilegeEscalation == nil {
+		allowPrivilegeEscalation := false
+		c.SecurityContext.AllowPrivilegeEscalation = &allowPrivilegeEscalation
+	}
+	if c.SecurityContext.Capabilities == nil {
+		c.SecurityContext.Capabilities = &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		}
+	}
+	if c.SecurityContext.SeccompProfile == nil {
+		c.SecurityContext.SeccompProfile = &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		}
 	}
 }
