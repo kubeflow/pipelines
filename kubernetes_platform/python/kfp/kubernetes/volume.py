@@ -32,29 +32,51 @@ def CreatePVC(
     storage_class_name: Optional[str] = '',
     volume_name: Optional[str] = None,
     annotations: Optional[Dict[str, str]] = None,
+    data_source: Optional[Dict[str, str]] = None,
 ):
     """Create a PersistentVolumeClaim, which can be used by downstream tasks.
-    See `PersistentVolume <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_
-    and `PersistentVolumeClaim <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims>`_
+
+    See `PersistentVolume
+    <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes>`_
+    and `PersistentVolumeClaim
+    <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims>`_
     documentation for more information about the component input parameters.
 
     Args:
         access_modes: AccessModes to request for the provisioned PVC. May
-            be one or more of ``'ReadWriteOnce'``, ``'ReadOnlyMany'``, ``'ReadWriteMany'``, or
-            ``'ReadWriteOncePod'``. Corresponds to `PersistentVolumeClaim.spec.accessModes <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.
-        size: The size of storage requested by the PVC that will be provisioned. For example, ``'5Gi'``. Corresponds to `PersistentVolumeClaim.spec.resources.requests.storage <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
-        pvc_name: Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_. Only one of ``pvc_name`` and ``pvc_name_suffix`` can
-            be provided.
+            be one or more of ``'ReadWriteOnce'``, ``'ReadOnlyMany'``,
+            ``'ReadWriteMany'``, or ``'ReadWriteOncePod'``. Corresponds to
+            `PersistentVolumeClaim.spec.accessModes
+            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.
+        size: The size of storage requested by the PVC that will be
+            provisioned. For example, ``'5Gi'``. Corresponds to
+            `PersistentVolumeClaim.spec.resources.requests.storage
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+        pvc_name: Name of the PVC. Corresponds to
+            `PersistentVolumeClaim.metadata.name
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+            Only one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.
         pvc_name_suffix: Prefix to use for a dynamically generated name, which
-            will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only one
-            of ``pvc_name`` and ``pvc_name_suffix`` can be provided.
+            will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only
+            one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.
         storage_class_name: Name of StorageClass from which to provision the PV
             to back the PVC. ``None`` indicates to use the cluster's default
             storage_class_name. Set to ``''`` for a statically specified PVC.
         volume_name: Pre-existing PersistentVolume that should back the
             provisioned PersistentVolumeClaim. Used for statically
-            specified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
-        annotations: Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+            specified PV only. Corresponds to
+            `PersistentVolumeClaim.spec.volumeName
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+        annotations: Annotations for the PVC's metadata. Corresponds to
+            `PersistentVolumeClaim.metadata.annotations
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+        data_source: Specifies the data source for the PVC. This can be used to
+            create a PVC from a VolumeSnapshot or to clone an existing PVC.
+            Should be a dictionary with ``'apiGroup'``, ``'kind'``, and
+            ``'name'`` keys. For example:
+            ``{'apiGroup': 'snapshot.storage.k8s.io', 'kind': 'VolumeSnapshot', 'name': 'my-snapshot'}``.
+            Corresponds to `PersistentVolumeClaim.spec.dataSource
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
 
     Returns:
         ``name: str`` \n\t\t\tName of the generated PVC.
