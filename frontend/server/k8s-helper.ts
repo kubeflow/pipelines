@@ -174,7 +174,9 @@ export async function getTensorboardInstance(
         const viewer = response.body || response;
         if (viewer && viewer.spec && viewer.spec.type === 'tensorboard') {
           // Normalize clusterDomain to ensure leading dot
-          const normalizedDomain = clusterDomain.startsWith('.') ? clusterDomain : `.${clusterDomain}`;
+          const normalizedDomain = clusterDomain.startsWith('.')
+            ? clusterDomain
+            : `.${clusterDomain}`;
           const address = `http://${viewer.metadata.name}-service.${namespace}${normalizedDomain}:80/tensorboard/${viewer.metadata.name}/`;
           const image = viewer.spec.tensorboardSpec.tensorflowImage;
           const tfImageParts = image.split(':', 2);
