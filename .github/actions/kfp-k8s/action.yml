@@ -71,4 +71,4 @@ runs:
       if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
       working-directory: ./sdk/python
       run: |
-        uv pip install . -I --no-deps
+        uv pip install . --reinstall --no-deps
