@@ -25,7 +25,7 @@ python:
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
 			pip install --user --break-system-packages uv==$(UV_VERSION) && \
-			~/.local/bin/uv build --package kfp --out sdk/python/dist'
+			~/.local/bin/uv build --package kfp --out-dir sdk/python/dist'
 
 .PHONY: clean-python
 clean-python:

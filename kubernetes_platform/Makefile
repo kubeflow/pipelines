@@ -58,7 +58,7 @@ python: proto/kubernetes_executor_config.proto fetch-protos
 		    cd kubernetes_platform/python && \
 		    python3 generate_proto.py && \
 		    cd /go/src/github.com/kubeflow/pipelines && \
-		    ~/.local/bin/uv build --package kfp-kubernetes --out kubernetes_platform/python/dist'
+		    ~/.local/bin/uv build --package kfp-kubernetes --out-dir kubernetes_platform/python/dist'
 
 # Build and install in editable mode using pre-built image
 .PHONY: python-dev
