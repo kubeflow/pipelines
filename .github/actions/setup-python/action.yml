@@ -22,3 +22,7 @@ runs:
     - name: Install dependencies
       run: uv sync --python ${{ inputs.python-version }} --extra ${{ inputs.extra }}
       shell: bash
+
+    - name: Ensure pip is available in venv
+      run: uv pip install pip setuptools wheel
+      shell: bash
