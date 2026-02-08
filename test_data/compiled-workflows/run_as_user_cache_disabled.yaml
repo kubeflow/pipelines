@@ -19,7 +19,10 @@ spec:
     labels:
       pipelines.kubeflow.org/v2_component: "true"
   securityContext:
+    runAsNonRoot: true
     runAsUser: 1001
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:

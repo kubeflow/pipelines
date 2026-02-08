@@ -15,6 +15,7 @@ spec:
         component: metadata-grpc-server
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -88,4 +89,3 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 2
       serviceAccountName: metadata-grpc-server
-
