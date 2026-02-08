@@ -48,7 +48,9 @@ lint = [
 test = [
   "absl-py",
   "docker",
+  "google-cloud-pipeline-components",
   "nbformat",
+  "pip",
   "pytest",
   "pytest-cov",
   "pytest-xdist",
