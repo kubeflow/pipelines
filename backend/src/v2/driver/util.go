@@ -15,8 +15,10 @@
 package driver
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -29,13 +31,7 @@ const inputPipelineChannelPattern = `\$.inputs.parameters\['(.+?)'\]`
 func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
 	match := re.FindStringSubmatch(inputChannel)
-	if len(match) == 2 {
-		return true
-	} else {
-		// if len(match) > 2, then this is still incorrect because
-		// inputChannel should contain only one parameter channel input
-		return false
-	}
+	return len(match) == 2
 }
 
 // extractInputParameterFromChannel takes an inputChannel that adheres to
@@ -48,9 +44,8 @@ func extractInputParameterFromChannel(inputChannel string) (string, error) {
 	if len(match) > 1 {
 		extractedValue := match[1]
 		return extractedValue, nil
-	} else {
-		return "", fmt.Errorf("failed to extract input parameter from channel: %s", inputChannel)
 	}
+	return "", fmt.Errorf("failed to extract input parameter from channel: %s", inputChannel)
 }
 
 // inputParamConstant convert and return value as a RuntimeValue
@@ -105,4 +100,88 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 	default:
 		return nil, fmt.Errorf("value of type %T cannot be iterated", v)
 	}
+}
+
+func isConditionClause(arg string) bool {
+	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
+}
+
+func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	var ifPresent struct {
+		IfPresent struct {
+			InputName string      `json:"InputName"`
+			Then      interface{} `json:"Then"`
+			Else      interface{} `json:"Else"`
+		} `json:"IfPresent"`
+	}
+	if err := json.Unmarshal([]byte(arg), &ifPresent); err != nil {
+		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
+	}
+
+	_, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
+	var values interface{}
+	if isPresent {
+		values = ifPresent.IfPresent.Then
+	} else {
+		values = ifPresent.IfPresent.Else
+	}
+
+	if values == nil {
+		return []string{}, nil
+	}
+
+	var resolved []string
+	switch v := values.(type) {
+	case string:
+		resolvedArg, err := resolvePodSpecInputRuntimeParameter(v, executorInput)
+		if err != nil {
+			return nil, err
+		}
+		resolved = []string{resolvedArg}
+	case []interface{}:
+		for _, item := range v {
+			str, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("non-string item in IfPresent Then/Else array: %T", item)
+			}
+			resolvedArg, err := resolvePodSpecInputRuntimeParameter(str, executorInput)
+			if err != nil {
+				return nil, err
+			}
+			resolved = append(resolved, resolvedArg)
+		}
+	default:
+		return nil, fmt.Errorf("unexpected type in IfPresent Then/Else: %T", v)
+	}
+	return resolved, nil
+}
+
+func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	var resolvedArgs []string
+	for _, arg := range args {
+		// Skip args containing output placeholders - these need to be resolved by Argo at runtime
+		// Example: {{$.outputs.parameters['sum'].output_file}}
+		if strings.Contains(arg, "$.outputs") {
+			resolvedArgs = append(resolvedArgs, arg)
+			continue
+		}
+
+		switch {
+		case isInputParameterChannel(arg):
+			resolvedArg, err := resolvePodSpecInputRuntimeParameter(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve input parameter channel: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolvedArg)
+		case isConditionClause(arg):
+			resolved, err := resolveCondition(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve condition: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolved...)
+		default:
+			resolvedArgs = append(resolvedArgs, arg)
+		}
+	}
+	return resolvedArgs, nil
 }
