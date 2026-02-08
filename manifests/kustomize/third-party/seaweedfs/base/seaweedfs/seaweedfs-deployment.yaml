@@ -44,19 +44,19 @@ spec:
               - /bin/sh
               - -c
               - |
-                # Wait for SeaweedFS master to be ready (120s max)
+                # Wait up to 120 seconds  for SeaweedFS master to be ready
                 for i in $(seq 1 60); do
                   if wget -q --spider http://127.0.0.1:8333/status; then
                     break
                   fi
                   if [ "$i" -eq 60 ]; then
-                    echo "ERROR: SeaweedFS master did not become ready within 120s"
+                    echo "ERROR: SeaweedFS master did not become ready within 120 seconds"
                     exit 1
                   fi
                   sleep 2
                 done
 
-                # Create bucket with retries (25s max)
+                # Create bucket with retries (maximum 25 seconds)
                 for i in $(seq 1 5); do
                   echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell 2>&1 || true
                   if echo "s3.bucket.list" | /usr/bin/weed shell 2>/dev/null | grep -q mlpipeline; then
