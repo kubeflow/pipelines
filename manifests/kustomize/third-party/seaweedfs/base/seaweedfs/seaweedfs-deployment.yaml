@@ -20,6 +20,7 @@ spec:
         application-crd-id: kubeflow-pipelines
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
         fsGroup: 1000
@@ -81,6 +82,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - mountPath: /data
           name: data

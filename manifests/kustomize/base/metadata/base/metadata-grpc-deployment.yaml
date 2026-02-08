@@ -88,4 +88,3 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 2
       serviceAccountName: metadata-grpc-server
-

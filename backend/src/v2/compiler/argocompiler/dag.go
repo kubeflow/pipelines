@@ -630,6 +630,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
+	applySecurityContextToTemplate(t)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(t)

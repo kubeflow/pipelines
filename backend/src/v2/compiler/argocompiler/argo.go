@@ -150,9 +150,14 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 	}
 
+	wf.Spec.SecurityContext = &k8score.PodSecurityContext{
+		SeccompProfile: &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		},
+	}
 	runAsUser := GetPipelineRunAsUser()
 	if runAsUser != nil {
-		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}
+		wf.Spec.SecurityContext.RunAsUser = runAsUser
 	}
 
 	c := &workflowCompiler{
