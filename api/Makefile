@@ -50,7 +50,7 @@ python: fetch-protos
 		    cd api/v2alpha1/python && \
 		    python3 generate_proto.py && \
 		    cd /go/src/github.com/kubeflow/pipelines && \
-		    ~/.local/bin/uv build --package kfp-pipeline-spec --out api/v2alpha1/python/dist'
+		    ~/.local/bin/uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist'
 
 # Build and locally install Python package using editable mode for development.
 .PHONY: python-dev
