@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 import base64
+import hashlib
 
 # From awscli installed in alpine/k8s image
 import botocore.session
@@ -257,9 +258,10 @@ def server_factory(frontend_image,
                                     "labels": {
                                         "app": "ml-pipeline-ui-artifact"
                                     },
-                                    "annotations": disable_istio_sidecar and {
-                                        "sidecar.istio.io/inject": "false"
-                                    } or {},
+                                    "annotations": {
+                                        **({"sidecar.istio.io/inject": "false"} if disable_istio_sidecar else {}),
+                                        "kubeflow-pipelines/image-spec-hash": hashlib.sha256(f"{frontend_image}:{frontend_tag}".encode()).hexdigest()[:16],
+                                    },
                                 },
                                 "spec": {
                                     "containers": [{
