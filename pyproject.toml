@@ -2,6 +2,12 @@
 name = "kfp-workspace"
 version = "0.0.0"
 requires-python = ">=3.9"
+dependencies = [
+  "kfp",
+  "kfp-pipeline-spec",
+  "kfp-server-api",
+  "kfp-kubernetes",
+]
 
 [tool.uv.workspace]
 members = [
@@ -10,6 +16,12 @@ members = [
   "api/v2alpha1/python",
   "backend/api/v2beta1/python_http_client",
 ]
+
+[tool.uv.sources]
+kfp = { workspace = true }
+kfp-pipeline-spec = { workspace = true }
+kfp-server-api = { workspace = true }
+kfp-kubernetes = { workspace = true }
 
 [tool.uv]
 # Shared constraints applied during resolution for ALL workspace members

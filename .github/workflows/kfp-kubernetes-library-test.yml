@@ -34,9 +34,5 @@ jobs:
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
 
-      - name: Install workspace packages
-        run: |
-          uv pip install --no-deps -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
-
       - name: Run tests
         run: uv run pytest ./kubernetes_platform/python/test
