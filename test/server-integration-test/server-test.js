@@ -151,36 +151,45 @@ function assertContains(str, substring, msg) {
 async function testStaticServing() {
   log('\n📁 Static File Serving', 'cyan');
 
+  // These tests were added in PR #12756 (CVE remediation) against CRA's build
+  // output. Updated here to match Vite's output conventions:
+  //   - DOCTYPE is uppercase (<!DOCTYPE html> vs <!doctype html>)
+  //   - Assets are flat under static/ (not static/js/ and static/css/)
+  //   - Bundle names use index-[hash] (not main.[hash])
+  //   - Paths may be relative (./static/) in the HTML source
+
   await test('GET / returns index.html', async () => {
     const res = await request('GET', '/');
     assertEqual(res.status, 200, 'Status code');
-    assertContains(res.body, '<!doctype html>', 'HTML doctype');
+    assertContains(res.body.toLowerCase(), '<!doctype html>', 'HTML doctype');
     assertContains(res.body, 'Kubeflow Pipelines', 'Page title');
   });
 
   await test('GET /index.html returns index.html', async () => {
     const res = await request('GET', '/index.html');
     assertEqual(res.status, 200, 'Status code');
-    assertContains(res.body, '<!doctype html>', 'HTML doctype');
+    assertContains(res.body.toLowerCase(), '<!doctype html>', 'HTML doctype');
   });
 
-  await test('GET /static/js/*.js returns JavaScript', async () => {
+  await test('GET /static/*.js returns JavaScript', async () => {
     // First get index.html to find the JS bundle name
     const indexRes = await request('GET', '/');
-    const jsMatch = indexRes.body.match(/\/static\/js\/main\.[a-f0-9]+\.js/);
+    const jsMatch = indexRes.body.match(/\.?\/static\/index-[a-zA-Z0-9]+\.js/);
     assertTrue(jsMatch, 'Could not find JS bundle path in index.html');
 
-    const res = await request('GET', jsMatch[0]);
+    const jsBundlePath = jsMatch[0].replace(/^\./, '');
+    const res = await request('GET', jsBundlePath);
     assertEqual(res.status, 200, 'Status code');
     assertTrue(res.headers['content-type']?.includes('javascript'), 'Content-Type should be JavaScript');
   });
 
-  await test('GET /static/css/*.css returns CSS', async () => {
+  await test('GET /static/*.css returns CSS', async () => {
     const indexRes = await request('GET', '/');
-    const cssMatch = indexRes.body.match(/\/static\/css\/main\.[a-f0-9]+\.css/);
+    const cssMatch = indexRes.body.match(/\.?\/static\/index-[a-zA-Z0-9]+\.css/);
     assertTrue(cssMatch, 'Could not find CSS bundle path in index.html');
 
-    const res = await request('GET', cssMatch[0]);
+    const cssBundlePath = cssMatch[0].replace(/^\./, '');
+    const res = await request('GET', cssBundlePath);
     assertEqual(res.status, 200, 'Status code');
     assertTrue(res.headers['content-type']?.includes('css'), 'Content-Type should be CSS');
   });

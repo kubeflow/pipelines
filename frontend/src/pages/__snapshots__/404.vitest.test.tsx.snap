@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`404 > renders a 404 page 1`] = `
+<DocumentFragment>
+  <div
+    style="margin: 100px auto; text-align: center;"
+  >
+    <div
+      style="color: rgb(170, 170, 170); font-size: 50px; font-weight: bold;"
+    >
+      404
+    </div>
+    <div
+      style="font-size: 16px;"
+    >
+      Page Not Found: some bad page
+    </div>
+  </div>
+</DocumentFragment>
+`;

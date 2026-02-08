@@ -237,7 +237,7 @@ export const VisualizationServiceApiFetchParamCreator = function(configuration?:
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'V2beta1Visualization' !== 'string' ||

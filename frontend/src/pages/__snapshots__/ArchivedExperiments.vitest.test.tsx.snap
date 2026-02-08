@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ArchivedExperiments > renders archived experiments 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk f9qqjqd"
+  >
+    <div
+      data-testid="experiment-list"
+    />
+  </div>
+</DocumentFragment>
+`;
