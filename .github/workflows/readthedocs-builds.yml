@@ -27,10 +27,8 @@ jobs:
       - name: Install protobuf dependencies & generate proto files
         uses: ./.github/actions/protobuf
 
-      - name: Generate kfp-kubernetes proto files and install packages
-        run: |
-          make -C kubernetes_platform python
-          uv pip install --no-deps -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
+      - name: Generate kfp-kubernetes proto files
+        run: make -C kubernetes_platform python
 
       - name: Build KFP SDK Docs
         working-directory: docs/sdk

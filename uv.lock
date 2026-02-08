@@ -1624,6 +1624,12 @@ requires-dist = [
 name = "kfp-workspace"
 version = "0.0.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "kfp" },
+    { name = "kfp-kubernetes" },
+    { name = "kfp-pipeline-spec" },
+    { name = "kfp-server-api" },
+]
 
 [package.optional-dependencies]
 ci = [
@@ -1720,6 +1726,10 @@ requires-dist = [
     { name = "docker", marker = "extra == 'test'" },
     { name = "isort", marker = "extra == 'lint'", specifier = "==5.10.1" },
     { name = "junit2html", marker = "extra == 'ci'" },
+    { name = "kfp", editable = "sdk/python" },
+    { name = "kfp-kubernetes", editable = "kubernetes_platform/python" },
+    { name = "kfp-pipeline-spec", editable = "api/v2alpha1/python" },
+    { name = "kfp-server-api", editable = "backend/api/v2beta1/python_http_client" },
     { name = "kfp-workspace", extras = ["lint", "test"], marker = "extra == 'dev'" },
     { name = "kfp-workspace", extras = ["lint", "test", "docs"], marker = "extra == 'ci'" },
     { name = "m2r2", marker = "extra == 'docs'" },
