@@ -152,6 +152,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 	if setCABundle {
 		ConfigureCustomCABundle(importerTemplate)
 	}
+	applySecurityContextToTemplate(importerTemplate)
 	c.templates[name] = importerTemplate
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *importerTemplate)
 	return name

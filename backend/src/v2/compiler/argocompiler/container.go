@@ -265,6 +265,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
 		},
 	}
+	applySecurityContextToTemplate(t)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(t)
@@ -555,6 +556,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		ConfigureCustomCABundle(executor)
 	}
+	applySecurityContextToExecutorTemplate(executor)
 
 	// If retry policy is set, add retryStrategy to executor
 	if taskRetrySpec != nil {

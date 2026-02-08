@@ -18,6 +18,10 @@ metadata:
   generateName: build-images-
 spec:
   entrypoint: build-images
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
@@ -109,6 +113,14 @@ spec:
     container:
       image: "{{workflow.parameters.image-builder-image}}"
       imagePullPolicy: 'Always'
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       args: [
         "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",

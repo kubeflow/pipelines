@@ -972,8 +972,12 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
       nodeSelector:
         kubernetes.io/os: linux
       priorityClassName: workflow-controller
       securityContext:
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
