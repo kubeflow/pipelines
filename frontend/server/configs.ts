@@ -135,6 +135,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
      */
     KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
     FRONTEND_SERVER_NAMESPACE = 'kubeflow',
+    CLUSTER_DOMAIN = 'cluster.local',
   } = env;
 
   return {
@@ -211,6 +212,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       tensorboard: {
         podTemplateSpec: loadJSON<object>(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH),
         tfImageName: VIEWER_TENSORBOARD_TF_IMAGE_NAME,
+        clusterDomain: CLUSTER_DOMAIN,
       },
     },
     visualizations: {
@@ -256,6 +258,7 @@ export interface PipelineConfigs {
 export interface ViewerTensorboardConfig {
   podTemplateSpec?: object;
   tfImageName: string;
+  clusterDomain: string;
 }
 export interface ViewerConfigs {
   tensorboard: ViewerTensorboardConfig;

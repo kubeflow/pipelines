@@ -67,6 +67,12 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
+          - name: CLUSTER_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: CLUSTER_DOMAIN
+                optional: true
           - name: ARTIFACTS_SERVICE_PROXY_ENABLED
             valueFrom:
               configMapKeyRef:
