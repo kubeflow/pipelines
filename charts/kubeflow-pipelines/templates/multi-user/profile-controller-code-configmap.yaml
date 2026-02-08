@@ -1,0 +1,11 @@
+{{- if .Values.multiUser.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubeflow-pipelines-profile-controller-code
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+data:
+  sync.py: |
+{{ .Files.Get "files/sync.py" | indent 4 }}
+{{- end }}

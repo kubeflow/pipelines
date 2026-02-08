@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-deployer-deployment
+  labels:
+    app: cache-deployer
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-deployer
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: cache-deployer
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: main
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        image: "{{ .Values.cacheDeployer.image.repository }}:{{ .Values.cacheDeployer.image.tag }}"
+        imagePullPolicy: Always
+        env:
+        - name: NAMESPACE_TO_WATCH
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- with .Values.cacheDeployer.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
+      restartPolicy: Always
+      {{- with .Values.cacheDeployer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.cacheDeployer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.cacheDeployer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline-visualizationserver
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  name: ml-pipeline-visualizationserver
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-visualizationserver
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-visualizationserver
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - image: "{{ .Values.visualization.image.repository }}:{{ .Values.visualization.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        name: ml-pipeline-visualizationserver
+        ports:
+        - name: http
+          containerPort: 8888
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8888
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8888
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        {{- with .Values.visualization.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      serviceAccountName: ml-pipeline-visualizationserver
+      {{- with .Values.visualization.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.visualization.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.visualization.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

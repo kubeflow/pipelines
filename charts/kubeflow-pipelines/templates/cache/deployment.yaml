@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-server
+  labels:
+    app: cache-server
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-server
+  template:
+    metadata:
+      labels:
+        app: cache-server
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: server
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        image: "{{ .Values.cacheServer.image.repository }}:{{ .Values.cacheServer.image.tag }}"
+        env:
+        - name: DEFAULT_CACHE_STALENESS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: DEFAULT_CACHE_STALENESS
+        - name: MAXIMUM_CACHE_STALENESS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: MAXIMUM_CACHE_STALENESS
+        - name: CACHE_IMAGE
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: cacheImage
+        - name: CACHE_NODE_RESTRICTIONS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: cacheNodeRestrictions
+        - name: DBCONFIG_DRIVER
+          value: {{ include "kubeflow-pipelines.cacheDbDriver" . }}
+        - name: DBCONFIG_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: cacheDb
+        - name: DBCONFIG_HOST_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              {{- if eq .Values.database.type "postgresql" }}
+              key: postgresHost
+              {{- else }}
+              key: dbHost
+              {{- end }}
+        - name: DBCONFIG_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              {{- if eq .Values.database.type "postgresql" }}
+              key: postgresPort
+              {{- else }}
+              key: dbPort
+              {{- end }}
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+              key: {{ include "kubeflow-pipelines.dbSecretUsernameKey" . }}
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+              key: {{ include "kubeflow-pipelines.dbSecretPasswordKey" . }}
+        {{- if .Values.multiUser.enabled }}
+        - name: NAMESPACE_TO_WATCH
+          value: ""
+        {{- else }}
+        - name: NAMESPACE_TO_WATCH
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- end }}
+        - name: WEBHOOK_PORT
+          value: "8443"
+        args:
+        - "--db_driver=$(DBCONFIG_DRIVER)"
+        - "--db_host=$(DBCONFIG_HOST_NAME)"
+        - "--db_port=$(DBCONFIG_PORT)"
+        - "--db_name=$(DBCONFIG_DB_NAME)"
+        - "--db_user=$(DBCONFIG_USER)"
+        - "--db_password=$(DBCONFIG_PASSWORD)"
+        - "--namespace_to_watch=$(NAMESPACE_TO_WATCH)"
+        - "--listen_port=$(WEBHOOK_PORT)"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        volumeMounts:
+        - name: webhook-tls-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+        {{- with .Values.cacheServer.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          secretName: webhook-server-tls
+      serviceAccountName: kubeflow-pipelines-cache
+      {{- with .Values.cacheServer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.cacheServer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.cacheServer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

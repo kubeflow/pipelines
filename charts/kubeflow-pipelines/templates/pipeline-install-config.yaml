@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-install-config
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+data:
+  appName: {{ .Values.config.appName }}
+  appVersion: {{ .Values.config.appVersion | quote }}
+  {{- if eq .Values.database.type "postgresql" }}
+  dbHost: {{ include "kubeflow-pipelines.dbHost" . }}
+  dbPort: {{ include "kubeflow-pipelines.dbPort" . | quote }}
+  dbType: {{ include "kubeflow-pipelines.dbType" . }}
+  postgresHost: {{ include "kubeflow-pipelines.dbHost" . }}
+  postgresPort: {{ include "kubeflow-pipelines.dbPort" . | quote }}
+  {{- else }}
+  dbHost: {{ include "kubeflow-pipelines.dbHost" . }}
+  dbPort: {{ include "kubeflow-pipelines.dbPort" . | quote }}
+  dbType: {{ include "kubeflow-pipelines.dbType" . }}
+  mysqlHost: {{ include "kubeflow-pipelines.dbHost" . }}
+  mysqlPort: {{ include "kubeflow-pipelines.dbPort" . | quote }}
+  {{- end }}
+  mlmdDb: metadb
+  cacheDb: cachedb
+  pipelineDb: mlpipeline
+  bucketName: {{ .Values.config.bucketName }}
+  defaultPipelineRoot: {{ .Values.config.defaultPipelineRoot | quote }}
+  autoUpdatePipelineDefaultVersion: {{ .Values.config.autoUpdatePipelineDefaultVersion | quote }}
+  cronScheduleTimezone: {{ .Values.config.cronScheduleTimezone | quote }}
+  cacheImage: {{ .Values.config.cacheImage | quote }}
+  cacheNodeRestrictions: {{ .Values.config.cacheNodeRestrictions | quote }}
+  MAXIMUM_CACHE_STALENESS: {{ .Values.config.MAXIMUM_CACHE_STALENESS | quote }}
+  DEFAULT_CACHE_STALENESS: {{ .Values.config.DEFAULT_CACHE_STALENESS | quote }}
+  ConMaxLifeTime: {{ .Values.config.ConMaxLifeTime | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  ARTIFACTS_PROXY_ENABLED: {{ .Values.config.artifactsProxyEnabled | quote }}
+  ARTIFACT_RETENTION_DAYS: {{ .Values.config.artifactRetentionDays | quote }}
