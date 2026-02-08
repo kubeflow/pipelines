@@ -1,0 +1,50 @@
+{{- if .Values.components.apiserver.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-install-config
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+data:
+  warning: |
+    1. Do not use kubectl to edit this configmap, because some values are used
+    during helm template rendering. Instead, change the values.yaml and apply the entire
+    helm chart again.
+    2. After updating the configmap, some deployments may need to be restarted
+    until the changes take effect. A quick way to restart all deployments in a
+    namespace: `kubectl rollout restart deployment -n <your-namespace>`.
+  appName: pipeline
+  appVersion: {{ .Chart.AppVersion }}
+  {{- if .Values.mysql }}
+  dbHost: {{ .Values.mysql.host | default "mysql" }}
+  dbPort: {{ .Values.mysql.port | default "3306" | quote }}
+  dbType: mysql
+  mysqlHost: {{ .Values.mysql.host | default "mysql" }}
+  mysqlPort: {{ .Values.mysql.port | default "3306" | quote }}
+  mlmdDb: {{ .Values.mysql.database | default "metadb" }}
+  {{- else }}
+  dbHost: ""
+  dbPort: "3306"
+  dbType: mysql
+  mysqlHost: ""
+  mysqlPort: "3306"
+  mlmdDb: ""
+  {{- end }}
+  cacheDb: {{ .Values.config.cacheDb | default "cachedb" }}
+  pipelineDb: {{ .Values.config.pipelineDb | default "mlpipeline" }}
+  bucketName: {{ .Values.storage.bucket | default "mlpipeline" }}
+  defaultPipelineRoot: {{ .Values.storage.defaultPipelineRoot | default "" }}
+  autoUpdatePipelineDefaultVersion: {{ .Values.config.autoUpdatePipelineDefaultVersion | default "true" | quote }}
+  cronScheduleTimezone: {{ .Values.config.cronScheduleTimezone | default "UTC" | quote }}
+  cacheImage: {{ .Values.config.cacheImage | default "ghcr.io/containerd/busybox" | quote }}
+  cacheNodeRestrictions: {{ .Values.config.cacheNodeRestrictions | default "false" | quote }}
+  MAXIMUM_CACHE_STALENESS: {{ .Values.config.maximumCacheStaleness | default "" | quote }}
+  DEFAULT_CACHE_STALENESS: {{ .Values.config.defaultCacheStaleness | default "" | quote }}
+  ConMaxLifeTime: {{ .Values.config.conMaxLifeTime | default "120s" | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | default "info" | quote }}
+  ARTIFACTS_PROXY_ENABLED: {{ .Values.config.artifactsProxyEnabled | default "false" | quote }}
+  ARTIFACT_RETENTION_DAYS: {{ .Values.config.artifactRetentionDays | default "-1" | quote }}
+{{- end }}

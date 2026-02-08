@@ -1,0 +1,238 @@
+{{- if .Values.components.ui.enabled }}
+# UI ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-pipeline-ui-configmap
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-ui
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+data:
+  viewer-pod-template.json: |-
+    {
+        "spec": {
+            "serviceAccountName": "kubeflow-pipelines-viewer"
+        }
+    }
+
+---
+# UI Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-ui
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-ui
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+    {{- include "kubeflow-pipelines.serviceaccount-annotations" . | nindent 4 }}
+
+---
+# UI Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline-ui
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-ui
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000
+  selector:
+    app: ml-pipeline-ui
+
+---
+# UI Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-ui
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-ui
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.components.ui.replicas }}
+  selector:
+    matchLabels:
+      app: ml-pipeline-ui
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-ui
+        {{- include "kubeflow-pipelines.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- include "kubeflow-pipelines.careem-annotations" . | nindent 8 }}
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: ml-pipeline-ui
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ml-pipeline-ui-configmap
+      containers:
+        - name: ml-pipeline-ui
+          image: {{ .Values.images.registry }}/kfp-frontend:{{ .Values.images.tag }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+          env:
+            - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
+              value: /etc/config/viewer-pod-template.json
+            - name: MINIO_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- if or .Values.seaweedfs.enabled (eq .Values.storage.type "minio") }}
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
+            {{- end }}
+            - name: ALLOW_CUSTOM_VISUALIZATIONS
+              value: "true"
+            - name: FRONTEND_SERVER_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ARGO_ARCHIVE_LOGS
+              value: "true"
+            - name: DISABLE_GKE_METADATA
+              value: "true"
+            - name: ARTIFACTS_SERVICE_PROXY_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: ARTIFACTS_PROXY_ENABLED
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- if .Values.components.ui.resources }}
+            {{- toYaml .Values.components.ui.resources | nindent 12 }}
+            {{- else }}
+            requests:
+              cpu: 10m
+              memory: 70Mi
+            {{- end }}
+
+---
+# UI Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ml-pipeline-ui
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-ui
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/log
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - configmaps
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - "kubeflow.org"
+    resources:
+      - viewers
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - delete
+  - apiGroups:
+      - "argoproj.io"
+    resources:
+      - workflows
+    verbs:
+      - get
+      - list
+
+---
+# UI RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-pipeline-ui
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: ml-pipeline-ui
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ml-pipeline-ui
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-ui
+    namespace: {{ include "kubeflow-pipelines.namespace" . }}
+{{- end }}
