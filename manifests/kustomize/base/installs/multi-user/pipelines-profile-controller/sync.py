@@ -41,7 +41,8 @@ def get_settings_from_env(controller_port=None,
                           frontend_tag=None,
                           disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None,
-                          artifact_retention_days=None):
+                          artifact_retention_days=None,
+                          cluster_domain=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -71,6 +72,10 @@ def get_settings_from_env(controller_port=None,
         artifact_retention_days or \
         os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
 
+    settings["cluster_domain"] = \
+        cluster_domain or \
+        os.environ.get("CLUSTER_DOMAIN", ".svc.cluster.local")
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -90,9 +95,10 @@ def server_factory(frontend_image,
                    frontend_tag,
                    disable_istio_sidecar,
                    artifacts_proxy_enabled,
-                   artifact_retention_days,
-                   url="",
-                   controller_port=8080):
+                    artifact_retention_days,
+                    cluster_domain,
+                    url="",
+                    controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
@@ -179,6 +185,7 @@ def server_factory(frontend_image,
                     },
                     "data": {
                         "defaultPipelineRoot": f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
+                        "clusterDomain": cluster_domain,
                     },
                 },
                 {
@@ -208,7 +215,7 @@ def server_factory(frontend_image,
                         "default-namespaced": json.dumps({
                             "archiveLogs": True,
                             "s3": {
-                                "endpoint": "minio-service.kubeflow:9000",
+                                "endpoint": f"minio-service.kubeflow{cluster_domain if cluster_domain.startswith('.') else '.' + cluster_domain}:9000",
                                 "bucket": S3_BUCKET_NAME,
                                 "keyFormat": f"private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}",
                                 "insecure": True,
@@ -283,17 +290,21 @@ def server_factory(frontend_image,
                                                     }
                                                 }
                                             },
-                                            {
+                                             {
                                                 "name": "ML_PIPELINE_SERVICE_HOST",
-                                                "value": "ml-pipeline.kubeflow.svc.cluster.local"
+                                                "value": f"ml-pipeline.kubeflow{cluster_domain if cluster_domain.startswith('.') else '.' + cluster_domain}"
                                             },
                                             {
                                                 "name": "ML_PIPELINE_SERVICE_PORT",
                                                 "value": "8888"
                                             },
                                             {
-                                                "name": "FRONTEND_SERVER_NAMESPACE",
+                                                 "name": "FRONTEND_SERVER_NAMESPACE",
                                                 "value": namespace,
+                                            },
+                                            {
+                                                "name": "CLUSTER_DOMAIN",
+                                                "value": cluster_domain,
                                             }
                                         ],
                                         "resources": {

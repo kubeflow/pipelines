@@ -274,7 +274,7 @@ describe('/apps/tensorboard', () => {
       `);
     });
 
-    it('gets tensorboard url with custom cluster domain (defensive normalization)', done => {
+    it('gets tensorboard url with custom cluster domain (defensive normalization)', async () => {
       // Test both with and without leading dot
       app = new UIServer(loadConfigs(argv, { CLUSTER_DOMAIN: 'cluster.test' }));
       k8sGetCustomObjectSpy.mockImplementation(() =>
@@ -287,7 +287,7 @@ describe('/apps/tensorboard', () => {
         ),
       );
 
-      requests(app.start())
+      await requests(app.app)
         .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
         .expect(
           200,
@@ -297,7 +297,6 @@ describe('/apps/tensorboard', () => {
             tfVersion: '2.0.0',
             image: 'tensorflow:2.0.0',
           }),
-          done,
         );
     });
   });
