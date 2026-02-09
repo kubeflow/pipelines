@@ -15,7 +15,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/upgrade-test.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
