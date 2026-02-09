@@ -764,7 +764,9 @@ func (r *ResourceManager) UnarchiveRun(runId string) error {
 	if experiment.StorageState.ToV2() == model.StorageStateArchived {
 		return util.NewFailedPreconditionError(
 			errors.New("Unarchive the experiment first to allow the run to be restored"),
-			"%s", fmt.Sprintf("Failed to unarchive run %v as experiment %v must be un-archived first", runId, run.ExperimentId),
+			"Failed to unarchive run %v as experiment %v must be un-archived first",
+			runId,
+			run.ExperimentId,
 		)
 	}
 	if err := r.runStore.UnarchiveRun(runId); err != nil {
@@ -1470,14 +1472,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	if execStatus.IsInFinalState() {
 		err := addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
-			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
+			execName := execSpec.ExecutionName()
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
 			// report workflows that no longer exist. It's important to return a not found error, so that persistence
 			// agent won't retry again.
 			if util.IsNotFound(err) {
-				return nil, util.NewNotFoundError(err, "%s", message)
+				return nil, util.NewNotFoundError(err, "Failed to add PersistedFinalState label to workflow %s", execName)
 			} else {
-				return nil, util.Wrapf(err, "%s", message)
+				return nil, util.Wrapf(err, "Failed to add PersistedFinalState label to workflow %s", execName)
 			}
 		}
 

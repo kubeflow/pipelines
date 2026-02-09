@@ -13,9 +13,13 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
+# Build arguments
+ARG SOURCE_CODE=.
+
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 AS builder
 
 COPY ./go.mod ./
 COPY ./go.sum ./
