@@ -47,11 +47,11 @@ describe('NewRunParametersV2', () => {
 
     screen.getByText('Run parameters');
     screen.getByText('Specify parameters required by the pipeline');
-    screen.getByText('strParam - string');
+    screen.getByLabelText('strParam - string');
     screen.getByDisplayValue('string value');
-    screen.getByText('boolParam - boolean');
+    screen.getByLabelText('boolParam - boolean');
     screen.getByDisplayValue('true');
-    screen.getByText('intParam - integer');
+    screen.getByLabelText('intParam - integer');
     screen.getByDisplayValue('123');
   });
 

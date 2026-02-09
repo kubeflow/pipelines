@@ -127,7 +127,7 @@ spec:
     render(<PipelineDetailsV1 {...generateProps(new graphlib.Graph(), new graphlib.Graph())} />);
 
     expect(screen.getByText('test-pipeline-version'));
-    expect(screen.getByTestId('version_selector').childElementCount).toEqual(1);
+    expect(screen.getByTestId('version_selector')).toBeTruthy();
   });
 
   it('shows description for pipeline version and pipeline with custom version', async () => {

@@ -345,17 +345,17 @@ describe('VisualizationCreator', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <button
-          class="MuiButtonBase-root-2233 MuiButton-root-2207 MuiButton-text-2209 MuiButton-flat-2212"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
           tabindex="0"
           type="button"
         >
           <span
-            class="MuiButton-label-2208"
+            class="MuiButton-label"
           >
             create visualizations manually
           </span>
           <span
-            class="MuiTouchRipple-root-2246"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
