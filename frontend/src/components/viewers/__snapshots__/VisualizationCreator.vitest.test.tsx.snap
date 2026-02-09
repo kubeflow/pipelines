@@ -1,0 +1,1040 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`VisualizationCreator > renders an Editor component if a visualization type is specified 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-581"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-596 MuiFormLabel-filled-600 MuiInputLabel-root-585 MuiInputLabel-formControl-590 MuiInputLabel-animated-593 MuiInputLabel-shrink-592"
+        data-shrink="true"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-623 MuiInput-root-610 MuiInput-underline-614 MuiInputBase-formControl-624 MuiInput-formControl-611"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-603"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-604 MuiSelect-selectMenu-607 MuiInputBase-input-633 MuiInput-input-618"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            ROC_CURVE
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value="ROC_CURVE"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-640 MuiSelect-icon-609"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-581 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-596 MuiInputLabel-root-585 MuiInputLabel-formControl-590 MuiInputLabel-animated-593 MuiInputLabel-outlined-595"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-623 MuiOutlinedInput-root-653 MuiInputBase-formControl-624"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-666 MuiOutlinedInput-notchedOutline-660"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-667"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-633 MuiOutlinedInput-input-661"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <div>
+      <label
+        class="MuiFormLabel-root-596 MuiInputLabel-root-585 MuiInputLabel-animated-593"
+      >
+        Arguments (Optional)
+      </label>
+      <div
+        data-placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp"is_generated": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp"target_lambda": string | null,<br>        &nbsp&nbsp&nbsp&nbsp"trueclass": string | null,<br>        &nbsp&nbsp&nbsp&nbsp"true_score_column": string | null<br>        }"
+        data-testid="editor"
+      />
+    </div>
+    <button
+      class="MuiButtonBase-root-694 MuiButtonBase-disabled-695 MuiButton-root-668 MuiButton-text-670 MuiButton-textSecondary-672 MuiButton-flat-673 MuiButton-flatSecondary-675 MuiButton-disabled-688 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-669"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders component when all parameters in config are provided 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-349"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-364 MuiInputLabel-root-353 MuiInputLabel-formControl-358 MuiInputLabel-animated-361"
+        data-shrink="false"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-391 MuiInput-root-378 MuiInput-underline-382 MuiInputBase-formControl-392 MuiInput-formControl-379"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-371"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-372 MuiSelect-selectMenu-375 MuiInputBase-input-401 MuiInput-input-386"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            <span>
+              ​
+            </span>
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value=""
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-408 MuiSelect-icon-377"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-349 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-364 MuiInputLabel-root-353 MuiInputLabel-formControl-358 MuiInputLabel-animated-361 MuiInputLabel-outlined-363"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-391 MuiOutlinedInput-root-421 MuiInputBase-formControl-392"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-434 MuiOutlinedInput-notchedOutline-428"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-435"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-401 MuiOutlinedInput-input-429"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <button
+      class="MuiButtonBase-root-462 MuiButtonBase-disabled-463 MuiButton-root-436 MuiButton-text-438 MuiButton-textSecondary-440 MuiButton-flat-441 MuiButton-flatSecondary-443 MuiButton-disabled-456 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-437"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders component when empty config is provided 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-1"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-16 MuiInputLabel-root-5 MuiInputLabel-formControl-10 MuiInputLabel-animated-13"
+        data-shrink="false"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-43 MuiInput-root-30 MuiInput-underline-34 MuiInputBase-formControl-44 MuiInput-formControl-31"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-23"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-24 MuiSelect-selectMenu-27 MuiInputBase-input-53 MuiInput-input-38"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            <span>
+              ​
+            </span>
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value=""
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-60 MuiSelect-icon-29"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-1 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-16 MuiInputLabel-root-5 MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-outlined-15"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-43 MuiOutlinedInput-root-73 MuiInputBase-formControl-44"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-86 MuiOutlinedInput-notchedOutline-80"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-87"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-53 MuiOutlinedInput-input-81"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <button
+      class="MuiButtonBase-root-114 MuiButtonBase-disabled-115 MuiButton-root-88 MuiButton-text-90 MuiButton-textSecondary-92 MuiButton-flat-93 MuiButton-flatSecondary-95 MuiButton-disabled-108 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-89"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders component when isBusy is not provided 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-117"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-132 MuiInputLabel-root-121 MuiInputLabel-formControl-126 MuiInputLabel-animated-129"
+        data-shrink="false"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-159 MuiInput-root-146 MuiInput-underline-150 MuiInputBase-formControl-160 MuiInput-formControl-147"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-139"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-140 MuiSelect-selectMenu-143 MuiInputBase-input-169 MuiInput-input-154"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            <span>
+              ​
+            </span>
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value=""
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-176 MuiSelect-icon-145"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-117 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-132 MuiInputLabel-root-121 MuiInputLabel-formControl-126 MuiInputLabel-animated-129 MuiInputLabel-outlined-131"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-159 MuiOutlinedInput-root-189 MuiInputBase-formControl-160"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-202 MuiOutlinedInput-notchedOutline-196"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-203"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-169 MuiOutlinedInput-input-197"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <button
+      class="MuiButtonBase-root-230 MuiButtonBase-disabled-231 MuiButton-root-204 MuiButton-text-206 MuiButton-textSecondary-208 MuiButton-flat-209 MuiButton-flatSecondary-211 MuiButton-disabled-224 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-205"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders component when onGenerate is not provided 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-233"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-248 MuiInputLabel-root-237 MuiInputLabel-formControl-242 MuiInputLabel-animated-245"
+        data-shrink="false"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-275 MuiInput-root-262 MuiInput-underline-266 MuiInputBase-formControl-276 MuiInput-formControl-263"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-255"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-256 MuiSelect-selectMenu-259 MuiInputBase-input-285 MuiInput-input-270"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            <span>
+              ​
+            </span>
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value=""
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-292 MuiSelect-icon-261"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-233 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-248 MuiInputLabel-root-237 MuiInputLabel-formControl-242 MuiInputLabel-animated-245 MuiInputLabel-outlined-247"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-275 MuiOutlinedInput-root-305 MuiInputBase-formControl-276"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-318 MuiOutlinedInput-notchedOutline-312"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-319"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-285 MuiOutlinedInput-input-313"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <button
+      class="MuiButtonBase-root-346 MuiButtonBase-disabled-347 MuiButton-root-320 MuiButton-text-322 MuiButton-textSecondary-324 MuiButton-flat-325 MuiButton-flatSecondary-327 MuiButton-disabled-340 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-321"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders the custom type when it is allowed 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-2004"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-2019 MuiInputLabel-root-2008 MuiInputLabel-formControl-2013 MuiInputLabel-animated-2016"
+        data-shrink="false"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-2046 MuiInput-root-2033 MuiInput-underline-2037 MuiInputBase-formControl-2047 MuiInput-formControl-2034"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-2026"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-2027 MuiSelect-selectMenu-2030 MuiInputBase-input-2056 MuiInput-input-2041"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            <span>
+              ​
+            </span>
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value=""
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-2063 MuiSelect-icon-2032"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-2004 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-2019 MuiInputLabel-root-2008 MuiInputLabel-formControl-2013 MuiInputLabel-animated-2016 MuiInputLabel-outlined-2018"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-2046 MuiOutlinedInput-root-2076 MuiInputBase-formControl-2047"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-2089 MuiOutlinedInput-notchedOutline-2083"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-2090"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-2056 MuiOutlinedInput-input-2084"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <button
+      class="MuiButtonBase-root-2117 MuiButtonBase-disabled-2118 MuiButton-root-2091 MuiButton-text-2093 MuiButton-textSecondary-2095 MuiButton-flat-2096 MuiButton-flatSecondary-2098 MuiButton-disabled-2111 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-2092"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders the provided arguments 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-1656"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-1671 MuiFormLabel-filled-1675 MuiInputLabel-root-1660 MuiInputLabel-formControl-1665 MuiInputLabel-animated-1668 MuiInputLabel-shrink-1667"
+        data-shrink="true"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-1698 MuiInput-root-1685 MuiInput-underline-1689 MuiInputBase-formControl-1699 MuiInput-formControl-1686"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-1678"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-1679 MuiSelect-selectMenu-1682 MuiInputBase-input-1708 MuiInput-input-1693"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            ROC_CURVE
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value="ROC_CURVE"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-1715 MuiSelect-icon-1684"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-1656 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-1671 MuiInputLabel-root-1660 MuiInputLabel-formControl-1665 MuiInputLabel-animated-1668 MuiInputLabel-outlined-1670"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-1698 MuiOutlinedInput-root-1728 MuiInputBase-formControl-1699"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-1741 MuiOutlinedInput-notchedOutline-1735"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-1742"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-1708 MuiOutlinedInput-input-1736"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <div>
+      <label
+        class="MuiFormLabel-root-1671 MuiInputLabel-root-1660 MuiInputLabel-animated-1668"
+      >
+        Arguments (Optional)
+      </label>
+      <div
+        data-placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp"is_generated": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp"target_lambda": string | null,<br>        &nbsp&nbsp&nbsp&nbsp"trueclass": string | null,<br>        &nbsp&nbsp&nbsp&nbsp"true_score_column": string | null<br>        }"
+        data-testid="editor"
+      />
+    </div>
+    <button
+      class="MuiButtonBase-root-1769 MuiButtonBase-disabled-1770 MuiButton-root-1743 MuiButton-text-1745 MuiButton-textSecondary-1747 MuiButton-flat-1748 MuiButton-flatSecondary-1750 MuiButton-disabled-1763 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-1744"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders the selected visualization type 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-1888"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-1903 MuiFormLabel-filled-1907 MuiInputLabel-root-1892 MuiInputLabel-formControl-1897 MuiInputLabel-animated-1900 MuiInputLabel-shrink-1899"
+        data-shrink="true"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-1930 MuiInput-root-1917 MuiInput-underline-1921 MuiInputBase-formControl-1931 MuiInput-formControl-1918"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-1910"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-1911 MuiSelect-selectMenu-1914 MuiInputBase-input-1940 MuiInput-input-1925"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            ROC_CURVE
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value="ROC_CURVE"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-1947 MuiSelect-icon-1916"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-1888 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-1903 MuiInputLabel-root-1892 MuiInputLabel-formControl-1897 MuiInputLabel-animated-1900 MuiInputLabel-outlined-1902"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-1930 MuiOutlinedInput-root-1960 MuiInputBase-formControl-1931"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-1973 MuiOutlinedInput-notchedOutline-1967"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-1974"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-1940 MuiOutlinedInput-input-1968"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <div>
+      <label
+        class="MuiFormLabel-root-1903 MuiInputLabel-root-1892 MuiInputLabel-animated-1900"
+      >
+        Arguments (Optional)
+      </label>
+      <div
+        data-placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp"is_generated": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp"target_lambda": string | null,<br>        &nbsp&nbsp&nbsp&nbsp"trueclass": string | null,<br>        &nbsp&nbsp&nbsp&nbsp"true_score_column": string | null<br>        }"
+        data-testid="editor"
+      />
+    </div>
+    <button
+      class="MuiButtonBase-root-2001 MuiButtonBase-disabled-2002 MuiButton-root-1975 MuiButton-text-1977 MuiButton-textSecondary-1979 MuiButton-flat-1980 MuiButton-flatSecondary-1982 MuiButton-disabled-1995 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-1976"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`VisualizationCreator > renders two Editor components if the CUSTOM visualization type is specified 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root-697"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-712 MuiFormLabel-filled-716 MuiInputLabel-root-701 MuiInputLabel-formControl-706 MuiInputLabel-animated-709 MuiInputLabel-shrink-708"
+        data-shrink="true"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root-739 MuiInput-root-726 MuiInput-underline-730 MuiInputBase-formControl-740 MuiInput-formControl-727"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          class="MuiSelect-root-719"
+        >
+          <div
+            aria-haspopup="true"
+            aria-pressed="false"
+            class="MuiSelect-select-720 MuiSelect-selectMenu-723 MuiInputBase-input-749 MuiInput-input-734"
+            id="select-Visualization Type"
+            role="button"
+            tabindex="0"
+          >
+            <span>
+              ​
+            </span>
+          </div>
+          <input
+            id="visualization-type-selector"
+            name="Visualization Type"
+            type="hidden"
+            value="CUSTOM"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-756 MuiSelect-icon-725"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root-697 textField_f7kh2f6"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root-712 MuiInputLabel-root-701 MuiInputLabel-formControl-706 MuiInputLabel-animated-709 MuiInputLabel-outlined-711"
+        data-shrink="false"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root-739 MuiOutlinedInput-root-769 MuiInputBase-formControl-740"
+      >
+        <fieldset
+          aria-hidden="true"
+          class="MuiPrivateNotchedOutline-root-782 MuiOutlinedInput-notchedOutline-776"
+          style="padding-left: 8px;"
+        >
+          <legend
+            class="MuiPrivateNotchedOutline-legend-783"
+            style="width: 0.01px;"
+          >
+            <span>
+              ​
+            </span>
+          </legend>
+        </fieldset>
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input-749 MuiOutlinedInput-input-777"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+    <div>
+      <label
+        class="MuiFormLabel-root-712 MuiInputLabel-root-701 MuiInputLabel-animated-709"
+      >
+        Custom Visualization Code
+      </label>
+      <div
+        data-placeholder="Python code that will be run to generate visualization.<br><br>To access the source value (if provided), reference the variable "source".<br>To access any provided arguments, reference the variable "variables" (it is a dict object)."
+        data-testid="editor"
+      />
+    </div>
+    <div>
+      <label
+        class="MuiFormLabel-root-712 MuiInputLabel-root-701 MuiInputLabel-animated-709"
+      >
+        Arguments (Optional)
+      </label>
+      <div
+        data-placeholder="{<br>&nbsp&nbsp&nbsp&nbsp"key": any<br>}"
+        data-testid="editor"
+      />
+    </div>
+    <button
+      class="MuiButtonBase-root-810 MuiButtonBase-disabled-811 MuiButton-root-784 MuiButton-text-786 MuiButton-textSecondary-788 MuiButton-flat-789 MuiButton-flatSecondary-791 MuiButton-disabled-804 root_f1gmzqw4"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-785"
+      >
+        <span>
+          Generate Visualization
+        </span>
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;

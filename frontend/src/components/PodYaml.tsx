@@ -17,7 +17,7 @@
 import * as JsYaml from 'js-yaml';
 import React from 'react';
 import { Apis, JSONObject } from 'src/lib/Apis';
-import { serviceErrorToString } from 'src/lib/Utils';
+import { errorToMessage, isServiceError, serviceErrorToString } from 'src/lib/Utils';
 import Banner from './Banner';
 import Editor from './Editor';
 
@@ -82,9 +82,12 @@ const PodYaml: React.FC<{
         }
       } catch (err) {
         if (!aborted) {
+          const additionalInfo = isServiceError(err)
+            ? serviceErrorToString(err)
+            : (await errorToMessage(err)) || 'Unknown error';
           setError({
             message: errorMessage,
-            additionalInfo: await serviceErrorToString(err),
+            additionalInfo,
           });
         }
       }
