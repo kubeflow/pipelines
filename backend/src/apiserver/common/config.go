@@ -44,6 +44,7 @@ const (
 	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
 	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
 	PipelineURLValidationEnabled            string = "PIPELINE_URL_VALIDATION_ENABLED"
+	ClusterDomain                           string = "CLUSTER_DOMAIN"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -126,6 +127,10 @@ func GetMLPipelineServiceName() string {
 
 func GetMetadataServiceName() string {
 	return GetStringConfigWithDefault(MetadataServiceName, DefaultMetadataServiceName)
+}
+
+func GetClusterDomain() string {
+	return GetStringConfigWithDefault(ClusterDomain, DefaultClusterDomain)
 }
 
 func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {

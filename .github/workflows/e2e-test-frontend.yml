@@ -7,14 +7,18 @@ on:
   pull_request:
     paths:
       - '.github/workflows/e2e-test-frontend.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/actions/deploy/**'
+      - '.github/resources/**'
       - 'frontend/**'
       - 'manifests/kustomize/**'
+      - 'test/server-integration-test/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   frontend-integration-test:
     runs-on: ubuntu-latest
@@ -57,6 +61,15 @@ jobs:
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
         continue-on-error: true
 
+      - name: Server integration tests
+        id: server-tests
+        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
+        working-directory: ./test/server-integration-test
+        run: |
+          node server-test.js --url http://localhost:3000
+          node k8s-integration-test.js --url http://localhost:3000
+        continue-on-error: true
+
       - name: Build frontend integration tests image
         working-directory: ./test/frontend-integration-test
         run: docker build . -t kfp-frontend-integration-test:local
@@ -68,7 +81,7 @@ jobs:
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.deploy.outcome != 'success' || steps.forward-frontend-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        if: ${{ steps.deploy.outcome != 'success' || steps.forward-frontend-port.outcome != 'success' || steps.server-tests.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1

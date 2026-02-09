@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 import base64
+import hashlib
 
 
 def main():
@@ -174,9 +175,10 @@ def server_factory(visualization_server_image,
                                 "labels": {
                                     "app": "ml-pipeline-visualizationserver"
                                 },
-                                "annotations": disable_istio_sidecar and {
-                                    "sidecar.istio.io/inject": "false"
-                                } or {},
+                                "annotations": {
+                                    **({"sidecar.istio.io/inject": "false"} if disable_istio_sidecar else {}),
+                                    "kubeflow-pipelines/image-spec-hash": hashlib.sha256(f"{visualization_server_image}:{visualization_server_tag}".encode()).hexdigest()[:16],
+                                },
                             },
                             "spec": {
                                 "containers": [{
@@ -284,9 +286,10 @@ def server_factory(visualization_server_image,
                                 "labels": {
                                     "app": "ml-pipeline-ui-artifact"
                                 },
-                                "annotations": disable_istio_sidecar and {
-                                    "sidecar.istio.io/inject": "false"
-                                } or {},
+                                "annotations": {
+                                    **({"sidecar.istio.io/inject": "false"} if disable_istio_sidecar else {}),
+                                    "kubeflow-pipelines/image-spec-hash": hashlib.sha256(f"{frontend_image}:{frontend_tag}".encode()).hexdigest()[:16],
+                                },
                             },
                             "spec": {
                                 "containers": [{
