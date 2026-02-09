@@ -123,6 +123,10 @@ export function getArtifactsHandler({
       res.status(500).send('Storage key is missing from artifact request');
       return;
     }
+    if (key.length > 1024) {
+      res.status(500).send('Object key too long');
+      return;
+    }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
 
     let client: MinioClient;
