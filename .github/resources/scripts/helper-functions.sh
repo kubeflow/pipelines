@@ -220,6 +220,6 @@ collect_artifacts() {
     pods_kubeflow=$(kubectl get pods -n $kubeflow_ns --no-headers -o custom-columns=NAME:.metadata.name)
 
     for pod in $pods_kubeflow; do
-        kubectl logs -n $kubeflow_ns $pod > $log_dir/$pod.log 2>/dev/null || true
+        kubectl logs -n $kubeflow_ns $pod > $log_dir/$pod.log
     done
 }
