@@ -36,6 +36,8 @@ WORKDIR /bin
 COPY --from=builder /bin/controller /bin/controller
 RUN chmod +x /bin/controller
 
+RUN adduser -S -u 65532 appuser
+USER 65532
 
 ENV MAX_NUM_VIEWERS "50"
 ENV NAMESPACE "kubeflow"

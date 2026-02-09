@@ -33,8 +33,8 @@ RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persiste
 
 FROM alpine:3.19
 
-RUN adduser -S appuser
-USER appuser
+RUN adduser -S -u 65532 appuser
+USER 65532
 
 WORKDIR /bin
 

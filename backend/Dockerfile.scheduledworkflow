@@ -35,8 +35,8 @@ FROM alpine:3.19
 
 RUN apk --no-cache add tzdata
 
-RUN adduser -S appuser
-USER appuser
+RUN adduser -S -u 65532 appuser
+USER 65532
 
 WORKDIR /bin
 

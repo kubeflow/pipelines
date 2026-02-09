@@ -37,4 +37,7 @@ RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 COPY backend/src/apiserver/visualization /src
 
+RUN useradd -r -u 65532 -s /sbin/nologin appuser
+USER 65532
+
 ENTRYPOINT [ "python3", "server.py" ]

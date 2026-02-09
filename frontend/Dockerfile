@@ -32,5 +32,9 @@ WORKDIR /server
 EXPOSE 3000
 RUN npm ci
 RUN npm run build
+
+RUN adduser -S -u 65532 appuser
+USER 65532
+
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000

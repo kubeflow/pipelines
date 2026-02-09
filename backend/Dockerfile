@@ -82,6 +82,9 @@ RUN chmod +x /bin/apiserver
 RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
     sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i /config/sample_config.json
 
+RUN adduser --system --uid 65532 --no-create-home appuser
+USER 65532
+
 # Expose apiserver port
 EXPOSE 8888
 

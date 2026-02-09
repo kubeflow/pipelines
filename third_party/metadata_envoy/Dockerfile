@@ -22,4 +22,7 @@ RUN apt-get update -y && \
 #RUN mkdir -p /third_party
 COPY third_party/metadata_envoy/license.txt /third_party/license.txt
 
+RUN useradd -r -u 65532 -s /sbin/nologin appuser
+USER 65532
+
 ENTRYPOINT ["/usr/local/bin/envoy", "-c"]
