@@ -821,6 +821,21 @@ describe('/artifacts', () => {
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(500, 'Failed to open volume.');
     });
+
+    it('rejects keys longer than 1024 characters', async () => {
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+      const request = requests(app.start());
+      await request
+        .get(
+          '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=' +
+            'a'.repeat(1025),
+        )
+        .expect(500, 'Object key too long');
+    });
   });
 
   describe('/:source/:bucket/:key', () => {
