@@ -100,11 +100,9 @@ fi
 echo "Building the python package in $DIR."
 pushd "$DIR"
 if [[ "$API_VERSION" == "v2beta1" ]]; then
-    # pyproject.toml uses hatchling; install build deps and build
-    # Container runs as non-root; use a temp venv to avoid permission issues
-    python3 -m venv /tmp/build-venv
-    /tmp/build-venv/bin/pip install --quiet hatchling build
-    /tmp/build-venv/bin/python -m build --sdist
+    # pyproject.toml uses hatchling; install build deps to a temp dir
+    python3 -m pip install --quiet --break-system-packages --target /tmp/build-libs hatchling build
+    PYTHONPATH=/tmp/build-libs:${PYTHONPATH:-} PATH=/tmp/build-libs/bin:$PATH python3 -m build --sdist
 else
     python3 setup.py --quiet sdist
 fi
