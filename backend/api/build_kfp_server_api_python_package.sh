@@ -99,8 +99,10 @@ fi
 
 echo "Building the python package in $DIR."
 pushd "$DIR"
-if [[ "$API_VERSION" == "v2beta1" ]] && command -v uv &> /dev/null; then
-    uv build --out-dir dist/
+if [[ "$API_VERSION" == "v2beta1" ]]; then
+    # pyproject.toml uses hatchling; install build deps and build
+    pip install --quiet --break-system-packages hatchling build 2>/dev/null || pip install --quiet hatchling build
+    python3 -m build --sdist
 else
     python3 setup.py --quiet sdist
 fi
