@@ -56,6 +56,9 @@ export function StaticNodeDetailsV2({
   if (!element) {
     return NODE_INFO_UNKNOWN;
   }
+  if (!templateString.trim()) {
+    return NODE_INFO_UNKNOWN;
+  }
   try {
     const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
     return (() => {

@@ -36,6 +36,7 @@ import { AuthorizeFn } from '../helpers/auth.js';
  * @param argoOptions fallback options to retrieve log archive
  * @param artifactsOptions configs and credentials for the different artifact backend
  * @param authorizeFn function to authorize namespace access
+ * @param authEnabled whether namespace authorization checks are enabled
  */
 export function getPodLogsHandler(
   argoOptions: ArgoConfigs,
@@ -45,6 +46,7 @@ export function getPodLogsHandler(
   },
   podLogContainerName: string,
   authorizeFn: AuthorizeFn,
+  authEnabled: boolean,
 ): Handler {
   const {
     archiveLogs,
@@ -88,6 +90,12 @@ export function getPodLogsHandler(
     // This is optional.
     // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
     const podNamespace = decodeURIComponent((req.query.podnamespace as string) || '') || undefined;
+
+    // In multi-user mode, namespace must be explicit so authz cannot be bypassed.
+    if (authEnabled && !podNamespace) {
+      res.status(422).send('podnamespace argument is required');
+      return;
+    }
 
     // Check access to namespace if podNamespace is provided
     if (podNamespace) {

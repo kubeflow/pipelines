@@ -62,13 +62,13 @@ You can learn more about npm in https://docs.npmjs.com/about-npm/.
 
 ## Start frontend development server
 
-You can then do `npm start` to run a webpack dev server at port 3000 that
+You can then do `npm start` to run a Vite dev server at port 3000 that
 watches the source files. It also redirects api requests to localhost:3001. For
 example, requesting the pipelines page sends a fetch request to
 http://localhost:3000/apis/v1beta1/pipelines, which is proxied by the
 webserver to http://localhost:3001/apis/v1beta1/pipelines,
-which should return the list of pipelines. To override the port used by webpack,
-you can set the `PORT` environment variable.
+which should return the list of pipelines. To override the port, run
+`npm run start -- --port 3002` or update `frontend/vite.config.mts`.
 
 Follow the next section to start an API server (mock or proxy) to let localhost:3001
 respond to API requests.
@@ -124,13 +124,13 @@ make kind-cluster-agnostic
 3. Run the following code block.
 
     ```bash
-    export REACT_APP_NAMESPACE=kubeflow-user-example-com
+    export VITE_NAMESPACE=kubeflow-user-example-com
     npm run build
     ```
 
    If you're targeting the cluster installed in step 1, the target namespace
    defaults to `kubeflow-user-example-com`. If you're targeting a different
-   cluster / namespace, make sure to update the `REACT_APP_NAMESPACE`
+   cluster / namespace, make sure to update the `VITE_NAMESPACE`
    environment variable.
 4. Install
    [mod-header](https://chromewebstore.google.com/detail/modheader-modify-http-hea/idgpnmonknjnojddfkpgkljpfnnfcklj?hl=en)
@@ -148,7 +148,7 @@ make kind-cluster-agnostic
     you'll need to run the following first:
 
     ```bash
-    unset REACT_APP_NAMESPACE
+    unset VITE_NAMESPACE
     npm run build
     ```
 
@@ -158,12 +158,17 @@ There are a few types of tests during pre-submit:
 
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
-* client UI unit tests, you can run locally with `npm test`
-* UI node server unit tests, you can run locally with `cd server && npm test`
+* TypeScript typecheck (no emit), run locally with `npm run typecheck`
+* client UI unit tests (Vitest), you can run locally with `npm run test:ui`
+  (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops
+  (coverage + `--maxWorkers 4`). `npm test` is an alias for `vitest run`.
+* UI node server unit tests (Jest), you can run locally with
+  `npm run test:server:coverage` or `cd server && npm test -- --coverage`
 
 There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
-snapshot tests are failing, you can update them automatically with `npm test -u` and run all tests. Then commit
-the snapshot changes.
+snapshot tests are failing, you can update them automatically with `npm test -u` or
+`npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots (if any),
+use `cd server && npm test -- -u`. Then commit the snapshot changes.
 
 ## Production Build
 

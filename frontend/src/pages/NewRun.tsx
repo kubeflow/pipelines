@@ -757,7 +757,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
         });
       } catch (err) {
-        experimentFetchError = err;
+        experimentFetchError = err instanceof Error ? err : new Error(await errorToMessage(err));
       }
 
       if (!experiment) {
@@ -778,7 +778,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             ),
           });
         } catch (err) {
-          const error = experimentFetchError || err;
+          const error =
+            experimentFetchError ||
+            (err instanceof Error ? err : new Error(await errorToMessage(err)));
           await this.showPageError(
             `Error: failed to retrieve associated experiment: ${experimentId}.`,
             error,
@@ -1309,7 +1311,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
       this.setStateSafe({ errorMessage: '' });
     } catch (err) {
-      this.setStateSafe({ errorMessage: err.message });
+      this.setStateSafe({
+        errorMessage: err instanceof Error ? err.message : 'Validation failed for run inputs.',
+      });
     }
   }
 

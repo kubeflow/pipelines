@@ -1,0 +1,257 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`LineageActionBar > adds the artifact to the history state and DOM when pushHistory() is called 1`] = `
+<DocumentFragment>
+  <div
+    class="container_f1yr4rqx f1hokyrp flex_f16jawj4"
+  >
+    <div
+      class="breadcrumbContainer_f1smi13a"
+    >
+      <span
+        class="workspace_f1ef3ffs"
+      >
+        workspace-1
+      </span>
+      <aside
+        class="workspaceSep_fxn0smu"
+      />
+      <button
+        class="breadcrumbInactive_fpmo3t"
+      >
+        test model
+      </button>
+      <div
+        class="flex_f16jawj4"
+      >
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root-165 breadcrumbSeparator_f1an3f47 f1n4zav9"
+          focusable="false"
+          role="presentation"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M0 0h24v24H0z"
+            fill="none"
+          />
+          <path
+            d="M16.01 11H4v2h12.01v3L20 12l-3.99-4z"
+          />
+        </svg>
+      </div>
+      <button
+        class="breadcrumbActive_f19xmdz7"
+        disabled=""
+      >
+        (No name)
+      </button>
+    </div>
+    <div>
+      <button
+        class="MuiButtonBase-root-162 MuiButton-root-136 MuiButton-text-138 MuiButton-flat-141 actionButton_fapsfk6"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-label-137"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-165"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M0 0h24v24H0z"
+              fill="none"
+            />
+            <path
+              d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+            />
+          </svg>
+           Reset
+        </span>
+        <span
+          class="MuiTouchRipple-root-174"
+        />
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`LineageActionBar > renders correctly for a given initial target 1`] = `
+<DocumentFragment>
+  <div
+    class="container_f1yr4rqx f1hokyrp flex_f16jawj4"
+  >
+    <div
+      class="breadcrumbContainer_f1smi13a"
+    >
+      <span
+        class="workspace_f1ef3ffs"
+      >
+        workspace-1
+      </span>
+      <aside
+        class="workspaceSep_fxn0smu"
+      />
+      <button
+        class="breadcrumbActive_f19xmdz7"
+        disabled=""
+      >
+        test model
+      </button>
+    </div>
+    <div>
+      <button
+        class="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-flat-6 actionButton_fapsfk6"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-label-2"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-30"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M0 0h24v24H0z"
+              fill="none"
+            />
+            <path
+              d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+            />
+          </svg>
+           Reset
+        </span>
+        <span
+          class="MuiTouchRipple-root-39"
+        />
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`LineageActionBar > sets history to the initial prop when the reset button is clicked 1`] = `
+<DocumentFragment>
+  <div
+    class="container_f1yr4rqx f1hokyrp flex_f16jawj4"
+  >
+    <div
+      class="breadcrumbContainer_f1smi13a"
+    >
+      <span
+        class="workspace_f1ef3ffs"
+      >
+        workspace-1
+      </span>
+      <aside
+        class="workspaceSep_fxn0smu"
+      />
+      <button
+        class="breadcrumbActive_f19xmdz7"
+        disabled=""
+      >
+        test model
+      </button>
+    </div>
+    <div>
+      <button
+        class="MuiButtonBase-root-207 MuiButton-root-181 MuiButton-text-183 MuiButton-flat-186 actionButton_fapsfk6"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-label-182"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-210"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M0 0h24v24H0z"
+              fill="none"
+            />
+            <path
+              d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+            />
+          </svg>
+           Reset
+        </span>
+        <span
+          class="MuiTouchRipple-root-219"
+        />
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`LineageActionBar > updates the LineageView target model when an inactive breadcrumb is clicked 1`] = `
+<DocumentFragment>
+  <div
+    class="container_f1yr4rqx f1hokyrp flex_f16jawj4"
+  >
+    <div
+      class="breadcrumbContainer_f1smi13a"
+    >
+      <span
+        class="workspace_f1ef3ffs"
+      >
+        workspace-1
+      </span>
+      <aside
+        class="workspaceSep_fxn0smu"
+      />
+      <button
+        class="breadcrumbActive_f19xmdz7"
+        disabled=""
+      >
+        test model
+      </button>
+    </div>
+    <div>
+      <button
+        class="MuiButtonBase-root-117 MuiButton-root-91 MuiButton-text-93 MuiButton-flat-96 actionButton_fapsfk6"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-label-92"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root-120"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M0 0h24v24H0z"
+              fill="none"
+            />
+            <path
+              d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+            />
+          </svg>
+           Reset
+        </span>
+        <span
+          class="MuiTouchRipple-root-129"
+        />
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
