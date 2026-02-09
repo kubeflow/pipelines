@@ -1281,15 +1281,10 @@ describe('RunDetails', () => {
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-4254 icon_f1jqzauf"
+                  class="MuiSvgIcon-root icon_f1jqzauf"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    d="M0 0h24v24H0z"
-                    fill="none"
-                  />
                   <path
                     d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
                   />
@@ -1300,17 +1295,17 @@ describe('RunDetails', () => {
                 class="flex_f16jawj4"
               >
                 <button
-                  class="MuiButtonBase-root-4187 MuiButton-root-4161 MuiButton-text-4163 MuiButton-flat-4166 button_fu86r2b detailsButton_fgq2mjo"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b detailsButton_fgq2mjo"
                   tabindex="0"
                   type="button"
                 >
                   <span
-                    class="MuiButton-label-4162"
+                    class="MuiButton-label"
                   >
                     Details
                   </span>
                   <span
-                    class="MuiTouchRipple-root-4263"
+                    class="MuiTouchRipple-root"
                   />
                 </button>
               </div>
@@ -1366,15 +1361,10 @@ describe('RunDetails', () => {
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-4397 icon_f1jqzauf"
+                  class="MuiSvgIcon-root icon_f1jqzauf"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    d="M0 0h24v24H0z"
-                    fill="none"
-                  />
                   <path
                     d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
                   />
@@ -1385,17 +1375,17 @@ describe('RunDetails', () => {
                 class="flex_f16jawj4"
               >
                 <button
-                  class="MuiButtonBase-root-4330 MuiButton-root-4304 MuiButton-text-4306 MuiButton-flat-4309 button_fu86r2b detailsButton_fgq2mjo"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b detailsButton_fgq2mjo"
                   tabindex="0"
                   type="button"
                 >
                   <span
-                    class="MuiButton-label-4305"
+                    class="MuiButton-label"
                   >
                     Details
                   </span>
                   <span
-                    class="MuiTouchRipple-root-4406"
+                    class="MuiTouchRipple-root"
                   />
                 </button>
               </div>

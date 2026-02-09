@@ -12,37 +12,37 @@ exports[`MD2Tabs > gracefully handles an out of bound selectedTab value 1`] = `
       style="display: inline-block; min-width: 20px; width: 20px;"
     />
     <button
-      class="MuiButtonBase-root-211 MuiButton-root-185 MuiButton-text-187 MuiButton-flat-190 button_ff2g68i active_fz0wpsl"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
       tabindex="0"
       title=""
       type="button"
     >
       <span
-        class="MuiButton-label-186"
+        class="MuiButton-label"
       >
         <span>
           tab1
         </span>
       </span>
       <span
-        class="MuiTouchRipple-root-214"
+        class="MuiTouchRipple-root"
       />
     </button>
     <button
-      class="MuiButtonBase-root-211 MuiButton-root-185 MuiButton-text-187 MuiButton-flat-190 button_ff2g68i"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
       tabindex="0"
       title=""
       type="button"
     >
       <span
-        class="MuiButton-label-186"
+        class="MuiButton-label"
       >
         <span>
           tab2
         </span>
       </span>
       <span
-        class="MuiTouchRipple-root-214"
+        class="MuiTouchRipple-root"
       />
     </button>
   </div>
@@ -61,37 +61,37 @@ exports[`MD2Tabs > renders with the right styles by default 1`] = `
       style="display: inline-block; min-width: 20px; width: 20px;"
     />
     <button
-      class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button_ff2g68i active_fz0wpsl"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
       tabindex="0"
       title=""
       type="button"
     >
       <span
-        class="MuiButton-label-10"
+        class="MuiButton-label"
       >
         <span>
           tab1
         </span>
       </span>
       <span
-        class="MuiTouchRipple-root-38"
+        class="MuiTouchRipple-root"
       />
     </button>
     <button
-      class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button_ff2g68i"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
       tabindex="0"
       title=""
       type="button"
     >
       <span
-        class="MuiButton-label-10"
+        class="MuiButton-label"
       >
         <span>
           tab2
         </span>
       </span>
       <span
-        class="MuiTouchRipple-root-38"
+        class="MuiTouchRipple-root"
       />
     </button>
   </div>

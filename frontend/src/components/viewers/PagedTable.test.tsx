@@ -20,17 +20,61 @@ import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
 import TestUtils from '../../TestUtils';
 
+const normalizeMuiIds = (fragment: DocumentFragment) => {
+  const idMap = new Map<string, string>();
+  let nextId = 0;
+  fragment.querySelectorAll('[id^="mui-"]').forEach(el => {
+    const oldId = el.getAttribute('id');
+    if (!oldId) {
+      return;
+    }
+    if (!idMap.has(oldId)) {
+      idMap.set(oldId, `mui-id-${nextId++}`);
+    }
+    el.setAttribute('id', idMap.get(oldId)!);
+  });
+
+  const updateAttr = (el: Element, attr: string) => {
+    const value = el.getAttribute(attr);
+    if (!value) {
+      return;
+    }
+    const parts = value.split(' ');
+    let changed = false;
+    const updated = parts.map(part => {
+      const mapped = idMap.get(part);
+      if (mapped) {
+        changed = true;
+        return mapped;
+      }
+      return part;
+    });
+    if (changed) {
+      el.setAttribute(attr, updated.join(' '));
+    }
+  };
+
+  fragment.querySelectorAll('[aria-labelledby]').forEach(el => updateAttr(el, 'aria-labelledby'));
+  fragment.querySelectorAll('[for]').forEach(el => updateAttr(el, 'for'));
+  fragment.querySelectorAll('[aria-describedby]').forEach(el => updateAttr(el, 'aria-describedby'));
+};
+
+const expectStableSnapshot = (fragment: DocumentFragment) => {
+  normalizeMuiIds(fragment);
+  expect(fragment).toMatchSnapshot();
+};
+
 describe('PagedTable', () => {
   it('does not break on no config', () => {
     const { asFragment } = render(<PagedTable configs={[]} />);
-    expect(asFragment()).toMatchSnapshot();
+    expectStableSnapshot(asFragment());
   });
 
   it('does not break on empty data', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data: [], labels: [], type: PlotType.TABLE }]} />,
     );
-    expect(asFragment()).toMatchSnapshot();
+    expectStableSnapshot(asFragment());
   });
 
   const data = [
@@ -43,14 +87,14 @@ describe('PagedTable', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
     );
-    expect(asFragment()).toMatchSnapshot();
+    expectStableSnapshot(asFragment());
   });
 
   it('renders simple data without labels', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />,
     );
-    expect(asFragment()).toMatchSnapshot();
+    expectStableSnapshot(asFragment());
   });
 
   it('sorts on first column descending', async () => {
@@ -59,7 +103,7 @@ describe('PagedTable', () => {
     );
     fireEvent.click(screen.getByText(labels[0]));
     await TestUtils.flushPromises();
-    expect(asFragment()).toMatchSnapshot();
+    expectStableSnapshot(asFragment());
   });
 
   it('sorts on first column ascending', async () => {
@@ -71,7 +115,7 @@ describe('PagedTable', () => {
     // Once for ascending.
     fireEvent.click(screen.getByText(labels[0]));
     await TestUtils.flushPromises();
-    expect(asFragment()).toMatchSnapshot();
+    expectStableSnapshot(asFragment());
   });
 
   it('returns a user friendly display name', () => {

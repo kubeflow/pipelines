@@ -19,54 +19,54 @@ exports[`RunDetails > closes side panel when close button is clicked 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-2595 MuiButton-root-2569 MuiButton-text-2571 MuiButton-flat-2574 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2570"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2671"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2595 MuiButton-root-2569 MuiButton-text-2571 MuiButton-flat-2574 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2570"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2671"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2595 MuiButton-root-2569 MuiButton-text-2571 MuiButton-flat-2574 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2570"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2671"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -103,38 +103,39 @@ exports[`RunDetails > closes side panel when close button is clicked 1`] = `
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-2599"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-2601 MuiFormControlLabel-disabled-2605"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-2607"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-2595 MuiButtonBase-disabled-2596 MuiIconButton-root-2620 MuiIconButton-disabled-2624 MuiPrivateSwitchBase-root-2616 MuiSwitch-switchBase-2610 MuiSwitch-colorPrimary-2612 MuiPrivateSwitchBase-disabled-2618 MuiSwitch-disabled-2614"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-47 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-49 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-2625"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-2608"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-2619"
+                          class="PrivateSwitchBase-input-50 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-2615"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-2626 MuiTypography-body1-2635 MuiFormControlLabel-label-2606 MuiFormControlLabel-disabled-2605"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -143,7 +144,7 @@ exports[`RunDetails > closes side panel when close button is clicked 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translateX(100vw) translateX(-NaNpx); transform: translateX(100vw) translateX(-NaNpx); transition: transform 195ms cubic-bezier(0.4, 0, 0.6, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translateX(1024px) translateX(NaNpx); transform: translateX(1024px) translateX(NaNpx); transition: transform 195ms cubic-bezier(0.4, 0, 0.6, 1) 0ms;"
             >
               <span>
                 <div
@@ -159,20 +160,12 @@ exports[`RunDetails > closes side panel when close button is clicked 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-2662 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -213,54 +206,54 @@ exports[`RunDetails > displays a message indicating there is no graph if graph i
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3459 MuiButton-root-3433 MuiButton-text-3435 MuiButton-flat-3438 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3434"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3462"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3459 MuiButton-root-3433 MuiButton-text-3435 MuiButton-flat-3438 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3434"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3462"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3459 MuiButton-root-3433 MuiButton-text-3435 MuiButton-flat-3438 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3434"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3462"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -303,54 +296,54 @@ exports[`RunDetails > displays a message indicating there is no graph if graph i
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3503 MuiButton-root-3477 MuiButton-text-3479 MuiButton-flat-3482 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3478"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3506"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3503 MuiButton-root-3477 MuiButton-text-3479 MuiButton-flat-3482 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3478"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3506"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3503 MuiButton-root-3477 MuiButton-text-3479 MuiButton-flat-3482 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3478"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3506"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -393,54 +386,54 @@ exports[`RunDetails > displays a message indicating there is no graph if graph i
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3591 MuiButton-root-3565 MuiButton-text-3567 MuiButton-flat-3570 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3566"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3594"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3591 MuiButton-root-3565 MuiButton-text-3567 MuiButton-flat-3570 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3566"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3594"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3591 MuiButton-root-3565 MuiButton-text-3567 MuiButton-flat-3570 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3566"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3594"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -483,54 +476,54 @@ exports[`RunDetails > displays a message indicating there is no graph if graph i
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3547 MuiButton-root-3521 MuiButton-text-3523 MuiButton-flat-3526 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3522"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3550"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3547 MuiButton-root-3521 MuiButton-text-3523 MuiButton-flat-3526 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3522"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3550"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3547 MuiButton-root-3521 MuiButton-text-3523 MuiButton-flat-3526 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3522"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3550"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -573,54 +566,54 @@ exports[`RunDetails > displays a spinner if graph is not defined and run has sta
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3351 MuiButton-root-3325 MuiButton-text-3327 MuiButton-flat-3330 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3326"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3364"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3351 MuiButton-root-3325 MuiButton-text-3327 MuiButton-flat-3330 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3326"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3364"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3351 MuiButton-root-3325 MuiButton-text-3327 MuiButton-flat-3330 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3326"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3364"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -632,16 +625,16 @@ exports[`RunDetails > displays a spinner if graph is not defined and run has sta
         >
           <div>
             <div
-              class="MuiCircularProgress-root-3354 MuiCircularProgress-colorPrimary-3357 MuiCircularProgress-indeterminate-3356 absoluteCenter_f1g3o41t"
+              class="MuiCircularProgress-root absoluteCenter_f1g3o41t MuiCircularProgress-colorPrimary MuiCircularProgress-indeterminate"
               role="progressbar"
               style="width: 30px; height: 30px;"
             >
               <svg
-                class="MuiCircularProgress-svg-3359"
+                class="MuiCircularProgress-svg"
                 viewBox="22 22 44 44"
               >
                 <circle
-                  class="MuiCircularProgress-circle-3360 MuiCircularProgress-circleIndeterminate-3362"
+                  class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate"
                   cx="44"
                   cy="44"
                   fill="none"
@@ -677,54 +670,54 @@ exports[`RunDetails > displays a spinner if graph is not defined and run has sta
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3297 MuiButton-root-3271 MuiButton-text-3273 MuiButton-flat-3276 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3272"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3310"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3297 MuiButton-root-3271 MuiButton-text-3273 MuiButton-flat-3276 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3272"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3310"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3297 MuiButton-root-3271 MuiButton-text-3273 MuiButton-flat-3276 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3272"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3310"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -736,16 +729,16 @@ exports[`RunDetails > displays a spinner if graph is not defined and run has sta
         >
           <div>
             <div
-              class="MuiCircularProgress-root-3300 MuiCircularProgress-colorPrimary-3303 MuiCircularProgress-indeterminate-3302 absoluteCenter_f1g3o41t"
+              class="MuiCircularProgress-root absoluteCenter_f1g3o41t MuiCircularProgress-colorPrimary MuiCircularProgress-indeterminate"
               role="progressbar"
               style="width: 30px; height: 30px;"
             >
               <svg
-                class="MuiCircularProgress-svg-3305"
+                class="MuiCircularProgress-svg"
                 viewBox="22 22 44 44"
               >
                 <circle
-                  class="MuiCircularProgress-circle-3306 MuiCircularProgress-circleIndeterminate-3308"
+                  class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate"
                   cx="44"
                   cy="44"
                   fill="none"
@@ -781,54 +774,54 @@ exports[`RunDetails > displays a spinner if graph is not defined and run has sta
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3405 MuiButton-root-3379 MuiButton-text-3381 MuiButton-flat-3384 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3380"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3418"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3405 MuiButton-root-3379 MuiButton-text-3381 MuiButton-flat-3384 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3380"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3418"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3405 MuiButton-root-3379 MuiButton-text-3381 MuiButton-flat-3384 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3380"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3418"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -840,16 +833,16 @@ exports[`RunDetails > displays a spinner if graph is not defined and run has sta
         >
           <div>
             <div
-              class="MuiCircularProgress-root-3408 MuiCircularProgress-colorPrimary-3411 MuiCircularProgress-indeterminate-3410 absoluteCenter_f1g3o41t"
+              class="MuiCircularProgress-root absoluteCenter_f1g3o41t MuiCircularProgress-colorPrimary MuiCircularProgress-indeterminate"
               role="progressbar"
               style="width: 30px; height: 30px;"
             >
               <svg
-                class="MuiCircularProgress-svg-3413"
+                class="MuiCircularProgress-svg"
                 viewBox="22 22 44 44"
               >
                 <circle
-                  class="MuiCircularProgress-circle-3414 MuiCircularProgress-circleIndeterminate-3416"
+                  class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate"
                   cx="44"
                   cy="44"
                   fill="none"
@@ -870,7 +863,7 @@ exports[`RunDetails > keeps side pane open and on same tab when run status chang
 <div
   className="flex_f16jawj4"
 >
-  <WithStyles(Tooltip)
+  <WithStyles(ForwardRef(Tooltip))
     title={
       <div>
         <div>
@@ -884,7 +877,7 @@ exports[`RunDetails > keeps side pane open and on same tab when run status chang
     }
   >
     <div>
-      <pure(CheckCircleIcon)
+      <Memo
         data-testid="node-status-sign"
         style={
           {
@@ -895,7 +888,7 @@ exports[`RunDetails > keeps side pane open and on same tab when run status chang
         }
       />
     </div>
-  </WithStyles(Tooltip)>
+  </WithStyles(ForwardRef(Tooltip))>
   <span
     style={
       {
@@ -912,7 +905,7 @@ exports[`RunDetails > keeps side pane open and on same tab when run status chang
 <div
   className="flex_f16jawj4"
 >
-  <WithStyles(Tooltip)
+  <WithStyles(ForwardRef(Tooltip))
     title={
       <div>
         <div>
@@ -926,7 +919,7 @@ exports[`RunDetails > keeps side pane open and on same tab when run status chang
     }
   >
     <div>
-      <pure(ErrorIcon)
+      <Memo
         data-testid="node-status-sign"
         style={
           {
@@ -937,7 +930,7 @@ exports[`RunDetails > keeps side pane open and on same tab when run status chang
         }
       />
     </div>
-  </WithStyles(Tooltip)>
+  </WithStyles(ForwardRef(Tooltip))>
   <span
     style={
       {
@@ -969,54 +962,54 @@ exports[`RunDetails > loads the run's outputs in the output tab 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-1155 MuiButton-root-1129 MuiButton-text-1131 MuiButton-flat-1134 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1130"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1158"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1155 MuiButton-root-1129 MuiButton-text-1131 MuiButton-flat-1134 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1130"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1158"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1155 MuiButton-root-1129 MuiButton-text-1131 MuiButton-flat-1134 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1130"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1158"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -1038,7 +1031,7 @@ exports[`RunDetails > loads the run's outputs in the output tab 1`] = `
           <div>
             <div>
               <div
-                class="MuiPaper-root-1165 MuiPaper-elevation2-1169 MuiPaper-rounded-1166 plotCard_f19uaync plotCard"
+                class="MuiPaper-root plotCard_f19uaync plotCard MuiPaper-elevation1 MuiPaper-rounded"
               >
                 <div
                   class="plotHeader_fnedsm"
@@ -1051,33 +1044,28 @@ exports[`RunDetails > loads the run's outputs in the output tab 1`] = `
                   </div>
                   <div>
                     <button
-                      class="MuiButtonBase-root-1155 MuiButton-root-1129 MuiButton-text-1131 MuiButton-flat-1134 popOutButton"
+                      class="MuiButtonBase-root MuiButton-root MuiButton-text popOutButton"
                       style="padding: 4px; min-height: 0; min-width: 0;"
                       tabindex="0"
                       type="button"
                     >
                       <span
-                        class="MuiButton-label-1130"
+                        class="MuiButton-label"
                       >
                         <svg
                           aria-hidden="true"
-                          class="MuiSvgIcon-root-1192 popoutIcon_f4cg11h"
+                          class="MuiSvgIcon-root popoutIcon_f4cg11h"
                           focusable="false"
-                          role="presentation"
                           title="Pop out"
                           viewBox="0 0 24 24"
                         >
-                          <path
-                            d="M0 0h24v24H0z"
-                            fill="none"
-                          />
                           <path
                             d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
                           />
                         </svg>
                       </span>
                       <span
-                        class="MuiTouchRipple-root-1158"
+                        class="MuiTouchRipple-root"
                       />
                     </button>
                   </div>
@@ -1093,65 +1081,61 @@ exports[`RunDetails > loads the run's outputs in the output tab 1`] = `
                       class="f104cl0n"
                     >
                       <div
-                        class="MuiFormControl-root-1201 formControl_f59g3c5"
+                        class="MuiFormControl-root formControl_f59g3c5"
                       >
                         <label
-                          class="MuiFormLabel-root-1216 MuiFormLabel-filled-1220 MuiInputLabel-root-1205 MuiInputLabel-formControl-1210 MuiInputLabel-animated-1213 MuiInputLabel-shrink-1212"
+                          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
                           data-shrink="true"
                           for="viewer-tb-image-select"
                         >
                           TF Image
                         </label>
                         <div
-                          class="MuiInputBase-root-1243 MuiInput-root-1230 MuiInput-underline-1234 MuiInputBase-formControl-1244 MuiInput-formControl-1231 select_fczmju"
+                          class="MuiInputBase-root MuiInput-root MuiInput-underline select_fczmju MuiInputBase-formControl MuiInput-formControl"
                         >
                           <div
-                            class="MuiSelect-root-1223"
+                            aria-haspopup="listbox"
+                            class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+                            role="button"
+                            tabindex="0"
                           >
-                            <div
-                              aria-haspopup="true"
-                              aria-pressed="false"
-                              class="MuiSelect-select-1224 MuiSelect-selectMenu-1227 MuiInputBase-input-1253 MuiInput-input-1238"
-                              role="button"
-                              tabindex="0"
-                            >
-                              TensorFlow 2.2.2
-                            </div>
-                            <input
-                              id="viewer-tb-image-select"
-                              type="hidden"
-                              value="tensorflow/tensorflow:2.2.2"
-                            />
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root-1192 MuiSelect-icon-1229"
-                              focusable="false"
-                              role="presentation"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M7 10l5 5 5-5z"
-                              />
-                            </svg>
+                            TensorFlow 2.2.2
                           </div>
+                          <input
+                            aria-hidden="true"
+                            class="MuiSelect-nativeInput"
+                            id="viewer-tb-image-select"
+                            tabindex="-1"
+                            value="tensorflow/tensorflow:2.2.2"
+                          />
+                          <svg
+                            aria-hidden="true"
+                            class="MuiSvgIcon-root MuiSelect-icon"
+                            focusable="false"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              d="M7 10l5 5 5-5z"
+                            />
+                          </svg>
                         </div>
                       </div>
                     </div>
                     <div>
                       <button
-                        class="MuiButtonBase-root-1155 MuiButton-root-1129 MuiButton-text-1131 MuiButton-textSecondary-1133 MuiButton-flat-1134 MuiButton-flatSecondary-1136 root_f1gmzqw4 buttonAction_f1olq6uy"
+                        class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
                         tabindex="0"
                         type="button"
                       >
                         <span
-                          class="MuiButton-label-1130"
+                          class="MuiButton-label"
                         >
                           <span>
                             Start Tensorboard
                           </span>
                         </span>
                         <span
-                          class="MuiTouchRipple-root-1158"
+                          class="MuiTouchRipple-root"
                         />
                       </button>
                     </div>
@@ -1192,54 +1176,54 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-4448"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-4549"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-4448"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-4549"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-4448"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-4549"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -1269,38 +1253,39 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-4477"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-4479 MuiFormControlLabel-disabled-4483"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-4485"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-4473 MuiButtonBase-disabled-4474 MuiIconButton-root-4498 MuiIconButton-disabled-4502 MuiPrivateSwitchBase-root-4494 MuiSwitch-switchBase-4488 MuiSwitch-colorPrimary-4490 MuiPrivateSwitchBase-disabled-4496 MuiSwitch-disabled-4492"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-107 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-109 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-4503"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-4486"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-4497"
+                          class="PrivateSwitchBase-input-110 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-4493"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-4504 MuiTypography-body1-4513 MuiFormControlLabel-label-4484 MuiFormControlLabel-disabled-4483"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -1309,7 +1294,7 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -1319,31 +1304,26 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-4448"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-4540"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-4549"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -1372,139 +1352,139 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4473 MuiButton-root-4447 MuiButton-text-4449 MuiButton-flat-4452 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4448"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4549"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -1530,20 +1510,12 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-4540 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -1584,54 +1556,54 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-4565"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-4666"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-4565"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-4666"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-4565"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-4666"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -1661,38 +1633,39 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-4594"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-4596 MuiFormControlLabel-disabled-4600"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-4602"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-4590 MuiButtonBase-disabled-4591 MuiIconButton-root-4615 MuiIconButton-disabled-4619 MuiPrivateSwitchBase-root-4611 MuiSwitch-switchBase-4605 MuiSwitch-colorPrimary-4607 MuiPrivateSwitchBase-disabled-4613 MuiSwitch-disabled-4609"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-112 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-114 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-4620"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-4603"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-4614"
+                          class="PrivateSwitchBase-input-115 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-4610"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-4621 MuiTypography-body1-4630 MuiFormControlLabel-label-4601 MuiFormControlLabel-disabled-4600"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -1701,7 +1674,7 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -1711,31 +1684,26 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-4565"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-4657"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-4666"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -1763,139 +1731,139 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-4590 MuiButton-root-4564 MuiButton-text-4566 MuiButton-flat-4569 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-4565"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-4666"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -1957,20 +1925,12 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-4657 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -2011,54 +1971,54 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3781"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3882"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3781"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3882"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3781"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3882"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -2095,38 +2055,39 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-3810"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-3812 MuiFormControlLabel-disabled-3816"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-3818"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-3806 MuiButtonBase-disabled-3807 MuiIconButton-root-3831 MuiIconButton-disabled-3835 MuiPrivateSwitchBase-root-3827 MuiSwitch-switchBase-3821 MuiSwitch-colorPrimary-3823 MuiPrivateSwitchBase-disabled-3829 MuiSwitch-disabled-3825"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-82 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-84 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-3836"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-3819"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-3830"
+                          class="PrivateSwitchBase-input-85 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-3826"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-3837 MuiTypography-body1-3846 MuiFormControlLabel-label-3817 MuiFormControlLabel-disabled-3816"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -2135,7 +2096,7 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -2145,31 +2106,26 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-3781"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-3873"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-3882"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -2197,139 +2153,139 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3806 MuiButton-root-3780 MuiButton-text-3782 MuiButton-flat-3785 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3781"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3882"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -2391,20 +2347,12 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-3873 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -2445,54 +2393,54 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3654"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3755"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3654"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3755"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-3654"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-3755"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -2529,38 +2477,39 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-3683"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-3685 MuiFormControlLabel-disabled-3689"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-3691"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-3679 MuiButtonBase-disabled-3680 MuiIconButton-root-3704 MuiIconButton-disabled-3708 MuiPrivateSwitchBase-root-3700 MuiSwitch-switchBase-3694 MuiSwitch-colorPrimary-3696 MuiPrivateSwitchBase-disabled-3702 MuiSwitch-disabled-3698"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-77 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-79 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-3709"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-3692"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-3703"
+                          class="PrivateSwitchBase-input-80 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-3699"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-3710 MuiTypography-body1-3719 MuiFormControlLabel-label-3690 MuiFormControlLabel-disabled-3689"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -2569,7 +2518,7 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -2579,31 +2528,26 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-3654"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-3746"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-3755"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -2616,16 +2560,16 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
                   class="page_f1flacxk"
                 >
                   <div
-                    class="MuiCircularProgress-root-3762 MuiCircularProgress-colorPrimary-3765 MuiCircularProgress-indeterminate-3764 absoluteCenter_f1g3o41t"
+                    class="MuiCircularProgress-root absoluteCenter_f1g3o41t MuiCircularProgress-colorPrimary MuiCircularProgress-indeterminate"
                     role="progressbar"
                     style="width: 30px; height: 30px;"
                   >
                     <svg
-                      class="MuiCircularProgress-svg-3767"
+                      class="MuiCircularProgress-svg"
                       viewBox="22 22 44 44"
                     >
                       <circle
-                        class="MuiCircularProgress-circle-3768 MuiCircularProgress-circleIndeterminate-3770"
+                        class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate"
                         cx="44"
                         cy="44"
                         fill="none"
@@ -2650,139 +2594,139 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-3679 MuiButton-root-3653 MuiButton-text-3655 MuiButton-flat-3658 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-3654"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-3755"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -2844,20 +2788,12 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-3746 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -2898,54 +2834,54 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1751"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1852"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1751"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1852"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1751"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1852"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -2975,38 +2911,39 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-1780"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-1782 MuiFormControlLabel-disabled-1786"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-1788"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-1776 MuiButtonBase-disabled-1777 MuiIconButton-root-1801 MuiIconButton-disabled-1805 MuiPrivateSwitchBase-root-1797 MuiSwitch-switchBase-1791 MuiSwitch-colorPrimary-1793 MuiPrivateSwitchBase-disabled-1799 MuiSwitch-disabled-1795"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-12 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-14 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-1806"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-1789"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-1800"
+                          class="PrivateSwitchBase-input-15 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-1796"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-1807 MuiTypography-body1-1816 MuiFormControlLabel-label-1787 MuiFormControlLabel-disabled-1786"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -3015,7 +2952,7 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -3025,31 +2962,26 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-1751"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-1843"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-1852"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -3077,139 +3009,139 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-1776 MuiButton-root-1750 MuiButton-text-1752 MuiButton-flat-1755 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-1751"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-1852"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -3264,20 +3196,12 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-1843 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -3318,54 +3242,54 @@ exports[`RunDetails > renders an empty run 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-935 MuiButton-root-909 MuiButton-text-911 MuiButton-flat-914 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-910"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-938"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-935 MuiButton-root-909 MuiButton-text-911 MuiButton-flat-914 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-910"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-938"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-935 MuiButton-root-909 MuiButton-text-911 MuiButton-flat-914 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-910"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-938"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -3393,7 +3317,7 @@ exports[`RunDetails > shows failure run status in page title 1`] = `
 <div
   className="flex_f16jawj4"
 >
-  <WithStyles(Tooltip)
+  <WithStyles(ForwardRef(Tooltip))
     title={
       <div>
         <div>
@@ -3407,7 +3331,7 @@ exports[`RunDetails > shows failure run status in page title 1`] = `
     }
   >
     <div>
-      <pure(ErrorIcon)
+      <Memo
         data-testid="node-status-sign"
         style={
           {
@@ -3418,7 +3342,7 @@ exports[`RunDetails > shows failure run status in page title 1`] = `
         }
       />
     </div>
-  </WithStyles(Tooltip)>
+  </WithStyles(ForwardRef(Tooltip))>
   <span
     style={
       {
@@ -3450,54 +3374,54 @@ exports[`RunDetails > shows run config fields - handles no description 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-1410 MuiButton-root-1384 MuiButton-text-1386 MuiButton-flat-1389 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1385"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1413"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1410 MuiButton-root-1384 MuiButton-text-1386 MuiButton-flat-1389 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1385"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1413"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1410 MuiButton-root-1384 MuiButton-text-1386 MuiButton-flat-1389 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1385"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1413"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -3650,54 +3574,54 @@ exports[`RunDetails > shows run config fields - handles no metadata 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-1454 MuiButton-root-1428 MuiButton-text-1430 MuiButton-flat-1433 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1429"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1457"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1454 MuiButton-root-1428 MuiButton-text-1430 MuiButton-flat-1433 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1429"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1457"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1454 MuiButton-root-1428 MuiButton-text-1430 MuiButton-flat-1433 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1429"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1457"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -3852,54 +3776,54 @@ exports[`RunDetails > shows run config fields 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-1366 MuiButton-root-1340 MuiButton-text-1342 MuiButton-flat-1345 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1341"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1369"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1366 MuiButton-root-1340 MuiButton-text-1342 MuiButton-flat-1345 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1341"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1369"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1366 MuiButton-root-1340 MuiButton-text-1342 MuiButton-flat-1345 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1341"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1369"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -4076,7 +4000,7 @@ exports[`RunDetails > shows success run status in page title 1`] = `
 <div
   className="flex_f16jawj4"
 >
-  <WithStyles(Tooltip)
+  <WithStyles(ForwardRef(Tooltip))
     title={
       <div>
         <div>
@@ -4090,7 +4014,7 @@ exports[`RunDetails > shows success run status in page title 1`] = `
     }
   >
     <div>
-      <pure(CheckCircleIcon)
+      <Memo
         data-testid="node-status-sign"
         style={
           {
@@ -4101,7 +4025,7 @@ exports[`RunDetails > shows success run status in page title 1`] = `
         }
       />
     </div>
-  </WithStyles(Tooltip)>
+  </WithStyles(ForwardRef(Tooltip))>
   <span
     style={
       {
@@ -4133,54 +4057,54 @@ exports[`RunDetails > switches to config tab 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-1322 MuiButton-root-1296 MuiButton-text-1298 MuiButton-flat-1301 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1297"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1325"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1322 MuiButton-root-1296 MuiButton-text-1298 MuiButton-flat-1301 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1297"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1325"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1322 MuiButton-root-1296 MuiButton-text-1298 MuiButton-flat-1301 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1297"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1325"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -4222,54 +4146,54 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2219"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2320"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2219"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2320"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2219"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2320"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -4299,38 +4223,39 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-2248"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-2250 MuiFormControlLabel-disabled-2254"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-2256"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-2244 MuiButtonBase-disabled-2245 MuiIconButton-root-2269 MuiIconButton-disabled-2273 MuiPrivateSwitchBase-root-2265 MuiSwitch-switchBase-2259 MuiSwitch-colorPrimary-2261 MuiPrivateSwitchBase-disabled-2267 MuiSwitch-disabled-2263"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-32 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-34 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-2274"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-2257"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-2268"
+                          class="PrivateSwitchBase-input-35 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-2264"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-2275 MuiTypography-body1-2284 MuiFormControlLabel-label-2255 MuiFormControlLabel-disabled-2254"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -4339,7 +4264,7 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -4349,31 +4274,26 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-2219"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-2311"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-2320"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -4402,139 +4322,139 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2244 MuiButton-root-2218 MuiButton-text-2220 MuiButton-flat-2223 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2219"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2320"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -4633,20 +4553,12 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-2311 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -4687,54 +4599,54 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2453"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2554"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2453"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2554"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2453"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2554"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -4771,38 +4683,39 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-2482"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-2484 MuiFormControlLabel-disabled-2488"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-2490"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-2478 MuiButtonBase-disabled-2479 MuiIconButton-root-2503 MuiIconButton-disabled-2507 MuiPrivateSwitchBase-root-2499 MuiSwitch-switchBase-2493 MuiSwitch-colorPrimary-2495 MuiPrivateSwitchBase-disabled-2501 MuiSwitch-disabled-2497"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-42 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-44 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-2508"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-2491"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-2502"
+                          class="PrivateSwitchBase-input-45 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-2498"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-2509 MuiTypography-body1-2518 MuiFormControlLabel-label-2489 MuiFormControlLabel-disabled-2488"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -4811,7 +4724,7 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -4821,31 +4734,26 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-2453"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-2545"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-2554"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -4873,139 +4781,139 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2478 MuiButton-root-2452 MuiButton-text-2454 MuiButton-flat-2457 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2453"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2554"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -5042,20 +4950,12 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-2545 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
@@ -5096,54 +4996,54 @@ exports[`RunDetails > switches to run output tab, shows empty message 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-1111 MuiButton-root-1085 MuiButton-text-1087 MuiButton-flat-1090 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1086"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1114"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1111 MuiButton-root-1085 MuiButton-text-1087 MuiButton-flat-1090 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1086"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1114"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-1111 MuiButton-root-1085 MuiButton-text-1087 MuiButton-flat-1090 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-1086"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-1114"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -5191,54 +5091,54 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i active_fz0wpsl"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2336"
+            class="MuiButton-label"
           >
             <span>
               Graph
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2437"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2336"
+            class="MuiButton-label"
           >
             <span>
               Run output
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2437"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
           tabindex="0"
           title=""
           type="button"
         >
           <span
-            class="MuiButton-label-2336"
+            class="MuiButton-label"
           >
             <span>
               Config
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-2437"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -5275,38 +5175,39 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
               class="reduceGraphPosition_f1o9yio1"
             >
               <div
-                class="MuiFormGroup-root-2365"
+                class="MuiFormGroup-root"
               >
                 <label
-                  class="MuiFormControlLabel-root-2367 MuiFormControlLabel-disabled-2371"
+                  class="MuiFormControlLabel-root Mui-disabled"
                 >
                   <span
-                    class="MuiSwitch-root-2373"
+                    class="MuiSwitch-root"
                   >
                     <span
-                      class="MuiButtonBase-root-2361 MuiButtonBase-disabled-2362 MuiIconButton-root-2386 MuiIconButton-disabled-2390 MuiPrivateSwitchBase-root-2382 MuiSwitch-switchBase-2376 MuiSwitch-colorPrimary-2378 MuiPrivateSwitchBase-disabled-2384 MuiSwitch-disabled-2380"
+                      aria-disabled="true"
+                      class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-37 MuiSwitch-switchBase MuiSwitch-colorPrimary PrivateSwitchBase-disabled-39 Mui-disabled Mui-disabled Mui-disabled"
                       tabindex="-1"
                     >
                       <span
-                        class="MuiIconButton-label-2391"
+                        class="MuiIconButton-label"
                       >
-                        <span
-                          class="MuiSwitch-icon-2374"
-                        />
                         <input
-                          class="MuiPrivateSwitchBase-input-2385"
+                          class="PrivateSwitchBase-input-40 MuiSwitch-input"
                           disabled=""
                           type="checkbox"
                           value=""
                         />
+                        <span
+                          class="MuiSwitch-thumb"
+                        />
                       </span>
                     </span>
                     <span
-                      class="MuiSwitch-bar-2381"
+                      class="MuiSwitch-track"
                     />
                   </span>
                   <span
-                    class="MuiTypography-root-2392 MuiTypography-body1-2401 MuiFormControlLabel-label-2372 MuiFormControlLabel-disabled-2371"
+                    class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
                   >
                     Simplify Graph
                   </span>
@@ -5315,7 +5216,7 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translate(0, 0); transform: translate(0, 0); transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -5325,31 +5226,26 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
                 >
                   <button
                     aria-label="close"
-                    class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 closeButton_f1bs0dqr"
+                    class="MuiButtonBase-root MuiButton-root MuiButton-text closeButton_f1bs0dqr"
                     tabindex="0"
                     type="button"
                   >
                     <span
-                      class="MuiButton-label-2336"
+                      class="MuiButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-2428"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                     <span
-                      class="MuiTouchRipple-root-2437"
+                      class="MuiTouchRipple-root"
                     />
                   </button>
                   <div
@@ -5377,139 +5273,139 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
                           style="display: inline-block; min-width: 20px; width: 20px;"
                         />
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               Input/Output
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               Visualizations
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               Details
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i active_fz0wpsl"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               Volumes
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               Logs
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               Pod
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               Events
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                         <button
-                          class="MuiButtonBase-root-2361 MuiButton-root-2335 MuiButton-text-2337 MuiButton-flat-2340 button_ff2g68i"
+                          class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                           tabindex="0"
                           title=""
                           type="button"
                         >
                           <span
-                            class="MuiButton-label-2336"
+                            class="MuiButton-label"
                           >
                             <span>
                               ML Metadata
                             </span>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-2437"
+                            class="MuiTouchRipple-root"
                           />
                         </button>
                       </div>
@@ -5546,20 +5442,12 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root-2428 infoIcon_fkjdf5w"
+                  class="MuiSvgIcon-root infoIcon_fkjdf5w"
                   focusable="false"
-                  role="presentation"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M0 0h24v24H0V0z"
-                    fill="none"
-                  />
-                  <path
-                    d="M11 7h2v2h-2zM11 11h2v6h-2z"
-                  />
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
                   />
                 </svg>
                 <span
