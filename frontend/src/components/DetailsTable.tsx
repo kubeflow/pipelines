@@ -100,6 +100,7 @@ const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
                     showGutter={true}
                     readOnly={true}
                     value={JSON.stringify(parsedJson, null, 2) || ''}
+                    editorProps={{ $blockScrolling: Infinity }}
                   />
                 </div>
               );

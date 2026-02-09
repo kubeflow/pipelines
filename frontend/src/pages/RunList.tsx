@@ -85,6 +85,7 @@ interface RunListState {
 }
 
 class RunList extends React.PureComponent<RunListProps, RunListState> {
+  private _isMounted = true;
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -151,7 +152,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         id: r.run.run_id!,
         otherFields: [
           r.run!.display_name,
-          r.run.state || '-',
+          r.run.state,
           getRunDurationV2(r.run),
           r.pipelineVersion,
           r.recurringRun,
@@ -202,6 +203,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         />
       </div>
     );
+  }
+
+  public componentWillUnmount(): void {
+    this._isMounted = false;
   }
 
   public async refresh(): Promise<void> {
@@ -401,11 +406,17 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     await this._setColumns(displayRuns);
 
-    this.setState({
+    this.setStateSafe({
       // metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
+  }
+
+  private setStateSafe(newState: Partial<RunListState>, cb?: () => void): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
   }
 
   private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
