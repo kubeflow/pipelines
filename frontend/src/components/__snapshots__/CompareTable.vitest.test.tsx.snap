@@ -1,0 +1,123 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CompareTable > renders no data 1`] = `<DocumentFragment />`;
+
+exports[`CompareTable > renders one row with three columns 1`] = `
+<DocumentFragment>
+  <table
+    class="root_f10voujl"
+  >
+    <tbody>
+      <tr
+        class="row_fdlhssp"
+      >
+        <td
+          class="labelCell_f5plxwk"
+        />
+        <td
+          class="cell_f1eirzos labelCell_f5plxwk"
+          title="col1"
+        >
+          col1
+        </td>
+        <td
+          class="cell_f1eirzos labelCell_f5plxwk"
+          title="col2"
+        >
+          col2
+        </td>
+        <td
+          class="cell_f1eirzos labelCell_f5plxwk"
+          title="col3"
+        >
+          col3
+        </td>
+      </tr>
+      <tr
+        class="row_fdlhssp"
+      >
+        <td
+          class="cell_f1eirzos labelCell_f5plxwk"
+          title="row1"
+        >
+          row1
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="1"
+        >
+          1
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="2"
+        >
+          2
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="3"
+        >
+          3
+        </td>
+      </tr>
+      <tr
+        class="row_fdlhssp"
+      >
+        <td
+          class="cell_f1eirzos labelCell_f5plxwk"
+          title="row2"
+        >
+          row2
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="4"
+        >
+          4
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="5"
+        >
+          5
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="6"
+        >
+          6
+        </td>
+      </tr>
+      <tr
+        class="row_fdlhssp"
+      >
+        <td
+          class="cell_f1eirzos labelCell_f5plxwk"
+          title="row3"
+        >
+          row3
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="cell7"
+        >
+          cell7
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="cell8"
+        >
+          cell8
+        </td>
+        <td
+          class="cell_f1eirzos"
+          title="cell9"
+        >
+          cell9
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</DocumentFragment>
+`;
