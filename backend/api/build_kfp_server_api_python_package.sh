@@ -68,7 +68,7 @@ cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 # For v2beta1, replace auto-generated setup.py with pyproject.toml
 if [[ "$API_VERSION" == "v2beta1" ]]; then
     echo "Replacing auto-generated setup.py with pyproject.toml in $DIR."
-    rm -f "$DIR/setup.py" "$DIR/requirements.txt" "$DIR/test-requirements.txt" "$DIR/setup.cfg"
+    rm -f "$DIR/setup.py" "$DIR/requirements.txt"
     cat > "$DIR/pyproject.toml" << PYPROJECT
 [project]
 name = "kfp-server-api"
