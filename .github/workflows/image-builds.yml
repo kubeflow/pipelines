@@ -1,16 +1,16 @@
-name: Build and Cache
+name: Build Images
 on:
   workflow_call:
     outputs:
       IMAGE_PATH:
         description: 'A description of my output'
-        value: ${{ jobs.image-build-with-cache.outputs.image_path }}
+        value: ${{ jobs.image-build.outputs.image_path }}
       IMAGE_TAG:
         description: 'A description of my output'
-        value: ${{ jobs.image-build-with-cache.outputs.image_tag }}
+        value: ${{ jobs.image-build.outputs.image_tag }}
       IMAGE_REGISTRY:
         description: 'A description of my output'
-        value: ${{ jobs.image-build-with-cache.outputs.registry }}
+        value: ${{ jobs.image-build.outputs.registry }}
 
 env:
   IMAGE_TAG: "latest"
@@ -19,7 +19,7 @@ env:
   GITHUB_SHA: ${{ github.sha }}
 
 jobs:
-  image-build-with-cache:
+  image-build:
     runs-on: ubuntu-latest
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
@@ -67,7 +67,7 @@ jobs:
             context: .
     env:
       ARTIFACT_NAME: "${{ matrix.image }}"
-      ARTIFACTS_PATH: "images_${{ github.sha }}"
+      ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -82,23 +82,8 @@ jobs:
             echo "registry=${{ env.REGISTRY }}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
-
-      # Check if the image was already built for this SHA using cache
-      - name: Check if already built
-        id: cache-check
-        if: ${{ github.ref_name != github.event.repository.default_branch }}
-        uses: actions/cache@v5
-        with:
-          path: .build-marker-${{ matrix.image }}
-          key: image-built-${{ matrix.image }}-${{ github.sha }}-${{ github.event.pull_request.number || github.ref_name }}-${{ steps.date.outputs.date }}
-          lookup-only: true
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        if: ${{ steps.cache-check.outputs.cache-hit != 'true' || github.ref_name == github.event.repository.default_branch }}
         id: setup-buildx
 
       - name: Build and save Docker image
@@ -130,16 +115,3 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
           retention-days: 1
-        # Continue the workflow even if the upload failed, because upload can fail if other jobs were able to upload artifact first before the current one
-        continue-on-error: true
-
-      - name: Create build marker
-        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
-        run: echo "built" > .build-marker-${{ matrix.image }}
-
-      - name: Save build marker to cache
-        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
-        uses: actions/cache/save@v5
-        with:
-          path: .build-marker-${{ matrix.image }}
-          key: image-built-${{ matrix.image }}-${{ github.sha }}-${{ github.event.pull_request.number || github.ref_name }}-${{ steps.date.outputs.date }}

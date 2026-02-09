@@ -7,15 +7,17 @@ on:
   pull_request:
     paths:
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
+      - '.github/workflows/image-builds.yml'
       - 'backend/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   webhook-tests:
     runs-on: ubuntu-latest

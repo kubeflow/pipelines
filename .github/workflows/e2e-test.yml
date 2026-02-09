@@ -15,7 +15,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -52,7 +54,7 @@ concurrency:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest
