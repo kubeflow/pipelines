@@ -18,50 +18,7 @@ import * as React from 'react';
 import { render } from '@testing-library/react';
 import ViewerContainer from './ViewerContainer';
 import { PlotType } from './Viewer';
-
-const normalizeMuiIds = (fragment: DocumentFragment) => {
-  const idMap = new Map<string, string>();
-  let nextId = 0;
-  fragment.querySelectorAll('[id^="mui-"]').forEach(el => {
-    const oldId = el.getAttribute('id');
-    if (!oldId) {
-      return;
-    }
-    if (!idMap.has(oldId)) {
-      idMap.set(oldId, `mui-id-${nextId++}`);
-    }
-    el.setAttribute('id', idMap.get(oldId)!);
-  });
-
-  const updateAttr = (el: Element, attr: string) => {
-    const value = el.getAttribute(attr);
-    if (!value) {
-      return;
-    }
-    const parts = value.split(' ');
-    let changed = false;
-    const updated = parts.map(part => {
-      const mapped = idMap.get(part);
-      if (mapped) {
-        changed = true;
-        return mapped;
-      }
-      return part;
-    });
-    if (changed) {
-      el.setAttribute(attr, updated.join(' '));
-    }
-  };
-
-  fragment.querySelectorAll('[aria-labelledby]').forEach(el => updateAttr(el, 'aria-labelledby'));
-  fragment.querySelectorAll('[for]').forEach(el => updateAttr(el, 'for'));
-  fragment.querySelectorAll('[aria-describedby]').forEach(el => updateAttr(el, 'aria-describedby'));
-};
-
-const expectStableSnapshot = (fragment: DocumentFragment) => {
-  normalizeMuiIds(fragment);
-  expect(fragment).toMatchSnapshot();
-};
+import { expectStableMuiSnapshot } from 'src/testUtils/muiSnapshot';
 
 describe('ViewerContainer', () => {
   const sampleConfigs: Record<PlotType, any> = {
@@ -107,7 +64,7 @@ describe('ViewerContainer', () => {
     it('renders a viewer of type ' + type, () => {
       const plotType = PlotType[type as keyof typeof PlotType];
       const { asFragment } = render(<ViewerContainer configs={[sampleConfigs[plotType]]} />);
-      expectStableSnapshot(asFragment());
+      expectStableMuiSnapshot(asFragment());
     }),
   );
 });

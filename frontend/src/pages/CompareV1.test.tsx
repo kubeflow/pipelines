@@ -34,52 +34,9 @@ import { MemoryRouter, Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
+import { expectStableMuiSnapshot } from 'src/testUtils/muiSnapshot';
 
 const CompareV1 = TEST_ONLY.CompareV1;
-
-const normalizeMuiIds = (fragment: DocumentFragment) => {
-  const idMap = new Map<string, string>();
-  let nextId = 0;
-  fragment.querySelectorAll('[id^="mui-"]').forEach(el => {
-    const oldId = el.getAttribute('id');
-    if (!oldId) {
-      return;
-    }
-    if (!idMap.has(oldId)) {
-      idMap.set(oldId, `mui-id-${nextId++}`);
-    }
-    el.setAttribute('id', idMap.get(oldId)!);
-  });
-
-  const updateAttr = (el: Element, attr: string) => {
-    const value = el.getAttribute(attr);
-    if (!value) {
-      return;
-    }
-    const parts = value.split(' ');
-    let changed = false;
-    const updated = parts.map(part => {
-      const mapped = idMap.get(part);
-      if (mapped) {
-        changed = true;
-        return mapped;
-      }
-      return part;
-    });
-    if (changed) {
-      el.setAttribute(attr, updated.join(' '));
-    }
-  };
-
-  fragment.querySelectorAll('[aria-labelledby]').forEach(el => updateAttr(el, 'aria-labelledby'));
-  fragment.querySelectorAll('[for]').forEach(el => updateAttr(el, 'for'));
-  fragment.querySelectorAll('[aria-describedby]').forEach(el => updateAttr(el, 'aria-describedby'));
-};
-
-const expectStableSnapshot = (fragment: DocumentFragment) => {
-  normalizeMuiIds(fragment);
-  expect(fragment).toMatchSnapshot();
-};
 
 class TestCompare extends CompareV1 {
   public _selectionChanged(selectedIds: string[]): void {
@@ -274,13 +231,13 @@ describe('CompareV1', () => {
     await renderCompare(props);
 
     await waitFor(() => expect(updateBannerSpy).toHaveBeenCalled());
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('renders a page with multiple runs', async () => {
     await renderCompare();
     await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(3));
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('fetches a run for each ID in query params', async () => {
@@ -410,7 +367,7 @@ describe('CompareV1', () => {
         yLabels: ['param1', 'param2'],
       }),
     );
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('displays parameters from multiple runs', async () => {
@@ -449,7 +406,7 @@ describe('CompareV1', () => {
 
     await renderCompare(props);
     await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it("displays a run's metrics if the run has any", async () => {
@@ -474,7 +431,7 @@ describe('CompareV1', () => {
         yLabels: ['some-metric', 'another-metric'],
       }),
     );
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('displays metrics from multiple runs', async () => {
@@ -495,7 +452,7 @@ describe('CompareV1', () => {
 
     await renderCompare(props);
     await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('creates a map of viewers', async () => {
@@ -559,7 +516,7 @@ describe('CompareV1', () => {
     expect(getInstance().state.viewersMap as Map<PlotType, TaggedViewerConfig>).toEqual(
       expectedViewerMap,
     );
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('collapses all sections', async () => {
@@ -580,7 +537,7 @@ describe('CompareV1', () => {
       Tensorboard: true,
     });
 
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('expands all sections if they were collapsed', async () => {
@@ -607,7 +564,7 @@ describe('CompareV1', () => {
     });
 
     expect(getInstance().state.collapseSections).toEqual({});
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('allows individual viewers to be collapsed and expanded', async () => {
@@ -673,7 +630,7 @@ describe('CompareV1', () => {
       getInstance()._selectionChanged([]);
     });
 
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   it('creates an extra aggregation plot for compatible viewers', async () => {
@@ -717,7 +674,7 @@ describe('CompareV1', () => {
       expect(document.querySelectorAll('.plotCard')).toHaveLength(6);
     });
 
-    expectStableSnapshot(renderResult!.asFragment());
+    expectStableMuiSnapshot(renderResult!.asFragment());
   });
 
   describe('EnhancedCompareV1', () => {
