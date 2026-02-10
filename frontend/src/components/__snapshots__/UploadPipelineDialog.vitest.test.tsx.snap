@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UploadPipelineDialog > renders alternate UI for uploading via URL 1`] = `<DocumentFragment />`;
+
+exports[`UploadPipelineDialog > renders an active dropzone 1`] = `<DocumentFragment />`;
+
+exports[`UploadPipelineDialog > renders closed 1`] = `<DocumentFragment />`;
+
+exports[`UploadPipelineDialog > renders open 1`] = `<DocumentFragment />`;
+
+exports[`UploadPipelineDialog > renders with a selected file to upload 1`] = `<DocumentFragment />`;
