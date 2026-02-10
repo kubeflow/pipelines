@@ -198,7 +198,7 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 			glog.Fatalf("Invalid port for PostgreSQL: %v", err)
 		}
 		// Connect without target DB first
-		dsnNoDB := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, "postgres", uint16(port))
+		dsnNoDB, _ := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, "postgres", uint16(port))
 		var db *sql.DB
 		var operation = func() error {
 			db, err = sql.Open(params.dbDriver, dsnNoDB)
@@ -222,7 +222,8 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		db.Close()
 
 		// Return DSN with target DB
-		return client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, params.dbName, uint16(port))
+		dsn, _ := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, params.dbName, uint16(port))
+		return dsn
 	default:
 		glog.Fatalf("Driver %v is not supported", params.dbDriver)
 	}

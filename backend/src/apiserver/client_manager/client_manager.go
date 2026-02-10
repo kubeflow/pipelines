@@ -407,7 +407,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		sqlConfig = mysqlConfig.FormatDSN()
 		dbName = common.GetStringConfig(mysqlDBName)
 	case "pgx":
-		dsn := client.CreatePostgreSQLConfig(
+		dsn, _ := client.CreatePostgreSQLConfig(
 			common.GetStringConfigWithDefault(postgresUser, "user"),
 			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
@@ -472,7 +472,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	case "pgx":
 		// Note: postgreSQL does not have the option `ClientFoundRows`
 		// Config reference: https://www.postgresql.org/docs/current/libpq-connect.html
-		sqlConfig = client.CreatePostgreSQLConfig(
+		sqlConfig, _ = client.CreatePostgreSQLConfig(
 			common.GetStringConfigWithDefault(postgresUser, "user"),
 			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
