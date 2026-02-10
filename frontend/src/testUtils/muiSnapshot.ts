@@ -37,7 +37,7 @@ export const normalizeMuiIds = (fragment: DocumentFragment) => {
   fragment.querySelectorAll('[aria-describedby]').forEach(el => updateAttr(el, 'aria-describedby'));
 };
 
-export const expectStableMuiSnapshot = (fragment: DocumentFragment) => {
+export const stableMuiSnapshotFragment = (fragment: DocumentFragment) => {
   normalizeMuiIds(fragment);
-  expect(fragment).toMatchSnapshot();
+  return fragment;
 };
