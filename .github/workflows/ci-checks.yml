@@ -64,15 +64,13 @@ jobs:
                   repo,
                   workflow_id: workflowId,
                   event: 'pull_request',
+                  head_sha: headSha,
                   per_page: 100,
                 },
               );
 
               const matchingRuns = runs
                 .filter(run => {
-                  if (run.head_sha !== headSha) {
-                    return false;
-                  }
                   const pullRequests = Array.isArray(run.pull_requests)
                     ? run.pull_requests
                     : [];
