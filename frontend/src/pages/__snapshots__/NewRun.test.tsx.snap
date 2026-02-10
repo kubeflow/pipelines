@@ -453,6 +453,7 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -516,6 +517,7 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline version"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="choosePipelineVersionBtn"
@@ -967,6 +969,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -1030,6 +1033,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline version"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="choosePipelineVersionBtn"
@@ -1990,6 +1994,7 @@ exports[`NewRun > changes title and form to default state if the new run is a on
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -2053,6 +2058,7 @@ exports[`NewRun > changes title and form to default state if the new run is a on
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline version"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="choosePipelineVersionBtn"
@@ -2504,6 +2510,7 @@ exports[`NewRun > fetches the associated pipeline if one is present in the query
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -2567,6 +2574,7 @@ exports[`NewRun > fetches the associated pipeline if one is present in the query
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline version"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineVersionBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -3020,6 +3028,7 @@ exports[`NewRun > renders the new run page 1`] = `
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -3083,6 +3092,7 @@ exports[`NewRun > renders the new run page 1`] = `
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline version"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="choosePipelineVersionBtn"
@@ -3534,6 +3544,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -3597,6 +3608,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline version"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="choosePipelineVersionBtn"
@@ -4557,6 +4569,7 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="choosePipelineBtn"
               style="padding: 3px 5px; margin: 0px;"
@@ -4620,6 +4633,7 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
             class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
           >
             <button
+              aria-label="Choose pipeline version"
               class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="choosePipelineVersionBtn"
