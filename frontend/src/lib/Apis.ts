@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as portableFetch from 'portable-fetch';
+import portableFetch from 'portable-fetch';
 import { ExperimentServiceApi, FetchAPI } from 'src/apis/experiment';
 import { ExperimentServiceApi as ExperimentServiceApiV2 } from 'src/apisv2beta1/experiment';
 import { JobServiceApi } from 'src/apis/job';

@@ -60,7 +60,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
 
   const experimentId = recurringRun?.experiment_id!;
   const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>(
-    ['experiment'],
+    ['experiment', experimentId],
     async () => {
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },

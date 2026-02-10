@@ -106,7 +106,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
         <FormControl style={{ width: '100%' }}>
           <InputLabel htmlFor='visualization-type-selector'>Type</InputLabel>
           <Select
-            value={selectedType}
+            value={selectedType || ''}
             inputProps={{
               id: 'visualization-type-selector',
               name: 'Visualization Type',

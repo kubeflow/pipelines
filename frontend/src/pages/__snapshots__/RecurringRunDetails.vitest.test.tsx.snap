@@ -1,0 +1,321 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RecurringRunDetails > renders a recurring run with cron schedule 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk f9qqjqd"
+  >
+    <div
+      class="page_f1flacxk"
+    >
+      <div
+        class="header2_f1tq2tps"
+      >
+        Recurring run details
+      </div>
+      <div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Description
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            test job description
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Created at
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            1/2/2019, 12:34:56 PM
+          </span>
+        </div>
+      </div>
+      <div
+        class="header2_f1tq2tps"
+      >
+        Run trigger
+      </div>
+      <div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Enabled
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            Yes
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Trigger
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            * * * 0 0 !
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Max. concurrent runs
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            50
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Catchup
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            true
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Start time
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            1/2/2019, 12:34:56 PM
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            End time
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            1/2/2019, 12:34:56 PM
+          </span>
+        </div>
+      </div>
+      <div
+        class="header2_f1tq2tps"
+      >
+        Run parameters
+      </div>
+      <div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            param1
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            value1
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`RecurringRunDetails > renders a recurring run with periodic schedule 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk f9qqjqd"
+  >
+    <div
+      class="page_f1flacxk"
+    >
+      <div
+        class="header2_f1tq2tps"
+      >
+        Recurring run details
+      </div>
+      <div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Description
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            test job description
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Created at
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            1/2/2019, 12:34:56 PM
+          </span>
+        </div>
+      </div>
+      <div
+        class="header2_f1tq2tps"
+      >
+        Run trigger
+      </div>
+      <div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Enabled
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            Yes
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Trigger
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            Every 1 hours
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Max. concurrent runs
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            50
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Catchup
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            false
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            Start time
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            1/2/2019, 12:34:56 PM
+          </span>
+        </div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            End time
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            1/2/2019, 12:34:56 PM
+          </span>
+        </div>
+      </div>
+      <div
+        class="header2_f1tq2tps"
+      >
+        Run parameters
+      </div>
+      <div>
+        <div
+          class="row_f16w1c9n"
+        >
+          <span
+            class="key_f1e93q8f"
+          >
+            param1
+          </span>
+          <span
+            class="valueText_f1nujmdy"
+          >
+            value1
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
