@@ -19,19 +19,19 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
 import TestUtils from '../../TestUtils';
-import { expectStableMuiSnapshot } from 'src/testUtils/muiSnapshot';
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 
 describe('PagedTable', () => {
   it('does not break on no config', () => {
     const { asFragment } = render(<PagedTable configs={[]} />);
-    expectStableMuiSnapshot(asFragment());
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('does not break on empty data', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data: [], labels: [], type: PlotType.TABLE }]} />,
     );
-    expectStableMuiSnapshot(asFragment());
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   const data = [
@@ -44,14 +44,14 @@ describe('PagedTable', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
     );
-    expectStableMuiSnapshot(asFragment());
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders simple data without labels', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />,
     );
-    expectStableMuiSnapshot(asFragment());
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('sorts on first column descending', async () => {
@@ -60,7 +60,7 @@ describe('PagedTable', () => {
     );
     fireEvent.click(screen.getByText(labels[0]));
     await TestUtils.flushPromises();
-    expectStableMuiSnapshot(asFragment());
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('sorts on first column ascending', async () => {
@@ -72,7 +72,7 @@ describe('PagedTable', () => {
     // Once for ascending.
     fireEvent.click(screen.getByText(labels[0]));
     await TestUtils.flushPromises();
-    expectStableMuiSnapshot(asFragment());
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('returns a user friendly display name', () => {
