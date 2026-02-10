@@ -1140,101 +1140,105 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
       </tbody>
     </table>
     <div
-      class="MuiToolbar-root MuiToolbar-regular MuiTablePagination-toolbar MuiToolbar-gutters"
+      class="MuiTablePagination-root"
     >
       <div
-        class="MuiTablePagination-spacer"
-      />
-      <p
-        class="MuiTypography-root MuiTablePagination-caption MuiTypography-body2 MuiTypography-colorInherit"
-        id="mui-id-0"
-      >
-        Rows per page:
-      </p>
-      <div
-        class="MuiInputBase-root MuiTablePagination-input MuiTablePagination-selectRoot"
+        class="MuiToolbar-root MuiToolbar-regular MuiTablePagination-toolbar MuiToolbar-gutters"
       >
         <div
-          aria-haspopup="listbox"
-          aria-labelledby="mui-id-0 mui-id-1"
-          class="MuiSelect-root MuiSelect-select MuiTablePagination-select MuiSelect-selectMenu MuiInputBase-input"
-          id="mui-id-1"
-          role="button"
-          tabindex="0"
-        >
-          10
-        </div>
-        <input
-          aria-hidden="true"
-          class="MuiSelect-nativeInput"
-          tabindex="-1"
-          value="10"
+          class="MuiTablePagination-spacer"
         />
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon MuiTablePagination-selectIcon"
-          focusable="false"
-          viewBox="0 0 24 24"
+        <p
+          class="MuiTypography-root MuiTablePagination-caption MuiTypography-body2 MuiTypography-colorInherit"
+          id="mui-id-0"
         >
-          <path
-            d="M7 10l5 5 5-5z"
+          Rows per page:
+        </p>
+        <div
+          class="MuiInputBase-root MuiTablePagination-input MuiTablePagination-selectRoot"
+        >
+          <div
+            aria-haspopup="listbox"
+            aria-labelledby="mui-id-0 mui-id-1"
+            class="MuiSelect-root MuiSelect-select MuiTablePagination-select MuiSelect-selectMenu MuiInputBase-input"
+            id="mui-id-1"
+            role="button"
+            tabindex="0"
+          >
+            10
+          </div>
+          <input
+            aria-hidden="true"
+            class="MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
           />
-        </svg>
-      </div>
-      <p
-        class="MuiTypography-root MuiTablePagination-caption MuiTypography-body2 MuiTypography-colorInherit"
-      >
-        1-1 of 1
-      </p>
-      <div
-        class="MuiTablePagination-actions"
-      >
-        <button
-          aria-label="Previous page"
-          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit Mui-disabled Mui-disabled"
-          disabled=""
-          tabindex="-1"
-          title="Previous page"
-          type="button"
-        >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSelect-icon MuiTablePagination-selectIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
-              />
-            </svg>
-          </span>
-        </button>
-        <button
-          aria-label="Next page"
-          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit Mui-disabled Mui-disabled"
-          disabled=""
-          tabindex="-1"
-          title="Next page"
-          type="button"
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+        <p
+          class="MuiTypography-root MuiTablePagination-caption MuiTypography-body2 MuiTypography-colorInherit"
         >
-          <span
-            class="MuiIconButton-label"
+          1-1 of 1
+        </p>
+        <div
+          class="MuiTablePagination-actions"
+        >
+          <button
+            aria-label="Previous page"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit Mui-disabled Mui-disabled"
+            disabled=""
+            tabindex="-1"
+            title="Previous page"
+            type="button"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
+            <span
+              class="MuiIconButton-label"
             >
-              <path
-                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
-              />
-            </svg>
-          </span>
-        </button>
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+                />
+              </svg>
+            </span>
+          </button>
+          <button
+            aria-label="Next page"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit Mui-disabled Mui-disabled"
+            disabled=""
+            tabindex="-1"
+            title="Next page"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+                />
+              </svg>
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -148,6 +148,7 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
         </Table>
 
         <TablePagination
+          component='div'
           count={data.length}
           rowsPerPage={rowsPerPage}
           page={page}
