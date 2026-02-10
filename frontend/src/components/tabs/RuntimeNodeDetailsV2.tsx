@@ -537,10 +537,16 @@ async function getPodStatusAndEvents(
         if (taskName && sortedPods.length > 1) {
           const found = sortedPods.find((p: any) => {
             const labels = p.metadata?.labels || {};
+            const podTaskLabel = labels['pipelines.kubeflow.org/task_name'] || '';
             const pName = p.metadata?.name || '';
             return (
-              labels['pipelines.kubeflow.org/task_name'] === taskName ||
+              // Exact match (backward compatible)
+              podTaskLabel === taskName ||
+              // Path-based match: label ends with ".taskName" (e.g., "root.for-loop-1.process-item")
+              podTaskLabel.endsWith('.' + taskName) ||
+              // Fallback to component label
               labels['component'] === taskName ||
+              // Fallback to pod name pattern
               pName.includes(taskName.replace(/_/g, '-')) ||
               pName.includes(taskName)
             );

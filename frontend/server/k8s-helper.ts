@@ -380,17 +380,132 @@ export async function listPodsByRunId(
       return acc;
     }, []);
 
+    // Helper to check if a pod has container errors (impl pods may not have task_name label)
+    const hasContainerError = (pod: V1Pod): boolean => {
+      const containerStatuses = pod.status?.containerStatuses || [];
+      const initContainerStatuses = pod.status?.initContainerStatuses || [];
+      const allStatuses = [...containerStatuses, ...initContainerStatuses];
+      const errorReasons = [
+        'ErrImagePull', 'ImagePullBackOff', 'CrashLoopBackOff',
+        'CreateContainerConfigError', 'InvalidImageName', 'CreateContainerError',
+        'RunContainerError', 'OOMKilled', 'Error',
+      ];
+      return allStatuses.some((cs: any) => {
+        const waitingReason = cs.state?.waiting?.reason;
+        const terminatedReason = cs.state?.terminated?.reason;
+        const exitCode = cs.state?.terminated?.exitCode;
+        return (
+          errorReasons.includes(waitingReason) ||
+          errorReasons.includes(terminatedReason) ||
+          (exitCode !== undefined && exitCode !== 0)
+        );
+      });
+    };
+
+    // Helper to check if a pod is an impl/executor pod (vs driver)
+    // Impl pods have names like <workflow>-system-container-impl-<hash>
+    // As of version I, impl pods now have task_name labels and task_path annotations
+    const isImplPod = (pod: V1Pod): boolean => {
+      const name = pod.metadata?.name || '';
+      return (name.includes('-impl-') || name.includes('system-container-impl')) && !name.includes('driver');
+    };
+
     // If task name provided, try to filter (but don't require it)
     let filteredPods = uniquePods;
     if (taskName && isAllowedResourceName(taskName) && uniquePods.length > 1) {
+      console.log('[listPodsByRunId] Filtering', uniquePods.length, 'pods for task:', taskName);
+
+      // Helper to check if a pod matches the task by labels/annotations/name
+      const podMatchesTask = (pod: V1Pod): boolean => {
+        const labels = pod.metadata?.labels || {};
+        const annotations = pod.metadata?.annotations || {};
+        const podTaskLabel = labels['pipelines.kubeflow.org/task_name'] || '';
+        const podTaskPath = annotations['pipelines.kubeflow.org/task_path'] || '';
+        const podName = pod.metadata?.name || '';
+
+        return (
+          podTaskPath === taskName ||
+          podTaskPath.endsWith('.' + taskName) ||
+          podTaskLabel === taskName ||
+          podTaskLabel.endsWith('.' + taskName) ||
+          labels['component'] === taskName ||
+          podName.includes(taskName)
+        );
+      };
+
+      // Helper to get the task name from a driver pod
+      const getDriverTaskName = (pod: V1Pod): string => {
+        const labels = pod.metadata?.labels || {};
+        const annotations = pod.metadata?.annotations || {};
+        return annotations['pipelines.kubeflow.org/task_path'] ||
+               labels['pipelines.kubeflow.org/task_name'] ||
+               labels['component'] || '';
+      };
+
+      // Legacy fallback: For error impl pods WITHOUT task labels (created before version I),
+      // find which task they belong to by timestamp.
+      // An impl pod belongs to the driver that was created closest to (but before) it.
+      // With version I, impl pods have task_name labels and are matched directly via podMatchesTask().
+      const getImplPodOwnerTask = (implPod: V1Pod): string | null => {
+        const implTime = new Date(implPod.metadata?.creationTimestamp || 0).getTime();
+
+        // Get all driver pods (non-impl) with task labels
+        const driverPods = uniquePods.filter(p => !isImplPod(p) && getDriverTaskName(p));
+
+        let bestMatch: { task: string; timeDiff: number } | null = null;
+
+        for (const driver of driverPods) {
+          const driverTime = new Date(driver.metadata?.creationTimestamp || 0).getTime();
+          const timeDiff = implTime - driverTime;
+
+          // Impl should be created after driver (timeDiff >= 0)
+          // And within a reasonable window (5 minutes)
+          if (timeDiff >= 0 && timeDiff < 300000) {
+            const driverTask = getDriverTaskName(driver);
+            if (!bestMatch || timeDiff < bestMatch.timeDiff) {
+              bestMatch = { task: driverTask, timeDiff };
+            }
+          }
+        }
+
+        return bestMatch?.task || null;
+      };
+
       const taskFilteredPods = uniquePods.filter(pod => {
         const labels = pod.metadata?.labels || {};
-        return (
-          labels['pipelines.kubeflow.org/task_name'] === taskName ||
-          labels['component'] === taskName ||
-          pod.metadata?.name?.includes(taskName)
-        );
+        const annotations = pod.metadata?.annotations || {};
+        const podTaskLabel = labels['pipelines.kubeflow.org/task_name'] || '';
+        const podTaskPath = annotations['pipelines.kubeflow.org/task_path'] || '';
+        const podName = pod.metadata?.name || '';
+
+        // Direct match by label, annotation, or pod name
+        if (podMatchesTask(pod)) {
+          if (isImplPod(pod) && (podTaskLabel || podTaskPath)) {
+            console.log('[listPodsByRunId] Matched impl pod by label/annotation:', podName, 'taskLabel:', podTaskLabel, 'taskPath:', podTaskPath);
+          }
+          return true;
+        }
+
+        // Legacy fallback for error impl pods WITHOUT task labels (pre-version I):
+        // Match by timestamp. As of version I, impl pods have task_name labels and
+        // are matched directly via podMatchesTask() above.
+        if (isImplPod(pod) && hasContainerError(pod) && !podTaskLabel && !podTaskPath) {
+          const ownerTask = getImplPodOwnerTask(pod);
+          if (ownerTask) {
+            // Check if owner task matches the current task we're filtering for
+            const matches = ownerTask === taskName ||
+                           ownerTask.endsWith('.' + taskName) ||
+                           taskName.endsWith('.' + ownerTask);
+            if (matches) {
+              console.log('[listPodsByRunId] Legacy: Including error impl pod matched by timestamp:', podName, '-> owner:', ownerTask, '-> task:', taskName);
+              return true;
+            }
+          }
+        }
+
+        return false;
       });
+
       if (taskFilteredPods.length > 0) {
         filteredPods = taskFilteredPods;
       }

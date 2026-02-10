@@ -376,6 +376,7 @@ const (
 	paramComponent               = "component"      // component spec
 	paramTask                    = "task"           // task spec
 	paramTaskName                = "task-name"      // task name
+	paramTaskPath                = "task-path"      // full task path including parent DAG names (e.g., "root.for-loop-1.process-item")
 	paramContainer               = "container"      // container spec
 	paramImporter                = "importer"       // importer spec
 	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
