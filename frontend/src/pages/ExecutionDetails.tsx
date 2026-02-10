@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { CircularProgress } from '@material-ui/core';
+import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import grey from '@material-ui/core/colors/grey';
+import grey from '@mui/material/colors/grey';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, fonts, padding } from 'src/mlmd/Css';
 import { color as commonColor } from 'src/Css';
-import ArrowRightAltIcon from '@material-ui/icons/ArrowRightAlt';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 
 export interface SubDagLayerProps {
   layers: string[];

@@ -16,7 +16,7 @@
 
 import { CustomRendererProps } from './CustomTable';
 import React from 'react';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
 
 /**
  * Common name custom renderer that shows a tooltip when hovered. The tooltip helps if there isn't

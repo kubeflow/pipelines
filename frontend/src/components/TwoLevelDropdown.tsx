@@ -15,11 +15,11 @@
  */
 
 import React, { Ref, useRef, useState } from 'react';
-import { Button, Tooltip } from '@material-ui/core';
+import { Button, Tooltip } from '@mui/material';
 import { color } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
-import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 const css = stylesheet({
   defaultFont: {

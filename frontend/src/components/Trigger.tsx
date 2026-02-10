@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import Fab from '@material-ui/core/Fab';
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import MenuItem from '@material-ui/core/MenuItem';
+import Fab from '@mui/material/Fab';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import MenuItem from '@mui/material/MenuItem';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { TriggerSchedule } from '../lib/TriggerUtils';
