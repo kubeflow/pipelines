@@ -149,11 +149,27 @@ fi
 # Cache-disabled and proxy are orthogonal env-var patches but are bundled into
 # dedicated overlay directories for simplicity.
 # If conflicting flags are passed (e.g. --tls-enabled --db-type pgx), the
-# higher-priority branch wins and the lower-priority flag is silently ignored.
+# higher-priority branch wins; lower-priority flags are ignored for overlay
+# selection, and a warning is printed to stderr to make this precedence explicit.
 #
 # Priority 1: Multi-user false + standalone (not kubernetes-native)
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
+
+  # Warn about conflicting or overshadowed flags for standalone mode. This mirrors
+  # the precedence applied below without changing which overlay is selected.
+  if $POD_TO_POD_TLS_ENABLED; then
+    if [ "${DB_TYPE}" == "pgx" ]; then
+      echo "Warning: Both POD_TO_POD_TLS_ENABLED and DB_TYPE=pgx are set; using the TLS-enabled overlay and ignoring the PostgreSQL (pgx) setting for manifest selection." >&2
+    fi
+    if $CACHE_DISABLED || $USE_PROXY; then
+      echo "Warning: POD_TO_POD_TLS_ENABLED is set together with CACHE_DISABLED and/or USE_PROXY; using the TLS-enabled overlay and ignoring cache/proxy-specific overlays." >&2
+    fi
+  elif [ "${DB_TYPE}" == "pgx" ]; then
+    if $CACHE_DISABLED || $USE_PROXY; then
+      echo "Warning: DB_TYPE=pgx is set together with CACHE_DISABLED and/or USE_PROXY; using the PostgreSQL overlay and ignoring cache/proxy-specific overlays." >&2
+    fi
+  fi
 
   # Priority 1.1: TLS-enabled (mutually exclusive with other options)
   if $POD_TO_POD_TLS_ENABLED; then
@@ -188,6 +204,17 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
 # Priority 3: Multi-user true
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
+
+  # Warn about conflicting or overshadowed flags for multiuser mode.
+  if [ "${DB_TYPE}" == "pgx" ]; then
+    if $ARTIFACT_PROXY_ENABLED || $CACHE_DISABLED; then
+      echo "Warning: DB_TYPE=pgx is set together with ARTIFACT_PROXY_ENABLED and/or CACHE_DISABLED; using the PostgreSQL overlay and ignoring other overlay flags." >&2
+    fi
+  elif $ARTIFACT_PROXY_ENABLED; then
+    if $CACHE_DISABLED; then
+      echo "Warning: ARTIFACT_PROXY_ENABLED is set together with CACHE_DISABLED; using the artifact-proxy overlay and ignoring the cache-disabled overlay." >&2
+    fi
+  fi
 
   # Priority 3.1: PostgreSQL (with default SeaweedFS)
   if [ "${DB_TYPE}" == "pgx" ]; then

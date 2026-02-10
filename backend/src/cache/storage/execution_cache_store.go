@@ -18,7 +18,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
@@ -57,8 +56,6 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheS
 	var validCaches []*model.ExecutionCache
 	for i := range executionCaches {
 		cache := &executionCaches[i]
-		log.Println("Get id: " + strconv.FormatInt(cache.ID, 10))
-		log.Println("Get template: " + cache.ExecutionTemplate)
 		// maxCacheStaleness comes from the database entry.
 		// cacheStaleness is computed from the pods annotation and environment variables.
 		if (cache.MaxCacheStaleness < 0 || s.time.Now().UTC().Unix()-cache.StartedAtInSec <= cache.MaxCacheStaleness) &&
@@ -112,8 +109,6 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podCacheStaleness int64) 
 		if err != nil {
 			return executionCaches, nil
 		}
-		log.Println("Get id: " + strconv.FormatInt(id, 10))
-		log.Println("Get template: " + executionTemplate)
 		// maxCacheStaleness comes from the database entry.
 		// podCacheStaleness is computed from the pods annotation and environment variables.
 		if (maxCacheStaleness < 0 || s.time.Now().UTC().Unix()-startedAtInSec <= maxCacheStaleness) &&

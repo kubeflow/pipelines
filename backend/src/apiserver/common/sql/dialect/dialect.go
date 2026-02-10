@@ -105,6 +105,7 @@ func (d DBDialect) ExistDatabaseErrHint() string { return d.existDatabaseErrHint
 // string values from multiple rows into a single string, using the given
 // separator.
 func (d DBDialect) ConcatAgg(distinct bool, expr, sep string) string {
+	sep = EscapeSQLString(sep)
 	dist := ""
 	if distinct {
 		dist = "DISTINCT "

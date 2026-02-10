@@ -162,6 +162,7 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 			remainingRuns, _, _, err := ListAllRuns(client, namespace)
 			if err != nil {
 				glog.Errorf("Error listing runs, will retry: %v", err)
+				time.Sleep(1 * time.Second)
 				continue
 			}
 			if len(remainingRuns) == 0 {
@@ -212,6 +213,7 @@ func DeleteAllRecurringRuns(client *api_server.RecurringRunClient, namespace str
 			remainingRuns, _, _, err := ListAllRecurringRuns(client, namespace)
 			if err != nil {
 				glog.Errorf("Error listing recurring runs, will retry: %v", err)
+				time.Sleep(1 * time.Second)
 				continue
 			}
 			if len(remainingRuns) == 0 {
@@ -259,7 +261,7 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T, 
 			pipelineVersions, _, _, err = ListPipelineVersions(client, pipelineId)
 			if err != nil {
 				glog.Errorf("Error listing pipeline versions, will retry: %v", err)
-
+				time.Sleep(500 * time.Millisecond)
 				continue
 			}
 

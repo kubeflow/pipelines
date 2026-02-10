@@ -445,12 +445,7 @@ func TestRunAPI(t *testing.T) {
 
 func (s *RunAPITestSuite) TearDownSuite() {
 	if *runIntegrationTests {
-		// If the test has failed, and we are in CI (not dev mode), skip cleanup to preserve the state for debugging.
-		if s.T().Failed() && !*isDevMode {
-			s.T().Log("Skipping cleanup to preserve state for debugging CI failure.")
-			return
-		}
-		if !*isDevMode { // In dev mode, we never clean up.
+		if !*isDevMode {
 			s.cleanUp()
 		}
 	}

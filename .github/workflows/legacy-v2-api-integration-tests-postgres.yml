@@ -27,7 +27,7 @@ env:
   DB_NAME: mlpipeline
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
   postgres-pgx:
     runs-on: ubuntu-latest
     needs: build

@@ -90,6 +90,14 @@ func main() {
 
 	flag.Parse()
 
+	// Validate db_driver before using it to set defaults.
+	switch params.dbDriver {
+	case mysqlDBDriverDefault, pgxDBDriverDefault:
+		// valid
+	default:
+		log.Fatalf("Unsupported db_driver %q, use %q for MySQL or %q for PostgreSQL", params.dbDriver, mysqlDBDriverDefault, pgxDBDriverDefault)
+	}
+
 	// Set default host and port based on driver if not provided.
 	if params.dbHost == "" {
 		switch params.dbDriver {
