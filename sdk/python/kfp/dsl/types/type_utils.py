@@ -613,14 +613,6 @@ def _annotation_to_type_struct(annotation):
 
         if not is_literal:
             try:
-                import typing
-                if hasattr(typing, 'Literal') and origin is typing.Literal:
-                    is_literal = True
-            except ImportError:
-                pass
-
-        if not is_literal:
-            try:
                 import typing_extensions
                 if hasattr(typing_extensions,
                            'Literal') and origin is typing_extensions.Literal:
