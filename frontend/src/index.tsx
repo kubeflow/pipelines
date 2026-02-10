@@ -16,9 +16,10 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
@@ -56,7 +57,8 @@ initFeatures();
 export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
-    <MuiThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
       <BuildInfoProvider>
         <GkeMetadataProvider>
           <HashRouter>
@@ -64,11 +66,13 @@ const app = (
           </HashRouter>
         </GkeMetadataProvider>
       </BuildInfoProvider>
-    </MuiThemeProvider>
+    </ThemeProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
-ReactDOM.render(
+const container = document.getElementById('root');
+const root = createRoot(container!);
+root.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
@@ -76,5 +80,4 @@ ReactDOM.render(
       {app}
     </NamespaceContext.Provider>
   ),
-  document.getElementById('root'),
 );
