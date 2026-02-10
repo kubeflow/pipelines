@@ -23,7 +23,7 @@ import {
   FormControlLabel,
   Radio,
   Checkbox,
-} from '@material-ui/core';
+} from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from 'react-query';
@@ -57,7 +57,7 @@ import {
   convertExperimentToResource,
   convertPipelineVersionToResource,
 } from 'src/lib/ResourceConverter';
-import AddIcon from '@material-ui/icons/Add';
+import AddIcon from '@mui/icons-material/Add';
 import { ToolbarActionMap } from '../components/Toolbar';
 import { NewExperimentFC } from './functional_components/NewExperimentFC';
 

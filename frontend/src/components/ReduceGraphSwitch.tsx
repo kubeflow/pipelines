@@ -15,9 +15,9 @@
  */
 
 import * as React from 'react';
-import Switch, { SwitchProps } from '@material-ui/core/Switch';
-import FormGroup from '@material-ui/core/FormGroup';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Switch, { SwitchProps } from '@mui/material/Switch';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { stylesheet } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
 import { CardTooltip } from '../atoms/CardTooltip';

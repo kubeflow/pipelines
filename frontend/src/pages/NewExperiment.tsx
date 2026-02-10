@@ -16,13 +16,13 @@
 
 import * as React from 'react';
 import BusyButton from 'src/atoms/BusyButton';
-import Button from '@material-ui/core/Button';
+import Button from '@mui/material/Button';
 import Input from 'src/atoms/Input';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from 'src/pages/Page';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser } from 'src/lib/URLParser';
 import { classes, stylesheet } from 'typestyle';

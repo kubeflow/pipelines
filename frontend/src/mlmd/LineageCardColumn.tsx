@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import grey from '@material-ui/core/colors/grey';
+import grey from '@mui/material/colors/grey';
 import React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { LineageCard } from './LineageCard';

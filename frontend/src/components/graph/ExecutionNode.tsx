@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
-import ErrorIcon from '@material-ui/icons/Error';
-import ListAltIcon from '@material-ui/icons/ListAlt';
-import PowerSettingsNewIcon from '@material-ui/icons/PowerSettingsNew';
-import RefreshIcon from '@material-ui/icons/Refresh';
-import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import ErrorIcon from '@mui/icons-material/Error';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import React, { ReactElement } from 'react';
 import { Handle, Position } from 'react-flow-renderer';
 import StopCircle from 'src/icons/StopCircle';
 import { Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
-import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 
 export interface ExecutionNodeProps {
   id: string;

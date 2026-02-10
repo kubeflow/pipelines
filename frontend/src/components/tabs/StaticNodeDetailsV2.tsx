@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Button } from '@material-ui/core';
+import { Button } from '@mui/material';
 import * as React from 'react';
 import { FlowElement } from 'react-flow-renderer';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';

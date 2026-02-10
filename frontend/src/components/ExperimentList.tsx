@@ -16,7 +16,8 @@
 
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { RouteComponentProps } from 'src/pages/Page';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -30,7 +31,7 @@ import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import RunList from 'src/pages/RunList';
 import produce from 'immer';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;

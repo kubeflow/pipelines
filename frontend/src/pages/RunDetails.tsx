@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import CircularProgress from '@material-ui/core/CircularProgress';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import InputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
@@ -1348,7 +1348,7 @@ const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
     // Run details page shows info about a run, when namespace changes, the run
     // doesn't exist in the new namespace, so we should redirect to experiment
     // list page.
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate to={RoutePage.EXPERIMENTS} replace />;
   }
   return <RunDetails {...props} gkeMetadata={gkeMetadata} />;
 };
