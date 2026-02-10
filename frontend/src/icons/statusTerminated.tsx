@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-export default class StatusRunning extends React.Component<{ style: React.CSSProperties }> {
+export default class StatusTerminated extends React.Component<{ style: React.CSSProperties }> {
   public render(): JSX.Element {
     const { style } = this.props;
     return (
