@@ -564,7 +564,7 @@ When writing or modifying database queries in the backend storage layer (`backen
 When GORM cannot express the query (e.g., complex JOINs, subqueries, CTEs, UPSERT operations):
 
 - **Use Squirrel query builder** with the `dialect.DBDialect` helper.
-- **CRITICAL**: All table and column names MUST be quoted using `dialect.QuoteIdentifier()` or `dialect.QuoteMultipleIdentifiers()`.
+- **CRITICAL**: All table and column names MUST be quoted using `dialect.QuoteIdentifier()`.
 - **Why quoting is required**: KFP uses CamelCase schema names (legacy design). Without quoting:
   - MySQL treats `ExperimentUUID` as `experimentuuid` (case-insensitive)
   - PostgreSQL treats `ExperimentUUID` as `experimentuuid` (lowercased), breaking queries
@@ -575,10 +575,10 @@ When GORM cannot express the query (e.g., complex JOINs, subqueries, CTEs, UPSER
       quotedUUID := s.dialect.QuoteIdentifier("UUID")
       quotedState := s.dialect.QuoteIdentifier("StorageState")
 
-      sql, args, err := squirrel.Update(quotedTable).
+      sql, args, err := s.dialect.QueryBuilder().
+          Update(quotedTable).
           Set(quotedState, models.ExperimentStorageStateARCHIVED).
           Where(sq.Eq{quotedUUID: id}).
-          PlaceholderFormat(s.dialect.PlaceholderFormat()).
           ToSql()
 
       _, err = s.db.Exec(sql, args...)
@@ -600,7 +600,7 @@ When GORM cannot express the query (e.g., complex JOINs, subqueries, CTEs, UPSER
 
 ### Additional resources
 
-- DBDialect implementation: `backend/src/apiserver/storage/dialect/`
+- DBDialect implementation: `backend/src/apiserver/common/sql/dialect/`
 - Storage layer README: `backend/src/apiserver/storage/README.md`
 - SQL generation test examples: `backend/src/apiserver/storage/list_filters_test.go`
 

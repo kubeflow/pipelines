@@ -23,16 +23,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-var defaultDBStatus = sq.Eq{"HaveSamplesLoaded": false}
-
 type DBStatusStoreInterface interface {
 	HaveSamplesLoaded() (bool, error)
 	MarkSampleLoaded() error
 }
 
-var dbStatusStoreColumns = []string{
-	"HaveSamplesLoaded",
-}
+const colHaveSamplesLoaded = "HaveSamplesLoaded"
 
 // Implementation of a DBStatusStoreInterface. This store read/write state of the database.
 // For now we store status like whether sample is loaded.
@@ -69,7 +65,8 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 	if !next {
 		sqlInsert, argsInsert, queryErr := qb.
 			Insert(q("db_statuses")).
-			SetMap(defaultDBStatus).
+			Columns(q(colHaveSamplesLoaded)).
+			Values(false).
 			ToSql()
 
 		if queryErr != nil {
@@ -95,11 +92,7 @@ func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {
 	var haveSamplesLoaded bool
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
-	quotedCols := make([]string, len(dbStatusStoreColumns)) // Note: dbStatusStoreColumns is defined in this file.
-	for i, c := range dbStatusStoreColumns {
-		quotedCols[i] = q(c)
-	}
-	sql, args, err := qb.Select(quotedCols...).From(q("db_statuses")).ToSql()
+	sql, args, err := qb.Select(q(colHaveSamplesLoaded)).From(q("db_statuses")).ToSql()
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Error creating query to get load sample status")
 	}
@@ -126,7 +119,7 @@ func (s *DBStatusStore) MarkSampleLoaded() error {
 	qb := s.dbDialect.QueryBuilder()
 	sql, args, err := qb.
 		Update(q("db_statuses")).
-		SetMap(sq.Eq{q("HaveSamplesLoaded"): true}).
+		SetMap(sq.Eq{q(colHaveSamplesLoaded): true}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to mark samples as loaded")
