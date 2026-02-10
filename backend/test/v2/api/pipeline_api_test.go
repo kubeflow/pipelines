@@ -168,14 +168,11 @@ var _ = PDescribe("List Pipelines Versions API Tests >", Label(constants.POSITIV
 			// Case insensitive substring
 			verifyPipelineList(map[string]interface{}{
 				"filter": map[string]interface{}{
-					"filter": map[string]interface{}{
-						"description": "case insensitive substring",
-						"predicates": []interface{}{
-							map[string]interface{}{
-								"key":          "name",
-								"op":           "IS_SUBSTRING",
-								"string_value": "filter-test",
-							},
+					"predicates": []interface{}{
+						map[string]interface{}{
+							"key":          "name",
+							"op":           "IS_SUBSTRING",
+							"string_value": "filter-test",
 						},
 					},
 				},
