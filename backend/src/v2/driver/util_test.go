@@ -275,6 +275,44 @@ func Test_resolveContainerArgs(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name: "IfPresent with embedded parameter channel - input absent",
+			args: []string{
+				"--arg0",
+				"{{$.inputs.parameters['required_input']}}",
+				`{"IfPresent": {"InputName": "optional_input_1", "Then": ["--arg1", "{{$.inputs.parameters['optional_input_1']}}"]}}`,
+				`{"IfPresent": {"InputName": "optional_input_2", "Then": ["--arg2", "{{$.inputs.parameters['optional_input_2']}}"], "Else": ["--arg2", "default value"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"required_input": structpb.NewStringValue("input0"),
+					},
+				},
+			},
+			expected: []string{"--arg0", "input0", "--arg2", "default value"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with embedded parameter channel - input present",
+			args: []string{
+				"--arg0",
+				"{{$.inputs.parameters['required_input']}}",
+				`{"IfPresent": {"InputName": "optional_input_1", "Then": ["--arg1", "{{$.inputs.parameters['optional_input_1']}}"]}}`,
+				`{"IfPresent": {"InputName": "optional_input_2", "Then": ["--arg2", "{{$.inputs.parameters['optional_input_2']}}"], "Else": ["--arg2", "default value"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"required_input":   structpb.NewStringValue("input0"),
+						"optional_input_1": structpb.NewStringValue("opt1_value"),
+						"optional_input_2": structpb.NewStringValue("opt2_value"),
+					},
+				},
+			},
+			expected: []string{"--arg0", "input0", "--arg1", "opt1_value", "--arg2", "opt2_value"},
+			wantErr:  false,
+		},
+		{
 			name: "output parameter placeholder should be preserved",
 			args: []string{
 				"sh",
