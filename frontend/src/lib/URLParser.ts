@@ -15,7 +15,7 @@
  */
 
 import { QUERY_PARAMS } from '../components/Router';
-import { RouteComponentProps } from 'react-router';
+import { RouteComponentProps } from 'src/pages/Page';
 
 export class URLParser {
   private _paramMap: URLSearchParams;

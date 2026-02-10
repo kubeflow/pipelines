@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Snackbar, { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -223,12 +223,8 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   return (
     // There will be only one instance of SideNav, throughout UI usage.
     <SideNavLayout>
-      <Switch>
-        <Route
-          exact={true}
-          path={'/'}
-          render={({ ...props }) => <Redirect to={DEFAULT_ROUTE} {...props} />}
-        />
+      <Routes>
+        <Route path={'/'} element={<Navigate to={DEFAULT_ROUTE} replace />} />
 
         {/* Normal routes */}
         {routes.map((route, i) => {
@@ -239,25 +235,35 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
             // network response handlers.
             <Route
               key={i}
-              exact={!route.notExact}
-              path={path}
-              render={props => <RoutedPage key={props.location.key} route={route} />}
+              path={route.notExact ? `${path}/*` : path}
+              element={<RoutedPage route={route} />}
             />
           );
         })}
 
         {/* 404 */}
-        {
-          <Route>
-            <RoutedPage />
-          </Route>
-        }
-      </Switch>
+        <Route path="*" element={<RoutedPage />} />
+      </Routes>
     </SideNavLayout>
   );
 };
 
-class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponentState> {
+// Wrapper that injects React Router v6 hooks into RoutedPageInner
+const RoutedPage: React.FC<{ route?: RouteConfig }> = (props) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = useParams();
+  return <RoutedPageInner {...props} location={location} navigate={navigate} params={params} />;
+};
+
+interface RoutedPageInnerProps {
+  route?: RouteConfig;
+  location: ReturnType<typeof useLocation>;
+  navigate: ReturnType<typeof useNavigate>;
+  params: ReturnType<typeof useParams>;
+}
+
+class RoutedPageInner extends React.Component<RoutedPageInnerProps, RouteComponentState> {
   private childProps = {
     toolbarProps: {
       breadcrumbs: [{ displayName: '', href: '' }],
@@ -281,13 +287,34 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     };
   }
 
+  private _getRouterProps() {
+    const { location, navigate, params } = this.props;
+    return {
+      location,
+      navigate,
+      params,
+      match: {
+        params,
+        path: location.pathname,
+        url: location.pathname,
+      },
+      history: {
+        push: navigate,
+        replace: (path: string) => navigate(path, { replace: true }),
+        goBack: () => navigate(-1),
+        length: 2, // Shim: always allow back navigation
+      },
+    };
+  }
+
   public render(): JSX.Element {
     this.childProps.toolbarProps = this.state.toolbarProps;
     const route = this.props.route;
+    const routerProps = this._getRouterProps();
 
     return (
       <div className={classes(commonCss.page)}>
-        <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+        <ToolbarWithLocation toolbarProps={this.state.toolbarProps} />
         {this.state.bannerProps.message && (
           <Banner
             message={this.state.bannerProps.message}
@@ -297,26 +324,14 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
             showTroubleshootingGuideLink={true}
           />
         )}
-        <Switch>
-          {route &&
-            (() => {
-              const { path, Component, ...otherProps } = { ...route };
-              return (
-                <Route
-                  exact={!route.notExact}
-                  path={path}
-                  render={({ ...props }) => (
-                    <Component {...props} {...this.childProps} {...otherProps} />
-                  )}
-                />
-              );
-            })()}
-
-          {/* 404 */}
-          {!!route && (
-            <Route render={({ ...props }) => <Page404 {...props} {...this.childProps} />} />
-          )}
-        </Switch>
+        {route ? (
+          (() => {
+            const { path, Component, ...otherProps } = { ...route };
+            return <Component {...this.childProps} {...routerProps} {...otherProps} />;
+          })()
+        ) : (
+          <Page404 {...this.childProps} {...routerProps} />
+        )}
 
         <Snackbar
           autoHideDuration={this.state.snackbarProps.autoHideDuration}
@@ -399,11 +414,21 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
 export default Router;
 
-const SideNavLayout: React.FC<{}> = ({ children }) => (
-  <div className={classes(commonCss.page)}>
-    <div className={classes(commonCss.flexGrow)}>
-      <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
-      {children}
+// Helper component to provide location and navigate to Toolbar
+const ToolbarWithLocation: React.FC<{ toolbarProps: ToolbarProps }> = ({ toolbarProps }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <Toolbar {...toolbarProps} location={location} navigate={navigate} />;
+};
+
+const SideNavLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  return (
+    <div className={classes(commonCss.page)}>
+      <div className={classes(commonCss.flexGrow)}>
+        <SideNav page={location.pathname} />
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};

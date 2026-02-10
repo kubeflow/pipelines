@@ -15,17 +15,17 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
+import Button from '@mui/material/Button';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import Paper from '@material-ui/core/Paper';
-import PopOutIcon from '@material-ui/icons/Launch';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import Paper from '@mui/material/Paper';
+import PopOutIcon from '@mui/icons-material/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
 import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
 import Toolbar, { ToolbarProps } from 'src/components/Toolbar';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from './Page';
@@ -34,7 +34,7 @@ import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
@@ -436,7 +436,7 @@ const EnhancedExperimentDetails: React.FC<PageProps> = props => {
   // So we redirect to experiment list page instead.
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate to={RoutePage.EXPERIMENTS} replace />;
   }
 
   return <ExperimentDetails {...props} />;

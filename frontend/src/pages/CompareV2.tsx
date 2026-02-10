@@ -61,9 +61,9 @@ import {
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
-import CircularProgress from '@material-ui/core/CircularProgress';
+import CircularProgress from '@mui/material/CircularProgress';
 import { lineColors } from 'src/components/viewers/ROCCurve';
 import Hr from 'src/atoms/Hr';
 
@@ -721,7 +721,7 @@ function EnhancedCompareV2(props: PageProps) {
   if (namespaceChanged) {
     // Run Comparison page compares multiple runs, when namespace changes, the runs don't
     // exist in the new namespace, so we should redirect to experiment list page.
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate to={RoutePage.EXPERIMENTS} replace />;
   }
 
   return <CompareV2 namespace={namespace} {...props} />;

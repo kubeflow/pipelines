@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import IconButton from '@material-ui/core/IconButton';
-import Tooltip from '@material-ui/core/Tooltip';
-import ArrowBackIcon from '@material-ui/icons/ArrowBack';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
-import { History } from 'history';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import * as React from 'react';
 import { CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Location } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import BusyButton from '../atoms/BusyButton';
 import { color, commonCss, dimension, fonts, fontsize, spacing } from '../Css';
@@ -114,7 +113,8 @@ const css = stylesheet({
 export interface ToolbarProps {
   actions: ToolbarActionMap;
   breadcrumbs: Breadcrumb[];
-  history?: History;
+  location?: Location;
+  navigate?: (to: any) => void;
   pageTitle: string | JSX.Element;
   pageTitleTooltip?: string;
   topLevelToolbar?: boolean;
@@ -149,20 +149,19 @@ class Toolbar extends React.Component<ToolbarProps> {
           </div>
           <div className={commonCss.flex}>
             {/* Back Arrow */}
-            {breadcrumbs.length > 0 && (
+            {breadcrumbs.length > 0 && this.props.navigate && (
               <Tooltip title={'Back'} enterDelay={300}>
                 <div>
                   {' '}
                   {/* Div needed because we sometimes disable a button within a tooltip */}
                   <IconButton
                     className={css.backLink}
-                    disabled={this.props.history!.length < 2}
-                    onClick={this.props.history!.goBack}
+                    onClick={() => this.props.navigate!(-1)}
                   >
                     <ArrowBackIcon
                       className={classes(
                         css.backIcon,
-                        this.props.history!.length < 2 ? css.disabled : css.enabled,
+                        css.enabled,
                       )}
                     />
                   </IconButton>

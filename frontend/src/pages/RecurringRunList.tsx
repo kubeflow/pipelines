@@ -18,11 +18,12 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import { ExperimentInfo } from 'src/lib/RunUtils';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { RouteComponentProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, errorToMessage } from 'src/lib/Utils';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
 import {
   V2beta1RecurringRun,
   V2beta1RecurringRunStatus,
