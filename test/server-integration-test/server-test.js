@@ -154,33 +154,35 @@ async function testStaticServing() {
   await test('GET / returns index.html', async () => {
     const res = await request('GET', '/');
     assertEqual(res.status, 200, 'Status code');
-    assertContains(res.body, '<!doctype html>', 'HTML doctype');
+    assertContains(res.body.toLowerCase(), '<!doctype html>', 'HTML doctype');
     assertContains(res.body, 'Kubeflow Pipelines', 'Page title');
   });
 
   await test('GET /index.html returns index.html', async () => {
     const res = await request('GET', '/index.html');
     assertEqual(res.status, 200, 'Status code');
-    assertContains(res.body, '<!doctype html>', 'HTML doctype');
+    assertContains(res.body.toLowerCase(), '<!doctype html>', 'HTML doctype');
   });
 
-  await test('GET /static/js/*.js returns JavaScript', async () => {
+  await test('GET /static/*.js returns JavaScript', async () => {
     // First get index.html to find the JS bundle name
+    // Supports both CRA (static/js/main.[hash].js) and Vite (static/index-[hash].js) output
     const indexRes = await request('GET', '/');
-    const jsMatch = indexRes.body.match(/\/static\/js\/main\.[a-f0-9]+\.js/);
+    const jsMatch = indexRes.body.match(/(?:\.?\/)static\/(?:js\/)?[a-zA-Z0-9_-]+[-\.][a-zA-Z0-9_-]+\.js/);
     assertTrue(jsMatch, 'Could not find JS bundle path in index.html');
 
-    const res = await request('GET', jsMatch[0]);
+    const res = await request('GET', jsMatch[0].replace(/^\.\//, '/'));
     assertEqual(res.status, 200, 'Status code');
     assertTrue(res.headers['content-type']?.includes('javascript'), 'Content-Type should be JavaScript');
   });
 
-  await test('GET /static/css/*.css returns CSS', async () => {
+  await test('GET /static/*.css returns CSS', async () => {
     const indexRes = await request('GET', '/');
-    const cssMatch = indexRes.body.match(/\/static\/css\/main\.[a-f0-9]+\.css/);
+    // Supports both CRA (static/css/main.[hash].css) and Vite (static/index-[hash].css) output
+    const cssMatch = indexRes.body.match(/(?:\.?\/)static\/(?:css\/)?[a-zA-Z0-9_-]+[-\.][a-zA-Z0-9_-]+\.css/);
     assertTrue(cssMatch, 'Could not find CSS bundle path in index.html');
 
-    const res = await request('GET', cssMatch[0]);
+    const res = await request('GET', cssMatch[0].replace(/^\.\//, '/'));
     assertEqual(res.status, 200, 'Status code');
     assertTrue(res.headers['content-type']?.includes('css'), 'Content-Type should be CSS');
   });
