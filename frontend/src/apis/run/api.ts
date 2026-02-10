@@ -635,7 +635,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -682,7 +682,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'ApiRun' !== 'string' ||
@@ -734,7 +734,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -782,7 +782,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -863,7 +863,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -932,7 +932,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -994,7 +994,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'ApiReportRunMetricsRequest' !== 'string' ||
@@ -1046,7 +1046,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -1094,7 +1094,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -1142,7 +1142,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {

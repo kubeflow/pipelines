@@ -18,15 +18,11 @@
 // Because this is test utils.
 
 import 'src/build/tailwind.output.css';
-import { mount, ReactWrapper } from 'enzyme';
 import { format } from 'prettier';
-import { object } from 'prop-types';
-import * as React from 'react';
 import { QueryClient } from 'react-query';
 import { match } from 'react-router';
-// @ts-ignore
-import createRouterContext from 'react-router-test-context';
 import snapshotDiff from 'snapshot-diff';
+import { beforeEach, expect, MockInstance } from 'vitest';
 import { ToolbarActionConfig } from './components/Toolbar';
 import { Feature } from './features';
 import { logger } from './lib/Utils';
@@ -34,35 +30,33 @@ import { Page, PageProps } from './pages/Page';
 
 export default class TestUtils {
   /**
-   * Mounts the given component with a fake router and returns the mounted tree
-   */
-  // tslint:disable-next-line:variable-name
-  public static mountWithRouter(component: React.ReactElement<any>): ReactWrapper {
-    const childContextTypes = {
-      router: object,
-    };
-    const context = createRouterContext();
-    const tree = mount(component, { context, childContextTypes });
-    return tree;
-  }
-
-  /**
    * Flushes all already queued promises and returns a promise. Note this will
    * only work if the promises have already been queued, so it cannot be used to
    * wait on a promise that hasn't been dispatched yet.
    */
-  public static flushPromises(): Promise<void> {
-    return new Promise(process.nextTick);
+  public static async flushPromises(): Promise<void> {
+    const testApi = getTestApi();
+    if (
+      typeof testApi.isMockFunction === 'function' &&
+      testApi.isMockFunction(setTimeout) &&
+      typeof testApi.advanceTimersByTime === 'function'
+    ) {
+      // Fake timers won't advance unless we flush them explicitly.
+      testApi.advanceTimersByTime(0);
+      await Promise.resolve();
+      testApi.advanceTimersByTime(0);
+      await Promise.resolve();
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   /**
    * Adds a one-time mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponseOnce(
-    spy: jest.MockInstance<unknown, any[]>,
-    message: string,
-  ): void {
+  public static makeErrorResponseOnce(spy: MockInstance, message: string): void {
     spy.mockImplementationOnce(() => {
       throw {
         text: () => Promise.resolve(message),
@@ -74,7 +68,7 @@ export default class TestUtils {
    * Adds a mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponse(spy: jest.MockInstance<unknown, any[]>, message: string): void {
+  public static makeErrorResponse(spy: MockInstance, message: string): void {
     spy.mockImplementation(() => {
       throw {
         text: () => Promise.resolve(message),
@@ -92,11 +86,11 @@ export default class TestUtils {
     PageElement: new (_: PageProps) => Page<any, any>,
     location: Location,
     matchValue: match,
-    historyPushSpy: jest.SpyInstance<unknown> | null,
-    updateBannerSpy: jest.SpyInstance<unknown> | null,
-    updateDialogSpy: jest.SpyInstance<unknown> | null,
-    updateToolbarSpy: jest.SpyInstance<unknown> | null,
-    updateSnackbarSpy: jest.SpyInstance<unknown> | null,
+    historyPushSpy: MockInstance | null,
+    updateBannerSpy: MockInstance | null,
+    updateDialogSpy: MockInstance | null,
+    updateToolbarSpy: MockInstance | null,
+    updateSnackbarSpy: MockInstance | null,
   ): PageProps {
     const pageProps = {
       history: { push: historyPushSpy } as any,
@@ -118,7 +112,7 @@ export default class TestUtils {
   }
 
   public static getToolbarButton(
-    updateToolbarSpy: jest.SpyInstance<unknown>,
+    updateToolbarSpy: MockInstance,
     buttonKey: string,
   ): ToolbarActionConfig {
     const lastCallIdx = updateToolbarSpy.mock.calls.length - 1;
@@ -172,11 +166,29 @@ export function formatHTML(html: string): string {
   return format(html, { parser: 'html' });
 }
 
+function getTestApi() {
+  const testApi = (globalThis as any).vi;
+  if (!testApi) {
+    throw new Error('Vitest API (vi) not found');
+  }
+  return testApi;
+}
+
 export function expectWarnings() {
-  const loggerWarningSpy = jest.spyOn(logger, 'warn');
-  loggerWarningSpy.mockImplementation();
+  const testApi = getTestApi();
+  const loggerWarningSpy = testApi.spyOn(console, 'warn');
+  loggerWarningSpy.mockImplementation(() => null);
   return () => {
     expect(loggerWarningSpy).toHaveBeenCalled();
+  };
+}
+
+export function expectErrors() {
+  const testApi = getTestApi();
+  const loggerErrorSpy = testApi.spyOn(console, 'error');
+  loggerErrorSpy.mockImplementation(() => null);
+  return () => {
+    expect(loggerErrorSpy).toHaveBeenCalled();
   };
 }
 
@@ -190,8 +202,9 @@ export const queryClientTest = new QueryClient({
 export function testBestPractices() {
   beforeEach(async () => {
     queryClientTest.clear();
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
+    const testApi = getTestApi();
+    testApi.resetAllMocks();
+    testApi.restoreAllMocks();
   });
 }
 
@@ -199,12 +212,48 @@ export function forceSetFeatureFlag(features: Feature[]) {
   window.__FEATURE_FLAGS__ = JSON.stringify(features);
 }
 
-export function mockResizeObserver() {
+export function mockResizeObserver(width = 800, height = 600) {
+  const testApi = getTestApi();
   // Required by reactflow render.
-  (window as any).ResizeObserver = jest.fn();
-  (window as any).ResizeObserver.mockImplementation(() => ({
-    disconnect: jest.fn(),
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-  }));
+  Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+    configurable: true,
+    get: () => width,
+  });
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    configurable: true,
+    get: () => height,
+  });
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+    configurable: true,
+    get: () => width,
+  });
+  Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+    configurable: true,
+    get: () => height,
+  });
+  class ResizeObserverMock {
+    private readonly callback: ResizeObserverCallback;
+    public readonly disconnect: () => void;
+    public readonly observe: (element: Element) => void;
+    public readonly unobserve: () => void;
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+      this.disconnect = testApi.fn();
+      this.observe = testApi.fn((element: Element) => {
+        this.callback(
+          [
+            {
+              target: element,
+              contentRect: { width, height } as DOMRectReadOnly,
+            } as ResizeObserverEntry,
+          ],
+          (this as unknown) as ResizeObserver,
+        );
+      });
+      this.unobserve = testApi.fn();
+    }
+  }
+
+  (window as any).ResizeObserver = (ResizeObserverMock as unknown) as typeof ResizeObserver;
 }

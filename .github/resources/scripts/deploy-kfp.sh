@@ -210,17 +210,6 @@ then
   exit 1
 fi
 
-# Ensure SeaweedFS S3 auth is configured before proceeding
-if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
-  wait_for_seaweedfs_init kubeflow "${SEAWEEDFS_INIT_TIMEOUT}" || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]
-  then
-    echo "SeaweedFS init job did not complete successfully."
-    exit 1
-  fi
-  echo "SeaweedFS init job completed successfully."
-fi
-
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Creating KF Profile..."
   kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml

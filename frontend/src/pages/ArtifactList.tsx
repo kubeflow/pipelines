@@ -26,7 +26,7 @@ import {
   getResourcePropertyViaFallBack,
 } from 'src/mlmd/library';
 import { Artifact, ArtifactType, GetArtifactsRequest } from 'src/third_party/mlmd';
-import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { classes } from 'typestyle';
 import { ArtifactLink } from 'src/components/ArtifactLink';
 import CustomTable, {
@@ -40,9 +40,11 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import {
   CollapsedAndExpandedRows,
+  errorToMessage,
   getExpandedRow,
   getStringEnumKey,
   groupRows,
+  isServiceError,
   rowFilterFn,
   serviceErrorToString,
 } from 'src/lib/Utils';
@@ -135,7 +137,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    const listOperationOpts = new ListOperationOptions();
+    const listOperationOpts = new metadataStorePb.ListOperationOptions();
     if (request.pageSize) {
       listOperationOpts.setMaxResultSize(request.pageSize);
     }
@@ -158,7 +160,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
     let flattenedRows = await this.getFlattenedRowsFromArtifacts(request, artifacts);
     let groupedRows = await this.getGroupedRowsFromArtifacts(request, artifacts);
     // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
-    this.setState({
+    this.setStateSafe({
       artifacts,
       expandedRows: this.props.isGroupView ? groupedRows?.expandedRows : new Map(),
       rows: this.props.isGroupView ? groupedRows?.collapsedRows : flattenedRows,
@@ -185,7 +187,9 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
     <ArtifactLink artifactUri={value} />
   );
 
-  private async getArtifacts(listOperationOpts?: ListOperationOptions): Promise<Artifact[]> {
+  private async getArtifacts(
+    listOperationOpts?: metadataStorePb.ListOperationOptions,
+  ): Promise<Artifact[]> {
     try {
       const response = await this.api.metadataStoreService.getArtifacts(
         new GetArtifactsRequest().setOptions(listOperationOpts),
@@ -195,8 +199,15 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err.code !== 5) {
-        this.showPageError(serviceErrorToString(err));
+      if (isServiceError(err)) {
+        if (err.code !== 5) {
+          this.showPageError(serviceErrorToString(err));
+        }
+      } else {
+        const errorMessage = await errorToMessage(err);
+        this.showPageError(
+          errorMessage ? `Error: ${errorMessage}` : 'Error: failed to list artifacts.',
+        );
       }
     }
     return [];
@@ -248,11 +259,8 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
 
       return flattenedRows;
     } catch (err) {
-      if (err.message) {
-        this.showPageError(err.message, err);
-      } else {
-        this.showPageError('Unknown error', err);
-      }
+      const errorMessage = await errorToMessage(err);
+      this.showPageError(errorMessage || 'Unknown error', err);
     }
     return [];
   }
@@ -285,7 +293,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
       rows[index].expandState === ExpandState.EXPANDED
         ? ExpandState.COLLAPSED
         : ExpandState.EXPANDED;
-    this.setState({ rows });
+    this.setStateSafe({ rows });
   }
 
   private getExpandedArtifactsRow(index: number): React.ReactNode {

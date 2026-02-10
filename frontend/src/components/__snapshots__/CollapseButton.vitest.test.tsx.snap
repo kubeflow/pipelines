@@ -1,0 +1,75 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CollapseButton > initial render 1`] = `
+<DocumentFragment>
+  <div>
+    <button
+      class="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-flat-6 collapseBtn_flpzte2"
+      tabindex="0"
+      title="Expand/Collapse this section"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-2"
+      >
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root-30 icon_f12h700d"
+          focusable="false"
+          role="presentation"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 14l5-5 5 5z"
+          />
+          <path
+            d="M0 0h24v24H0z"
+            fill="none"
+          />
+        </svg>
+        testSection
+      </span>
+      <span
+        class="MuiTouchRipple-root-39"
+      />
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`CollapseButton > renders the button collapsed if in collapsedSections 1`] = `
+<DocumentFragment>
+  <div>
+    <button
+      class="MuiButtonBase-root-72 MuiButton-root-46 MuiButton-text-48 MuiButton-flat-51 collapseBtn_flpzte2"
+      tabindex="0"
+      title="Expand/Collapse this section"
+      type="button"
+    >
+      <span
+        class="MuiButton-label-47"
+      >
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root-75 icon_f12h700d collapsed_f18a0vkk"
+          focusable="false"
+          role="presentation"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 14l5-5 5 5z"
+          />
+          <path
+            d="M0 0h24v24H0z"
+            fill="none"
+          />
+        </svg>
+        testSection
+      </span>
+      <span
+        class="MuiTouchRipple-root-84"
+      />
+    </button>
+  </div>
+</DocumentFragment>
+`;
