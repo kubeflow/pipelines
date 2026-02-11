@@ -65,15 +65,15 @@ spec:
               path: persistenceagent-sa-token
               expirationSeconds: 3600
               audience: pipelines.kubeflow.org
-      {{- with .Values.persistenceAgent.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.persistenceAgent.nodeSelector) | ternary .Values.global.nodeSelector .Values.persistenceAgent.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.persistenceAgent.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.persistenceAgent.tolerations) | ternary .Values.global.tolerations .Values.persistenceAgent.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.persistenceAgent.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.persistenceAgent.affinity) | ternary .Values.global.affinity .Values.persistenceAgent.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

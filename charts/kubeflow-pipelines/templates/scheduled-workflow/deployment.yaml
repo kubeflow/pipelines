@@ -77,15 +77,15 @@ spec:
               path: scheduledworkflow-sa-token
               expirationSeconds: 3600
               audience: pipelines.kubeflow.org
-      {{- with .Values.scheduledWorkflow.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.scheduledWorkflow.nodeSelector) | ternary .Values.global.nodeSelector .Values.scheduledWorkflow.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.scheduledWorkflow.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.scheduledWorkflow.tolerations) | ternary .Values.global.tolerations .Values.scheduledWorkflow.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.scheduledWorkflow.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.scheduledWorkflow.affinity) | ternary .Values.global.affinity .Values.scheduledWorkflow.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

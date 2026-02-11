@@ -123,15 +123,15 @@ spec:
         secret:
           secretName: webhook-server-tls
       serviceAccountName: kubeflow-pipelines-cache
-      {{- with .Values.cacheServer.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.cacheServer.nodeSelector) | ternary .Values.global.nodeSelector .Values.cacheServer.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.cacheServer.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.cacheServer.tolerations) | ternary .Values.global.tolerations .Values.cacheServer.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.cacheServer.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.cacheServer.affinity) | ternary .Values.global.affinity .Values.cacheServer.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

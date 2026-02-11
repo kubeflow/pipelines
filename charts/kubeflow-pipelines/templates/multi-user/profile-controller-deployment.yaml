@@ -87,15 +87,15 @@ spec:
       - name: hooks
         configMap:
           name: kubeflow-pipelines-profile-controller-code
-      {{- with .Values.profileController.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.profileController.nodeSelector) | ternary .Values.global.nodeSelector .Values.profileController.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.profileController.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.profileController.tolerations) | ternary .Values.global.tolerations .Values.profileController.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.profileController.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.profileController.affinity) | ternary .Values.global.affinity .Values.profileController.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

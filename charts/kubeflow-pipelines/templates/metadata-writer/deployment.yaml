@@ -45,15 +45,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: kubeflow-pipelines-metadata-writer
-      {{- with .Values.metadataWriter.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.metadataWriter.nodeSelector) | ternary .Values.global.nodeSelector .Values.metadataWriter.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataWriter.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.metadataWriter.tolerations) | ternary .Values.global.tolerations .Values.metadataWriter.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataWriter.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.metadataWriter.affinity) | ternary .Values.global.affinity .Values.metadataWriter.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

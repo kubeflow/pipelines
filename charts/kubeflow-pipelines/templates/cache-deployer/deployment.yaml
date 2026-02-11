@@ -44,15 +44,15 @@ spec:
         {{- end }}
       serviceAccountName: kubeflow-pipelines-cache-deployer-sa
       restartPolicy: Always
-      {{- with .Values.cacheDeployer.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.cacheDeployer.nodeSelector) | ternary .Values.global.nodeSelector .Values.cacheDeployer.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.cacheDeployer.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.cacheDeployer.tolerations) | ternary .Values.global.tolerations .Values.cacheDeployer.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.cacheDeployer.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.cacheDeployer.affinity) | ternary .Values.global.affinity .Values.cacheDeployer.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

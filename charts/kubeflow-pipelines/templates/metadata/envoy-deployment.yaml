@@ -47,15 +47,15 @@ spec:
       - name: envoy-config
         configMap:
           name: metadata-envoy-configmap
-      {{- with .Values.metadataEnvoy.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.metadataEnvoy.nodeSelector) | ternary .Values.global.nodeSelector .Values.metadataEnvoy.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataEnvoy.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.metadataEnvoy.tolerations) | ternary .Values.global.tolerations .Values.metadataEnvoy.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataEnvoy.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.metadataEnvoy.affinity) | ternary .Values.global.affinity .Values.metadataEnvoy.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

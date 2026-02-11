@@ -3,14 +3,6 @@
   "title": "Kubeflow Pipelines Helm Chart Values",
   "type": "object",
   "properties": {
-    "nameOverride": {
-      "type": "string",
-      "description": "Override the chart name used in resource names"
-    },
-    "fullnameOverride": {
-      "type": "string",
-      "description": "Override the full resource name prefix"
-    },
     "global": {
       "type": "object",
       "description": "Global settings applied to all components",

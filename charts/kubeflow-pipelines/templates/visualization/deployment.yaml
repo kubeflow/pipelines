@@ -55,15 +55,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: ml-pipeline-visualizationserver
-      {{- with .Values.visualization.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.visualization.nodeSelector) | ternary .Values.global.nodeSelector .Values.visualization.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.visualization.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.visualization.tolerations) | ternary .Values.global.tolerations .Values.visualization.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.visualization.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.visualization.affinity) | ternary .Values.global.affinity .Values.visualization.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

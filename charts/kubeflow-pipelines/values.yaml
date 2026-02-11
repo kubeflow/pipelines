@@ -1,17 +1,12 @@
 # Kubeflow Pipelines Helm Chart Values
 # ======================================
 
-# -- Override the chart name used in resource names
-nameOverride: ""
-# -- Override the full resource name prefix
-fullnameOverride: ""
-
 # -- Global settings applied to all components
 global:
   # -- Image pull secrets for private registries
   imagePullSecrets: []
   # - name: my-registry-secret
-  # -- Default node selector for all components (component-level overrides take precedence)
+  # -- Default node selector for all components (override per-component by setting e.g. apiServer.nodeSelector)
   nodeSelector: {}
   # -- Default tolerations for all components
   tolerations: []
@@ -89,9 +84,6 @@ apiServer:
     requests:
       cpu: 250m
       memory: 500Mi
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
   podDisruptionBudget:
     enabled: false
     minAvailable: 1
@@ -105,9 +97,6 @@ ui:
     requests:
       cpu: 10m
       memory: 70Mi
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 persistenceAgent:
   replicas: 1
@@ -120,9 +109,6 @@ persistenceAgent:
     requests:
       cpu: 120m
       memory: 500Mi
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 scheduledWorkflow:
   replicas: 1
@@ -130,9 +116,6 @@ scheduledWorkflow:
     repository: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
     tag: "2.15.0"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 viewerCrd:
   replicas: 1
@@ -141,9 +124,6 @@ viewerCrd:
     tag: "2.15.0"
   maxNumViewers: "50"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 visualization:
   replicas: 1
@@ -154,9 +134,6 @@ visualization:
     requests:
       cpu: 30m
       memory: 500Mi
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 metadataWriter:
   replicas: 1
@@ -164,9 +141,6 @@ metadataWriter:
     repository: ghcr.io/kubeflow/kfp-metadata-writer
     tag: "2.15.0"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 metadataGrpc:
   replicas: 1
@@ -174,9 +148,6 @@ metadataGrpc:
     repository: gcr.io/tfx-oss-public/ml_metadata_store_server
     tag: "1.14.0"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
   podDisruptionBudget:
     enabled: false
     minAvailable: 1
@@ -187,9 +158,6 @@ metadataEnvoy:
     repository: ghcr.io/kubeflow/kfp-metadata-envoy
     tag: "2.15.0"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 cacheServer:
   replicas: 1
@@ -197,9 +165,6 @@ cacheServer:
     repository: ghcr.io/kubeflow/kfp-cache-server
     tag: "2.15.0"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
   podDisruptionBudget:
     enabled: false
     minAvailable: 1
@@ -209,9 +174,6 @@ cacheDeployer:
     repository: ghcr.io/kubeflow/kfp-cache-deployer
     tag: "2.15.0"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 # -- Profile controller (multi-user only)
 profileController:
@@ -220,9 +182,6 @@ profileController:
     tag: "1.32.3"
   disableIstioSidecar: "false"
   resources: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
 
 # ==========================================
 # In-chart SeaweedFS (when objectStore.type=seaweedfs)

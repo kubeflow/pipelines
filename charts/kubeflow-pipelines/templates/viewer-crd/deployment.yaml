@@ -50,15 +50,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: ml-pipeline-viewer-crd-service-account
-      {{- with .Values.viewerCrd.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.viewerCrd.nodeSelector) | ternary .Values.global.nodeSelector .Values.viewerCrd.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.viewerCrd.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.viewerCrd.tolerations) | ternary .Values.global.tolerations .Values.viewerCrd.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.viewerCrd.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.viewerCrd.affinity) | ternary .Values.global.affinity .Values.viewerCrd.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

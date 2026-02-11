@@ -109,15 +109,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: ml-pipeline-ui
-      {{- with .Values.ui.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.ui.nodeSelector) | ternary .Values.global.nodeSelector .Values.ui.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.ui.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.ui.tolerations) | ternary .Values.global.tolerations .Values.ui.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.ui.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.ui.affinity) | ternary .Values.global.affinity .Values.ui.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

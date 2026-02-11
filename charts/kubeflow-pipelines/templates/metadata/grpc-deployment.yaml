@@ -118,15 +118,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: metadata-grpc-server
-      {{- with .Values.metadataGrpc.nodeSelector | default .Values.global.nodeSelector }}
+      {{- with ((kindIs "invalid" .Values.metadataGrpc.nodeSelector) | ternary .Values.global.nodeSelector .Values.metadataGrpc.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataGrpc.tolerations | default .Values.global.tolerations }}
+      {{- with ((kindIs "invalid" .Values.metadataGrpc.tolerations) | ternary .Values.global.tolerations .Values.metadataGrpc.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataGrpc.affinity | default .Values.global.affinity }}
+      {{- with ((kindIs "invalid" .Values.metadataGrpc.affinity) | ternary .Values.global.affinity .Values.metadataGrpc.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
