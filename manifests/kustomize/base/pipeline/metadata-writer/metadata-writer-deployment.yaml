@@ -27,13 +27,17 @@ spec:
         - |
           timeout=300
           elapsed=0
-          until nc -z metadata-grpc-service 8080; do
+          echo "Waiting for metadata-grpc-service:8080..."
+          until nc -z -w 3 metadata-grpc-service 8080; do
             if [ $elapsed -ge $timeout ]; then
+              echo "ERROR: Timed out after ${elapsed}s waiting for metadata-grpc-service:8080"
               exit 1
             fi
+            echo "metadata-grpc-service:8080 not ready (${elapsed}s elapsed), retrying..."
             sleep 5
             elapsed=$((elapsed + 5))
           done
+          echo "metadata-grpc-service:8080 is ready after ${elapsed}s"
           sleep 10
         securityContext:
           allowPrivilegeEscalation: false

@@ -37,13 +37,17 @@ spec:
         - |
           timeout=300
           elapsed=0
-          until nc -z "${MYSQL_HOST}" "${MYSQL_PORT}"; do
+          echo "Waiting for ${MYSQL_HOST}:${MYSQL_PORT}..."
+          until nc -z -w 3 "${MYSQL_HOST}" "${MYSQL_PORT}"; do
             if [ $elapsed -ge $timeout ]; then
+              echo "ERROR: Timed out after ${elapsed}s waiting for ${MYSQL_HOST}:${MYSQL_PORT}"
               exit 1
             fi
+            echo "${MYSQL_HOST}:${MYSQL_PORT} not ready (${elapsed}s elapsed), retrying..."
             sleep 5
             elapsed=$((elapsed + 5))
           done
+          echo "${MYSQL_HOST}:${MYSQL_PORT} is ready after ${elapsed}s"
           sleep 10
         securityContext:
           allowPrivilegeEscalation: false
