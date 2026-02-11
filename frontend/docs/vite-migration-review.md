@@ -29,7 +29,7 @@ The `vite-migration-plan.md` is exemplary:
 
 ### 2. Vitest Migration Completed (High Risk, Well Executed)
 The previous review flagged Vitest as "Low priority, high risk." The agent chose to do it anyway and executed it cleanly:
-- All UI tests now use `.vitest.test.tsx` naming
+- All UI tests now use standard `.test.tsx` naming
 - Proper `vitest.config.mts` separate from `vite.config.mts`
 - Clean setup file with necessary jsdom polyfills (Worker, localStorage, URL.createObjectURL)
 - Coverage properly configured with sensible excludes
@@ -170,7 +170,7 @@ Build Pipeline:
 UI Tests:
   Vitest 4 + Testing Library + jsdom
   Config: frontend/vitest.config.mts
-  Pattern: src/**/*.vitest.test.tsx
+  Pattern: src/**/*.{test,spec}.{ts,tsx}
 
 Server Tests (temporary):
   Jest (pending Phase 8)
