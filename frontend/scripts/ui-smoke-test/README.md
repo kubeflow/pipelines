@@ -23,7 +23,7 @@ The tool checks these at startup and fails fast with actionable install commands
 # 1. Navigate to the tool directory
 cd frontend/scripts/ui-smoke-test
 
-# 2. Install tool dependencies (playwright, sharp)
+# 2. Install tool dependencies (playwright, sharp, looks-same)
 npm install
 
 # 3. Install Chromium for screenshot capture
@@ -47,6 +47,12 @@ node smoke-test-runner.js --compare master
 # Frontend-only PR? Skip the slow backend rebuild
 node smoke-test-runner.js --compare master --skip-backend
 
+# Fail if any non-zero visual diff is detected (default behavior)
+node smoke-test-runner.js --compare master --fail-threshold 0
+
+# Keep local HEAD but label screenshots as a specific PR
+node smoke-test-runner.js --compare master --pr-number 12793
+
 # Screenshot your running dev server (fastest)
 node smoke-test-runner.js --current-only --use-existing --url http://localhost:3000
 ```
@@ -54,6 +60,7 @@ node smoke-test-runner.js --current-only --use-existing --url http://localhost:3
 ## `--compare` Workflow
 
 The primary workflow. Compares your working tree (or a specific PR) against a base ref with a live Kind backend.
+By default, any non-zero visual diff fails (`--fail-threshold 0`) so every change is reviewed.
 
 ```bash
 # Compare against master (most common)
@@ -67,6 +74,9 @@ node smoke-test-runner.js --compare 2.15.0
 
 # Skip backend rebuild for frontend-only changes
 node smoke-test-runner.js --compare master --skip-backend
+
+# Label local HEAD comparisons as a PR in screenshot headers
+node smoke-test-runner.js --compare master --pr-number 12793
 
 # Delete the Kind cluster when done
 node smoke-test-runner.js --teardown
@@ -112,8 +122,11 @@ This fetches the PR ref via `git fetch origin pull/<N>/head:pr-<N>`, creates a g
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--compare <ref>` | **Primary workflow.** Compare HEAD (or `--pr`) against a base ref with live backend | (none) |
+| `--fail-threshold <percent>` | Exit non-zero when any page diff is above this percentage | `0` |
+| `--diff-threshold <percent>` | Only mark pages as `[diff]` in summary when above this percentage | `0` |
 | `--skip-backend` | Force-skip backend rebuild and manifest re-apply even if changes are detected (auto-skipped when no backend changes) | off |
 | `--pr <number>` | In `--compare` mode: fetch and test this PR instead of local HEAD. In legacy mode: PR number for branch comparison | (none) |
+| `--pr-number <number>` | Label screenshots as `PR #<number>` without fetching that PR (useful when comparing local HEAD). If omitted, runner tries best-effort GH auto-detection from current `HEAD` SHA. | (none) |
 | `--teardown` | Delete the Kind cluster and exit | off |
 | `--current-only` | Screenshot current build only (no branch comparison) | off |
 | `--use-existing` | Use an already-running server instead of building/serving | off |
@@ -137,6 +150,9 @@ This fetches the PR ref via `git fetch origin pull/<N>/head:pr-<N>`, creates a g
 |----------|-------------|---------|
 | `UI_SMOKE_PAGES` | Comma-separated list of pages to capture | all pages |
 | `UI_SMOKE_VIEWPORT` | Viewport dimensions as `WIDTHxHEIGHT` | `1280x800` |
+| `UI_SMOKE_PR_NUMBER` | PR number used for screenshot labels when `--pr` is not used | (none) |
+| `UI_SMOKE_FAIL_THRESHOLD` | Default fail threshold percentage for comparison | `0` |
+| `UI_SMOKE_DIFF_THRESHOLD` | Default summary marker threshold percentage | `0` |
 | `API_BASE` | API base URL for data seeding | `http://localhost:3001` |
 
 ### Individual Scripts
@@ -151,7 +167,7 @@ node detect-changes.js --base master
 node capture-screenshots.js --port 3000 --output ./my-screenshots --label "my-branch"
 
 # Generate side-by-side comparisons from two sets of screenshots
-node generate-comparison.js --main ./screenshots/main --pr ./screenshots/pr --output ./comparison
+node generate-comparison.js --main ./screenshots/main --pr ./screenshots/pr --output ./comparison --fail-threshold 0
 
 # Post comparison results to a GitHub PR
 node upload-to-pr.js --pr 12756 --repo kubeflow/pipelines --screenshots ./comparison
@@ -330,7 +346,8 @@ The `detect-changes.js` script maps changed files to backend components using 2-
 ### Dependencies
 
 - **playwright** — headless Chrome for screenshot capture
-- **sharp** — image processing for side-by-side comparisons and pixel diff
+- **sharp** — image processing for side-by-side layout images
+- **looks-same** — mature visual diff engine (diff percentages + clusters)
 
 ## Lessons Learned
 

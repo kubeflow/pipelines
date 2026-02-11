@@ -22,23 +22,175 @@ const getArg = (name, defaultValue) => {
 const PORT = getArg('port', '4001');
 const OUTPUT_DIR = getArg('output', './screenshots');
 const LABEL = getArg('label', 'screenshot');
+const REPO_ROOT = path.resolve(__dirname, '../../..');
+const DEFAULT_SEED_MANIFEST = path.join(REPO_ROOT, '.ui-smoke-test', 'seed-manifest.json');
+const SEED_MANIFEST_PATH = getArg(
+  'seed-manifest',
+  process.env.UI_SMOKE_SEED_MANIFEST || DEFAULT_SEED_MANIFEST,
+);
 const BASE_URL = `http://localhost:${PORT}`;
 
-// Viewport configuration
-const VIEWPORT_ENV = process.env.UI_SMOKE_VIEWPORT || '1280x800';
-const [viewportWidth, viewportHeight] = VIEWPORT_ENV.split('x').map(Number);
-const VIEWPORT = { width: viewportWidth || 1280, height: viewportHeight || 800 };
+function parseViewports(value) {
+  return value.split(',').map(raw => {
+    const trimmed = raw.trim();
+    const [width, height] = trimmed.split('x').map(Number);
+    if (!width || !height) {
+      throw new Error(`Invalid viewport "${trimmed}". Use WIDTHxHEIGHT (for example 1280x800).`);
+    }
+    return { width, height };
+  });
+}
+
+const VIEWPORTS = parseViewports(process.env.UI_SMOKE_VIEWPORTS || process.env.UI_SMOKE_VIEWPORT || '1280x800');
+
+function loadSeedValues(manifestPath) {
+  if (!manifestPath || !fs.existsSync(manifestPath)) {
+    return null;
+  }
+
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const defaults = manifest.defaults || {};
+    const resources = manifest.resources || {};
+    const runIds = Array.isArray(resources.runIds) ? resources.runIds : [];
+
+    return {
+      compareRunlist: defaults.compareRunlist || runIds.slice(0, 3).join(','),
+      experimentId: defaults.experimentId || (resources.experimentIds || [])[0],
+      pipelineId: defaults.pipelineId || (resources.pipelineIds || [])[0],
+      recurringRunId: defaults.recurringRunId || (resources.recurringRunIds || [])[0],
+      runId: defaults.runId || runIds[0],
+    };
+  } catch (error) {
+    console.log(`Warning: failed to parse seed manifest ${manifestPath}: ${error.message}`);
+    return null;
+  }
+}
+
+const seedValues = loadSeedValues(SEED_MANIFEST_PATH);
+
+function resolvePathTemplate(routePath) {
+  const missing = [];
+  const resolved = routePath.replace(/\{seed\.([a-zA-Z0-9_]+)\}/g, (_match, key) => {
+    const value = seedValues && seedValues[key];
+    if (value === undefined || value === null || value === '') {
+      missing.push(key);
+      return '';
+    }
+    return String(value);
+  });
+
+  if (missing.length > 0) {
+    return { missing, resolvedPath: null };
+  }
+
+  return { missing: [], resolvedPath: resolved };
+}
+
+async function executeActions(page, actions) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    return;
+  }
+
+  for (const action of actions) {
+    const timeout = action.timeoutMs || 10000;
+    const descriptor = action.selector ? `${action.type}(${action.selector})` : action.type;
+
+    try {
+      switch (action.type) {
+        case 'click':
+          await page.locator(action.selector).first().click({ timeout });
+          break;
+        case 'waitForSelector':
+          await page.waitForSelector(action.selector, { timeout });
+          break;
+        case 'waitForTimeout':
+          await page.waitForTimeout(action.ms || 500);
+          break;
+        default:
+          throw new Error(`Unsupported action type "${action.type}"`);
+      }
+    } catch (error) {
+      if (action.optional) {
+        console.log(`  Warning: optional action failed: ${descriptor}: ${error.message}`);
+        continue;
+      }
+      throw new Error(`Action failed: ${descriptor}: ${error.message}`);
+    }
+  }
+}
 
 // Pages to capture - these are the main UI routes (using hash-based routing)
 // waitFor: selector to wait for before capturing (indicates page is loaded)
 // waitForData: additional selector that indicates data has loaded (optional)
 const PAGES = [
-  { name: 'pipelines', path: '/#/pipelines', waitFor: '[class*="tableRow"]', waitForData: 'a[href*="pipeline"]' },
-  { name: 'experiments', path: '/#/experiments', waitFor: '[class*="tableRow"]', waitForData: 'a[href*="experiment"]' },
-  { name: 'runs', path: '/#/runs', waitFor: '[class*="tableRow"]', waitForData: 'a[href*="run"]' },
+  {
+    name: 'pipelines',
+    path: '/#/pipelines',
+    waitFor: '[class*="tableRow"]',
+    waitForData: 'a[href*="pipeline"]',
+  },
+  {
+    name: 'pipeline-details-seeded',
+    path: '/#/pipelines/details/{seed.pipelineId}',
+    waitFor: '#root',
+    waitForData: '[role="tab"], .ace_editor',
+  },
+  {
+    name: 'experiments',
+    path: '/#/experiments',
+    waitFor: '[class*="tableRow"]',
+    waitForData: 'a[href*="experiment"]',
+  },
+  {
+    name: 'runs',
+    path: '/#/runs',
+    waitFor: '[class*="tableRow"]',
+    waitForData: 'a[href*="run"]',
+  },
+  {
+    name: 'run-details-seeded',
+    path: '/#/runs/details/{seed.runId}',
+    waitFor: '#root',
+    actions: [
+      {
+        type: 'click',
+        selector: '[role="tab"]:has-text("Visualizations"), button:has-text("Visualizations")',
+        optional: true,
+      },
+      { type: 'waitForTimeout', ms: 1000, optional: true },
+    ],
+  },
+  { name: 'compare-seeded', path: '/#/compare?runlist={seed.compareRunlist}', waitFor: '#root' },
+  { name: 'runs-new', path: '/#/runs/new', waitFor: '#choosePipelineBtn' },
+  {
+    name: 'runs-new-pipeline-dialog',
+    path: '/#/runs/new',
+    waitFor: '#choosePipelineBtn',
+    actions: [
+      { type: 'click', selector: '#choosePipelineBtn' },
+      { type: 'waitForSelector', selector: '#pipelineSelectorDialog' },
+    ],
+  },
+  {
+    name: 'runs-new-upload-dialog',
+    path: '/#/runs/new',
+    waitFor: '#choosePipelineBtn',
+    actions: [
+      { type: 'click', selector: '#choosePipelineBtn' },
+      { type: 'waitForSelector', selector: '#pipelineSelectorDialog' },
+      { type: 'click', selector: 'button:has-text("Upload pipeline")' },
+      { type: 'waitForSelector', selector: '#dropZone' },
+    ],
+  },
   { name: 'recurring-runs', path: '/#/recurringruns', waitFor: '[class*="tableRow"]' },
   { name: 'artifacts', path: '/#/artifacts', waitFor: '[class*="tableRow"]' },
-  { name: 'executions', path: '/#/executions', waitFor: '[class*="tableRow"]', waitForData: 'a[href*="execution"]' },
+  {
+    name: 'executions',
+    path: '/#/executions',
+    waitFor: '[class*="tableRow"]',
+    waitForData: 'a[href*="execution"]',
+  },
   { name: 'pipeline-create', path: '/#/pipeline/create', waitFor: 'input' },
   { name: 'experiment-create', path: '/#/experiments/new', waitFor: 'input' },
 ];
@@ -53,77 +205,106 @@ async function captureScreenshots() {
   console.log(`Starting screenshot capture for ${LABEL}`);
   console.log(`Base URL: ${BASE_URL}`);
   console.log(`Output directory: ${OUTPUT_DIR}`);
-  console.log(`Viewport: ${VIEWPORT.width}x${VIEWPORT.height}`);
+  console.log(`Viewports: ${VIEWPORTS.map(v => `${v.width}x${v.height}`).join(', ')}`);
+  if (seedValues) {
+    console.log(`Seed manifest: ${SEED_MANIFEST_PATH}`);
+  } else {
+    console.log('Seed manifest: not found (seeded routes will be skipped)');
+  }
   console.log(`Pages to capture: ${filteredPages.map(p => p.name).join(', ')}`);
 
   // Ensure output directory exists
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-  // Launch browser
   const browser = await chromium.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
-  const context = await browser.newContext({
-    viewport: VIEWPORT,
-    deviceScaleFactor: 2, // Retina quality
-    ignoreHTTPSErrors: true,
-  });
-
-  const page = await context.newPage();
-
   // Capture each page
   const results = [];
 
-  for (const pageConfig of filteredPages) {
-    const url = `${BASE_URL}${pageConfig.path}`;
-    const filename = `${pageConfig.name}.png`;
-    const filepath = path.join(OUTPUT_DIR, filename);
+  for (const viewport of VIEWPORTS) {
+    const context = await browser.newContext({
+      viewport,
+      deviceScaleFactor: 2, // Retina quality
+      ignoreHTTPSErrors: true,
+    });
+    const page = await context.newPage();
 
-    console.log(`Capturing ${pageConfig.name}: ${url}`);
-
-    try {
-      // Navigate to page
-      await page.goto(url, {
-        waitUntil: 'networkidle',
-        timeout: 30000,
-      });
-
-      // Wait for specific element if specified
-      if (pageConfig.waitFor) {
-        try {
-          await page.waitForSelector(pageConfig.waitFor, { timeout: 10000 });
-        } catch (e) {
-          console.log(`  Warning: waitFor selector '${pageConfig.waitFor}' not found, continuing...`);
-        }
+    for (const pageConfig of filteredPages) {
+      const { resolvedPath, missing } = resolvePathTemplate(pageConfig.path);
+      if (!resolvedPath) {
+        console.log(
+          `Skipping ${pageConfig.name} (${viewport.width}x${viewport.height}): missing seed key(s): ${missing.join(', ')}`,
+        );
+        results.push({
+          page: pageConfig.name,
+          reason: `missing seed key(s): ${missing.join(', ')}`,
+          status: 'skipped',
+          viewport,
+        });
+        continue;
       }
 
-      // Wait for data to load if specified (indicates actual content, not just skeleton)
-      if (pageConfig.waitForData) {
-        try {
-          await page.waitForSelector(pageConfig.waitForData, { timeout: 10000 });
-          console.log(`  Data loaded: found '${pageConfig.waitForData}'`);
-        } catch (e) {
-          console.log(`  Warning: data selector '${pageConfig.waitForData}' not found, continuing...`);
+      const url = `${BASE_URL}${resolvedPath}`;
+      const filename = `${pageConfig.name}-${viewport.width}x${viewport.height}.png`;
+      const filepath = path.join(OUTPUT_DIR, filename);
+
+      console.log(`Capturing ${pageConfig.name} (${viewport.width}x${viewport.height}): ${url}`);
+
+      try {
+        // Navigate to page
+        await page.goto(url, {
+          waitUntil: 'networkidle',
+          timeout: 30000,
+        });
+
+        // Wait for specific element if specified
+        if (pageConfig.waitFor) {
+          try {
+            await page.waitForSelector(pageConfig.waitFor, { timeout: 10000 });
+          } catch (e) {
+            console.log(`  Warning: waitFor selector '${pageConfig.waitFor}' not found, continuing...`);
+          }
         }
+
+        await executeActions(page, pageConfig.actions);
+
+        // Wait for data to load if specified (indicates actual content, not just skeleton)
+        if (pageConfig.waitForData) {
+          try {
+            await page.waitForSelector(pageConfig.waitForData, { timeout: 10000 });
+            console.log(`  Data loaded: found '${pageConfig.waitForData}'`);
+          } catch (e) {
+            console.log(`  Warning: data selector '${pageConfig.waitForData}' not found, continuing...`);
+          }
+        }
+
+        // Additional wait for any animations/loading to settle
+        await page.waitForTimeout(pageConfig.waitForTimeoutMs || 2000);
+
+        // Take screenshot
+        await page.screenshot({
+          path: filepath,
+          fullPage: false, // Viewport only for consistent comparisons
+        });
+
+        console.log(`  ✓ Saved: ${filename}`);
+        results.push({ page: pageConfig.name, status: 'success', path: filepath, viewport });
+      } catch (error) {
+        console.log(`  ✗ Failed: ${error.message}`);
+        results.push({
+          page: pageConfig.name,
+          status: 'failed',
+          error: error.message,
+          viewport,
+        });
       }
-
-      // Additional wait for any animations/loading to settle
-      await page.waitForTimeout(2000);
-
-      // Take screenshot
-      await page.screenshot({
-        path: filepath,
-        fullPage: false, // Viewport only for consistent comparisons
-      });
-
-      console.log(`  ✓ Saved: ${filename}`);
-      results.push({ page: pageConfig.name, status: 'success', path: filepath });
-    } catch (error) {
-      console.log(`  ✗ Failed: ${error.message}`);
-      results.push({ page: pageConfig.name, status: 'failed', error: error.message });
     }
+
+    await page.close();
+    await context.close();
   }
 
   await browser.close();
@@ -134,7 +315,8 @@ async function captureScreenshots() {
     label: LABEL,
     timestamp: new Date().toISOString(),
     baseUrl: BASE_URL,
-    viewport: VIEWPORT,
+    seedManifestPath: seedValues ? SEED_MANIFEST_PATH : null,
+    viewports: VIEWPORTS,
     results,
   }, null, 2));
 
@@ -142,7 +324,8 @@ async function captureScreenshots() {
 
   // Return exit code based on success rate
   const failedCount = results.filter(r => r.status === 'failed').length;
-  if (failedCount === results.length) {
+  const successCount = results.filter(r => r.status === 'success').length;
+  if (successCount === 0) {
     console.error('All screenshots failed!');
     process.exit(1);
   } else if (failedCount > 0) {

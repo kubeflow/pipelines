@@ -10,6 +10,7 @@
     "test": "node smoke-test-runner.js"
   },
   "dependencies": {
+    "looks-same": "^10.0.1",
     "playwright": "^1.40.0",
     "sharp": "^0.33.0"
   },

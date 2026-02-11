@@ -17,6 +17,9 @@
  * Test someone else's PR against a base ref:
  *   node smoke-test-runner.js --compare master --pr 12756
  *
+ * Label local HEAD screenshots with a PR number:
+ *   node smoke-test-runner.js --compare master --pr-number 12793
+ *
  * Skip backend rebuild for frontend-only PRs:
  *   node smoke-test-runner.js --compare master --skip-backend
  *
@@ -52,6 +55,7 @@ const TEARDOWN = hasFlag('teardown');
 
 // Legacy flags (still supported)
 const PR_NUMBER = getArg('pr', '');
+const PR_LABEL_NUMBER = getArg('pr-number', process.env.UI_SMOKE_PR_NUMBER || '');
 const REPO = getArg('repo', 'kubeflow/pipelines');
 const BASE_BRANCH = getArg('base', 'master');
 const MODE = getArg('mode', 'auto'); // auto, cluster, mock, static
@@ -68,6 +72,9 @@ const USE_EXISTING = hasFlag('use-existing');
 const EXISTING_URL = getArg('url', 'http://localhost:3000');
 const USE_PROXY = hasFlag('proxy');
 const PROXY_BACKEND = getArg('backend', 'http://localhost:3000');
+const VIEWPORTS = getArg('viewports', process.env.UI_SMOKE_VIEWPORTS || '');
+const FAIL_THRESHOLD = getArg('fail-threshold', process.env.UI_SMOKE_FAIL_THRESHOLD || '0');
+const DIFF_THRESHOLD = getArg('diff-threshold', process.env.UI_SMOKE_DIFF_THRESHOLD || '0');
 
 // Directories
 const SCRIPT_DIR = __dirname;
@@ -78,6 +85,7 @@ const PR_DIR = path.join(WORK_DIR, 'pr');
 const SCREENSHOTS_DIR = path.join(WORK_DIR, 'screenshots');
 const WORKTREE_DIR = path.join(WORK_DIR, 'base');
 const PR_WORKTREE_DIR = path.join(WORK_DIR, 'pr-branch');
+const SEED_MANIFEST_PATH = path.join(WORK_DIR, 'seed-manifest.json');
 
 // Ports
 const PORT_MAIN = 4001;
@@ -197,6 +205,41 @@ function run(cmd, options = {}) {
     }
     return { success: false, error: error.message, output: '' };
   }
+}
+
+function shellEscape(value) {
+  return `"${String(value).replace(/(["\\$`])/g, '\\$1')}"`;
+}
+
+function resolveDisplayPrNumber() {
+  if (PR_NUMBER) {
+    return PR_NUMBER;
+  }
+  if (PR_LABEL_NUMBER) {
+    return PR_LABEL_NUMBER;
+  }
+
+  // Best effort auto-detection for local HEAD comparisons.
+  // Match current HEAD SHA to open PR head SHAs in the target repository.
+  const headSha = run('git rev-parse HEAD', { cwd: REPO_ROOT });
+  const sha = (headSha.output || '').trim();
+  if (headSha.success && /^[0-9a-f]{7,40}$/i.test(sha)) {
+    const autoPr = run(
+      `gh pr list --repo ${REPO} --state open --limit 200 --json number,headRefOid --jq ".[] | select(.headRefOid==\\\"${sha}\\\") | .number"`,
+      { cwd: REPO_ROOT },
+    );
+    if (autoPr.success) {
+      const value = (autoPr.output || '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .find(line => /^[0-9]+$/.test(line));
+      if (value) {
+        return value;
+      }
+    }
+  }
+
+  return '';
 }
 
 function spawnProcess(cmd, spawnArgs, options = {}) {
@@ -364,13 +407,13 @@ async function waitForServer(port, timeout = 30000) {
  * 11. Serve both via proxy-server.js
  * 12. Capture screenshots + generate comparison
  */
-async function runComparison(baseRef) {
+async function runComparison(baseRef, displayPrNumber = '') {
   const totalSteps = 12;
   const tracker = createStepTracker(totalSteps);
 
   // Determine head ref: if --pr is given, we'll fetch and use it
   const usingPR = !!(COMPARE_REF && PR_NUMBER);
-  const headLabel = usingPR ? `PR #${PR_NUMBER}` : 'HEAD';
+  const headLabel = displayPrNumber ? `PR #${displayPrNumber}` : 'HEAD';
 
   log(`Comparing ${headLabel} against ${baseRef}...`);
 
@@ -541,9 +584,21 @@ async function runComparison(baseRef) {
 
   // Step 10: Build PR frontend
   tracker.step(`Building ${headLabel} frontend...`);
-  if (!SKIP_BUILD && !fs.existsSync(prBuildDir)) {
-    run('npm ci', { cwd: prFrontendDir, timeout: 120000 });
-    run('npm run build', { cwd: prFrontendDir, timeout: 120000 });
+  if (!SKIP_BUILD) {
+    const nodeModulesDir = path.join(prFrontendDir, 'node_modules');
+    if (!fs.existsSync(nodeModulesDir)) {
+      const installResult = run('npm ci', { cwd: prFrontendDir, timeout: 120000 });
+      if (!installResult.success) {
+        log(`${headLabel} npm ci failed: ${installResult.error}`, 'error');
+        return false;
+      }
+    }
+
+    const buildResult = run('npm run build', { cwd: prFrontendDir, timeout: 120000 });
+    if (!buildResult.success) {
+      log(`${headLabel} build failed: ${buildResult.error}`, 'error');
+      return false;
+    }
   }
 
   // Step 11: Serve both via proxy-server.js → API proxied to localhost:3001
@@ -587,8 +642,8 @@ async function runComparison(baseRef) {
   const headShaStr = headSha.success ? headSha.output : '?';
 
   const baseLabel = `base: ${changes.baseRef} (${baseShaStr})`;
-  const prLabel = usingPR
-    ? `PR #${PR_NUMBER} (${headShaStr})`
+  const prLabel = displayPrNumber
+    ? `PR #${displayPrNumber} (${headShaStr})`
     : `HEAD (${headShaStr})`;
 
   const mainCaptured = await captureScreenshots(PORT_MAIN, mainScreenshots, baseLabel);
@@ -617,7 +672,7 @@ async function runComparison(baseRef) {
     log(`Comparison: ${path.join(SCREENSHOTS_DIR, 'comparison')}`);
   }
 
-  return mainCaptured && prCaptured;
+  return mainCaptured && prCaptured && comparisonGenerated;
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -777,9 +832,17 @@ async function captureScreenshots(port, outputDir, label) {
   log(`Capturing screenshots for ${label}...`);
   fs.mkdirSync(outputDir, { recursive: true });
 
+  const env = {
+    ...process.env,
+    UI_SMOKE_SEED_MANIFEST: SEED_MANIFEST_PATH,
+  };
+  if (VIEWPORTS) {
+    env.UI_SMOKE_VIEWPORTS = VIEWPORTS;
+  }
+
   const result = run(
-    `node "${path.join(SCRIPT_DIR, 'capture-screenshots.js')}" --port ${port} --output "${outputDir}" --label "${label}"`,
-    { cwd: SCRIPT_DIR }
+    `node "${path.join(SCRIPT_DIR, 'capture-screenshots.js')}" --port ${port} --output "${outputDir}" --label ${shellEscape(label)} --seed-manifest ${shellEscape(SEED_MANIFEST_PATH)}`,
+    { cwd: SCRIPT_DIR, env }
   );
 
   return result.success;
@@ -792,10 +855,15 @@ async function generateComparison() {
   const prScreenshots = path.join(SCREENSHOTS_DIR, 'pr');
   const comparisonDir = path.join(SCREENSHOTS_DIR, 'comparison');
 
-  const result = run(
-    `node "${path.join(SCRIPT_DIR, 'generate-comparison.js')}" --main "${mainScreenshots}" --pr "${prScreenshots}" --output "${comparisonDir}"`,
-    { cwd: SCRIPT_DIR }
-  );
+  let command =
+    `node "${path.join(SCRIPT_DIR, 'generate-comparison.js')}" --main "${mainScreenshots}" --pr "${prScreenshots}" --output "${comparisonDir}"`;
+  if (FAIL_THRESHOLD !== '') {
+    command += ` --fail-threshold ${shellEscape(FAIL_THRESHOLD)}`;
+  }
+  if (DIFF_THRESHOLD !== '') {
+    command += ` --diff-threshold ${shellEscape(DIFF_THRESHOLD)}`;
+  }
+  const result = run(command, { cwd: SCRIPT_DIR });
 
   return result.success;
 }
@@ -988,8 +1056,13 @@ async function main() {
   // Handle --compare <ref> (primary workflow)
   if (COMPARE_REF) {
     const usingPR = !!PR_NUMBER;
-    log(`Compare mode: ${usingPR ? `PR #${PR_NUMBER}` : 'HEAD'} vs ${COMPARE_REF}`);
+    const displayPrNumber = resolveDisplayPrNumber();
+    const compareHeadLabel = displayPrNumber ? `PR #${displayPrNumber}` : 'HEAD';
+    log(`Compare mode: ${compareHeadLabel} vs ${COMPARE_REF}`);
     if (SKIP_BACKEND) log('Backend rebuild: skipped (--skip-backend)');
+    if (VIEWPORTS) log(`Viewports: ${VIEWPORTS}`);
+    if (FAIL_THRESHOLD !== '') log(`Fail threshold: ${FAIL_THRESHOLD}%`);
+    if (DIFF_THRESHOLD !== '') log(`Diff marker threshold: ${DIFF_THRESHOLD}%`);
     log(`Work directory: ${WORK_DIR}`);
 
     // Prerequisite check (Issue 4)
@@ -1006,16 +1079,20 @@ async function main() {
 
     run('npx playwright install chromium', { cwd: SCRIPT_DIR });
 
-    const success = await runComparison(COMPARE_REF);
+    const success = await runComparison(COMPARE_REF, displayPrNumber);
     await runCleanupActions();
     cleanup();
     process.exit(success ? 0 : 1);
   }
 
   // Legacy mode
-  log(`PR: ${PR_NUMBER || 'N/A'}`);
+  const displayPrNumber = resolveDisplayPrNumber();
+  log(`PR: ${displayPrNumber || 'N/A'}`);
   log(`Repository: ${REPO}`);
   log(`Base branch: ${BASE_BRANCH}`);
+  if (VIEWPORTS) log(`Viewports: ${VIEWPORTS}`);
+  if (FAIL_THRESHOLD !== '') log(`Fail threshold: ${FAIL_THRESHOLD}%`);
+  if (DIFF_THRESHOLD !== '') log(`Diff marker threshold: ${DIFF_THRESHOLD}%`);
   log(`Work directory: ${WORK_DIR}`);
 
   // Ensure dependencies

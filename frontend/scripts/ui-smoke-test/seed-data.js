@@ -12,11 +12,99 @@ const fs = require('fs');
 const path = require('path');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
+const REPO_ROOT = path.resolve(__dirname, '../../..');
+const DEFAULT_MANIFEST_PATH = path.join(REPO_ROOT, '.ui-smoke-test', 'seed-manifest.json');
+const SEED_MANIFEST_PATH = process.env.UI_SMOKE_SEED_MANIFEST || DEFAULT_MANIFEST_PATH;
 
 function log(msg, type = 'info') {
   const colors = { info: '\x1b[32m', warn: '\x1b[33m', error: '\x1b[31m', debug: '\x1b[36m' };
   const reset = '\x1b[0m';
   console.log(`${colors[type] || ''}[SEED]${reset} ${msg}`);
+}
+
+function unique(values) {
+  return Array.from(new Set(values.filter(Boolean).map(v => String(v))));
+}
+
+function pickList(response, listKeys) {
+  for (const key of listKeys) {
+    if (Array.isArray(response[key])) {
+      return response[key];
+    }
+  }
+  return [];
+}
+
+function extractIds(items, candidateKeys) {
+  return unique(
+    items.map(item => {
+      for (const key of candidateKeys) {
+        if (item && item[key]) {
+          return item[key];
+        }
+      }
+      return null;
+    }),
+  );
+}
+
+async function fetchResourceIds() {
+  const [pipelinesResp, experimentsResp, runsResp, recurringResp] = await Promise.all([
+    apiRequest('GET', '/apis/v2beta1/pipelines?page_size=20'),
+    apiRequest('GET', '/apis/v2beta1/experiments?page_size=20'),
+    apiRequest('GET', '/apis/v2beta1/runs?page_size=20'),
+    apiRequest('GET', '/apis/v2beta1/recurringruns?page_size=20'),
+  ]);
+
+  return {
+    experimentIds: extractIds(
+      pickList(experimentsResp, ['experiments']),
+      ['experiment_id', 'experimentId', 'id'],
+    ),
+    pipelineIds: extractIds(pickList(pipelinesResp, ['pipelines']), ['pipeline_id', 'pipelineId', 'id']),
+    recurringRunIds: extractIds(
+      pickList(recurringResp, ['recurring_runs', 'recurringRuns', 'jobs']),
+      ['recurring_run_id', 'recurringRunId', 'job_id', 'id'],
+    ),
+    runIds: extractIds(pickList(runsResp, ['runs']), ['run_id', 'runId', 'id']),
+  };
+}
+
+function createdIds(created) {
+  return {
+    experimentIds: unique(
+      (created.experiments || []).map(e => e.experiment_id || e.experimentId || e.id),
+    ),
+    pipelineIds: unique((created.pipelines || []).map(p => p.pipeline_id || p.pipelineId || p.id)),
+    recurringRunIds: unique(
+      (created.recurringRuns || []).map(r => r.recurring_run_id || r.recurringRunId || r.job_id || r.id),
+    ),
+    runIds: unique((created.runs || []).map(r => r.run_id || r.runId || r.id)),
+  };
+}
+
+function buildSeedManifest(resourceIds) {
+  const defaults = {
+    compareRunlist: resourceIds.runIds.slice(0, 3).join(','),
+    experimentId: resourceIds.experimentIds[0] || null,
+    pipelineId: resourceIds.pipelineIds[0] || null,
+    recurringRunId: resourceIds.recurringRunIds[0] || null,
+    runId: resourceIds.runIds[0] || null,
+  };
+
+  return {
+    apiBase: API_BASE,
+    defaults,
+    generatedAt: new Date().toISOString(),
+    resources: resourceIds,
+  };
+}
+
+function writeSeedManifest(manifest) {
+  const dirPath = path.dirname(SEED_MANIFEST_PATH);
+  fs.mkdirSync(dirPath, { recursive: true });
+  fs.writeFileSync(SEED_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+  log(`Wrote seed manifest: ${SEED_MANIFEST_PATH}`);
 }
 
 /**
@@ -285,7 +373,14 @@ async function seedData(options = {}) {
 
   if (skipIfExists && (existingCounts.pipelines > 0 || existingCounts.experiments > 0)) {
     log('Data already exists. Skipping seeding (use --force to override).');
-    return { success: true, skipped: true, counts: existingCounts };
+    try {
+      const resourceIds = await fetchResourceIds();
+      writeSeedManifest(buildSeedManifest(resourceIds));
+      return { success: true, skipped: true, counts: existingCounts, seedManifestPath: SEED_MANIFEST_PATH };
+    } catch (error) {
+      log(`Failed to write seed manifest from existing data: ${error.message}`, 'warn');
+      return { success: true, skipped: true, counts: existingCounts };
+    }
   }
 
   const created = {
@@ -357,7 +452,21 @@ async function seedData(options = {}) {
   log(`  Runs: ${created.runs.length}`);
   log(`  Recurring Runs: ${created.recurringRuns.length}`);
 
-  return { success: true, created };
+  try {
+    const fetchedIds = await fetchResourceIds();
+    const fromCreated = createdIds(created);
+    const resourceIds = {
+      experimentIds: unique([...fromCreated.experimentIds, ...fetchedIds.experimentIds]),
+      pipelineIds: unique([...fromCreated.pipelineIds, ...fetchedIds.pipelineIds]),
+      recurringRunIds: unique([...fromCreated.recurringRunIds, ...fetchedIds.recurringRunIds]),
+      runIds: unique([...fromCreated.runIds, ...fetchedIds.runIds]),
+    };
+    writeSeedManifest(buildSeedManifest(resourceIds));
+  } catch (error) {
+    log(`Failed to generate seed manifest: ${error.message}`, 'warn');
+  }
+
+  return { success: true, created, seedManifestPath: SEED_MANIFEST_PATH };
 }
 
 /**
