@@ -81,7 +81,6 @@ const SCRIPT_DIR = __dirname;
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '../../..');
 const WORK_DIR = path.join(REPO_ROOT, '.ui-smoke-test');
 const MAIN_DIR = path.join(WORK_DIR, 'main');
-const PR_DIR = path.join(WORK_DIR, 'pr');
 const SCREENSHOTS_DIR = path.join(WORK_DIR, 'screenshots');
 const WORKTREE_DIR = path.join(WORK_DIR, 'base');
 const PR_WORKTREE_DIR = path.join(WORK_DIR, 'pr-branch');
@@ -90,7 +89,6 @@ const SEED_MANIFEST_PATH = path.join(WORK_DIR, 'seed-manifest.json');
 // Ports
 const PORT_MAIN = 4001;
 const PORT_PR = 4002;
-const PROXY_PORT = 3001;
 
 // Track spawned processes for cleanup
 const processes = [];
@@ -208,7 +206,17 @@ function run(cmd, options = {}) {
 }
 
 function shellEscape(value) {
-  return `"${String(value).replace(/(["\\$`])/g, '\\$1')}"`;
+  return "'" + String(value).replace(/'/g, "'\\''") + "'";
+}
+
+function ensurePlaywright() {
+  const result = run('npx playwright install --dry-run chromium 2>&1', { cwd: SCRIPT_DIR });
+  if (result.success && /already installed/i.test(result.output)) {
+    log('Playwright Chromium already installed', 'debug');
+    return;
+  }
+  log('Installing Playwright Chromium...');
+  run('npx playwright install chromium', { cwd: SCRIPT_DIR });
 }
 
 function resolveDisplayPrNumber() {
@@ -435,12 +443,27 @@ async function runComparison(baseRef, displayPrNumber = '') {
   if (usingPR) {
     // Fetch the PR ref first so we can use it for change detection
     tracker.step(`Fetching PR #${PR_NUMBER} and detecting changes...`);
-    const fetchResult = run(`git fetch origin pull/${PR_NUMBER}/head:pr-${PR_NUMBER}`, { cwd: REPO_ROOT });
+
+    const prNumberStr = String(PR_NUMBER);
+    if (!/^\d+$/.test(prNumberStr)) {
+      log(`Invalid PR number '${PR_NUMBER}'. Expected a numeric value.`, 'error');
+      return false;
+    }
+
+    // Prefer "upstream" remote so contributors whose "origin" points to
+    // their fork can still fetch PRs from the main repo.
+    let prRemote = 'origin';
+    const upstreamCheck = run('git remote get-url upstream', { cwd: REPO_ROOT });
+    if (upstreamCheck.success) {
+      prRemote = 'upstream';
+    }
+
+    const fetchResult = run(`git fetch ${prRemote} pull/${prNumberStr}/head:pr-${prNumberStr}`, { cwd: REPO_ROOT });
     if (!fetchResult.success) {
       log(`Failed to fetch PR #${PR_NUMBER}: ${fetchResult.error}`, 'error');
       return false;
     }
-    prRef = `pr-${PR_NUMBER}`;
+    prRef = `pr-${prNumberStr}`;
   } else {
     tracker.step('Detecting changes...');
   }
@@ -585,13 +608,10 @@ async function runComparison(baseRef, displayPrNumber = '') {
   // Step 10: Build PR frontend
   tracker.step(`Building ${headLabel} frontend...`);
   if (!SKIP_BUILD) {
-    const nodeModulesDir = path.join(prFrontendDir, 'node_modules');
-    if (!fs.existsSync(nodeModulesDir)) {
-      const installResult = run('npm ci', { cwd: prFrontendDir, timeout: 120000 });
-      if (!installResult.success) {
-        log(`${headLabel} npm ci failed: ${installResult.error}`, 'error');
-        return false;
-      }
+    const installResult = run('npm ci', { cwd: prFrontendDir, timeout: 120000 });
+    if (!installResult.success) {
+      log(`${headLabel} npm ci failed: ${installResult.error}`, 'error');
+      return false;
     }
 
     const buildResult = run('npm run build', { cwd: prFrontendDir, timeout: 120000 });
@@ -1074,10 +1094,10 @@ async function main() {
     const nodeModulesPath = path.join(SCRIPT_DIR, 'node_modules');
     if (!fs.existsSync(nodeModulesPath)) {
       log('Installing smoke test dependencies...');
-      run('npm install', { cwd: SCRIPT_DIR });
+      run('npm ci', { cwd: SCRIPT_DIR });
     }
 
-    run('npx playwright install chromium', { cwd: SCRIPT_DIR });
+    ensurePlaywright();
 
     const success = await runComparison(COMPARE_REF, displayPrNumber);
     await runCleanupActions();
@@ -1102,7 +1122,7 @@ async function main() {
     run('npm install', { cwd: SCRIPT_DIR });
   }
 
-  run('npx playwright install chromium', { cwd: SCRIPT_DIR });
+  ensurePlaywright();
 
   const mode = await determineMode();
   log(`Mode: ${mode}`);

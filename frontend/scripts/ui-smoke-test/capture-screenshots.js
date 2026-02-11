@@ -41,7 +41,10 @@ function parseViewports(value) {
   });
 }
 
-const VIEWPORTS = parseViewports(process.env.UI_SMOKE_VIEWPORTS || process.env.UI_SMOKE_VIEWPORT || '1280x800');
+const rawViewportEnv = process.env.UI_SMOKE_VIEWPORTS ?? process.env.UI_SMOKE_VIEWPORT;
+const VIEWPORTS = parseViewports(
+  rawViewportEnv && rawViewportEnv.trim() ? rawViewportEnv : '1280x800',
+);
 
 function loadSeedValues(manifestPath) {
   if (!manifestPath || !fs.existsSync(manifestPath)) {
@@ -260,12 +263,16 @@ async function captureScreenshots() {
           timeout: 30000,
         });
 
+        // Track whether selectors failed so we can mark as degraded
+        let selectorFailed = false;
+
         // Wait for specific element if specified
         if (pageConfig.waitFor) {
           try {
             await page.waitForSelector(pageConfig.waitFor, { timeout: 10000 });
           } catch (e) {
             console.log(`  Warning: waitFor selector '${pageConfig.waitFor}' not found, continuing...`);
+            selectorFailed = true;
           }
         }
 
@@ -278,6 +285,7 @@ async function captureScreenshots() {
             console.log(`  Data loaded: found '${pageConfig.waitForData}'`);
           } catch (e) {
             console.log(`  Warning: data selector '${pageConfig.waitForData}' not found, continuing...`);
+            selectorFailed = true;
           }
         }
 
@@ -290,8 +298,10 @@ async function captureScreenshots() {
           fullPage: false, // Viewport only for consistent comparisons
         });
 
-        console.log(`  ✓ Saved: ${filename}`);
-        results.push({ page: pageConfig.name, status: 'success', path: filepath, viewport });
+        const status = selectorFailed ? 'degraded' : 'success';
+        const statusIcon = selectorFailed ? '⚠' : '✓';
+        console.log(`  ${statusIcon} Saved: ${filename}${selectorFailed ? ' (degraded)' : ''}`);
+        results.push({ page: pageConfig.name, status, path: filepath, viewport });
       } catch (error) {
         console.log(`  ✗ Failed: ${error.message}`);
         results.push({
@@ -324,11 +334,16 @@ async function captureScreenshots() {
 
   // Return exit code based on success rate
   const failedCount = results.filter(r => r.status === 'failed').length;
-  const successCount = results.filter(r => r.status === 'success').length;
-  if (successCount === 0) {
+  const degradedCount = results.filter(r => r.status === 'degraded').length;
+  const capturedCount = results.filter(r => r.status === 'success' || r.status === 'degraded').length;
+  if (capturedCount === 0) {
     console.error('All screenshots failed!');
     process.exit(1);
-  } else if (failedCount > 0) {
+  }
+  if (degradedCount > 0) {
+    console.warn(`${degradedCount}/${results.length} screenshots degraded (selectors not found)`);
+  }
+  if (failedCount > 0) {
     console.warn(`${failedCount}/${results.length} screenshots failed`);
   }
 }

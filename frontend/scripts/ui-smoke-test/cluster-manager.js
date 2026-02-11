@@ -88,8 +88,6 @@ function isClusterRunning() {
  * Check if KFP is deployed and healthy
  */
 async function isKfpHealthy() {
-  const deployResult = run(`kubectl get deployment ml-pipeline -n ${NAMESPACE} -o jsonpath='{.status.availableReplicas}' 2>/dev/null`);
-
   try {
     await new Promise((resolve, reject) => {
       const req = http.get(`http://localhost:${FRONTEND_SERVER_PORT}/apis/v2beta1/healthz`, (res) => {
@@ -142,10 +140,27 @@ async function getClusterStatus() {
 }
 
 /**
+ * Synchronously check if a TCP port is in use on localhost.
+ * Spawns a short Node subprocess to attempt binding.
+ *
+ * @param {number} port
+ * @returns {boolean}
+ */
+function isPortInUseSync(port) {
+  const script = `const s=require("net").createServer();s.once("error",()=>process.exit(1));s.once("listening",()=>{s.close(()=>process.exit(0))});s.listen(${port},"127.0.0.1")`;
+  try {
+    execSync(`node -e '${script}'`, { stdio: 'ignore' });
+    return false;
+  } catch (e) {
+    return true;
+  }
+}
+
+/**
  * Check if the given ports are available. Returns an array of conflicts.
  *
- * Each conflict is { port, pid, process } identifying what's using the port.
- * An empty array means all ports are free.
+ * Port availability is determined via a net-based check; lsof is used
+ * only on a best-effort basis to obtain PID and process details.
  *
  * @param {number[]} ports - Ports to check
  * @returns {{ port: number, pid: string, process: string }[]}
@@ -153,19 +168,26 @@ async function getClusterStatus() {
 function checkPortAvailability(ports) {
   const conflicts = [];
   for (const port of ports) {
+    if (!isPortInUseSync(port)) {
+      continue;
+    }
+
+    // Port is in use; try to enrich with PID/process info via lsof
+    let pid = 'unknown';
+    let processName = 'unknown';
+
     const pidResult = run(`lsof -i :${port} -t 2>/dev/null`);
     if (pidResult.success && pidResult.output) {
-      // May return multiple PIDs; take the first
-      const pid = pidResult.output.split('\n')[0].trim();
-      let processName = 'unknown';
-      if (pid) {
+      pid = pidResult.output.split('\n')[0].trim() || 'unknown';
+      if (pid !== 'unknown') {
         const psResult = run(`ps -p ${pid} -o comm= 2>/dev/null`);
         if (psResult.success && psResult.output) {
-          processName = psResult.output;
+          processName = psResult.output.trim();
         }
       }
-      conflicts.push({ port, pid, process: processName });
     }
+
+    conflicts.push({ port, pid, process: processName });
   }
   return conflicts;
 }
@@ -372,54 +394,72 @@ async function ensurePortForwarding() {
  *   - Build the frontend server
  *   - Start with ML_PIPELINE_SERVICE_PORT=3002
  */
+// Prior replica count for ml-pipeline-ui, captured before scaling down.
+let priorUiReplicas = 1;
+
 async function startFrontendServer(repoRoot) {
   const serverDir = path.join(repoRoot, 'frontend', 'server');
+
+  // Capture prior replica count so we can restore it on cleanup
+  const replicaResult = run(
+    `kubectl -n ${NAMESPACE} get deployment ml-pipeline-ui -o jsonpath='{.spec.replicas}' 2>/dev/null`,
+  );
+  if (replicaResult.success && /^\d+$/.test(replicaResult.output)) {
+    priorUiReplicas = parseInt(replicaResult.output, 10);
+  }
 
   // Scale down the in-cluster UI pod so it doesn't compete
   log('Scaling down ml-pipeline-ui in cluster...');
   run(`kubectl -n ${NAMESPACE} scale deployment/ml-pipeline-ui --replicas=0`);
 
-  // Build server if dist/ is missing or stale
-  log('Building frontend server...');
-  const buildResult = run('npm run build', { cwd: serverDir, timeout: 60000 });
-  if (!buildResult.success) {
-    throw new Error(`Failed to build frontend server: ${buildResult.error}`);
+  try {
+    // Build server if dist/ is missing or stale
+    log('Building frontend server...');
+    const buildResult = run('npm run build', { cwd: serverDir, timeout: 60000 });
+    if (!buildResult.success) {
+      throw new Error(`Failed to build frontend server: ${buildResult.error}`);
+    }
+
+    // Start the server
+    log(`Starting frontend server on port ${FRONTEND_SERVER_PORT}...`);
+    const buildDir = path.join(repoRoot, 'frontend', 'build');
+    const proc = spawnProcess('node', ['dist/server.js', buildDir, String(FRONTEND_SERVER_PORT)], {
+      cwd: serverDir,
+      env: {
+        ...process.env,
+        ML_PIPELINE_SERVICE_PORT: '3002',
+      },
+    });
+
+    proc.stdout?.on('data', (data) => {
+      if (process.env.VERBOSE) console.log(data.toString());
+    });
+    proc.stderr?.on('data', (data) => {
+      if (process.env.VERBOSE) console.error(data.toString());
+    });
+
+    // Wait for it to be ready
+    const ready = await waitForService(`http://localhost:${FRONTEND_SERVER_PORT}`, 15000);
+    if (!ready) {
+      throw new Error('Frontend server failed to start on port ' + FRONTEND_SERVER_PORT);
+    }
+
+    log(`Frontend server ready at http://localhost:${FRONTEND_SERVER_PORT}`);
+    return proc;
+  } catch (e) {
+    // Restore ml-pipeline-ui on failure so the cluster isn't left broken
+    stopFrontendServer();
+    throw e;
   }
-
-  // Start the server
-  log(`Starting frontend server on port ${FRONTEND_SERVER_PORT}...`);
-  const buildDir = path.join(repoRoot, 'frontend', 'build');
-  const proc = spawnProcess('node', ['dist/server.js', buildDir, String(FRONTEND_SERVER_PORT)], {
-    cwd: serverDir,
-    env: {
-      ...process.env,
-      ML_PIPELINE_SERVICE_PORT: '3002',
-    },
-  });
-
-  proc.stdout?.on('data', (data) => {
-    if (process.env.VERBOSE) console.log(data.toString());
-  });
-  proc.stderr?.on('data', (data) => {
-    if (process.env.VERBOSE) console.error(data.toString());
-  });
-
-  // Wait for it to be ready
-  const ready = await waitForService(`http://localhost:${FRONTEND_SERVER_PORT}`, 15000);
-  if (!ready) {
-    throw new Error('Frontend server failed to start on port ' + FRONTEND_SERVER_PORT);
-  }
-
-  log(`Frontend server ready at http://localhost:${FRONTEND_SERVER_PORT}`);
-  return proc;
 }
 
 /**
- * Stop the frontend server and restore the in-cluster UI pod.
+ * Stop the frontend server and restore the in-cluster UI pod
+ * to its prior replica count.
  */
 function stopFrontendServer() {
-  log('Scaling ml-pipeline-ui back up...');
-  run(`kubectl -n ${NAMESPACE} scale deployment/ml-pipeline-ui --replicas=1`);
+  log(`Scaling ml-pipeline-ui back to ${priorUiReplicas} replica(s)...`);
+  run(`kubectl -n ${NAMESPACE} scale deployment/ml-pipeline-ui --replicas=${priorUiReplicas}`);
 }
 
 // ────────────────────────────────────────────────────────────────

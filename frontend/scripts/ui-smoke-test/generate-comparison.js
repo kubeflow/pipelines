@@ -374,10 +374,10 @@ async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
   const mainFiles = fs.existsSync(MAIN_DIR)
-    ? fs.readdirSync(MAIN_DIR).filter(f => f.endsWith('.png') && f !== 'manifest.json')
+    ? fs.readdirSync(MAIN_DIR).filter(f => f.endsWith('.png'))
     : [];
   const prFiles = fs.existsSync(PR_DIR)
-    ? fs.readdirSync(PR_DIR).filter(f => f.endsWith('.png') && f !== 'manifest.json')
+    ? fs.readdirSync(PR_DIR).filter(f => f.endsWith('.png'))
     : [];
 
   const allPages = new Set([...mainFiles, ...prFiles]);

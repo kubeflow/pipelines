@@ -2,13 +2,13 @@
 /**
  * PR Upload Script
  *
- * Uploads comparison screenshots to a GitHub PR as a comment.
- * Uses GitHub CLI for authentication and imgbb/imgur for image hosting.
+ * Generates a markdown summary of UI smoke test comparison results
+ * and posts it as a comment on a GitHub PR using the GitHub CLI.
  *
  * Usage: node upload-to-pr.js --pr 12756 --repo kubeflow/pipelines --screenshots ./screenshots/comparison
  */
 
-const { execSync, spawn } = require('child_process');
+const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -41,24 +41,6 @@ function runCommand(cmd, options = {}) {
     }
     return null;
   }
-}
-
-/**
- * Upload image to GitHub as a release asset or via issue attachment workaround
- * Returns the URL of the uploaded image
- */
-async function uploadImageToGitHub(imagePath) {
-  // GitHub doesn't have a direct image upload API for comments
-  // Options:
-  // 1. Use a third-party image host
-  // 2. Create a gist with the image (base64 encoded)
-  // 3. Upload as release asset
-  // 4. Use the drag-drop workaround (manual)
-
-  // For automation, we'll create a summary with local paths
-  // and instructions for viewing
-
-  return path.basename(imagePath);
 }
 
 /**
@@ -119,12 +101,9 @@ The comparison images are available in the CI artifacts. To view them:
 <summary>How to run locally</summary>
 
 \`\`\`bash
-cd frontend
+cd frontend/scripts/ui-smoke-test
 npm ci
-npm run build
-cd ../scripts/ui-smoke-test
-npm install
-./smoke-test.sh ${PR_NUMBER} --skip-upload
+node smoke-test-runner.js --compare master --pr ${PR_NUMBER} --skip-upload
 \`\`\`
 
 </details>
@@ -134,7 +113,8 @@ npm install
 }
 
 /**
- * Post comment to PR using gh CLI
+ * Post comment to PR using gh CLI.
+ * If an existing smoke test comment is found, edit it instead of creating a new one.
  */
 function postCommentToPR(markdown) {
   console.log(`Posting comment to PR #${PR_NUMBER}...`);
@@ -143,7 +123,22 @@ function postCommentToPR(markdown) {
   const tempFile = path.join(SCREENSHOTS_DIR, 'pr-comment.md');
   fs.writeFileSync(tempFile, markdown);
 
-  // Use gh CLI to post comment
+  const existingId = findExistingComment();
+
+  if (existingId) {
+    console.log(`Updating existing comment (ID: ${existingId})...`);
+    const result = runCommand(
+      `gh api repos/${REPO}/issues/comments/${existingId} -X PATCH -F body=@"${tempFile}"`,
+      { silent: false }
+    );
+
+    if (result !== null) {
+      console.log('✓ Comment updated successfully');
+      return true;
+    }
+    console.log('Failed to update existing comment, creating new one...');
+  }
+
   const result = runCommand(
     `gh pr comment ${PR_NUMBER} --repo ${REPO} --body-file "${tempFile}"`,
     { silent: false }
@@ -159,16 +154,16 @@ function postCommentToPR(markdown) {
 }
 
 /**
- * Check if there's already a smoke test comment and edit it instead
+ * Check if there's already a smoke test comment and return its ID for editing.
  */
 function findExistingComment() {
-  const comments = runCommand(
-    `gh pr view ${PR_NUMBER} --repo ${REPO} --json comments --jq '.comments[] | select(.body | contains("UI Smoke Test Results")) | .id'`,
+  const result = runCommand(
+    `gh api repos/${REPO}/issues/${PR_NUMBER}/comments --jq '.[] | select(.body | contains("UI Smoke Test Results")) | .id'`,
     { silent: true }
   );
 
-  if (comments) {
-    const ids = comments.split('\n').filter(Boolean);
+  if (result) {
+    const ids = result.split('\n').filter(Boolean);
     return ids[ids.length - 1]; // Return most recent
   }
   return null;
@@ -208,15 +203,7 @@ async function main() {
     process.exit(1);
   }
 
-  // Check for existing comment to update
-  const existingCommentId = findExistingComment();
-  if (existingCommentId) {
-    console.log(`Found existing smoke test comment (ID: ${existingCommentId})`);
-    // gh doesn't support editing comments directly, so we'll add a new one
-    // with a note that it supersedes the previous one
-  }
-
-  // Post the comment
+  // Post (or update existing) comment
   const success = postCommentToPR(markdown);
 
   if (success) {

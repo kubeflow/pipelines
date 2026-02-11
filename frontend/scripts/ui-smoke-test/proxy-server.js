@@ -96,6 +96,15 @@ function serveStatic(req, res) {
   }
 
   const filePath = path.join(BUILD_DIR, pathname);
+
+  // Prevent path traversal attacks
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(path.resolve(BUILD_DIR))) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
