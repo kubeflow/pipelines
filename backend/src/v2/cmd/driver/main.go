@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -144,6 +145,18 @@ func drive() (err error) {
 	ctx := context.Background()
 	if err = validate(); err != nil {
 		return err
+	}
+
+	// Support reading component spec from a file if value starts with @
+	// This bypasses exec() argument size limits for large workflows
+	if strings.HasPrefix(*componentSpecJson, "@") {
+		filePath := (*componentSpecJson)[1:] // Remove the "@" prefix
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to read component spec from file %s: %w", filePath, err)
+		}
+		*componentSpecJson = string(data)
+		glog.Infof("Read component spec from file: %s (%d bytes)", filePath, len(data))
 	}
 
 	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)

@@ -1,24 +1,25 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`PrivateAndSharedPipelines it renders correctly in multi user mode 1`] = `
-Object {
+exports[`PrivateAndSharedPipelines > it renders correctly in multi user mode 1`] = `
+{
   "asFragment": [Function],
   "baseElement": <body>
     <div>
       <div
-        class="page"
+        class="page_f1flacxk f1h5lfj6"
       >
         <div
-          class="tabs"
+          class="tabs_ff8rz57"
         >
           <div
-            class="indicator"
+            class="indicator_fp4eggn"
+            style="left: -5px; width: 5px; display: block;"
           />
           <span
             style="display: inline-block; min-width: 20px; width: 20px;"
           />
           <button
-            class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button active"
+            class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button_ff2g68i active_fz0wpsl"
             tabindex="0"
             title="Only people who have access to this namespace will be able to view and use these pipelines."
             type="button"
@@ -35,7 +36,7 @@ Object {
             />
           </button>
           <button
-            class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button"
+            class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button_ff2g68i"
             tabindex="0"
             title="Everyone in your organization will be able to view and use these pipelines."
             type="button"
@@ -53,30 +54,30 @@ Object {
           </button>
         </div>
         <div
-          class="page"
+          class="page_f1flacxk f9qqjqd"
         >
           <div
-            class="pageOverflowHidden"
+            class="pageOverflowHidden_f15djeb2"
           >
             <div>
               <div
-                class="MuiFormControl-root-38 filterBox"
+                class="MuiFormControl-root-38 filterBox_frxzdj2"
                 spellcheck="false"
                 style="height: 48px; max-width: 100%; width: 100%;"
               >
                 <label
-                  class="MuiFormLabel-root-53 MuiInputLabel-root-42 noMargin MuiInputLabel-formControl-47 MuiInputLabel-animated-50 MuiInputLabel-shrink-49 MuiInputLabel-outlined-52"
+                  class="MuiFormLabel-root-53 MuiInputLabel-root-42 noMargin_fl8qkup MuiInputLabel-formControl-47 MuiInputLabel-animated-50 MuiInputLabel-shrink-49 MuiInputLabel-outlined-52"
                   data-shrink="true"
                   for="tableFilterBox"
                 >
                   Filter pipelines
                 </label>
                 <div
-                  class="MuiInputBase-root-73 MuiOutlinedInput-root-60 noLeftPadding MuiInputBase-formControl-74 MuiInputBase-adornedStart-77 MuiOutlinedInput-adornedStart-63"
+                  class="MuiInputBase-root-73 MuiOutlinedInput-root-60 noLeftPadding_f106pxd4 MuiInputBase-formControl-74 MuiInputBase-adornedStart-77 MuiOutlinedInput-adornedStart-63"
                 >
                   <fieldset
                     aria-hidden="true"
-                    class="MuiPrivateNotchedOutline-root-90 MuiOutlinedInput-notchedOutline-67 filterBorderRadius"
+                    class="MuiPrivateNotchedOutline-root-90 MuiOutlinedInput-notchedOutline-67 filterBorderRadius_f1ypp5hy"
                     style="padding-left: 8px;"
                   >
                     <legend
@@ -119,10 +120,10 @@ Object {
               </div>
             </div>
             <div
-              class="header"
+              class="header_f15jqnss"
             >
               <div
-                class="columnName cell selectionToggle"
+                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
               >
                 <span
                   class="MuiButtonBase-root-35 MuiIconButton-root-116 MuiPrivateSwitchBase-root-112 MuiCheckbox-root-106 MuiCheckbox-colorPrimary-110"
@@ -157,12 +158,12 @@ Object {
                 />
               </div>
               <div
-                class="columnName"
+                class="columnName_f1kdqshe"
                 style="width: 20%;"
                 title="Pipeline name"
               >
                 <span
-                  class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis"
+                  class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis_f15ay66x"
                   role="button"
                   tabindex="0"
                   title="Sort"
@@ -182,12 +183,12 @@ Object {
                 </span>
               </div>
               <div
-                class="columnName"
+                class="columnName_f1kdqshe"
                 style="width: 60%;"
                 title="Description"
               >
                 <span
-                  class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis"
+                  class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis_f15ay66x"
                   role="button"
                   tabindex="0"
                   title="Cannot sort by this column"
@@ -207,12 +208,12 @@ Object {
                 </span>
               </div>
               <div
-                class="columnName"
+                class="columnName_f1kdqshe"
                 style="width: 20%;"
                 title="Uploaded on"
               >
                 <span
-                  class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 MuiTableSortLabel-active-123 ellipsis"
+                  class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 MuiTableSortLabel-active-123 ellipsis_f15ay66x"
                   role="button"
                   tabindex="0"
                   title="Sort"
@@ -233,22 +234,22 @@ Object {
               </div>
             </div>
             <div
-              class="scrollContainer"
+              class="scrollContainer_fea2b5v"
               style="min-height: 60px;"
             >
               <div
-                class="expandableContainer"
+                class="expandableContainer_f1l0zr01"
               >
                 <div
                   aria-checked="false"
-                  class="tableRow row"
+                  class="tableRow row_f12b5y4d"
                   data-row-id="run-pipeline-id"
                   data-testid="table-row"
                   role="checkbox"
                   tabindex="-1"
                 >
                   <div
-                    class="cell selectionToggle"
+                    class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                   >
                     <span
                       class="MuiButtonBase-root-35 MuiIconButton-root-116 MuiPrivateSwitchBase-root-112 MuiCheckbox-root-106 MuiCheckbox-colorPrimary-110"
@@ -280,7 +281,7 @@ Object {
                     </span>
                     <button
                       aria-label="Expand"
-                      class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton"
+                      class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton_fcy5tjm"
                       tabindex="0"
                       type="button"
                     >
@@ -309,11 +310,11 @@ Object {
                     </button>
                   </div>
                   <div
-                    class="cell"
+                    class="cell_fy8nr2z"
                     style="width: 20%;"
                   >
                     <a
-                      class="link"
+                      class="link_f3dwag7"
                       href="/pipelines/details/run-pipeline-id"
                       title="Name: mock-pipeline-name"
                     >
@@ -321,7 +322,7 @@ Object {
                     </a>
                   </div>
                   <div
-                    class="cell"
+                    class="cell_fy8nr2z"
                     style="width: 60%;"
                   >
                     <span>
@@ -329,7 +330,7 @@ Object {
                     </span>
                   </div>
                   <div
-                    class="cell"
+                    class="cell_fy8nr2z"
                     style="width: 20%;"
                   >
                     9/21/2022, 1:53:59 PM
@@ -337,18 +338,18 @@ Object {
                 </div>
               </div>
               <div
-                class="expandableContainer"
+                class="expandableContainer_f1l0zr01"
               >
                 <div
                   aria-checked="false"
-                  class="tableRow row"
+                  class="tableRow row_f12b5y4d"
                   data-row-id="run-pipeline-id"
                   data-testid="table-row"
                   role="checkbox"
                   tabindex="-1"
                 >
                   <div
-                    class="cell selectionToggle"
+                    class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                   >
                     <span
                       class="MuiButtonBase-root-35 MuiIconButton-root-116 MuiPrivateSwitchBase-root-112 MuiCheckbox-root-106 MuiCheckbox-colorPrimary-110"
@@ -380,7 +381,7 @@ Object {
                     </span>
                     <button
                       aria-label="Expand"
-                      class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton"
+                      class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton_fcy5tjm"
                       tabindex="0"
                       type="button"
                     >
@@ -409,11 +410,11 @@ Object {
                     </button>
                   </div>
                   <div
-                    class="cell"
+                    class="cell_fy8nr2z"
                     style="width: 20%;"
                   >
                     <a
-                      class="link"
+                      class="link_f3dwag7"
                       href="/pipelines/details/run-pipeline-id"
                       title="Name: mock-pipeline-name"
                     >
@@ -421,7 +422,7 @@ Object {
                     </a>
                   </div>
                   <div
-                    class="cell"
+                    class="cell_fy8nr2z"
                     style="width: 60%;"
                   >
                     <span>
@@ -429,7 +430,7 @@ Object {
                     </span>
                   </div>
                   <div
-                    class="cell"
+                    class="cell_fy8nr2z"
                     style="width: 20%;"
                   >
                     9/21/2022, 1:53:59 PM
@@ -438,15 +439,15 @@ Object {
               </div>
             </div>
             <div
-              class="footer"
+              class="footer_f1fl9hjk"
             >
               <span
-                class=""
+                class="fzbgmju"
               >
                 Rows per page:
               </span>
               <div
-                class="MuiFormControl-root-38 verticalAlignInitial rowsPerPage"
+                class="MuiFormControl-root-38 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
               >
                 <div
                   class="MuiInputBase-root-73 MuiInput-root-134 MuiInputBase-formControl-74 MuiInput-formControl-135"
@@ -541,19 +542,20 @@ Object {
   </body>,
   "container": <div>
     <div
-      class="page"
+      class="page_f1flacxk f1h5lfj6"
     >
       <div
-        class="tabs"
+        class="tabs_ff8rz57"
       >
         <div
-          class="indicator"
+          class="indicator_fp4eggn"
+          style="left: -5px; width: 5px; display: block;"
         />
         <span
           style="display: inline-block; min-width: 20px; width: 20px;"
         />
         <button
-          class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button active"
+          class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button_ff2g68i active_fz0wpsl"
           tabindex="0"
           title="Only people who have access to this namespace will be able to view and use these pipelines."
           type="button"
@@ -570,7 +572,7 @@ Object {
           />
         </button>
         <button
-          class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button"
+          class="MuiButtonBase-root-35 MuiButton-root-9 MuiButton-text-11 MuiButton-flat-14 button_ff2g68i"
           tabindex="0"
           title="Everyone in your organization will be able to view and use these pipelines."
           type="button"
@@ -588,30 +590,30 @@ Object {
         </button>
       </div>
       <div
-        class="page"
+        class="page_f1flacxk f9qqjqd"
       >
         <div
-          class="pageOverflowHidden"
+          class="pageOverflowHidden_f15djeb2"
         >
           <div>
             <div
-              class="MuiFormControl-root-38 filterBox"
+              class="MuiFormControl-root-38 filterBox_frxzdj2"
               spellcheck="false"
               style="height: 48px; max-width: 100%; width: 100%;"
             >
               <label
-                class="MuiFormLabel-root-53 MuiInputLabel-root-42 noMargin MuiInputLabel-formControl-47 MuiInputLabel-animated-50 MuiInputLabel-shrink-49 MuiInputLabel-outlined-52"
+                class="MuiFormLabel-root-53 MuiInputLabel-root-42 noMargin_fl8qkup MuiInputLabel-formControl-47 MuiInputLabel-animated-50 MuiInputLabel-shrink-49 MuiInputLabel-outlined-52"
                 data-shrink="true"
                 for="tableFilterBox"
               >
                 Filter pipelines
               </label>
               <div
-                class="MuiInputBase-root-73 MuiOutlinedInput-root-60 noLeftPadding MuiInputBase-formControl-74 MuiInputBase-adornedStart-77 MuiOutlinedInput-adornedStart-63"
+                class="MuiInputBase-root-73 MuiOutlinedInput-root-60 noLeftPadding_f106pxd4 MuiInputBase-formControl-74 MuiInputBase-adornedStart-77 MuiOutlinedInput-adornedStart-63"
               >
                 <fieldset
                   aria-hidden="true"
-                  class="MuiPrivateNotchedOutline-root-90 MuiOutlinedInput-notchedOutline-67 filterBorderRadius"
+                  class="MuiPrivateNotchedOutline-root-90 MuiOutlinedInput-notchedOutline-67 filterBorderRadius_f1ypp5hy"
                   style="padding-left: 8px;"
                 >
                   <legend
@@ -654,10 +656,10 @@ Object {
             </div>
           </div>
           <div
-            class="header"
+            class="header_f15jqnss"
           >
             <div
-              class="columnName cell selectionToggle"
+              class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
                 class="MuiButtonBase-root-35 MuiIconButton-root-116 MuiPrivateSwitchBase-root-112 MuiCheckbox-root-106 MuiCheckbox-colorPrimary-110"
@@ -692,12 +694,12 @@ Object {
               />
             </div>
             <div
-              class="columnName"
+              class="columnName_f1kdqshe"
               style="width: 20%;"
               title="Pipeline name"
             >
               <span
-                class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis"
+                class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis_f15ay66x"
                 role="button"
                 tabindex="0"
                 title="Sort"
@@ -717,12 +719,12 @@ Object {
               </span>
             </div>
             <div
-              class="columnName"
+              class="columnName_f1kdqshe"
               style="width: 60%;"
               title="Description"
             >
               <span
-                class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis"
+                class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 ellipsis_f15ay66x"
                 role="button"
                 tabindex="0"
                 title="Cannot sort by this column"
@@ -742,12 +744,12 @@ Object {
               </span>
             </div>
             <div
-              class="columnName"
+              class="columnName_f1kdqshe"
               style="width: 20%;"
               title="Uploaded on"
             >
               <span
-                class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 MuiTableSortLabel-active-123 ellipsis"
+                class="MuiButtonBase-root-35 MuiTableSortLabel-root-122 MuiTableSortLabel-active-123 ellipsis_f15ay66x"
                 role="button"
                 tabindex="0"
                 title="Sort"
@@ -768,22 +770,22 @@ Object {
             </div>
           </div>
           <div
-            class="scrollContainer"
+            class="scrollContainer_fea2b5v"
             style="min-height: 60px;"
           >
             <div
-              class="expandableContainer"
+              class="expandableContainer_f1l0zr01"
             >
               <div
                 aria-checked="false"
-                class="tableRow row"
+                class="tableRow row_f12b5y4d"
                 data-row-id="run-pipeline-id"
                 data-testid="table-row"
                 role="checkbox"
                 tabindex="-1"
               >
                 <div
-                  class="cell selectionToggle"
+                  class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                 >
                   <span
                     class="MuiButtonBase-root-35 MuiIconButton-root-116 MuiPrivateSwitchBase-root-112 MuiCheckbox-root-106 MuiCheckbox-colorPrimary-110"
@@ -815,7 +817,7 @@ Object {
                   </span>
                   <button
                     aria-label="Expand"
-                    class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton"
+                    class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton_fcy5tjm"
                     tabindex="0"
                     type="button"
                   >
@@ -844,11 +846,11 @@ Object {
                   </button>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   <a
-                    class="link"
+                    class="link_f3dwag7"
                     href="/pipelines/details/run-pipeline-id"
                     title="Name: mock-pipeline-name"
                   >
@@ -856,7 +858,7 @@ Object {
                   </a>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 60%;"
                 >
                   <span>
@@ -864,7 +866,7 @@ Object {
                   </span>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   9/21/2022, 1:53:59 PM
@@ -872,18 +874,18 @@ Object {
               </div>
             </div>
             <div
-              class="expandableContainer"
+              class="expandableContainer_f1l0zr01"
             >
               <div
                 aria-checked="false"
-                class="tableRow row"
+                class="tableRow row_f12b5y4d"
                 data-row-id="run-pipeline-id"
                 data-testid="table-row"
                 role="checkbox"
                 tabindex="-1"
               >
                 <div
-                  class="cell selectionToggle"
+                  class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                 >
                   <span
                     class="MuiButtonBase-root-35 MuiIconButton-root-116 MuiPrivateSwitchBase-root-112 MuiCheckbox-root-106 MuiCheckbox-colorPrimary-110"
@@ -915,7 +917,7 @@ Object {
                   </span>
                   <button
                     aria-label="Expand"
-                    class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton"
+                    class="MuiButtonBase-root-35 MuiIconButton-root-116 expandButton_fcy5tjm"
                     tabindex="0"
                     type="button"
                   >
@@ -944,11 +946,11 @@ Object {
                   </button>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   <a
-                    class="link"
+                    class="link_f3dwag7"
                     href="/pipelines/details/run-pipeline-id"
                     title="Name: mock-pipeline-name"
                   >
@@ -956,7 +958,7 @@ Object {
                   </a>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 60%;"
                 >
                   <span>
@@ -964,7 +966,7 @@ Object {
                   </span>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   9/21/2022, 1:53:59 PM
@@ -973,15 +975,15 @@ Object {
             </div>
           </div>
           <div
-            class="footer"
+            class="footer_f1fl9hjk"
           >
             <span
-              class=""
+              class="fzbgmju"
             >
               Rows per page:
             </span>
             <div
-              class="MuiFormControl-root-38 verticalAlignInitial rowsPerPage"
+              class="MuiFormControl-root-38 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
             >
               <div
                 class="MuiInputBase-root-73 MuiInput-root-134 MuiInputBase-formControl-74 MuiInput-formControl-135"
@@ -1127,36 +1129,36 @@ Object {
 }
 `;
 
-exports[`PrivateAndSharedPipelines it renders correctly in single user mode 1`] = `
-Object {
+exports[`PrivateAndSharedPipelines > it renders correctly in single user mode 1`] = `
+{
   "asFragment": [Function],
   "baseElement": <body>
     <div>
       <div
-        class="page"
+        class="page_f1flacxk f9qqjqd"
       >
         <div
-          class="pageOverflowHidden"
+          class="pageOverflowHidden_f15djeb2"
         >
           <div>
             <div
-              class="MuiFormControl-root-168 filterBox"
+              class="MuiFormControl-root-168 filterBox_frxzdj2"
               spellcheck="false"
               style="height: 48px; max-width: 100%; width: 100%;"
             >
               <label
-                class="MuiFormLabel-root-183 MuiInputLabel-root-172 noMargin MuiInputLabel-formControl-177 MuiInputLabel-animated-180 MuiInputLabel-shrink-179 MuiInputLabel-outlined-182"
+                class="MuiFormLabel-root-183 MuiInputLabel-root-172 noMargin_fl8qkup MuiInputLabel-formControl-177 MuiInputLabel-animated-180 MuiInputLabel-shrink-179 MuiInputLabel-outlined-182"
                 data-shrink="true"
                 for="tableFilterBox"
               >
                 Filter pipelines
               </label>
               <div
-                class="MuiInputBase-root-203 MuiOutlinedInput-root-190 noLeftPadding MuiInputBase-formControl-204 MuiInputBase-adornedStart-207 MuiOutlinedInput-adornedStart-193"
+                class="MuiInputBase-root-203 MuiOutlinedInput-root-190 noLeftPadding_f106pxd4 MuiInputBase-formControl-204 MuiInputBase-adornedStart-207 MuiOutlinedInput-adornedStart-193"
               >
                 <fieldset
                   aria-hidden="true"
-                  class="MuiPrivateNotchedOutline-root-220 MuiOutlinedInput-notchedOutline-197 filterBorderRadius"
+                  class="MuiPrivateNotchedOutline-root-220 MuiOutlinedInput-notchedOutline-197 filterBorderRadius_f1ypp5hy"
                   style="padding-left: 8px;"
                 >
                   <legend
@@ -1199,10 +1201,10 @@ Object {
             </div>
           </div>
           <div
-            class="header"
+            class="header_f15jqnss"
           >
             <div
-              class="columnName cell selectionToggle"
+              class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
                 class="MuiButtonBase-root-252 MuiIconButton-root-246 MuiPrivateSwitchBase-root-242 MuiCheckbox-root-236 MuiCheckbox-colorPrimary-240"
@@ -1237,12 +1239,12 @@ Object {
               />
             </div>
             <div
-              class="columnName"
+              class="columnName_f1kdqshe"
               style="width: 20%;"
               title="Pipeline name"
             >
               <span
-                class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis"
+                class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis_f15ay66x"
                 role="button"
                 tabindex="0"
                 title="Sort"
@@ -1262,12 +1264,12 @@ Object {
               </span>
             </div>
             <div
-              class="columnName"
+              class="columnName_f1kdqshe"
               style="width: 60%;"
               title="Description"
             >
               <span
-                class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis"
+                class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis_f15ay66x"
                 role="button"
                 tabindex="0"
                 title="Cannot sort by this column"
@@ -1287,12 +1289,12 @@ Object {
               </span>
             </div>
             <div
-              class="columnName"
+              class="columnName_f1kdqshe"
               style="width: 20%;"
               title="Uploaded on"
             >
               <span
-                class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 MuiTableSortLabel-active-264 ellipsis"
+                class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 MuiTableSortLabel-active-264 ellipsis_f15ay66x"
                 role="button"
                 tabindex="0"
                 title="Sort"
@@ -1313,22 +1315,22 @@ Object {
             </div>
           </div>
           <div
-            class="scrollContainer"
+            class="scrollContainer_fea2b5v"
             style="min-height: 60px;"
           >
             <div
-              class="expandableContainer"
+              class="expandableContainer_f1l0zr01"
             >
               <div
                 aria-checked="false"
-                class="tableRow row"
+                class="tableRow row_f12b5y4d"
                 data-row-id="run-pipeline-id"
                 data-testid="table-row"
                 role="checkbox"
                 tabindex="-1"
               >
                 <div
-                  class="cell selectionToggle"
+                  class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                 >
                   <span
                     class="MuiButtonBase-root-252 MuiIconButton-root-246 MuiPrivateSwitchBase-root-242 MuiCheckbox-root-236 MuiCheckbox-colorPrimary-240"
@@ -1360,7 +1362,7 @@ Object {
                   </span>
                   <button
                     aria-label="Expand"
-                    class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton"
+                    class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton_fcy5tjm"
                     tabindex="0"
                     type="button"
                   >
@@ -1389,11 +1391,11 @@ Object {
                   </button>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   <a
-                    class="link"
+                    class="link_f3dwag7"
                     href="/pipelines/details/run-pipeline-id"
                     title="Name: mock-pipeline-name"
                   >
@@ -1401,7 +1403,7 @@ Object {
                   </a>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 60%;"
                 >
                   <span>
@@ -1409,7 +1411,7 @@ Object {
                   </span>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   9/21/2022, 1:53:59 PM
@@ -1417,18 +1419,18 @@ Object {
               </div>
             </div>
             <div
-              class="expandableContainer"
+              class="expandableContainer_f1l0zr01"
             >
               <div
                 aria-checked="false"
-                class="tableRow row"
+                class="tableRow row_f12b5y4d"
                 data-row-id="run-pipeline-id"
                 data-testid="table-row"
                 role="checkbox"
                 tabindex="-1"
               >
                 <div
-                  class="cell selectionToggle"
+                  class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                 >
                   <span
                     class="MuiButtonBase-root-252 MuiIconButton-root-246 MuiPrivateSwitchBase-root-242 MuiCheckbox-root-236 MuiCheckbox-colorPrimary-240"
@@ -1460,7 +1462,7 @@ Object {
                   </span>
                   <button
                     aria-label="Expand"
-                    class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton"
+                    class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton_fcy5tjm"
                     tabindex="0"
                     type="button"
                   >
@@ -1489,11 +1491,11 @@ Object {
                   </button>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   <a
-                    class="link"
+                    class="link_f3dwag7"
                     href="/pipelines/details/run-pipeline-id"
                     title="Name: mock-pipeline-name"
                   >
@@ -1501,7 +1503,7 @@ Object {
                   </a>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 60%;"
                 >
                   <span>
@@ -1509,7 +1511,7 @@ Object {
                   </span>
                 </div>
                 <div
-                  class="cell"
+                  class="cell_fy8nr2z"
                   style="width: 20%;"
                 >
                   9/21/2022, 1:53:59 PM
@@ -1518,15 +1520,15 @@ Object {
             </div>
           </div>
           <div
-            class="footer"
+            class="footer_f1fl9hjk"
           >
             <span
-              class=""
+              class="fzbgmju"
             >
               Rows per page:
             </span>
             <div
-              class="MuiFormControl-root-168 verticalAlignInitial rowsPerPage"
+              class="MuiFormControl-root-168 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
             >
               <div
                 class="MuiInputBase-root-203 MuiInput-root-275 MuiInputBase-formControl-204 MuiInput-formControl-276"
@@ -1620,30 +1622,30 @@ Object {
   </body>,
   "container": <div>
     <div
-      class="page"
+      class="page_f1flacxk f9qqjqd"
     >
       <div
-        class="pageOverflowHidden"
+        class="pageOverflowHidden_f15djeb2"
       >
         <div>
           <div
-            class="MuiFormControl-root-168 filterBox"
+            class="MuiFormControl-root-168 filterBox_frxzdj2"
             spellcheck="false"
             style="height: 48px; max-width: 100%; width: 100%;"
           >
             <label
-              class="MuiFormLabel-root-183 MuiInputLabel-root-172 noMargin MuiInputLabel-formControl-177 MuiInputLabel-animated-180 MuiInputLabel-shrink-179 MuiInputLabel-outlined-182"
+              class="MuiFormLabel-root-183 MuiInputLabel-root-172 noMargin_fl8qkup MuiInputLabel-formControl-177 MuiInputLabel-animated-180 MuiInputLabel-shrink-179 MuiInputLabel-outlined-182"
               data-shrink="true"
               for="tableFilterBox"
             >
               Filter pipelines
             </label>
             <div
-              class="MuiInputBase-root-203 MuiOutlinedInput-root-190 noLeftPadding MuiInputBase-formControl-204 MuiInputBase-adornedStart-207 MuiOutlinedInput-adornedStart-193"
+              class="MuiInputBase-root-203 MuiOutlinedInput-root-190 noLeftPadding_f106pxd4 MuiInputBase-formControl-204 MuiInputBase-adornedStart-207 MuiOutlinedInput-adornedStart-193"
             >
               <fieldset
                 aria-hidden="true"
-                class="MuiPrivateNotchedOutline-root-220 MuiOutlinedInput-notchedOutline-197 filterBorderRadius"
+                class="MuiPrivateNotchedOutline-root-220 MuiOutlinedInput-notchedOutline-197 filterBorderRadius_f1ypp5hy"
                 style="padding-left: 8px;"
               >
                 <legend
@@ -1686,10 +1688,10 @@ Object {
           </div>
         </div>
         <div
-          class="header"
+          class="header_f15jqnss"
         >
           <div
-            class="columnName cell selectionToggle"
+            class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
           >
             <span
               class="MuiButtonBase-root-252 MuiIconButton-root-246 MuiPrivateSwitchBase-root-242 MuiCheckbox-root-236 MuiCheckbox-colorPrimary-240"
@@ -1724,12 +1726,12 @@ Object {
             />
           </div>
           <div
-            class="columnName"
+            class="columnName_f1kdqshe"
             style="width: 20%;"
             title="Pipeline name"
           >
             <span
-              class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis"
+              class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis_f15ay66x"
               role="button"
               tabindex="0"
               title="Sort"
@@ -1749,12 +1751,12 @@ Object {
             </span>
           </div>
           <div
-            class="columnName"
+            class="columnName_f1kdqshe"
             style="width: 60%;"
             title="Description"
           >
             <span
-              class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis"
+              class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 ellipsis_f15ay66x"
               role="button"
               tabindex="0"
               title="Cannot sort by this column"
@@ -1774,12 +1776,12 @@ Object {
             </span>
           </div>
           <div
-            class="columnName"
+            class="columnName_f1kdqshe"
             style="width: 20%;"
             title="Uploaded on"
           >
             <span
-              class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 MuiTableSortLabel-active-264 ellipsis"
+              class="MuiButtonBase-root-252 MuiTableSortLabel-root-263 MuiTableSortLabel-active-264 ellipsis_f15ay66x"
               role="button"
               tabindex="0"
               title="Sort"
@@ -1800,22 +1802,22 @@ Object {
           </div>
         </div>
         <div
-          class="scrollContainer"
+          class="scrollContainer_fea2b5v"
           style="min-height: 60px;"
         >
           <div
-            class="expandableContainer"
+            class="expandableContainer_f1l0zr01"
           >
             <div
               aria-checked="false"
-              class="tableRow row"
+              class="tableRow row_f12b5y4d"
               data-row-id="run-pipeline-id"
               data-testid="table-row"
               role="checkbox"
               tabindex="-1"
             >
               <div
-                class="cell selectionToggle"
+                class="cell_fy8nr2z selectionToggle_f1ds3nvo"
               >
                 <span
                   class="MuiButtonBase-root-252 MuiIconButton-root-246 MuiPrivateSwitchBase-root-242 MuiCheckbox-root-236 MuiCheckbox-colorPrimary-240"
@@ -1847,7 +1849,7 @@ Object {
                 </span>
                 <button
                   aria-label="Expand"
-                  class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton"
+                  class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton_fcy5tjm"
                   tabindex="0"
                   type="button"
                 >
@@ -1876,11 +1878,11 @@ Object {
                 </button>
               </div>
               <div
-                class="cell"
+                class="cell_fy8nr2z"
                 style="width: 20%;"
               >
                 <a
-                  class="link"
+                  class="link_f3dwag7"
                   href="/pipelines/details/run-pipeline-id"
                   title="Name: mock-pipeline-name"
                 >
@@ -1888,7 +1890,7 @@ Object {
                 </a>
               </div>
               <div
-                class="cell"
+                class="cell_fy8nr2z"
                 style="width: 60%;"
               >
                 <span>
@@ -1896,7 +1898,7 @@ Object {
                 </span>
               </div>
               <div
-                class="cell"
+                class="cell_fy8nr2z"
                 style="width: 20%;"
               >
                 9/21/2022, 1:53:59 PM
@@ -1904,18 +1906,18 @@ Object {
             </div>
           </div>
           <div
-            class="expandableContainer"
+            class="expandableContainer_f1l0zr01"
           >
             <div
               aria-checked="false"
-              class="tableRow row"
+              class="tableRow row_f12b5y4d"
               data-row-id="run-pipeline-id"
               data-testid="table-row"
               role="checkbox"
               tabindex="-1"
             >
               <div
-                class="cell selectionToggle"
+                class="cell_fy8nr2z selectionToggle_f1ds3nvo"
               >
                 <span
                   class="MuiButtonBase-root-252 MuiIconButton-root-246 MuiPrivateSwitchBase-root-242 MuiCheckbox-root-236 MuiCheckbox-colorPrimary-240"
@@ -1947,7 +1949,7 @@ Object {
                 </span>
                 <button
                   aria-label="Expand"
-                  class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton"
+                  class="MuiButtonBase-root-252 MuiIconButton-root-246 expandButton_fcy5tjm"
                   tabindex="0"
                   type="button"
                 >
@@ -1976,11 +1978,11 @@ Object {
                 </button>
               </div>
               <div
-                class="cell"
+                class="cell_fy8nr2z"
                 style="width: 20%;"
               >
                 <a
-                  class="link"
+                  class="link_f3dwag7"
                   href="/pipelines/details/run-pipeline-id"
                   title="Name: mock-pipeline-name"
                 >
@@ -1988,7 +1990,7 @@ Object {
                 </a>
               </div>
               <div
-                class="cell"
+                class="cell_fy8nr2z"
                 style="width: 60%;"
               >
                 <span>
@@ -1996,7 +1998,7 @@ Object {
                 </span>
               </div>
               <div
-                class="cell"
+                class="cell_fy8nr2z"
                 style="width: 20%;"
               >
                 9/21/2022, 1:53:59 PM
@@ -2005,15 +2007,15 @@ Object {
           </div>
         </div>
         <div
-          class="footer"
+          class="footer_f1fl9hjk"
         >
           <span
-            class=""
+            class="fzbgmju"
           >
             Rows per page:
           </span>
           <div
-            class="MuiFormControl-root-168 verticalAlignInitial rowsPerPage"
+            class="MuiFormControl-root-168 verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
           >
             <div
               class="MuiInputBase-root-203 MuiInput-root-275 MuiInputBase-formControl-204 MuiInput-formControl-276"

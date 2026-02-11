@@ -15,19 +15,22 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
+import { fireEvent, render, screen } from '@testing-library/react';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
+import TestUtils from '../../TestUtils';
 
 describe('PagedTable', () => {
   it('does not break on no config', () => {
-    const tree = shallow(<PagedTable configs={[]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<PagedTable configs={[]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('does not break on empty data', () => {
-    const tree = shallow(<PagedTable configs={[{ data: [], labels: [], type: PlotType.TABLE }]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(
+      <PagedTable configs={[{ data: [], labels: [], type: PlotType.TABLE }]} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
   const data = [
@@ -37,37 +40,38 @@ describe('PagedTable', () => {
   const labels = ['field1', 'field2', 'field3'];
 
   it('renders simple data', () => {
-    const tree = shallow(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(
+      <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders simple data without labels', () => {
-    const tree = shallow(<PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(
+      <PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('sorts on first column descending', () => {
-    const tree = shallow(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(0)
-      .simulate('click');
-    expect(tree).toMatchSnapshot();
+  it('sorts on first column descending', async () => {
+    const { asFragment } = render(
+      <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
+    );
+    fireEvent.click(screen.getByText(labels[0]));
+    await TestUtils.flushPromises();
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('sorts on first column ascending', () => {
-    const tree = shallow(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
-    // Once for descending
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(0)
-      .simulate('click');
-    // Once for ascending
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(0)
-      .simulate('click');
-    expect(tree).toMatchSnapshot();
+  it('sorts on first column ascending', async () => {
+    const { asFragment } = render(
+      <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
+    );
+    // Once for descending.
+    fireEvent.click(screen.getByText(labels[0]));
+    // Once for ascending.
+    fireEvent.click(screen.getByText(labels[0]));
+    await TestUtils.flushPromises();
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('returns a user friendly display name', () => {

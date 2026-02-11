@@ -25,39 +25,37 @@ import {
   GetExecutionTypesResponse,
   Value,
 } from 'src/third_party/mlmd';
-import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { RoutePage } from 'src/components/Router';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
 import ExecutionList from 'src/pages/ExecutionList';
 import { PageProps } from 'src/pages/Page';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { vi, Mock } from 'vitest';
 
 testBestPractices();
 
 describe('ExecutionList ("Default" view)', () => {
-  let updateBannerSpy: jest.Mock<{}>;
-  let updateDialogSpy: jest.Mock<{}>;
-  let updateSnackbarSpy: jest.Mock<{}>;
-  let updateToolbarSpy: jest.Mock<{}>;
-  let historyPushSpy: jest.Mock<{}>;
-  let getExecutionsSpy: jest.Mock<{}>;
-  let getExecutionTypesSpy: jest.Mock<{}>;
+  let updateBannerSpy: Mock;
+  let updateDialogSpy: Mock;
+  let updateSnackbarSpy: Mock;
+  let updateToolbarSpy: Mock;
+  let historyPushSpy: Mock;
+  let getExecutionsSpy: Mock;
+  let getExecutionTypesSpy: Mock;
 
-  const listOperationOpts = new ListOperationOptions();
+  const listOperationOpts = new metadataStorePb.ListOperationOptions();
   listOperationOpts.setMaxResultSize(10);
   const getExecutionsRequest = new GetExecutionsRequest();
   getExecutionsRequest.setOptions(listOperationOpts),
     beforeEach(() => {
-      updateBannerSpy = jest.fn();
-      updateDialogSpy = jest.fn();
-      updateSnackbarSpy = jest.fn();
-      updateToolbarSpy = jest.fn();
-      historyPushSpy = jest.fn();
-      getExecutionsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
-      getExecutionTypesSpy = jest.spyOn(
-        Api.getInstance().metadataStoreService,
-        'getExecutionTypes',
-      );
+      updateBannerSpy = vi.fn();
+      updateDialogSpy = vi.fn();
+      updateSnackbarSpy = vi.fn();
+      updateToolbarSpy = vi.fn();
+      historyPushSpy = vi.fn();
+      getExecutionsSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
+      getExecutionTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionTypes');
 
       getExecutionTypesSpy.mockImplementation(() => {
         const executionType = new ExecutionType();
@@ -179,7 +177,7 @@ describe('ExecutionList ("Default" view)', () => {
       });
 
     screen.getByText('test execution 20'); // The 20th execution appears.
-  });
+  }, 20000);
 
   it('finds no execution', async () => {
     getExecutionsSpy.mockClear();

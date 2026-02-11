@@ -61,7 +61,7 @@ describe('Css', () => {
     });
 
     it('calls internal padding with the same arguments', () => {
-      const spy = jest.spyOn(Css, 'padding');
+      const spy = vi.spyOn(Css, 'padding');
       Css.padding(123, 'abcdefg');
       expect(spy).toHaveBeenCalledWith(123, 'abcdefg');
     });

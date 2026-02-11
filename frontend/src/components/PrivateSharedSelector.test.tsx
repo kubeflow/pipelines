@@ -22,7 +22,7 @@ import { PipelineTabsHeaders } from '../pages/PrivateAndSharedPipelines';
 
 function generateProps(): PrivateSharedSelectorProps {
   return {
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
 }
 

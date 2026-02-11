@@ -33,9 +33,9 @@ import * as rocCurveHelper from './ROCCurveHelper';
 
 testBestPractices();
 describe('ConfidenceMetricsSection', () => {
-  const setSelectedIdsSpy = jest.fn();
-  const setSelectedIdColorMapSpy = jest.fn();
-  const setLineColorsStackSpy = jest.fn();
+  const setSelectedIdsSpy = vi.fn();
+  const setSelectedIdColorMapSpy = vi.fn();
+  const setLineColorsStackSpy = vi.fn();
 
   function newMockEvent(artifactId: number, executionId: number, displayName?: string): Event {
     const event = new Event();
@@ -86,7 +86,7 @@ describe('ConfidenceMetricsSection', () => {
       displayNameValue.setStringValue(displayName);
       customPropertiesMap.set('display_name', displayNameValue);
     }
-    jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+    vi.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
     return artifact;
   }
 
@@ -234,7 +234,7 @@ describe('ConfidenceMetricsSection', () => {
   });
 
   it('Error in confidenceMetrics data format', async () => {
-    const validateConfidenceMetricsSpy = jest.spyOn(rocCurveHelper, 'validateConfidenceMetrics');
+    const validateConfidenceMetricsSpy = vi.spyOn(rocCurveHelper, 'validateConfidenceMetrics');
     validateConfidenceMetricsSpy.mockReturnValue({
       error: 'test error',
     });

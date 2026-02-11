@@ -1,8 +1,8 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`BusyButton renders a primary outlined buton 1`] = `
+exports[`BusyButton > renders a primary outlined buton 1`] = `
 <button
-  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textPrimary-4 MuiButton-flat-6 MuiButton-flatPrimary-7 root"
+  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textPrimary-4 MuiButton-flat-6 MuiButton-flatPrimary-7 root_f1gmzqw4"
   disabled={false}
   onBlur={[Function]}
   onContextMenu={[Function]}
@@ -31,9 +31,9 @@ exports[`BusyButton renders a primary outlined buton 1`] = `
 </button>
 `;
 
-exports[`BusyButton renders disabled 1`] = `
+exports[`BusyButton > renders disabled 1`] = `
 <button
-  className="MuiButtonBase-root-27 MuiButtonBase-disabled-28 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 MuiButton-disabled-21 root"
+  className="MuiButtonBase-root-27 MuiButtonBase-disabled-28 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 MuiButton-disabled-21 root_f1gmzqw4"
   disabled={true}
   onBlur={[Function]}
   onContextMenu={[Function]}
@@ -54,7 +54,7 @@ exports[`BusyButton renders disabled 1`] = `
   >
     <svg
       aria-hidden="true"
-      className="MuiSvgIcon-root-37 icon"
+      className="MuiSvgIcon-root-37 icon_f1ojihnt"
       focusable="false"
       role="presentation"
       viewBox="0 0 24 24"
@@ -74,9 +74,9 @@ exports[`BusyButton renders disabled 1`] = `
 </button>
 `;
 
-exports[`BusyButton renders with a title and icon 1`] = `
+exports[`BusyButton > renders with a title and icon 1`] = `
 <button
-  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 root"
+  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 root_f1gmzqw4"
   disabled={false}
   onBlur={[Function]}
   onContextMenu={[Function]}
@@ -97,7 +97,7 @@ exports[`BusyButton renders with a title and icon 1`] = `
   >
     <svg
       aria-hidden="true"
-      className="MuiSvgIcon-root-37 icon"
+      className="MuiSvgIcon-root-37 icon_f1ojihnt"
       focusable="false"
       role="presentation"
       viewBox="0 0 24 24"
@@ -120,9 +120,9 @@ exports[`BusyButton renders with a title and icon 1`] = `
 </button>
 `;
 
-exports[`BusyButton renders with a title and icon, and busy 1`] = `
+exports[`BusyButton > renders with a title and icon, and busy 1`] = `
 <button
-  className="MuiButtonBase-root-27 MuiButtonBase-disabled-28 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 MuiButton-disabled-21 root rootBusy"
+  className="MuiButtonBase-root-27 MuiButtonBase-disabled-28 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 MuiButton-disabled-21 root_f1gmzqw4 rootBusy_fronhm5"
   disabled={true}
   onBlur={[Function]}
   onContextMenu={[Function]}
@@ -143,7 +143,7 @@ exports[`BusyButton renders with a title and icon, and busy 1`] = `
   >
     <svg
       aria-hidden="true"
-      className="MuiSvgIcon-root-37 icon"
+      className="MuiSvgIcon-root-37 icon_f1ojihnt"
       focusable="false"
       role="presentation"
       viewBox="0 0 24 24"
@@ -160,10 +160,10 @@ exports[`BusyButton renders with a title and icon, and busy 1`] = `
       test busy button
     </span>
     <div
-      className="MuiCircularProgress-root-46 MuiCircularProgress-colorPrimary-49 MuiCircularProgress-indeterminate-48 spinner spinnerBusy"
+      className="MuiCircularProgress-root-46 MuiCircularProgress-colorPrimary-49 MuiCircularProgress-indeterminate-48 spinner_fiqr0h3 spinnerBusy_f1wemlvb"
       role="progressbar"
       style={
-        Object {
+        {
           "height": 15,
           "width": 15,
         }
@@ -180,7 +180,7 @@ exports[`BusyButton renders with a title and icon, and busy 1`] = `
           fill="none"
           r={20.2}
           strokeWidth={3.6}
-          style={Object {}}
+          style={{}}
         />
       </svg>
     </div>
@@ -188,9 +188,9 @@ exports[`BusyButton renders with a title and icon, and busy 1`] = `
 </button>
 `;
 
-exports[`BusyButton renders with just a title 1`] = `
+exports[`BusyButton > renders with just a title 1`] = `
 <button
-  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 root"
+  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 root_f1gmzqw4"
   disabled={false}
   onBlur={[Function]}
   onContextMenu={[Function]}

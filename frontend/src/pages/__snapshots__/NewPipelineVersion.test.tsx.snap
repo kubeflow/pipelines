@@ -1,219 +1,515 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 1`] = `
-<div
-  className="page"
->
+exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline page 1`] = `
+<DocumentFragment>
   <div
-    className="scrollContainer"
+    class="page_f1flacxk f9qqjqd"
   >
     <div
-      className=""
+      class="scrollContainer_fea2b5v f9qqjqd"
     >
-      Upload pipeline or pipeline version.
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(WithFormControlContext(FormControlLabel))
-        checked={true}
-        control={
-          <WithStyles(Radio)
-            color="primary"
-          />
-        }
-        id="createNewPipelineBtn"
-        label="Create a new pipeline"
-        onChange={[Function]}
-      />
-      <WithStyles(WithFormControlContext(FormControlLabel))
-        checked={false}
-        control={
-          <WithStyles(Radio)
-            color="primary"
-          />
-        }
-        id="createPipelineVersionUnderExistingPipelineBtn"
-        label="Create a new pipeline version under an existing pipeline"
-        onChange={[Function]}
-      />
-    </div>
-    <div>
-      Upload pipeline with the specified package.
-    </div>
-    <Input
-      autoFocus={true}
-      id="newPipelineName"
-      inputRef={
-        Object {
-          "current": null,
-        }
-      }
-      label="Pipeline Name"
-      onChange={[Function]}
-      required={true}
-      value=""
-      variant="outlined"
-    />
-    <Input
-      autoFocus={true}
-      id="pipelineDescription"
-      inputRef={
-        Object {
-          "current": null,
-        }
-      }
-      label="Pipeline Description"
-      onChange={[Function]}
-      required={false}
-      value=""
-      variant="outlined"
-    />
-    <div
-      className=""
-    >
-      URL must be publicly accessible.
-    </div>
-    <DocumentationCompilePipeline />
-    <div
-      className="flex"
-    >
-      <WithStyles(WithFormControlContext(FormControlLabel))
-        checked={false}
-        control={
-          <WithStyles(Radio)
-            color="primary"
-          />
-        }
-        id="localPackageBtn"
-        label="Upload a file"
-        onChange={[Function]}
-      />
-      <n
-        accept=".yaml,.yml,.zip,.tar.gz"
-        disableClick={true}
-        disablePreview={false}
-        disabled={true}
-        getDataTransferItems={[Function]}
-        id="dropZone"
-        inputProps={
-          Object {
-            "tabIndex": -1,
-          }
-        }
-        maxSize={Infinity}
-        minSize={0}
-        multiple={true}
-        onDragEnter={[Function]}
-        onDragLeave={[Function]}
-        onDrop={[Function]}
-        preventDropOnDocument={true}
-        style={
-          Object {
-            "position": "relative",
-          }
-        }
-      >
-        <Input
-          InputProps={
-            Object {
-              "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
-                position="end"
-              >
-                <WithStyles(Button)
-                  color="secondary"
-                  disabled={true}
-                  onClick={[Function]}
-                  style={
-                    Object {
-                      "margin": 0,
-                      "padding": "3px 5px",
-                      "whiteSpace": "nowrap",
-                    }
-                  }
-                >
-                  Choose file
-                </WithStyles(Button)>
-              </WithStyles(WithFormControlContext(InputAdornment))>,
-              "readOnly": true,
-              "style": Object {
-                "maxWidth": 2000,
-                "width": 455,
-              },
-            }
-          }
-          data-testid="uploadFileInput"
-          disabled={true}
-          label="File"
-          onChange={[Function]}
-          required={true}
-          value=""
-          variant="outlined"
-        />
-      </n>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(WithFormControlContext(FormControlLabel))
-        checked={true}
-        control={
-          <WithStyles(Radio)
-            color="primary"
-          />
-        }
-        id="remotePackageBtn"
-        label="Import by url"
-        onChange={[Function]}
-      />
-      <Input
-        disabled={false}
-        id="pipelinePackageUrl"
-        label="Package Url"
-        multiline={true}
-        onChange={[Function]}
-        style={
-          Object {
-            "maxWidth": 2000,
-            "width": 465,
-          }
-        }
-        value=""
-        variant="outlined"
-      />
-    </div>
-    <Input
-      id="pipelineVersionCodeSource"
-      label="Code Source"
-      multiline={true}
-      onChange={[Function]}
-      required={false}
-      value=""
-      variant="outlined"
-    />
-    <div
-      className="flex"
-    >
-      <BusyButton
-        busy={false}
-        className="buttonAction"
-        disabled={true}
-        id="createNewPipelineOrVersionBtn"
-        onClick={[Function]}
-        title="Create"
-      />
-      <WithStyles(Button)
-        id="cancelNewPipelineOrVersionBtn"
-        onClick={[Function]}
-      >
-        Cancel
-      </WithStyles(Button)>
       <div
-        className="errorMessage"
+        class="f1isojz5"
       >
-        Must specify either package url  or file in .yaml, .zip, or .tar.gz
+        Upload pipeline or pipeline version.
+      </div>
+      <div
+        class="flex_f16jawj4 f507s4l"
+      >
+        <label
+          class="MuiFormControlLabel-root-1467"
+          id="createNewPipelineBtn"
+        >
+          <span
+            class="MuiButtonBase-root-1488 MuiIconButton-root-1482 MuiPrivateSwitchBase-root-1478 MuiRadio-root-1473 MuiRadio-colorPrimary-1476 MuiPrivateSwitchBase-checked-1479 MuiRadio-checked-1474"
+          >
+            <span
+              class="MuiIconButton-label-1487"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-1491"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <input
+                checked=""
+                class="MuiPrivateSwitchBase-input-1481"
+                type="radio"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-1624"
+            />
+          </span>
+          <span
+            class="MuiTypography-root-1500 MuiTypography-body1-1509 MuiFormControlLabel-label-1472"
+          >
+            Create a new pipeline
+          </span>
+        </label>
+        <label
+          class="MuiFormControlLabel-root-1467"
+          id="createPipelineVersionUnderExistingPipelineBtn"
+        >
+          <span
+            class="MuiButtonBase-root-1488 MuiIconButton-root-1482 MuiPrivateSwitchBase-root-1478 MuiRadio-root-1473 MuiRadio-colorPrimary-1476"
+          >
+            <span
+              class="MuiIconButton-label-1487"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-1491"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <input
+                class="MuiPrivateSwitchBase-input-1481"
+                type="radio"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-1624"
+            />
+          </span>
+          <span
+            class="MuiTypography-root-1500 MuiTypography-body1-1509 MuiFormControlLabel-label-1472"
+          >
+            Create a new pipeline version under an existing pipeline
+          </span>
+        </label>
+      </div>
+      <div>
+        Upload pipeline with the specified package.
+      </div>
+      <div
+        class="MuiFormControl-root-1536 textField_f7kh2f6"
+        spellcheck="false"
+        style="height: 40px; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root-1551 MuiFormLabel-required-1556 MuiInputLabel-required-1544 MuiInputLabel-root-1540 MuiInputLabel-formControl-1545 MuiInputLabel-animated-1548 MuiInputLabel-outlined-1550"
+          data-shrink="false"
+          for="newPipelineName"
+        >
+          Pipeline Name
+          <span
+            class="MuiFormLabel-asterisk-1557"
+          >
+             *
+          </span>
+        </label>
+        <div
+          class="MuiInputBase-root-1571 MuiOutlinedInput-root-1558 MuiInputBase-formControl-1572"
+        >
+          <fieldset
+            aria-hidden="true"
+            class="MuiPrivateNotchedOutline-root-1588 MuiOutlinedInput-notchedOutline-1565"
+            style="padding-left: 8px;"
+          >
+            <legend
+              class="MuiPrivateNotchedOutline-legend-1589"
+              style="width: 0.01px;"
+            >
+              <span>
+                ​
+              </span>
+            </legend>
+          </fieldset>
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input-1581 MuiOutlinedInput-input-1566"
+            id="newPipelineName"
+            required=""
+            type="text"
+            value=""
+          />
+        </div>
+      </div>
+      <div
+        class="MuiFormControl-root-1536 textField_f7kh2f6"
+        spellcheck="false"
+        style="height: 40px; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root-1551 MuiFormLabel-focused-1552 MuiInputLabel-focused-1541 MuiInputLabel-root-1540 MuiInputLabel-formControl-1545 MuiInputLabel-animated-1548 MuiInputLabel-shrink-1547 MuiInputLabel-outlined-1550"
+          data-shrink="true"
+          for="pipelineDescription"
+        >
+          Pipeline Description
+        </label>
+        <div
+          class="MuiInputBase-root-1571 MuiOutlinedInput-root-1558 MuiInputBase-focused-1573 MuiOutlinedInput-focused-1559 MuiInputBase-formControl-1572"
+        >
+          <fieldset
+            aria-hidden="true"
+            class="MuiPrivateNotchedOutline-root-1588 MuiOutlinedInput-notchedOutline-1565"
+            style="padding-left: 8px;"
+          >
+            <legend
+              class="MuiPrivateNotchedOutline-legend-1589"
+              style="width: 0px;"
+            >
+              <span>
+                ​
+              </span>
+            </legend>
+          </fieldset>
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input-1581 MuiOutlinedInput-input-1566"
+            id="pipelineDescription"
+            type="text"
+            value=""
+          />
+        </div>
+      </div>
+      <div
+        class="f507s4l"
+      >
+        URL must be publicly accessible.
+      </div>
+      <div
+        class="f507s4l"
+      >
+        For expected file format, refer to 
+        <a
+          class="link_f1fk43bf"
+          href="https://www.kubeflow.org/docs/components/pipelines/v2/compile-a-pipeline/"
+          rel="noopener"
+          target="_blank"
+        >
+          Compile Pipeline Documentation
+        </a>
+        .
+      </div>
+      <div
+        class="flex_f16jawj4 f507s4l"
+      >
+        <label
+          class="MuiFormControlLabel-root-1467"
+          id="localPackageBtn"
+        >
+          <span
+            class="MuiButtonBase-root-1488 MuiIconButton-root-1482 MuiPrivateSwitchBase-root-1478 MuiRadio-root-1473 MuiRadio-colorPrimary-1476"
+          >
+            <span
+              class="MuiIconButton-label-1487"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-1491"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <input
+                class="MuiPrivateSwitchBase-input-1481"
+                type="radio"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-1624"
+            />
+          </span>
+          <span
+            class="MuiTypography-root-1500 MuiTypography-body1-1509 MuiFormControlLabel-label-1472"
+          >
+            Upload a file
+          </span>
+        </label>
+        <div
+          aria-disabled="true"
+          class=""
+          id="dropZone"
+          style="position: relative;"
+        >
+          <div
+            class="MuiFormControl-root-1536 textField_f7kh2f6"
+            data-testid="uploadFileInput"
+            spellcheck="false"
+            style="height: 40px; max-width: 600px; width: 100%;"
+          >
+            <label
+              class="MuiFormLabel-root-1551 MuiFormLabel-disabled-1553 MuiInputLabel-disabled-1542 MuiFormLabel-required-1556 MuiInputLabel-required-1544 MuiInputLabel-root-1540 MuiInputLabel-formControl-1545 MuiInputLabel-animated-1548 MuiInputLabel-outlined-1550"
+              data-shrink="false"
+            >
+              File
+              <span
+                class="MuiFormLabel-asterisk-1557"
+              >
+                 *
+              </span>
+            </label>
+            <div
+              class="MuiInputBase-root-1571 MuiOutlinedInput-root-1558 MuiInputBase-disabled-1574 MuiOutlinedInput-disabled-1560 MuiInputBase-formControl-1572 MuiInputBase-adornedEnd-1576 MuiOutlinedInput-adornedEnd-1562"
+              style="max-width: 2000px; width: 455px;"
+            >
+              <fieldset
+                aria-hidden="true"
+                class="MuiPrivateNotchedOutline-root-1588 MuiOutlinedInput-notchedOutline-1565"
+                style="padding-left: 8px;"
+              >
+                <legend
+                  class="MuiPrivateNotchedOutline-legend-1589"
+                  style="width: 0.01px;"
+                >
+                  <span>
+                    ​
+                  </span>
+                </legend>
+              </fieldset>
+              <input
+                aria-invalid="false"
+                class="MuiInputBase-input-1581 MuiOutlinedInput-input-1566 MuiInputBase-disabled-1574 MuiOutlinedInput-disabled-1560 MuiInputBase-inputAdornedEnd-1587 MuiOutlinedInput-inputAdornedEnd-1570"
+                disabled=""
+                readonly=""
+                required=""
+                type="text"
+                value=""
+              />
+              <div
+                class="MuiInputAdornment-root-1590 MuiInputAdornment-positionEnd-1593"
+              >
+                <button
+                  class="MuiButtonBase-root-1488 MuiButtonBase-disabled-1489 MuiButton-root-1595 MuiButton-text-1597 MuiButton-textSecondary-1599 MuiButton-flat-1600 MuiButton-flatSecondary-1602 MuiButton-disabled-1615"
+                  disabled=""
+                  style="padding: 3px 5px; margin: 0px; white-space: nowrap;"
+                  tabindex="-1"
+                  type="button"
+                >
+                  <span
+                    class="MuiButton-label-1596"
+                  >
+                    Choose file
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <input
+            accept=".yaml,.yml,.zip,.tar.gz"
+            autocomplete="off"
+            disabled=""
+            multiple=""
+            style="position: absolute; top: 0px; right: 0px; bottom: 0px; left: 0px; opacity: 0.00001; pointer-events: none;"
+            tabindex="-1"
+            type="file"
+          />
+        </div>
+      </div>
+      <div
+        class="flex_f16jawj4 f507s4l"
+      >
+        <label
+          class="MuiFormControlLabel-root-1467"
+          id="remotePackageBtn"
+        >
+          <span
+            class="MuiButtonBase-root-1488 MuiIconButton-root-1482 MuiPrivateSwitchBase-root-1478 MuiRadio-root-1473 MuiRadio-colorPrimary-1476 MuiPrivateSwitchBase-checked-1479 MuiRadio-checked-1474"
+          >
+            <span
+              class="MuiIconButton-label-1487"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root-1491"
+                focusable="false"
+                role="presentation"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <input
+                checked=""
+                class="MuiPrivateSwitchBase-input-1481"
+                type="radio"
+                value=""
+              />
+            </span>
+            <span
+              class="MuiTouchRipple-root-1624"
+            />
+          </span>
+          <span
+            class="MuiTypography-root-1500 MuiTypography-body1-1509 MuiFormControlLabel-label-1472"
+          >
+            Import by url
+          </span>
+        </label>
+        <div
+          class="MuiFormControl-root-1536 textField_f7kh2f6"
+          spellcheck="false"
+          style="max-width: 2000px; width: 465px;"
+        >
+          <label
+            class="MuiFormLabel-root-1551 MuiInputLabel-root-1540 MuiInputLabel-formControl-1545 MuiInputLabel-animated-1548 MuiInputLabel-outlined-1550"
+            data-shrink="false"
+            for="pipelinePackageUrl"
+          >
+            Package Url
+          </label>
+          <div
+            class="MuiInputBase-root-1571 MuiOutlinedInput-root-1558 MuiInputBase-formControl-1572 MuiInputBase-multiline-1579 MuiOutlinedInput-multiline-1564"
+          >
+            <fieldset
+              aria-hidden="true"
+              class="MuiPrivateNotchedOutline-root-1588 MuiOutlinedInput-notchedOutline-1565"
+              style="padding-left: 8px;"
+            >
+              <legend
+                class="MuiPrivateNotchedOutline-legend-1589"
+                style="width: 0.01px;"
+              >
+                <span>
+                  ​
+                </span>
+              </legend>
+            </fieldset>
+            <div
+              class="MuiPrivateTextarea-root-1621"
+            >
+              <textarea
+                aria-hidden="true"
+                class="MuiPrivateTextarea-textarea-1622 MuiPrivateTextarea-shadow-1623"
+                readonly=""
+                rows="1"
+                tabindex="-1"
+              />
+              <textarea
+                aria-hidden="true"
+                class="MuiPrivateTextarea-textarea-1622 MuiPrivateTextarea-shadow-1623"
+                readonly=""
+                rows="1"
+                tabindex="-1"
+              />
+              <textarea
+                aria-invalid="false"
+                class="MuiPrivateTextarea-textarea-1622 MuiInputBase-input-1581 MuiOutlinedInput-input-1566 MuiInputBase-inputMultiline-1583 MuiOutlinedInput-inputMultiline-1568"
+                id="pipelinePackageUrl"
+                rows="1"
+                style="height: 19px;"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="MuiFormControl-root-1536 textField_f7kh2f6"
+        spellcheck="false"
+        style="height: auto; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root-1551 MuiInputLabel-root-1540 MuiInputLabel-formControl-1545 MuiInputLabel-animated-1548 MuiInputLabel-outlined-1550"
+          data-shrink="false"
+          for="pipelineVersionCodeSource"
+        >
+          Code Source
+        </label>
+        <div
+          class="MuiInputBase-root-1571 MuiOutlinedInput-root-1558 MuiInputBase-formControl-1572 MuiInputBase-multiline-1579 MuiOutlinedInput-multiline-1564"
+        >
+          <fieldset
+            aria-hidden="true"
+            class="MuiPrivateNotchedOutline-root-1588 MuiOutlinedInput-notchedOutline-1565"
+            style="padding-left: 8px;"
+          >
+            <legend
+              class="MuiPrivateNotchedOutline-legend-1589"
+              style="width: 0.01px;"
+            >
+              <span>
+                ​
+              </span>
+            </legend>
+          </fieldset>
+          <div
+            class="MuiPrivateTextarea-root-1621"
+          >
+            <textarea
+              aria-hidden="true"
+              class="MuiPrivateTextarea-textarea-1622 MuiPrivateTextarea-shadow-1623"
+              readonly=""
+              rows="1"
+              tabindex="-1"
+            />
+            <textarea
+              aria-hidden="true"
+              class="MuiPrivateTextarea-textarea-1622 MuiPrivateTextarea-shadow-1623"
+              readonly=""
+              rows="1"
+              tabindex="-1"
+            />
+            <textarea
+              aria-invalid="false"
+              class="MuiPrivateTextarea-textarea-1622 MuiInputBase-input-1581 MuiOutlinedInput-input-1566 MuiInputBase-inputMultiline-1583 MuiOutlinedInput-inputMultiline-1568"
+              id="pipelineVersionCodeSource"
+              rows="1"
+              style="height: 19px;"
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <button
+          class="MuiButtonBase-root-1488 MuiButtonBase-disabled-1489 MuiButton-root-1595 MuiButton-text-1597 MuiButton-textSecondary-1599 MuiButton-flat-1600 MuiButton-flatSecondary-1602 MuiButton-disabled-1615 root_f1gmzqw4 buttonAction_f1olq6uy"
+          disabled=""
+          id="createNewPipelineOrVersionBtn"
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiButton-label-1596"
+          >
+            <span>
+              Create
+            </span>
+          </span>
+        </button>
+        <button
+          class="MuiButtonBase-root-1488 MuiButton-root-1595 MuiButton-text-1597 MuiButton-flat-1600"
+          id="cancelNewPipelineOrVersionBtn"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label-1596"
+          >
+            Cancel
+          </span>
+          <span
+            class="MuiTouchRipple-root-1624"
+          />
+        </button>
+        <div
+          class="errorMessage_f1jvcvsh"
+        >
+          Must specify either package url  or file in .yaml, .zip, or .tar.gz
+        </div>
       </div>
     </div>
   </div>
-</div>
+</DocumentFragment>
 `;

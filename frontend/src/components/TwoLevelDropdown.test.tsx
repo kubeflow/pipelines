@@ -50,7 +50,7 @@ describe('TwoLevelDropdown', () => {
     },
   ];
   const selectedItem: SelectedItem = { itemName: '', subItemName: '' };
-  const setSelectedItem: (selectedItem: SelectedItem) => void = jest.fn();
+  const setSelectedItem: (selectedItem: SelectedItem) => void = vi.fn();
 
   function generateProps(): TwoLevelDropdownProps {
     return {

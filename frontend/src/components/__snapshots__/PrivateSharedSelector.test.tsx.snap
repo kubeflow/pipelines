@@ -1,7 +1,7 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`PrivateSharedSelector it renders correctly 1`] = `
-Object {
+exports[`PrivateSharedSelector > it renders correctly 1`] = `
+{
   "asFragment": [Function],
   "baseElement": <body>
     <div>
@@ -9,7 +9,7 @@ Object {
         Select if the new pipeline will be private or shared.
       </div>
       <div
-        class="flex"
+        class="flex_f16jawj4 f507s4l"
       >
         <label
           class="MuiFormControlLabel-root-9"
@@ -96,7 +96,7 @@ Object {
       Select if the new pipeline will be private or shared.
     </div>
     <div
-      class="flex"
+      class="flex_f16jawj4 f507s4l"
     >
       <label
         class="MuiFormControlLabel-root-9"

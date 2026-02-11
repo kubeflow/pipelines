@@ -15,39 +15,68 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PlotCard from './PlotCard';
 import { ViewerConfig, PlotType } from './viewers/Viewer';
 
 describe('PlotCard', () => {
-  it('handles no configs', () => {
-    expect(shallow(<PlotCard title='' configs={[]} maxDimension={100} />)).toMatchSnapshot();
+  const config: ViewerConfig = {
+    type: PlotType.CONFUSION_MATRIX,
+    data: [[1]],
+    axes: ['x', 'y'],
+    labels: ['label'],
+  } as any;
+
+  it('renders nothing when there are no configs', () => {
+    const { container } = render(<PlotCard title='' configs={[]} maxDimension={100} />);
+    expect(container.firstChild).toBeNull();
   });
 
-  const config: ViewerConfig = { type: PlotType.CONFUSION_MATRIX };
-
-  it('renders on confusion matrix viewer card', () => {
-    const tree = shallow(<PlotCard title='test title' configs={[config]} maxDimension={100} />);
-    expect(tree).toMatchSnapshot();
+  it('renders a confusion matrix plot card', () => {
+    const { asFragment } = render(
+      <PlotCard title='test title' configs={[config]} maxDimension={100} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('pops out a full screen view of the viewer', () => {
-    const tree = shallow(<PlotCard title='' configs={[config]} maxDimension={100} />);
-    tree.find('.popOutButton').simulate('click');
-    expect(tree).toMatchSnapshot();
+  it('opens the fullscreen dialog', () => {
+    const { container } = render(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    const popOutButton = container.querySelector('.popOutButton');
+    if (!popOutButton) {
+      throw new Error('Pop out button not found');
+    }
+    fireEvent.click(popOutButton);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Confusion matrix')).toBeInTheDocument();
   });
 
-  it('close button closes full screen dialog', () => {
-    const tree = shallow(<PlotCard title='' configs={[config]} maxDimension={100} />);
-    tree.find('.popOutButton').simulate('click');
-    tree.find('.fullscreenCloseButton').simulate('click');
-    expect(tree).toMatchSnapshot();
+  it('closes the fullscreen dialog with the close button', async () => {
+    const { container } = render(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    const popOutButton = container.querySelector('.popOutButton');
+    if (!popOutButton) {
+      throw new Error('Pop out button not found');
+    }
+    fireEvent.click(popOutButton);
+    const closeButton = document.querySelector('.fullscreenCloseButton');
+    if (!closeButton) {
+      throw new Error('Close button not found');
+    }
+    fireEvent.click(closeButton);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('clicking outside full screen dialog closes it', () => {
-    const tree = shallow(<PlotCard title='' configs={[config]} maxDimension={100} />);
-    tree.find('.popOutButton').simulate('click');
-    tree.find('WithStyles(Dialog)').simulate('close');
-    expect(tree).toMatchSnapshot();
+  it('closes the fullscreen dialog when the backdrop is clicked', async () => {
+    const { container } = render(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    const popOutButton = container.querySelector('.popOutButton');
+    if (!popOutButton) {
+      throw new Error('Pop out button not found');
+    }
+    fireEvent.click(popOutButton);
+    const backdrop = document.querySelector('[class*="MuiBackdrop-root"]');
+    if (!backdrop) {
+      throw new Error('Backdrop not found');
+    }
+    fireEvent.click(backdrop);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });
