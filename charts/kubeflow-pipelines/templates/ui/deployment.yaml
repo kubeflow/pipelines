@@ -6,6 +6,7 @@ metadata:
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
   name: ml-pipeline-ui
 spec:
+  replicas: {{ .Values.ui.replicas }}
   selector:
     matchLabels:
       app: ml-pipeline-ui
@@ -16,6 +17,7 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -107,15 +109,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: ml-pipeline-ui
-      {{- with .Values.ui.nodeSelector }}
+      {{- with .Values.ui.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.ui.tolerations }}
+      {{- with .Values.ui.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.ui.affinity }}
+      {{- with .Values.ui.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

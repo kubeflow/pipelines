@@ -6,7 +6,7 @@ metadata:
     app: metadata-writer
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.metadataWriter.replicas }}
   selector:
     matchLabels:
       app: metadata-writer
@@ -15,6 +15,7 @@ spec:
       labels:
         app: metadata-writer
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -44,15 +45,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: kubeflow-pipelines-metadata-writer
-      {{- with .Values.metadataWriter.nodeSelector }}
+      {{- with .Values.metadataWriter.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataWriter.tolerations }}
+      {{- with .Values.metadataWriter.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataWriter.affinity }}
+      {{- with .Values.metadataWriter.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

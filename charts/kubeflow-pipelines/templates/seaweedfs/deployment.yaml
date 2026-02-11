@@ -21,6 +21,7 @@ spec:
         application-crd-id: kubeflow-pipelines
         {{- end }}
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault

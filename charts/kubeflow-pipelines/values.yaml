@@ -1,6 +1,23 @@
 # Kubeflow Pipelines Helm Chart Values
 # ======================================
 
+# -- Override the chart name used in resource names
+nameOverride: ""
+# -- Override the full resource name prefix
+fullnameOverride: ""
+
+# -- Global settings applied to all components
+global:
+  # -- Image pull secrets for private registries
+  imagePullSecrets: []
+  # - name: my-registry-secret
+  # -- Default node selector for all components (component-level overrides take precedence)
+  nodeSelector: {}
+  # -- Default tolerations for all components
+  tolerations: []
+  # -- Default affinity rules for all components
+  affinity: {}
+
 # -- Multi-user mode (requires Istio + Metacontroller)
 multiUser:
   enabled: false
@@ -61,6 +78,7 @@ objectStoreSecret:
 # ==========================================
 
 apiServer:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-api-server
     tag: "2.15.0"
@@ -74,8 +92,12 @@ apiServer:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
 
 ui:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-frontend
     tag: "2.15.0"
@@ -88,6 +110,7 @@ ui:
   affinity: {}
 
 persistenceAgent:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-persistence-agent
     tag: "2.15.0"
@@ -102,6 +125,7 @@ persistenceAgent:
   affinity: {}
 
 scheduledWorkflow:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
     tag: "2.15.0"
@@ -111,6 +135,7 @@ scheduledWorkflow:
   affinity: {}
 
 viewerCrd:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-viewer-crd-controller
     tag: "2.15.0"
@@ -121,6 +146,7 @@ viewerCrd:
   affinity: {}
 
 visualization:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-visualization-server
     tag: "2.15.0"
@@ -133,6 +159,7 @@ visualization:
   affinity: {}
 
 metadataWriter:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-metadata-writer
     tag: "2.15.0"
@@ -142,6 +169,7 @@ metadataWriter:
   affinity: {}
 
 metadataGrpc:
+  replicas: 1
   image:
     repository: gcr.io/tfx-oss-public/ml_metadata_store_server
     tag: "1.14.0"
@@ -149,8 +177,12 @@ metadataGrpc:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
 
 metadataEnvoy:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-metadata-envoy
     tag: "2.15.0"
@@ -160,6 +192,7 @@ metadataEnvoy:
   affinity: {}
 
 cacheServer:
+  replicas: 1
   image:
     repository: ghcr.io/kubeflow/kfp-cache-server
     tag: "2.15.0"
@@ -167,6 +200,9 @@ cacheServer:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
 
 cacheDeployer:
   image:
@@ -192,7 +228,6 @@ profileController:
 # In-chart SeaweedFS (when objectStore.type=seaweedfs)
 # ==========================================
 seaweedfs:
-  enabled: true
   image:
     repository: chrislusf/seaweedfs
     tag: "4.00"
@@ -236,8 +271,7 @@ argo-workflows:
       - workflow-controller-configmap
       - --executor-image
       - quay.io/argoproj/argoexec:v3.7.3
-    workflowNamespaces:
-      - kubeflow
+    workflowNamespaces: []  # Defaults to release namespace via argo-workflows subchart
   server:
     enabled: false
   artifactRepository:
@@ -299,8 +333,8 @@ metacontroller:
   enabled: false
 
 publicConfig:
-  # Matches kubeflow_pipelines_version from kustomize configMapGenerator
-  kubeflowPipelinesVersion: "dev"
+  # -- Override the version string; defaults to .Chart.AppVersion when empty
+  kubeflowPipelinesVersion: ""
 
 compat:
   # Compatibility resources to align with Kustomize naming and expectations.

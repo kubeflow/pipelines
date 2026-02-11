@@ -6,7 +6,7 @@ metadata:
     component: metadata-envoy
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.metadataEnvoy.replicas }}
   selector:
     matchLabels:
       component: metadata-envoy
@@ -16,6 +16,7 @@ spec:
         component: metadata-envoy
         sidecar.istio.io/inject: "false"
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       containers:
       - name: container
         image: "{{ .Values.metadataEnvoy.image.repository }}:{{ .Values.metadataEnvoy.image.tag }}"
@@ -46,15 +47,15 @@ spec:
       - name: envoy-config
         configMap:
           name: metadata-envoy-configmap
-      {{- with .Values.metadataEnvoy.nodeSelector }}
+      {{- with .Values.metadataEnvoy.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataEnvoy.tolerations }}
+      {{- with .Values.metadataEnvoy.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataEnvoy.affinity }}
+      {{- with .Values.metadataEnvoy.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

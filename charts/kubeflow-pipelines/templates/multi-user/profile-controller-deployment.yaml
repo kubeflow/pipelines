@@ -16,6 +16,7 @@ spec:
         app: kubeflow-pipelines-profile-controller
         sidecar.istio.io/inject: "false"
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -86,15 +87,15 @@ spec:
       - name: hooks
         configMap:
           name: kubeflow-pipelines-profile-controller-code
-      {{- with .Values.profileController.nodeSelector }}
+      {{- with .Values.profileController.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.profileController.tolerations }}
+      {{- with .Values.profileController.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.profileController.affinity }}
+      {{- with .Values.profileController.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

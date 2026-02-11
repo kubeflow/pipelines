@@ -6,6 +6,7 @@ metadata:
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
   name: ml-pipeline-persistenceagent
 spec:
+  replicas: {{ .Values.persistenceAgent.replicas }}
   selector:
     matchLabels:
       app: ml-pipeline-persistenceagent
@@ -16,6 +17,7 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -63,15 +65,15 @@ spec:
               path: persistenceagent-sa-token
               expirationSeconds: 3600
               audience: pipelines.kubeflow.org
-      {{- with .Values.persistenceAgent.nodeSelector }}
+      {{- with .Values.persistenceAgent.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.persistenceAgent.tolerations }}
+      {{- with .Values.persistenceAgent.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.persistenceAgent.affinity }}
+      {{- with .Values.persistenceAgent.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

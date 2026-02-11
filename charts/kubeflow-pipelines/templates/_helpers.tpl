@@ -1,10 +1,49 @@
 {{/*
+Expand the name of the chart.
+*/}}
+{{- define "kubeflow-pipelines.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+*/}}
+{{- define "kubeflow-pipelines.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Chart label value.
+*/}}
+{{- define "kubeflow-pipelines.chart" -}}
+{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+{{- end }}
+
+{{/*
 Common labels
 */}}
 {{- define "kubeflow-pipelines.labels" -}}
+helm.sh/chart: {{ include "kubeflow-pipelines.chart" . }}
+{{ include "kubeflow-pipelines.selectorLabels" . }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "kubeflow-pipelines.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "kubeflow-pipelines.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end }}
 
 {{/*
@@ -112,4 +151,14 @@ Object store endpoint port
 */}}
 {{- define "kubeflow-pipelines.objectStorePort" -}}
 9000
+{{- end }}
+
+{{/*
+imagePullSecrets
+*/}}
+{{- define "kubeflow-pipelines.imagePullSecrets" -}}
+{{- with .Values.global.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
 {{- end }}

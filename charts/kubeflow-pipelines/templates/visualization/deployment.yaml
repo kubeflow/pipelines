@@ -6,6 +6,7 @@ metadata:
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
   name: ml-pipeline-visualizationserver
 spec:
+  replicas: {{ .Values.visualization.replicas }}
   selector:
     matchLabels:
       app: ml-pipeline-visualizationserver
@@ -16,6 +17,7 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -53,15 +55,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: ml-pipeline-visualizationserver
-      {{- with .Values.visualization.nodeSelector }}
+      {{- with .Values.visualization.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.visualization.tolerations }}
+      {{- with .Values.visualization.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.visualization.affinity }}
+      {{- with .Values.visualization.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

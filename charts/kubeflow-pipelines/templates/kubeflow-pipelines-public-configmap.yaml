@@ -5,4 +5,4 @@ metadata:
   labels:
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
 data:
-  kubeflow_pipelines_version: {{ .Values.publicConfig.kubeflowPipelinesVersion | quote }}
+  kubeflow_pipelines_version: {{ .Values.publicConfig.kubeflowPipelinesVersion | default .Chart.AppVersion | quote }}

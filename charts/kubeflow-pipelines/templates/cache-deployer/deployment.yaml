@@ -17,6 +17,7 @@ spec:
       labels:
         app: cache-deployer
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -43,15 +44,15 @@ spec:
         {{- end }}
       serviceAccountName: kubeflow-pipelines-cache-deployer-sa
       restartPolicy: Always
-      {{- with .Values.cacheDeployer.nodeSelector }}
+      {{- with .Values.cacheDeployer.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.cacheDeployer.tolerations }}
+      {{- with .Values.cacheDeployer.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.cacheDeployer.affinity }}
+      {{- with .Values.cacheDeployer.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

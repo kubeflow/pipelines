@@ -6,6 +6,7 @@ metadata:
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
   name: ml-pipeline-viewer-crd
 spec:
+  replicas: {{ .Values.viewerCrd.replicas }}
   selector:
     matchLabels:
       app: ml-pipeline-viewer-crd
@@ -16,6 +17,7 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -48,15 +50,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: ml-pipeline-viewer-crd-service-account
-      {{- with .Values.viewerCrd.nodeSelector }}
+      {{- with .Values.viewerCrd.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.viewerCrd.tolerations }}
+      {{- with .Values.viewerCrd.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.viewerCrd.affinity }}
+      {{- with .Values.viewerCrd.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

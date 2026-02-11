@@ -1,0 +1,14 @@
+{{- if .Values.metadataGrpc.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: metadata-grpc-deployment
+  labels:
+    component: metadata-grpc-server
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.metadataGrpc.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      component: metadata-grpc-server
+{{- end }}

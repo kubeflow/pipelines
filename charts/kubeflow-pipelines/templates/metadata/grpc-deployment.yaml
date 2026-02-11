@@ -6,7 +6,7 @@ metadata:
     component: metadata-grpc-server
     {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.metadataGrpc.replicas }}
   selector:
     matchLabels:
       component: metadata-grpc-server
@@ -15,6 +15,7 @@ spec:
       labels:
         component: metadata-grpc-server
     spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -117,15 +118,15 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       serviceAccountName: metadata-grpc-server
-      {{- with .Values.metadataGrpc.nodeSelector }}
+      {{- with .Values.metadataGrpc.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataGrpc.tolerations }}
+      {{- with .Values.metadataGrpc.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.metadataGrpc.affinity }}
+      {{- with .Values.metadataGrpc.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
