@@ -43,4 +43,5 @@ docker build --platform linux/amd64 \
 - Frontend: `2.15.0-pod-status-T` - Performance optimizations (refetch intervals + pod list limit)
 - Frontend: `2.15.0-pod-status-U` - Added debug logging for cache retrieval diagnostics
 - Frontend: `2.15.0-pod-status-V` - Background pod watcher for automatic caching (supports scheduled/cron runs)
-- Frontend: `2.15.0-pod-status-V4` - **CURRENT** - Optimized pod watcher (only watches Running/Pending pods, reduced logging to prevent event loop blocking)
+- Frontend: `2.15.0-pod-status-V4` - Optimized pod watcher (only watches Running/Pending pods, reduced logging to prevent event loop blocking)
+- Frontend: `2.15.0-pod-status-V5` - **CURRENT** - Non-blocking event loop fix: all sync I/O → async, in-memory index, atomic writes, parallelized K8s calls, shared K8s client
