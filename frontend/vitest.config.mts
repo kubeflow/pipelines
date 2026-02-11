@@ -18,7 +18,7 @@ export default defineConfig({
     setupFiles: ['src/vitest.setup.ts'],
     globals: true,
     css: true,
-    include: ['src/**/*.vitest.{test,spec}.{ts,tsx}'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
