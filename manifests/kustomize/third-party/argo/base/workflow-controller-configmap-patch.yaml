@@ -16,7 +16,7 @@ data:
   artifactRepository: |
     archiveLogs: true
     s3:
-      endpoint: "minio-service.$(kfp-namespace):9000"
+      endpoint: "seaweedfs.$(kfp-namespace):9000"
       bucket: "$(kfp-artifact-bucket-name)"
       # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
       # It can reference workflow metadata variables such as workflow.namespace, workflow.name,

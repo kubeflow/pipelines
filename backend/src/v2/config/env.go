@@ -179,7 +179,7 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 		Provider: "minio",
 		Params: map[string]string{
 			"region":     "minio",
-			"endpoint":   objectstore.DefaultMinioEndpointInMultiUserMode,
+			"endpoint":   objectstore.DefaultEndpointInMultiUserMode,
 			"disableSSL": strconv.FormatBool(true),
 			"fromEnv":    strconv.FormatBool(false),
 			"maxRetries": strconv.FormatInt(int64(5), 10),
