@@ -31,6 +31,10 @@ s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8
 s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
+def _normalize_domain(domain):
+    return domain if domain.startswith('.') else '.' + domain
+
+
 def main():
     settings = get_settings_from_env()
     server = server_factory(**settings)
@@ -96,10 +100,10 @@ def server_factory(frontend_image,
                    frontend_tag,
                    disable_istio_sidecar,
                    artifacts_proxy_enabled,
-                    artifact_retention_days,
-                    cluster_domain,
-                    url="",
-                    controller_port=8080):
+                   artifact_retention_days,
+                   cluster_domain=".svc.cluster.local",
+                   url="",
+                   controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
@@ -216,7 +220,7 @@ def server_factory(frontend_image,
                         "default-namespaced": json.dumps({
                             "archiveLogs": True,
                             "s3": {
-                                "endpoint": f"minio-service.kubeflow{cluster_domain if cluster_domain.startswith('.') else '.' + cluster_domain}:9000",
+                                "endpoint": f"minio-service.kubeflow{_normalize_domain(cluster_domain)}:9000",
                                 "bucket": S3_BUCKET_NAME,
                                 "keyFormat": f"private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}",
                                 "insecure": True,
@@ -292,16 +296,16 @@ def server_factory(frontend_image,
                                                     }
                                                 }
                                             },
-                                             {
+                                            {
                                                 "name": "ML_PIPELINE_SERVICE_HOST",
-                                                "value": f"ml-pipeline.kubeflow{cluster_domain if cluster_domain.startswith('.') else '.' + cluster_domain}"
+                                                "value": f"ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}"
                                             },
                                             {
                                                 "name": "ML_PIPELINE_SERVICE_PORT",
                                                 "value": "8888"
                                             },
                                             {
-                                                 "name": "FRONTEND_SERVER_NAMESPACE",
+                                                "name": "FRONTEND_SERVER_NAMESPACE",
                                                 "value": namespace,
                                             },
                                             {

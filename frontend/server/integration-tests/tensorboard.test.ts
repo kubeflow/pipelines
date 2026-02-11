@@ -24,9 +24,9 @@ import { TEST_ONLY as K8S_TEST_EXPORT } from '../k8s-helper.js';
 import { buildQuery, commonSetup, mkTempDir } from './test-helper.js';
 
 beforeEach(() => {
-  vi.spyOn(global.console, 'info').mockImplementation(() => {});
-  vi.spyOn(global.console, 'log').mockImplementation(() => {});
-  vi.spyOn(global.console, 'debug').mockImplementation(() => {});
+  vi.spyOn(global.console, 'info').mockImplementation(() => { });
+  vi.spyOn(global.console, 'log').mockImplementation(() => { });
+  vi.spyOn(global.console, 'debug').mockImplementation(() => { });
 });
 
 describe('/apps/tensorboard', () => {
@@ -89,12 +89,14 @@ describe('/apps/tensorboard', () => {
     type?: string;
   } = {}) {
     return {
-      metadata: {
-        name,
-      },
-      spec: {
-        tensorboardSpec: { logDir, tensorflowImage },
-        type,
+      body: {
+        metadata: {
+          name,
+        },
+        spec: {
+          tensorboardSpec: { logDir, tensorflowImage },
+          type,
+        },
       },
     };
   }
@@ -202,7 +204,7 @@ describe('/apps/tensorboard', () => {
 
     it('rejects user requests when KFP auth api rejected', async () => {
       const errorSpy = vi.spyOn(console, 'error');
-      errorSpy.mockImplementation(() => {});
+      errorSpy.mockImplementation(() => { });
 
       const apiServerPort = 3001;
       kfpApiServer = express()
@@ -682,7 +684,7 @@ describe('/apps/tensorboard', () => {
 
     it('creates tensorboard viewer with not exist volume and return error', async () => {
       const errorSpy = vi.spyOn(console, 'error');
-      errorSpy.mockImplementation(() => {});
+      errorSpy.mockImplementation(() => { });
 
       k8sGetCustomObjectSpy.mockImplementation(() => {
         return Promise.reject('Not found');
@@ -709,7 +711,7 @@ describe('/apps/tensorboard', () => {
 
     it('creates tensorboard viewer with not exist subPath volume mount and return error', async () => {
       const errorSpy = vi.spyOn(console, 'error');
-      errorSpy.mockImplementation(() => {});
+      errorSpy.mockImplementation(() => { });
 
       k8sGetCustomObjectSpy.mockImplementation(() => {
         return Promise.reject('Not found');
@@ -736,7 +738,7 @@ describe('/apps/tensorboard', () => {
 
     it('returns error when there is an existing tensorboard with different version', async () => {
       const errorSpy = vi.spyOn(console, 'error');
-      errorSpy.mockImplementation(() => {});
+      errorSpy.mockImplementation(() => { });
       k8sGetCustomObjectSpy.mockImplementation(() =>
         Promise.resolve(
           newGetTensorboardResponse({
