@@ -54,8 +54,8 @@ import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 import { Edge, Node } from 'react-flow-renderer/dist/types';
 
-const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
-const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_STALE_TIME = 30000; // 30000 milliseconds == 30 seconds.
+const QUERY_REFETCH_INTERNAL = 60000; // 60000 milliseconds == 60 seconds (was 10s, increased for performance).
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {

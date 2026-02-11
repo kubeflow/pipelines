@@ -66,7 +66,6 @@ function extractEvents(eventList: any): any[] {
 export const podInfoHandler: Handler = async (req, res) => {
   const { podname, podnamespace, runid, taskname } = req.query;
   if (!podname) {
-    // 422 status code "Unprocessable entity", refer to https://stackoverflow.com/a/42171674
     res.status(422).send('podname argument is required');
     return;
   }
@@ -85,9 +84,14 @@ export const podInfoHandler: Handler = async (req, res) => {
     console.error(message, additionalInfo);
 
     // Try to return cached data if K8s pod is not available
-    const cached = podEventsCache.getCachedPodInfo(podNamespace, podName);
+    const cached = await podEventsCache.getCachedPodInfo(podNamespace, podName);
     if (cached && cached.status) {
       console.log('[podInfoHandler] Returning cached pod status for', podName);
+
+      const stateHistory = runId
+        ? await podEventsCache.getMergedStateHistory(podNamespace, runId, taskName)
+        : (cached.stateHistory || []);
+
       res.status(200).send(
         JSON.stringify({
           metadata: { name: podName, namespace: podNamespace },
@@ -101,9 +105,7 @@ export const podInfoHandler: Handler = async (req, res) => {
           spec: { nodeName: cached.status.nodeName },
           _cached: true,
           _cachedAt: cached.lastUpdated,
-          _stateHistory: runId
-            ? podEventsCache.getMergedStateHistory(podNamespace, runId, taskName)
-            : (cached.stateHistory || []),
+          _stateHistory: stateHistory,
         }),
       );
       return;
@@ -113,31 +115,30 @@ export const podInfoHandler: Handler = async (req, res) => {
     return;
   }
 
-  // Cache the pod status
+  // Cache the pod status (fire-and-forget, don't block response)
   const status = extractPodStatus(pod);
   if (status) {
-    const existing = podEventsCache.getCachedPodInfo(podNamespace, podName);
-    podEventsCache.savePodInfo(
-      podName,
-      podNamespace,
-      status,
-      existing?.events || [],
-      runId,
-      taskName,
-    );
+    podEventsCache.getCachedPodInfo(podNamespace, podName).then(existing => {
+      podEventsCache.savePodInfo(
+        podName,
+        podNamespace,
+        status,
+        existing?.events || [],
+        runId,
+        taskName,
+      ).catch(() => {});
+    }).catch(() => {});
   }
 
   // Read back state history from cache and attach to response
-  // Use merged state history from all pods for this run/task to preserve
-  // error states from pods that were deleted (e.g., on pipeline termination)
   const response = JSON.parse(JSON.stringify(pod));
   if (runId) {
-    const mergedHistory = podEventsCache.getMergedStateHistory(podNamespace, runId, taskName);
+    const mergedHistory = await podEventsCache.getMergedStateHistory(podNamespace, runId, taskName);
     if (mergedHistory.length > 0) {
       response._stateHistory = mergedHistory;
     }
   } else {
-    const updatedCache = podEventsCache.getCachedPodInfo(podNamespace, podName);
+    const updatedCache = await podEventsCache.getCachedPodInfo(podNamespace, podName);
     if (updatedCache?.stateHistory && updatedCache.stateHistory.length > 0) {
       response._stateHistory = updatedCache.stateHistory;
     }
@@ -171,9 +172,9 @@ export const podEventsHandler: Handler = async (req, res) => {
   const events = err ? [] : extractEvents(eventList);
 
   // Get existing cached info
-  const cached = podEventsCache.getCachedPodInfo(podNamespace, podName);
+  const cached = await podEventsCache.getCachedPodInfo(podNamespace, podName);
 
-  // If we have events from K8s, cache them
+  // If we have events from K8s, cache them (fire-and-forget)
   if (events.length > 0) {
     podEventsCache.savePodInfo(
       podName,
@@ -182,13 +183,12 @@ export const podEventsHandler: Handler = async (req, res) => {
       events,
       runId,
       taskName,
-    );
+    ).catch(() => {});
   }
 
   // Get merged cached events from all pods for this run/task
-  // This preserves error events (e.g., ImagePullBackOff details) from deleted pods
   const mergedCachedEvents = runId
-    ? podEventsCache.getMergedEvents(podNamespace, runId, taskName)
+    ? await podEventsCache.getMergedEvents(podNamespace, runId, taskName)
     : (cached?.events || []);
 
   // If K8s returned no events, fall back to merged cached events
@@ -206,14 +206,16 @@ export const podEventsHandler: Handler = async (req, res) => {
       _cached: true,
     }));
 
+    const stateHistory = runId
+      ? await podEventsCache.getMergedStateHistory(podNamespace, runId, taskName)
+      : (cached?.stateHistory || []);
+
     res.status(200).send(
       JSON.stringify({
         items: cachedEventItems,
         _cached: true,
         _cachedAt: cached?.lastUpdated || Date.now(),
-        _stateHistory: runId
-          ? podEventsCache.getMergedStateHistory(podNamespace, runId, taskName)
-          : (cached?.stateHistory || []),
+        _stateHistory: stateHistory,
       }),
     );
     return;
@@ -229,7 +231,7 @@ export const podEventsHandler: Handler = async (req, res) => {
   // Build response from fresh K8s events
   const eventResponse = JSON.parse(JSON.stringify(eventList));
 
-  // Supplement with cached events from other pods (e.g., error events from deleted impl pod)
+  // Supplement with cached events from other pods
   if (runId && mergedCachedEvents.length > 0) {
     const freshKeys = new Set(
       events.map(e => `${e.type}:${e.reason}:${e.message.substring(0, 100)}`),
@@ -254,12 +256,12 @@ export const podEventsHandler: Handler = async (req, res) => {
 
   // Attach merged state history
   if (runId) {
-    const mergedHistory = podEventsCache.getMergedStateHistory(podNamespace, runId, taskName);
+    const mergedHistory = await podEventsCache.getMergedStateHistory(podNamespace, runId, taskName);
     if (mergedHistory.length > 0) {
       eventResponse._stateHistory = mergedHistory;
     }
   } else {
-    const updatedEventsCache = podEventsCache.getCachedPodInfo(podNamespace, podName);
+    const updatedEventsCache = await podEventsCache.getCachedPodInfo(podNamespace, podName);
     if (updatedEventsCache?.stateHistory && updatedEventsCache.stateHistory.length > 0) {
       eventResponse._stateHistory = updatedEventsCache.stateHistory;
     }
@@ -270,12 +272,10 @@ export const podEventsHandler: Handler = async (req, res) => {
 
 /**
  * podsByRunIdHandler lists pods by run ID label.
- * This is useful for finding pods that failed early (e.g., ImagePullBackOff)
- * before the pod name could be recorded in MLMD.
  * Also caches pod info AND events for later retrieval.
+ * K8s API calls are parallelized to reduce total request time.
  */
 export const podsByRunIdHandler: Handler = async (req, res) => {
-  console.log('[podsByRunIdHandler] Received request with query:', req.query);
   const { runid, podnamespace, taskname } = req.query;
   if (!runid) {
     res.status(422).send('runid argument is required');
@@ -289,58 +289,54 @@ export const podsByRunIdHandler: Handler = async (req, res) => {
   const podNamespace = decodeURIComponent(podnamespace as string);
   const taskName = taskname ? decodeURIComponent(taskname as string) : undefined;
 
-  console.log('[podsByRunIdHandler] Calling listPodsByRunId:', { runId, podNamespace, taskName });
   const [pods, err] = await k8sHelper.listPodsByRunId(runId, podNamespace, taskName);
 
   // Cache pod status AND fetch events for each pod found
-  // This is critical to capture error events (like ImagePullBackOff) before they expire
+  // Parallelized: all pods are processed concurrently instead of sequentially
   if (pods && pods.length > 0) {
-    for (const pod of pods) {
+    const cachePromises = pods.map(async (pod) => {
       const podName = (pod as any).metadata?.name;
-      if (podName) {
-        const status = extractPodStatus(pod);
-        if (status) {
-          // Extract the pod's actual task name from its labels
-          // This prevents cross-component contamination when multiple pods are found
-          const labels = (pod as any).metadata?.labels || {};
-          const podTaskName =
-            labels['pipelines.kubeflow.org/task_name'] ||
-            labels['component'] ||
-            taskName; // fallback to query param only if no label found
+      if (!podName) return;
 
-          // Get existing cached info
-          const existing = podEventsCache.getCachedPodInfo(podNamespace, podName);
+      const status = extractPodStatus(pod);
+      if (!status) return;
 
-          // Also fetch current events for this pod to cache them
-          let events = existing?.events || [];
-          try {
-            const [eventList] = await k8sHelper.listPodEvents(podName, podNamespace);
-            if (eventList) {
-              const freshEvents = extractEvents(eventList);
-              // Merge fresh events with existing (savePodInfo handles the merge)
-              events = freshEvents.length > 0 ? freshEvents : events;
-            }
-          } catch (eventErr) {
-            // If we can't get events, use existing cached ones
-            console.log('[podsByRunIdHandler] Could not fetch events for', podName);
-          }
+      const labels = (pod as any).metadata?.labels || {};
+      const podTaskName =
+        labels['pipelines.kubeflow.org/task_name'] ||
+        labels['component'] ||
+        taskName;
 
-          podEventsCache.savePodInfo(
-            podName,
-            podNamespace,
-            status,
-            events,
-            runId,
-            podTaskName,
-          );
-        }
+      // Fetch existing cache and events in parallel
+      const [existing, eventResult] = await Promise.all([
+        podEventsCache.getCachedPodInfo(podNamespace, podName),
+        k8sHelper.listPodEvents(podName, podNamespace).catch(() => [undefined, { message: 'error' }] as const),
+      ]);
+
+      let events = existing?.events || [];
+      const [eventList] = eventResult;
+      if (eventList) {
+        const freshEvents = extractEvents(eventList);
+        events = freshEvents.length > 0 ? freshEvents : events;
       }
-    }
+
+      await podEventsCache.savePodInfo(
+        podName,
+        podNamespace,
+        status,
+        events,
+        runId,
+        podTaskName,
+      );
+    });
+
+    // Fire-and-forget caching: don't block the response
+    Promise.all(cachePromises).catch(() => {});
   }
 
   // If no pods found in K8s, try to return cached pod info
   if ((!pods || pods.length === 0) && !err) {
-    const cachedPod = podEventsCache.getCachedPodInfoByRunId(podNamespace, runId, taskName);
+    const cachedPod = await podEventsCache.getCachedPodInfoByRunId(podNamespace, runId, taskName);
     if (cachedPod) {
       console.log('[podsByRunIdHandler] Returning cached pod info for run', runId);
       res.status(200).send(
@@ -373,13 +369,11 @@ export const podsByRunIdHandler: Handler = async (req, res) => {
     return;
   }
 
-  console.log('[podsByRunIdHandler] Success, returning', pods?.length, 'pods');
   res.status(200).send(JSON.stringify(pods));
 };
 
 /**
  * cachedPodInfoHandler retrieves cached pod info by run ID.
- * This is useful for retrieving pod status/events after the pod has been deleted.
  */
 export const cachedPodInfoHandler: Handler = async (req, res) => {
   const { podname, podnamespace, taskname } = req.query;
@@ -394,7 +388,7 @@ export const cachedPodInfoHandler: Handler = async (req, res) => {
   // If pod name provided, get by pod name
   if (podname) {
     const podName = decodeURIComponent(podname as string);
-    const cached = podEventsCache.getCachedPodInfo(podNamespace, podName);
+    const cached = await podEventsCache.getCachedPodInfo(podNamespace, podName);
 
     if (!cached) {
       res.status(404).send('No cached data found');
@@ -410,7 +404,7 @@ export const cachedPodInfoHandler: Handler = async (req, res) => {
     const runId = decodeURIComponent(req.query.runid as string);
     const taskName = taskname ? decodeURIComponent(taskname as string) : undefined;
 
-    const cached = podEventsCache.getCachedPodInfoByRunId(podNamespace, runId, taskName);
+    const cached = await podEventsCache.getCachedPodInfoByRunId(podNamespace, runId, taskName);
 
     if (!cached) {
       res.status(404).send('No cached data found');

@@ -232,7 +232,7 @@ function TaskNodeDetail({
       console.log('[TaskNodeDetail] Fetching pod status...');
       return await getPodStatusAndEvents(execution, namespace, runId, element);
     },
-    { enabled: !!(runId && namespace), refetchInterval: 5000 }, // Refresh every 5 seconds for running pods
+    { enabled: !!(runId && namespace), refetchInterval: 30000 }, // Refresh every 30 seconds (was 5s, increased for performance)
   );
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);

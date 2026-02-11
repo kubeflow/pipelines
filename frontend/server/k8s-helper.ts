@@ -354,18 +354,29 @@ export async function listPodsByRunId(
 
     let allPods: V1Pod[] = [];
 
+    // Performance optimization: limit the number of pods fetched per query
+    // For large for-loop pipelines, this prevents fetching hundreds of pods at once
+    const POD_LIMIT = 100;
+
     for (const labelSelector of labelSelectors) {
       try {
         const { body } = await k8sV1Client.listNamespacedPod(
           podNamespace,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
+          undefined, // pretty
+          undefined, // allowWatchBookmarks
+          undefined, // _continue
+          undefined, // fieldSelector
           labelSelector,
+          POD_LIMIT, // limit - fetch at most 100 pods per query
         );
         if (body.items && body.items.length > 0) {
           allPods = [...allPods, ...body.items];
+          // Early exit optimization: if we found pods with this selector, skip the others
+          // This avoids making 2 more K8s API calls when the first one succeeds
+          if (allPods.length > 0) {
+            console.log(`[listPodsByRunId] Found ${body.items.length} pods with selector: ${labelSelector}, skipping remaining selectors`);
+            break;
+          }
         }
       } catch (err) {
         // Continue trying other selectors - this is expected for non-matching labels
