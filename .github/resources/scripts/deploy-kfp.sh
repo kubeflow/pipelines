@@ -30,7 +30,6 @@ USE_PROXY=false
 CACHE_DISABLED=false
 ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
-STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
 
@@ -58,10 +57,6 @@ while [ "$#" -gt 0 ]; do
     --artifact-proxy)
       ARTIFACT_PROXY_ENABLED=true
       shift
-      ;;
-    --storage)
-      STORAGE_BACKEND="$2"
-      shift 2
       ;;
     --argo-version)
       shift
@@ -138,20 +133,12 @@ fi
 # Manifests will be deployed according to the flag provided
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
-  if $CACHE_DISABLED; then
+  if $CACHE_DISABLED && $USE_PROXY; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+  elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
-  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED && $USE_PROXY; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
-  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
-  elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
-  elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
   elif $POD_TO_POD_TLS_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
   else
@@ -166,12 +153,8 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+  if $ARTIFACT_PROXY_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
-  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   else

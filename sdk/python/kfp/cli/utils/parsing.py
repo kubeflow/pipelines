@@ -11,9 +11,47 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import re
-from typing import Callable
+from typing import Any, Callable
+
+
+def parse_parameter_value(value: str) -> Any:
+    """Parse a CLI string value into the appropriate Python type.
+
+    Attempts JSON parsing for complex types (lists, dicts, quoted strings),
+    then tries numeric and boolean conversion, falling back to string.
+
+    Args:
+        value: The string value from CLI argument.
+
+    Returns:
+        The parsed value with inferred type (int, float, bool, list, dict,
+        or str).
+    """
+    try:
+        parsed = json.loads(value)
+        if isinstance(parsed, (list, dict, int, float, bool, str, type(None))):
+            return parsed
+    except (json.JSONDecodeError, ValueError):
+        pass  # Not valid JSON, try other conversions
+
+    if value.lower() == 'true':
+        return True
+    if value.lower() == 'false':
+        return False
+
+    try:
+        return int(value)
+    except ValueError:
+        pass  # Not an integer, try float
+
+    try:
+        return float(value)
+    except ValueError:
+        pass  # Not a number, return as string
+
+    return value
 
 
 def get_param_descr(fn: Callable, param_name: str) -> str:

@@ -132,5 +132,86 @@ class TestGetParamDescr(unittest.TestCase):
         )
 
 
+class TestParseParameterValue(unittest.TestCase):
+    """Tests for parse_parameter_value function."""
+
+    def test_integer_positive(self):
+        self.assertEqual(parsing.parse_parameter_value('123'), 123)
+
+    def test_integer_negative(self):
+        self.assertEqual(parsing.parse_parameter_value('-456'), -456)
+
+    def test_integer_zero(self):
+        self.assertEqual(parsing.parse_parameter_value('0'), 0)
+
+    def test_float_positive(self):
+        self.assertEqual(parsing.parse_parameter_value('12.5'), 12.5)
+
+    def test_float_negative(self):
+        self.assertEqual(parsing.parse_parameter_value('-3.14'), -3.14)
+
+    def test_float_scientific(self):
+        self.assertEqual(parsing.parse_parameter_value('1e10'), 1e10)
+
+    def test_boolean_true_lowercase(self):
+        self.assertEqual(parsing.parse_parameter_value('true'), True)
+
+    def test_boolean_false_lowercase(self):
+        self.assertEqual(parsing.parse_parameter_value('false'), False)
+
+    def test_boolean_true_capitalized(self):
+        self.assertEqual(parsing.parse_parameter_value('True'), True)
+
+    def test_boolean_false_capitalized(self):
+        self.assertEqual(parsing.parse_parameter_value('False'), False)
+
+    def test_list_integers(self):
+        self.assertEqual(parsing.parse_parameter_value('[1, 2, 3]'), [1, 2, 3])
+
+    def test_list_strings(self):
+        self.assertEqual(
+            parsing.parse_parameter_value('["a", "b", "c"]'), ['a', 'b', 'c'])
+
+    def test_list_empty(self):
+        self.assertEqual(parsing.parse_parameter_value('[]'), [])
+
+    def test_dict_simple(self):
+        self.assertEqual(
+            parsing.parse_parameter_value('{"key": "value"}'), {'key': 'value'})
+
+    def test_dict_nested(self):
+        self.assertEqual(
+            parsing.parse_parameter_value('{"a": {"b": 1}}'), {'a': {
+                'b': 1
+            }})
+
+    def test_dict_empty(self):
+        self.assertEqual(parsing.parse_parameter_value('{}'), {})
+
+    def test_null_value(self):
+        self.assertIsNone(parsing.parse_parameter_value('null'))
+
+    def test_string_simple(self):
+        self.assertEqual(parsing.parse_parameter_value('hello'), 'hello')
+
+    def test_string_with_spaces(self):
+        self.assertEqual(
+            parsing.parse_parameter_value('hello world'), 'hello world')
+
+    def test_json_quoted_string_preserves_value(self):
+        self.assertEqual(parsing.parse_parameter_value('"007"'), '007')
+        self.assertEqual(parsing.parse_parameter_value('"hello"'), 'hello')
+
+    def test_string_that_looks_like_number(self):
+        self.assertEqual(parsing.parse_parameter_value('007'), 7)
+        self.assertEqual(
+            parsing.parse_parameter_value('+1-555-1234'), '+1-555-1234')
+
+    def test_string_preserves_value(self):
+        self.assertEqual(
+            parsing.parse_parameter_value('some-pipeline-name'),
+            'some-pipeline-name')
+
+
 if __name__ == '__main__':
     unittest.main()
