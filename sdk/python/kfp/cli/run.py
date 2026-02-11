@@ -126,7 +126,15 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
             err=True)
         sys.exit(1)
 
-    arg_dict = dict(arg.split('=', maxsplit=1) for arg in args)
+    arg_dict = {}
+    for arg in args:
+        if '=' not in arg:
+            click.echo(
+                f"Invalid argument format: '{arg}'. Expected 'key=value'.",
+                err=True)
+            sys.exit(1)
+        k, v = arg.split('=', maxsplit=1)
+        arg_dict[k] = parsing.parse_parameter_value(v)
 
     experiment = client_obj.create_experiment(experiment_name)
     run = client_obj.run_pipeline(
