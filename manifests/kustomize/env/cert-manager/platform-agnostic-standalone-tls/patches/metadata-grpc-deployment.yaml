@@ -82,7 +82,7 @@ spec:
             - "--grpc_port=8080"
             - "--metadata_store_server_config_file=/etc/grpc/config.proto"
             - "--enable_database_upgrade=true"
-            - "--grpc_channel_arguments=grpc.max_metadata_size=16384"
+            - "--grpc_channel_arguments=grpc.max_metadata_size=16384,grpc.max_receive_message_length=104857600,grpc.max_send_message_length=104857600"
           volumeMounts:
             - name: tls-certs
               mountPath: /etc/pki/tls/certs
