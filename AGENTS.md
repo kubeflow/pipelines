@@ -59,19 +59,17 @@
 
 ## Local development setup
 
-- Always use a `.venv` virtual environment.
+- Use `uv` for dependency management and virtual environments.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip setuptools wheel
+# Install uv if not already available: https://docs.astral.sh/uv/getting-started/installation/
 
+# Sync workspace dependencies (creates .venv automatically)
+uv sync
+
+# Generate protobuf code
 make -C api python-dev
 make -C kubernetes_platform python-dev
-
-pip install -e api/v2alpha1/python --config-settings editable_mode=strict
-pip install -e sdk/python --config-settings editable_mode=strict
-pip install -e kubernetes_platform/python --config-settings editable_mode=strict
 ```
 
 ### Required CLI tools
