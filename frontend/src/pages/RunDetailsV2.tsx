@@ -175,16 +175,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const urlNamespace = getNamespaceFromUrl();
   const namespace = experiment?.namespace || contextNamespace || urlNamespace;
 
-  // Debug logging to help identify namespace resolution issues
-  console.log('[RunDetailsV2] Namespace resolution:', {
-    experimentNamespace: experiment?.namespace,
-    contextNamespace,
-    urlNamespace,
-    resolvedNamespace: namespace,
-    experimentId: experiment?.experiment_id,
-    runId,
-  });
-
   // Update page title and experiment information.
   useEffect(() => {
     updateToolBar(run, experiment, props.updateToolbar);

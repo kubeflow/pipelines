@@ -203,13 +203,14 @@ async function processPod(pod: V1Pod): Promise<boolean> {
   const namespace = pod.metadata?.namespace;
 
   if (!podName || !namespace) return false;
-  if (!hasPodChanged(pod)) return false;
 
-  const runId = getRunIdFromPod(pod);
-  const taskName = getTaskNameFromPod(pod);
+  if (!hasPodChanged(pod)) return false;
 
   const status = extractPodStatus(pod);
   if (!status) return false;
+
+  const runId = getRunIdFromPod(pod);
+  const taskName = getTaskNameFromPod(pod);
 
   // Fetch existing cache and events in parallel (all async)
   const [existing, events] = await Promise.all([
