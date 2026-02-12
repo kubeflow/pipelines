@@ -55,6 +55,10 @@ const (
 	ImporterExecutionTypeName          = "system.ImporterExecution"
 	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
 	mlmdClientSideMaxRetries           = 3
+	// MaxGRPCMessageSize is the max gRPC message size for the metadata client.
+	// The default gRPC limit is 4MB which is too small for large artifacts
+	// (e.g. classification metrics with many data points).
+	MaxGRPCMessageSize = 100 * 1024 * 1024 // 100MB
 )
 
 type ExecutionType string
@@ -128,6 +132,10 @@ func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, e
 
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
 		grpc.WithTransportCredentials(creds),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(MaxGRPCMessageSize),
+			grpc.MaxCallSendMsgSize(MaxGRPCMessageSize),
+		),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
 	)
