@@ -315,10 +315,7 @@ describe('CustomTable', () => {
 
   it('does not render sort icon for columns without sort key', async () => {
     renderTable({
-      columns: [
-        { label: 'sortable', sortKey: 'sortableKey' },
-        { label: 'unsortable' },
-      ],
+      columns: [{ label: 'sortable', sortKey: 'sortableKey' }, { label: 'unsortable' }],
       rows,
     });
     await TestUtils.flushPromises();
