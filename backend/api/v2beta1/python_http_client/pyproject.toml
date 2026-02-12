@@ -11,6 +11,8 @@ authors = [
 keywords = ["OpenAPI", "OpenAPI-Generator", "Kubeflow Pipelines API"]
 dependencies = [
   "urllib3>=1.15",
+  # TODO: drop six once openapi-generator templates are updated to remove
+  # Python 2 compatibility code (six is used by the generated client code).
   "six>=1.10",
   "certifi",
   "python-dateutil",
