@@ -62,6 +62,7 @@ jobs:
             platforms: linux/amd64
             context: ./proxy
     uses: ./.github/workflows/build-and-push.yml
+    secrets: inherit
     with:
       src_branch: master
       target_tag: master

@@ -115,6 +115,7 @@ env:
   ADD_SHA_TAG: ${{ inputs.add_sha_tag }}
   CACHE_PATH: '/tmp/.buildx-cache'
   BUILDX_BUILDER: 'poly-builder'
+  IP_AMR64_NODE: ${{ vars.IP_AMR64_NODE }}
 
 jobs:
   build-and-push-images:
@@ -141,24 +142,49 @@ jobs:
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Setup SSH from Host
-      - name: Setup SSH from Host
+       
+      # 1. Add remote node to known_hosts to prevent interactive prompt hanging
+      - name: Add Known Hosts
+        env:
+           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          # 1. Start a fresh agent for THIS workflow job
-          eval $(ssh-agent -s)
-          
-          # 2. Add the specific key residing on the machine's disk
-          # (Assuming the runner user has access to this file)
-          ssh-add /home/ubuntu/.ssh/id_ed25519_oci_cncf_kubeflow
-          
-          # 3. Export the socket so the NEXT steps (Docker) can see it
-          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+          mkdir -p ~/.ssh
+          echo "IP_ARM64_NODE: $IP_AMR64_NODE"
+          echo "SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY "
+          echo "SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}" 
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+        
 
+      # 2. Setup SSH Agent so Docker can connect to the remote node
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # 3. Set up Docker Buildx
+      # We manually create the builder to ensure the SSH connection works
+      - name: Create Multi-Arch Builder
+        run: |
+          docker buildx create --name poly-builder \
+            --driver docker-container \
+            --platform linux/amd64 \
+            --node node-amd64
+            
+          # Use IP_AMR64_NODE for ARM node's IP address
+          docker buildx create --name poly-builder \
+            --append \
+            --platform linux/arm64 \
+            --node node-arm64 \
+            ssh://ubuntu@$IP_AMR64_NODE
+            
+          docker buildx use poly-builder
+          docker buildx inspect --bootstrap 
+          
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           buildkitd-flags: --debug
+
 
       - name: Check if image tag already exists
         id: check_tag
