@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -55,11 +56,29 @@ const (
 	ImporterExecutionTypeName          = "system.ImporterExecution"
 	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
 	mlmdClientSideMaxRetries           = 3
-	// MaxGRPCMessageSize is the max gRPC message size for the metadata client.
-	// The default gRPC limit is 4MB which is too small for large artifacts
-	// (e.g. classification metrics with many data points).
-	MaxGRPCMessageSize = 100 * 1024 * 1024 // 100MB
+	defaultMaxGRPCMessageSize          = 100 * 1024 * 1024 // 100MB
+	maxGRPCMessageSizeEnv              = "METADATA_GRPC_MESSAGE_SIZE"
 )
+
+// MaxGRPCMessageSize is the max gRPC message size for the metadata client.
+// The default gRPC limit is 4MB which is too small for large artifacts
+// (e.g. classification metrics with many data points).
+// Configurable via the METADATA_GRPC_MESSAGE_SIZE environment variable (in bytes).
+var MaxGRPCMessageSize = defaultMaxGRPCMessageSize
+
+func init() {
+	if v := os.Getenv(maxGRPCMessageSizeEnv); v != "" {
+		size, err := strconv.Atoi(v)
+		if err != nil {
+			glog.Fatalf("%s environment variable must be a valid integer: %v", maxGRPCMessageSizeEnv, err)
+		}
+		if size <= 0 {
+			glog.Fatalf("%s environment variable must be a positive integer, got %d", maxGRPCMessageSizeEnv, size)
+		}
+		MaxGRPCMessageSize = size
+		glog.Infof("MaxGRPCMessageSize set to %d bytes from %s", size, maxGRPCMessageSizeEnv)
+	}
+}
 
 type ExecutionType string
 
