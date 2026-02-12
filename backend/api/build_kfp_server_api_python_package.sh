@@ -83,6 +83,8 @@ authors = [
 keywords = ["OpenAPI", "OpenAPI-Generator", "Kubeflow Pipelines API"]
 dependencies = [
   "urllib3>=1.15",
+  # TODO: drop six once openapi-generator templates are updated to remove
+  # Python 2 compatibility code (six is used by the generated client code).
   "six>=1.10",
   "certifi",
   "python-dateutil",
@@ -100,9 +102,11 @@ fi
 echo "Building the python package in $DIR."
 pushd "$DIR"
 if [[ "$API_VERSION" == "v2beta1" ]]; then
-    # pyproject.toml uses hatchling; install build deps to a temp dir
-    python3 -m pip install --quiet --break-system-packages --target /tmp/build-libs hatchling build
-    PYTHONPATH=/tmp/build-libs:${PYTHONPATH:-} PATH=/tmp/build-libs/bin:$PATH python3 -m build --sdist
+    # pyproject.toml uses hatchling; build in an isolated venv
+    python3 -m venv /tmp/build-venv
+    /tmp/build-venv/bin/pip install hatchling build
+    /tmp/build-venv/bin/python -m build --sdist
+    rm -rf /tmp/build-venv
 else
     python3 setup.py --quiet sdist
 fi
