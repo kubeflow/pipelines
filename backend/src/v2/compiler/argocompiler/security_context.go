@@ -19,16 +19,6 @@ import (
 	k8score "k8s.io/api/core/v1"
 )
 
-func defaultPodSecurityContext() *k8score.PodSecurityContext {
-	runAsNonRoot := true
-	return &k8score.PodSecurityContext{
-		RunAsNonRoot: &runAsNonRoot,
-		SeccompProfile: &k8score.SeccompProfile{
-			Type: k8score.SeccompProfileTypeRuntimeDefault,
-		},
-	}
-}
-
 func defaultContainerSecurityContext() *k8score.SecurityContext {
 	allowPrivilegeEscalation := false
 	runAsNonRoot := true
@@ -56,22 +46,6 @@ func applySecurityContextToTemplate(t *wfapi.Template) {
 	applySecurityContextToContainer(t.Container)
 	applySecurityContextToUserContainers(t.InitContainers)
 	applySecurityContextToUserContainers(t.Sidecars)
-}
-
-func applyPodSecurityContext(sc **k8score.PodSecurityContext) {
-	if *sc == nil {
-		*sc = defaultPodSecurityContext()
-		return
-	}
-	if (*sc).RunAsNonRoot == nil {
-		runAsNonRoot := true
-		(*sc).RunAsNonRoot = &runAsNonRoot
-	}
-	if (*sc).SeccompProfile == nil {
-		(*sc).SeccompProfile = &k8score.SeccompProfile{
-			Type: k8score.SeccompProfileTypeRuntimeDefault,
-		}
-	}
 }
 
 func applySecurityContextToContainer(c *k8score.Container) {

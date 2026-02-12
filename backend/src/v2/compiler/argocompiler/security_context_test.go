@@ -25,20 +25,6 @@ import (
 func boolPtr(b bool) *bool    { return &b }
 func int64Ptr(i int64) *int64 { return &i }
 
-func TestDefaultPodSecurityContext(t *testing.T) {
-	sc := defaultPodSecurityContext()
-
-	assert.NotNil(t, sc)
-	assert.NotNil(t, sc.RunAsNonRoot)
-	assert.True(t, *sc.RunAsNonRoot)
-	assert.NotNil(t, sc.SeccompProfile)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
-	// Should not set fields that are left to the user
-	assert.Nil(t, sc.RunAsUser)
-	assert.Nil(t, sc.RunAsGroup)
-	assert.Nil(t, sc.FSGroup)
-}
-
 func TestDefaultContainerSecurityContext(t *testing.T) {
 	sc := defaultContainerSecurityContext()
 
@@ -56,60 +42,6 @@ func TestDefaultContainerSecurityContext(t *testing.T) {
 	assert.Nil(t, sc.RunAsGroup)
 	assert.Nil(t, sc.Privileged)
 	assert.Nil(t, sc.ReadOnlyRootFilesystem)
-}
-
-func TestApplyPodSecurityContext_NilContext(t *testing.T) {
-	var sc *k8score.PodSecurityContext
-	applyPodSecurityContext(&sc)
-
-	assert.NotNil(t, sc)
-	assert.True(t, *sc.RunAsNonRoot)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
-}
-
-func TestApplyPodSecurityContext_ExistingContext(t *testing.T) {
-	sc := &k8score.PodSecurityContext{
-		RunAsUser:  int64Ptr(1000),
-		RunAsGroup: int64Ptr(1000),
-		FSGroup:    int64Ptr(1000),
-	}
-	applyPodSecurityContext(&sc)
-
-	// Should preserve existing fields
-	assert.Equal(t, int64(1000), *sc.RunAsUser)
-	assert.Equal(t, int64(1000), *sc.RunAsGroup)
-	assert.Equal(t, int64(1000), *sc.FSGroup)
-	// Should enforce security defaults
-	assert.True(t, *sc.RunAsNonRoot)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
-}
-
-func TestApplyPodSecurityContext_ExistingWithRunAsNonRootFalse(t *testing.T) {
-	sc := &k8score.PodSecurityContext{
-		RunAsNonRoot: boolPtr(false),
-	}
-	applyPodSecurityContext(&sc)
-
-	// Should preserve explicitly-set RunAsNonRoot
-	assert.False(t, *sc.RunAsNonRoot)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
-}
-
-func TestApplyPodSecurityContext_ExistingWithSeccomp(t *testing.T) {
-	localhostProfile := "my-profile.json"
-	sc := &k8score.PodSecurityContext{
-		SeccompProfile: &k8score.SeccompProfile{
-			Type:             k8score.SeccompProfileTypeLocalhost,
-			LocalhostProfile: &localhostProfile,
-		},
-	}
-	applyPodSecurityContext(&sc)
-
-	// Should not overwrite existing SeccompProfile
-	assert.Equal(t, k8score.SeccompProfileTypeLocalhost, sc.SeccompProfile.Type)
-	assert.Equal(t, "my-profile.json", *sc.SeccompProfile.LocalhostProfile)
-	// Should still enforce RunAsNonRoot
-	assert.True(t, *sc.RunAsNonRoot)
 }
 
 func TestApplySecurityContextToContainer_NilContainer(t *testing.T) {

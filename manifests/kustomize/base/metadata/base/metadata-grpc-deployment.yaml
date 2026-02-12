@@ -15,6 +15,7 @@ spec:
         component: metadata-grpc-server
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
