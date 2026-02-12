@@ -107,5 +107,9 @@ logs/
 
 # Project-local tools
 bin/
+
+# UI Smoke Test working directory
+.ui-smoke-test/
+frontend/scripts/ui-smoke-test/node_modules/
 .npm-cache/
 .npm/
