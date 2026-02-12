@@ -87,7 +87,7 @@ jobs:
           exit 1
 
       - name: Collect test results
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
