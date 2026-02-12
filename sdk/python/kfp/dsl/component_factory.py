@@ -272,6 +272,12 @@ def get_name_to_specs(
         annotation = type_annotations.maybe_strip_optional_from_annotation(
             func_param.annotation)
 
+        # Normalize bare InputPath/OutputPath classes to instances with default type.
+        if annotation is type_annotations.InputPath:
+            annotation = type_annotations.InputPath()
+        elif annotation is type_annotations.OutputPath:
+            annotation = type_annotations.OutputPath()
+
         # no annotation
         if annotation == inspect._empty:
             raise TypeError(f'Missing type annotation for argument: {name}')
