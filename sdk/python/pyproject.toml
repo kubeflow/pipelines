@@ -56,7 +56,9 @@ dependencies = [
 
 [project.optional-dependencies]
 all = ["kfp[kubernetes,notebooks]", "docker"]
-kubernetes = ["kfp-kubernetes>=2.15.0,<3"]
+# Pin kfp-kubernetes to the exact kfp version to prevent mismatches.
+# Update this version in lockstep with kfp/version.py on each release.
+kubernetes = ["kfp-kubernetes==2.15.2"]
 notebooks = ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9"]
 
 [project.scripts]
