@@ -46,10 +46,10 @@ exports[`CustomTable > renders a collapsed row 1`] = `
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-256 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-264 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-258 PrivateNotchedOutline-legendNotched-259"
+              class="PrivateNotchedOutline-legendLabelled-266 PrivateNotchedOutline-legendNotched-267"
             >
               <span>
                 Filter
@@ -67,13 +67,13 @@ exports[`CustomTable > renders a collapsed row 1`] = `
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-260 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-268 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-263"
+              class="PrivateSwitchBase-input-271"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -110,16 +110,6 @@ exports[`CustomTable > renders a collapsed row 1`] = `
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -135,16 +125,6 @@ exports[`CustomTable > renders a collapsed row 1`] = `
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -168,13 +148,13 @@ exports[`CustomTable > renders a collapsed row 1`] = `
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-260 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-268 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-263"
+                  class="PrivateSwitchBase-input-271"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -367,10 +347,10 @@ exports[`CustomTable > renders a collapsed row when selection is disabled 1`] = 
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-264 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-272 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-266 PrivateNotchedOutline-legendNotched-267"
+              class="PrivateNotchedOutline-legendLabelled-274 PrivateNotchedOutline-legendNotched-275"
             >
               <span>
                 Filter
@@ -403,16 +383,6 @@ exports[`CustomTable > renders a collapsed row when selection is disabled 1`] = 
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -428,16 +398,6 @@ exports[`CustomTable > renders a collapsed row when selection is disabled 1`] = 
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -632,10 +592,10 @@ exports[`CustomTable > renders a table with sorting disabled 1`] = `
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-292 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-300 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-294 PrivateNotchedOutline-legendNotched-295"
+              class="PrivateNotchedOutline-legendLabelled-302 PrivateNotchedOutline-legendNotched-303"
             >
               <span>
                 Filter
@@ -653,13 +613,13 @@ exports[`CustomTable > renders a table with sorting disabled 1`] = `
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-296 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-304 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-299"
+              class="PrivateSwitchBase-input-307"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -715,13 +675,13 @@ exports[`CustomTable > renders a table with sorting disabled 1`] = `
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-296 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-304 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-299"
+                  class="PrivateSwitchBase-input-307"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -772,13 +732,13 @@ exports[`CustomTable > renders a table with sorting disabled 1`] = `
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-296 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-304 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-299"
+                  class="PrivateSwitchBase-input-307"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -947,10 +907,10 @@ exports[`CustomTable > renders an expanded row 1`] = `
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-268 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-276 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-270 PrivateNotchedOutline-legendNotched-271"
+              class="PrivateNotchedOutline-legendLabelled-278 PrivateNotchedOutline-legendNotched-279"
             >
               <span>
                 Filter
@@ -968,13 +928,13 @@ exports[`CustomTable > renders an expanded row 1`] = `
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-272 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-280 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-275"
+              class="PrivateSwitchBase-input-283"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -1008,16 +968,6 @@ exports[`CustomTable > renders an expanded row 1`] = `
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -1033,16 +983,6 @@ exports[`CustomTable > renders an expanded row 1`] = `
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -1066,13 +1006,13 @@ exports[`CustomTable > renders an expanded row 1`] = `
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-272 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-280 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-275"
+                  class="PrivateSwitchBase-input-283"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -1241,10 +1181,10 @@ exports[`CustomTable > renders an expanded row with expanded component below it 
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-276 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-284 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-278 PrivateNotchedOutline-legendNotched-279"
+              class="PrivateNotchedOutline-legendLabelled-286 PrivateNotchedOutline-legendNotched-287"
             >
               <span>
                 Filter
@@ -1262,13 +1202,13 @@ exports[`CustomTable > renders an expanded row with expanded component below it 
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-280 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-288 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-283"
+              class="PrivateSwitchBase-input-291"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -1305,16 +1245,6 @@ exports[`CustomTable > renders an expanded row with expanded component below it 
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -1330,16 +1260,6 @@ exports[`CustomTable > renders an expanded row with expanded component below it 
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -1363,13 +1283,13 @@ exports[`CustomTable > renders an expanded row with expanded component below it 
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-280 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-288 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-283"
+                  class="PrivateSwitchBase-input-291"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -1628,16 +1548,6 @@ exports[`CustomTable > renders columns with specified widths 1`] = `
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -1653,16 +1563,6 @@ exports[`CustomTable > renders columns with specified widths 1`] = `
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -1995,10 +1895,10 @@ exports[`CustomTable > renders new rows after clicking next page, and enables pr
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-224 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-232 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-226 PrivateNotchedOutline-legendNotched-227"
+              class="PrivateNotchedOutline-legendLabelled-234 PrivateNotchedOutline-legendNotched-235"
             >
               <span>
                 Filter
@@ -2016,13 +1916,13 @@ exports[`CustomTable > renders new rows after clicking next page, and enables pr
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-228 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-236 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-231"
+              class="PrivateSwitchBase-input-239"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -2056,16 +1956,6 @@ exports[`CustomTable > renders new rows after clicking next page, and enables pr
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -2081,16 +1971,6 @@ exports[`CustomTable > renders new rows after clicking next page, and enables pr
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -2114,13 +1994,13 @@ exports[`CustomTable > renders new rows after clicking next page, and enables pr
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-228 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-236 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-231"
+                  class="PrivateSwitchBase-input-239"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -2293,10 +2173,10 @@ exports[`CustomTable > renders new rows after clicking previous page, and enable
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-232 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-240 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-234 PrivateNotchedOutline-legendNotched-235"
+              class="PrivateNotchedOutline-legendLabelled-242 PrivateNotchedOutline-legendNotched-243"
             >
               <span>
                 Filter
@@ -2314,13 +2194,13 @@ exports[`CustomTable > renders new rows after clicking previous page, and enable
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-236 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-244 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-239"
+              class="PrivateSwitchBase-input-247"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -2354,16 +2234,6 @@ exports[`CustomTable > renders new rows after clicking previous page, and enable
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -2379,16 +2249,6 @@ exports[`CustomTable > renders new rows after clicking previous page, and enable
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -2412,13 +2272,13 @@ exports[`CustomTable > renders new rows after clicking previous page, and enable
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-236 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-244 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-239"
+                  class="PrivateSwitchBase-input-247"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -2469,13 +2329,13 @@ exports[`CustomTable > renders new rows after clicking previous page, and enable
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-236 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-244 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-239"
+                  class="PrivateSwitchBase-input-247"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -2732,16 +2592,6 @@ exports[`CustomTable > renders some columns with descending sort order on first 
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -2943,16 +2793,6 @@ exports[`CustomTable > renders some columns with equal widths without rows 1`] =
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -2968,16 +2808,6 @@ exports[`CustomTable > renders some columns with equal widths without rows 1`] =
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -3118,10 +2948,10 @@ exports[`CustomTable > renders some rows 1`] = `
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-113 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-121 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-115 PrivateNotchedOutline-legendNotched-116"
+              class="PrivateNotchedOutline-legendLabelled-123 PrivateNotchedOutline-legendNotched-124"
             >
               <span>
                 Filter
@@ -3139,13 +2969,13 @@ exports[`CustomTable > renders some rows 1`] = `
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-117 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-125 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-120"
+              class="PrivateSwitchBase-input-128"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -3179,16 +3009,6 @@ exports[`CustomTable > renders some rows 1`] = `
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -3204,16 +3024,6 @@ exports[`CustomTable > renders some rows 1`] = `
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -3237,13 +3047,13 @@ exports[`CustomTable > renders some rows 1`] = `
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-117 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-125 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-120"
+                  class="PrivateSwitchBase-input-128"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -3294,13 +3104,13 @@ exports[`CustomTable > renders some rows 1`] = `
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-117 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-125 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-120"
+                  class="PrivateSwitchBase-input-128"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -4188,16 +3998,6 @@ exports[`CustomTable > renders without the checkboxes if disableSelection is tru
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -4213,16 +4013,6 @@ exports[`CustomTable > renders without the checkboxes if disableSelection is tru
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -4414,10 +4204,10 @@ exports[`CustomTable > updates the filter string in state when the filter box in
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-300 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+            class="PrivateNotchedOutline-root-308 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-302 PrivateNotchedOutline-legendNotched-303"
+              class="PrivateNotchedOutline-legendLabelled-310 PrivateNotchedOutline-legendNotched-311"
             >
               <span>
                 Filter
@@ -4435,13 +4225,13 @@ exports[`CustomTable > updates the filter string in state when the filter box in
       >
         <span
           aria-disabled="false"
-          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-304 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-312 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
             class="MuiIconButton-label"
           >
             <input
-              class="PrivateSwitchBase-input-307"
+              class="PrivateSwitchBase-input-315"
               data-indeterminate="false"
               type="checkbox"
               value=""
@@ -4475,16 +4265,6 @@ exports[`CustomTable > updates the filter string in state when the filter box in
           title="Cannot sort by this column"
         >
           col1
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
       <div
@@ -4500,16 +4280,6 @@ exports[`CustomTable > updates the filter string in state when the filter box in
           title="Cannot sort by this column"
         >
           col2
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-            />
-          </svg>
         </span>
       </div>
     </div>
@@ -4533,13 +4303,13 @@ exports[`CustomTable > updates the filter string in state when the filter box in
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-304 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-312 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-307"
+                  class="PrivateSwitchBase-input-315"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""
@@ -4590,13 +4360,13 @@ exports[`CustomTable > updates the filter string in state when the filter box in
           >
             <span
               aria-disabled="false"
-              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-304 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-312 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
             >
               <span
                 class="MuiIconButton-label"
               >
                 <input
-                  class="PrivateSwitchBase-input-307"
+                  class="PrivateSwitchBase-input-315"
                   data-indeterminate="false"
                   type="checkbox"
                   value=""

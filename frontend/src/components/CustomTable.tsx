@@ -367,6 +367,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                       active={isCurrentSortColumn}
                       className={commonCss.ellipsis}
                       direction={isColumnSortable ? sortOrder : undefined}
+                      hideSortIcon={!isColumnSortable}
                       onClick={() => this._requestSort(this.props.columns[i].sortKey)}
                     >
                       {col.label}

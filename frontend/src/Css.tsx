@@ -182,6 +182,28 @@ export const theme = createTheme({
       },
       root: { padding: 0 },
     },
+    MuiTableSortLabel: {
+      // Match v3 behavior more closely: keep header text color inherited
+      // from table column styles and avoid washed-out inactive labels.
+      root: {
+        '&$active': {
+          color: 'inherit',
+        },
+        '&:hover': {
+          color: 'inherit',
+        },
+        color: 'inherit',
+      },
+      icon: {
+        color: `${color.strong} !important`,
+      },
+    },
+    MuiSvgIcon: {
+      // Keep icon sizing consistent with MUI v3 where these were fixed pixel values.
+      root: { fontSize: 24 },
+      fontSizeSmall: { fontSize: 20 },
+      fontSizeLarge: { fontSize: 35 },
+    },
     MuiTooltip: {
       tooltip: {
         backgroundColor: '#666',
