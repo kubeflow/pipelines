@@ -13,6 +13,8 @@
 // limitations under the License.
 import { UIServer } from './app';
 import { loadConfigs } from './configs';
+import { initIndex } from './pod-events-cache';
+import { startPodWatcher } from './pod-watcher';
 
 const configs = loadConfigs(process.argv, process.env);
 if (process.env.NODE_ENV !== 'test') {
@@ -21,5 +23,21 @@ if (process.env.NODE_ENV !== 'test') {
     artifacts: 'Artifacts config contains credentials, so it is omitted',
   });
 }
-const app = new UIServer(configs);
-app.start();
+
+// Initialize the cache index before starting the server.
+// This builds the in-memory runId index from existing cache files.
+initIndex()
+  .then(() => {
+    const app = new UIServer(configs);
+    app.start();
+
+    // Start the background pod watcher for automatic pod status caching
+    startPodWatcher();
+  })
+  .catch(err => {
+    console.error('Failed to initialize pod events cache index:', err);
+    // Start anyway - the index will init lazily on first use
+    const app = new UIServer(configs);
+    app.start();
+    startPodWatcher();
+  });

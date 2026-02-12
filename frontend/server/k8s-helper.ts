@@ -322,6 +322,214 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
 }
 
 /**
+ * Lists pods by run ID label.
+ * This is useful for finding pods that failed early (e.g., ImagePullBackOff)
+ * before the KFP driver/launcher could record the pod name in MLMD.
+ * Tries multiple label selectors to support different KFP versions.
+ *
+ * @param runId - The pipeline run ID
+ * @param podNamespace - The namespace to search in
+ * @param taskName - Optional task name to filter pods
+ */
+export async function listPodsByRunId(
+  runId: string,
+  podNamespace: string,
+  taskName?: string,
+): Promise<Result<V1Pod[]>> {
+  console.log('[listPodsByRunId] Called with:', { runId, podNamespace, taskName });
+  try {
+    if (!isAllowedResourceName(runId) || !isAllowedResourceName(podNamespace)) {
+      console.log('[listPodsByRunId] Invalid resource name');
+      return [undefined, { message: 'Invalid resource name' }];
+    }
+
+    // Try multiple label selectors to support different KFP versions
+    // KFP v2 with Argo uses different labels than KFP v1
+    const labelSelectors = [
+      `pipeline/runid=${runId}`,                      // KFP v1/v2 common label
+      `pipelines.kubeflow.org/run_id=${runId}`,       // Alternative KFP label
+      `workflows.argoproj.io/workflow=${runId}`,      // Argo workflow label (workflow name = run ID)
+    ];
+    console.log('[listPodsByRunId] Will try label selectors:', labelSelectors);
+
+    let allPods: V1Pod[] = [];
+
+    // Performance optimization: limit the number of pods fetched per query
+    // For large for-loop pipelines, this prevents fetching hundreds of pods at once
+    const POD_LIMIT = 100;
+
+    for (const labelSelector of labelSelectors) {
+      try {
+        const { body } = await k8sV1Client.listNamespacedPod(
+          podNamespace,
+          undefined, // pretty
+          undefined, // allowWatchBookmarks
+          undefined, // _continue
+          undefined, // fieldSelector
+          labelSelector,
+          POD_LIMIT, // limit - fetch at most 100 pods per query
+        );
+        if (body.items && body.items.length > 0) {
+          allPods = [...allPods, ...body.items];
+          // Early exit optimization: if we found pods with this selector, skip the others
+          // This avoids making 2 more K8s API calls when the first one succeeds
+          if (allPods.length > 0) {
+            console.log(`[listPodsByRunId] Found ${body.items.length} pods with selector: ${labelSelector}, skipping remaining selectors`);
+            break;
+          }
+        }
+      } catch (err) {
+        // Continue trying other selectors - this is expected for non-matching labels
+      }
+    }
+
+    // Deduplicate pods by name
+    const uniquePods = allPods.reduce((acc: V1Pod[], pod) => {
+      if (!acc.find(p => p.metadata?.name === pod.metadata?.name)) {
+        acc.push(pod);
+      }
+      return acc;
+    }, []);
+
+    // Helper to check if a pod has container errors (impl pods may not have task_name label)
+    const hasContainerError = (pod: V1Pod): boolean => {
+      const containerStatuses = pod.status?.containerStatuses || [];
+      const initContainerStatuses = pod.status?.initContainerStatuses || [];
+      const allStatuses = [...containerStatuses, ...initContainerStatuses];
+      const errorReasons = [
+        'ErrImagePull', 'ImagePullBackOff', 'CrashLoopBackOff',
+        'CreateContainerConfigError', 'InvalidImageName', 'CreateContainerError',
+        'RunContainerError', 'OOMKilled', 'Error',
+      ];
+      return allStatuses.some((cs: any) => {
+        const waitingReason = cs.state?.waiting?.reason;
+        const terminatedReason = cs.state?.terminated?.reason;
+        const exitCode = cs.state?.terminated?.exitCode;
+        return (
+          errorReasons.includes(waitingReason) ||
+          errorReasons.includes(terminatedReason) ||
+          (exitCode !== undefined && exitCode !== 0)
+        );
+      });
+    };
+
+    // Helper to check if a pod is an impl/executor pod (vs driver)
+    // Impl pods have names like <workflow>-system-container-impl-<hash>
+    // As of version I, impl pods now have task_name labels and task_path annotations
+    const isImplPod = (pod: V1Pod): boolean => {
+      const name = pod.metadata?.name || '';
+      return (name.includes('-impl-') || name.includes('system-container-impl')) && !name.includes('driver');
+    };
+
+    // If task name provided, try to filter (but don't require it)
+    let filteredPods = uniquePods;
+    if (taskName && isAllowedResourceName(taskName) && uniquePods.length > 1) {
+      console.log('[listPodsByRunId] Filtering', uniquePods.length, 'pods for task:', taskName);
+
+      // Helper to check if a pod matches the task by labels/annotations/name
+      const podMatchesTask = (pod: V1Pod): boolean => {
+        const labels = pod.metadata?.labels || {};
+        const annotations = pod.metadata?.annotations || {};
+        const podTaskLabel = labels['pipelines.kubeflow.org/task_name'] || '';
+        const podTaskPath = annotations['pipelines.kubeflow.org/task_path'] || '';
+        const podName = pod.metadata?.name || '';
+
+        return (
+          podTaskPath === taskName ||
+          podTaskPath.endsWith('.' + taskName) ||
+          podTaskLabel === taskName ||
+          podTaskLabel.endsWith('.' + taskName) ||
+          labels['component'] === taskName ||
+          podName.includes(taskName)
+        );
+      };
+
+      // Helper to get the task name from a driver pod
+      const getDriverTaskName = (pod: V1Pod): string => {
+        const labels = pod.metadata?.labels || {};
+        const annotations = pod.metadata?.annotations || {};
+        return annotations['pipelines.kubeflow.org/task_path'] ||
+               labels['pipelines.kubeflow.org/task_name'] ||
+               labels['component'] || '';
+      };
+
+      // Legacy fallback: For error impl pods WITHOUT task labels (created before version I),
+      // find which task they belong to by timestamp.
+      // An impl pod belongs to the driver that was created closest to (but before) it.
+      // With version I, impl pods have task_name labels and are matched directly via podMatchesTask().
+      const getImplPodOwnerTask = (implPod: V1Pod): string | null => {
+        const implTime = new Date(implPod.metadata?.creationTimestamp || 0).getTime();
+
+        // Get all driver pods (non-impl) with task labels
+        const driverPods = uniquePods.filter(p => !isImplPod(p) && getDriverTaskName(p));
+
+        let bestMatch: { task: string; timeDiff: number } | null = null;
+
+        for (const driver of driverPods) {
+          const driverTime = new Date(driver.metadata?.creationTimestamp || 0).getTime();
+          const timeDiff = implTime - driverTime;
+
+          // Impl should be created after driver (timeDiff >= 0)
+          // And within a reasonable window (5 minutes)
+          if (timeDiff >= 0 && timeDiff < 300000) {
+            const driverTask = getDriverTaskName(driver);
+            if (!bestMatch || timeDiff < bestMatch.timeDiff) {
+              bestMatch = { task: driverTask, timeDiff };
+            }
+          }
+        }
+
+        return bestMatch?.task || null;
+      };
+
+      const taskFilteredPods = uniquePods.filter(pod => {
+        const labels = pod.metadata?.labels || {};
+        const annotations = pod.metadata?.annotations || {};
+        const podTaskLabel = labels['pipelines.kubeflow.org/task_name'] || '';
+        const podTaskPath = annotations['pipelines.kubeflow.org/task_path'] || '';
+        const podName = pod.metadata?.name || '';
+
+        // Direct match by label, annotation, or pod name
+        if (podMatchesTask(pod)) {
+          if (isImplPod(pod) && (podTaskLabel || podTaskPath)) {
+            console.log('[listPodsByRunId] Matched impl pod by label/annotation:', podName, 'taskLabel:', podTaskLabel, 'taskPath:', podTaskPath);
+          }
+          return true;
+        }
+
+        // Legacy fallback for error impl pods WITHOUT task labels (pre-version I):
+        // Match by timestamp. As of version I, impl pods have task_name labels and
+        // are matched directly via podMatchesTask() above.
+        if (isImplPod(pod) && hasContainerError(pod) && !podTaskLabel && !podTaskPath) {
+          const ownerTask = getImplPodOwnerTask(pod);
+          if (ownerTask) {
+            // Check if owner task matches the current task we're filtering for
+            const matches = ownerTask === taskName ||
+                           ownerTask.endsWith('.' + taskName) ||
+                           taskName.endsWith('.' + ownerTask);
+            if (matches) {
+              console.log('[listPodsByRunId] Legacy: Including error impl pod matched by timestamp:', podName, '-> owner:', ownerTask, '-> task:', taskName);
+              return true;
+            }
+          }
+        }
+
+        return false;
+      });
+
+      if (taskFilteredPods.length > 0) {
+        filteredPods = taskFilteredPods;
+      }
+    }
+
+    return [filteredPods, undefined];
+  } catch (error) {
+    const userMessage = `Error listing pods for run ${runId} in namespace ${podNamespace}`;
+    return [undefined, { message: userMessage, additionalInfo: error }];
+  }
+}
+
+/**
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
  */

@@ -91,6 +91,7 @@ type containerDriverInputs struct {
 	component        string
 	task             string
 	taskName         string // preserve the original task name for input resolving
+	taskPath         string // full task path including parent DAG names (e.g., "root.for-loop-1.process-item")
 	container        string
 	parentDagID      string
 	iterationIndex   string // optional, when this is an iteration task
@@ -174,6 +175,12 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 			wfapi.Parameter{Name: paramKubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)},
 		)
 	}
+	if inputs.taskPath != "" {
+		dagTask.Arguments.Parameters = append(
+			dagTask.Arguments.Parameters,
+			wfapi.Parameter{Name: paramTaskPath, Value: wfapi.AnyStringPtr(inputs.taskPath)},
+		)
+	}
 	outputs := &containerDriverOutputs{
 		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
 		cached:       taskOutputParameter(name, paramCachedDecision),
@@ -238,12 +245,23 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 
 	t := &wfapi.Template{
 		Name: name,
+		Metadata: wfapi.Metadata{
+			Labels: map[string]string{
+				// Simple task name for backward compatibility (max 63 chars for K8s labels)
+				"pipelines.kubeflow.org/task_name": inputParameter(paramTaskName),
+			},
+			Annotations: map[string]string{
+				// Full task path for sub-DAG differentiation (no length limit)
+				"pipelines.kubeflow.org/task_path": inputParameter(paramTaskPath),
+			},
+		},
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent},
 				{Name: paramTask},
 				{Name: paramContainer},
 				{Name: paramTaskName},
+				{Name: paramTaskPath, Default: wfapi.AnyStringPtr("")},
 				{Name: paramParentDagID},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 				{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},
@@ -284,6 +302,10 @@ type containerExecutorInputs struct {
 	exitTemplate string
 	// this will be provided as the parent-dag-id input to the Argo Workflow exit lifecycle hook.
 	hookParentDagID string
+	// taskName is the simple task name for pod labeling (max 63 chars for K8s labels)
+	taskName string
+	// taskPath is the full task path for sub-DAG differentiation (no length limit for annotations)
+	taskPath string
 }
 
 // containerExecutorTask returns an argo workflows DAGTask.
@@ -325,6 +347,14 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 						Name:    paramCachedDecision,
 						Value:   wfapi.AnyStringPtr(inputs.cachedDecision),
 						Default: wfapi.AnyStringPtr("false"),
+					},
+					{
+						Name:  paramTaskName,
+						Value: wfapi.AnyStringPtr(inputs.taskName),
+					},
+					{
+						Name:  paramTaskPath,
+						Value: wfapi.AnyStringPtr(inputs.taskPath),
 					},
 				},
 				append(
@@ -387,6 +417,14 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 						Name:    paramCachedDecision,
 						Default: wfapi.AnyStringPtr("false"),
 					},
+					{
+						Name:    paramTaskName,
+						Default: wfapi.AnyStringPtr(""),
+					},
+					{
+						Name:    paramTaskPath,
+						Default: wfapi.AnyStringPtr(""),
+					},
 				},
 				append(
 					c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false),
@@ -402,6 +440,14 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 							{
 								Name:  paramPodSpecPatch,
 								Value: wfapi.AnyStringPtr(inputParameter(paramPodSpecPatch)),
+							},
+							{
+								Name:  paramTaskName,
+								Value: wfapi.AnyStringPtr(inputParameter(paramTaskName)),
+							},
+							{
+								Name:  paramTaskPath,
+								Value: wfapi.AnyStringPtr(inputParameter(paramTaskPath)),
 							},
 						},
 						append(
@@ -433,11 +479,29 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	}
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,
+		Metadata: wfapi.Metadata{
+			Labels: map[string]string{
+				// Simple task name for backward compatibility (max 63 chars for K8s labels)
+				"pipelines.kubeflow.org/task_name": inputParameter(paramTaskName),
+			},
+			Annotations: map[string]string{
+				// Full task path for sub-DAG differentiation (no length limit)
+				"pipelines.kubeflow.org/task_path": inputParameter(paramTaskPath),
+			},
+		},
 		Inputs: wfapi.Inputs{
 			Parameters: append(
 				[]wfapi.Parameter{
 					{
 						Name: paramPodSpecPatch,
+					},
+					{
+						Name:    paramTaskName,
+						Default: wfapi.AnyStringPtr(""),
+					},
+					{
+						Name:    paramTaskPath,
+						Default: wfapi.AnyStringPtr(""),
 					},
 				},
 				append(

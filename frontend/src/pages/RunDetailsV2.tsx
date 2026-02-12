@@ -13,7 +13,8 @@
 // limitations under the License.
 
 import * as React from 'react';
-import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
+import { MouseEvent as ReactMouseEvent, useContext, useEffect, useState } from 'react';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { FlowElement } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
@@ -53,8 +54,8 @@ import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 import { Edge, Node } from 'react-flow-renderer/dist/types';
 
-const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
-const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_STALE_TIME = 30000; // 30000 milliseconds == 30 seconds.
+const QUERY_REFETCH_INTERNAL = 60000; // 60000 milliseconds == 60 seconds (was 10s, increased for performance).
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
@@ -157,7 +158,22 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     () => getExperiment(experimentId),
     {},
   );
-  const namespace = experiment?.namespace;
+
+  // Get namespace from multiple sources (in order of preference):
+  // 1. Experiment namespace
+  // 2. Kubeflow Central Dashboard context
+  // 3. URL query params (ns or namespace)
+  const contextNamespace = useContext(NamespaceContext);
+  const getNamespaceFromUrl = (): string | undefined => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('ns') || urlParams.get('namespace') || undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const urlNamespace = getNamespaceFromUrl();
+  const namespace = experiment?.namespace || contextNamespace || urlNamespace;
 
   // Update page title and experiment information.
   useEffect(() => {

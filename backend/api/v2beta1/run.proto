@@ -337,6 +337,84 @@ message PipelineTaskDetail {
 
   // Sequence of dependen tasks.
   repeated ChildTask child_tasks = 16;
+
+  // Pod status information - persisted for UX visibility even after pod termination.
+  PodStatus pod_status = 17;
+
+  // Pod events - persisted for debugging even after pod termination.
+  repeated PodEvent pod_events = 18;
+}
+
+// Pod status information captured from Kubernetes.
+message PodStatus {
+  // Current phase of the pod (Pending, Running, Succeeded, Failed, Unknown).
+  string phase = 1;
+
+  // Human-readable message about the pod's condition.
+  string message = 2;
+
+  // Brief reason for the pod's current status.
+  string reason = 3;
+
+  // IP address allocated to the pod.
+  string pod_ip = 4;
+
+  // Name of the node where the pod is running.
+  string node_name = 5;
+
+  // Timestamp when the pod was last updated.
+  google.protobuf.Timestamp last_updated = 6;
+
+  // Container statuses within the pod.
+  repeated ContainerStatus container_statuses = 7;
+}
+
+// Container status within a pod.
+message ContainerStatus {
+  // Name of the container.
+  string name = 1;
+
+  // Whether the container is ready.
+  bool ready = 2;
+
+  // Number of times the container has been restarted.
+  int32 restart_count = 3;
+
+  // State of the container (waiting, running, terminated).
+  string state = 4;
+
+  // Reason for current state.
+  string reason = 5;
+
+  // Message about current state.
+  string message = 6;
+
+  // Exit code if container terminated.
+  int32 exit_code = 7;
+}
+
+// Kubernetes event associated with a pod.
+message PodEvent {
+  // Type of event (Normal, Warning).
+  string type = 1;
+
+  // Short machine-understandable reason for the event.
+  string reason = 2;
+
+  // Human-readable message about the event.
+  string message = 3;
+
+  // Time when the event was first recorded.
+  google.protobuf.Timestamp first_timestamp = 4;
+
+  // Time when the event was last recorded.
+  google.protobuf.Timestamp last_timestamp = 5;
+
+  // Number of times this event has occurred.
+  int32 count = 6;
+
+  // Component that reported this event.
+  string source = 7;
 }
 
 // Runtime information of a pipeline task executor.
