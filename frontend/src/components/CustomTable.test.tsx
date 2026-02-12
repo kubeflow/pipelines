@@ -313,6 +313,23 @@ describe('CustomTable', () => {
     expect(reload).toHaveBeenCalledTimes(previousCallCount);
   });
 
+  it('does not render sort icon for columns without sort key', async () => {
+    renderTable({
+      columns: [
+        { label: 'sortable', sortKey: 'sortableKey' },
+        { label: 'unsortable' },
+      ],
+      rows,
+    });
+    await TestUtils.flushPromises();
+
+    const sortableHeader = screen.getByText('sortable').closest('.MuiTableSortLabel-root');
+    const unsortableHeader = screen.getByText('unsortable').closest('.MuiTableSortLabel-root');
+
+    expect(sortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeTruthy();
+    expect(unsortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeNull();
+  });
+
   it('logs error if row has more cells than columns', () => {
     const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     const wrapper = renderTable({ rows });
