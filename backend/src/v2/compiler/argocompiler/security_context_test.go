@@ -126,6 +126,7 @@ func TestApplySecurityContextToTemplate_WithContainer(t *testing.T) {
 	assert.NotNil(t, template.Container.SecurityContext)
 	assert.False(t, *template.Container.SecurityContext.AllowPrivilegeEscalation)
 	assert.True(t, *template.Container.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, []k8score.Capability{"ALL"}, template.Container.SecurityContext.Capabilities.Drop)
 }
 
 func TestApplySecurityContextToTemplate_WithInitContainersAndSidecars(t *testing.T) {
@@ -146,6 +147,7 @@ func TestApplySecurityContextToTemplate_WithInitContainersAndSidecars(t *testing
 		assert.NotNil(t, initContainer.SecurityContext, "init container %s should have security context", initContainer.Name)
 		assert.False(t, *initContainer.SecurityContext.AllowPrivilegeEscalation)
 		assert.True(t, *initContainer.SecurityContext.RunAsNonRoot)
+		assert.Equal(t, []k8score.Capability{"ALL"}, initContainer.SecurityContext.Capabilities.Drop)
 	}
 
 	// All sidecars should have security context
@@ -153,6 +155,7 @@ func TestApplySecurityContextToTemplate_WithInitContainersAndSidecars(t *testing
 		assert.NotNil(t, sidecar.SecurityContext, "sidecar %s should have security context", sidecar.Name)
 		assert.False(t, *sidecar.SecurityContext.AllowPrivilegeEscalation)
 		assert.True(t, *sidecar.SecurityContext.RunAsNonRoot)
+		assert.Equal(t, []k8score.Capability{"ALL"}, sidecar.SecurityContext.Capabilities.Drop)
 	}
 }
 
@@ -283,6 +286,7 @@ func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t
 		assert.NotNil(t, initContainer.SecurityContext)
 		assert.True(t, *initContainer.SecurityContext.RunAsNonRoot)
 		assert.False(t, *initContainer.SecurityContext.AllowPrivilegeEscalation)
+		assert.Equal(t, []k8score.Capability{"ALL"}, initContainer.SecurityContext.Capabilities.Drop)
 	}
 
 	// Sidecars: no RunAsNonRoot, but capabilities drop ALL
