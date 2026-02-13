@@ -602,7 +602,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		args = append(args, "--publish_logs", value)
 	}
 
-	t := &wfapi.Template{
+	template := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
@@ -630,13 +630,13 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
-	applySecurityContextToTemplate(t)
+	applySecurityContextToTemplate(template)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {
-		ConfigureCustomCABundle(t)
+		ConfigureCustomCABundle(template)
 	}
-	c.templates[name] = t
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
+	c.templates[name] = template
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
 	return name
 }
 

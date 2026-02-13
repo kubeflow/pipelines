@@ -26,22 +26,22 @@ func boolPtr(b bool) *bool    { return &b }
 func int64Ptr(i int64) *int64 { return &i }
 
 func TestDefaultContainerSecurityContext(t *testing.T) {
-	sc := defaultContainerSecurityContext()
+	securityContext := defaultContainerSecurityContext()
 
-	assert.NotNil(t, sc)
-	assert.NotNil(t, sc.AllowPrivilegeEscalation)
-	assert.False(t, *sc.AllowPrivilegeEscalation)
-	assert.NotNil(t, sc.RunAsNonRoot)
-	assert.True(t, *sc.RunAsNonRoot)
-	assert.NotNil(t, sc.Capabilities)
-	assert.Equal(t, []k8score.Capability{"ALL"}, sc.Capabilities.Drop)
-	assert.NotNil(t, sc.SeccompProfile)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+	assert.NotNil(t, securityContext)
+	assert.NotNil(t, securityContext.AllowPrivilegeEscalation)
+	assert.False(t, *securityContext.AllowPrivilegeEscalation)
+	assert.NotNil(t, securityContext.RunAsNonRoot)
+	assert.True(t, *securityContext.RunAsNonRoot)
+	assert.NotNil(t, securityContext.Capabilities)
+	assert.Equal(t, []k8score.Capability{"ALL"}, securityContext.Capabilities.Drop)
+	assert.NotNil(t, securityContext.SeccompProfile)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, securityContext.SeccompProfile.Type)
 	// Should not set fields that are left to the user
-	assert.Nil(t, sc.RunAsUser)
-	assert.Nil(t, sc.RunAsGroup)
-	assert.Nil(t, sc.Privileged)
-	assert.Nil(t, sc.ReadOnlyRootFilesystem)
+	assert.Nil(t, securityContext.RunAsUser)
+	assert.Nil(t, securityContext.RunAsGroup)
+	assert.Nil(t, securityContext.Privileged)
+	assert.Nil(t, securityContext.ReadOnlyRootFilesystem)
 }
 
 func TestApplySecurityContextToContainer_NilContainer(t *testing.T) {
@@ -50,36 +50,36 @@ func TestApplySecurityContextToContainer_NilContainer(t *testing.T) {
 }
 
 func TestApplySecurityContextToContainer_NilSecurityContext(t *testing.T) {
-	c := &k8score.Container{Name: "test"}
-	applySecurityContextToContainer(c)
+	container := &k8score.Container{Name: "test"}
+	applySecurityContextToContainer(container)
 
-	assert.NotNil(t, c.SecurityContext)
-	assert.False(t, *c.SecurityContext.AllowPrivilegeEscalation)
-	assert.True(t, *c.SecurityContext.RunAsNonRoot)
-	assert.Equal(t, []k8score.Capability{"ALL"}, c.SecurityContext.Capabilities.Drop)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, c.SecurityContext.SeccompProfile.Type)
+	assert.NotNil(t, container.SecurityContext)
+	assert.False(t, *container.SecurityContext.AllowPrivilegeEscalation)
+	assert.True(t, *container.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, []k8score.Capability{"ALL"}, container.SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, container.SecurityContext.SeccompProfile.Type)
 }
 
 func TestApplySecurityContextToContainer_PartialSecurityContext(t *testing.T) {
-	c := &k8score.Container{
+	container := &k8score.Container{
 		Name: "test",
 		SecurityContext: &k8score.SecurityContext{
 			RunAsUser: int64Ptr(1000),
 		},
 	}
-	applySecurityContextToContainer(c)
+	applySecurityContextToContainer(container)
 
 	// Should preserve existing fields
-	assert.Equal(t, int64(1000), *c.SecurityContext.RunAsUser)
+	assert.Equal(t, int64(1000), *container.SecurityContext.RunAsUser)
 	// Should fill in missing defaults
-	assert.False(t, *c.SecurityContext.AllowPrivilegeEscalation)
-	assert.True(t, *c.SecurityContext.RunAsNonRoot)
-	assert.Equal(t, []k8score.Capability{"ALL"}, c.SecurityContext.Capabilities.Drop)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, c.SecurityContext.SeccompProfile.Type)
+	assert.False(t, *container.SecurityContext.AllowPrivilegeEscalation)
+	assert.True(t, *container.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, []k8score.Capability{"ALL"}, container.SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, container.SecurityContext.SeccompProfile.Type)
 }
 
 func TestApplySecurityContextToContainer_FullSecurityContext(t *testing.T) {
-	c := &k8score.Container{
+	container := &k8score.Container{
 		Name: "test",
 		SecurityContext: &k8score.SecurityContext{
 			AllowPrivilegeEscalation: boolPtr(true),  // user explicitly set
@@ -93,14 +93,14 @@ func TestApplySecurityContextToContainer_FullSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	applySecurityContextToContainer(c)
+	applySecurityContextToContainer(container)
 
 	// Should not overwrite any fields that are already set
-	assert.True(t, *c.SecurityContext.AllowPrivilegeEscalation)
-	assert.False(t, *c.SecurityContext.RunAsNonRoot)
-	assert.Equal(t, []k8score.Capability{"NET_RAW"}, c.SecurityContext.Capabilities.Drop)
-	assert.Equal(t, []k8score.Capability{"SYS_PTRACE"}, c.SecurityContext.Capabilities.Add)
-	assert.Equal(t, k8score.SeccompProfileTypeUnconfined, c.SecurityContext.SeccompProfile.Type)
+	assert.True(t, *container.SecurityContext.AllowPrivilegeEscalation)
+	assert.False(t, *container.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, []k8score.Capability{"NET_RAW"}, container.SecurityContext.Capabilities.Drop)
+	assert.Equal(t, []k8score.Capability{"SYS_PTRACE"}, container.SecurityContext.Capabilities.Add)
+	assert.Equal(t, k8score.SeccompProfileTypeUnconfined, container.SecurityContext.SeccompProfile.Type)
 }
 
 func TestApplySecurityContextToTemplate_NilTemplate(t *testing.T) {
@@ -109,27 +109,27 @@ func TestApplySecurityContextToTemplate_NilTemplate(t *testing.T) {
 }
 
 func TestApplySecurityContextToTemplate_WithContainer(t *testing.T) {
-	tmpl := &wfapi.Template{
+	template := &wfapi.Template{
 		Container: &k8score.Container{
 			Name: "main",
 		},
 	}
-	applySecurityContextToTemplate(tmpl)
+	applySecurityContextToTemplate(template)
 
 	// Pod security context: SeccompProfile and RunAsNonRoot
-	assert.NotNil(t, tmpl.SecurityContext)
-	assert.NotNil(t, tmpl.SecurityContext.RunAsNonRoot)
-	assert.True(t, *tmpl.SecurityContext.RunAsNonRoot)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, tmpl.SecurityContext.SeccompProfile.Type)
+	assert.NotNil(t, template.SecurityContext)
+	assert.NotNil(t, template.SecurityContext.RunAsNonRoot)
+	assert.True(t, *template.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, template.SecurityContext.SeccompProfile.Type)
 
 	// Container security context should be set
-	assert.NotNil(t, tmpl.Container.SecurityContext)
-	assert.False(t, *tmpl.Container.SecurityContext.AllowPrivilegeEscalation)
-	assert.True(t, *tmpl.Container.SecurityContext.RunAsNonRoot)
+	assert.NotNil(t, template.Container.SecurityContext)
+	assert.False(t, *template.Container.SecurityContext.AllowPrivilegeEscalation)
+	assert.True(t, *template.Container.SecurityContext.RunAsNonRoot)
 }
 
 func TestApplySecurityContextToTemplate_WithInitContainersAndSidecars(t *testing.T) {
-	tmpl := &wfapi.Template{
+	template := &wfapi.Template{
 		Container: &k8score.Container{Name: "main"},
 		InitContainers: []wfapi.UserContainer{
 			{Container: k8score.Container{Name: "init-1"}},
@@ -139,20 +139,20 @@ func TestApplySecurityContextToTemplate_WithInitContainersAndSidecars(t *testing
 			{Container: k8score.Container{Name: "sidecar-1"}},
 		},
 	}
-	applySecurityContextToTemplate(tmpl)
+	applySecurityContextToTemplate(template)
 
 	// All init containers should have security context
-	for _, ic := range tmpl.InitContainers {
-		assert.NotNil(t, ic.SecurityContext, "init container %s should have security context", ic.Name)
-		assert.False(t, *ic.SecurityContext.AllowPrivilegeEscalation)
-		assert.True(t, *ic.SecurityContext.RunAsNonRoot)
+	for _, initContainer := range template.InitContainers {
+		assert.NotNil(t, initContainer.SecurityContext, "init container %s should have security context", initContainer.Name)
+		assert.False(t, *initContainer.SecurityContext.AllowPrivilegeEscalation)
+		assert.True(t, *initContainer.SecurityContext.RunAsNonRoot)
 	}
 
 	// All sidecars should have security context
-	for _, sc := range tmpl.Sidecars {
-		assert.NotNil(t, sc.SecurityContext, "sidecar %s should have security context", sc.Name)
-		assert.False(t, *sc.SecurityContext.AllowPrivilegeEscalation)
-		assert.True(t, *sc.SecurityContext.RunAsNonRoot)
+	for _, sidecar := range template.Sidecars {
+		assert.NotNil(t, sidecar.SecurityContext, "sidecar %s should have security context", sidecar.Name)
+		assert.False(t, *sidecar.SecurityContext.AllowPrivilegeEscalation)
+		assert.True(t, *sidecar.SecurityContext.RunAsNonRoot)
 	}
 }
 
@@ -165,33 +165,33 @@ func TestApplySecurityContextToUserContainers_Empty(t *testing.T) {
 
 func TestApplySecurityContextToTemplate_NoContainer(t *testing.T) {
 	// Template with DAG (no container)
-	tmpl := &wfapi.Template{
+	template := &wfapi.Template{
 		Name: "dag-template",
 		DAG:  &wfapi.DAGTemplate{},
 	}
-	applySecurityContextToTemplate(tmpl)
+	applySecurityContextToTemplate(template)
 
 	// Pod security context: SeccompProfile and RunAsNonRoot
-	assert.NotNil(t, tmpl.SecurityContext)
-	assert.NotNil(t, tmpl.SecurityContext.RunAsNonRoot)
-	assert.True(t, *tmpl.SecurityContext.RunAsNonRoot)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, tmpl.SecurityContext.SeccompProfile.Type)
+	assert.NotNil(t, template.SecurityContext)
+	assert.NotNil(t, template.SecurityContext.RunAsNonRoot)
+	assert.True(t, *template.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, template.SecurityContext.SeccompProfile.Type)
 }
 
 // --- Executor template tests (user containers) ---
 
 func TestDefaultUserContainerSecurityContext(t *testing.T) {
-	sc := defaultUserContainerSecurityContext()
+	securityContext := defaultUserContainerSecurityContext()
 
-	assert.NotNil(t, sc)
-	assert.NotNil(t, sc.AllowPrivilegeEscalation)
-	assert.False(t, *sc.AllowPrivilegeEscalation)
-	assert.NotNil(t, sc.SeccompProfile)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+	assert.NotNil(t, securityContext)
+	assert.NotNil(t, securityContext.AllowPrivilegeEscalation)
+	assert.False(t, *securityContext.AllowPrivilegeEscalation)
+	assert.NotNil(t, securityContext.SeccompProfile)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, securityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot - user images may run as root
-	assert.Nil(t, sc.RunAsNonRoot)
+	assert.Nil(t, securityContext.RunAsNonRoot)
 	// Must NOT drop capabilities - user images may need them (e.g. pip install as root)
-	assert.Nil(t, sc.Capabilities)
+	assert.Nil(t, securityContext.Capabilities)
 }
 
 func TestApplyUserContainerSecurityContext_NilContainer(t *testing.T) {
@@ -200,56 +200,56 @@ func TestApplyUserContainerSecurityContext_NilContainer(t *testing.T) {
 }
 
 func TestApplyUserContainerSecurityContext_NilSecurityContext(t *testing.T) {
-	c := &k8score.Container{Name: "user"}
-	applyUserContainerSecurityContext(c)
+	container := &k8score.Container{Name: "user"}
+	applyUserContainerSecurityContext(container)
 
-	assert.NotNil(t, c.SecurityContext)
-	assert.False(t, *c.SecurityContext.AllowPrivilegeEscalation)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, c.SecurityContext.SeccompProfile.Type)
+	assert.NotNil(t, container.SecurityContext)
+	assert.False(t, *container.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, container.SecurityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot
-	assert.Nil(t, c.SecurityContext.RunAsNonRoot)
+	assert.Nil(t, container.SecurityContext.RunAsNonRoot)
 	// Must NOT drop capabilities - user images may need them
-	assert.Nil(t, c.SecurityContext.Capabilities)
+	assert.Nil(t, container.SecurityContext.Capabilities)
 }
 
 func TestApplyUserContainerSecurityContext_PartialSecurityContext(t *testing.T) {
-	c := &k8score.Container{
+	container := &k8score.Container{
 		Name: "user",
 		SecurityContext: &k8score.SecurityContext{
 			RunAsUser: int64Ptr(1000),
 		},
 	}
-	applyUserContainerSecurityContext(c)
+	applyUserContainerSecurityContext(container)
 
-	assert.Equal(t, int64(1000), *c.SecurityContext.RunAsUser)
-	assert.False(t, *c.SecurityContext.AllowPrivilegeEscalation)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, c.SecurityContext.SeccompProfile.Type)
+	assert.Equal(t, int64(1000), *container.SecurityContext.RunAsUser)
+	assert.False(t, *container.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, container.SecurityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot
-	assert.Nil(t, c.SecurityContext.RunAsNonRoot)
+	assert.Nil(t, container.SecurityContext.RunAsNonRoot)
 	// Must NOT drop capabilities - user images may need them
-	assert.Nil(t, c.SecurityContext.Capabilities)
+	assert.Nil(t, container.SecurityContext.Capabilities)
 }
 
 func TestApplyPodSeccompProfileOnly_NilContext(t *testing.T) {
-	var sc *k8score.PodSecurityContext
-	applyPodSeccompProfileOnly(&sc)
+	var podSecurityContext *k8score.PodSecurityContext
+	applyPodSeccompProfileOnly(&podSecurityContext)
 
-	assert.NotNil(t, sc)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+	assert.NotNil(t, podSecurityContext)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, podSecurityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot
-	assert.Nil(t, sc.RunAsNonRoot)
+	assert.Nil(t, podSecurityContext.RunAsNonRoot)
 }
 
 func TestApplyPodSeccompProfileOnly_ExistingContext(t *testing.T) {
-	sc := &k8score.PodSecurityContext{
+	podSecurityContext := &k8score.PodSecurityContext{
 		RunAsUser: int64Ptr(1000),
 	}
-	applyPodSeccompProfileOnly(&sc)
+	applyPodSeccompProfileOnly(&podSecurityContext)
 
-	assert.Equal(t, int64(1000), *sc.RunAsUser)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, sc.SeccompProfile.Type)
+	assert.Equal(t, int64(1000), *podSecurityContext.RunAsUser)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, podSecurityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot
-	assert.Nil(t, sc.RunAsNonRoot)
+	assert.Nil(t, podSecurityContext.RunAsNonRoot)
 }
 
 func TestApplySecurityContextToExecutorTemplate_NilTemplate(t *testing.T) {
@@ -258,7 +258,7 @@ func TestApplySecurityContextToExecutorTemplate_NilTemplate(t *testing.T) {
 }
 
 func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t *testing.T) {
-	tmpl := &wfapi.Template{
+	template := &wfapi.Template{
 		Container: &k8score.Container{Name: "user-container"},
 		InitContainers: []wfapi.UserContainer{
 			{Container: k8score.Container{Name: "kfp-launcher"}},
@@ -267,31 +267,31 @@ func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t
 			{Container: k8score.Container{Name: "sidecar"}},
 		},
 	}
-	applySecurityContextToExecutorTemplate(tmpl)
+	applySecurityContextToExecutorTemplate(template)
 
 	// Pod security context: SeccompProfile only, no RunAsNonRoot
-	assert.NotNil(t, tmpl.SecurityContext)
-	assert.Nil(t, tmpl.SecurityContext.RunAsNonRoot)
-	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, tmpl.SecurityContext.SeccompProfile.Type)
+	assert.NotNil(t, template.SecurityContext)
+	assert.Nil(t, template.SecurityContext.RunAsNonRoot)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, template.SecurityContext.SeccompProfile.Type)
 
 	// Main container (user): no RunAsNonRoot, no capabilities drop
-	assert.NotNil(t, tmpl.Container.SecurityContext)
-	assert.Nil(t, tmpl.Container.SecurityContext.RunAsNonRoot)
-	assert.False(t, *tmpl.Container.SecurityContext.AllowPrivilegeEscalation)
-	assert.Nil(t, tmpl.Container.SecurityContext.Capabilities)
+	assert.NotNil(t, template.Container.SecurityContext)
+	assert.Nil(t, template.Container.SecurityContext.RunAsNonRoot)
+	assert.False(t, *template.Container.SecurityContext.AllowPrivilegeEscalation)
+	assert.Nil(t, template.Container.SecurityContext.Capabilities)
 
 	// Init containers (system): full security WITH RunAsNonRoot
-	for _, ic := range tmpl.InitContainers {
-		assert.NotNil(t, ic.SecurityContext)
-		assert.True(t, *ic.SecurityContext.RunAsNonRoot)
-		assert.False(t, *ic.SecurityContext.AllowPrivilegeEscalation)
+	for _, initContainer := range template.InitContainers {
+		assert.NotNil(t, initContainer.SecurityContext)
+		assert.True(t, *initContainer.SecurityContext.RunAsNonRoot)
+		assert.False(t, *initContainer.SecurityContext.AllowPrivilegeEscalation)
 	}
 
 	// Sidecars: no RunAsNonRoot, no capabilities drop (could be user-specified)
-	for _, sc := range tmpl.Sidecars {
-		assert.NotNil(t, sc.SecurityContext)
-		assert.Nil(t, sc.SecurityContext.RunAsNonRoot)
-		assert.False(t, *sc.SecurityContext.AllowPrivilegeEscalation)
-		assert.Nil(t, sc.SecurityContext.Capabilities)
+	for _, sidecar := range template.Sidecars {
+		assert.NotNil(t, sidecar.SecurityContext)
+		assert.Nil(t, sidecar.SecurityContext.RunAsNonRoot)
+		assert.False(t, *sidecar.SecurityContext.AllowPrivilegeEscalation)
+		assert.Nil(t, sidecar.SecurityContext.Capabilities)
 	}
 }
