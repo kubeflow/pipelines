@@ -63,10 +63,12 @@ runs:
         APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy"  )
         for app in "${APPS[@]}"; do
           docker image load -i ${{ inputs.image_path }}/$app/$app.tar
-          docker push ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
+          docker tag ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }} localhost:5000/$app:${{ inputs.image_tag }}
+          docker push localhost:5000/$app:${{ inputs.image_tag }}
           rm ${{ inputs.image_path }}/$app/$app.tar
           docker image rm ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
-        done  
+          docker image rm localhost:5000/$app:${{ inputs.image_tag }}
+        done
 
     - name: Configure Args
       shell: bash
