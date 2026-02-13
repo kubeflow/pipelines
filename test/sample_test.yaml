@@ -18,6 +18,10 @@ metadata:
   generateName: sample-test-
 spec:
   entrypoint: sample-test
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   arguments:
     parameters:
       - name: image-build-context-gcs-uri
@@ -101,6 +105,14 @@ spec:
             valueFrom:
               path: /outputs/strict-image-name/file
       container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
         image: "{{workflow.parameters.image-builder-image}}"
         imagePullPolicy: 'Always'
         command:
@@ -134,6 +146,14 @@ spec:
           - name: namespace
           - name: test-name
       container:
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
         image: "{{inputs.parameters.sample-tests-image}}"
         command:
         - "python3"

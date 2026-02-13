@@ -31,8 +31,8 @@ RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -gcflags="${GCF
 
 FROM alpine:3.19
 
-RUN adduser -S appuser
-USER appuser
+RUN adduser -S -u 65532 appuser
+USER 65532
 
 WORKDIR /bin
 

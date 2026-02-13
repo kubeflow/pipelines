@@ -20,6 +20,8 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
   securityContext:
     runAsUser: 1001
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
