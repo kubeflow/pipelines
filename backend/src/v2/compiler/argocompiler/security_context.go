@@ -38,11 +38,10 @@ func applySecurityContextToTemplate(t *wfapi.Template) {
 	if t == nil {
 		return
 	}
-	// Use SeccompProfile only at the pod level (not RunAsNonRoot) because
-	// Argo Workflows injects a "wait" sidecar (argoexec) that runs as root.
-	// Pod-level RunAsNonRoot would prevent that sidecar from starting.
-	// RunAsNonRoot is enforced at the individual container level instead.
-	applyPodSeccompProfileOnly(&t.SecurityContext)
+	// Apply SeccompProfile and RunAsNonRoot at the pod level.
+	// Argo Workflows is designed to run rootless:
+	// https://argo-workflows.readthedocs.io/en/latest/workflow-pod-security-context/
+	applyPodSecurityDefaults(&t.SecurityContext)
 	applySecurityContextToContainer(t.Container)
 	applySecurityContextToUserContainers(t.InitContainers)
 	applySecurityContextToUserContainers(t.Sidecars)
@@ -99,6 +98,30 @@ func applySecurityContextToExecutorTemplate(t *wfapi.Template) {
 	}
 }
 
+func applyPodSecurityDefaults(sc **k8score.PodSecurityContext) {
+	runAsNonRoot := true
+	if *sc == nil {
+		*sc = &k8score.PodSecurityContext{
+			RunAsNonRoot: &runAsNonRoot,
+			SeccompProfile: &k8score.SeccompProfile{
+				Type: k8score.SeccompProfileTypeRuntimeDefault,
+			},
+		}
+		return
+	}
+	if (*sc).RunAsNonRoot == nil {
+		(*sc).RunAsNonRoot = &runAsNonRoot
+	}
+	if (*sc).SeccompProfile == nil {
+		(*sc).SeccompProfile = &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		}
+	}
+}
+
+// applyPodSeccompProfileOnly sets only the SeccompProfile at the pod level,
+// without RunAsNonRoot. Used for executor templates where user-specified
+// images may run as root.
 func applyPodSeccompProfileOnly(sc **k8score.PodSecurityContext) {
 	if *sc == nil {
 		*sc = &k8score.PodSecurityContext{

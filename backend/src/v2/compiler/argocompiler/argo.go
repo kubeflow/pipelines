@@ -150,13 +150,13 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 	}
 
-	// Set SeccompProfile at the workflow level as a baseline default for all pods.
-	// RunAsNonRoot is intentionally omitted here because the Argo Workflows
-	// "wait" sidecar (argoexec) runs as root; pod-level RunAsNonRoot would
-	// prevent it from starting. RunAsNonRoot is enforced at the individual
-	// container level instead (see applySecurityContextToTemplate).
-	// Per-template seccomp is also applied for defense-in-depth.
+	// Set security defaults at the workflow level as a baseline for all pods.
+	// Argo Workflows is designed to run rootless:
+	// https://argo-workflows.readthedocs.io/en/latest/workflow-pod-security-context/
+	// Per-template security context is also applied for defense-in-depth.
+	runAsNonRoot := true
 	wf.Spec.SecurityContext = &k8score.PodSecurityContext{
+		RunAsNonRoot: &runAsNonRoot,
 		SeccompProfile: &k8score.SeccompProfile{
 			Type: k8score.SeccompProfileTypeRuntimeDefault,
 		},
