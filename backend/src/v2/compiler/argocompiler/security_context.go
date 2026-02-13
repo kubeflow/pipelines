@@ -142,6 +142,9 @@ func defaultUserContainerSecurityContext() *k8score.SecurityContext {
 	allowPrivilegeEscalation := false
 	return &k8score.SecurityContext{
 		AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+		Capabilities: &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		},
 		SeccompProfile: &k8score.SeccompProfile{
 			Type: k8score.SeccompProfileTypeRuntimeDefault,
 		},
@@ -159,6 +162,11 @@ func applyUserContainerSecurityContext(container *k8score.Container) {
 	if container.SecurityContext.AllowPrivilegeEscalation == nil {
 		allowPrivilegeEscalation := false
 		container.SecurityContext.AllowPrivilegeEscalation = &allowPrivilegeEscalation
+	}
+	if container.SecurityContext.Capabilities == nil {
+		container.SecurityContext.Capabilities = &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		}
 	}
 	if container.SecurityContext.SeccompProfile == nil {
 		container.SecurityContext.SeccompProfile = &k8score.SeccompProfile{

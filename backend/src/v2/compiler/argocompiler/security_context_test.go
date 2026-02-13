@@ -186,12 +186,12 @@ func TestDefaultUserContainerSecurityContext(t *testing.T) {
 	assert.NotNil(t, securityContext)
 	assert.NotNil(t, securityContext.AllowPrivilegeEscalation)
 	assert.False(t, *securityContext.AllowPrivilegeEscalation)
+	assert.NotNil(t, securityContext.Capabilities)
+	assert.Equal(t, []k8score.Capability{"ALL"}, securityContext.Capabilities.Drop)
 	assert.NotNil(t, securityContext.SeccompProfile)
 	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, securityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot - user images may run as root
 	assert.Nil(t, securityContext.RunAsNonRoot)
-	// Must NOT drop capabilities - user images may need them (e.g. pip install as root)
-	assert.Nil(t, securityContext.Capabilities)
 }
 
 func TestApplyUserContainerSecurityContext_NilContainer(t *testing.T) {
@@ -205,11 +205,10 @@ func TestApplyUserContainerSecurityContext_NilSecurityContext(t *testing.T) {
 
 	assert.NotNil(t, container.SecurityContext)
 	assert.False(t, *container.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, container.SecurityContext.Capabilities.Drop)
 	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, container.SecurityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot
 	assert.Nil(t, container.SecurityContext.RunAsNonRoot)
-	// Must NOT drop capabilities - user images may need them
-	assert.Nil(t, container.SecurityContext.Capabilities)
 }
 
 func TestApplyUserContainerSecurityContext_PartialSecurityContext(t *testing.T) {
@@ -223,11 +222,10 @@ func TestApplyUserContainerSecurityContext_PartialSecurityContext(t *testing.T) 
 
 	assert.Equal(t, int64(1000), *container.SecurityContext.RunAsUser)
 	assert.False(t, *container.SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, container.SecurityContext.Capabilities.Drop)
 	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, container.SecurityContext.SeccompProfile.Type)
 	// Must NOT set RunAsNonRoot
 	assert.Nil(t, container.SecurityContext.RunAsNonRoot)
-	// Must NOT drop capabilities - user images may need them
-	assert.Nil(t, container.SecurityContext.Capabilities)
 }
 
 func TestApplyPodSeccompProfileOnly_NilContext(t *testing.T) {
@@ -274,11 +272,11 @@ func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t
 	assert.Nil(t, template.SecurityContext.RunAsNonRoot)
 	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, template.SecurityContext.SeccompProfile.Type)
 
-	// Main container (user): no RunAsNonRoot, no capabilities drop
+	// Main container (user): no RunAsNonRoot, but capabilities drop ALL
 	assert.NotNil(t, template.Container.SecurityContext)
 	assert.Nil(t, template.Container.SecurityContext.RunAsNonRoot)
 	assert.False(t, *template.Container.SecurityContext.AllowPrivilegeEscalation)
-	assert.Nil(t, template.Container.SecurityContext.Capabilities)
+	assert.Equal(t, []k8score.Capability{"ALL"}, template.Container.SecurityContext.Capabilities.Drop)
 
 	// Init containers (system): full security WITH RunAsNonRoot
 	for _, initContainer := range template.InitContainers {
@@ -287,11 +285,11 @@ func TestApplySecurityContextToExecutorTemplate_WithContainerAndInitContainers(t
 		assert.False(t, *initContainer.SecurityContext.AllowPrivilegeEscalation)
 	}
 
-	// Sidecars: no RunAsNonRoot, no capabilities drop (could be user-specified)
+	// Sidecars: no RunAsNonRoot, but capabilities drop ALL
 	for _, sidecar := range template.Sidecars {
 		assert.NotNil(t, sidecar.SecurityContext)
 		assert.Nil(t, sidecar.SecurityContext.RunAsNonRoot)
 		assert.False(t, *sidecar.SecurityContext.AllowPrivilegeEscalation)
-		assert.Nil(t, sidecar.SecurityContext.Capabilities)
+		assert.Equal(t, []k8score.Capability{"ALL"}, sidecar.SecurityContext.Capabilities.Drop)
 	}
 }
