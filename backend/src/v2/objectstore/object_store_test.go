@@ -289,6 +289,51 @@ func Test_createS3BucketSession(t *testing.T) {
 			wantErr:           true,
 			errorMsg:          "could not find specified keys",
 		},
+		{
+			msg: "Bucket with fromEnv and custom endpoint",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"region":         "us-west-2",
+					"endpoint":       "minio-service.kubeflow:9000",
+					"disableSSL":     "true",
+					"fromEnv":        "true",
+					"forcePathStyle": "true",
+				},
+			},
+			sessionSecret:     nil,
+			expectValidClient: true,
+			expectedRegion:    "us-west-2",
+			expectedEndpoint:  "minio-service.kubeflow:9000",
+			expectedPathStyle: true,
+		},
+		{
+			msg: "Bucket with fromEnv and only region",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"region":  "eu-central-1",
+					"fromEnv": "true",
+				},
+			},
+			sessionSecret:     nil,
+			expectValidClient: true,
+			expectedRegion:    "eu-central-1",
+		},
+		{
+			msg: "Bucket with fromEnv but no endpoint or region",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			sessionSecret:     nil,
+			expectValidClient: false,
+		},
 	}
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
