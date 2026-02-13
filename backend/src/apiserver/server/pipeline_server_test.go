@@ -37,6 +37,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func TestMain(m *testing.M) {
+	// Disable URL validation for tests (allows mock server URLs)
+	viper.Set(common.PipelineURLValidationEnabled, "false")
+	os.Exit(m.Run())
+}
+
 func createPipelineServerV1(resourceManager *resource.ResourceManager, httpClient *http.Client) *PipelineServerV1 {
 	return &PipelineServerV1{
 		BasePipelineServer: &BasePipelineServer{
