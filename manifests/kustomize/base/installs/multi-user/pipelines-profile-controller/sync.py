@@ -24,11 +24,20 @@ import botocore.session
 S3_BUCKET_NAME = 'mlpipeline'
 
 session = botocore.session.get_session()
-# To interact with seaweedfs user management. Region does not matter.
-iam = session.create_client('iam', region_name='foobar')
 # S3 client for lifecycle policy management
 s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
 s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
+
+
+def create_iam_client():
+    # To interact with SeaweedFS user management. Region does not matter.
+    endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
+    if endpoint_url:
+        return session.create_client('iam', region_name='foobar', endpoint_url=endpoint_url)
+    return session.create_client('iam', region_name='foobar')
+
+
+iam = create_iam_client()
 
 
 def main():
