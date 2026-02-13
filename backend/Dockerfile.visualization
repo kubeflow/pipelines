@@ -20,9 +20,17 @@
 # This image should run Python 3.11 to satisfy protobuf v4-compatible deps.
 FROM python:3.11
 
+ARG TARGETARCH
 RUN apt-get update \
   && apt-get install -y wget curl tar openssl \
-  && curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz \
+  && if [ "${TARGETARCH}" = "amd64" ]; then \
+       GCLOUD_ARCH="x86_64"; \
+     elif [ "${TARGETARCH}" = "arm64" ]; then \
+       GCLOUD_ARCH="arm"; \
+     else \
+       echo "Unsupported architecture: ${TARGETARCH}"; exit 1; \
+     fi \
+  && curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk-linux-${GCLOUD_ARCH}.tar.gz > /tmp/google-cloud-sdk.tar.gz \
   && mkdir -p /usr/local/gcloud \
   && tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz \
   && /usr/local/gcloud/google-cloud-sdk/install.sh
