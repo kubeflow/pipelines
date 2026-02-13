@@ -200,7 +200,6 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
 
-
       - name: Configure Input Variables
         shell: bash
         id: configure

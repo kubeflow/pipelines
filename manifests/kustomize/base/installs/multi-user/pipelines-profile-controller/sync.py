@@ -31,6 +31,8 @@ s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_
 
 def _normalize_domain(domain):
     return domain if domain.startswith('.') else '.' + domain
+
+
 def create_iam_client():
     # To interact with SeaweedFS user management. Region does not matter.
     endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
