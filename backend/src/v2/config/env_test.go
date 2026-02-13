@@ -39,7 +39,7 @@ func Test_getDefaultMinioSessionInfo(t *testing.T) {
 		Provider: "minio",
 		Params: map[string]string{
 			"region":       "minio",
-			"endpoint":     "minio-service.kubeflow:9000",
+			"endpoint":     "seaweedfs.kubeflow:9000",
 			"disableSSL":   "true",
 			"fromEnv":      "false",
 			"secretName":   "mlpipeline-minio-artifact",
@@ -104,7 +104,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				Provider: "minio",
 				Params: map[string]string{
 					"region":       "minio",
-					"endpoint":     "minio-service.kubeflow:9000",
+					"endpoint":     "seaweedfs.kubeflow:9000",
 					"disableSSL":   "true",
 					"fromEnv":      "false",
 					"secretName":   "mlpipeline-minio-artifact",
@@ -143,7 +143,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				Provider: "minio",
 				Params: map[string]string{
 					"region":       "minio",
-					"endpoint":     "minio-service.kubeflow:9000",
+					"endpoint":     "seaweedfs.kubeflow:9000",
 					"disableSSL":   "true",
 					"fromEnv":      "false",
 					"secretName":   "mlpipeline-minio-artifact",
@@ -161,7 +161,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 				Provider: "minio",
 				Params: map[string]string{
 					"region":       "minio",
-					"endpoint":     "minio-service.kubeflow:9000",
+					"endpoint":     "seaweedfs.kubeflow:9000",
 					"disableSSL":   "true",
 					"fromEnv":      "false",
 					"secretName":   "mlpipeline-minio-artifact",
