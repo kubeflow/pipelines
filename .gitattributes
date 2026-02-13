@@ -13,3 +13,6 @@ frontend/test/package-lock.json linguist-generated
 
 # Ignore generated TS client library
 frontend/src/apis/* linguist-generated
+
+# Normalize line endings across platforms
+* text=auto eol=lf
