@@ -15,6 +15,7 @@ spec:
         app: metadata-writer
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
     
@@ -34,4 +35,6 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
       serviceAccountName: kubeflow-pipelines-metadata-writer

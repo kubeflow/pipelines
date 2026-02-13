@@ -150,9 +150,20 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 	}
 
+	// Set security defaults at the workflow level as a baseline for all pods.
+	// Argo Workflows is designed to run rootless:
+	// https://argo-workflows.readthedocs.io/en/latest/workflow-pod-security-context/
+	// Per-template security context is also applied for defense-in-depth.
+	runAsNonRoot := true
+	wf.Spec.SecurityContext = &k8score.PodSecurityContext{
+		RunAsNonRoot: &runAsNonRoot,
+		SeccompProfile: &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		},
+	}
 	runAsUser := GetPipelineRunAsUser()
 	if runAsUser != nil {
-		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}
+		wf.Spec.SecurityContext.RunAsUser = runAsUser
 	}
 
 	c := &workflowCompiler{
