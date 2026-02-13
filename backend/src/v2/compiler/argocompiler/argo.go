@@ -166,6 +166,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		job:             job,
 		spec:            spec,
 		executors:       deploy.GetExecutors(),
+		driverPodConfig: getDriverPodConfig(),
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
@@ -217,6 +218,13 @@ type workflowCompiler struct {
 	cacheDisabled        bool
 	defaultWorkspace     *k8score.PersistentVolumeClaimSpec
 	mlPipelineTLSEnabled bool
+	driverPodConfig      *driverPodConfig
+}
+
+// driverPodConfig holds labels and annotations to be applied to driver pods
+type driverPodConfig struct {
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
