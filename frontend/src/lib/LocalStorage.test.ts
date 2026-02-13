@@ -17,21 +17,20 @@
 import { LocalStorage, LocalStorageKey } from './LocalStorage';
 
 describe('LocalStorage', () => {
-  let mockLocalStorage: { [key: string]: string | null };
+  let mockLocalStorage: { [key: string]: string };
+  let getItemSpy: ReturnType<typeof vi.spyOn>;
+  let setItemSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    // Mock localStorage
+    // Mock localStorage with proper behavior
     mockLocalStorage = {};
 
-    Storage.prototype.getItem = vi.fn((key: string) => mockLocalStorage[key] || null);
-    Storage.prototype.setItem = vi.fn((key: string, value: string) => {
+    getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key: string) => {
+      return mockLocalStorage[key] ?? null;
+    });
+
+    setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key: string, value: string) => {
       mockLocalStorage[key] = value;
-    });
-    Storage.prototype.removeItem = vi.fn((key: string) => {
-      delete mockLocalStorage[key];
-    });
-    Storage.prototype.clear = vi.fn(() => {
-      mockLocalStorage = {};
     });
   });
 
@@ -84,7 +83,7 @@ describe('LocalStorage', () => {
   describe('saveNavbarCollapsed', () => {
     it('saves true value as string "true"', () => {
       LocalStorage.saveNavbarCollapsed(true);
-      expect(localStorage.setItem).toHaveBeenCalledWith(
+      expect(setItemSpy).toHaveBeenCalledWith(
         LocalStorageKey.navbarCollapsed,
         'true',
       );
@@ -92,7 +91,7 @@ describe('LocalStorage', () => {
 
     it('saves false value as string "false"', () => {
       LocalStorage.saveNavbarCollapsed(false);
-      expect(localStorage.setItem).toHaveBeenCalledWith(
+      expect(setItemSpy).toHaveBeenCalledWith(
         LocalStorageKey.navbarCollapsed,
         'false',
       );
