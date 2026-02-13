@@ -47,7 +47,8 @@ def get_settings_from_env(controller_port=None,
                           disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None,
                           artifact_retention_days=None,
-                          cluster_domain=None):
+                          cluster_domain=None,
+                          object_store_host=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -81,6 +82,10 @@ def get_settings_from_env(controller_port=None,
         cluster_domain or \
         os.environ.get("CLUSTER_DOMAIN", ".svc.cluster.local")
 
+    settings["object_store_host"] = \
+        object_store_host or \
+        os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -102,6 +107,7 @@ def server_factory(frontend_image,
                    artifacts_proxy_enabled,
                    artifact_retention_days,
                    cluster_domain=".svc.cluster.local",
+                   object_store_host="seaweedfs",
                    url="",
                    controller_port=8080):
     """
@@ -220,7 +226,7 @@ def server_factory(frontend_image,
                         "default-namespaced": json.dumps({
                             "archiveLogs": True,
                             "s3": {
-                                "endpoint": f"minio-service.kubeflow{_normalize_domain(cluster_domain)}:9000",
+                                "endpoint": f"{object_store_host}.kubeflow{_normalize_domain(cluster_domain)}:9000",
                                 "bucket": S3_BUCKET_NAME,
                                 "keyFormat": f"private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}",
                                 "insecure": True,
