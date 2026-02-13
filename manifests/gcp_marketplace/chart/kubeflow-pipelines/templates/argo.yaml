@@ -835,6 +835,15 @@ data:
   # Choice of an executor is deprecated in favor of emissary executor
   executor: |
     imagePullPolicy: IfNotPresent
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
     resources:
       requests:
         cpu: 0.01
