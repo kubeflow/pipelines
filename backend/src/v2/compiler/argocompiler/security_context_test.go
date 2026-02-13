@@ -116,10 +116,10 @@ func TestApplySecurityContextToTemplate_WithContainer(t *testing.T) {
 	}
 	applySecurityContextToTemplate(tmpl)
 
-	// Pod security context: SeccompProfile only, no RunAsNonRoot
-	// (Argo injects a wait sidecar that runs as root)
+	// Pod security context: SeccompProfile and RunAsNonRoot
 	assert.NotNil(t, tmpl.SecurityContext)
-	assert.Nil(t, tmpl.SecurityContext.RunAsNonRoot)
+	assert.NotNil(t, tmpl.SecurityContext.RunAsNonRoot)
+	assert.True(t, *tmpl.SecurityContext.RunAsNonRoot)
 	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, tmpl.SecurityContext.SeccompProfile.Type)
 
 	// Container security context should be set
@@ -171,9 +171,10 @@ func TestApplySecurityContextToTemplate_NoContainer(t *testing.T) {
 	}
 	applySecurityContextToTemplate(tmpl)
 
-	// Pod security context: SeccompProfile only, no RunAsNonRoot
+	// Pod security context: SeccompProfile and RunAsNonRoot
 	assert.NotNil(t, tmpl.SecurityContext)
-	assert.Nil(t, tmpl.SecurityContext.RunAsNonRoot)
+	assert.NotNil(t, tmpl.SecurityContext.RunAsNonRoot)
+	assert.True(t, *tmpl.SecurityContext.RunAsNonRoot)
 	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, tmpl.SecurityContext.SeccompProfile.Type)
 }
 
