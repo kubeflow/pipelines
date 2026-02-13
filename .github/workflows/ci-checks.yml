@@ -17,18 +17,17 @@ jobs:
       - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
         id: label_check
         run: |
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
-            echo "Label 'needs-ok-to-test' found. Skipping the workflow."
-            exit 0
+          needs_ok="${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}"
+          # needs-ok-to-test present (with or without ok-to-test) -> fail
+          if [[ "$needs_ok" == "true" ]]; then
+            echo "Label 'needs-ok-to-test' is set. Workflow must fail."
+            exit 1
           fi
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" == "true" ]]; then
-            echo "Label 'ok-to-test' found. Continuing the workflow."
-          else
-            echo "Label 'ok-to-test' not found. Skipping the workflow."
-            exit 0
-          fi
+          # no labels or ok-to-test -> run polling; job passes if all checks pass
+          echo "run_checks=true" >> "$GITHUB_OUTPUT"
 
       - name: Check if all CI checks passed
+        if: steps.label_check.outputs.run_checks == 'true'
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
         with:                                 
           delay: '5'
@@ -37,12 +36,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Save PR payload
+        if: steps.label_check.outputs.run_checks == 'true'
         shell: bash
         run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
           echo ${{ github.event.action }} >> ./pr/event_action
       - uses: actions/upload-artifact@v4
+        if: steps.label_check.outputs.run_checks == 'true'
         with:
           name: pr
           path: pr/
