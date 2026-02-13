@@ -133,16 +133,6 @@ exports[`PipelineVersionList > calls Apis to list pipeline versions, sorted by c
             title="Cannot sort by this column"
           >
             Description
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -545,16 +535,6 @@ exports[`PipelineVersionList > calls Apis to list pipeline versions, sorted by p
             title="Cannot sort by this column"
           >
             Description
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -1031,16 +1011,6 @@ exports[`PipelineVersionList > renders a list of one pipeline version 1`] = `
             title="Cannot sort by this column"
           >
             Description
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -1368,16 +1338,6 @@ exports[`PipelineVersionList > renders a list of one pipeline version with descr
             title="Cannot sort by this column"
           >
             Description
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -1707,16 +1667,6 @@ exports[`PipelineVersionList > renders a list of one pipeline version with error
             title="Cannot sort by this column"
           >
             Description
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -2044,16 +1994,6 @@ exports[`PipelineVersionList > renders a list of one pipeline version without cr
             title="Cannot sort by this column"
           >
             Description
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -2381,16 +2321,6 @@ exports[`PipelineVersionList > renders an empty list with empty state message 1`
             title="Cannot sort by this column"
           >
             Description
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div

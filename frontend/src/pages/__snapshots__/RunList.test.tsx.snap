@@ -152,16 +152,6 @@ exports[`RunList > in archived state > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Status
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -177,16 +167,6 @@ exports[`RunList > in archived state > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Duration
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -202,16 +182,6 @@ exports[`RunList > in archived state > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Experiment
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -227,16 +197,6 @@ exports[`RunList > in archived state > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Pipeline Version
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -252,16 +212,6 @@ exports[`RunList > in archived state > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Recurring Run
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -521,16 +471,6 @@ exports[`RunList > reloads the run when refresh is called 1`] = `
             title="Cannot sort by this column"
           >
             Status
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -546,16 +486,6 @@ exports[`RunList > reloads the run when refresh is called 1`] = `
             title="Cannot sort by this column"
           >
             Duration
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -571,16 +501,6 @@ exports[`RunList > reloads the run when refresh is called 1`] = `
             title="Cannot sort by this column"
           >
             Experiment
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -596,16 +516,6 @@ exports[`RunList > reloads the run when refresh is called 1`] = `
             title="Cannot sort by this column"
           >
             Pipeline Version
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -621,16 +531,6 @@ exports[`RunList > reloads the run when refresh is called 1`] = `
             title="Cannot sort by this column"
           >
             Recurring Run
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -981,16 +881,6 @@ exports[`RunList > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Status
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -1006,16 +896,6 @@ exports[`RunList > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Duration
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -1031,16 +911,6 @@ exports[`RunList > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Experiment
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -1056,16 +926,6 @@ exports[`RunList > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Pipeline Version
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
@@ -1081,16 +941,6 @@ exports[`RunList > renders the empty experience 1`] = `
             title="Cannot sort by this column"
           >
             Recurring Run
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-              />
-            </svg>
           </span>
         </div>
         <div
