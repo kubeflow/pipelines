@@ -333,6 +333,128 @@ func Test_resolveContainerArgs(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "embedded placeholder in fstring should be template-substituted",
+			args: []string{
+				"my_program",
+				"prefix-{{$.inputs.parameters['text1']}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"text1": structpb.NewStringValue("hello"),
+					},
+				},
+			},
+			expected: []string{"my_program", "prefix-hello"},
+			wantErr:  false,
+		},
+		{
+			name: "multiple embedded placeholders in single arg",
+			args: []string{
+				"{{$.inputs.parameters['p1']}}-{{$.inputs.parameters['p2']}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"p1": structpb.NewStringValue("val1"),
+						"p2": structpb.NewStringValue("val2"),
+					},
+				},
+			},
+			expected: []string{"val1-val2"},
+			wantErr:  false,
+		},
+		{
+			name: "NUMBER_INTEGER parameter should be stringified correctly",
+			args: []string{
+				"{{$.inputs.parameters['num_iterations']}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"num_iterations": structpb.NewNumberValue(42),
+					},
+				},
+			},
+			expected: []string{"42"},
+			wantErr:  false,
+		},
+		{
+			name: "NUMBER_DOUBLE parameter should be stringified correctly",
+			args: []string{
+				"{{$.inputs.parameters['learning_rate']}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"learning_rate": structpb.NewNumberValue(0.001),
+					},
+				},
+			},
+			expected: []string{"0.001"},
+			wantErr:  false,
+		},
+		{
+			name: "BOOLEAN parameter should be stringified correctly",
+			args: []string{
+				"{{$.inputs.parameters['verbose']}}",
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"verbose": structpb.NewBoolValue(true),
+					},
+				},
+			},
+			expected: []string{"true"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with null value should be treated as absent",
+			args: []string{
+				`{"IfPresent": {"InputName": "optional_param", "Then": ["--opt", "{{$.inputs.parameters['optional_param']}}"], "Else": ["--default"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"optional_param": structpb.NewNullValue(),
+					},
+				},
+			},
+			expected: []string{"--default"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with null value and no Else should return empty",
+			args: []string{
+				`{"IfPresent": {"InputName": "optional_param", "Then": ["--opt"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"optional_param": structpb.NewNullValue(),
+					},
+				},
+			},
+			expected: nil,
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with NUMBER parameter in Then clause",
+			args: []string{
+				`{"IfPresent": {"InputName": "num_iterations", "Then": ["--iterations", "{{$.inputs.parameters['num_iterations']}}"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"num_iterations": structpb.NewNumberValue(100),
+					},
+				},
+			},
+			expected: []string{"--iterations", "100"},
+			wantErr:  false,
+		},
 	}
 
 	for _, test := range tests {

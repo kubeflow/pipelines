@@ -28,6 +28,10 @@ import (
 // example input channel looks like "{{$.inputs.parameters['pipelinechannel--val']}}"
 const inputPipelineChannelPattern = `\$.inputs.parameters\['(.+?)'\]`
 
+// fullInputParameterRe matches the complete {{$.inputs.parameters['name']}} placeholder
+// including the surrounding braces, for template substitution in container arguments.
+var fullInputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)'\]\}\}`)
+
 func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
 	match := re.FindStringSubmatch(inputChannel)
@@ -102,6 +106,63 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 	}
 }
 
+// pbValueToString converts a structpb.Value to its string representation.
+// This handles all parameter types including STRING, NUMBER_INTEGER, NUMBER_DOUBLE, and BOOLEAN,
+// unlike GetStringValue() which returns an empty string for non-string types.
+func pbValueToString(v *structpb.Value) string {
+	switch v.GetKind().(type) {
+	case *structpb.Value_StringValue:
+		return v.GetStringValue()
+	case *structpb.Value_NumberValue:
+		n := v.GetNumberValue()
+		if n == float64(int64(n)) {
+			return fmt.Sprintf("%d", int64(n))
+		}
+		return fmt.Sprintf("%g", n)
+	case *structpb.Value_BoolValue:
+		if v.GetBoolValue() {
+			return "true"
+		}
+		return "false"
+	case *structpb.Value_NullValue:
+		return ""
+	default:
+		return fmt.Sprintf("%v", v.AsInterface())
+	}
+}
+
+// resolveInputParameterPlaceholders performs template substitution on a string,
+// replacing all {{$.inputs.parameters['name']}} occurrences with their resolved values
+// from the executor input. This correctly handles both standalone placeholders and
+// placeholders embedded in larger strings (e.g., "prefix-{{$.inputs.parameters['x']}}").
+func resolveInputParameterPlaceholders(arg string, executorInput *pipelinespec.ExecutorInput) (string, error) {
+	if !fullInputParameterRe.MatchString(arg) {
+		return arg, nil
+	}
+	var resolveErr error
+	result := fullInputParameterRe.ReplaceAllStringFunc(arg, func(match string) string {
+		if resolveErr != nil {
+			return match
+		}
+		submatch := fullInputParameterRe.FindStringSubmatch(match)
+		if len(submatch) < 2 {
+			resolveErr = fmt.Errorf("failed to extract parameter name from: %s", match)
+			return match
+		}
+		paramName := submatch[1]
+		val, ok := executorInput.GetInputs().GetParameterValues()[paramName]
+		if !ok {
+			resolveErr = fmt.Errorf("parameter %q not found in executor input", paramName)
+			return match
+		}
+		return pbValueToString(val)
+	})
+	if resolveErr != nil {
+		return "", resolveErr
+	}
+	return result, nil
+}
+
 func isConditionClause(arg string) bool {
 	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
 }
@@ -118,7 +179,15 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
 	}
 
-	_, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
+	val, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
+	// Treat null values as absent for IfPresent semantics.
+	// The driver can set optional pipeline inputs to structpb.NewNullValue(),
+	// which should be treated as "not present".
+	if isPresent {
+		if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
+			isPresent = false
+		}
+	}
 	var values interface{}
 	if isPresent {
 		values = ifPresent.IfPresent.Then
@@ -133,7 +202,7 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 	var resolved []string
 	switch v := values.(type) {
 	case string:
-		resolvedArg, err := resolvePodSpecInputRuntimeParameter(v, executorInput)
+		resolvedArg, err := resolveInputParameterPlaceholders(v, executorInput)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +213,7 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 			if !ok {
 				return nil, fmt.Errorf("non-string item in IfPresent Then/Else array: %T", item)
 			}
-			resolvedArg, err := resolvePodSpecInputRuntimeParameter(str, executorInput)
+			resolvedArg, err := resolveInputParameterPlaceholders(str, executorInput)
 			if err != nil {
 				return nil, err
 			}
@@ -173,14 +242,12 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 				return nil, fmt.Errorf("failed to resolve condition: %w", err)
 			}
 			resolvedArgs = append(resolvedArgs, resolved...)
-		case isInputParameterChannel(arg):
-			resolvedArg, err := resolvePodSpecInputRuntimeParameter(arg, executorInput)
+		default:
+			resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve input parameter channel: %w", err)
+				return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
 			}
 			resolvedArgs = append(resolvedArgs, resolvedArg)
-		default:
-			resolvedArgs = append(resolvedArgs, arg)
 		}
 	}
 	return resolvedArgs, nil
