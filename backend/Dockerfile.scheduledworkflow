@@ -31,7 +31,7 @@ COPY . .
 
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 
-FROM alpine:3.19
+FROM alpine:3.21
 
 RUN apk --no-cache add tzdata
 
