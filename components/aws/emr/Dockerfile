@@ -13,9 +13,9 @@
 
 FROM ubuntu:22.04
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certificates python3 python3-pip wget unzip
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certificates python3 python3-pip python-is-python3 wget unzip
 
-RUN pip3 install --no-cache-dir boto3==1.9.130
+RUN pip3 install --no-cache-dir boto3==1.9.130 pathlib2
 
 COPY create_cluster/src/create_cluster.py .
 COPY delete_cluster/src/delete_cluster.py .
