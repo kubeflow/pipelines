@@ -1,15 +1,15 @@
-FROM public.ecr.aws/lts/ubuntu:18.04_stable
+FROM public.ecr.aws/lts/ubuntu:22.04_stable
 
-RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
     jq \
     tar \
     sudo \
-    python3.8 \
+    python3 \
     python3-pip \
-    python3.8-dev \
+    python3-dev \
     unzip \
     gzip
 
@@ -47,7 +47,7 @@ RUN wget https://github.com/mikefarah/yq/releases/download/v4.31.2/yq_linux_amd6
     chmod +x /usr/bin/yq
 
 # install dependencies through pip
-RUN ln -s /usr/bin/python3.8 /usr/bin/python \
+RUN ln -s /usr/bin/python3 /usr/bin/python \
  && python -m pip install --upgrade pip
 
 COPY ./components/aws/sagemaker/tests/integration_tests/requirements.txt requirements.txt

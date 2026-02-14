@@ -11,13 +11,11 @@
 # limitations under the License.
 
 
-FROM ubuntu:16.04
+FROM ubuntu:22.04
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certificates python3 python3-pip wget unzip
 
-RUN easy_install pip
-
-RUN pip install boto3==1.9.130 pathlib2
+RUN pip3 install --no-cache-dir boto3==1.9.130
 
 COPY query/src/query.py .
 

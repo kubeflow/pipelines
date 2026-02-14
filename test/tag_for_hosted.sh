@@ -105,8 +105,8 @@ docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0 gcr.io/$PROJECT
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
 
-docker tag gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$SEM_VER
-docker tag gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$MM_VER
+docker tag gcr.io/ml-pipeline/minio:RELEASE.2025-10-15T17-29-55Z-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$SEM_VER
+docker tag gcr.io/ml-pipeline/minio:RELEASE.2025-10-15T17-29-55Z-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$MM_VER
 
