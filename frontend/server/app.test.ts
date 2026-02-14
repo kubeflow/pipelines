@@ -43,8 +43,21 @@ describe('UIServer apis', () => {
       return;
     }
     await new Promise<void>((resolve, reject) => {
-      server.once('listening', () => resolve());
-      server.once('error', reject);
+      const onListening = (): void => {
+        cleanup();
+        resolve();
+      };
+      const onError = (err: Error): void => {
+        cleanup();
+        reject(err);
+      };
+      const cleanup = (): void => {
+        server.off('listening', onListening);
+        server.off('error', onError);
+      };
+
+      server.on('listening', onListening);
+      server.on('error', onError);
     });
   }
 
