@@ -987,6 +987,13 @@ def _update_task_spec_for_loop_group(
             group.loop_argument)
         raw_values = group.loop_argument.items_or_pipeline_channel
 
+        # Convert dict items to JSON strings to match runtime expectations.
+        # The runtime expression engine uses parseJson(string_value) to access
+        # nested fields, so dict items must be serialized as JSON strings first.
+        if isinstance(raw_values, list) and raw_values and isinstance(
+                raw_values[0], dict):
+            raw_values = [json.dumps(item, sort_keys=True) for item in raw_values]
+
         pipeline_task_spec.parameter_iterator.items.raw = json.dumps(
             raw_values, sort_keys=True)
         pipeline_task_spec.parameter_iterator.item_input = (
