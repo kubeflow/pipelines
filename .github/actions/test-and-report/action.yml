@@ -153,7 +153,7 @@ runs:
 
     - name: Upload HTML Report
       id: upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
