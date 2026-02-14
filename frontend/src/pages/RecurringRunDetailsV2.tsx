@@ -74,7 +74,7 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
       ];
       inputParameters = Object.entries(run.runtime_config?.parameters || []).map(param => [
         param[0] || '',
-        param[1] || '',
+        param[1] == null ? '' : JSON.stringify(param[1]),
       ]);
       if (run.trigger) {
         triggerDetails = [

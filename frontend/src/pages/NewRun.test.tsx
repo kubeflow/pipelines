@@ -994,8 +994,8 @@ describe('NewRun', () => {
             predicates: [
               {
                 key: 'storage_state',
-                op: PredicateOp.NOTEQUALS,
-                string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                op: PredicateOp.NOT_EQUALS,
+                string_value: ApiExperimentStorageState.STORAGESTATE_ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -1025,8 +1025,8 @@ describe('NewRun', () => {
             predicates: [
               {
                 key: 'storage_state',
-                op: PredicateOp.NOTEQUALS,
-                string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                op: PredicateOp.NOT_EQUALS,
+                string_value: ApiExperimentStorageState.STORAGESTATE_ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -1654,7 +1654,7 @@ describe('NewRun', () => {
           {
             key: {
               id: MOCK_PIPELINE_VERSION.id,
-              type: ApiResourceType.PIPELINEVERSION,
+              type: ApiResourceType.PIPELINE_VERSION,
             },
             relationship: ApiRelationship.CREATOR,
           },
@@ -1709,7 +1709,7 @@ describe('NewRun', () => {
           {
             key: {
               id: 'original-run-pipeline-version-id',
-              type: ApiResourceType.PIPELINEVERSION,
+              type: ApiResourceType.PIPELINE_VERSION,
             },
             relationship: ApiRelationship.CREATOR,
           },
@@ -2187,7 +2187,7 @@ describe('NewRun', () => {
           {
             key: {
               id: MOCK_PIPELINE_VERSION.id,
-              type: ApiResourceType.PIPELINEVERSION,
+              type: ApiResourceType.PIPELINE_VERSION,
             },
             relationship: ApiRelationship.CREATOR,
           },

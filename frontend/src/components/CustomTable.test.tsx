@@ -652,7 +652,7 @@ describe('CustomTable', () => {
         predicates: [
           {
             key: 'name',
-            operation: V2beta1PredicateOperation.ISSUBSTRING,
+            operation: V2beta1PredicateOperation.IS_SUBSTRING,
             string_value: 'test filter',
           },
         ],
@@ -689,7 +689,7 @@ describe('CustomTable', () => {
         predicates: [
           {
             key: 'name',
-            operation: V2beta1PredicateOperation.ISSUBSTRING,
+            operation: V2beta1PredicateOperation.IS_SUBSTRING,
             string_value: 'test filter',
           },
         ],

@@ -364,7 +364,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
    * @param tab selected by user for run storage state
    */
   _onRunTabSwitch = (tab: RunListsGroupTab) => {
-    let runStorageState = V2beta1RunStorageState.AVAILABLE;
+    let runStorageState: V2beta1RunStorageState = V2beta1RunStorageState.AVAILABLE;
     if (tab === RunListsGroupTab.ARCHIVE) {
       runStorageState = V2beta1RunStorageState.ARCHIVED;
     }
