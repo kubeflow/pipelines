@@ -7,7 +7,7 @@ env:
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   USER_NAMESPACE: "kubeflow-user-example-com"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
   CA_CERT_PATH: ""
 
 on:

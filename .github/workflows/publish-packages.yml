@@ -23,7 +23,7 @@ on:
         description: "Dry run - build packages without publishing to PyPI"
 
 env:
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
 
 jobs:
   publish-kfp-pipeline-spec:

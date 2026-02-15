@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: 3.9
+          python-version: '3.11'
           cache: 'pip'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec

@@ -6,7 +6,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 15
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: 3.9
+          python-version: '3.11'
 
       - name: Get last release tag
         shell: bash
