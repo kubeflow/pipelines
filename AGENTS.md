@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-01-20
+- Last updated: 2026-02-13
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 16)
 
 ### Maintenance (agents and contributors)
@@ -544,6 +544,131 @@ pip install docformatter
 docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 ```
 
+## Code-tree knowledge graph
+
+A pre-built knowledge graph of the entire codebase is available under `docs/code-tree/`. Use it to quickly understand architecture, trace dependencies, and find relevant code before making changes or reviewing PRs.
+
+### Available artifacts
+
+| File | Contents | Use case |
+|------|----------|----------|
+| `docs/code-tree/summary.md` | Architecture overview, hub files, key types, inheritance, module deps | **Start here** for any exploration |
+| `docs/code-tree/graph.json` | Full knowledge graph (19,632 nodes, 33,058 edges) | Programmatic queries with `jq` |
+| `docs/code-tree/tags.json` | Flat symbol index (17,636 symbols with file:line locations) | Quick symbol lookup |
+| `docs/code-tree/modules.json` | Directory-level dependency map (507 modules) | Module impact analysis |
+
+### Querying the graph
+
+Use the query tool at `tools/code-tree/query_graph.py`:
+
+```bash
+# Find where a symbol is defined
+python3 tools/code-tree/query_graph.py --symbol Pipeline
+
+# Trace what a file depends on
+python3 tools/code-tree/query_graph.py --deps sdk/python/kfp/compiler/compiler.py
+
+# Find what imports a file (reverse deps / blast radius)
+python3 tools/code-tree/query_graph.py --rdeps sdk/python/kfp/dsl/pipeline_context.py
+
+# Show inheritance hierarchy for a class
+python3 tools/code-tree/query_graph.py --hierarchy Artifact
+
+# Search symbols by keyword
+python3 tools/code-tree/query_graph.py --search "compiler"
+
+# Get module overview (files, deps, symbols)
+python3 tools/code-tree/query_graph.py --module sdk/python/kfp/compiler
+
+# Find entry points (main functions, unimported files)
+python3 tools/code-tree/query_graph.py --entry-points
+
+# Extract code chunks from a file for context
+python3 tools/code-tree/query_graph.py --chunks sdk/python/kfp/compiler/compiler.py
+```
+
+Add `--json` to any query for machine-readable output.
+
+### Codebase statistics
+
+- **1,996 files** across 7 languages: Python (908), Go (693), TypeScript (273), Bash (57), Protobuf (54), JavaScript (10), SQL (1)
+- **17,636 symbols**: 10,634 methods, 3,285 functions, 1,354 structs, 1,180 classes, 743 interfaces, 347 constants, 93 enums
+- **14,938 import** relationships, **484 inheritance** relationships
+
+### Entry points
+
+| Entry point | Purpose |
+|-------------|---------|
+| `backend/src/apiserver/main.go` | API server |
+| `backend/src/v2/cmd/driver/main.go` | V2 driver |
+| `backend/src/v2/cmd/compiler/main.go` | Backend compiler |
+| `backend/src/v2/cmd/launcher-v2/main.go` | V2 launcher |
+| `backend/src/cache/main.go` | Cache server |
+| `backend/src/agent/persistence/main.go` | Persistence agent |
+| `backend/src/crd/controller/scheduledworkflow/main.go` | Scheduled workflow controller |
+| `backend/src/crd/controller/viewer/main.go` | Viewer controller |
+| `sdk/python/kfp/dsl/executor_main.py` | Python executor entrypoint |
+
+### Hub files (most connected)
+
+These files are imported by the most other files. Changes to them have the widest blast radius:
+
+| File | Imported by |
+|------|-------------|
+| `backend/src/common/util/time.go` | 150 files |
+| `components/google-cloud/.../types/artifact_types.py` | 127 files |
+| `sdk/python/kfp/local/io.py` | 124 files |
+| `backend/api/v1beta1/python_http_client/.../configuration.py` | 110 files |
+| `backend/api/v2beta1/python_http_client/.../configuration.py` | 110 files |
+| `backend/src/common/util/json.go` | 101 files |
+
+### Key module dependencies
+
+```
+sdk/python/kfp/compiler -> sdk/python/kfp/dsl
+sdk/python/kfp/client   -> sdk/python/kfp/dsl
+backend/src/apiserver/*  -> backend/src/common/util
+backend/src/cache/*      -> backend/src/apiserver/archive, backend/src/common/util
+backend/src/v2/component -> backend/src/common/util
+backend/src/v2/compiler  -> backend/src/common/util
+```
+
+### Key inheritance hierarchies
+
+```
+Artifact (sdk/python/kfp/dsl/types/artifact_types.py)
+  |- ClassificationMetrics, Dataset, HTML, Markdown, Metrics, Model, SlicedClassificationMetrics
+
+ModelBase (sdk/python)
+  |- BinaryPredicate
+  |    |- EqualsPredicate, GreaterThanPredicate, LessThenPredicate, ...
+  |- ComponentSpec, ContainerSpec, CachingStrategySpec, ...
+```
+
+### Regenerating the graph
+
+When significant code changes occur, regenerate:
+
+```bash
+python3 tools/code-tree/code_tree.py --repo-root .
+```
+
+### Using the graph for code development
+
+1. **Before writing code**: Read `docs/code-tree/summary.md` for architecture context
+2. **Find the right file**: Use `--search` or `--symbol` to locate definitions
+3. **Understand dependencies**: Use `--deps` to see what a file needs, `--module` for directory-level view
+4. **Check blast radius**: Use `--rdeps` before modifying shared files to understand impact
+5. **Extract context**: Use `--chunks` to pull clean code snippets into your working context
+
+### Using the graph for PR reviews
+
+1. **Assess impact**: Run `--rdeps` on each changed file to gauge blast radius
+2. **Verify dependency direction**: Check `--deps` to ensure changes don't introduce circular dependencies
+3. **Check hub file changes**: Compare changed files against the hub files table above — changes to hub files need extra scrutiny
+4. **Trace inheritance**: Use `--hierarchy` to verify that class changes don't break subclasses
+5. **Module boundary check**: Use `--module` to verify changes respect module boundaries
+
 ## Common agent workflows
 
 - **Modify pipeline spec schema**:
@@ -553,6 +678,59 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - **Adjust Kubernetes behavior for tasks**:
   - Resource requests/limits: set on component specs; the Driver converts these into pod spec patches.
   - All other Kubernetes config: handled via `kubernetes_platform` platform spec.
+
+### Proto changes require test coverage
+
+When any `.proto` file is modified (especially `api/v2alpha1/pipeline_spec.proto` or `kubernetes_platform/proto/kubernetes_executor_config.proto`), you **must** add or update test files that exercise the changed or new proto fields. The test system uses a three-file pipeline that must stay in sync:
+
+```
+1. Python pipeline source  (.py)  →  test_data/sdk_compiled_pipelines/valid/{critical,essential}/
+2. Compiled pipeline spec  (.yaml) →  test_data/sdk_compiled_pipelines/valid/{critical,essential}/
+3. Compiled Argo Workflow  (.yaml) →  test_data/compiled-workflows/
+```
+
+**Step-by-step process:**
+
+1. **Write a Python pipeline** that uses the new or changed proto field. Place it in:
+   - `test_data/sdk_compiled_pipelines/valid/critical/` — for features that are functionally important (e.g., new pipeline features, artifact handling, parameter types, pod metadata, caching behavior)
+   - `test_data/sdk_compiled_pipelines/valid/essential/` — for foundational features that validate core KFP functionality (e.g., basic component composition, pip installs, pipeline nesting, conditionals, loops)
+
+2. **Compile the Python pipeline** to a KFP pipeline spec YAML. Place the output `.yaml` in the same directory as the `.py` file:
+   ```bash
+   kfp dsl compile --py test_data/sdk_compiled_pipelines/valid/critical/my_pipeline.py \
+                    --output test_data/sdk_compiled_pipelines/valid/critical/my_pipeline.yaml
+   ```
+
+3. **Generate the Argo Workflow golden file** by running the compiler tests with the update flag:
+   ```bash
+   ginkgo -v ./backend/test/compiler -- -updateCompiledFiles=true
+   ```
+   This writes the compiled Argo Workflow YAML to `test_data/compiled-workflows/my_pipeline.yaml`.
+
+4. **Verify all three files are consistent** by running the compiler tests without the update flag:
+   ```bash
+   ginkgo -v ./backend/test/compiler
+   ```
+
+**How the test framework uses these files:**
+
+| Test suite | Input directory | What it does |
+|------------|----------------|--------------|
+| Compiler tests (`backend/test/compiler`) | `test_data/sdk_compiled_pipelines/valid/**/*.yaml` → `test_data/compiled-workflows/*.yaml` | Compiles every pipeline spec to an Argo Workflow and compares against the golden YAML |
+| E2E essential (`Label(E2eEssential)`) | `test_data/sdk_compiled_pipelines/valid/essential/` | Uploads and runs every pipeline in `essential/` on a live cluster |
+| E2E critical (`Label(E2eCritical)`) | `test_data/sdk_compiled_pipelines/valid/critical/` | Uploads and runs every pipeline in `critical/` on a live cluster |
+| Smoke tests (`Label(Smoke)`) | Hand-picked files from `essential/` and `critical/` | Runs a small subset for fast validation |
+
+**Naming conventions:**
+
+- The `.py` and `.yaml` files in `critical/` or `essential/` share the same base name: `my_pipeline.py` ↔ `my_pipeline.yaml`
+- The Argo Workflow golden in `compiled-workflows/` also uses the same base name: `my_pipeline.yaml`
+- Exception: some files use `_compiled` suffix (e.g., `iris_pipeline.py` → `iris_pipeline_compiled.yaml`)
+
+**When NOT to add test files:**
+
+- Pure documentation or comment changes in `.proto` files that don't alter the wire format
+- Changes to deprecated v1beta1 protos (unless explicitly maintaining v1 compatibility)
 
 ## Quick reference
 
