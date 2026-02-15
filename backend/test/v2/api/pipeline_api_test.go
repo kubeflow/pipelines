@@ -15,14 +15,20 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
+	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
 	utils "github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // ###########################################
@@ -123,6 +129,54 @@ var _ = PDescribe("List Pipelines Versions API Tests >", Label(constants.POSITIV
 		It("Filter by pipeline id", func() {
 		})
 		It("Filter by name", func() {
+			pipeline := createPipeline(constants.Pipeline + "-Filter-Test")
+			verifyPipelineList(map[string]interface{}{
+				"filter": map[string]interface{}{
+					"predicates": []interface{}{
+						map[string]interface{}{
+							"key":          "name",
+							"op":           "EQUALS",
+							"string_value": pipeline.DisplayName,
+						},
+					},
+				},
+			}, []*model.V2beta1Pipeline{pipeline}, 1)
+			// Case insensitive
+			verifyPipelineList(map[string]interface{}{
+				"filter": map[string]interface{}{
+					"predicates": []interface{}{
+						map[string]interface{}{
+							"key":          "name",
+							"op":           "EQUALS",
+							"string_value": strings.ToLower(pipeline.DisplayName),
+						},
+					},
+				},
+			}, []*model.V2beta1Pipeline{pipeline}, 1)
+
+			verifyPipelineList(map[string]interface{}{
+				"filter": map[string]interface{}{
+					"predicates": []interface{}{
+						map[string]interface{}{
+							"key":          "name",
+							"op":           "IS_SUBSTRING",
+							"string_value": "Filter-Test",
+						},
+					},
+				},
+			}, []*model.V2beta1Pipeline{pipeline}, 1)
+			// Case insensitive substring
+			verifyPipelineList(map[string]interface{}{
+				"filter": map[string]interface{}{
+					"predicates": []interface{}{
+						map[string]interface{}{
+							"key":          "name",
+							"op":           "IS_SUBSTRING",
+							"string_value": "filter-test",
+						},
+					},
+				},
+			}, []*model.V2beta1Pipeline{pipeline}, 1)
 		})
 		It("Filter by created at", func() {
 		})
@@ -288,3 +342,36 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", constant
 		}
 	})
 })
+
+func createPipeline(name string) *model.V2beta1Pipeline {
+	pipeline := &model.V2beta1Pipeline{
+		DisplayName: name,
+		Description: "description",
+	}
+
+	p, err := pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{Pipeline: pipeline})
+	Expect(err).ToNot(HaveOccurred())
+	return p
+}
+
+func verifyPipelineList(listOptions map[string]interface{}, expectedPipelines []*model.V2beta1Pipeline, totalSize int) {
+	req := &params.PipelineServiceListPipelinesParams{
+		PageSize: util.Int32Pointer(10),
+	}
+
+	filterMap, ok := listOptions["filter"]
+	if ok {
+		filterBytes, err := json.Marshal(filterMap)
+		Expect(err).ToNot(HaveOccurred())
+		req.Filter = util.StringPointer(string(filterBytes))
+	}
+
+	pipelines, total, _, err := pipelineClient.List(req)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(total).To(Equal(totalSize))
+
+	Expect(len(pipelines)).To(Equal(len(expectedPipelines)))
+	for i, p := range pipelines {
+		Expect(p.DisplayName).To(Equal(expectedPipelines[i].DisplayName))
+	}
+}

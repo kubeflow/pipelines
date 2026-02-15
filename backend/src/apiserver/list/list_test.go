@@ -629,7 +629,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) AND Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) AND (Name = ?) ORDER BY SortField ASC, KeyField ASC LIMIT 124",
 			wantArgs: []interface{}{"value", "value", 1111, "SomeName"},
 		},
 		{
@@ -680,14 +680,14 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (Name = ?) ORDER BY SortField ASC, KeyField ASC LIMIT 124",
 			wantArgs: []interface{}{"SomeName"},
 		},
 	}
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql)).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql, nil), nil).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
@@ -867,158 +867,6 @@ func TestMatches(t *testing.T) {
 	}
 }
 
-func TestFilterOnResourceReference(t *testing.T) {
-	type testIn struct {
-		table        string
-		resourceType model.ResourceType
-		count        bool
-		filter       *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        false,
-				filter:       &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        true,
-				filter:       &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        false,
-				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "test3"}},
-			},
-			wantSql: "SELECT * FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        true,
-				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "test4"}},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, []string{"*"}, test.in.resourceType, test.in.count, test.in.filter)
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnResourceReference(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
-		}
-	}
-}
-
-func TestFilterOnExperiment(t *testing.T) {
-	type testIn struct {
-		table  string
-		count  bool
-		filter *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  false,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable WHERE ExperimentUUID = ?",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  true,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE ExperimentUUID = ?",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnExperiment(test.in.table, []string{"*"}, test.in.count, "123")
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnExperiment(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
-		}
-	}
-}
-
-func TestFilterOnNamesapce(t *testing.T) {
-	type testIn struct {
-		table  string
-		count  bool
-		filter *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  false,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable WHERE Namespace = ?",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  true,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE Namespace = ?",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnNamespace(test.in.table, []string{"*"}, test.in.count, "ns")
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnNamespace(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
-		}
-	}
-}
-
 func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 	listable := &model.PipelineVersion{
 		UUID:           "version_id_1",
@@ -1034,7 +882,7 @@ func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("pipeline_versions")
-	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder).ToSql()
+	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
 
 	assert.Contains(t, sql, "pipeline_versions.Name") // sorting field
@@ -1063,9 +911,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("run_details")
-	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, "WHERE (Conditions = ?)") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "Succeeded")
 
 	notEqualProtoFilter := &api.Filter{}
@@ -1080,8 +928,8 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err = NewOptions(listable, 10, "name", newNotEqualFilter)
 	assert.Nil(t, err)
 	sqlBuilder = sq.Select("*").From("run_details")
-	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions <> ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, "WHERE (Conditions <> ?)") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "somevalue")
 }

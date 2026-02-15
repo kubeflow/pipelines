@@ -32,6 +32,7 @@ ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
+DB_TYPE=""
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -71,6 +72,16 @@ while [ "$#" -gt 0 ]; do
     --tls-enabled)
       POD_TO_POD_TLS_ENABLED=true
       shift
+      ;;
+    --db-type)
+      shift
+      if [[ -n "$1" ]]; then
+        DB_TYPE="$1"
+        shift
+      else
+        echo "ERROR: --db-type requires an argument"
+        exit 1
+      fi
       ;;
   esac
 done
@@ -130,20 +141,43 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
 fi
 
-# Manifests will be deployed according to the flag provided
+# Manifest selection: each branch picks ONE pre-built kustomize overlay directory.
+# These branches are MUTUALLY EXCLUSIVE with priority ordering, not a free
+# combination of flags. This is because tls-enabled and postgresql each use a
+# different kustomize base (platform-agnostic-standalone-tls vs
+# platform-agnostic-postgresql), so they cannot be stacked as independent patches.
+# Cache-disabled and proxy are orthogonal env-var patches but are bundled into
+# dedicated overlay directories for simplicity.
+# If conflicting flags are passed (e.g. --tls-enabled --db-type pgx), the
+# higher-priority branch wins and the lower-priority flag is silently ignored.
+#
+# Priority 1: Multi-user false + standalone (not kubernetes-native)
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
-  if $CACHE_DISABLED && $USE_PROXY; then
+
+  # Priority 1.1: TLS-enabled (mutually exclusive with other options)
+  if $POD_TO_POD_TLS_ENABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+
+  # Priority 1.2: PostgreSQL (with default SeaweedFS storage)
+  elif [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
+
+  # Priority 1.3: Check for cache-disabled + proxy combination
+  elif $CACHE_DISABLED && $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+
+  # Priority 1.4: Check for single flags (cache-disabled or proxy)
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
-  elif $POD_TO_POD_TLS_ENABLED; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+
+  # Default: cache enabled
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
+# Priority 2: Multi-user false + kubernetes-native
 elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/kubernetes-native"
   if $CACHE_DISABLED; then
@@ -151,17 +185,27 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
+# Priority 3: Multi-user true
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED; then
+
+  # Priority 3.1: PostgreSQL (with default SeaweedFS)
+  if [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
+
+  # Priority 3.2: Artifact proxy
+  elif $ARTIFACT_PROXY_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
+
+  # Priority 3.3: Cache disabled
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+
+  # Default: MySQL + SeaweedFS
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
 fi
-
 
 echo "Deploying ${TEST_MANIFESTS}..."
 
