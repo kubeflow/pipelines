@@ -59,19 +59,17 @@
 
 ## Local development setup
 
-- Always use a `.venv` virtual environment.
+- Use `uv` for dependency management and virtual environments.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip setuptools wheel
+# Install uv if not already available: https://docs.astral.sh/uv/getting-started/installation/
 
+# Sync workspace dependencies (creates .venv automatically)
+uv sync
+
+# Generate protobuf code
 make -C api python-dev
 make -C kubernetes_platform python-dev
-
-pip install -e api/v2alpha1/python --config-settings editable_mode=strict
-pip install -e sdk/python --config-settings editable_mode=strict
-pip install -e kubernetes_platform/python --config-settings editable_mode=strict
 ```
 
 ### Required CLI tools
@@ -152,14 +150,15 @@ KFP supports two main deployment modes:
 - Python (SDK):
 
 ```bash
-pip install -r sdk/python/requirements-dev.txt
-pytest -v sdk/python/kfp
+uv sync --extra dev
+uv run pytest -v sdk/python/kfp
 ```
 
 - Python (`kfp-kubernetes`):
 
 ```bash
-pytest -v kubernetes_platform/python/test
+uv sync --extra dev
+uv run pytest -v kubernetes_platform/python/test
 ```
 
 - Go (backend) unit tests only, excluding integration/API/Compiler/E2E tests:
@@ -524,24 +523,24 @@ golangci-lint run
 - Python SDK import/order and unused import cleanups:
 
 ```bash
-pip install -r sdk/python/requirements-dev.txt
-pycln --check sdk/python
-isort --check --profile google sdk/python
+uv sync --extra lint
+uv run pycln --check sdk/python
+uv run isort --check --profile google sdk/python
 ```
 
 - Python SDK formatting (YAPF + string fixer):
 
 ```bash
-pip install yapf pre_commit_hooks
-python3 -m pre_commit_hooks.string_fixer $(find sdk/python/kfp/**/*.py -type f)
-yapf --recursive --diff sdk/python/
+uv sync --extra lint
+uv run python -m pre_commit_hooks.string_fixer $(find sdk/python/kfp/**/*.py -type f)
+uv run yapf --recursive --diff sdk/python/
 ```
 
 - Python SDK docstring formatting:
 
 ```bash
-pip install docformatter
-docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
+uv sync --extra lint
+uv run docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 ```
 
 ## Common agent workflows
@@ -558,11 +557,11 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 
 ### Essential commands
 
-- Compile pipeline: `kfp dsl compile --py pipeline.py --output pipeline.yaml`
+- Compile pipeline: `uv run kfp dsl compile --py pipeline.py --output pipeline.yaml`
 - Generate protos: `make -C api python && make -C api golang`
 - Deploy local cluster (standalone): `make -C backend kind-cluster-agnostic`
 - Deploy local cluster (development) and run the API server in the IDE: `make -C backend dev-kind-cluster`
-- Run SDK tests: `pytest -v sdk/python/kfp`
+- Run SDK tests: `uv run pytest -v sdk/python/kfp`
 - Run backend unit tests: `go test -v $(go list ./backend/... | grep -v backend/test/)`
 - Run compiler tests: `ginkgo -v ./backend/test/compiler`
 - Run API tests: `ginkgo -v --label-filter="Smoke" ./backend/test/v2/api`

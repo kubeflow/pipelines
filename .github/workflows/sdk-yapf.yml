@@ -21,14 +21,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
+    - name: Setup Python with uv
+      uses: ./.github/actions/setup-python
       with:
         python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install dependencies
-      run: pip install yapf
 
     - name: Run YAPF SDK Tests
       run: ./test/presubmit-yapf-sdk.sh
