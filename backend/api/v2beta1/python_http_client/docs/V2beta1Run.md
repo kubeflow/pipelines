@@ -21,6 +21,8 @@ Name | Type | Description | Notes
 **run_details** | [**V2beta1RunDetails**](V2beta1RunDetails.md) |  | [optional] 
 **recurring_run_id** | **str** | ID of the recurring run that triggered this run. | [optional] 
 **state_history** | [**list[V2beta1RuntimeStatus]**](V2beta1RuntimeStatus.md) | Output. A sequence of run statuses. This field keeps a record of state transitions. | [optional] 
+**experiment_display_name** | **str** | Output. Display name of the experiment this run belongs to. | [optional] 
+**pipeline_version_display_name** | **str** | Output. Display name of the pipeline version used by this run. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

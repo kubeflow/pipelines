@@ -669,6 +669,14 @@
             "$ref": "#/definitions/v2beta1RuntimeStatus"
           },
           "description": "Output. A sequence of run statuses. This field keeps a record\nof state transitions."
+        },
+        "experiment_display_name": {
+          "type": "string",
+          "description": "Output. Display name of the experiment this run belongs to."
+        },
+        "pipeline_version_display_name": {
+          "type": "string",
+          "description": "Output. Display name of the pipeline version used by this run."
         }
       }
     },

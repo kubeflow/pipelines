@@ -145,12 +145,13 @@ func TestListRuns_Pagination(t *testing.T) {
 
 	expectedFirstPageRuns := []*model.Run{
 		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
-			StorageState: model.StorageStateAvailable,
+			UUID:                  "1",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run1",
+			DisplayName:           "run1",
+			Namespace:             "n1",
+			StorageState:          model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
@@ -185,12 +186,13 @@ func TestListRuns_Pagination(t *testing.T) {
 
 	expectedSecondPageRuns := []*model.Run{
 		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			Namespace:    "n2",
-			StorageState: model.StorageStateAvailable,
+			UUID:                  "2",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run2",
+			DisplayName:           "run2",
+			Namespace:             "n2",
+			StorageState:          model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
@@ -251,12 +253,13 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 
 	expectedFirstPageRuns := []*model.Run{
 		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
-			StorageState: model.StorageStateAvailable,
+			UUID:                  "1",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run1",
+			DisplayName:           "run1",
+			Namespace:             "n1",
+			StorageState:          model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
@@ -290,12 +293,13 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	expectedFirstPageRuns[0] = expectedFirstPageRuns[0].ToV1()
 	expectedSecondPageRuns := []*model.Run{
 		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			StorageState: model.StorageStateAvailable,
-			Namespace:    "n2",
+			UUID:                  "2",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run2",
+			DisplayName:           "run2",
+			StorageState:          model.StorageStateAvailable,
+			Namespace:             "n2",
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
@@ -418,12 +422,13 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 
 	expectedFirstPageRuns := []*model.Run{
 		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			Namespace:    "n2",
-			StorageState: model.StorageStateAvailable,
+			UUID:                  "2",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run2",
+			DisplayName:           "run2",
+			Namespace:             "n2",
+			StorageState:          model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
 				ScheduledAtInSec:        2,
@@ -457,12 +462,13 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	expectedFirstPageRuns[0] = expectedFirstPageRuns[0].ToV1()
 	expectedSecondPageRuns := []*model.Run{
 		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
-			StorageState: model.StorageStateAvailable,
+			UUID:                  "1",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run1",
+			DisplayName:           "run1",
+			Namespace:             "n1",
+			StorageState:          model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
@@ -526,11 +532,12 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 
 	expectedRuns := []*model.Run{
 		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
+			UUID:                  "1",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run1",
+			DisplayName:           "run1",
+			Namespace:             "n1",
 
 			StorageState: model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
@@ -563,11 +570,12 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			},
 		},
 		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			Namespace:    "n2",
+			UUID:                  "2",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run2",
+			DisplayName:           "run2",
+			Namespace:             "n2",
 
 			StorageState: model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
@@ -632,12 +640,13 @@ func TestGetRun(t *testing.T) {
 	defer db.Close()
 
 	expectedRun := &model.Run{
-		UUID:         "1",
-		ExperimentId: defaultFakeExpId,
-		K8SName:      "run1",
-		DisplayName:  "run1",
-		Namespace:    "n1",
-		StorageState: model.StorageStateAvailable,
+		UUID:                  "1",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		K8SName:               "run1",
+		DisplayName:           "run1",
+		Namespace:             "n1",
+		StorageState:          model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
 			WorkflowRuntimeManifest: "workflow1",
 			CreatedAtInSec:          1,
@@ -696,12 +705,13 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 	defer db.Close()
 
 	expectedRun := &model.Run{
-		UUID:         "1",
-		ExperimentId: defaultFakeExpId,
-		K8SName:      "run1",
-		DisplayName:  "run1",
-		Namespace:    "n1",
-		StorageState: model.StorageStateAvailable,
+		UUID:                  "1",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		K8SName:               "run1",
+		DisplayName:           "run1",
+		Namespace:             "n1",
+		StorageState:          model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
@@ -752,12 +762,13 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRun = &model.Run{
-		UUID:         "1",
-		ExperimentId: defaultFakeExpId,
-		K8SName:      "run1",
-		DisplayName:  "run1",
-		Namespace:    "n1",
-		StorageState: model.StorageStateAvailable,
+		UUID:                  "1",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		K8SName:               "run1",
+		DisplayName:           "run1",
+		Namespace:             "n1",
+		StorageState:          model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
@@ -804,10 +815,11 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 	assert.NotNil(t, err)
 
 	runDetail := &model.Run{
-		UUID:         "2000",
-		ExperimentId: defaultFakeExpId,
-		K8SName:      "MY_NAME",
-		Namespace:    "MY_NAMESPACE",
+		UUID:                  "2000",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		K8SName:               "MY_NAME",
+		Namespace:             "MY_NAMESPACE",
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          11,
 			Conditions:              "Running",
@@ -825,10 +837,11 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 	_, err = runStore.CreateRun(runDetail)
 	assert.Nil(t, err)
 	expectedRun := &model.Run{
-		UUID:         "2000",
-		ExperimentId: defaultFakeExpId,
-		K8SName:      "MY_NAME",
-		Namespace:    "MY_NAMESPACE",
+		UUID:                  "2000",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		K8SName:               "MY_NAME",
+		Namespace:             "MY_NAMESPACE",
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          11,
 			Conditions:              "Running",
@@ -876,10 +889,11 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 	defer db.Close()
 
 	runDetail := &model.Run{
-		UUID:         "1000",
-		K8SName:      "run1",
-		ExperimentId: defaultFakeExpId,
-		Namespace:    "n1",
+		UUID:                  "1000",
+		K8SName:               "run1",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		Namespace:             "n1",
 		RunDetails: model.RunDetails{
 			WorkflowRuntimeManifest: "workflow1",
 			CreatedAtInSec:          1,
@@ -899,11 +913,12 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 	defer db.Close()
 
 	runDetail := &model.Run{
-		UUID:         "1",
-		ExperimentId: defaultFakeExpId,
-		K8SName:      "run1",
-		StorageState: "bad value",
-		Namespace:    "n1",
+		UUID:                  "1",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		K8SName:               "run1",
+		StorageState:          "bad value",
+		Namespace:             "n1",
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
@@ -945,12 +960,13 @@ func TestTerminateRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRun := &model.Run{
-		UUID:         "1",
-		ExperimentId: defaultFakeExpId,
-		K8SName:      "run1",
-		DisplayName:  "run1",
-		Namespace:    "n1",
-		StorageState: model.StorageStateAvailable,
+		UUID:                  "1",
+		ExperimentId:          defaultFakeExpId,
+		ExperimentDisplayName: "exp1",
+		K8SName:               "run1",
+		DisplayName:           "run1",
+		Namespace:             "n1",
+		StorageState:          model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
@@ -1107,12 +1123,13 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	expectedRuns := []*model.Run{
 		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
-			StorageState: model.StorageStateAvailable,
+			UUID:                  "1",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run1",
+			DisplayName:           "run1",
+			Namespace:             "n1",
+			StorageState:          model.StorageStateAvailable,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
 				ScheduledAtInSec:        1,
@@ -1145,12 +1162,13 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			},
 		},
 		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			Namespace:    "n2",
-			StorageState: model.StorageStateAvailable,
+			UUID:                  "2",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run2",
+			DisplayName:           "run2",
+			Namespace:             "n2",
+			StorageState:          model.StorageStateAvailable,
 
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          2,
@@ -1286,12 +1304,13 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 
 	expectedRuns := []*model.Run{
 		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
-			StorageState: model.StorageStateArchived,
+			UUID:                  "1",
+			ExperimentId:          defaultFakeExpId,
+			ExperimentDisplayName: "exp1",
+			K8SName:               "run1",
+			DisplayName:           "run1",
+			Namespace:             "n1",
+			StorageState:          model.StorageStateArchived,
 
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
@@ -1426,4 +1445,105 @@ func TestRunAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Run{}).APIToModelFieldMap() {
 		assert.Contains(t, runColumns, modelField)
 	}
+}
+
+// TestListRuns_DisplayNames verifies that ListRuns populates
+// ExperimentDisplayName and PipelineVersionDisplayName via SQL JOINs.
+func TestListRuns_DisplayNames(t *testing.T) {
+	db := NewFakeDBOrFatal()
+
+	// Create an experiment.
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	_, err := expStore.CreateExperiment(&model.Experiment{Name: "my-experiment"})
+	assert.Nil(t, err)
+
+	// Create a pipeline (required as FK parent of pipeline_versions).
+	pipelineID := "pipeline-abc"
+	_, err = db.Exec(
+		"INSERT INTO pipelines (UUID, CreatedAtInSec, Name, DisplayName, Description, Status, Namespace) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		pipelineID, 1, "my-pipeline", "My Pipeline", "", "READY", "-",
+	)
+	assert.Nil(t, err)
+
+	// Create a pipeline version.
+	pvID := "pv-123"
+	_, err = db.Exec(
+		"INSERT INTO pipeline_versions (UUID, CreatedAtInSec, Name, DisplayName, PipelineId, Status, Parameters, PipelineSpec, PipelineSpecURI) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		pvID, 1, "my-pipeline-version", "My Pipeline Version v1", pipelineID, "READY", "", "", "",
+	)
+	assert.Nil(t, err)
+
+	// Create a run referencing both the experiment and pipeline version.
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	run := &model.Run{
+		UUID:         "run-display-name-test",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-dn-test",
+		DisplayName:  "Display Name Test Run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns-test",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec: 10,
+			Conditions:     "Running",
+			State:          model.RuntimeStateRunning,
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: pvID,
+			PipelineId:        pipelineID,
+		},
+	}
+	_, err = runStore.CreateRun(run)
+	assert.Nil(t, err)
+
+	// List runs and verify display names.
+	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	assert.Nil(t, err)
+	runs, _, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+
+	assert.Equal(t, "my-experiment", runs[0].ExperimentDisplayName,
+		"ExperimentDisplayName should be populated from experiments table")
+	assert.Equal(t, "My Pipeline Version v1", runs[0].PipelineVersionDisplayName,
+		"PipelineVersionDisplayName should be populated from pipeline_versions table")
+}
+
+// TestListRuns_DisplayNames_NoPipelineVersion verifies that ListRuns
+// correctly handles runs without a pipeline version by populating
+// PipelineVersionDisplayName as an empty string when the LEFT JOIN returns NULL.
+func TestListRuns_DisplayNames_NoPipelineVersion(t *testing.T) {
+	db := NewFakeDBOrFatal()
+
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	_, err := expStore.CreateExperiment(&model.Experiment{Name: "my-experiment-no-pv"})
+	assert.Nil(t, err)
+
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	run := &model.Run{
+		UUID:         "run-no-pv-display-name-test",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-no-pv-dn-test",
+		DisplayName:  "Display Name Test Run No PV",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns-test",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec: 20,
+			Conditions:     "Running",
+			State:          model.RuntimeStateRunning,
+		},
+		PipelineSpec: model.PipelineSpec{},
+	}
+	_, err = runStore.CreateRun(run)
+	assert.Nil(t, err)
+
+	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	assert.Nil(t, err)
+	runs, _, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+
+	assert.Equal(t, "my-experiment-no-pv", runs[0].ExperimentDisplayName,
+		"ExperimentDisplayName should be populated from experiments table")
+	assert.Equal(t, "", runs[0].PipelineVersionDisplayName,
+		"PipelineVersionDisplayName should be empty for runs without pipeline versions")
 }
