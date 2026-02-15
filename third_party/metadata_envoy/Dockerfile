@@ -14,8 +14,12 @@
 
 FROM envoyproxy/envoy:v1.33.14
 
-RUN apt-get update -y && \
-  apt-get install --no-install-recommends -y -q gettext openssl
+RUN apt-get clean && \
+  rm -rf /var/lib/apt/lists/* && \
+  (apt-get update -y || (sleep 10 && apt-get update -y) || (sleep 30 && apt-get update -y)) && \
+  apt-get install --no-install-recommends -y -q gettext openssl && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
 
 
 # Copy license files.
