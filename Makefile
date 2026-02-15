@@ -20,3 +20,14 @@ ginkgo:
 	mkdir -p $(BIN_DIR)
 	GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@latest
 	@echo "Ginkgo installed to $(BIN_DIR)/ginkgo"
+
+# SDK Tests
+.PHONY: test-sdk-install-deps
+test-sdk-install-deps:
+	pip install -r sdk/python/requirements-dev.txt
+	pip install google_cloud_pipeline_components
+	pip install requests==2.28.1
+
+.PHONY: test-sdk-run
+test-sdk-run:
+	./test/presubmit-tests-sdk.sh
