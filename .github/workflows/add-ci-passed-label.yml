@@ -53,7 +53,7 @@ jobs:
             });
             const fs = require('fs');
             fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
-      
+
       - name: Unzip artifact
         run: unzip pr.zip
 
