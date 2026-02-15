@@ -20,7 +20,7 @@ import { act } from 'react-dom/test-utils';
 import { MemoryRouter } from 'react-router';
 import { createMemoryHistory } from 'history';
 import { vi } from 'vitest';
-import { LocalStorage } from '../lib/LocalStorage';
+import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from './Router';
 import { css, SideNav } from './SideNav';
 import { GkeMetadata } from '../lib/GkeMetadata';
@@ -73,6 +73,7 @@ describe('SideNav', () => {
   let localStorageIsCollapsedSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    localStorage.clear();
     localStorageHasKeySpy = vi.spyOn(LocalStorage, 'hasKey').mockImplementation(() => false);
     localStorageIsCollapsedSpy = vi
       .spyOn(LocalStorage, 'isNavbarCollapsed')
@@ -82,6 +83,7 @@ describe('SideNav', () => {
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.restoreAllMocks();
     (window as any).innerWidth = wideWidth;
   });
@@ -393,5 +395,15 @@ describe('SideNav', () => {
         date: 'unknown',
       }),
     );
+  });
+
+  it('auto-collapses on first load when localStorage key is missing and window is narrow', async () => {
+    localStorageHasKeySpy.mockRestore();
+    localStorageIsCollapsedSpy.mockRestore();
+    localStorage.removeItem(LocalStorageKey.navbarCollapsed);
+    (window as any).innerWidth = narrowWidth;
+
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
   });
 });
