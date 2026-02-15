@@ -9,11 +9,11 @@ spec:
     - name: components-comp-importer
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
-      value: '{"artifactUri":{"constant":"huggingface://gpt2"},"downloadToWorkspace":true,"typeSchema":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}'
+      value: '{"artifactUri":{"constant":"huggingface://gpt2?allow_patterns=config.json"},"downloadToWorkspace":true,"typeSchema":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}'
     - name: components-comp-importer-2
       value: '{"executorLabel":"exec-importer-2","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer-2
-      value: '{"artifactUri":{"constant":"huggingface://wikitext?repo_type=dataset"},"downloadToWorkspace":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+      value: '{"artifactUri":{"constant":"huggingface://wikitext?repo_type=dataset\u0026allow_patterns=README.md"},"downloadToWorkspace":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
     - name: components-comp-importer-3
       value: '{"executorLabel":"exec-importer-3","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer-3
@@ -26,13 +26,9 @@ spec:
       value: '{"executorLabel":"exec-importer-5","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer-5
       value: '{"artifactUri":{"constant":"huggingface://gpt2?allow_patterns=*.bin\u0026ignore_patterns=*.safetensors"},"typeSchema":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}'
-    - name: components-comp-importer-6
-      value: '{"executorLabel":"exec-importer-6","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-comp-importer-6
-      value: '{"artifactUri":{"constant":"huggingface://meta-llama/Llama-2-7b-chat-hf"},"typeSchema":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}'
-    - name: components-c8362db6ff7a47fe70468ce35ee2284267b28345ee313c4a141921d4d0c9c686
+    - name: components-b003db53befafaa089714f0da020ac7a7a423d8cce177fbcf99a29c4ce71f784
       value: '{"executorLabel":"exec-use-dataset","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-c8362db6ff7a47fe70468ce35ee2284267b28345ee313c4a141921d4d0c9c686
+    - name: implementations-b003db53befafaa089714f0da020ac7a7a423d8cce177fbcf99a29c4ce71f784
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","use_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -42,11 +38,13 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        use_dataset(dataset: Dataset) -\u003e int:\n    with open(dataset.path) as
-        f:\n        return len(f.readlines())\n\n"],"image":"python:3.11"}'
-    - name: components-78ef3aa86fd25d554b31c978a7230351df89c1d099180f0286c6a70ad457f987
+        use_dataset(dataset: Dataset) -\u003e int:\n    \"\"\"Verify a dataset artifact
+        was imported successfully.\"\"\"\n    import os\n    path = dataset.path\n    if
+        os.path.isdir(path):\n        return sum(len(files) for _, _, files in os.walk(path))\n    with
+        open(path) as f:\n        return len(f.readlines())\n\n"],"image":"python:3.11"}'
+    - name: components-5eb35ee0ce19202a8349d2b157fd757c5615732680dd95786eb6ca02951a1b6e
       value: '{"executorLabel":"exec-use-model","inputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-78ef3aa86fd25d554b31c978a7230351df89c1d099180f0286c6a70ad457f987
+    - name: implementations-5eb35ee0ce19202a8349d2b157fd757c5615732680dd95786eb6ca02951a1b6e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","use_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -56,10 +54,13 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        use_model(model: Model) -\u003e str:\n    with open(model.path) as f:\n        return
-        f.read()\n\n"],"image":"python:3.11"}'
+        use_model(model: Model) -\u003e str:\n    \"\"\"Verify a model artifact was
+        imported successfully.\"\"\"\n    import os\n    path = model.path\n    if
+        os.path.isdir(path):\n        files = sorted(os.listdir(path))\n        return
+        f\"{len(files)} files: {'', ''.join(files[:5])}\"\n    with open(path) as
+        f:\n        return f.read()[:200]\n\n"],"image":"python:3.11"}'
     - name: components-root
-      value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2"}}}},"taskInfo":{"name":"importer"}},"importer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://wikitext?repo_type=dataset"}}}},"taskInfo":{"name":"importer-2"}},"importer-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-3"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://bert-base-uncased/config.json"}}}},"taskInfo":{"name":"importer-3"}},"importer-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-4"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2/main"}}}},"taskInfo":{"name":"importer-4"}},"importer-5":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-5"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2?allow_patterns=*.bin\u0026ignore_patterns=*.safetensors"}}}},"taskInfo":{"name":"importer-5"}},"importer-6":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-6"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://meta-llama/Llama-2-7b-chat-hf"}}}},"taskInfo":{"name":"importer-6"}},"use-dataset":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-use-dataset"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"use-dataset"}},"use-model":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-use-model"},"dependentTasks":["importer"],"inputs":{"artifacts":{"model":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"use-model"}}}}}'
+      value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2?allow_patterns=config.json"}}}},"taskInfo":{"name":"importer"}},"importer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://wikitext?repo_type=dataset\u0026allow_patterns=README.md"}}}},"taskInfo":{"name":"importer-2"}},"importer-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-3"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://bert-base-uncased/config.json"}}}},"taskInfo":{"name":"importer-3"}},"importer-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-4"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2/main"}}}},"taskInfo":{"name":"importer-4"}},"importer-5":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-5"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2?allow_patterns=*.bin\u0026ignore_patterns=*.safetensors"}}}},"taskInfo":{"name":"importer-5"}},"use-dataset":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-use-dataset"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"use-dataset"}},"use-model":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-use-model"},"dependentTasks":["importer"],"inputs":{"artifacts":{"model":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"use-model"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -436,7 +437,7 @@ spec:
       - arguments:
           parameters:
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2"}}}},"taskInfo":{"name":"importer"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://gpt2?allow_patterns=config.json"}}}},"taskInfo":{"name":"importer"}}'
           - name: component
             value: '{{workflow.parameters.components-comp-importer}}'
           - name: importer
@@ -448,7 +449,7 @@ spec:
       - arguments:
           parameters:
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://wikitext?repo_type=dataset"}}}},"taskInfo":{"name":"importer-2"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://wikitext?repo_type=dataset\u0026allow_patterns=README.md"}}}},"taskInfo":{"name":"importer-2"}}'
           - name: component
             value: '{{workflow.parameters.components-comp-importer-2}}'
           - name: importer
@@ -495,24 +496,12 @@ spec:
         template: system-importer
       - arguments:
           parameters:
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-6"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"huggingface://meta-llama/Llama-2-7b-chat-hf"}}}},"taskInfo":{"name":"importer-6"}}'
           - name: component
-            value: '{{workflow.parameters.components-comp-importer-6}}'
-          - name: importer
-            value: '{{workflow.parameters.implementations-comp-importer-6}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        name: importer-6
-        template: system-importer
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-c8362db6ff7a47fe70468ce35ee2284267b28345ee313c4a141921d4d0c9c686}}'
+            value: '{{workflow.parameters.components-b003db53befafaa089714f0da020ac7a7a423d8cce177fbcf99a29c4ce71f784}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-use-dataset"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"use-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c8362db6ff7a47fe70468ce35ee2284267b28345ee313c4a141921d4d0c9c686}}'
+            value: '{{workflow.parameters.implementations-b003db53befafaa089714f0da020ac7a7a423d8cce177fbcf99a29c4ce71f784}}'
           - name: task-name
             value: use-dataset
           - name: parent-dag-id
@@ -533,11 +522,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-78ef3aa86fd25d554b31c978a7230351df89c1d099180f0286c6a70ad457f987}}'
+            value: '{{workflow.parameters.components-5eb35ee0ce19202a8349d2b157fd757c5615732680dd95786eb6ca02951a1b6e}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-use-model"},"dependentTasks":["importer"],"inputs":{"artifacts":{"model":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"use-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-78ef3aa86fd25d554b31c978a7230351df89c1d099180f0286c6a70ad457f987}}'
+            value: '{{workflow.parameters.implementations-5eb35ee0ce19202a8349d2b157fd757c5615732680dd95786eb6ca02951a1b6e}}'
           - name: task-name
             value: use-model
           - name: parent-dag-id
