@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-pipeline-ui-configmap
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+data:
+  viewer-pod-template.json: |-
+    {
+        "spec": {
+            {{- if .Values.multiUser.enabled }}
+            "serviceAccountName": "default-editor"
+            {{- else }}
+            "serviceAccountName": "kubeflow-pipelines-viewer"
+            {{- end }}
+        }
+    }

@@ -1,0 +1,17 @@
+{{- if eq .Values.objectStore.type "seaweedfs" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-pvc
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.seaweedfs.persistence.size }}
+  {{- if .Values.seaweedfs.persistence.storageClass }}
+  storageClassName: {{ .Values.seaweedfs.persistence.storageClass }}
+  {{- end }}
+{{- end }}

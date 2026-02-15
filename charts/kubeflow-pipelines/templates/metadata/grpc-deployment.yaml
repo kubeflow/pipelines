@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-grpc-deployment
+  labels:
+    component: metadata-grpc-server
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.metadataGrpc.replicas }}
+  selector:
+    matchLabels:
+      component: metadata-grpc-server
+  template:
+    metadata:
+      labels:
+        component: metadata-grpc-server
+    spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: container
+        image: "{{ .Values.metadataGrpc.image.repository }}:{{ .Values.metadataGrpc.image.tag }}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+              key: {{ include "kubeflow-pipelines.dbSecretUsernameKey" . }}
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+              key: {{ include "kubeflow-pipelines.dbSecretPasswordKey" . }}
+        {{- if eq .Values.database.type "postgresql" }}
+        - name: POSTGRES_DBNAME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: mlmdDb
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: postgresHost
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: postgresPort
+        {{- else }}
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: mlmdDb
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbHost
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbPort
+        {{- end }}
+        command: ["/bin/metadata_store_server"]
+        {{- if eq .Values.database.type "postgresql" }}
+        args:
+        - "--grpc_port=8080"
+        - "--metadata_source_config_type=postgresql"
+        - "--postgres_config_host=$(POSTGRES_HOST)"
+        - "--postgres_config_port=$(POSTGRES_PORT)"
+        - "--postgres_config_dbname=$(POSTGRES_DBNAME)"
+        - "--postgres_config_user=$(DBCONFIG_USER)"
+        - "--postgres_config_password=$(DBCONFIG_PASSWORD)"
+        - "--enable_database_upgrade=true"
+        {{- else }}
+        args:
+        - "--grpc_port=8080"
+        - "--mysql_config_database=$(MYSQL_DATABASE)"
+        - "--mysql_config_host=$(MYSQL_HOST)"
+        - "--mysql_config_port=$(MYSQL_PORT)"
+        - "--mysql_config_user=$(DBCONFIG_USER)"
+        - "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+        - "--enable_database_upgrade=true"
+        - "--grpc_channel_arguments=grpc.max_metadata_size=16384"
+        {{- end }}
+        ports:
+        - name: grpc-api
+          containerPort: 8080
+        livenessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        readinessProbe:
+          tcpSocket:
+            port: grpc-api
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        {{- with .Values.metadataGrpc.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      serviceAccountName: metadata-grpc-server
+      {{- with ((kindIs "invalid" .Values.metadataGrpc.nodeSelector) | ternary .Values.global.nodeSelector .Values.metadataGrpc.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.metadataGrpc.tolerations) | ternary .Values.global.tolerations .Values.metadataGrpc.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.metadataGrpc.affinity) | ternary .Values.global.affinity .Values.metadataGrpc.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
