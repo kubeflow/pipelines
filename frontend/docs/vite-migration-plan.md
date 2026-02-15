@@ -1,5 +1,7 @@
 # Vite Migration Plan (Frontend)
 
+Last updated: 2026-02-15
+
 ## Driver (original request)
 - Issue: kubeflow/pipelines#10098
 - Problem: `react-scripts` (CRA) is stale and blocks dependency upgrades (React, Node, TypeScript, MUI, Tailwind).
@@ -410,8 +412,9 @@ Key fixes:
 - Updated test utilities to use Vitest‑compatible types and explicit `expect`/`beforeEach` imports.
 - Cleaned up minor TS strictness issues (MD2Tabs timer typing, Editor lifecycle override, Tensorboard error message guard, StatusV2 enum logging).
 
-## Post-effort TODOs
-- Re-evaluate Material-UI v4+ upgrade once Vite migration is stable (would require `@material-ui/core` v4).
+## Post-effort TODOs (updated after PR #12793)
+- Material-UI v4 upgrade is completed in PR #12793.
+  - Follow-up scope is now a future migration to MUI v5+ (`@mui/*`) rather than v3 -> v4.
 - Decide whether to keep `eslint-config-react-app` or replace it with a non-CRA ESLint config.
 - Phase 8: Server test runner migration (Jest -> Vitest).
   - Add Vitest node config for `frontend/server` tests.
@@ -424,8 +427,8 @@ Key fixes:
     - Fix: upgrade Vite/Vitest to the version where the CJS Node API warning is resolved.
     - Why deferred: toolchain upgrade touches build/test config and can change bundling behavior.
   - React.createFactory deprecations:
-    - Source: MUI v3 + recompose; clean fix requires upgrading to MUI v4+.
-    - Why deferred: MUI upgrade is a large UI dependency change and out of scope for the Vite migration.
+    - Source: older React-era helper dependencies (for example `recompose` and/or charting dependencies).
+    - Why deferred: fixing cleanly may require dependency replacements beyond the Vite migration scope.
   - React 16 lifecycle warnings (`componentWillReceiveProps`) from Resizable + Motion:
     - `re-resizable@4.11.0` (used by `SidePanel`) uses legacy lifecycles.
       - Clean fix: upgrade to `re-resizable@6.11.2`, which requires React/ReactDOM >=16.13.1
