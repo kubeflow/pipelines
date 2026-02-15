@@ -26,15 +26,10 @@ exports[`LineageActionBar > adds the artifact to the history state and DOM when 
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-165 breadcrumbSeparator_f1an3f47 f1n4zav9"
+          class="MuiSvgIcon-root breadcrumbSeparator_f1an3f47 f1n4zav9"
           focusable="false"
-          role="presentation"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M16.01 11H4v2h12.01v3L20 12l-3.99-4z"
           />
@@ -49,24 +44,19 @@ exports[`LineageActionBar > adds the artifact to the history state and DOM when 
     </div>
     <div>
       <button
-        class="MuiButtonBase-root-162 MuiButton-root-136 MuiButton-text-138 MuiButton-flat-141 actionButton_fapsfk6"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text actionButton_fapsfk6"
         tabindex="0"
         type="button"
       >
         <span
-          class="MuiButton-label-137"
+          class="MuiButton-label"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root-165"
+            class="MuiSvgIcon-root"
             focusable="false"
-            role="presentation"
             viewBox="0 0 24 24"
           >
-            <path
-              d="M0 0h24v24H0z"
-              fill="none"
-            />
             <path
               d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
             />
@@ -74,7 +64,7 @@ exports[`LineageActionBar > adds the artifact to the history state and DOM when 
            Reset
         </span>
         <span
-          class="MuiTouchRipple-root-174"
+          class="MuiTouchRipple-root"
         />
       </button>
     </div>
@@ -107,24 +97,19 @@ exports[`LineageActionBar > renders correctly for a given initial target 1`] = `
     </div>
     <div>
       <button
-        class="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-flat-6 actionButton_fapsfk6"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text actionButton_fapsfk6"
         tabindex="0"
         type="button"
       >
         <span
-          class="MuiButton-label-2"
+          class="MuiButton-label"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root-30"
+            class="MuiSvgIcon-root"
             focusable="false"
-            role="presentation"
             viewBox="0 0 24 24"
           >
-            <path
-              d="M0 0h24v24H0z"
-              fill="none"
-            />
             <path
               d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
             />
@@ -132,7 +117,7 @@ exports[`LineageActionBar > renders correctly for a given initial target 1`] = `
            Reset
         </span>
         <span
-          class="MuiTouchRipple-root-39"
+          class="MuiTouchRipple-root"
         />
       </button>
     </div>
@@ -165,24 +150,19 @@ exports[`LineageActionBar > sets history to the initial prop when the reset butt
     </div>
     <div>
       <button
-        class="MuiButtonBase-root-207 MuiButton-root-181 MuiButton-text-183 MuiButton-flat-186 actionButton_fapsfk6"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text actionButton_fapsfk6"
         tabindex="0"
         type="button"
       >
         <span
-          class="MuiButton-label-182"
+          class="MuiButton-label"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root-210"
+            class="MuiSvgIcon-root"
             focusable="false"
-            role="presentation"
             viewBox="0 0 24 24"
           >
-            <path
-              d="M0 0h24v24H0z"
-              fill="none"
-            />
             <path
               d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
             />
@@ -190,7 +170,7 @@ exports[`LineageActionBar > sets history to the initial prop when the reset butt
            Reset
         </span>
         <span
-          class="MuiTouchRipple-root-219"
+          class="MuiTouchRipple-root"
         />
       </button>
     </div>
@@ -223,24 +203,19 @@ exports[`LineageActionBar > updates the LineageView target model when an inactiv
     </div>
     <div>
       <button
-        class="MuiButtonBase-root-117 MuiButton-root-91 MuiButton-text-93 MuiButton-flat-96 actionButton_fapsfk6"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text actionButton_fapsfk6"
         tabindex="0"
         type="button"
       >
         <span
-          class="MuiButton-label-92"
+          class="MuiButton-label"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root-120"
+            class="MuiSvgIcon-root"
             focusable="false"
-            role="presentation"
             viewBox="0 0 24 24"
           >
-            <path
-              d="M0 0h24v24H0z"
-              fill="none"
-            />
             <path
               d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
             />
@@ -248,7 +223,7 @@ exports[`LineageActionBar > updates the LineageView target model when an inactiv
            Reset
         </span>
         <span
-          class="MuiTouchRipple-root-129"
+          class="MuiTouchRipple-root"
         />
       </button>
     </div>

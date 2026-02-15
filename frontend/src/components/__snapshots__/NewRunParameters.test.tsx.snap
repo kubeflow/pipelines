@@ -28,39 +28,38 @@ exports[`NewRunParameters > shows parameters 1`] = `
     </div>
     <div>
       <div
-        class="MuiFormControl-root-1 textField_f7kh2f6 textfield_f2qghku"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 textfield_f2qghku"
       >
         <label
-          class="MuiFormLabel-root-16 MuiFormLabel-filled-20 MuiInputLabel-root-5 MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled"
           data-shrink="true"
           for="newRunPipelineParam0"
+          id="newRunPipelineParam0-label"
         >
           testParam
         </label>
         <div
-          class="MuiInputBase-root-36 MuiOutlinedInput-root-23 MuiInputBase-formControl-37"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
         >
-          <fieldset
-            aria-hidden="true"
-            class="MuiPrivateNotchedOutline-root-53 MuiOutlinedInput-notchedOutline-30"
-            style="padding-left: 8px;"
-          >
-            <legend
-              class="MuiPrivateNotchedOutline-legend-54"
-              style="width: 0px;"
-            >
-              <span>
-                ​
-              </span>
-            </legend>
-          </fieldset>
           <input
             aria-invalid="false"
-            class="MuiInputBase-input-46 MuiOutlinedInput-input-31"
+            class="MuiInputBase-input MuiOutlinedInput-input"
             id="newRunPipelineParam0"
             type="text"
             value="testVal"
           />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+            >
+              <span>
+                testParam
+              </span>
+            </legend>
+          </fieldset>
         </div>
       </div>
     </div>

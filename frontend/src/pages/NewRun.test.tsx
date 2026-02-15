@@ -774,23 +774,24 @@ describe('NewRun', () => {
         .mockImplementation(() => MOCK_PIPELINE);
       tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
 
-      const chooseVersionBtn = screen.getAllByText('Choose')[1];
+      const chooseVersionBtn = screen.getByRole('button', {
+        name: 'Choose pipeline version',
+      }) as HTMLButtonElement;
       // Choose button is disabled in the beginning
-      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
+      expect(chooseVersionBtn.disabled).toEqual(true);
 
-      const choosePipelineBtn = screen.getAllByText('Choose')[0];
+      const choosePipelineBtn = screen.getByRole('button', { name: 'Choose pipeline' });
       fireEvent.click(choosePipelineBtn); // Open pipeline selector
 
       const uploadPipelineBtn = screen.getByText('Upload pipeline');
       fireEvent.click(uploadPipelineBtn); // Open upload pipeline dialog
 
       // mock drop file from local.
-      const uploadFile = await screen.findByText(/File/);
+      const dropZone = screen.getByTestId('upload-pipeline-dropzone');
       const file = new File(['file contents'], 'test-pipeline.yaml', { type: 'text/yaml' });
-      Object.defineProperty(uploadFile, 'files', {
-        value: [file],
+      fireEvent.drop(dropZone, {
+        dataTransfer: { files: [file] },
       });
-      fireEvent.drop(uploadFile);
 
       const uploadBtn = await screen.findByText('Upload');
       expect(uploadBtn.closest('button')?.disabled).toEqual(false);
@@ -800,7 +801,7 @@ describe('NewRun', () => {
         expect(uploadPipelineSpy).toHaveBeenCalled();
       });
 
-      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
+      expect(chooseVersionBtn.disabled).toEqual(false);
     });
 
     it('does not set the pipeline from the selector modal when cancelled', async () => {

@@ -163,9 +163,9 @@ describe('ArtifactList', () => {
       return Promise.resolve(response);
     });
 
-    const originalRowsPerPage = screen.getByText('10');
-    fireEvent.click(originalRowsPerPage);
-    const newRowsPerPage = screen.getByText('20'); // Change to render 20 rows per page.
+    const rowsPerPageButton = screen.getByRole('button', { name: '10' });
+    fireEvent.mouseDown(rowsPerPageButton);
+    const newRowsPerPage = await screen.findByRole('option', { name: '20' });
     fireEvent.click(newRowsPerPage);
 
     listOperationOpts.setMaxResultSize(20);

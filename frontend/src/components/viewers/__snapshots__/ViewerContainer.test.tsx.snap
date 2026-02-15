@@ -1079,22 +1079,23 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
     style="width: 100%;"
   >
     <table
-      class="MuiTable-root-1"
+      class="MuiTable-root"
       style="display: block; overflow: auto;"
     >
       <thead
-        class="MuiTableHead-root-2"
+        class="MuiTableHead-root"
       >
         <tr
-          class="MuiTableRow-root-3 MuiTableRow-head-6"
+          class="MuiTableRow-root MuiTableRow-head"
         >
           <th
             aria-sort="ascending"
-            class="MuiTableCell-root-8 MuiTableCell-head-9 columnName_ft4szt2"
+            class="MuiTableCell-root MuiTableCell-head columnName_ft4szt2"
             scope="col"
           >
             <span
-              class="MuiButtonBase-root-33 MuiTableSortLabel-root-28 MuiTableSortLabel-active-29"
+              aria-disabled="false"
+              class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-active"
               role="button"
               tabindex="0"
               title="Sort"
@@ -1102,9 +1103,8 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
               col
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root-36 MuiTableSortLabel-icon-30 MuiTableSortLabel-iconDirectionAsc-32"
+                class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc"
                 focusable="false"
-                role="presentation"
                 viewBox="0 0 24 24"
               >
                 <path
@@ -1116,97 +1116,97 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
         </tr>
       </thead>
       <tbody
-        class="MuiTableBody-root-45"
+        class="MuiTableBody-root"
       >
         <tr
-          class="MuiTableRow-root-3 MuiTableRow-hover-5 row_ftg8rvr"
+          class="MuiTableRow-root row_ftg8rvr MuiTableRow-hover"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root-8 MuiTableCell-body-10 cell_f1gb9as5"
+            class="MuiTableCell-root MuiTableCell-body cell_f1gb9as5"
           >
             cell
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root-3"
+          class="MuiTableRow-root"
           style="height: 270px;"
         >
           <td
-            class="MuiTableCell-root-8 MuiTableCell-body-10"
+            class="MuiTableCell-root MuiTableCell-body"
             colspan="6"
           />
         </tr>
       </tbody>
     </table>
     <div
-      class="MuiTablePagination-root-46"
+      class="MuiTablePagination-root"
     >
       <div
-        class="MuiToolbar-root-56 MuiToolbar-regular-58 MuiToolbar-gutters-57 MuiTablePagination-toolbar-47"
+        class="MuiToolbar-root MuiToolbar-regular MuiTablePagination-toolbar MuiToolbar-gutters"
       >
         <div
-          class="MuiTablePagination-spacer-48"
+          class="MuiTablePagination-spacer"
         />
-        <span
-          class="MuiTypography-root-60 MuiTypography-caption-70 MuiTypography-colorInherit-89 MuiTablePagination-caption-49"
+        <p
+          class="MuiTypography-root MuiTablePagination-caption MuiTypography-body2 MuiTypography-colorInherit"
+          id="mui-id-0"
         >
           Rows per page:
-        </span>
+        </p>
         <div
-          class="MuiInputBase-root-103 MuiTablePagination-input-53"
+          class="MuiInputBase-root MuiTablePagination-input MuiTablePagination-selectRoot"
         >
           <div
-            class="MuiSelect-root-96 MuiTablePagination-selectRoot-50"
+            aria-haspopup="listbox"
+            aria-labelledby="mui-id-0 mui-id-1"
+            class="MuiSelect-root MuiSelect-select MuiTablePagination-select MuiSelect-selectMenu MuiInputBase-input"
+            id="mui-id-1"
+            role="button"
+            tabindex="0"
           >
-            <div
-              aria-haspopup="true"
-              aria-pressed="false"
-              class="MuiSelect-select-97 MuiTablePagination-select-51 MuiSelect-selectMenu-100 MuiInputBase-input-113"
-              role="button"
-              tabindex="0"
-            >
-              10
-            </div>
-            <input
-              type="hidden"
-              value="10"
-            />
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root-36 MuiSelect-icon-102 MuiTablePagination-selectIcon-52"
-              focusable="false"
-              role="presentation"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M7 10l5 5 5-5z"
-              />
-            </svg>
+            10
           </div>
+          <input
+            aria-hidden="true"
+            class="MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSelect-icon MuiTablePagination-selectIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
         </div>
-        <span
-          class="MuiTypography-root-60 MuiTypography-caption-70 MuiTypography-colorInherit-89 MuiTablePagination-caption-49"
+        <p
+          class="MuiTypography-root MuiTablePagination-caption MuiTypography-body2 MuiTypography-colorInherit"
         >
           1-1 of 1
-        </span>
+        </p>
         <div
-          class="MuiTablePagination-actions-55"
+          class="MuiTablePagination-actions"
         >
           <button
-            class="MuiButtonBase-root-33 MuiButtonBase-disabled-34 MuiIconButton-root-124 MuiIconButton-colorInherit-125 MuiIconButton-disabled-128"
+            aria-label="Previous page"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit Mui-disabled Mui-disabled"
             disabled=""
             tabindex="-1"
+            title="Previous page"
             type="button"
           >
             <span
-              class="MuiIconButton-label-129"
+              class="MuiIconButton-label"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root-36"
+                class="MuiSvgIcon-root"
                 focusable="false"
-                role="presentation"
                 viewBox="0 0 24 24"
               >
                 <path
@@ -1216,19 +1216,20 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
             </span>
           </button>
           <button
-            class="MuiButtonBase-root-33 MuiButtonBase-disabled-34 MuiIconButton-root-124 MuiIconButton-colorInherit-125 MuiIconButton-disabled-128"
+            aria-label="Next page"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit Mui-disabled Mui-disabled"
             disabled=""
             tabindex="-1"
+            title="Next page"
             type="button"
           >
             <span
-              class="MuiIconButton-label-129"
+              class="MuiIconButton-label"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root-36"
+                class="MuiSvgIcon-root"
                 focusable="false"
-                role="presentation"
                 viewBox="0 0 24 24"
               >
                 <path
@@ -1252,74 +1253,70 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
         class="f104cl0n"
       >
         <div
-          class="MuiFormControl-root-130 formControl_f59g3c5"
+          class="MuiFormControl-root formControl_f59g3c5"
         >
           <label
-            class="MuiFormLabel-root-145 MuiFormLabel-filled-149 MuiInputLabel-root-134 MuiInputLabel-formControl-139 MuiInputLabel-animated-142 MuiInputLabel-shrink-141"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
             data-shrink="true"
             for="viewer-tb-image-select"
           >
             TF Image
           </label>
           <div
-            class="MuiInputBase-root-172 MuiInput-root-159 MuiInput-underline-163 MuiInputBase-formControl-173 MuiInput-formControl-160 select_fczmju"
+            class="MuiInputBase-root MuiInput-root MuiInput-underline select_fczmju MuiInputBase-formControl MuiInput-formControl"
           >
             <div
-              class="MuiSelect-root-152"
+              aria-haspopup="listbox"
+              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+              role="button"
+              tabindex="0"
             >
-              <div
-                aria-haspopup="true"
-                aria-pressed="false"
-                class="MuiSelect-select-153 MuiSelect-selectMenu-156 MuiInputBase-input-182 MuiInput-input-167"
-                role="button"
-                tabindex="0"
-              >
-                TensorFlow 2.2.2
-              </div>
-              <input
-                id="viewer-tb-image-select"
-                type="hidden"
-                value="tensorflow/tensorflow:2.2.2"
-              />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root-189 MuiSelect-icon-158"
-                focusable="false"
-                role="presentation"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M7 10l5 5 5-5z"
-                />
-              </svg>
+              TensorFlow 2.2.2
             </div>
+            <input
+              aria-hidden="true"
+              class="MuiSelect-nativeInput"
+              id="viewer-tb-image-select"
+              tabindex="-1"
+              value="tensorflow/tensorflow:2.2.2"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSelect-icon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M7 10l5 5 5-5z"
+              />
+            </svg>
           </div>
         </div>
       </div>
       <div>
         <button
-          class="MuiButtonBase-root-228 MuiButtonBase-disabled-229 MuiButton-root-202 MuiButton-text-204 MuiButton-textSecondary-206 MuiButton-flat-207 MuiButton-flatSecondary-209 MuiButton-disabled-222 root_f1gmzqw4 rootBusy_fronhm5 buttonAction_f1olq6uy"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 rootBusy_fronhm5 buttonAction_f1olq6uy MuiButton-textSecondary Mui-disabled Mui-disabled"
           disabled=""
           tabindex="-1"
           type="button"
         >
           <span
-            class="MuiButton-label-203"
+            class="MuiButton-label"
           >
             <span>
               Start Tensorboard
             </span>
             <div
-              class="MuiCircularProgress-root-231 MuiCircularProgress-colorPrimary-234 MuiCircularProgress-indeterminate-233 spinner_fiqr0h3 spinnerBusy_f1wemlvb"
+              class="MuiCircularProgress-root spinner_fiqr0h3 spinnerBusy_f1wemlvb MuiCircularProgress-colorPrimary MuiCircularProgress-indeterminate"
               role="progressbar"
               style="width: 15px; height: 15px;"
             >
               <svg
-                class="MuiCircularProgress-svg-236"
+                class="MuiCircularProgress-svg"
                 viewBox="22 22 44 44"
               >
                 <circle
-                  class="MuiCircularProgress-circle-237 MuiCircularProgress-circleIndeterminate-239"
+                  class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate"
                   cx="44"
                   cy="44"
                   fill="none"
@@ -1342,100 +1339,95 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root-248"
+      class="MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root-263 MuiInputLabel-root-252 MuiInputLabel-formControl-257 MuiInputLabel-animated-260"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
         data-shrink="false"
         for="visualization-type-selector"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root-290 MuiInput-root-277 MuiInput-underline-281 MuiInputBase-formControl-291 MuiInput-formControl-278"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
         style="min-height: 60px; width: 100%;"
       >
         <div
-          class="MuiSelect-root-270"
+          aria-haspopup="listbox"
+          aria-labelledby="mui-component-select-Visualization Type"
+          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          id="mui-id-0"
+          role="button"
+          tabindex="0"
         >
-          <div
-            aria-haspopup="true"
-            aria-pressed="false"
-            class="MuiSelect-select-271 MuiSelect-selectMenu-274 MuiInputBase-input-300 MuiInput-input-285"
-            id="select-Visualization Type"
-            role="button"
-            tabindex="0"
-          >
-            <span>
-              ​
-            </span>
-          </div>
-          <input
-            id="visualization-type-selector"
-            name="Visualization Type"
-            type="hidden"
-            value=""
-          />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root-307 MuiSelect-icon-276"
-            focusable="false"
-            role="presentation"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 10l5 5 5-5z"
-            />
-          </svg>
+          <span>
+            ​
+          </span>
         </div>
+        <input
+          aria-hidden="true"
+          class="MuiSelect-nativeInput"
+          id="visualization-type-selector"
+          name="Visualization Type"
+          tabindex="-1"
+          value=""
+        />
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root MuiSelect-icon"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 10l5 5 5-5z"
+          />
+        </svg>
       </div>
     </div>
     <div
-      class="MuiFormControl-root-248 textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root-263 MuiInputLabel-root-252 MuiInputLabel-formControl-257 MuiInputLabel-animated-260 MuiInputLabel-outlined-262"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
         data-shrink="false"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root-290 MuiOutlinedInput-root-320 MuiInputBase-formControl-291"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
       >
-        <fieldset
-          aria-hidden="true"
-          class="MuiPrivateNotchedOutline-root-333 MuiOutlinedInput-notchedOutline-327"
-          style="padding-left: 8px;"
-        >
-          <legend
-            class="MuiPrivateNotchedOutline-legend-334"
-            style="width: 0.01px;"
-          >
-            <span>
-              ​
-            </span>
-          </legend>
-        </fieldset>
         <input
           aria-invalid="false"
-          class="MuiInputBase-input-300 MuiOutlinedInput-input-328"
+          class="MuiInputBase-input MuiOutlinedInput-input"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
+        <fieldset
+          aria-hidden="true"
+          class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+        >
+          <legend
+            class="PrivateNotchedOutline-legendLabelled-3"
+          >
+            <span>
+              Source
+            </span>
+          </legend>
+        </fieldset>
       </div>
     </div>
     <button
-      class="MuiButtonBase-root-361 MuiButtonBase-disabled-362 MuiButton-root-335 MuiButton-text-337 MuiButton-textSecondary-339 MuiButton-flat-340 MuiButton-flatSecondary-342 MuiButton-disabled-355 root_f1gmzqw4"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
       disabled=""
       tabindex="-1"
       type="button"
     >
       <span
-        class="MuiButton-label-336"
+        class="MuiButton-label"
       >
         <span>
           Generate Visualization

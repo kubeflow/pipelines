@@ -161,7 +161,7 @@ describe('WorkflowParser', () => {
       const g = WorkflowParser.createRuntimeGraph(workflow as any, [execution]);
       expect(g.nodes()).toEqual(['node1']);
       expect(g.node('node1')['icon']).toMatchInlineSnapshot(`
-        <WithStyles(Tooltip)
+        <WithStyles(ForwardRef(Tooltip))
           title={
             <div>
               <div>
@@ -182,7 +182,7 @@ describe('WorkflowParser', () => {
               }
             />
           </div>
-        </WithStyles(Tooltip)>
+        </WithStyles(ForwardRef(Tooltip))>
       `);
     });
 
