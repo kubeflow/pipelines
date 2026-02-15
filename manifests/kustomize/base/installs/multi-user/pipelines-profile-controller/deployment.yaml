@@ -65,6 +65,8 @@ spec:
               key: ARTIFACTS_PROXY_ENABLED
               name: pipeline-install-config
               optional: true
+        - name: OBJECT_STORE_HOST
+          value: seaweedfs
         - name: ARTIFACT_RETENTION_DAYS
           valueFrom:
             configMapKeyRef:

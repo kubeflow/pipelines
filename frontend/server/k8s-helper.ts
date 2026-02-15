@@ -39,6 +39,9 @@ const workflowGroup = 'argoproj.io';
 const workflowVersion = 'v1alpha1';
 const workflowPlural = 'workflows';
 
+// Default Kubernetes cluster domain
+const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
+
 /** Default pod template spec used to create tensorboard viewer. */
 export const defaultPodTemplateSpec = {
   spec: {
@@ -102,8 +105,9 @@ export async function newTensorboardInstance(
   tfImageName: string,
   tfversion: string,
   podTemplateSpec: object = defaultPodTemplateSpec,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace);
+  const currentPod = await getTensorboardInstance(logdir, namespace, clusterDomain);
   if (currentPod.podAddress) {
     if (tfversion === currentPod.tfVersion) {
       return;
@@ -146,6 +150,7 @@ export async function newTensorboardInstance(
 export async function getTensorboardInstance(
   logdir: string,
   namespace: string,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<{ podAddress: string; tfVersion: string; image: string }> {
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject({
@@ -166,11 +171,15 @@ export async function getTensorboardInstance(
       // if check logdir and then create Viewer CRD with same name will break anyway.
       // TODO fix hash collision
       (viewer: any) => {
-        if (viewer && viewer.spec && viewer.spec.type === 'tensorboard') {
-          const address = `http://${viewer.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.metadata.name}/`;
-          const image = viewer.spec.tensorboardSpec.tensorflowImage;
+        if (viewer && viewer.body && viewer.body.spec && viewer.body.spec.type === 'tensorboard') {
+          // Normalize clusterDomain to ensure leading dot
+          const normalizedDomain = clusterDomain.startsWith('.')
+            ? clusterDomain
+            : `.${clusterDomain}`;
+          const address = `http://${viewer.body.metadata.name}-service.${namespace}${normalizedDomain}:80/tensorboard/${viewer.body.metadata.name}/`;
+          const image = viewer.body.spec.tensorboardSpec.tensorflowImage;
           const tfImageParts = image.split(':', 2);
-          const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
+          const tfVersion = tfImageParts.length === 2 ? tfImageParts[1] : '';
           return { podAddress: address, tfVersion: tfVersion, image };
         } else {
           return { podAddress: '', tfVersion: '', image: '' };
@@ -194,8 +203,12 @@ export async function getTensorboardInstance(
  * and returns the deleted podAddress
  */
 
-export async function deleteTensorboardInstance(logdir: string, namespace: string): Promise<void> {
-  const currentPod = await getTensorboardInstance(logdir, namespace);
+export async function deleteTensorboardInstance(
+  logdir: string,
+  namespace: string,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
+): Promise<void> {
+  const currentPod = await getTensorboardInstance(logdir, namespace, clusterDomain);
   if (!currentPod.podAddress) {
     return;
   }
@@ -219,6 +232,7 @@ export function waitForTensorboardInstance(
   logdir: string,
   namespace: string,
   timeout: number,
+  clusterDomain: string = DEFAULT_CLUSTER_DOMAIN,
 ): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -227,7 +241,7 @@ export function waitForTensorboardInstance(
         clearInterval(handle);
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardInstance = await getTensorboardInstance(logdir, namespace);
+      const tensorboardInstance = await getTensorboardInstance(logdir, namespace, clusterDomain);
       const tensorboardAddress = tensorboardInstance.podAddress;
       if (tensorboardAddress) {
         clearInterval(handle);
