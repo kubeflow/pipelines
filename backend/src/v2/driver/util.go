@@ -15,8 +15,10 @@
 package driver
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -26,16 +28,14 @@ import (
 // example input channel looks like "{{$.inputs.parameters['pipelinechannel--val']}}"
 const inputPipelineChannelPattern = `\$.inputs.parameters\['(.+?)'\]`
 
+// fullInputParameterRe matches the complete {{$.inputs.parameters['name']}} placeholder
+// including the surrounding braces, for template substitution in container arguments.
+var fullInputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)'\]\}\}`)
+
 func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
 	match := re.FindStringSubmatch(inputChannel)
-	if len(match) == 2 {
-		return true
-	} else {
-		// if len(match) > 2, then this is still incorrect because
-		// inputChannel should contain only one parameter channel input
-		return false
-	}
+	return len(match) == 2
 }
 
 // extractInputParameterFromChannel takes an inputChannel that adheres to
@@ -48,9 +48,8 @@ func extractInputParameterFromChannel(inputChannel string) (string, error) {
 	if len(match) > 1 {
 		extractedValue := match[1]
 		return extractedValue, nil
-	} else {
-		return "", fmt.Errorf("failed to extract input parameter from channel: %s", inputChannel)
 	}
+	return "", fmt.Errorf("failed to extract input parameter from channel: %s", inputChannel)
 }
 
 // inputParamConstant convert and return value as a RuntimeValue
@@ -105,4 +104,151 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 	default:
 		return nil, fmt.Errorf("value of type %T cannot be iterated", v)
 	}
+}
+
+// pbValueToString converts a structpb.Value to its string representation.
+// This handles all parameter types including STRING, NUMBER_INTEGER, NUMBER_DOUBLE, and BOOLEAN,
+// unlike GetStringValue() which returns an empty string for non-string types.
+func pbValueToString(v *structpb.Value) string {
+	switch v.GetKind().(type) {
+	case *structpb.Value_StringValue:
+		return v.GetStringValue()
+	case *structpb.Value_NumberValue:
+		n := v.GetNumberValue()
+		if n == float64(int64(n)) {
+			return fmt.Sprintf("%d", int64(n))
+		}
+		return fmt.Sprintf("%g", n)
+	case *structpb.Value_BoolValue:
+		if v.GetBoolValue() {
+			return "true"
+		}
+		return "false"
+	case *structpb.Value_NullValue:
+		return ""
+	default:
+		return fmt.Sprintf("%v", v.AsInterface())
+	}
+}
+
+// resolveInputParameterPlaceholders performs template substitution on a string,
+// replacing all {{$.inputs.parameters['name']}} occurrences with their resolved values
+// from the executor input. This correctly handles both standalone placeholders and
+// placeholders embedded in larger strings (e.g., "prefix-{{$.inputs.parameters['x']}}").
+func resolveInputParameterPlaceholders(arg string, executorInput *pipelinespec.ExecutorInput) (string, error) {
+	if !fullInputParameterRe.MatchString(arg) {
+		return arg, nil
+	}
+	var resolveErr error
+	result := fullInputParameterRe.ReplaceAllStringFunc(arg, func(match string) string {
+		if resolveErr != nil {
+			return match
+		}
+		submatch := fullInputParameterRe.FindStringSubmatch(match)
+		if len(submatch) < 2 {
+			resolveErr = fmt.Errorf("failed to extract parameter name from: %s", match)
+			return match
+		}
+		paramName := submatch[1]
+		val, ok := executorInput.GetInputs().GetParameterValues()[paramName]
+		if !ok {
+			resolveErr = fmt.Errorf("parameter %q not found in executor input", paramName)
+			return match
+		}
+		return pbValueToString(val)
+	})
+	if resolveErr != nil {
+		return "", resolveErr
+	}
+	return result, nil
+}
+
+func isConditionClause(arg string) bool {
+	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
+}
+
+func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	var ifPresent struct {
+		IfPresent struct {
+			InputName string      `json:"InputName"`
+			Then      interface{} `json:"Then"`
+			Else      interface{} `json:"Else"`
+		} `json:"IfPresent"`
+	}
+	if err := json.Unmarshal([]byte(arg), &ifPresent); err != nil {
+		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
+	}
+
+	val, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
+	// Treat null values as absent for IfPresent semantics.
+	// The driver can set optional pipeline inputs to structpb.NewNullValue(),
+	// which should be treated as "not present".
+	if isPresent {
+		if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
+			isPresent = false
+		}
+	}
+	var values interface{}
+	if isPresent {
+		values = ifPresent.IfPresent.Then
+	} else {
+		values = ifPresent.IfPresent.Else
+	}
+
+	if values == nil {
+		return []string{}, nil
+	}
+
+	var resolved []string
+	switch v := values.(type) {
+	case string:
+		resolvedArg, err := resolveInputParameterPlaceholders(v, executorInput)
+		if err != nil {
+			return nil, err
+		}
+		resolved = []string{resolvedArg}
+	case []interface{}:
+		for _, item := range v {
+			str, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("non-string item in IfPresent Then/Else array: %T", item)
+			}
+			resolvedArg, err := resolveInputParameterPlaceholders(str, executorInput)
+			if err != nil {
+				return nil, err
+			}
+			resolved = append(resolved, resolvedArg)
+		}
+	default:
+		return nil, fmt.Errorf("unexpected type in IfPresent Then/Else: %T", v)
+	}
+	return resolved, nil
+}
+
+func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	var resolvedArgs []string
+	for _, arg := range args {
+		// Skip args containing output placeholders - these need to be resolved by Argo at runtime
+		// Example: {{$.outputs.parameters['sum'].output_file}}
+		if strings.Contains(arg, "$.outputs") {
+			resolvedArgs = append(resolvedArgs, arg)
+			continue
+		}
+
+		switch {
+		case isConditionClause(arg):
+			resolved, err := resolveCondition(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve condition: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolved...)
+		default:
+			resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolvedArg)
+		}
+	}
+	return resolvedArgs, nil
 }
