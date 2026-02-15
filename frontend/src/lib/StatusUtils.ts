@@ -43,7 +43,7 @@ export enum NodePhase {
 }
 
 export const statusProtoMap = new Map<V2beta1RuntimeState, string>([
-  [V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED, 'Unknown'],
+  [V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED, 'Unknown'],
   [V2beta1RuntimeState.PENDING, 'Pending'],
   [V2beta1RuntimeState.RUNNING, 'Running'],
   [V2beta1RuntimeState.SUCCEEDED, 'Succeeded'],
@@ -143,7 +143,7 @@ export function hasFinishedV2(state?: V2beta1RuntimeState): boolean {
     case V2beta1RuntimeState.PENDING: // Fall through
     case V2beta1RuntimeState.RUNNING: // Fall through
     case V2beta1RuntimeState.CANCELING: // Fall through
-    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+    case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       return false;
     default:
       logger.warn('Unknown state:', state);
@@ -168,7 +168,7 @@ export function statusToBgColorV2(state?: V2beta1RuntimeState, nodeMessage?: str
     // fall through
     case V2beta1RuntimeState.CANCELED:
       return statusBgColors.terminatedOrSkipped;
-    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+    case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
     // fall through
     default:
       logger.verbose('Unknown state:', state);

@@ -225,7 +225,7 @@ describe('RunList', () => {
             predicates: [
               {
                 key: 'storage_state',
-                operation: V2beta1PredicateOperation.NOTEQUALS,
+                operation: V2beta1PredicateOperation.NOT_EQUALS,
                 string_value: V2beta1RunStorageState.ARCHIVED.toString(),
               },
             ],
@@ -489,7 +489,7 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
           ],
@@ -524,10 +524,10 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
-            { key: 'name', operation: V2beta1PredicateOperation.ISSUBSTRING, string_value: '1' },
+            { key: 'name', operation: V2beta1PredicateOperation.IS_SUBSTRING, string_value: '1' },
           ],
         } as V2beta1Filter),
       ),

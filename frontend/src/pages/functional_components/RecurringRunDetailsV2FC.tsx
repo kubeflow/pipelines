@@ -242,7 +242,7 @@ function getRunParameters(recurringRun: V2beta1RecurringRun): Array<KeyValue<str
 
   parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(param => [
     param[0] || '',
-    param[1] || '',
+    param[1] == null ? '' : JSON.stringify(param[1]),
   ]);
 
   return parameters;

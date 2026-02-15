@@ -3,6 +3,7 @@ import { AuthConfigs } from '../configs.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
+  Configuration as AuthConfiguration,
   AuthServiceApi,
 } from '../src/generated/apis/auth/index.js';
 import { parseError, ErrorDetails } from '../utils.js';
@@ -27,7 +28,9 @@ export const getAuthorizeFn = (
   },
 ) => {
   const { apiServerAddress } = otherConfigs;
-  const authService = new AuthServiceApi({ basePath: apiServerAddress }, undefined, fetch as any);
+  const authService = new AuthServiceApi(
+    new AuthConfiguration({ basePath: apiServerAddress, fetchApi: fetch as any }),
+  );
   const authorize: AuthorizeFn = async ({ resources, verb, namespace }, req) => {
     if (!authConfigs.enabled) {
       return undefined;

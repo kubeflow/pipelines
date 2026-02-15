@@ -102,7 +102,7 @@ export function enabledDisplayStringV2(
         return 'Yes';
       case V2beta1RecurringRunStatus.DISABLED:
         return 'No';
-      case V2beta1RecurringRunStatus.STATUSUNSPECIFIED:
+      case V2beta1RecurringRunStatus.STATUS_UNSPECIFIED:
         return 'Unknown';
       default:
         return '-';
