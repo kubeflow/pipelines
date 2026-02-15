@@ -245,9 +245,22 @@ func resolveInputs(
 		}
 		return nil
 	}
+	handleInputParameterPlaceholders := func() error {
+		for name, value := range inputs.ParameterValues {
+			resolved, err := resolveValuePlaceholders(value, inputs.ParameterValues)
+			if err != nil {
+				return fmt.Errorf("resolving parameter placeholders in %q: %w", name, err)
+			}
+			inputs.ParameterValues[name] = resolved
+		}
+		return nil
+	}
 	// this function has many branches, so it's hard to add more postprocess steps
 	// TODO(Bobgy): consider splitting this function into several sub functions
 	defer func() {
+		if err == nil {
+			err = handleInputParameterPlaceholders()
+		}
 		if err == nil {
 			err = handleParameterExpressionSelector()
 		}
@@ -812,6 +825,61 @@ func resolvePodSpecInputRuntimeParameter(parameterValue string, executorInput *p
 		}
 	}
 	return parameterValue, nil
+}
+
+// resolveValuePlaceholders recursively walks a structpb.Value and resolves
+// any {{$.inputs.parameters['...']}} placeholders in string values using the
+// provided resolvedParams map. This handles the case where pipeline parameters
+// are embedded within list or struct constants during compilation.
+func resolveValuePlaceholders(value *structpb.Value, resolvedParams map[string]*structpb.Value) (*structpb.Value, error) {
+	if value == nil {
+		return value, nil
+	}
+	switch v := value.GetKind().(type) {
+	case *structpb.Value_StringValue:
+		s := v.StringValue
+		if isInputParameterChannel(s) {
+			paramName, err := extractInputParameterFromChannel(s)
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract parameter from placeholder %q: %w", s, err)
+			}
+			resolved, ok := resolvedParams[paramName]
+			if !ok {
+				return nil, fmt.Errorf("parameter %q referenced in placeholder not found in resolved inputs", paramName)
+			}
+			return resolved, nil
+		}
+		return value, nil
+	case *structpb.Value_ListValue:
+		if v.ListValue == nil {
+			return value, nil
+		}
+		newValues := make([]*structpb.Value, len(v.ListValue.GetValues()))
+		for i, elem := range v.ListValue.GetValues() {
+			resolved, err := resolveValuePlaceholders(elem, resolvedParams)
+			if err != nil {
+				return nil, fmt.Errorf("resolving list element %d: %w", i, err)
+			}
+			newValues[i] = resolved
+		}
+		return structpb.NewListValue(&structpb.ListValue{Values: newValues}), nil
+	case *structpb.Value_StructValue:
+		if v.StructValue == nil {
+			return value, nil
+		}
+		newFields := make(map[string]*structpb.Value, len(v.StructValue.GetFields()))
+		for key, field := range v.StructValue.GetFields() {
+			resolved, err := resolveValuePlaceholders(field, resolvedParams)
+			if err != nil {
+				return nil, fmt.Errorf("resolving struct field %q: %w", key, err)
+			}
+			newFields[key] = resolved
+		}
+		return structpb.NewStructValue(&structpb.Struct{Fields: newFields}), nil
+	default:
+		// For number, bool, null - no placeholders possible.
+		return value, nil
+	}
 }
 
 // resolveK8sJsonParameter resolves a k8s JSON and unmarshal it
