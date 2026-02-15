@@ -34,9 +34,17 @@ jobs:
               repo: context.repo.repo,
               run_id: ${{github.event.workflow_run.id}},
             });
-            const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "pr"
-            })[0];
+            const matchArtifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name === "pr";
+            });
+
+            if (!matchArtifact) {
+              throw new Error(
+                `Required artifact "pr" was not found for workflow run ID ${{github.event.workflow_run.id}}. ` +
+                "It may have expired or failed to upload. Ensure the CI workflow uploads a 'pr' artifact."
+              );
+            }
+
             const download = await github.rest.actions.downloadArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
