@@ -1,5 +1,7 @@
 # React 17 Upgrade Checklist (Frontend)
 
+Last updated: 2026-02-15
+
 Purpose: capture a minimal, auditable checklist for upgrading the frontend from React 16 to React 17 while keeping risk low and changes shippable.
 
 ## Prerequisites (must be true before upgrading)
@@ -7,6 +9,10 @@ Purpose: capture a minimal, auditable checklist for upgrading the frontend from 
 - PR #12756 (frontend server ESM + dev workflow) merged into the target branch.
 
 If either prerequisite is not true in the target branch, stop and rebase before proceeding.
+
+Current status on 2026-02-15:
+- PR #12754 merged on 2026-02-09.
+- PR #12756 merged on 2026-02-06.
 
 ## Baseline Snapshot (fill in before starting)
 - React core: `react`, `react-dom`, `@types/react`, `@types/react-dom`, `react-test-renderer` versions.
