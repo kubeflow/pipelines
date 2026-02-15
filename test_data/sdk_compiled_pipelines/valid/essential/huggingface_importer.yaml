@@ -1,0 +1,323 @@
+# PIPELINE DEFINITION
+# Name: huggingface-importer-test
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-importer-2:
+    executorLabel: exec-importer-2
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-importer-3:
+    executorLabel: exec-importer-3
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-importer-4:
+    executorLabel: exec-importer-4
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-importer-5:
+    executorLabel: exec-importer-5
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-importer-6:
+    executorLabel: exec-importer-6
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-use-dataset:
+    executorLabel: exec-use-dataset
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-use-model:
+    executorLabel: exec-use-model
+    inputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: huggingface://gpt2
+        downloadToWorkspace: true
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    exec-importer-2:
+      importer:
+        artifactUri:
+          constant: huggingface://wikitext?repo_type=dataset
+        downloadToWorkspace: true
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-importer-3:
+      importer:
+        artifactUri:
+          constant: huggingface://bert-base-uncased/config.json
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    exec-importer-4:
+      importer:
+        artifactUri:
+          constant: huggingface://gpt2/main
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    exec-importer-5:
+      importer:
+        artifactUri:
+          constant: huggingface://gpt2?allow_patterns=*.bin&ignore_patterns=*.safetensors
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    exec-importer-6:
+      importer:
+        artifactUri:
+          constant: huggingface://meta-llama/Llama-2-7b-chat-hf
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    exec-use-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - use_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef use_dataset(dataset: Dataset) -> int:\n    with open(dataset.path)\
+          \ as f:\n        return len(f.readlines())\n\n"
+        image: python:3.11
+    exec-use-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - use_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef use_model(model: Model) -> str:\n    with open(model.path) as\
+          \ f:\n        return f.read()\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: huggingface-importer-test
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://gpt2
+        taskInfo:
+          name: importer
+      importer-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-2
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://wikitext?repo_type=dataset
+        taskInfo:
+          name: importer-2
+      importer-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-3
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://bert-base-uncased/config.json
+        taskInfo:
+          name: importer-3
+      importer-4:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-4
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://gpt2/main
+        taskInfo:
+          name: importer-4
+      importer-5:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-5
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://gpt2?allow_patterns=*.bin&ignore_patterns=*.safetensors
+        taskInfo:
+          name: importer-5
+      importer-6:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-6
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: huggingface://meta-llama/Llama-2-7b-chat-hf
+        taskInfo:
+          name: importer-6
+      use-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-use-dataset
+        dependentTasks:
+        - importer-2
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer-2
+        taskInfo:
+          name: use-dataset
+      use-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-use-model
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            model:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: use-model
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      workspace:
+        kubernetes:
+          pvcSpecPatch:
+            accessModes:
+            - ReadWriteOnce
+            storageClassName: standard
+        size: 1Gi
