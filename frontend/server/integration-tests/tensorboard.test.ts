@@ -31,8 +31,10 @@ beforeEach(() => {
 
 describe('/apps/tensorboard', () => {
   let app: UIServer;
-  afterEach(() => {
-    app?.close();
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
   const tagName = '1.0.0';
   const commitHash = 'abcdefg';
