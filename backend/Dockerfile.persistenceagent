@@ -31,7 +31,7 @@ COPY . .
 
 RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 
-FROM alpine:3.19
+FROM alpine:3.21
 
 RUN adduser -S appuser
 USER appuser
