@@ -263,6 +263,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                     <Button
                       color='secondary'
                       id='choosePipelineBtn'
+                      aria-label='Choose pipeline'
                       onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
@@ -288,6 +289,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                     <Button
                       color='secondary'
                       id='choosePipelineVersionBtn'
+                      aria-label='Choose pipeline version'
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                       disabled={!unconfirmedSelectedPipeline}

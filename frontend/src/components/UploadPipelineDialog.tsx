@@ -156,6 +156,8 @@ class UploadPipelineDialog extends React.Component<
             <React.Fragment>
               <Dropzone
                 id='dropZone'
+                data-testid='upload-pipeline-dropzone'
+                aria-label='Pipeline package drop zone'
                 disableClick={true}
                 onDrop={this._onDrop.bind(this)}
                 onDragEnter={this._onDropzoneDragEnter.bind(this)}

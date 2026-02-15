@@ -971,9 +971,9 @@ describe('NewRunV2', () => {
       const timeCountParam = screen.getByDisplayValue('1');
       fireEvent.change(timeCountParam, { target: { value: '5' } });
 
-      const timeUnitDropdown = screen.getAllByText('Hours')[0];
-      fireEvent.click(timeUnitDropdown);
-      const minutesItem = await screen.findByText('Minutes');
+      const timeUnitDropdown = screen.getByRole('button', { name: 'Hours' });
+      fireEvent.mouseDown(timeUnitDropdown);
+      const minutesItem = await screen.findByRole('option', { name: 'Minutes' });
       fireEvent.click(minutesItem);
 
       const startButton = await screen.findByText('Start');
@@ -1462,7 +1462,7 @@ describe('NewRunV2', () => {
       fireEvent.click(alwaysUseLatestCheckbox);
 
       // Verify version selection is cleared
-      const versionSelectorInput = screen.getByText('Pipeline Version');
+      const versionSelectorInput = screen.getByTestId('pipeline-version-input-field');
       expect(versionSelectorInput).toBeTruthy();
       await waitFor(() => {
         expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
