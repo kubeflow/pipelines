@@ -29,7 +29,11 @@ RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags '-extl
 
 FROM alpine:3.19
 
-RUN adduser -S -u 65532 appuser
+# Install Python and pip for HuggingFace support
+RUN apk add --no-cache python3 py3-pip && \
+    pip3 install --no-cache-dir --break-system-packages huggingface-hub==1.2.4 && \
+    adduser -S -u 65532 appuser
+
 USER 65532
 
 WORKDIR /bin
