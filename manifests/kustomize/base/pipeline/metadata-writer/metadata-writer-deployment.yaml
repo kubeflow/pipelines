@@ -19,6 +19,42 @@ spec:
         seccompProfile:
           type: RuntimeDefault
     
+      initContainers:
+      - name: wait-for-metadata-grpc
+        image: ghcr.io/containerd/busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          timeout=300
+          elapsed=0
+          echo "Waiting for metadata-grpc-service:8080..."
+          until nc -z -w 3 metadata-grpc-service 8080; do
+            if [ $elapsed -ge $timeout ]; then
+              echo "ERROR: Timed out after ${elapsed}s waiting for metadata-grpc-service:8080"
+              exit 1
+            fi
+            echo "metadata-grpc-service:8080 not ready (${elapsed}s elapsed), retrying..."
+            sleep 5
+            elapsed=$((elapsed + 5))
+          done
+          echo "metadata-grpc-service:8080 is ready after ${elapsed}s"
+          sleep 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+
       containers:
       - name: main
         image: ghcr.io/kubeflow/kfp-metadata-writer:dummy
