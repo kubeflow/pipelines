@@ -259,7 +259,9 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rr.Payload", ","), `"]"`}, "")
 	columnsAfterJoiningResourceReferences := append(
 		apply(func(column string) string { return "rd." + column }, runColumns), // Add prefix "rd." to runColumns
-		resourceRefConcatQuery+" AS refs")
+		resourceRefConcatQuery+" AS refs",
+		"exp.Name AS ExperimentDisplayName",
+		"pv.DisplayName AS PipelineVersionDisplayName")
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+opts.SortByFieldName)
 	}
@@ -267,12 +269,16 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		Select(columnsAfterJoiningResourceReferences...).
 		FromSelect(filteredSelectBuilder, "rd").
 		LeftJoin("resource_references AS rr ON rr.ResourceType='Run' AND rd.UUID=rr.ResourceUUID").
+		LeftJoin("experiments AS exp ON rd.ExperimentUUID=exp.UUID").
+		LeftJoin("pipeline_versions AS pv ON rd.PipelineVersionId=pv.UUID").
 		GroupBy("rd.UUID")
 
 	tasksConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("tasks.Payload", ","), `"]"`}, "")
 	columnsAfterJoiningTasks := append(
 		apply(func(column string) string { return "rdref." + column }, runColumns),
 		"rdref.refs",
+		"rdref.ExperimentDisplayName",
+		"rdref.PipelineVersionDisplayName",
 		tasksConcatQuery+" AS taskDetails")
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+opts.SortByFieldName)
@@ -288,6 +294,8 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	columnsAfterJoiningRunMetrics := append(
 		apply(func(column string) string { return "subq." + column }, runColumns), // Add prefix "subq." to runColumns
 		"subq.refs",
+		"subq.ExperimentDisplayName",
+		"subq.PipelineVersionDisplayName",
 		"subq.taskDetails",
 		metricConcatQuery+" AS metrics")
 	return sq.
@@ -305,6 +313,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextId, pipelineRunContextId sql.NullInt64
 		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
+		var experimentDisplayName, pipelineVersionDisplayName sql.NullString
 		err := rows.Scan(
 			&uuid,
 			&experimentUUID,
@@ -334,6 +343,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&pipelineContextId,
 			&pipelineRunContextId,
 			&resourceReferencesInString,
+			&experimentDisplayName,
+			&pipelineVersionDisplayName,
 			&tasksInString,
 			&metricsInString,
 		)
@@ -382,15 +393,17 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
 		}
 		run := &model.Run{
-			UUID:           uuid,
-			ExperimentId:   experimentUUID,
-			DisplayName:    displayName,
-			K8SName:        name,
-			StorageState:   model.StorageState(storageState),
-			Namespace:      namespace,
-			ServiceAccount: serviceAccount,
-			Description:    string(description),
-			RecurringRunId: jId,
+			UUID:                       uuid,
+			ExperimentId:               experimentUUID,
+			DisplayName:                displayName,
+			K8SName:                    name,
+			StorageState:               model.StorageState(storageState),
+			Namespace:                  namespace,
+			ServiceAccount:             serviceAccount,
+			Description:                string(description),
+			RecurringRunId:             jId,
+			ExperimentDisplayName:      experimentDisplayName.String,
+			PipelineVersionDisplayName: pipelineVersionDisplayName.String,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
 				ScheduledAtInSec:        scheduledAtInSec.Int64,
