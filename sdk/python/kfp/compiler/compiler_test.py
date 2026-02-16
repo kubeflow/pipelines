@@ -837,9 +837,13 @@ implementation:
 
         @dsl.pipeline(name='test-parallel-for-with-literal-dicts')
         def my_pipeline():
-            with dsl.ParallelFor(
-                items=[{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]
-            ) as item:
+            with dsl.ParallelFor(items=[{
+                    'a': 1,
+                    'b': 10
+            }, {
+                    'a': 2,
+                    'b': 20
+            }]) as item:
                 process_item(item_a=item.a, item_b=item.b)
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -853,8 +857,9 @@ implementation:
         self.assertIn('["{', yaml_content,
                       'Dict items should be serialized as JSON strings')
         # Verify parseJson expressions are generated for field access
-        self.assertIn('parseJson(string_value)["a"]', yaml_content,
-                      'Should generate parseJson expressions for dict field access')
+        self.assertIn(
+            'parseJson(string_value)["a"]', yaml_content,
+            'Should generate parseJson expressions for dict field access')
 
     def test_cannot_compile_parallel_for_with_single_param(self):
 
