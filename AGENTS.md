@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-01-20
+- Last updated: 2026-02-14
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 16)
 
 ### Maintenance (agents and contributors)
@@ -288,7 +288,7 @@ The following files are generated; edit their sources and regenerate:
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
 - Frontend API clients under `frontend/src/apis` and `frontend/src/apisv2beta1`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
-  - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` (includes postprocess for TS 4.9 delete fix)
+  - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
   - Sources: `third_party/ml-metadata/*.proto`
   - Generate: `cd frontend && npm run build:protos`
@@ -321,7 +321,7 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 ### Prerequisites
 
 - Node.js version specified in `frontend/.nvmrc` (currently v22.19.0)
-- Java 8+ (required for `java -jar swagger-codegen-cli.jar` when generating API clients)
+- Docker (required for frontend API client generation via OpenAPI Generator container)
 - Use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) for Node version management:
 
   ```bash
@@ -415,8 +415,8 @@ The frontend includes several generated code components:
   npm run apis:v2beta1 # Generate v2beta1 API clients
   ```
 
-  Note: Ensure `swagger-codegen-cli.jar` is available to `java -jar` when running from `frontend/`
-  (e.g., place the JAR in `frontend/` or reference a full path).
+  Note: These commands use Docker image `openapitools/openapi-generator-cli:v7.19.0`.
+  Ensure Docker is running.
 
 - **Protocol Buffers**: Generated from proto definitions
 
@@ -440,6 +440,7 @@ The frontend includes several generated code components:
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
+- Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis` and `npm run apis:v2beta1` and failing on diff.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
@@ -509,7 +510,7 @@ KFP frontend supports feature flags for development:
 
 - **Port conflicts**: Frontend uses 3000 (React), 3001 (Node server), 3002 (API proxy)
 - **Node version issues**: Ensure you're using the version in `.nvmrc`
-- **API generation failures**: Check that swagger-codegen-cli.jar is in PATH
+- **API generation failures**: Ensure Docker is running and `docker` CLI is available in PATH
 - **Proto generation**: Requires `protoc` and `protoc-gen-grpc-web` in PATH
 - **Mock backend**: Limited API support; use real cluster for full testing
 
@@ -587,7 +588,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `kfp` is installed into task containers with `--no-deps`; ensure runtime dependencies are present in `base_image`.
 - SELinux enforcing can break proto generation; toggle with `setenforce` as noted above.
 - Do not assume `pipeline_spec_pb2.py` exists in the repo; it must be generated.
-- Frontend API generation requires `swagger-codegen-cli.jar` in PATH.
+- Frontend API generation requires Docker (`openapitools/openapi-generator-cli:v7.19.0`).
 - Frontend proto generation requires `protoc` and `protoc-gen-grpc-web` binaries.
 - Node version must match `.nvmrc`; use nvm/fnm to manage versions.
 - Frontend port conflicts: 3000 (Vite), 3001 (Node server), 3002 (API proxy), 6006 (Storybook).
@@ -596,6 +597,6 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 
 - Protobuf generation fails with "protoc: command not found": use the Make targets that run this in a container.
 - Protobuf generation fails under SELinux enforcing: temporarily disable with `sudo setenforce 0`; re-enable after.
-- API client generation fails with "Unable to access jarfile swagger-codegen-cli.jar": ensure the JAR is present and use `java -jar <path>/swagger-codegen-cli.jar` from `frontend/`.
+- API client generation fails with Docker errors (for example permission denied to Docker socket): ensure Docker is running and your user can access the Docker daemon.
 - Frontend fails to start due to Node version mismatch: `nvm use $(cat frontend/.nvmrc)` or `fnm use`.
 - Runtime component imports SDK-only modules: `_KFP_RUNTIME=true` disables many SDK imports; avoid importing SDK-only modules in task code.

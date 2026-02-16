@@ -1007,7 +1007,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
                   new_filter.predicates = (new_filter.predicates || []).concat([
                     {
                       key: 'storage_state',
-                      operation: V2beta1PredicateOperation.NOTEQUALS,
+                      operation: V2beta1PredicateOperation.NOT_EQUALS,
                       string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                     },
                   ]);

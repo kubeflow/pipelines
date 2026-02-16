@@ -537,7 +537,7 @@ function reloadRocCurve(
     decodeURIComponent(request.filter || '{"predicates": []}'),
   ) as ApiFilter;
   const predicates = apiFilter.predicates?.filter(
-    p => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
+    p => p.key === 'name' && p.op === PredicateOp.IS_SUBSTRING,
   );
   const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
   const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {

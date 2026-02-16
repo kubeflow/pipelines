@@ -419,11 +419,11 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                   new_filter.predicates = (new_filter.predicates || []).concat([
                     {
                       key: 'storage_state',
-                      op: PredicateOp.NOTEQUALS,
-                      string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                      op: PredicateOp.NOT_EQUALS,
+                      string_value: ApiExperimentStorageState.STORAGESTATE_ARCHIVED.toString(),
                     },
                   ]);
-                  const response = await Apis.experimentServiceApi.listExperiment(
+                  const response = await Apis.experimentServiceApi.listExperiments(
                     page_token,
                     page_size,
                     sort_by,
@@ -1175,7 +1175,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       references.push({
         key: {
           id: this.state.pipelineVersion!.id,
-          type: ApiResourceType.PIPELINEVERSION,
+          type: ApiResourceType.PIPELINE_VERSION,
         },
         relationship: ApiRelationship.CREATOR,
       });

@@ -826,7 +826,7 @@ describe('NewRunV2', () => {
               predicates: [
                 {
                   key: 'storage_state',
-                  operation: V2beta1PredicateOperation.NOTEQUALS,
+                  operation: V2beta1PredicateOperation.NOT_EQUALS,
                   string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                 },
               ],

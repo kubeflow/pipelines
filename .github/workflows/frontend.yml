@@ -9,6 +9,8 @@ on:
       - master
     paths:
       - 'frontend/**'
+      - 'backend/api/v1beta1/swagger/**'
+      - 'backend/api/v2beta1/swagger/**'
       - '.github/workflows/frontend.yml'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -33,6 +35,16 @@ jobs:
     - name: Install dependencies
       run: cd ./frontend && npm ci
 
+    - name: Verify generated API clients are up to date
+      run: |
+        cd ./frontend
+        npm run apis
+        npm run apis:v2beta1
+        git diff --exit-code -- \
+          src/apis \
+          src/apisv2beta1 \
+          server/src/generated/apis \
+          server/src/generated/apisv2beta1
+
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
-

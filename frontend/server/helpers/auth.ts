@@ -3,6 +3,7 @@ import { AuthConfigs } from '../configs.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
+  Configuration as AuthConfiguration,
   AuthServiceApi,
 } from '../src/generated/apis/auth/index.js';
 import { parseError, ErrorDetails } from '../utils.js';
@@ -27,20 +28,28 @@ export const getAuthorizeFn = (
   },
 ) => {
   const { apiServerAddress } = otherConfigs;
-  const authService = new AuthServiceApi({ basePath: apiServerAddress }, undefined, fetch as any);
+  const authService = new AuthServiceApi(
+    new AuthConfiguration({ basePath: apiServerAddress, fetchApi: fetch as any }),
+  );
   const authorize: AuthorizeFn = async ({ resources, verb, namespace }, req) => {
     if (!authConfigs.enabled) {
       return undefined;
     }
     try {
+      const rawKubeflowUserId = req.headers[authConfigs.kubeflowUserIdHeader];
+      const kubeflowUserId = Array.isArray(rawKubeflowUserId)
+        ? rawKubeflowUserId[0]
+        : rawKubeflowUserId;
       // Resources and verb are string enums, they are used as string here, that
       // requires a force type conversion. If we generated client should accept
       // enums instead.
       await authService.authorize(namespace, resources as any, verb as any, {
         // Pass authentication header.
-        headers: {
-          [authConfigs.kubeflowUserIdHeader]: req.headers[authConfigs.kubeflowUserIdHeader],
-        },
+        headers: kubeflowUserId
+          ? {
+              [authConfigs.kubeflowUserIdHeader]: kubeflowUserId,
+            }
+          : undefined,
       });
       console.debug(`Authorized to ${verb} ${resources} in namespace ${namespace}.`);
       return undefined;

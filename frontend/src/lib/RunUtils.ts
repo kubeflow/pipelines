@@ -71,10 +71,10 @@ function getPipelineVersionId(run?: ApiRun | ApiJob): string | null {
   return run &&
     run.resource_references &&
     run.resource_references.some(
-      ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+      ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINE_VERSION,
     )
     ? run.resource_references.find(
-        ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINEVERSION,
+        ref => ref.key && ref.key.type && ref.key.type === ApiResourceType.PIPELINE_VERSION,
       )!.key!.id!
     : null;
 }

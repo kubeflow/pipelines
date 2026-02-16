@@ -43,7 +43,7 @@ const LIST_EXPERIMENT_DEFAULTS = [
       predicates: [
         {
           key: 'storage_state',
-          operation: V2beta1PredicateOperation.NOTEQUALS,
+          operation: V2beta1PredicateOperation.NOT_EQUALS,
           string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
         },
       ],
@@ -213,7 +213,7 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],
@@ -519,7 +519,7 @@ describe('ExperimentList', () => {
         { state: V2beta1RuntimeState.SUCCEEDED },
         { state: V2beta1RuntimeState.PENDING },
         { state: V2beta1RuntimeState.FAILED },
-        { state: V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED },
+        { state: V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED },
         { state: V2beta1RuntimeState.SUCCEEDED },
       ],
     } as any);

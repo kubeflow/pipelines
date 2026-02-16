@@ -82,7 +82,7 @@ export function statusToIcon(
       iconColor = color.terminated;
       title = 'Run was manually canceled';
       break;
-    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+    case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       break;
     default:
       if (state != null) {
