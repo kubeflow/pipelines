@@ -188,6 +188,13 @@ func TestMetav1TimePointer(t *testing.T) {
 	assert.Equal(t, now, *result)
 }
 
+func TestMetaV1TimePointer(t *testing.T) {
+	now := metav1.Now()
+	result := MetaV1TimePointer(now)
+	assert.NotNil(t, result)
+	assert.Equal(t, now, *result)
+}
+
 func TestToInt64Pointer(t *testing.T) {
 	tests := []struct {
 		name     string
