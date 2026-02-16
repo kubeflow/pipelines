@@ -228,16 +228,18 @@ guide [here](https://prettier.io/docs/en/ignore.html). (Most likely you don't ne
 ## Api client code generation
 
 If you made any changes to protos (see backend/README), you'll need to
-regenerate the Typescript client library from swagger. We use
-swagger-codegen-cli@2.4.7, which you can get
-[here](https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/).
-Make sure to add the jar file to $PATH with the name swagger-codegen-cli.jar, then run `npm run apis` for
-v1 api or `npm run apis:v2beta1` for v2 api.
+regenerate the Typescript client library from swagger. The frontend uses
+OpenAPI Generator via Docker (`openapitools/openapi-generator-cli:v7.19.0`).
+Make sure Docker is running, then run `npm run apis` for v1 api or
+`npm run apis:v2beta1` for v2 api.
+
+You can also generate individual surfaces, for example:
+
+```bash
+npm run apis:run
+npm run apis:v2beta1:run
 ```
-// add jar file to $PATH
-JAR_PATH=<folder-path-to-jar-file>
-export PATH="$JAR_PATH:$PATH"
-```
+
 After code generation, you should run `npm run format` to format the output and avoid creating a large PR.
 
 ## MLMD components

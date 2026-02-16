@@ -127,7 +127,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.ROCCURVE });
+    wrapper.setState({ selectedType: ApiVisualizationType.ROC_CURVE });
     expect(screen.getAllByTestId('editor').length).toBe(1);
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
@@ -162,7 +162,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.ROCCURVE });
+    wrapper.setState({ selectedType: ApiVisualizationType.ROC_CURVE });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 
@@ -173,7 +173,7 @@ describe('VisualizationCreator', () => {
     };
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
-      selectedType: ApiVisualizationType.ROCCURVE,
+      selectedType: ApiVisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
@@ -187,7 +187,7 @@ describe('VisualizationCreator', () => {
     };
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
-      selectedType: ApiVisualizationType.ROCCURVE,
+      selectedType: ApiVisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
@@ -201,7 +201,7 @@ describe('VisualizationCreator', () => {
     };
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
-      selectedType: ApiVisualizationType.ROCCURVE,
+      selectedType: ApiVisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).not.toBeDisabled();
@@ -217,7 +217,7 @@ describe('VisualizationCreator', () => {
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
       arguments: '{}',
-      selectedType: ApiVisualizationType.ROCCURVE,
+      selectedType: ApiVisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     fireEvent.click(screen.getByRole('button', { name: 'Generate Visualization' }));
@@ -234,14 +234,14 @@ describe('VisualizationCreator', () => {
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
       arguments: '{}',
-      selectedType: ApiVisualizationType.ROCCURVE,
+      selectedType: ApiVisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     fireEvent.click(screen.getByRole('button', { name: 'Generate Visualization' }));
     expect(onGenerate).toHaveBeenCalledWith(
       '{}',
       'gs://ml-pipeline/data.csv',
-      ApiVisualizationType.ROCCURVE,
+      ApiVisualizationType.ROC_CURVE,
     );
   });
 
@@ -252,7 +252,7 @@ describe('VisualizationCreator', () => {
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
       arguments: JSON.stringify({ is_generated: 'True' }),
-      selectedType: ApiVisualizationType.ROCCURVE,
+      selectedType: ApiVisualizationType.ROC_CURVE,
     });
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
@@ -274,7 +274,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.ROCCURVE });
+    wrapper.setState({ selectedType: ApiVisualizationType.ROC_CURVE });
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
 
