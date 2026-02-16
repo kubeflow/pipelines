@@ -2149,6 +2149,113 @@ func Test_extendPodSpecPatch_ActiveDeadlineSeconds(t *testing.T) {
 	}
 }
 
+func Test_extendPodSpecPatch_SecurityContext(t *testing.T) {
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		expected   *k8score.PodSpec
+	}{
+		{
+			"Valid - RunAsUser and RunAsGroup",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser:  int64Ptr(65534),
+					RunAsGroup: int64Ptr(0),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							RunAsUser:  int64Ptr(65534),
+							RunAsGroup: int64Ptr(0),
+							Capabilities: &k8score.Capabilities{
+								Drop: []k8score.Capability{"ALL"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - RunAsUser only",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(0),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							RunAsUser: int64Ptr(0),
+							Capabilities: &k8score.Capabilities{
+								Drop: []k8score.Capability{"ALL"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - RunAsGroup only",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsGroup: int64Ptr(0),
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						SecurityContext: &k8score.SecurityContext{
+							RunAsGroup: int64Ptr(0),
+							Capabilities: &k8score.Capabilities{
+								Drop: []k8score.Capability{"ALL"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Valid - No SecurityContext",
+			&kubernetesplatform.KubernetesExecutorConfig{},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{
+				{
+					Name: "main",
+				},
+			}}
+			err := extendPodSpecPatch(
+				context.Background(),
+				got,
+				Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				nil,
+				nil,
+				nil,
+				map[string]*structpb.Value{},
+				nil,
+			)
+			assert.Nil(t, err)
+			assert.NotNil(t, got)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
 func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
 	tests := []struct {
 		name       string

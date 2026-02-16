@@ -695,6 +695,23 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Apply container security context (PSS baseline compliant).
+	if securityContext := kubernetesExecutorConfig.GetSecurityContext(); securityContext != nil {
+		if podSpec.Containers[0].SecurityContext == nil {
+			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
+		}
+		if securityContext.RunAsUser != nil {
+			podSpec.Containers[0].SecurityContext.RunAsUser = securityContext.RunAsUser
+		}
+		if securityContext.RunAsGroup != nil {
+			podSpec.Containers[0].SecurityContext.RunAsGroup = securityContext.RunAsGroup
+		}
+		// Always drop all capabilities to comply with PSS baseline.
+		podSpec.Containers[0].SecurityContext.Capabilities = &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
+		}
+	}
+
 	return nil
 }
 
