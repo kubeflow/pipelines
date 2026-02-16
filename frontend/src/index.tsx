@@ -16,7 +16,7 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
+import { ThemeProvider } from '@material-ui/core/styles';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -56,7 +56,7 @@ initFeatures();
 export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
-    <MuiThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
       <BuildInfoProvider>
         <GkeMetadataProvider>
           <HashRouter>
@@ -64,7 +64,7 @@ const app = (
           </HashRouter>
         </GkeMetadataProvider>
       </BuildInfoProvider>
-    </MuiThemeProvider>
+    </ThemeProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
