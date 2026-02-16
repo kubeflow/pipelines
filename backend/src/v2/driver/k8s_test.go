@@ -2256,6 +2256,54 @@ func Test_extendPodSpecPatch_SecurityContext(t *testing.T) {
 	}
 }
 
+func Test_extendPodSpecPatch_SecurityContext_CombinedWithOtherFeatures(t *testing.T) {
+	nobodyUID := int64(65534)
+	rootGID := int64(0)
+	activeDeadlineSeconds := int64(20)
+	imagePullPolicy := k8score.PullAlways
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{
+			Name: "main",
+		},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+			SecurityContext: &kubernetesplatform.SecurityContext{
+				RunAsUser:  &nobodyUID,
+				RunAsGroup: &rootGID,
+			},
+			ActiveDeadlineSeconds: activeDeadlineSeconds,
+			ImagePullPolicy:       string(imagePullPolicy),
+		}},
+		nil,
+		nil,
+		nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, got)
+	assert.Equal(t, &k8score.PodSpec{
+		Containers: []k8score.Container{
+			{
+				Name:            "main",
+				ImagePullPolicy: imagePullPolicy,
+				SecurityContext: &k8score.SecurityContext{
+					RunAsUser:  &nobodyUID,
+					RunAsGroup: &rootGID,
+					Capabilities: &k8score.Capabilities{
+						Drop: []k8score.Capability{"ALL"},
+					},
+				},
+			},
+		},
+		ActiveDeadlineSeconds: &activeDeadlineSeconds,
+	}, got)
+}
+
 func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
 	tests := []struct {
 		name       string
