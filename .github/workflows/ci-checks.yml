@@ -46,6 +46,8 @@ jobs:
             const repo = context.repo.repo;
             const prNumber = context.payload.pull_request.number;
             const headSha = context.payload.pull_request.head.sha;
+            const headRef = context.payload.pull_request.head.ref;
+            const headRepoFullName = context.payload.pull_request.head.repo?.full_name;
             const workflowId = '.github/workflows/e2e-test-frontend.yml';
             const maxAttempts = 30;
             const pollingIntervalMs = 30 * 1000;
@@ -74,7 +76,13 @@ jobs:
                   const pullRequests = Array.isArray(run.pull_requests)
                     ? run.pull_requests
                     : [];
-                  return pullRequests.some(pr => pr.number === prNumber);
+                  const matchesPrNumber = pullRequests.some(pr => pr.number === prNumber);
+                  const matchesHeadContext =
+                    run.head_sha === headSha &&
+                    run.head_branch === headRef &&
+                    run.head_repository?.full_name === headRepoFullName;
+                  // For fork PRs, GitHub may return empty pull_requests metadata for workflow runs.
+                  return matchesPrNumber || (pullRequests.length === 0 && matchesHeadContext);
                 })
                 .sort(
                   (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
