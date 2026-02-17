@@ -25,9 +25,15 @@ import Editor from './Editor';
 */
 
 describe('Editor', () => {
+  // Ace renders a large, environment-dependent DOM tree. Snapshot tests are brittle
+  // and create noisy diffs during dependency upgrades. Assert key behaviors instead.
+  const getPlaceholderNode = (container: HTMLElement) =>
+    container.querySelector('.ace_placeholder') as HTMLElement | null;
+
   it('renders without a placeholder and value', () => {
     const { container } = render(<Editor editorProps={{ $blockScrolling: Infinity }} />);
-    expect(container.innerHTML).toMatchSnapshot();
+    expect(container.querySelector('.ace_editor')).not.toBeNull();
+    expect(getPlaceholderNode(container)).toBeNull();
   });
 
   it('renders with a placeholder', () => {
@@ -35,7 +41,9 @@ describe('Editor', () => {
     const { container } = render(
       <Editor placeholder={placeholder} editorProps={{ $blockScrolling: Infinity }} />,
     );
-    expect(container.innerHTML).toMatchSnapshot();
+    const placeholderNode = getPlaceholderNode(container);
+    expect(placeholderNode).not.toBeNull();
+    expect(placeholderNode?.textContent).toBe(placeholder);
   });
 
   it('renders a placeholder that contains HTML', () => {
@@ -43,7 +51,9 @@ describe('Editor', () => {
     const { container } = render(
       <Editor placeholder={placeholder} editorProps={{ $blockScrolling: Infinity }} />,
     );
-    expect(container.innerHTML).toMatchSnapshot();
+    const placeholderNode = getPlaceholderNode(container);
+    expect(placeholderNode).not.toBeNull();
+    expect(placeholderNode?.innerHTML).toBe(placeholder);
   });
 
   it('has its value set to the provided value', () => {

@@ -27,10 +27,10 @@ COPY . .
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
 
-FROM alpine:3.19
+FROM alpine:3.21
 
-RUN adduser -S appuser
-USER appuser
+RUN adduser -S -u 65532 appuser
+USER 65532
 
 WORKDIR /bin
 

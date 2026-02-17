@@ -34,6 +34,7 @@ import { MemoryRouter, Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 
 const CompareV1 = TEST_ONLY.CompareV1;
 
@@ -230,13 +231,13 @@ describe('CompareV1', () => {
     await renderCompare(props);
 
     await waitFor(() => expect(updateBannerSpy).toHaveBeenCalled());
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('renders a page with multiple runs', async () => {
     await renderCompare();
     await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(3));
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('fetches a run for each ID in query params', async () => {
@@ -366,7 +367,7 @@ describe('CompareV1', () => {
         yLabels: ['param1', 'param2'],
       }),
     );
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('displays parameters from multiple runs', async () => {
@@ -405,7 +406,7 @@ describe('CompareV1', () => {
 
     await renderCompare(props);
     await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it("displays a run's metrics if the run has any", async () => {
@@ -430,7 +431,7 @@ describe('CompareV1', () => {
         yLabels: ['some-metric', 'another-metric'],
       }),
     );
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('displays metrics from multiple runs', async () => {
@@ -451,7 +452,7 @@ describe('CompareV1', () => {
 
     await renderCompare(props);
     await waitFor(() => expect(getRunSpy).toHaveBeenCalledTimes(2));
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('creates a map of viewers', async () => {
@@ -515,7 +516,7 @@ describe('CompareV1', () => {
     expect(getInstance().state.viewersMap as Map<PlotType, TaggedViewerConfig>).toEqual(
       expectedViewerMap,
     );
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('collapses all sections', async () => {
@@ -536,7 +537,7 @@ describe('CompareV1', () => {
       Tensorboard: true,
     });
 
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('expands all sections if they were collapsed', async () => {
@@ -563,7 +564,7 @@ describe('CompareV1', () => {
     });
 
     expect(getInstance().state.collapseSections).toEqual({});
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('allows individual viewers to be collapsed and expanded', async () => {
@@ -629,7 +630,7 @@ describe('CompareV1', () => {
       getInstance()._selectionChanged([]);
     });
 
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   it('creates an extra aggregation plot for compatible viewers', async () => {
@@ -673,7 +674,7 @@ describe('CompareV1', () => {
       expect(document.querySelectorAll('.plotCard')).toHaveLength(6);
     });
 
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(renderResult!.asFragment())).toMatchSnapshot();
   });
 
   describe('EnhancedCompareV1', () => {

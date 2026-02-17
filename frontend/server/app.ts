@@ -60,6 +60,7 @@ function getRegisterHandler(app: Application, basePath: string) {
 export class UIServer {
   app: Application;
   httpServer?: Server;
+  private closePromise?: Promise<void>;
 
   constructor(public readonly options: UIConfigs) {
     this.app = createUIServer(options);
@@ -70,10 +71,13 @@ export class UIServer {
    * @param port optionally overwrite the provided port to listen to.
    */
   start(port?: number | string) {
+    if (this.closePromise) {
+      throw new Error('UIServer is closing.');
+    }
     if (this.httpServer) {
       throw new Error('UIServer already started.');
     }
-    port = port || this.options.server.port;
+    port = port ?? this.options.server.port;
     this.httpServer = this.app.listen(port, () => {
       console.log('Server listening at http://localhost:' + port);
     });
@@ -83,11 +87,34 @@ export class UIServer {
   /**
    * Stops the http server.
    */
-  close() {
-    if (this.httpServer) {
-      this.httpServer.close();
+  async close() {
+    if (this.closePromise) {
+      await this.closePromise;
+      return this;
     }
-    this.httpServer = undefined;
+
+    const server = this.httpServer;
+    if (!server) {
+      return this;
+    }
+
+    this.closePromise = new Promise<void>((resolve, reject) => {
+      server.close(err => {
+        const errorCode = (err as NodeJS.ErrnoException | undefined)?.code;
+        if (err && errorCode !== 'ERR_SERVER_NOT_RUNNING') {
+          reject(err);
+          return;
+        }
+        if (this.httpServer === server) {
+          this.httpServer = undefined;
+        }
+        resolve();
+      });
+    }).finally(() => {
+      this.closePromise = undefined;
+    });
+
+    await this.closePromise;
     return this;
   }
 }

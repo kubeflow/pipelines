@@ -313,6 +313,20 @@ describe('CustomTable', () => {
     expect(reload).toHaveBeenCalledTimes(previousCallCount);
   });
 
+  it('does not render sort icon for columns without sort key', async () => {
+    renderTable({
+      columns: [{ label: 'sortable', sortKey: 'sortableKey' }, { label: 'unsortable' }],
+      rows,
+    });
+    await TestUtils.flushPromises();
+
+    const sortableHeader = screen.getByText('sortable').closest('.MuiTableSortLabel-root');
+    const unsortableHeader = screen.getByText('unsortable').closest('.MuiTableSortLabel-root');
+
+    expect(sortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeTruthy();
+    expect(unsortableHeader?.querySelector('.MuiTableSortLabel-icon')).toBeNull();
+  });
+
   it('logs error if row has more cells than columns', () => {
     const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
     const wrapper = renderTable({ rows });
@@ -538,8 +552,8 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.click(screen.getByText('10'));
-    fireEvent.click(screen.getByText('20'));
+    fireEvent.mouseDown(screen.getByRole('button', { name: '10' }));
+    fireEvent.click(await screen.findByText('20'));
     await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
@@ -556,8 +570,8 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.click(screen.getByText('10'));
-    fireEvent.click(screen.getByText('20'));
+    fireEvent.mouseDown(screen.getByRole('button', { name: '10' }));
+    fireEvent.click(await screen.findByText('20'));
     await reloadResult;
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
