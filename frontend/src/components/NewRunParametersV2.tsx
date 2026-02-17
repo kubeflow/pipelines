@@ -14,7 +14,17 @@
  * limitations under the License.
  */
 
-import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
+import {
+  Button,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+} from '@material-ui/core';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';
@@ -301,11 +311,12 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       {!!Object.keys(specParameters).length && (
         <div>
           {Object.entries(specParameters).map(([k, v]) => {
-            const param = {
+            const param: Param = {
               key: `${k} - ${protoMap.get(ParameterType_ParameterTypeEnum[v.parameterType])}`,
               value: updatedParameters[k],
               type: v.parameterType,
               errorMsg: errorMessages[k],
+              literals: v.literals,
             };
 
             return (
@@ -366,6 +377,7 @@ interface Param {
   value: any;
   type: ParameterType_ParameterTypeEnum;
   errorMsg: string;
+  literals?: any[];
 }
 
 interface ParamEditorProps {
@@ -417,6 +429,33 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
 
   public render(): JSX.Element | null {
     const { id, onChange, param } = this.props;
+
+    if (param.literals && param.literals.length > 0) {
+      return (
+        <FormControl variant='outlined' className={classes(commonCss.textField, css.textfield)}>
+          <InputLabel id={`${id}-label`}>{param.key}</InputLabel>
+          <Select
+            labelId={`${id}-label`}
+            id={id}
+            value={param.value ?? ''}
+            onChange={ev => onChange(String(ev.target.value))}
+            label={param.key}
+            displayEmpty
+          >
+            {!param.value && param.value !== 0 && (
+              <MenuItem value='' disabled>
+                Select a value
+              </MenuItem>
+            )}
+            {param.literals.map(literal => (
+              <MenuItem key={String(literal)} value={String(literal)}>
+                {String(literal)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      );
+    }
 
     const onClick = () => {
       if (this.state.isInJsonForm) {
