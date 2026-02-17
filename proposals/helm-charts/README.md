@@ -146,7 +146,6 @@ To achieve 1:1 parity, we have analyzed the existing 14+ Kustomize patches and m
 | :--- | :--- | :--- | :--- |
 | **DB Config** | [base/postgresql/pipeline/ml-pipeline-apiserver-deployment-patch.yaml](https://www.github.com/kubeflow/pipelines/blob/master/manifests/kustomize/base/postgresql/pipeline/ml-pipeline-apiserver-deployment-patch.yaml) | **Values**: `db.host`, `db.port`, `db.name` | Config varies per environment (Dev/Prod/Cloud). |
 | | [base/postgresql/cache/cache-deployment-patch.yaml](https://www.github.com/kubeflow/pipelines/blob/master/manifests/kustomize/base/postgresql/cache/cache-deployment-patch.yaml) | **Values**: `db.host` | Same as above. |
-
 | **Dev Environment** | [env/dev/api-server-patch.yaml](https://www.github.com/kubeflow/pipelines/blob/master/manifests/kustomize/env/dev/api-server-patch.yaml) | **Values**: `images.tag` (dev/master) | Dev uses different image tags/flags. |
 | **Multi-User Mode** | `base/installs/multi-user/.../deployment-patch.yaml` (8 files) | **Conditional Logic**: `{{ if .Values.multiUser }}` | Feature toggle injecting headers (`KUBEFLOW_USERID`). |
 | | [base/installs/multi-user/pipelines-ui/configmap-patch.yaml](https://www.github.com/kubeflow/pipelines/blob/master/manifests/kustomize/base/installs/multi-user/pipelines-ui/configmap-patch.yaml) | **Conditional Logic**: `{{ if .Values.multiUser }}` | Toggles UI capabilities for multi-user. |
