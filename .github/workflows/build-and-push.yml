@@ -44,6 +44,11 @@ on:
         default: false
         description: 'Whether to push image to CR or not'
         required: false
+      platforms:
+        type: string
+        default: 'linux/amd64'
+        description: 'Target platforms for multi-arch builds'
+        required: false
   workflow_dispatch:
     inputs:
       src_branch:
@@ -96,6 +101,11 @@ on:
         default: false
         description: 'Whether to push image to CR or not'
         required: true
+      platforms:
+        type: string
+        default: 'linux/amd64'
+        description: 'Target platforms for multi-arch builds'
+        required: false
 env:
   SOURCE_BRANCH: ${{ inputs.src_branch }}
   TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
@@ -178,7 +188,7 @@ jobs:
         with:
           context: ${{ inputs.image_context }}
           file: ${{ inputs.docker_file }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ inputs.platforms }}
           push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
