@@ -17,6 +17,7 @@ import json
 import os
 import base64
 import hashlib
+from string import Template
 
 # From awscli installed in alpine/k8s image
 import botocore.session
@@ -131,11 +132,16 @@ def fill_json_template(path, **kwargs):
     if loaded_template == "":
         return []
 
-    for key, value in kwargs.items():
-        placeholder = f"{{{{{key}}}}}"  # Double curly braces for placeholders
-        loaded_template = loaded_template.replace(placeholder, str(value))
+    template = Template(loaded_template)
+    try:
+        rendered_template = template.substitute(**kwargs)
+    except KeyError as error:
+        missing_key = error.args[0]
+        raise ValueError(
+            f"Template {path} missing required key: {missing_key}"
+        ) from error
 
-    json_object = json.loads(loaded_template)
+    json_object = json.loads(rendered_template)
 
     return json_object
 
@@ -147,9 +153,9 @@ def load_desired_resources(**kwargs):
     Simple resources are loaded from desired_resources.json and
     additional_resources.json. The artifact-repositories ConfigMap is
     built in code because its data contains nested JSON with Argo
-    workflow template variables ({{workflow.name}}, etc.) that conflict
-    with the placeholder syntax. Artifact proxy resources are loaded
-    conditionally from artifact_proxy_resources.json.
+    workflow template variables ({{workflow.name}}, etc.), and we keep
+    it inline to avoid templating and escaping issues. Artifact proxy
+    resources are loaded conditionally from artifact_proxy_resources.json.
     """
     namespace = kwargs.get("namespace")
     cluster_domain = kwargs.get("cluster_domain", ".svc.cluster.local")
@@ -167,7 +173,8 @@ def load_desired_resources(**kwargs):
     )
 
     # Build artifact-repositories ConfigMap in code because it contains
-    # nested JSON with Argo template variables (e.g. {{workflow.name}})
+    # nested JSON with Argo template variables (e.g. {{workflow.name}}),
+    # and we want to avoid templating/escaping surprises.
     resources.append({
         "apiVersion": "v1",
         "kind": "ConfigMap",

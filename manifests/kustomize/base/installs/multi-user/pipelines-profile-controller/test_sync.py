@@ -182,7 +182,7 @@ class TestFillJsonTemplate:
         """Template placeholders are replaced with provided values."""
         template_file = tmp_path / "template.json"
         template_file.write_text(
-            '[{"name": "{{name}}", "namespace": "{{ns}}"}]'
+            '[{"name": "${name}", "namespace": "${ns}"}]'
         )
         result = fill_json_template(
             str(template_file), name="my-resource", ns="default"

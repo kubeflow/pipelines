@@ -7,7 +7,7 @@
                 "app": "ml-pipeline-ui-artifact"
             },
             "name": "ml-pipeline-ui-artifact",
-            "namespace": "{{namespace}}"
+            "namespace": "${namespace}"
         },
         "spec": {
             "selector": {
@@ -21,14 +21,14 @@
                         "app": "ml-pipeline-ui-artifact"
                     },
                     "annotations": {
-                        {{istio_sidecar_annotation}}
-                        "kubeflow-pipelines/image-spec-hash": "{{image_spec_hash}}"
+                        ${istio_sidecar_annotation}
+                        "kubeflow-pipelines/image-spec-hash": "${image_spec_hash}"
                     }
                 },
                 "spec": {
                     "containers": [{
                         "name": "ml-pipeline-ui-artifact",
-                        "image": "{{frontend_image}}:{{frontend_tag}}",
+                        "image": "${frontend_image}:${frontend_tag}",
                         "imagePullPolicy": "IfNotPresent",
                         "ports": [{"containerPort": 3000}],
                         "env": [
@@ -52,7 +52,7 @@
                             },
                             {
                                 "name": "ML_PIPELINE_SERVICE_HOST",
-                                "value": "{{ml_pipeline_service_host}}"
+                                "value": "${ml_pipeline_service_host}"
                             },
                             {
                                 "name": "ML_PIPELINE_SERVICE_PORT",
@@ -60,11 +60,11 @@
                             },
                             {
                                 "name": "FRONTEND_SERVER_NAMESPACE",
-                                "value": "{{namespace}}"
+                                "value": "${namespace}"
                             },
                             {
                                 "name": "CLUSTER_DOMAIN",
-                                "value": "{{cluster_domain}}"
+                                "value": "${cluster_domain}"
                             }
                         ],
                         "resources": {
@@ -88,7 +88,7 @@
         "kind": "Service",
         "metadata": {
             "name": "ml-pipeline-ui-artifact",
-            "namespace": "{{namespace}}",
+            "namespace": "${namespace}",
             "labels": {
                 "app": "ml-pipeline-ui-artifact"
             }

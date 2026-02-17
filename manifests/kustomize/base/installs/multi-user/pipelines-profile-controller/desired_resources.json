@@ -4,11 +4,11 @@
         "kind": "ConfigMap",
         "metadata": {
             "name": "kfp-launcher",
-            "namespace": "{{namespace}}"
+            "namespace": "${namespace}"
         },
         "data": {
-            "defaultPipelineRoot": "minio://mlpipeline/private-artifacts/{{namespace}}/v2/artifacts",
-            "clusterDomain": "{{cluster_domain}}"
+            "defaultPipelineRoot": "minio://mlpipeline/private-artifacts/${namespace}/v2/artifacts",
+            "clusterDomain": "${cluster_domain}"
         }
     },
     {
@@ -16,7 +16,7 @@
         "kind": "ConfigMap",
         "metadata": {
             "name": "metadata-grpc-configmap",
-            "namespace": "{{namespace}}"
+            "namespace": "${namespace}"
         },
         "data": {
             "METADATA_GRPC_SERVICE_HOST": "metadata-grpc-service.kubeflow",
