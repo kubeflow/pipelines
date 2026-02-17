@@ -1083,3 +1083,289 @@ describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
     });
   });
 });
+
+describe('Literal Parameter Dropdown (#12603)', () => {
+  it('renders dropdown for string literal parameters with default value', () => {
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'default pipelineRoot',
+      specParameters: {
+        literalParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'A',
+          literals: ['A', 'B', 'C'],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // Label should be rendered
+    const labels = screen.getAllByText('literalParam - string');
+    expect(labels.length).toBeGreaterThan(0);
+
+    // Default value is shown as selected
+    screen.getByText('A');
+    const input = screen.getByDisplayValue('A');
+    expect(input).toBeInTheDocument();
+
+    // Open the dropdown and verify all options are present
+    const selectButton = screen.getByText('A');
+    fireEvent.mouseDown(selectButton);
+    screen.getByText('B');
+    screen.getByText('C');
+  });
+
+  it('renders dropdown for integer literal parameters', () => {
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        replicaCount: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 1,
+          literals: [1, 3, 5],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // Default value is shown
+    screen.getByText('1');
+
+    // Open dropdown and verify all options
+    const selectButton = screen.getByText('1');
+    fireEvent.mouseDown(selectButton);
+    screen.getByText('3');
+    screen.getByText('5');
+  });
+
+  it('renders dropdown for float literal parameters', () => {
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        threshold: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
+          defaultValue: 0.5,
+          literals: [0.1, 0.5, 0.9],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    screen.getByText('0.5');
+
+    const selectButton = screen.getByText('0.5');
+    fireEvent.mouseDown(selectButton);
+    screen.getByText('0.1');
+    screen.getByText('0.9');
+  });
+
+  it('does NOT render dropdown when literals array is empty', () => {
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        normalParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'hello',
+          literals: [],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+    };
+    const { container } = render(<NewRunParametersV2 {...props} />);
+
+    // Should render a regular text field, not a select
+    const textInput = screen.getByDisplayValue('hello');
+    expect(textInput.tagName).toBe('INPUT');
+    // No <select> element should exist
+    expect(container.querySelector('[role="button"]')).toBeNull();
+  });
+
+  it('fires handleParameterChange when a dropdown value is selected', () => {
+    const handleParameterChangeSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        env: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'dev',
+          literals: ['dev', 'staging', 'prod'],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // On mount, default is propagated
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({ env: 'dev' });
+
+    // Open dropdown and select a different value
+    const selectButton = screen.getByText('dev');
+    fireEvent.mouseDown(selectButton);
+    handleParameterChangeSpy.mockClear();
+    fireEvent.click(screen.getByText('staging'));
+
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({ env: 'staging' });
+  });
+
+  it('marks input as invalid when literal parameter has no default value', () => {
+    const setIsValidInputSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        env: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          literals: ['dev', 'staging', 'prod'],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: vi.fn(),
+      setIsValidInput: setIsValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // Without a default value, the form should be invalid (run button disabled)
+    expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
+  });
+
+  it('pre-selects the correct value from cloned RuntimeConfig for literal parameter', () => {
+    const handleParameterChangeSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        env: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'dev',
+          literals: ['dev', 'staging', 'prod'],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: { parameters: { env: 'prod' } },
+      handleParameterChange: handleParameterChangeSpy,
+      setIsValidInput: vi.fn(),
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // The cloned value 'prod' should be displayed, not the default 'dev'
+    screen.getByText('prod');
+    screen.getByDisplayValue('prod');
+
+    // handleParameterChange should be called with the cloned value
+    expect(handleParameterChangeSpy).toHaveBeenCalledWith({ env: 'prod' });
+  });
+
+  it('marks input as valid after selecting a value from a no-default literal dropdown', () => {
+    const setIsValidInputSpy = vi.fn();
+    const handleParameterChangeSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        env: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          literals: ['dev', 'staging', 'prod'],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+      setIsValidInput: setIsValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // Initially invalid
+    expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
+
+    // Open dropdown (use the label text since no value is selected yet)
+    const labels = screen.getAllByText('env - string');
+    // Find the select element trigger - the rendered display div
+    const selectElements = document.querySelectorAll('[role="button"]');
+    expect(selectElements.length).toBeGreaterThan(0);
+    fireEvent.mouseDown(selectElements[0]);
+
+    // Select a value
+    setIsValidInputSpy.mockClear();
+    fireEvent.click(screen.getByText('dev'));
+
+    // Should now be valid
+    expect(setIsValidInputSpy).toHaveBeenCalledWith(true);
+  });
+
+  it('renders dropdown for boolean literal parameters and validates selection', () => {
+    const setIsValidInputSpy = vi.fn();
+    const handleParameterChangeSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        boolFlag: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          literals: [true, false],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+      setIsValidInput: setIsValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // Initially invalid (no default value)
+    expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
+
+    // Open dropdown
+    const selectElements = document.querySelectorAll('[role="button"]');
+    expect(selectElements.length).toBeGreaterThan(0);
+    fireEvent.mouseDown(selectElements[0]);
+
+    // Select 'true'
+    setIsValidInputSpy.mockClear();
+    fireEvent.click(screen.getByText('true'));
+
+    // Should now be valid
+    expect(setIsValidInputSpy).toHaveBeenCalledWith(true);
+  });
+
+  it('does not show placeholder when literal default value is 0', () => {
+    const handleParameterChangeSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        count: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          literals: [0, 1, 2],
+          defaultValue: 0,
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+      setIsValidInput: vi.fn(),
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // The placeholder "Select a value" should NOT appear when 0 is selected
+    expect(screen.queryByText('Select a value')).toBeNull();
+
+    // The selected value should be rendered as '0'
+    expect(screen.getByText('0')).toBeInTheDocument();
+  });
+});
