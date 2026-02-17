@@ -430,26 +430,31 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
   public render(): JSX.Element | null {
     const { id, onChange, param } = this.props;
 
-    if (param.literals && param.literals.length > 0) {
+    if (param.literals?.length) {
+      const literalStrings = param.literals.map(String);
+      const isValueInLiterals =
+        param.value != null && param.value !== '' && literalStrings.includes(String(param.value));
+      const selectValue = isValueInLiterals ? String(param.value) : '';
+
       return (
         <FormControl variant='outlined' className={classes(commonCss.textField, css.textfield)}>
           <InputLabel id={`${id}-label`}>{param.key}</InputLabel>
           <Select
             labelId={`${id}-label`}
             id={id}
-            value={param.value ?? ''}
+            value={selectValue}
             onChange={ev => onChange(String(ev.target.value))}
             label={param.key}
             displayEmpty
           >
-            {!param.value && param.value !== 0 && (
+            {!selectValue && (
               <MenuItem value='' disabled>
                 Select a value
               </MenuItem>
             )}
-            {param.literals.map(literal => (
-              <MenuItem key={String(literal)} value={String(literal)}>
-                {String(literal)}
+            {literalStrings.map(literal => (
+              <MenuItem key={literal} value={literal}>
+                {literal}
               </MenuItem>
             ))}
           </Select>

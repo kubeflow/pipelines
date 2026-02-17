@@ -1307,4 +1307,65 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     // Should now be valid
     expect(setIsValidInputSpy).toHaveBeenCalledWith(true);
   });
+
+  it('renders dropdown for boolean literal parameters and validates selection', () => {
+    const setIsValidInputSpy = vi.fn();
+    const handleParameterChangeSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        boolFlag: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          literals: [true, false],
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+      setIsValidInput: setIsValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // Initially invalid (no default value)
+    expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
+
+    // Open dropdown
+    const selectElements = document.querySelectorAll('[role="button"]');
+    expect(selectElements.length).toBeGreaterThan(0);
+    fireEvent.mouseDown(selectElements[0]);
+
+    // Select 'true'
+    setIsValidInputSpy.mockClear();
+    fireEvent.click(screen.getByText('true'));
+
+    // Should now be valid
+    expect(setIsValidInputSpy).toHaveBeenCalledWith(true);
+  });
+
+  it('does not show placeholder when literal default value is 0', () => {
+    const handleParameterChangeSpy = vi.fn();
+    const props = {
+      titleMessage: 'default Title',
+      specParameters: {
+        count: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          literals: [0, 1, 2],
+          defaultValue: 0,
+          isOptional: false,
+          description: '',
+        },
+      },
+      clonedRuntimeConfig: {},
+      handleParameterChange: handleParameterChangeSpy,
+      setIsValidInput: vi.fn(),
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    // The placeholder "Select a value" should NOT appear when 0 is selected
+    expect(screen.queryByText('Select a value')).toBeNull();
+
+    // The selected value should be rendered as '0'
+    expect(screen.getByText('0')).toBeInTheDocument();
+  });
 });
