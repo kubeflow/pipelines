@@ -14,14 +14,15 @@
 import inspect
 import json
 import os
-import re
 from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
 
 from kfp import dsl
 from kfp.dsl import task_final_status
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
+from kfp.dsl.types import type_utils
 
 
 class Executor:
@@ -70,10 +71,8 @@ class Executor:
                     type_annotations.is_list_of_artifacts(annotation.__origin__)
                 ) or type_annotations.is_list_of_artifacts(annotation)
                 if is_list_of_artifacts:
-                    # Get the annotation of the inner type of the list
-                    # to use when creating the artifacts
-                    inner_annotation = type_annotations.get_inner_type(
-                        annotation)
+                    inner_annotation = self._resolve_list_artifact_inner_type(
+                        input_name=name, list_annotation=annotation)
 
                     self.input_artifacts[name] = [
                         self.make_artifact(
@@ -103,6 +102,41 @@ class Executor:
                 self.output_artifacts[name] = output_artifact
                 makedirs_recursively(output_artifact.path)
 
+    def _resolve_list_artifact_inner_type(self, input_name: str,
+                                          list_annotation: Any) -> Any:
+        """Unwraps nested list annotations and validates the inner artifact
+        type."""
+        inner_annotation = type_annotations.get_inner_type(list_annotation)
+
+        if inner_annotation is None:
+            raise TypeError(
+                f"Input '{input_name}' expects a list of artifacts, but "
+                f'received {list_annotation!r} without an inner type.')
+
+        while type_annotations.is_list_of_artifacts(inner_annotation):
+            if isinstance(inner_annotation, tuple):
+                raise TypeError(
+                    f"Input '{input_name}' expects a single artifact type but "
+                    f'received a union {inner_annotation!r}.')
+            inner_annotation = type_annotations.get_inner_type(inner_annotation)
+            if inner_annotation is None:
+                raise TypeError(
+                    f"Input '{input_name}' expects a list of artifacts, but "
+                    f'could not determine the inner annotation from '
+                    f'{list_annotation!r}.')
+
+        if isinstance(inner_annotation, tuple):
+            raise TypeError(
+                f"Input '{input_name}' expects a single artifact type but "
+                f'received a union {inner_annotation!r}.')
+        if not type_annotations.is_artifact_class(inner_annotation):
+            raise TypeError(
+                f"Input '{input_name}' expects a list of artifacts, but "
+                f'received {list_annotation!r} whose inner type '
+                f'{inner_annotation!r} is not an artifact.')
+
+        return inner_annotation
+
     def make_artifact(
         self,
         runtime_artifact: Dict,
@@ -112,6 +146,9 @@ class Executor:
     ) -> Any:
         annotation = func.__annotations__.get(
             name) if annotation is None else annotation
+        if type_annotations.is_list_of_artifacts(annotation):
+            annotation = self._resolve_list_artifact_inner_type(
+                input_name=name, list_annotation=annotation)
         if isinstance(annotation, type_annotations.InputPath):
             schema_title, _ = annotation.type.split('@')
             if schema_title in artifact_types._SCHEMA_TITLE_TO_TYPE:
@@ -132,7 +169,8 @@ class Executor:
     def get_output_artifact(self, name: str) -> Optional[dsl.Artifact]:
         return self.output_artifacts.get(name)
 
-    def get_input_parameter_value(self, parameter_name: str) -> Optional[str]:
+    def get_input_parameter_value(
+            self, parameter_name: str) -> Optional[Union[str, dict]]:
         parameter_values = self.executor_input.get('inputs', {}).get(
             'parameterValues', None)
 
@@ -286,6 +324,9 @@ class Executor:
                 'uri': artifact.uri,
                 'metadata': artifact.metadata,
             }
+            if artifact.custom_path:
+                runtime_artifact['custom_path'] = artifact.custom_path
+
             artifacts_list = {'artifacts': [runtime_artifact]}
 
             self.excutor_output['artifacts'][name] = artifacts_list
@@ -328,16 +369,39 @@ class Executor:
             # `Optional[str]`. In this case, we need to strip off the part
             # `Optional[]` to get the actual parameter type.
             v = type_annotations.maybe_strip_optional_from_annotation(v)
-
             if v == task_final_status.PipelineTaskFinalStatus:
                 value = self.get_input_parameter_value(k)
+
+                # PipelineTaskFinalStatus field names pipelineJobResourceName and pipelineTaskName are deprecated. Support for these fields will be removed at a later date.
+                pipline_job_resource_name = 'pipelineJobResourceName'
+                if value.get(pipline_job_resource_name) is None:
+                    pipline_job_resource_name = 'pipeline_job_resource_name'
+                pipeline_task_name = 'pipelineTaskName'
+                if value.get(pipeline_task_name) is None:
+                    pipeline_task_name = 'pipeline_task_name'
+
                 func_kwargs[k] = task_final_status.PipelineTaskFinalStatus(
                     state=value.get('state'),
                     pipeline_job_resource_name=value.get(
-                        'pipelineJobResourceName'),
-                    pipeline_task_name=value.get('pipelineTaskName'),
-                    error_code=value.get('error').get('code', None),
-                    error_message=value.get('error').get('message', None),
+                        pipline_job_resource_name),
+                    pipeline_task_name=value.get(pipeline_task_name),
+                    error_code=value.get('error', {}).get('code', None),
+                    error_message=value.get('error', {}).get('message', None),
+                )
+
+            elif v == TaskConfig:
+                # The backend injects this struct under the actual input parameter name.
+                # If missing, pass an empty structure.
+                value = self.get_input_parameter_value(k)
+                value = value or {}
+                func_kwargs[k] = TaskConfig(
+                    affinity=value.get('affinity'),
+                    tolerations=value.get('tolerations'),
+                    node_selector=value.get('nodeSelector'),
+                    env=value.get('env'),
+                    volumes=value.get('volumes'),
+                    volume_mounts=value.get('volumeMounts'),
+                    resources=value.get('resources'),
                 )
 
             elif type_annotations.is_list_of_artifacts(v):
@@ -353,6 +417,26 @@ class Executor:
                     func_kwargs[k] = self.get_input_artifact(k)
                 if type_annotations.is_artifact_wrapped_in_Output(v):
                     func_kwargs[k] = self.get_output_artifact(k)
+
+            elif type_annotations.is_embedded_input_annotation(v):
+                # Inject a runtime-only artifact pointing to the extracted embedded asset
+                inner_type = type_annotations.strip_Input_or_Output_marker(v)
+                artifact_cls = inner_type if type_annotations.is_artifact_class(
+                    inner_type) else artifact_types.Artifact
+                embedded_dir = self.func.__globals__.get(
+                    '__KFP_EMBEDDED_ASSET_DIR')
+                embedded_file = self.func.__globals__.get(
+                    '__KFP_EMBEDDED_ASSET_FILE')
+                artifact_instance = artifact_cls()
+                if embedded_file:
+                    artifact_instance.path = embedded_file
+                elif embedded_dir:
+                    artifact_instance.path = embedded_dir
+                else:
+                    raise RuntimeError(
+                        'EmbeddedInput was specified but no embedded asset was found at runtime.'
+                    )
+                func_kwargs[k] = artifact_instance
 
             elif is_artifact(v):
                 func_kwargs[k] = self.get_input_artifact(k)
@@ -390,35 +474,18 @@ def create_artifact_instance(
     )
 
 
-def get_short_type_name(type_name: str) -> str:
-    """Extracts the short form type name.
-
-    This method is used for looking up serializer for a given type.
-
-    For example:
-      typing.List -> List
-      typing.List[int] -> List
-      typing.Dict[str, str] -> Dict
-      List -> List
-      str -> str
-
-    Args:
-      type_name: The original type name.
-
-    Returns:
-      The short form type name or the original name if pattern doesn't match.
-    """
-    match = re.match(r'(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    return match['type'] if match else type_name
-
-
 # TODO: merge with type_utils.is_parameter_type
 def is_parameter(annotation: Any) -> bool:
-    if type(annotation) == type:
-        return annotation in [str, int, float, bool, dict, list]
+    if isinstance(annotation, type):
+        if annotation in [str, int, float, bool, dict, list]:
+            return True
+        annotation_name = getattr(annotation, '__name__', '')
+        if type_utils.is_task_final_status_type(annotation_name):
+            return True
+        if type_utils.is_task_config_type(annotation_name):
+            return True
 
-    # Annotation could be, for instance `typing.Dict[str, str]`, etc.
-    return get_short_type_name(str(annotation)) in ['Dict', 'List']
+    return type_utils.is_parameter_type(str(annotation))
 
 
 def is_artifact(annotation: Any) -> bool:

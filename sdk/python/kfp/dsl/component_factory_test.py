@@ -22,6 +22,7 @@ from kfp.dsl import Input
 from kfp.dsl import Output
 from kfp.dsl import structures
 from kfp.dsl.component_decorator import component
+from kfp.dsl.types import type_utils
 from kfp.dsl.types.artifact_types import Artifact
 from kfp.dsl.types.artifact_types import Model
 from kfp.dsl.types.type_annotations import OutputPath
@@ -132,8 +133,16 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                "--no-warn-script-location 'package1' 'package2'  &&  python3 -m pip install "
+                "--quiet --no-warn-script-location kfp '--no-deps' "
+                '\'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
     def test_with_packages_to_install_with_pip_index_url(self):
@@ -148,8 +157,19 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                '--no-warn-script-location --index-url https://myurl.org/simple '
+                "--trusted-host https://myurl.org/simple 'package1' 'package2'  &&  python3 "
+                '-m pip install --quiet --no-warn-script-location --index-url '
+                'https://myurl.org/simple --trusted-host https://myurl.org/simple kfp '
+                '\'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" '
+                '"$@"\n'
             ]))
 
     def test_with_packages_to_install_with_pip_index_url_and_trusted_host(self):
@@ -166,8 +186,18 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                '--no-warn-script-location --index-url https://myurl.org/simple '
+                "--trusted-host myurl.org 'package1' 'package2'  &&  python3 -m pip install "
+                '--quiet --no-warn-script-location --index-url https://myurl.org/simple '
+                "--trusted-host myurl.org kfp '--no-deps' 'typing-extensions>=3.7.4,<5; "
+                'python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
     def test_with_packages_to_install_with_pip_index_url_and_empty_trusted_host(
@@ -184,8 +214,17 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                "--no-warn-script-location --index-url https://myurl.org/simple 'package1' "
+                "'package2'  &&  python3 -m pip install --quiet --no-warn-script-location "
+                "--index-url https://myurl.org/simple kfp '--no-deps' "
+                '\'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
 
@@ -265,6 +304,41 @@ class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
             })
 
 
+class TestBuiltinGenericParameterAnnotations(unittest.TestCase):
+
+    def test_builtin_list_parameter_annotations(self):
+
+        @dsl.component
+        def comp(nums: list[int]) -> list[int]:
+            return nums
+
+        spec = comp.component_spec
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.inputs['nums'].type), 'List')
+        self.assertFalse(spec.inputs['nums'].is_artifact_list)
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.outputs['Output'].type), 'List')
+        self.assertFalse(spec.outputs['Output'].is_artifact_list)
+
+    def test_builtin_dict_parameter_annotations(self):
+
+        @dsl.component
+        def comp(mapping: dict[str, int]) -> dict[str, int]:
+            return mapping
+
+        spec = comp.component_spec
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.inputs['mapping'].type), 'Dict')
+        self.assertFalse(spec.inputs['mapping'].is_artifact_list)
+        self.assertEqual(
+            type_utils.get_canonical_name_for_outer_generic(
+                spec.outputs['Output'].type), 'Dict')
+        self.assertFalse(spec.outputs['Output'].is_artifact_list)
+
+
 class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
 
     def test_unknown(self):
@@ -329,7 +403,7 @@ class TestPythonEOLWarning(unittest.TestCase):
 
         with self.assertWarnsRegex(
                 FutureWarning,
-                r"The default base_image used by the @dsl\.component decorator will switch from 'python:3\.9' to 'python:3\.10' on Oct 1, 2025\. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3\.10\."
+                r"The default base_image used by the @dsl\.component decorator will switch from 'python:3\.11' to 'python:3\.12' on Oct 1, 2027\. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3\.12\."
         ):
 
             @dsl.component

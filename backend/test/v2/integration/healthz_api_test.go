@@ -15,11 +15,15 @@
 package integration
 
 import (
+	"crypto/tls"
+	"os"
 	"testing"
 
-	"github.com/golang/glog"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -43,10 +47,17 @@ func (s *HealthzApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
 	}
-	s.namespace = *namespace
-	clientConfig := test.GetClientConfig(*namespace)
+	s.namespace = *config.Namespace
+	clientConfig := test.GetClientConfig(*config.Namespace)
 	var err error
-	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false)
+	var tlsCfg *tls.Config
+	if *config.TLSEnabled {
+		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		if err != nil {
+			glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+		}
+	}
+	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false, tlsCfg)
 	if err != nil {
 		glog.Exitf("Failed to get healthz client. Error: %v", err)
 	}
@@ -71,6 +82,13 @@ func (s *HealthzApiTest) TestHealthzAPI() {
 	healthzResp, err := s.healthzClient.GetHealthz()
 	assert.Nil(t, err)
 	assert.NotNil(t, healthzResp)
+
+	pipelineStore := os.Getenv("PIPELINE_STORE")
+	if pipelineStore == "" {
+		pipelineStore = "database"
+	}
+
+	assert.Equal(t, pipelineStore, healthzResp.PipelineStore)
 }
 
 func TestHealthzAPI(t *testing.T) {

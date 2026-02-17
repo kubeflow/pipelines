@@ -31,6 +31,7 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.compiler import compiler_utils
+from kfp.compiler.compiler_utils import KubernetesManifestOptions
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Dataset
@@ -43,6 +44,9 @@ from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.dsl import tasks_group
 from kfp.dsl import yaml_component
+from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
+from kfp.dsl.pipeline_config import PipelineConfig
+from kfp.dsl.pipeline_config import WorkspaceConfig
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -622,12 +626,11 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.Condition context\.'
-        ):
+                r'Illegal task dependency .* within a dsl\.If context .*'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
-                with dsl.Condition(val == False):
+                with dsl.If(val == False):
                     producer_task = producer_op()
 
                 dummy_op(msg=producer_task.output)
@@ -636,7 +639,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline(val: bool):
-            with dsl.Condition(val == False):
+            with dsl.If(val == False):
                 producer_task = producer_op()
                 dummy_op(msg=producer_task.output)
 
@@ -696,7 +699,7 @@ inputs:
 - {name: message, type: PipelineTaskFinalStatus}
 implementation:
   container:
-    image: python:3.9
+    image: python:3.11
     command:
     - echo
     - {inputValue: message}
@@ -971,14 +974,14 @@ implementation:
     def test_pipeline_with_parameterized_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.9.17')
+            @dsl.component(base_image='docker.io/python:3.11.17')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline(img: str):
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.9.17"
+                # overwrite base_image="docker.io/python:3.11.17"
                 task.set_container_image(img)
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
@@ -1003,17 +1006,63 @@ implementation:
                 self.assertTrue('base_image' in input_parameters)
                 self.assertTrue('pipelinechannel--img' in input_parameters)
 
+    def test_pipeline_with_parameterized_container_image_inside_parallel_for(
+            self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            @dsl.component(base_image='docker.io/python:3.11.17')
+            def empty_component(idx: int):
+                del idx
+
+            @dsl.pipeline()
+            def simple_pipeline(img: str):
+                with dsl.ParallelFor(items=[1, 2]) as item:
+                    task = empty_component(idx=item)
+                    task.set_container_image(img)
+
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline,
+                package_path=output_yaml,
+                pipeline_parameters={'img': 'someimage'})
+
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            loop_components = {
+                name: comp
+                for name, comp in pipeline_spec['components'].items()
+                if name.startswith('comp-for-loop')
+            }
+            self.assertTrue(
+                loop_components,
+                'Expected to find at least one ParallelFor component in the pipeline spec'
+            )
+
+            loop_component = next(iter(loop_components.values()))
+            input_parameters = loop_component['inputDefinitions']['parameters']
+            self.assertIn('pipelinechannel--img', input_parameters)
+
+            loop_tasks = loop_component['dag']['tasks']
+            self.assertIn('empty-component', loop_tasks)
+            loop_task_inputs = loop_tasks['empty-component']['inputs'][
+                'parameters']
+            self.assertIn('base_image', loop_task_inputs)
+            self.assertIn('pipelinechannel--img', loop_task_inputs)
+
     def test_pipeline_with_constant_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.9.17')
+            @dsl.component(base_image='docker.io/python:3.11.17')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline():
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.9.17"
+                # overwrite base_image="docker.io/python:3.11.17"
                 task.set_container_image('constant-value')
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
@@ -1031,6 +1080,132 @@ implementation:
                 dag_task = pipeline_spec['root']['dag']['tasks'][
                     'empty-component']
                 self.assertTrue('inputs' not in dag_task)
+
+    def test_compile_with_kubernetes_manifest_format(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            @dsl.pipeline(
+                name='my-pipeline', description='A simple test pipeline')
+            def my_pipeline(input1: str):
+                print_op(message=input1)
+
+            pipeline_name = 'test-pipeline'
+            pipeline_display_name = 'Test Pipeline'
+            pipeline_version_name = 'test-pipeline-v1'
+            pipeline_version_display_name = 'Test Pipeline Version'
+            namespace = 'test-ns'
+
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+
+            # Test with include_pipeline_manifest=True
+            kubernetes_manifest_options = KubernetesManifestOptions(
+                pipeline_name=pipeline_name,
+                pipeline_display_name=pipeline_display_name,
+                pipeline_version_name=pipeline_version_name,
+                pipeline_version_display_name=pipeline_version_display_name,
+                namespace=namespace,
+                include_pipeline_manifest=True)
+
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=package_path,
+                kubernetes_manifest_options=kubernetes_manifest_options,
+                kubernetes_manifest_format=True,
+            )
+
+            with open(package_path, 'r') as f:
+                documents = list(yaml.safe_load_all(f))
+
+            # Should have both Pipeline and PipelineVersion manifests
+            self.assertEqual(len(documents), 2)
+
+            # Check Pipeline manifest
+            pipeline_manifest = documents[0]
+            self.assertEqual(pipeline_manifest['kind'], 'Pipeline')
+            self.assertEqual(pipeline_manifest['metadata']['name'],
+                             pipeline_name)
+            self.assertEqual(pipeline_manifest['spec']['displayName'],
+                             pipeline_display_name)
+            self.assertEqual(pipeline_manifest['spec']['description'],
+                             'A simple test pipeline')
+            self.assertEqual(pipeline_manifest['metadata']['namespace'],
+                             namespace)
+
+            # Check PipelineVersion manifest
+            pipeline_version_manifest = documents[1]
+            self.assertEqual(pipeline_version_manifest['kind'],
+                             'PipelineVersion')
+            self.assertEqual(pipeline_version_manifest['metadata']['name'],
+                             pipeline_version_name)
+            self.assertEqual(pipeline_version_manifest['spec']['displayName'],
+                             pipeline_version_display_name)
+            self.assertEqual(pipeline_version_manifest['spec']['description'],
+                             'A simple test pipeline')
+            self.assertEqual(pipeline_version_manifest['spec']['pipelineName'],
+                             pipeline_name)
+            self.assertEqual(pipeline_version_manifest['metadata']['namespace'],
+                             namespace)
+            self.assertNotIn('platformSpec', pipeline_version_manifest['spec'])
+
+            # Test with include_pipeline_manifest=False and has a platform spec
+            @dsl.pipeline(
+                name='my-pipeline',
+                description='A simple test pipeline with platform spec',
+                pipeline_config=dsl.PipelineConfig(
+                    workspace=dsl.WorkspaceConfig(size='25Gi'),),
+            )
+            def my_pipeline(input1: str):
+                print_op(message=input1)
+
+            package_path2 = os.path.join(tmpdir, 'pipeline2.yaml')
+            kubernetes_manifest_options2 = KubernetesManifestOptions(
+                pipeline_name=pipeline_name,
+                pipeline_display_name=pipeline_display_name,
+                pipeline_version_name=pipeline_version_name,
+                pipeline_version_display_name=pipeline_version_display_name,
+                namespace=namespace,
+                include_pipeline_manifest=False)
+
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=package_path2,
+                kubernetes_manifest_options=kubernetes_manifest_options2,
+                kubernetes_manifest_format=True,
+            )
+
+            with open(package_path2, 'r') as f:
+                documents2 = list(yaml.safe_load_all(f))
+
+            # Should have only PipelineVersion manifest
+            self.assertEqual(len(documents2), 1)
+
+            # Check PipelineVersion manifest
+            pipeline_version_manifest2 = documents2[0]
+            self.assertEqual(pipeline_version_manifest2['kind'],
+                             'PipelineVersion')
+            self.assertEqual(pipeline_version_manifest2['metadata']['name'],
+                             pipeline_version_name)
+            self.assertEqual(pipeline_version_manifest2['spec']['displayName'],
+                             pipeline_version_display_name)
+            self.assertEqual(pipeline_version_manifest2['spec']['pipelineName'],
+                             pipeline_name)
+            self.assertEqual(
+                pipeline_version_manifest2['metadata']['namespace'], namespace)
+            self.assertEqual(
+                pipeline_version_manifest2['spec']['platformSpec'], {
+                    'platforms': {
+                        'kubernetes': {
+                            'pipelineConfig': {
+                                'workspace': {
+                                    'kubernetes': {
+                                        'pvcSpecPatch': {}
+                                    },
+                                    'size': '25Gi'
+                                }
+                            }
+                        }
+                    }
+                })
 
 
 class TestCompilePipelineCaching(unittest.TestCase):
@@ -1374,7 +1549,7 @@ class TestCompileComponent(parameterized.TestCase):
         def hello_world_container() -> dsl.ContainerSpec:
             """Hello world component."""
             return dsl.ContainerSpec(
-                image='python:3.9',
+                image='python:3.11',
                 command=['echo', 'hello world'],
                 args=[],
             )
@@ -1397,7 +1572,7 @@ class TestCompileComponent(parameterized.TestCase):
         @dsl.container_component
         def container_simple_io(text: str, output_path: dsl.OutputPath(str)):
             return dsl.ContainerSpec(
-                image='python:3.9',
+                image='python:3.11',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 
@@ -1489,8 +1664,7 @@ def pipeline_spec_from_file(filepath: str) -> str:
 
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
-_TEST_DATA_DIR = os.path.join(_PROJECT_ROOT, 'sdk', 'python', 'test_data')
-PIPELINES_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR, 'pipelines')
+_TEST_DATA_DIR = os.path.join(_PROJECT_ROOT, 'test_data')
 UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR,
                                                     'components', 'unsupported')
 
@@ -1506,9 +1680,11 @@ class TestReadWriteEquality(parameterized.TestCase):
                       directory: str,
                       fn: Optional[str] = None,
                       additional_arguments: Optional[List[str]] = None) -> None:
-        py_file = os.path.join(directory, f'{file_base_name}.py')
+        py_file = os.path.join(directory, 'sdk_compiled_pipelines', 'valid',
+                               f'{file_base_name}.py')
 
-        golden_compiled_file = os.path.join(directory, f'{file_base_name}.yaml')
+        golden_compiled_file = os.path.join(directory, 'sdk_compiled_pipelines',
+                                            'valid', f'{file_base_name}.yaml')
 
         if additional_arguments is None:
             additional_arguments = []
@@ -1539,7 +1715,7 @@ class TestReadWriteEquality(parameterized.TestCase):
     def test_two_step_pipeline(self):
         self._test_compile(
             'two_step_pipeline',
-            directory=PIPELINES_TEST_DATA_DIR,
+            directory=_TEST_DATA_DIR,
             additional_arguments=[
                 '--pipeline-parameters', '{"text":"Hello KFP!"}'
             ])
@@ -1549,7 +1725,7 @@ class TestReadWriteEquality(parameterized.TestCase):
                                     r'Unterminated string starting at:'):
             self._test_compile(
                 'two_step_pipeline',
-                directory=PIPELINES_TEST_DATA_DIR,
+                directory=_TEST_DATA_DIR,
                 additional_arguments=[
                     '--pipeline-parameters', '{"text":"Hello KFP!}'
                 ])
@@ -1560,9 +1736,7 @@ class TestReadWriteEquality(parameterized.TestCase):
                 r'Pipeline function or component "step1" not found in module two_step_pipeline\.py\.'
         ):
             self._test_compile(
-                'two_step_pipeline',
-                directory=PIPELINES_TEST_DATA_DIR,
-                fn='step1')
+                'two_step_pipeline', directory=_TEST_DATA_DIR, fn='step1')
 
     def test_deprecation_warning(self):
         res = subprocess.run(['dsl-compile', '--help'], capture_output=True)
@@ -2445,7 +2619,7 @@ class TestYamlComments(unittest.TestCase):
         def my_container_component(text: str, output_path: OutputPath(str)):
             """component description."""
             return ContainerSpec(
-                image='python:3.9',
+                image='python:3.11',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 
@@ -4047,6 +4221,219 @@ class TestPlatformConfig(unittest.TestCase):
             def outer():
                 task = inner()
                 foo_platform_set_bar_feature(task, 12)
+
+    def test_pipeline_with_workspace_config(self):
+        """Test that pipeline config correctly sets the workspace field."""
+        config = PipelineConfig(
+            workspace=WorkspaceConfig(
+                size='10Gi',
+                kubernetes=KubernetesWorkspaceConfig(
+                    pvcSpecPatch={'accessModes': ['ReadWriteOnce']})))
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'pipelineConfig': {
+                    'workspace': {
+                        'size': '10Gi',
+                        'kubernetes': {
+                            'pvcSpecPatch': {
+                                'accessModes': ['ReadWriteOnce']
+                            }
+                        }
+                    }
+                }
+            }, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+        # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
+        compile_and_reload(loaded_pipeline)
+
+    def test_workspace_config_validation(self):
+        """Test that workspace size validation works correctly."""
+        from kfp.dsl.pipeline_config import WorkspaceConfig
+
+        valid_sizes = ['10Gi', '1.5Gi', '1000Ti', '500Mi', '2Ki']
+        for size in valid_sizes:
+            with self.subTest(size=size):
+                workspace = WorkspaceConfig(size=size)
+                self.assertEqual(workspace.size, size)
+
+        with self.assertRaises(ValueError) as context:
+            WorkspaceConfig(size='')
+        self.assertIn('required and cannot be empty', str(context.exception))
+
+        # Test whitespace-only size raises error
+        whitespace_sizes = ['   ', '\t', '\n', '  \t  \n  ']
+        for size in whitespace_sizes:
+            with self.subTest(size=repr(size)):
+                with self.assertRaises(ValueError) as context:
+                    WorkspaceConfig(size=size)
+                self.assertIn('required and cannot be empty',
+                              str(context.exception))
+
+        # Test None size raises error
+        with self.assertRaises(ValueError):
+            WorkspaceConfig(size=None)
+
+        # Test invalid size raise error
+        invalid_sizes = ['abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi']
+        for size in invalid_sizes:
+            with self.subTest(invalid_size=size):
+                with self.assertRaisesRegex(
+                        ValueError,
+                        r'Workspace size \".*\" is invalid\. Must be a valid Kubernetes resource quantity \(e\.g\., \"10Gi\", \"500Mi\", \"1Ti\"\)'
+                ):
+                    WorkspaceConfig(size=size)
+
+        # Test set_size method validation
+        workspace = WorkspaceConfig(size='10Gi')
+
+        # Valid size update
+        workspace.set_size('20Gi')
+        self.assertEqual(workspace.size, '20Gi')
+
+        # Empty size update raises error
+        with self.assertRaises(ValueError) as context:
+            workspace.set_size('')
+        self.assertIn('required and cannot be empty', str(context.exception))
+
+        # Whitespace-only size update raises error
+        with self.assertRaises(ValueError) as context:
+            workspace.set_size('   ')
+        self.assertIn('required and cannot be empty', str(context.exception))
+
+    def test_compile_fails_when_workspace_placeholder_used_without_workspace_config(
+            self):
+        """Tests that compilation fails if placeholder is used and no workspace configured."""
+
+        @dsl.component
+        def uses_workspace(workspace_path: str) -> str:
+            import os
+            file_path = os.path.join(workspace_path, 'test.txt')
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as f:
+                f.write('hello')
+            return file_path
+
+        # No PipelineConfig provided (i.e., no workspace configured)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                uses_workspace(workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_fails_when_workspace_placeholder_used_in_nested_groups_without_workspace_config(
+            self):
+        """Tests that compilation fails if placeholder is used within nested groups and no workspace configured."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.component
+        def gen_int() -> int:
+            return 0
+
+        @dsl.component
+        def uses_workspace(workspace_path: str) -> str:
+            import os as _os
+            file_path = _os.path.join(workspace_path, 'nested.txt')
+            _os.makedirs(_os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as f:
+                f.write('nested')
+            return file_path
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                x = gen_int()
+                with dsl.If(x.output == 0):
+                    uses_workspace(
+                        workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
+            self):
+        """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        # No PipelineConfig provided (i.e., no workspace configured)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'dsl\.importer\(download_to_workspace=True\) requires PipelineConfig\(workspace=\.\.\.\) on the pipeline\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                dsl.importer(
+                    artifact_uri='gs://bucket/file.txt',
+                    artifact_class=dsl.Dataset,
+                    download_to_workspace=True,
+                )
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
+            self):
+        """Tests that compilation succeeds with both download_to_workspace and workspace config."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                workspace=dsl.WorkspaceConfig(size='1Gi')))
+        def my_pipeline():
+            dsl.importer(
+                artifact_uri='gs://bucket/file.txt',
+                artifact_class=dsl.Dataset,
+                download_to_workspace=True,
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            # Should not raise an error
+            self.assertTrue(os.path.exists(output_yaml))
 
 
 class ExtractInputOutputDescription(unittest.TestCase):

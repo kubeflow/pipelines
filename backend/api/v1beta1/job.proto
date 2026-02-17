@@ -22,10 +22,9 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "backend/api/v1beta1/pipeline_spec.proto";
 import "backend/api/v1beta1/resource_reference.proto";
-import "protoc-gen-swagger/options/annotations.proto";
-import "backend/api/v1beta1/error.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes: [1, 2], // http + https
   responses: {
     key: "default";

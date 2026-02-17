@@ -384,7 +384,7 @@ func loadYaml(t *testing.T, path string) string {
 	return string(res)
 }
 
-// Tests both yamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+// Tests both YamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
 func TestPipelineSpecStructToYamlString_DirectSpec(t *testing.T) {
 	template := loadYaml(t, "test/pipeline_with_volume.yaml")
 
@@ -397,17 +397,17 @@ func TestPipelineSpecStructToYamlString_DirectSpec(t *testing.T) {
 	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
 	assert.Nil(t, err)
 
-	actualPipeline, err := yamlStringToPipelineSpecStruct(actualTemplate)
+	actualPipeline, err := YamlStringToPipelineSpecStruct(actualTemplate)
 	assert.Nil(t, err)
 
-	// Compare the marshalled JSON due to flakiness of structpb values
+	// Compare the marshaled JSON due to flakiness of structpb values
 	// See https://github.com/stretchr/testify/issues/758
 	j1, _ := pipeline.MarshalJSON()
 	j2, _ := actualPipeline.MarshalJSON()
 	assert.Equal(t, j1, j2)
 }
 
-// Tests both yamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+// Tests both YamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
 func TestPipelineSpecStructToYamlString_WithPlatform(t *testing.T) {
 	template := loadYaml(t, "test/pipeline_with_volume.yaml")
 
@@ -433,17 +433,17 @@ func TestPipelineSpecStructToYamlString_WithPlatform(t *testing.T) {
 	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
 	assert.Nil(t, err)
 
-	actualPipeline, err := yamlStringToPipelineSpecStruct(actualTemplate)
+	actualPipeline, err := YamlStringToPipelineSpecStruct(actualTemplate)
 	assert.Nil(t, err)
 
-	// Compare the marshalled JSON due to flakiness of structpb values
+	// Compare the marshaled JSON due to flakiness of structpb values
 	// See https://github.com/stretchr/testify/issues/758
 	j1, _ := pipeline.MarshalJSON()
 	j2, _ := actualPipeline.MarshalJSON()
 	assert.Equal(t, j1, j2)
 }
 
-// Tests both yamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+// Tests both YamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
 // In this case although the received pipeline spec is nested, because platform spec is empty,
 // we return the pipeline spec directly.
 func TestPipelineSpecStructToYamlString_NestedPipelineSpec(t *testing.T) {
@@ -464,10 +464,10 @@ func TestPipelineSpecStructToYamlString_NestedPipelineSpec(t *testing.T) {
 	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
 	assert.Nil(t, err)
 
-	actualPipeline, err := yamlStringToPipelineSpecStruct(actualTemplate)
+	actualPipeline, err := YamlStringToPipelineSpecStruct(actualTemplate)
 	assert.Nil(t, err)
 
-	// Compare the marshalled JSON due to flakiness of structpb values
+	// Compare the marshaled JSON due to flakiness of structpb values
 	// See https://github.com/stretchr/testify/issues/758
 	j1, _ := pipelineSpec.MarshalJSON()
 	j2, _ := actualPipeline.MarshalJSON()

@@ -16,6 +16,7 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -26,26 +27,16 @@ spec:
         - name: http
           containerPort: 8888
         readinessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:8888/
+          httpGet:
+              path: /
+              port: 8888
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
         livenessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:8888/
+          httpGet:
+              path: /
+              port: 8888
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
@@ -57,6 +48,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         resources:
             requests:
               cpu: 30m

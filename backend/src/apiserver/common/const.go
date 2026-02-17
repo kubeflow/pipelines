@@ -53,6 +53,8 @@ const (
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 
+const DefaultMetadataTLSEnabled = false
+
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
@@ -63,4 +65,19 @@ const (
 const (
 	MaxFileNameLength = 100
 	MaxFileLength     = 32 << 20 // 32Mb
+)
+
+const (
+	CustomCaCertPath = "/kfp/certs/ca.crt"
+	CABundleDir      = "/kfp/certs"
+)
+
+const (
+	DefaultPodNamespace string = "kubeflow"
+)
+
+const (
+	DefaultMLPipelineServiceName string = "ml-pipeline"
+	DefaultMetadataServiceName   string = "metadata-grpc-service"
+	DefaultClusterDomain         string = "cluster.local"
 )

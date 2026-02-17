@@ -1,0 +1,65 @@
+# This workflow runs tests to verify all the API Server REST Endpoints
+name: Workflow Compiler Tests
+env:
+  TESTS_DIR: "./backend/test/compiler"
+  TESTS_LABEL: "WorkflowCompiler"
+  PYTHON_VERSION: "3.9"
+
+on:
+  push:
+    branches: [master]
+
+  workflow_dispatch:
+    inputs:
+      test_label:
+        description: "Test label that you want to filter on and run"
+        default: 'ApiServerTests'
+        required: true
+        type: string
+      number_of_parallel_tests:
+        description: "Number of ginkgo nodes that you want run in parallel, it essentially is equivalent to number of parallel tests with some caveats"
+        default: 10
+        required: true
+        type: number
+      namespace:
+        description: "Namespace where you want to create your pipelines in"
+        default: "kubeflow"
+        required: true
+        type: string
+
+  pull_request:
+    paths:
+      - '.github/workflows/compiler-tests.yml'
+      - 'backend/src/v2/compiler/**'
+      - 'test_data/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  compiler-tests:
+    runs-on: ubuntu-latest
+    name: Workflow Compiler Tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        run: |
+          TEST_LABEL=${{ env.TESTS_LABEL }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TEST_LABEL=${{ inputs.test_label }}
+          fi
+          echo "TEST_LABEL=$TEST_LABEL" >> "$GITHUB_OUTPUT"
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        id: test-run
+        if: ${{ steps.configure.outcome == 'success' }}
+        with:
+          test_directory: ${{ env.TESTS_DIR }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "Workflow Compiler Tests"

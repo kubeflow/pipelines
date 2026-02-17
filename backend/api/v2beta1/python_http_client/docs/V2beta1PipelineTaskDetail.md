@@ -17,7 +17,7 @@ Name | Type | Description | Notes
 **inputs** | [**dict(str, V2beta1ArtifactList)**](V2beta1ArtifactList.md) | Input artifacts of the task. | [optional] 
 **outputs** | [**dict(str, V2beta1ArtifactList)**](V2beta1ArtifactList.md) | Output artifacts of the task. | [optional] 
 **parent_task_id** | **str** | ID of the parent task if the task is within a component scope. Empty if the task is at the root level. | [optional] 
-**state_history** | [**list[V2beta1RuntimeStatus]**](V2beta1RuntimeStatus.md) | A sequence of task statuses. This field keeps a record  of state transitions. | [optional] 
+**state_history** | [**list[V2beta1RuntimeStatus]**](V2beta1RuntimeStatus.md) | A sequence of task statuses. This field keeps a record of state transitions. | [optional] 
 **pod_name** | **str** | Name of the corresponding pod assigned by the orchestration engine. Also known as node_id. | [optional] 
 **child_tasks** | [**list[PipelineTaskDetailChildTask]**](PipelineTaskDetailChildTask.md) | Sequence of dependen tasks. | [optional] 
 

@@ -37,16 +37,7 @@ import {
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
 } from 'src/third_party/mlmd';
-import {
-  GetArtifactsByContextRequest,
-  GetArtifactsByContextResponse,
-  GetContextsByExecutionRequest,
-  GetContextsByExecutionResponse,
-  GetContextTypeRequest,
-  GetContextTypeResponse,
-  GetEventsByExecutionIDsRequest,
-  GetEventsByExecutionIDsResponse,
-} from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import * as metadataStoreServicePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
 
 testBestPractices();
@@ -89,6 +80,7 @@ describe('MlmdUtils', () => {
     });
 
     it('No matching context', async () => {
+      const verify = expectWarnings();
       const context1 = new Context().setId(1).setTypeId(10);
       const context2 = new Context().setId(2).setTypeId(20);
       const contextType = new ContextType().setName('type').setId(30);
@@ -99,9 +91,11 @@ describe('MlmdUtils', () => {
       const context = await getContextByExecution(execution, 'type');
 
       expect(context).toBeUndefined();
+      verify();
     });
 
     it('More than 1 matching context', async () => {
+      const verify = expectWarnings();
       const context1 = new Context().setId(1).setTypeId(20);
       const context2 = new Context().setId(2).setTypeId(20);
       const contextType = new ContextType().setName('type').setId(20);
@@ -113,6 +107,7 @@ describe('MlmdUtils', () => {
 
       // Although more than 1 matching context, this case is unexpected and result is omitted.
       expect(context).toBeUndefined();
+      verify();
     });
   });
 
@@ -249,27 +244,27 @@ describe('MlmdUtils', () => {
 });
 
 function mockGetContextType(contextType: ContextType) {
-  jest
-    .spyOn(Api.getInstance().metadataStoreService, 'getContextType')
-    .mockImplementation((req: GetContextTypeRequest) => {
-      const response = new GetContextTypeResponse();
+  vi.spyOn(Api.getInstance().metadataStoreService, 'getContextType').mockImplementation(
+    (req: metadataStoreServicePb.GetContextTypeRequest) => {
+      const response = new metadataStoreServicePb.GetContextTypeResponse();
       response.setContextType(contextType);
       return response;
-    });
+    },
+  );
 }
 
 function mockGetContextsByExecution(contexts: Context[]) {
-  jest
-    .spyOn(Api.getInstance().metadataStoreService, 'getContextsByExecution')
-    .mockImplementation((req: GetContextsByExecutionRequest) => {
-      const response = new GetContextsByExecutionResponse();
+  vi.spyOn(Api.getInstance().metadataStoreService, 'getContextsByExecution').mockImplementation(
+    (req: metadataStoreServicePb.GetContextsByExecutionRequest) => {
+      const response = new metadataStoreServicePb.GetContextsByExecutionResponse();
       response.setContextsList(contexts);
       return response;
-    });
+    },
+  );
 }
 
 function mockGetContextByTypeAndName(contexts: Context[]) {
-  const getContextByTypeAndNameSpy = jest.spyOn(
+  const getContextByTypeAndNameSpy = vi.spyOn(
     Api.getInstance().metadataStoreService,
     'getContextByTypeAndName',
   );
@@ -285,26 +280,26 @@ function mockGetContextByTypeAndName(contexts: Context[]) {
 }
 
 function mockGetArtifactsByContext(context: Context, artifacts: Artifact[]) {
-  jest
-    .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext')
-    .mockImplementation((req: GetArtifactsByContextRequest) => {
-      const response = new GetArtifactsByContextResponse();
+  vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockImplementation(
+    (req: metadataStoreServicePb.GetArtifactsByContextRequest) => {
+      const response = new metadataStoreServicePb.GetArtifactsByContextResponse();
       if (req.getContextId() === context.getId()) {
         response.setArtifactsList(artifacts);
       }
       return response;
-    });
+    },
+  );
 }
 
 function mockGetEventsByExecutions(executions: Execution[], events: Event[]) {
-  jest
-    .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-    .mockImplementation((req: GetEventsByExecutionIDsRequest) => {
-      const response = new GetEventsByExecutionIDsResponse();
+  vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockImplementation(
+    (req: metadataStoreServicePb.GetEventsByExecutionIDsRequest) => {
+      const response = new metadataStoreServicePb.GetEventsByExecutionIDsResponse();
       const executionIds = executions.map(e => e.getId());
       if (req.getExecutionIdsList().every((val, index) => val === executionIds[index])) {
         response.setEventsList(events);
       }
       return response;
-    });
+    },
+  );
 }

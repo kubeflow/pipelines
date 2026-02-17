@@ -30,6 +30,7 @@ import { Description } from 'src/components/Description';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
+import { errorToMessage } from 'src/lib/Utils';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { formatDateString } from 'src/lib/Utils';
@@ -92,7 +93,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
         label: 'Pipeline name',
-        sortKey: PipelineSortKeys.NAME,
+        sortKey: PipelineSortKeys.DISPLAY_NAME,
       },
       { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
       { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
@@ -102,7 +103,11 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       return {
         expandState: p.expandState,
         id: p.pipeline_id!,
-        otherFields: [p.display_name!, p.description!, formatDateString(p.created_at!)],
+        otherFields: [
+          { display_name: p.display_name, name: p.name },
+          p.description!,
+          formatDateString(p.created_at!),
+        ] as any,
       };
     });
 
@@ -173,7 +178,8 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of pipelines.', err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError('Error: failed to retrieve list of pipelines.', error);
     }
 
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
@@ -181,17 +187,17 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     return response ? response.next_page_token || '' : '';
   }
 
-  private _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
-    props: CustomRendererProps<string>,
-  ) => {
+  private _nameCustomRenderer: React.FC<
+    CustomRendererProps<{ display_name?: string; name: string }>
+  > = (props: CustomRendererProps<{ display_name?: string; name: string }>) => {
     return (
-      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+      <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
         <Link
           onClick={e => e.stopPropagation()}
           className={commonCss.link}
           to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
         >
-          {props.value || ''}
+          {props.value?.display_name || props.value?.name}
         </Link>
       </Tooltip>
     );
@@ -204,18 +210,22 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     if (!!pipelineId) {
       // Update selected pipeline version ids.
       this.setStateSafe({
-        selectedVersionIds: { ...this.state.selectedVersionIds, ...{ [pipelineId!]: selectedIds } },
+        selectedVersionIds: {
+          ...this.state.selectedVersionIds,
+          ...{ [pipelineId!]: selectedIds || [] },
+        },
       });
       const actions = this.props.toolbarProps.actions;
       actions[ButtonKeys.DELETE_RUN].disabled =
-        this.state.selectedIds.length < 1 && selectedIds.length < 1;
+        (this.state.selectedIds?.length || 0) < 1 && (selectedIds?.length || 0) < 1;
       this.props.updateToolbar({ actions });
     } else {
       // Update selected pipeline ids.
-      this.setStateSafe({ selectedIds });
-      const selectedVersionIdsCt = this._deepCountDictionary(this.state.selectedVersionIds);
+      this.setStateSafe({ selectedIds: selectedIds || [] });
+      const selectedVersionIdsCt = this._deepCountDictionary(this.state.selectedVersionIds || {});
       const actions = this.props.toolbarProps.actions;
-      actions[ButtonKeys.DELETE_RUN].disabled = selectedIds.length < 1 && selectedVersionIdsCt < 1;
+      actions[ButtonKeys.DELETE_RUN].disabled =
+        (selectedIds?.length || 0) < 1 && selectedVersionIdsCt < 1;
       this.props.updateToolbar({ actions });
     }
   }

@@ -47,7 +47,7 @@ type JobClient struct {
 func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*JobClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}
@@ -63,7 +63,7 @@ func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterJobClient(namespace string, debug bool) (
 	*JobClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -85,14 +85,14 @@ func (c *JobClient) Create(parameters *params.JobServiceCreateJobParams) (*model
 	response, err := c.apiClient.JobService.JobServiceCreateJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceCreateJobDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create job '%v'", parameters.Body.Name))
+			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.Job),
+			fmt.Sprintf("Failed to create job '%v'", parameters.Job.Name))
 	}
 
 	return response.Payload, nil
@@ -109,7 +109,7 @@ func (c *JobClient) Get(parameters *params.JobServiceGetJobParams) (*model.APIJo
 	response, err := c.apiClient.JobService.JobServiceGetJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceGetJobDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -132,7 +132,7 @@ func (c *JobClient) Delete(parameters *params.JobServiceDeleteJobParams) error {
 	_, err := c.apiClient.JobService.JobServiceDeleteJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceDeleteJobDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -155,7 +155,7 @@ func (c *JobClient) Enable(parameters *params.JobServiceEnableJobParams) error {
 	_, err := c.apiClient.JobService.JobServiceEnableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceEnableJobDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -178,7 +178,7 @@ func (c *JobClient) Disable(parameters *params.JobServiceDisableJobParams) error
 	_, err := c.apiClient.JobService.JobServiceDisableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceDisableJobDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -202,14 +202,14 @@ func (c *JobClient) List(parameters *params.JobServiceListJobsParams) (
 	response, err := c.apiClient.JobService.JobServiceListJobs(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceListJobsDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list jobs"))
+			"Failed to list jobs")
 	}
 
 	return response.Payload.Jobs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil

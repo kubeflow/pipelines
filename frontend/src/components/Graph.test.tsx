@@ -16,7 +16,8 @@
 
 import * as dagre from 'dagre';
 import * as React from 'react';
-import { shallow, mount } from 'enzyme';
+import { fireEvent, render } from '@testing-library/react';
+import { vi } from 'vitest';
 import EnhancedGraph, { Graph } from './Graph';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -43,26 +44,29 @@ const newNode = (label: string, isPlaceHolder?: boolean, color?: string, icon?: 
   width: 10,
 });
 
-beforeEach(() => {
-  jest.restoreAllMocks();
-});
-
 describe('Graph', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('handles an empty graph', () => {
-    expect(shallow(<Graph graph={newGraph()} />)).toMatchSnapshot();
+    const { container } = render(<Graph graph={newGraph()} />);
+    expect(container.firstChild).toBeNull();
   });
 
   it('renders a graph with one node', () => {
     const graph = newGraph();
     graph.setNode('node1', newNode('node1'));
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a graph with two disparate nodes', () => {
     const graph = newGraph();
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a graph with two connectd nodes', () => {
@@ -70,7 +74,8 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node1', 'node2');
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a graph with two connectd nodes in reverse order', () => {
@@ -78,7 +83,8 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node2', 'node1');
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a complex graph with six nodes and seven edges', () => {
@@ -98,14 +104,16 @@ describe('Graph', () => {
     graph.setEdge('flipcoin2', 'heads2');
     graph.setEdge('flipcoin2', 'tails2');
 
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a graph with colored nodes', () => {
     const graph = newGraph();
     graph.setNode('node1', newNode('node1', false, 'red'));
     graph.setNode('node2', newNode('node2', false, 'green'));
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a graph with colored edges', () => {
@@ -113,7 +121,8 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node1', 'node2', { color: 'red' });
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a graph with a placeholder node and edge', () => {
@@ -121,7 +130,8 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1', false));
     graph.setNode('node2', newNode('node2', true));
     graph.setEdge('node1', 'node2', { isPlaceholder: true });
-    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('calls onClick callback when node is clicked', () => {
@@ -129,12 +139,11 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node2', 'node1');
-    const spy = jest.fn();
-    const tree = shallow(<Graph graph={graph} onClick={spy} />);
-    tree
-      .find('.node')
-      .at(0)
-      .simulate('click');
+    const spy = vi.fn();
+    const { container } = render(<Graph graph={graph} onClick={spy} />);
+    const node = container.querySelector('.graphNode');
+    expect(node).not.toBeNull();
+    fireEvent.click(node!);
     expect(spy).toHaveBeenCalledWith('node1');
   });
 
@@ -143,7 +152,8 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node1', 'node2');
-    expect(shallow(<Graph graph={graph} selectedNodeId='node1' />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} selectedNodeId='node1' />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('gracefully renders a graph with a selected node id that does not exist', () => {
@@ -151,21 +161,23 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node1', 'node2');
-    expect(shallow(<Graph graph={graph} selectedNodeId='node3' />)).toMatchSnapshot();
+    const { asFragment } = render(<Graph graph={graph} selectedNodeId='node3' />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('shows an error message when the graph is invalid', () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error');
-    consoleErrorSpy.mockImplementation(() => null);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const graph = newGraph();
     graph.setEdge('node1', 'node2');
-    const onError = jest.fn();
-    expect(mount(<EnhancedGraph graph={graph} onError={onError} />).html()).toMatchSnapshot();
+    const onError = vi.fn();
+    const { container } = render(<EnhancedGraph graph={graph} onError={onError} />);
     expect(onError).toHaveBeenCalledTimes(1);
     const [message, additionalInfo] = onError.mock.calls[0];
     expect(message).toEqual('There was an error rendering the graph.');
     expect(additionalInfo).toEqual(
       "There was an error rendering the graph. This is likely a bug in Kubeflow Pipelines. Error message: 'Graph definition is invalid. Cannot get node by 'node1'.'.",
     );
+    expect(container.innerHTML).toMatchSnapshot();
+    consoleErrorSpy.mockRestore();
   });
 });

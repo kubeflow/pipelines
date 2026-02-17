@@ -172,11 +172,10 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_cpu_limit(cpu)
         self.assertEqual(expected_cpu, task.container_spec.resources.cpu_limit)
 
-    @parameterized.parameters(
-        {
-            'gpu_limit': '1',
-            'expected_gpu_number': '1',
-        },)
+    @parameterized.parameters({
+        'gpu_limit': '1',
+        'expected_gpu_number': '1',
+    },)
     def test_set_valid_gpu_limit(self, gpu_limit: str,
                                  expected_gpu_number: str):
         task = pipeline_task.PipelineTask(

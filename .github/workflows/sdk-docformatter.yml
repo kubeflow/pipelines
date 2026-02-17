@@ -17,12 +17,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
+          cache: 'pip'
 
       - name: Run docformatter tests
         run: ./test/presubmit-docformatter-sdk.sh

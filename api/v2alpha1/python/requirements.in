@@ -1,0 +1,12 @@
+# After any updates to this file, requirements.txt should be regenerated running
+# the following in this folder:
+# pip-compile --no-emit-index-url requirements.in > requirements.txt
+
+# Typically we can't support multiple major versions of protobuf
+# The runtime protobuf package MUST be aligned with the protobuf
+# libraries used to generate the code (protoc, protoc-gen-go, etc.)
+# For example protobuf 5.x aligns with protoc 26.x-29.x but
+# 6.x aligns with 30.x+.
+# See for support tiers:
+# https://protobuf.dev/support/version-support/#python
+protobuf>=6.31.1,<7.0

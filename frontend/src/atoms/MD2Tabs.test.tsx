@@ -15,64 +15,54 @@
  */
 
 import * as React from 'react';
-import MD2Tabs from './MD2Tabs';
-import toJson from 'enzyme-to-json';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import { logger } from '../lib/Utils';
-import { shallow, mount } from 'enzyme';
+import MD2Tabs from './MD2Tabs';
 
-describe('Input', () => {
-  const buttonSelector = 'WithStyles(Button)';
+describe('MD2Tabs', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
   it('renders with the right styles by default', () => {
-    const tree = shallow(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
-    expect(toJson(tree)).toMatchSnapshot();
+    const { asFragment } = render(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('does not try to call the onSwitch handler if it is not defined', () => {
-    const tree = shallow(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
-    tree
-      .find(buttonSelector)
-      .at(1)
-      .simulate('click');
+    render(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
+    fireEvent.click(screen.getByRole('button', { name: 'tab2' }));
   });
 
   it('calls the onSwitch function if an unselected button is clicked', () => {
-    const switchHandler = jest.fn();
-    const tree = shallow(
-      <MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} onSwitch={switchHandler} />,
-    );
-    tree
-      .find(buttonSelector)
-      .at(1)
-      .simulate('click');
-    expect(switchHandler).toHaveBeenCalled();
+    const switchHandler = vi.fn();
+    render(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} onSwitch={switchHandler} />);
+    fireEvent.click(screen.getByRole('button', { name: 'tab2' }));
+    expect(switchHandler).toHaveBeenCalledWith(1);
   });
 
-  it('does not the onSwitch function if the already selected button is clicked', () => {
-    const switchHandler = jest.fn();
-    const tree = shallow(
-      <MD2Tabs tabs={['tab1', 'tab2']} selectedTab={1} onSwitch={switchHandler} />,
-    );
-    tree
-      .find(buttonSelector)
-      .at(1)
-      .simulate('click');
+  it('does not call the onSwitch function if the already selected button is clicked', () => {
+    const switchHandler = vi.fn();
+    render(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={1} onSwitch={switchHandler} />);
+    fireEvent.click(screen.getByRole('button', { name: 'tab2' }));
     expect(switchHandler).not.toHaveBeenCalled();
   });
 
   it('gracefully handles an out of bound selectedTab value', () => {
-    logger.error = jest.fn();
-    const tree = mount(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={100} />);
-    (tree.instance() as any)._updateIndicator();
-    expect(toJson(tree)).toMatchSnapshot();
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+    const { asFragment } = render(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={100} />);
+    expect(errorSpy).toHaveBeenCalledWith('Out of bound index passed for selected tab');
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('recalculates indicator styles when props are updated', () => {
-    const spy = jest.fn();
-    jest.useFakeTimers();
-    jest.spyOn(MD2Tabs.prototype as any, '_updateIndicator').mockImplementationOnce(spy);
-    const tree = mount(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
-    tree.instance().componentDidUpdate!({}, {});
-    jest.runAllTimers();
-    expect(spy).toHaveBeenCalled();
+    vi.useFakeTimers();
+    const updateSpy = vi.spyOn(MD2Tabs.prototype as any, '_updateIndicator');
+    const { rerender } = render(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
+    vi.runOnlyPendingTimers();
+    rerender(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={1} />);
+    vi.runOnlyPendingTimers();
+    expect(updateSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 });

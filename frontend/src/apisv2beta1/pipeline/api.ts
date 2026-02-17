@@ -201,11 +201,17 @@ export interface V2beta1Pipeline {
    */
   pipeline_id?: string;
   /**
-   * Required input field. Pipeline name provided by user.
+   * Required input field. Pipeline display name provided by user.
    * @type {string}
    * @memberof V2beta1Pipeline
    */
   display_name?: string;
+  /**
+   * Required input field. Pipeline name provided by user.
+   * @type {string}
+   * @memberof V2beta1Pipeline
+   */
+  name?: string;
   /**
    * Optional input field. A short description of the pipeline.
    * @type {string}
@@ -256,6 +262,12 @@ export interface V2beta1PipelineVersion {
    * @memberof V2beta1PipelineVersion
    */
   display_name?: string;
+  /**
+   * Required input field. Pipeline version name provided by user.
+   * @type {string}
+   * @memberof V2beta1PipelineVersion
+   */
+  name?: string;
   /**
    * Optional input field. Short description of the pipeline version.
    * @type {string}
@@ -353,7 +365,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'V2beta1Pipeline' !== 'string' ||
@@ -419,7 +431,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'V2beta1PipelineVersion' !== 'string' ||
@@ -435,10 +447,13 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      *
      * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipeline(pipeline_id: string, options: any = {}): FetchArgs {
+    deletePipeline(pipeline_id: string, cascade?: boolean, options?: any): FetchArgs {
+      // Set default options if not provided
+      const requestOptions = options || {};
       // verify required parameter 'pipeline_id' is not null or undefined
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
@@ -451,9 +466,13 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         encodeURIComponent(String(pipeline_id)),
       );
       const localVarUrlObj = url.parse(localVarPath, true);
-      const localVarRequestOptions = Object.assign({ method: 'DELETE' }, options);
+      const localVarRequestOptions = Object.assign({ method: 'DELETE' }, requestOptions);
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
+
+      if (cascade !== undefined) {
+        localVarQueryParameter['cascade'] = cascade;
+      }
 
       // authentication Bearer required
       if (configuration && configuration.apiKey) {
@@ -468,11 +487,15 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         {},
         localVarUrlObj.query,
         localVarQueryParameter,
-        options.query,
+        requestOptions.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
-      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+      localVarUrlObj.search = null;
+      localVarRequestOptions.headers = Object.assign(
+        {},
+        localVarHeaderParameter,
+        requestOptions.headers,
+      );
 
       return {
         url: url.format(localVarUrlObj),
@@ -530,7 +553,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -578,7 +601,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -631,7 +654,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -690,7 +713,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -765,7 +788,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -834,7 +857,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = null;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -906,15 +929,18 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     deletePipeline(
       pipeline_id: string,
+      cascade?: boolean,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).deletePipeline(
         pipeline_id,
+        cascade,
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -1141,14 +1167,16 @@ export const PipelineServiceApiFactory = function(
      *
      * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipeline(pipeline_id: string, options?: any) {
-      return PipelineServiceApiFp(configuration).deletePipeline(pipeline_id, options)(
-        fetch,
-        basePath,
-      );
+    deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
+      return PipelineServiceApiFp(configuration).deletePipeline(
+        pipeline_id,
+        cascade,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -1307,15 +1335,17 @@ export class PipelineServiceApi extends BaseAPI {
    *
    * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
    * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+   * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public deletePipeline(pipeline_id: string, options?: any) {
-    return PipelineServiceApiFp(this.configuration).deletePipeline(pipeline_id, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
+    return PipelineServiceApiFp(this.configuration).deletePipeline(
+      pipeline_id,
+      cascade,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**

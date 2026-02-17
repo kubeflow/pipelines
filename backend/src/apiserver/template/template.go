@@ -32,6 +32,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	goyaml "gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -50,8 +51,10 @@ const (
 	SCHEMA_VERSION_2_1_0 = "2.1.0"
 )
 
-var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
-var ErrorInvalidPlatformSpec = fmt.Errorf("Platform spec is invalid")
+var (
+	ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
+	ErrorInvalidPlatformSpec = fmt.Errorf("platform spec is invalid")
+)
 
 // inferTemplateFormat infers format from pipeline template.
 // There is no guarantee that the template is valid in inferred format, so validation
@@ -134,18 +137,23 @@ type Template interface {
 }
 
 type RunWorkflowOptions struct {
-	RunId         string
-	RunAt         int64
-	CacheDisabled bool
+	RunID string
+	RunAt int64
 }
 
-func New(bytes []byte, cacheDisabled bool) (Template, error) {
+type TemplateOptions struct {
+	CacheDisabled        bool
+	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec
+	MLPipelineTLSEnabled bool
+}
+
+func New(bytes []byte, opts TemplateOptions) (Template, error) {
 	format := inferTemplateFormat(bytes)
 	switch format {
 	case V1:
 		return NewArgoTemplate(bytes)
 	case V2:
-		return NewV2SpecTemplate(bytes, cacheDisabled)
+		return NewV2SpecTemplate(bytes, opts)
 	default:
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "unknown template format")
 	}
@@ -164,7 +172,7 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	}
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
 	runtimeConfig.ParameterValues = *parameters
-	runtimeConfig.GcsOutputDirectory = modelRuntimeConfig.PipelineRoot
+	runtimeConfig.GcsOutputDirectory = string(modelRuntimeConfig.PipelineRoot)
 	return runtimeConfig, nil
 }
 
@@ -185,7 +193,7 @@ func StringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter
 	for name, value := range parameters {
 		valueBytes, err := value.MarshalJSON()
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "error marshalling model parameters")
+			return nil, util.NewInternalServerError(err, "error marshaling model parameters")
 		}
 		swParam := scheduledworkflow.Parameter{
 			Name:  name,

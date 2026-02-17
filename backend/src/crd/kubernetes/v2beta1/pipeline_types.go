@@ -24,6 +24,7 @@ import (
 
 // PipelineSpec defines the desired state of Pipeline.
 type PipelineSpec struct {
+	DisplayName string `json:"displayName,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
@@ -54,7 +55,8 @@ func FromPipelineModel(pipeline model.Pipeline) Pipeline {
 			UID:       types.UID(pipeline.UUID),
 		},
 		Spec: PipelineSpec{
-			Description: pipeline.Description,
+			DisplayName: pipeline.DisplayName,
+			Description: string(pipeline.Description),
 		},
 	}
 }
@@ -62,9 +64,15 @@ func FromPipelineModel(pipeline model.Pipeline) Pipeline {
 func (p *Pipeline) ToModel() *model.Pipeline {
 	pipelineStatus := model.PipelineCreating
 
+	displayName := p.Spec.DisplayName
+	if displayName == "" {
+		displayName = p.Name
+	}
+
 	return &model.Pipeline{
 		Name:           p.Name,
-		Description:    p.Spec.Description,
+		DisplayName:    displayName,
+		Description:    model.LargeText(p.Spec.Description),
 		Namespace:      p.Namespace,
 		UUID:           string(p.UID),
 		CreatedAtInSec: p.CreationTimestamp.Unix(),
@@ -74,22 +82,24 @@ func (p *Pipeline) ToModel() *model.Pipeline {
 
 func (p *Pipeline) GetField(name string) interface{} {
 	switch name {
-	case "pipelines.id":
+	case "pipelines.UUID":
 		return p.UID
 	case "pipelines.pipeline_id":
 		return p.UID
 	case "pipelines.Name":
 		return p.Name
-	case "pipelines.display_name":
-		return p.Name
-	case "pipelines.created_at":
-		return p.CreationTimestamp
-	case "description":
+	case "pipelines.DisplayName":
+		return p.Spec.DisplayName
+	case "pipelines.CreatedAtInSec":
+		return p.CreationTimestamp.Unix()
+	case "pipelines.Description":
 		return p.Spec.Description
 	case "pipelines.namespace":
 		return p.Namespace
+	case "pipelines.Namespace":
+		return p.Namespace
 	default:
-		return ""
+		return nil
 	}
 }
 

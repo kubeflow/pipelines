@@ -1,8 +1,24 @@
 ## Upcoming release
 
+## Release 2.22.0
+
+* Fix for dataproc batch components pipeline failure.
+* Add `autotuning_config` and `cohort` parameters to Dataproc v1 batch components.
+* Remove deprecated AutoML XGBoost trainer.
+* Bump image for Structured Data pipelines.
+* Enforce mutual exclusivity between `network` and `psc_interface_config` in custom job spec.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
+## Release 2.21.0
+
+* Add psc_interface_config to v1 GCPC custom job components/utils
+* Bump image for Structured Data pipelines.
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+
 ## Release 2.20.1
 
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Explicitly set default python version to 3.9 on Starry Net dsl components to avoid future breaking changes.
 
 ## Release 2.20.0
 

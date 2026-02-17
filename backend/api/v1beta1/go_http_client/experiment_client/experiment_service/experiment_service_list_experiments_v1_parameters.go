@@ -13,107 +13,130 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-
-	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewExperimentServiceListExperimentsV1Params creates a new ExperimentServiceListExperimentsV1Params object
-// with the default values initialized.
+// NewExperimentServiceListExperimentsV1Params creates a new ExperimentServiceListExperimentsV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewExperimentServiceListExperimentsV1Params() *ExperimentServiceListExperimentsV1Params {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &ExperimentServiceListExperimentsV1Params{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewExperimentServiceListExperimentsV1ParamsWithTimeout creates a new ExperimentServiceListExperimentsV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewExperimentServiceListExperimentsV1ParamsWithTimeout(timeout time.Duration) *ExperimentServiceListExperimentsV1Params {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &ExperimentServiceListExperimentsV1Params{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
-
 		timeout: timeout,
 	}
 }
 
 // NewExperimentServiceListExperimentsV1ParamsWithContext creates a new ExperimentServiceListExperimentsV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewExperimentServiceListExperimentsV1ParamsWithContext(ctx context.Context) *ExperimentServiceListExperimentsV1Params {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &ExperimentServiceListExperimentsV1Params{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
-
 		Context: ctx,
 	}
 }
 
 // NewExperimentServiceListExperimentsV1ParamsWithHTTPClient creates a new ExperimentServiceListExperimentsV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewExperimentServiceListExperimentsV1ParamsWithHTTPClient(client *http.Client) *ExperimentServiceListExperimentsV1Params {
-	var (
-		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &ExperimentServiceListExperimentsV1Params{
-		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
-		HTTPClient:               client,
+		HTTPClient: client,
 	}
 }
 
-/*ExperimentServiceListExperimentsV1Params contains all the parameters to send to the API endpoint
-for the experiment service list experiments v1 operation typically these are written to a http.Request
+/*
+ExperimentServiceListExperimentsV1Params contains all the parameters to send to the API endpoint
+
+	for the experiment service list experiments v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type ExperimentServiceListExperimentsV1Params struct {
 
-	/*Filter
-	  A url-encoded, JSON-serialized Filter protocol buffer (see
-	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
+	/* Filter.
 
+	     A url-encoded, JSON-serialized Filter protocol buffer (see
+	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	*/
 	Filter *string
-	/*PageSize
-	  The number of experiments to be listed per page. If there are more
+
+	/* PageSize.
+
+	     The number of experiments to be listed per page. If there are more
 	experiments than this number, the response message will contain a
 	nextPageToken field you can use to fetch the next page.
 
+	     Format: int32
 	*/
 	PageSize *int32
-	/*PageToken
-	  A page token to request the next page of results. The token is acquried
+
+	/* PageToken.
+
+	     A page token to request the next page of results. The token is acquried
 	from the nextPageToken field of the response from the previous
 	ListExperiment call or can be omitted when fetching the first page.
-
 	*/
 	PageToken *string
-	/*ResourceReferenceKeyID
-	  The ID of the resource that referred to.
 
+	/* ResourceReferenceKeyID.
+
+	   The ID of the resource that referred to.
 	*/
 	ResourceReferenceKeyID *string
-	/*ResourceReferenceKeyType
-	  The type of the resource that referred to.
 
+	/* ResourceReferenceKeyType.
+
+	   The type of the resource that referred to.
+
+	   Default: "UNKNOWN_RESOURCE_TYPE"
 	*/
 	ResourceReferenceKeyType *string
-	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name desc"
-	Ascending by default.
 
+	/* SortBy.
+
+	     Can be format of "field_name", "field_name asc" or "field_name desc"
+	Ascending by default.
 	*/
 	SortBy *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the experiment service list experiments v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceListExperimentsV1Params) WithDefaults() *ExperimentServiceListExperimentsV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the experiment service list experiments v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceListExperimentsV1Params) SetDefaults() {
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
+
+	val := ExperimentServiceListExperimentsV1Params{
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the experiment service list experiments v1 params
@@ -227,96 +250,102 @@ func (o *ExperimentServiceListExperimentsV1Params) WriteToRequest(r runtime.Clie
 
 		// query param filter
 		var qrFilter string
+
 		if o.Filter != nil {
 			qrFilter = *o.Filter
 		}
 		qFilter := qrFilter
 		if qFilter != "" {
+
 			if err := r.SetQueryParam("filter", qFilter); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.PageSize != nil {
 
 		// query param page_size
 		var qrPageSize int32
+
 		if o.PageSize != nil {
 			qrPageSize = *o.PageSize
 		}
 		qPageSize := swag.FormatInt32(qrPageSize)
 		if qPageSize != "" {
+
 			if err := r.SetQueryParam("page_size", qPageSize); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.PageToken != nil {
 
 		// query param page_token
 		var qrPageToken string
+
 		if o.PageToken != nil {
 			qrPageToken = *o.PageToken
 		}
 		qPageToken := qrPageToken
 		if qPageToken != "" {
+
 			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.ResourceReferenceKeyID != nil {
 
 		// query param resource_reference_key.id
 		var qrResourceReferenceKeyID string
+
 		if o.ResourceReferenceKeyID != nil {
 			qrResourceReferenceKeyID = *o.ResourceReferenceKeyID
 		}
 		qResourceReferenceKeyID := qrResourceReferenceKeyID
 		if qResourceReferenceKeyID != "" {
+
 			if err := r.SetQueryParam("resource_reference_key.id", qResourceReferenceKeyID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.ResourceReferenceKeyType != nil {
 
 		// query param resource_reference_key.type
 		var qrResourceReferenceKeyType string
+
 		if o.ResourceReferenceKeyType != nil {
 			qrResourceReferenceKeyType = *o.ResourceReferenceKeyType
 		}
 		qResourceReferenceKeyType := qrResourceReferenceKeyType
 		if qResourceReferenceKeyType != "" {
+
 			if err := r.SetQueryParam("resource_reference_key.type", qResourceReferenceKeyType); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.SortBy != nil {
 
 		// query param sort_by
 		var qrSortBy string
+
 		if o.SortBy != nil {
 			qrSortBy = *o.SortBy
 		}
 		qSortBy := qrSortBy
 		if qSortBy != "" {
+
 			if err := r.SetQueryParam("sort_by", qSortBy); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

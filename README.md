@@ -25,6 +25,13 @@ The Kubeflow pipelines service has the following goals:
 
 * The Docker container runtime has been deprecated on Kubernetes 1.20+. Kubeflow Pipelines has switched to use [Emissary Executor](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/installation/choose-executor/#emissary-executor) by default from Kubeflow Pipelines 1.8. Emissary executor is Container runtime agnostic, meaning you are able to run Kubeflow Pipelines on Kubernetes cluster with any [Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/).
 
+### Dependencies Compatibility Matrix
+
+| Dependency     | Versions         |
+| -------------- |------------------|
+| Argo Workflows | v3.5, v3.6, v3.7 |
+| MySQL          | v8               |
+
 ## Documentation
 
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/components/pipelines/overview/).
@@ -44,6 +51,23 @@ Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/k
 
 Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, read the [developer guide](./developer_guide.md).
 
+### Optional `just` command runner
+
+For local developer convenience, this repository includes an optional [just](https://github.com/casey/just) command runner at the repo root. It provides short aliases for existing `make` targets and does not replace any CI or release workflows.
+
+To use it, install `just` and run, for example:
+
+```bash
+just           # list available recipes
+just backend-test
+just backend-images
+```
+
+Notes:
+
+* All `just` recipes are thin wrappers around existing `make` targets (for example, `make -C backend/src/v2 test`).
+* There is intentionally no generic `just build` or `just test` recipe; heavy or Docker-building flows are exposed only via explicitly named recipes such as `backend-images`.
+
 ## Kubeflow Pipelines Community
 
 ### Community Meeting
@@ -62,10 +86,11 @@ We also have a slack channel (#kubeflow-pipelines) on the Cloud Native Computing
 
 ## Architecture
 
-Details about the KFP Architecture can be found at [Architecture.md](docs/Architecture.md)
+Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Architecture.md)
 
 ## Blog posts
 
+* [From Raw Data to Model Serving: A Blueprint for the AI/ML Lifecycle with Kubeflow](https://blog.kubeflow.org/fraud-detection-e2e/) (By [Helber Belmiro](https://github.com/hbelmiro))
 * [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
 * How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
   * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://medium.com/data-science/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f)

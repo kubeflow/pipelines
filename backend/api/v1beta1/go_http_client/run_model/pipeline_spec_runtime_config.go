@@ -6,12 +6,14 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // PipelineSpecRuntimeConfig The runtime config of a PipelineSpec.
+//
 // swagger:model PipelineSpecRuntimeConfig
 type PipelineSpecRuntimeConfig struct {
 
@@ -28,6 +30,11 @@ type PipelineSpecRuntimeConfig struct {
 
 // Validate validates this pipeline spec runtime config
 func (m *PipelineSpecRuntimeConfig) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this pipeline spec runtime config based on context it is used
+func (m *PipelineSpecRuntimeConfig) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

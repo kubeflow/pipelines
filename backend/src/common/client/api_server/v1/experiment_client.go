@@ -46,7 +46,7 @@ type ExperimentClient struct {
 func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
 	}
@@ -63,7 +63,7 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -85,14 +85,14 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceCreateExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create experiment '%v'", parameters.Body.Name))
+			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Experiment),
+			fmt.Sprintf("Failed to create experiment '%v'", parameters.Experiment.Name))
 	}
 
 	return response.Payload, nil
@@ -109,7 +109,7 @@ func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperiment
 	response, err := c.apiClient.ExperimentService.ExperimentServiceGetExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceGetExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -133,14 +133,14 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperimentsV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceListExperimentsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list experiments"))
+			"Failed to list experiments")
 	}
 
 	return response.Payload.Experiments, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
@@ -156,14 +156,14 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 	_, err := c.apiClient.ExperimentService.ExperimentServiceDeleteExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceDeleteExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to delete experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to delete experiment"))
+			"Failed to delete experiment")
 	}
 
 	return nil
@@ -210,14 +210,14 @@ func (c *ExperimentClient) Archive(parameters *params.ExperimentServiceArchiveEx
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceArchiveExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to archive experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to archive experiments"))
+			"Failed to archive experiments")
 	}
 
 	return nil
@@ -234,14 +234,14 @@ func (c *ExperimentClient) Unarchive(parameters *params.ExperimentServiceUnarchi
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceUnarchiveExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to unarchive experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to unarchive experiments"))
+			"Failed to unarchive experiments")
 	}
 
 	return nil

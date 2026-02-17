@@ -17,15 +17,14 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
 package api;
 
-import "backend/api/v1beta1/error.proto";
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "backend/api/v1beta1/pipeline_spec.proto";
 import "backend/api/v1beta1/resource_reference.proto";
-import "protoc-gen-swagger/options/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes: [1, 2], // http + https
   responses: {
     key: "default";
@@ -117,12 +116,6 @@ service RunService {
     };
   }
 
-  // Finds a run's artifact data.
-  rpc ReadArtifactV1(ReadArtifactRequest) returns (ReadArtifactResponse) {
-    option (google.api.http) = {
-      get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
-    };
-  }
 
   // Terminates an active run.
   rpc TerminateRunV1(TerminateRunRequest) returns (google.protobuf.Empty) {
@@ -347,16 +340,3 @@ message ReportRunMetricsResponse {
   repeated ReportRunMetricResult results = 1;
 }
 
-message ReadArtifactRequest {
-  // The ID of the run.
-  string run_id = 1;
-  // The ID of the running node.
-  string node_id = 2;
-  // The name of the artifact.
-  string artifact_name = 3;
-}
-
-message ReadArtifactResponse {
-  // The bytes of the artifact content.
-  bytes data = 1;
-}

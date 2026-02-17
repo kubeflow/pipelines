@@ -1,0 +1,186 @@
+name: "Create Kind Cluster and Run Tests"
+description: "Step to set up a kind cluster and run tests against it"
+
+inputs:
+  pipeline_store:
+    description: "Flag to deploy KFP with K8s Native API"
+    default: 'database'
+    required: false
+  proxy:
+    description: "If KFP should be deployed with proxy configuration"
+    required: false
+    default: 'false'
+  cache_enabled:
+    description: "If KFP should be deployed with cache enabled globally"
+    required: false
+    default: 'true'
+  multi_user:
+    description: "If KFP should be deployed in multi-user mode"
+    required: false
+    default: 'false'
+  user_namespace:
+    description: "User namespace name if KFP was deployed in multi-user mode"
+    required: false
+    default: 'kubeflow-user-example-com'
+  default_namespace:
+    description: "Default namespace when deploying KFP on a Kind Cluster"
+    required: false
+    default: 'kubeflow'
+  python_version:
+    required: false
+    default: '3.9'
+    description: "Python version to use"
+  report_python_version:
+    required: false
+    # Reporting uses a newer cached runtime to avoid setup-python
+    # rate-limit downloads and to keep junit2html/junit summary tooling stable.
+    default: '3.11'
+    description: "Python version to use for test reporting steps"
+  test_directory:
+    required: true
+    description: "Test Working Directory"
+  num_parallel_nodes:
+    required: false
+    description: "Number of ginkgo nodes to run in parallel"
+    default: "10"
+  test_label:
+    required: true
+    description: "Test Label to filter on, for e.g. Regression, Smoke, APIServerTests etc."
+  upload_pipelines_with_kubernetes_client:
+    required: false
+    default: 'false'
+    description: "Set to true if you want to upload pipelines and pipeline versions with Native K8s API as CRDs"
+  report_name:
+    required: false
+    default: ""
+    description: "Override it if you want a custom name for your test report file"
+  tls_enabled:
+    description: "If KFP should be deployed with TLS pod-to-pod communication."
+    required: false
+    default: 'false'
+  ca_cert_path:
+    description: "Path to the CA certificate file."
+    required: false
+    default: ""
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Port-forward MinIO service for archived workflow logs
+      id: port-forward-minio
+      if: (!cancelled())
+      shell: bash
+      run: |
+        NAMESPACE="${{ inputs.default_namespace }}"
+        pkill -f "kubectl port-forward.*minio" || true
+        kubectl port-forward -n "$NAMESPACE" service/minio-service 9000:9000 > /dev/null 2>&1 &
+        sleep 5
+      continue-on-error: true
+
+    - name: Run Tests
+      id: run-tests
+      shell: bash
+      working-directory: ${{ inputs.test_directory }}
+      env:
+        PIPELINE_STORE: ${{ inputs.pipeline_store }}
+      run: |
+        USE_PROXY=${{ inputs.proxy }}
+        if [ -z $USE_PROXY ]; then
+            USE_PROXY='false'
+        fi
+        MULTI_USER=${{ inputs.multi_user}}
+        if [ -z $MULTI_USER ]; then
+          MULTI_USER='false'
+        fi
+        TLS_ENABLED=${{ inputs.tls_enabled }}
+        if [ -z $TLS_ENABLED ]; then
+          TLS_ENABLED='false'
+        fi
+        CA_CERT_PATH=${{ inputs.ca_cert_path }}
+        if [ -z $CA_CERT_PATH ]; then
+          CA_CERT_PATH=''
+        fi
+        PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
+        REPO_NAME="${{ github.repository }}"
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME
+      continue-on-error: true
+
+    - name: Collect Pod logs in case of Test Failures
+      id: collect-logs
+      shell: bash
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      run: |
+        echo "=== Current disk usage ==="
+        df -h
+        NAMESPACE="${{ inputs.default_namespace }}"
+        ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+      continue-on-error: true
+
+    - name: Set up Python for reporting
+      uses: actions/setup-python@v6
+      if: (!cancelled())
+      with:
+        python-version: ${{ inputs.report_python_version }}
+        cache: 'pip'
+
+    - name: Install Junit2Html plugin
+      id: install-junit2html
+      if: (!cancelled())
+      shell: bash
+      run: |
+        pip install junit2html
+      continue-on-error: true
+
+    - name: Generate HTML report
+      id: generate-html-report
+      if: (!cancelled()) && steps.install-junit2html.outcome == 'success'
+      shell: bash
+      run: |
+        junit2html ${{ inputs.test_directory }}/reports/junit.xml ${{ inputs.test_directory }}/reports/test-report.html
+      continue-on-error: true
+
+    - name: Configure report name
+      id: name_gen
+      shell: bash
+      run: |
+        REPORT_NAME="HTML Report - ${{ inputs.report_name }}"
+        if [ -z ${{ inputs.report_name }} ]; then
+          uuid=$(uuidgen)
+          REPORT_NAME="HTML Report - ${{ github.run_id }}_${{ github.job }}_$uuid"
+        fi
+        echo "REPORT_NAME=$REPORT_NAME" >> "$GITHUB_OUTPUT"
+
+    - name: Upload HTML Report
+      id: upload
+      uses: actions/upload-artifact@v4
+      if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
+      with:
+        name: ${{ steps.name_gen.outputs.REPORT_NAME }}
+        path: ${{ inputs.test_directory }}/reports/test-report.html
+        retention-days: 7
+      continue-on-error: true
+
+    - name: Publish Test Summary With HTML Report
+      id: publish
+      uses: ./.github/actions/junit-summary
+      if: always() && !cancelled()
+      with:
+        xml_files: '${{ inputs.test_directory }}/reports'
+        custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
+      continue-on-error: true
+
+    - name: Mark Workflow failure if test reporting failed
+      if: always() && !cancelled() && (
+        steps.install-junit2html.outcome == 'failure' ||
+        steps.generate-html-report.outcome == 'failure' ||
+        steps.upload.outcome != 'success' ||
+        steps.publish.outcome == 'failure'
+        )
+      shell: bash
+      run: exit 1
+
+    - name: Mark Workflow failure if test step failed
+      if: steps.run-tests.outcome != 'success' && !cancelled()
+      shell: bash
+      run: exit 1

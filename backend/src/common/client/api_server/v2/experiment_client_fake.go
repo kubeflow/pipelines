@@ -37,7 +37,7 @@ func NewExperimentClientFake() *ExperimentClientFake {
 
 func (c *ExperimentClientFake) Create(parameters *params.ExperimentServiceCreateExperimentParams) (
 	*model.V2beta1Experiment, error) {
-	return getDefaultExperiment("500", parameters.Body.DisplayName), nil
+	return getDefaultExperiment("500", parameters.Experiment.DisplayName), nil
 }
 
 func (c *ExperimentClientFake) Get(parameters *params.ExperimentServiceGetExperimentParams) (

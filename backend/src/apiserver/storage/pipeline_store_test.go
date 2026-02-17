@@ -36,7 +36,7 @@ func createPipelineV1(name string) *model.Pipeline {
 func createPipeline(name string, description string, namespace string) *model.Pipeline {
 	return &model.Pipeline{
 		Name:        name,
-		Description: description,
+		Description: model.LargeText(description),
 		Status:      model.PipelineReady,
 		Namespace:   namespace,
 	}
@@ -48,10 +48,10 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 		Parameters:      `[{"Name": "param1"}]`,
 		PipelineId:      pipelineId,
 		CodeSourceUrl:   url,
-		Description:     description,
+		Description:     model.LargeText(description),
 		Status:          model.PipelineVersionReady,
-		PipelineSpec:    pipelineSpec,
-		PipelineSpecURI: pipelineSpecURI,
+		PipelineSpec:    model.LargeText(pipelineSpec),
+		PipelineSpecURI: model.LargeText(pipelineSpecURI),
 	}
 }
 
@@ -622,7 +622,7 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 				Name:            "pipeline v2 version 1",
 				Description:     "pipeline v2 version description",
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
-				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpec:    model.LargeText(v2SpecHelloWorld),
 				PipelineSpecURI: "pipeline_version_two.yaml",
 			},
 			&model.Pipeline{
@@ -641,7 +641,7 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 				PipelineId:      DefaultFakePipelineIdTwo,
 				Status:          model.PipelineVersionCreating,
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
-				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpec:    model.LargeText(v2SpecHelloWorld),
 				PipelineSpecURI: "pipeline_version_two.yaml",
 			},
 			false,
@@ -659,7 +659,7 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 				Parameters:      `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
 				Description:     "pipeline v1 version description",
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
-				PipelineSpec:    v1SpecHelloWorld,
+				PipelineSpec:    model.LargeText(v1SpecHelloWorld),
 				PipelineSpecURI: "pipeline_version_one.yaml",
 			},
 			&model.Pipeline{
@@ -679,7 +679,7 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 				Description:     "pipeline v1 version description",
 				Status:          model.PipelineVersionCreating,
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
-				PipelineSpec:    v1SpecHelloWorld,
+				PipelineSpec:    model.LargeText(v1SpecHelloWorld),
 				PipelineSpecURI: "pipeline_version_one.yaml",
 			},
 			false,
@@ -696,7 +696,7 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 				Name:            "pipeline version three",
 				Description:     "pipeline version three description",
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
-				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpec:    model.LargeText(v2SpecHelloWorld),
 				PipelineSpecURI: "pipeline_version_two.yaml",
 			},
 			nil,
@@ -715,7 +715,7 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 				Name:            "default version",
 				Description:     "default version description",
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
-				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpec:    model.LargeText(v2SpecHelloWorld),
 				PipelineSpecURI: "pipeline_version_two.yaml",
 			},
 			&model.Pipeline{
@@ -734,7 +734,7 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 				Description:     "default version description",
 				Status:          model.PipelineVersionCreating,
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
-				PipelineSpec:    v2SpecHelloWorld,
+				PipelineSpec:    model.LargeText(v2SpecHelloWorld),
 				PipelineSpecURI: "pipeline_version_two.yaml",
 			},
 			false,
@@ -1936,7 +1936,7 @@ executors:
 		_parsed_args = vars(_parser.parse_args())
 
 		_outputs = hello_world(**_parsed_args)
-	  image: python:3.9
+	  image: python:3.11
 pipelineInfo:
 name: hello-world
 root:

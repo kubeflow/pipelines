@@ -68,11 +68,15 @@ class PipelineVersionList extends React.PureComponent<
     };
   }
 
-  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
-    props: CustomRendererProps<string>,
-  ) => {
+  public _nameCustomRenderer: React.FC<
+    CustomRendererProps<{ display_name?: string; name: string }>
+  > = props => {
     return (
-      <Tooltip title={props.value || ''} enterDelay={300} placement='bottom-start'>
+      <Tooltip
+        title={'Name: ' + (props.value?.name || '')}
+        enterDelay={300}
+        placement='bottom-start'
+      >
         {this.props.pipelineId ? (
           <Link
             className={commonCss.link}
@@ -82,7 +86,7 @@ class PipelineVersionList extends React.PureComponent<
               this.props.pipelineId,
             ).replace(':' + RouteParams.pipelineVersionId, props.id)}
           >
-            {props.value}
+            {props.value?.display_name || props.value?.name}
           </Link>
         ) : (
           <Link
@@ -90,7 +94,7 @@ class PipelineVersionList extends React.PureComponent<
             onClick={e => e.stopPropagation()}
             to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineVersionId, props.id)}
           >
-            {props.value}
+            {props.value?.display_name || props.value?.name}
           </Link>
         )}
       </Tooltip>
@@ -103,7 +107,7 @@ class PipelineVersionList extends React.PureComponent<
         customRenderer: this._nameCustomRenderer,
         flex: 1,
         label: 'Version name',
-        sortKey: PipelineVersionSortKeys.NAME,
+        sortKey: PipelineVersionSortKeys.DISPLAY_NAME,
       },
       { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
       { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
@@ -112,7 +116,11 @@ class PipelineVersionList extends React.PureComponent<
     const rows: Row[] = this.state.pipelineVersions.map(v => {
       const row = {
         id: v.pipeline_version_id!,
-        otherFields: [v.display_name, v.description, formatDateString(v.created_at)] as any,
+        otherFields: [
+          { display_name: v.display_name, name: v.name },
+          v.description,
+          formatDateString(v.created_at),
+        ] as any,
       };
       return row;
     });

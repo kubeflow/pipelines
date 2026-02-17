@@ -18,9 +18,11 @@ package metadata
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -28,12 +30,17 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"gopkg.in/yaml.v3"
+
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
 	"github.com/golang/glog"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -41,15 +48,37 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
-	"gopkg.in/yaml.v3"
 )
 
 const (
-	pipelineContextTypeName    = "system.Pipeline"
-	pipelineRunContextTypeName = "system.PipelineRun"
-	ImporterExecutionTypeName  = "system.ImporterExecution"
-	mlmdClientSideMaxRetries   = 3
+	pipelineContextTypeName            = "system.Pipeline"
+	pipelineRunContextTypeName         = "system.PipelineRun"
+	ImporterExecutionTypeName          = "system.ImporterExecution"
+	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
+	mlmdClientSideMaxRetries           = 3
+	defaultMaxGRPCMessageSize          = 100 * 1024 * 1024 // 100MB
+	maxGRPCMessageSizeEnv              = "METADATA_GRPC_MESSAGE_SIZE"
 )
+
+// MaxGRPCMessageSize is the max gRPC message size for the metadata client.
+// The default gRPC limit is 4MB which is too small for large artifacts
+// (e.g. classification metrics with many data points).
+// Configurable via the METADATA_GRPC_MESSAGE_SIZE environment variable (in bytes).
+var MaxGRPCMessageSize = defaultMaxGRPCMessageSize
+
+func init() {
+	if v := os.Getenv(maxGRPCMessageSizeEnv); v != "" {
+		size, err := strconv.Atoi(v)
+		if err != nil {
+			glog.Fatalf("%s environment variable must be a valid integer: %v", maxGRPCMessageSizeEnv, err)
+		}
+		if size <= 0 {
+			glog.Fatalf("%s environment variable must be a positive integer, got %d", maxGRPCMessageSizeEnv, size)
+		}
+		MaxGRPCMessageSize = size
+		glog.Infof("MaxGRPCMessageSize set to %d bytes from %s", size, maxGRPCMessageSizeEnv)
+	}
+}
 
 type ExecutionType string
 
@@ -108,14 +137,24 @@ type Client struct {
 }
 
 // NewClient creates a Client given the MLMD server address and port.
-func NewClient(serverAddress, serverPort string) (*Client, error) {
+func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, error) {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
 		grpc_retry.WithCodes(codes.Aborted),
 	}
+
+	creds := insecure.NewCredentials()
+	if tlsCfg != nil {
+		creds = credentials.NewTLS(tlsCfg)
+	}
+
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(creds),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(MaxGRPCMessageSize),
+			grpc.MaxCallSendMsgSize(MaxGRPCMessageSize),
+		),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
 	)
@@ -132,6 +171,7 @@ func NewClient(serverAddress, serverPort string) (*Client, error) {
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	TaskName         string
+	DisplayName      string // optional, MLMD execution display name.
 	Name             string // optional, MLMD execution name. When provided, this needs to be unique among all MLMD executions.
 	ExecutionType    ExecutionType
 	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
@@ -559,8 +599,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	e := &pb.Execution{
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
-			// We should support overriding display name in the future, for now it defaults to task name.
-			keyDisplayName: StringValue(config.TaskName),
+			keyDisplayName: StringValue(config.DisplayName),
 			keyTaskName:    StringValue(config.TaskName),
 		},
 	}

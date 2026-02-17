@@ -19,16 +19,30 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-var ErrResolvedParameterNull = errors.New("the resolvead input parameter is null")
+var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
+
+// setWorkspaceFlag sets the _kfp_workspace metadata flag on the provided
+// runtime artifact when the producing execution is an ImporterWorkspace.
+func setWorkspaceFlag(execution *metadata.Execution, runtimeArtifact *pipelinespec.RuntimeArtifact) {
+	if execution.GetExecution().GetType() == string(metadata.ImporterWorkspaceExecutionTypeName) {
+		if runtimeArtifact.Metadata == nil {
+			runtimeArtifact.Metadata = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		}
+		runtimeArtifact.Metadata.Fields["_kfp_workspace"] = structpb.NewBoolValue(true)
+	}
+}
 
 // resolveUpstreamOutputsConfig is just a config struct used to store the input
 // parameters of the resolveUpstreamParameters and resolveUpstreamArtifacts
@@ -62,7 +76,6 @@ func getDAGTasks(
 		flattenedTasks[k] = v
 	}
 	for _, v := range currentExecutionTasks {
-
 		if v.GetExecution().GetType() == "system.DAGExecution" {
 			_, ok := v.GetExecution().GetCustomProperties()["iteration_count"]
 			if ok {
@@ -141,6 +154,9 @@ func resolveInputs(
 		}
 		return nil
 	}
+	// Track parameters set to nil by the driver (for the case in which optional pipeline input parameters are not
+	// included, and default value is nil).
+	parametersSetNilByDriver := map[string]bool{}
 	handleParamTypeValidationAndConversion := func() error {
 		// TODO(Bobgy): verify whether there are inputs not in the inputs spec.
 		for name, spec := range inputsSpec.GetParameters() {
@@ -178,6 +194,10 @@ func resolveInputs(
 			case pipelinespec.ParameterType_STRING:
 				_, isValueString := value.GetKind().(*structpb.Value_StringValue)
 				if !isValueString {
+					// If parameter was set to nil by driver, allow input parameter to have a nil value.
+					if parametersSetNilByDriver[name] {
+						continue
+					}
 					// TODO(Bobgy): discuss whether we want to allow auto type conversion
 					// all parameter types can be consumed as JSON string
 					text, err := metadata.PbValueToText(value)
@@ -192,6 +212,10 @@ func resolveInputs(
 				}
 				switch v := value.GetKind().(type) {
 				case *structpb.Value_NullValue:
+					// If parameter was set to nil by driver, allow input parameter to have a nil value.
+					if parametersSetNilByDriver[name] {
+						continue
+					}
 					return fmt.Errorf("got null for input parameter %q", name)
 				case *structpb.Value_StringValue:
 					// TODO(Bobgy): consider whether we support parsing string as JSON for any other types.
@@ -211,7 +235,7 @@ func resolveInputs(
 						return typeMismatch("list")
 					}
 				case *structpb.Value_StructValue:
-					if spec.GetParameterType() != pipelinespec.ParameterType_STRUCT {
+					if (spec.GetParameterType() != pipelinespec.ParameterType_STRUCT) && (spec.GetParameterType() != pipelinespec.ParameterType_TASK_FINAL_STATUS) && (spec.GetParameterType() != pipelinespec.ParameterType_TASK_CONFIG) {
 						return typeMismatch("struct")
 					}
 				default:
@@ -268,9 +292,35 @@ func resolveInputs(
 		}
 		return inputs, nil
 	}
-
+	// A DAG driver (not Root DAG driver) indicates this is likely the start of a nested pipeline.
+	// Handle omitted optional pipeline input parameters similar to how they are handled on the root pipeline.
+	isDagDriver := opts.DriverType == "DAG"
+	if isDagDriver {
+		for name, paramSpec := range opts.Component.GetInputDefinitions().GetParameters() {
+			_, ok := task.Inputs.GetParameters()[name]
+			if !ok && paramSpec.IsOptional {
+				if paramSpec.GetDefaultValue() != nil {
+					// If no value was input, pass along the default value to the component.
+					inputs.ParameterValues[name] = paramSpec.GetDefaultValue()
+				} else {
+					//  If no default value is set, pass along the null value to the component.
+					//	This is analogous to a pipeline run being submitted without optional pipeline input parameters.
+					inputs.ParameterValues[name] = structpb.NewNullValue()
+					parametersSetNilByDriver[name] = true
+				}
+			}
+		}
+	}
 	// Handle parameters.
 	for name, paramSpec := range task.GetInputs().GetParameters() {
+		if compParam := opts.Component.GetInputDefinitions().GetParameters()[name]; compParam != nil {
+			// Skip resolving dsl.TaskConfig because that information is only available after initPodSpecPatch and
+			// extendPodSpecPatch are called.
+			if compParam.GetParameterType() == pipelinespec.ParameterType_TASK_CONFIG {
+				continue
+			}
+		}
+
 		v, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
 		if err != nil {
 			if !errors.Is(err, ErrResolvedParameterNull) {
@@ -279,7 +329,7 @@ func resolveInputs(
 
 			componentParam, ok := opts.Component.GetInputDefinitions().GetParameters()[name]
 			if ok && componentParam != nil && componentParam.IsOptional {
-				// If the resolved paramter was null and the component input parameter is optional, just skip setting
+				// If the resolved parameter was null and the component input parameter is optional, just skip setting
 				// it and the launcher will handle defaults.
 				continue
 			}
@@ -358,8 +408,15 @@ func resolveInputParameter(
 		switch t := runtimeValue.Value.(type) {
 		case *pipelinespec.ValueOrRuntimeParameter_Constant:
 			val := runtimeValue.GetConstant()
+			valStr := val.GetStringValue()
 			var v *structpb.Value
-			switch val.GetStringValue() {
+
+			if strings.Contains(valStr, "{{$.workspace_path}}") {
+				v = structpb.NewStringValue(strings.ReplaceAll(valStr, "{{$.workspace_path}}", component.WorkspaceMountPath))
+				return v, nil
+			}
+
+			switch valStr {
 			case "{{$.pipeline_job_name}}":
 				v = structpb.NewStringValue(opts.RunDisplayName)
 			case "{{$.pipeline_job_resource_name}}":
@@ -367,9 +424,13 @@ func resolveInputParameter(
 			case "{{$.pipeline_job_uuid}}":
 				v = structpb.NewStringValue(opts.RunID)
 			case "{{$.pipeline_task_name}}":
-				v = structpb.NewStringValue(opts.Task.GetTaskInfo().GetName())
+				v = structpb.NewStringValue(opts.TaskName)
 			case "{{$.pipeline_task_uuid}}":
 				v = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
+			case "{{$.pipeline_job_create_time_utc}}":
+				v = structpb.NewStringValue(opts.PipelineJobCreateTimeUTC)
+			case "{{$.pipeline_job_schedule_time_utc}}":
+				v = structpb.NewStringValue(opts.PipelineJobScheduleTimeUTC)
 			default:
 				v = val
 			}
@@ -378,8 +439,42 @@ func resolveInputParameter(
 		default:
 			return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
 		}
-	// TODO(Bobgy): implement the following cases
-	// case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
+	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
+		tasks, err := getDAGTasks(ctx, dag, pipeline, mlmd, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(opts.Task.DependentTasks) < 1 {
+			return nil, fmt.Errorf("task %v has no dependent tasks", opts.Task.TaskInfo.GetName())
+		}
+		producer, ok := tasks[metadata.GetTaskNameWithDagID(opts.Task.DependentTasks[0], dag.Execution.GetID())]
+		if !ok {
+			return nil, fmt.Errorf("producer task, %v, not in tasks", producer.TaskName())
+		}
+		finalStatus := pipelinespec.PipelineTaskFinalStatus{
+			State:                   producer.GetExecution().GetLastKnownState().String(),
+			PipelineTaskName:        producer.TaskName(),
+			PipelineJobResourceName: opts.RunName,
+			// TODO: Implement fields "Message and "Code" below for Error status.
+			Error: &status.Status{},
+		}
+		finalStatusJSON, err := protojson.Marshal(&finalStatus)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal PipelineTaskFinalStatus: %w", err)
+		}
+
+		var finalStatusMap map[string]interface{}
+		if err := json.Unmarshal(finalStatusJSON, &finalStatusMap); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal JSON of PipelineTaskFinalStatus: %w", err)
+		}
+
+		finalStatusStruct, err := structpb.NewStruct(finalStatusMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create structpb.Struct: %w", err)
+		}
+
+		return structpb.NewStructValue(finalStatusStruct), nil
 	default:
 		return nil, paramError(fmt.Errorf("parameter spec of type %T not implemented yet", t))
 	}
@@ -683,6 +778,8 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 			if err != nil {
 				cfg.err(err)
 			}
+			// If produced by workspace importer, Set _kfp_workspace=True
+			setWorkspaceFlag(currentTask, runtimeArtifact)
 			// Base case
 			return &pipelinespec.ArtifactList{
 				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
@@ -900,6 +997,8 @@ func collectContainerOutput(
 		if err != nil {
 			return nil, nil, cfg.err(err)
 		}
+		// If produced by workspace importer, Set _kfp_workspace=True
+		setWorkspaceFlag(currentTask, artifact)
 		glog.V(4).Infof("runtimeArtifact: %v", artifact)
 	} else {
 		_, outputParameters, err := currentTask.GetParameters()

@@ -15,7 +15,6 @@
 package argocompiler
 
 import (
-	"os"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -48,9 +47,6 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("EXECUTOR_CABUNDLE_CONFIGMAP_NAME", tt.configMapName)
-			os.Setenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY", tt.configMapKey)
-			os.Setenv("EXECUTOR_CABUNDLE_MOUNTPATH", tt.mountPath)
 
 			c := &workflowCompiler{
 				templates: make(map[string]*wfapi.Template),
@@ -61,40 +57,15 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 				},
 			}
 
-			c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}})
+			c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}}, &kubernetesplatform.KubernetesExecutorConfig{})
 			assert.NotEmpty(t, "system-container-impl", "Template name should not be empty")
 
 			executorTemplate, exists := c.templates["system-container-impl"]
 			assert.True(t, exists, "Template should exist with the returned name")
 			assert.NotNil(t, executorTemplate, "Executor template should not be nil")
 
-			foundVolume := false
-			for _, volume := range executorTemplate.Volumes {
-				if volume.Name == tt.expectedVolumeName {
-					foundVolume = true
-					assert.Equal(t, tt.expectedConfigMapName, volume.VolumeSource.ConfigMap.Name, "ConfigMap name should match")
-					break
-				}
-			}
-			assert.True(t, foundVolume, "CA bundle volume should be included in the template")
-
-			foundVolumeMount := false
-			if executorTemplate.Container != nil {
-				for _, mount := range executorTemplate.Container.VolumeMounts {
-					if mount.Name == tt.expectedVolumeName && mount.MountPath == tt.expectedMountPath {
-						foundVolumeMount = true
-						break
-					}
-				}
-			}
-			assert.True(t, foundVolumeMount, "CA bundle volume mount should be included in the container")
 		})
 	}
-	defer func() {
-		os.Unsetenv("EXECUTOR_CABUNDLE_CONFIGMAP_NAME")
-		os.Unsetenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY")
-		os.Unsetenv("EXECUTOR_CABUNDLE_MOUNTPATH")
-	}()
 
 }
 
@@ -120,10 +91,10 @@ func Test_extendPodMetadata(t *testing.T) {
 			},
 			&wfapi.Metadata{
 				Annotations: map[string]string{
-					"run_id": "123456",
+					"{{inputs.parameters.pod-metadata-annotation-key}}": "{{inputs.parameters.pod-metadata-annotation-val}}",
 				},
 				Labels: map[string]string{
-					"kubeflow.com/kfp": "pipeline-node",
+					"{{inputs.parameters.pod-metadata-label-key}}": "{{inputs.parameters.pod-metadata-label-val}}",
 				},
 			},
 		},
@@ -149,9 +120,11 @@ func Test_extendPodMetadata(t *testing.T) {
 			},
 			&wfapi.Metadata{
 				Annotations: map[string]string{
+					"{{inputs.parameters.pod-metadata-annotation-key}}": "{{inputs.parameters.pod-metadata-annotation-val}}",
 					"run_id": "654321",
 				},
 				Labels: map[string]string{
+					"{{inputs.parameters.pod-metadata-label-key}}": "{{inputs.parameters.pod-metadata-label-val}}",
 					"kubeflow.com/kfp": "default-node",
 				},
 			},

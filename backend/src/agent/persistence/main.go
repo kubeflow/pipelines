@@ -15,10 +15,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/tokenrefresher"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
@@ -39,6 +41,7 @@ var (
 	mlPipelineAPIServerBasePath   string
 	mlPipelineServiceHttpPort     string
 	mlPipelineServiceGRPCPort     string
+	mlPipelineServiceTLSEnabled   bool
 	namespace                     string
 	ttlSecondsAfterWorkflowFinish int64
 	numWorker                     int
@@ -46,6 +49,7 @@ var (
 	clientBurst                   int
 	executionType                 string
 	saTokenRefreshIntervalInSecs  int64
+	caCertPath                    string
 )
 
 const (
@@ -58,6 +62,7 @@ const (
 	mlPipelineAPIServerNameFlagName       = "mlPipelineAPIServerName"
 	mlPipelineAPIServerHttpPortFlagName   = "mlPipelineServiceHttpPort"
 	mlPipelineAPIServerGRPCPortFlagName   = "mlPipelineServiceGRPCPort"
+	mlPipelineAPIServerTLSEnabledFlagName = "mlPipelineServiceTLSEnabled"
 	namespaceFlagName                     = "namespace"
 	ttlSecondsAfterWorkflowFinishFlagName = "ttlSecondsAfterWorkflowFinish"
 	numWorkerName                         = "numWorker"
@@ -65,6 +70,7 @@ const (
 	clientBurstFlagName                   = "clientBurst"
 	executionTypeFlagName                 = "executionType"
 	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
+	caCertPathFlagName                    = "caCertPath"
 )
 
 const (
@@ -113,10 +119,18 @@ func main() {
 		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
 	}
 
-	tokenRefresher := client.NewTokenRefresher(time.Duration(saTokenRefreshIntervalInSecs)*time.Second, nil)
+	tokenRefresher := tokenrefresher.NewTokenRefresher(time.Duration(saTokenRefreshIntervalInSecs)*time.Second, nil)
 	err = tokenRefresher.StartTokenRefreshTicker()
 	if err != nil {
 		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
+	}
+
+	var tlsCfg *tls.Config
+	if mlPipelineServiceTLSEnabled {
+		tlsCfg, err = util.GetTLSConfig(caCertPath)
+		if err != nil {
+			log.Fatalf("Error creating tls config: %s", err.Error())
+		}
 	}
 
 	pipelineClient, err := client.NewPipelineClient(
@@ -126,7 +140,8 @@ func main() {
 		mlPipelineAPIServerBasePath,
 		mlPipelineAPIServerName,
 		mlPipelineServiceHttpPort,
-		mlPipelineServiceGRPCPort)
+		mlPipelineServiceGRPCPort,
+		tlsCfg)
 	if err != nil {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
@@ -157,6 +172,7 @@ func init() {
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
+	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if ML pipeline API server serves over TLS.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
@@ -170,5 +186,5 @@ func init() {
 	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
 	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
-
+	flag.StringVar(&caCertPath, caCertPathFlagName, "", "The path to the CA certificate to trust on connections to the ML pipeline API server.")
 }

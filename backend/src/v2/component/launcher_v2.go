@@ -27,11 +27,12 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -41,19 +42,25 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type LauncherV2Options struct {
 	Namespace,
 	PodName,
 	PodUID,
+	MLPipelineServerAddress,
+	MLPipelineServerPort,
 	MLMDServerAddress,
 	MLMDServerPort,
 	PipelineName,
 	RunID string
 	PublishLogs   string
 	CacheDisabled bool
+	// Set to true if apiserver is serving over TLS
+	MLPipelineTLSEnabled bool
+	// Set to true if metadata server is serving over TLS
+	MLMDTLSEnabled bool
+	CaCertPath     string
 }
 
 type LauncherV2 struct {
@@ -63,11 +70,7 @@ type LauncherV2 struct {
 	command       string
 	args          []string
 	options       LauncherV2Options
-
-	// clients
-	metadataClient metadata.ClientInterface
-	k8sClient      kubernetes.Interface
-	cacheClient    cacheutils.Client
+	clientManager client_manager.ClientManagerInterface
 }
 
 // Client is the struct to hold the Kubernetes Clientset
@@ -76,7 +79,15 @@ type kubernetesClient struct {
 }
 
 // NewLauncherV2 is a factory function that returns an instance of LauncherV2.
-func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, componentSpecJSON string, cmdArgs []string, opts *LauncherV2Options) (l *LauncherV2, err error) {
+func NewLauncherV2(
+	ctx context.Context,
+	executionID int64,
+	executorInputJSON,
+	componentSpecJSON string,
+	cmdArgs []string,
+	opts *LauncherV2Options,
+	clientManager client_manager.ClientManagerInterface,
+) (l *LauncherV2, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create component launcher v2: %w", err)
@@ -102,32 +113,14 @@ func NewLauncherV2(ctx context.Context, executionID int64, executorInputJSON, co
 	if err != nil {
 		return nil, err
 	}
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-	}
-	metadataClient, err := metadata.NewClient(opts.MLMDServerAddress, opts.MLMDServerPort)
-	if err != nil {
-		return nil, err
-	}
-	cacheClient, err := cacheutils.NewClient(opts.CacheDisabled)
-	if err != nil {
-		return nil, err
-	}
 	return &LauncherV2{
-		executionID:    executionID,
-		executorInput:  executorInput,
-		component:      component,
-		command:        cmdArgs[0],
-		args:           cmdArgs[1:],
-		options:        *opts,
-		metadataClient: metadataClient,
-		k8sClient:      k8sClient,
-		cacheClient:    cacheClient,
+		executionID:   executionID,
+		executorInput: executorInput,
+		component:     component,
+		command:       cmdArgs[0],
+		args:          cmdArgs[1:],
+		options:       *opts,
+		clientManager: clientManager,
 	}, nil
 }
 
@@ -169,6 +162,14 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 	}
 }
 
+// OpenBucketConfig stores the parameters that are passed into the objectstore.OpenBucket function.
+type OpenBucketConfig struct {
+	ctx       context.Context
+	k8sClient kubernetes.Interface
+	namespace string
+	config    *objectstore.Config
+}
+
 // Execute calls executeV2, updates the cache, and publishes the results to MLMD.
 func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	defer func() {
@@ -185,6 +186,11 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	var outputArtifacts []*metadata.OutputArtifact
 	status := pb.Execution_FAILED
 	defer func() {
+		if execution == nil {
+			glog.Errorf("Skipping publish since execution is nil. Original err is: %v", err)
+			return
+		}
+
 		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
 			if err != nil {
 				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
@@ -195,12 +201,12 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		glog.Infof("publish success.")
 		// At the end of the current task, we check the statuses of all tasks in
 		// the current DAG and update the DAG's status accordingly.
-		dag, err := l.metadataClient.GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
+		dag, err := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
 		if err != nil {
 			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
 		}
-		pipeline, _ := l.metadataClient.GetPipelineFromExecution(ctx, execution.GetID())
-		err = l.metadataClient.UpdateDAGExecutionsState(ctx, dag, pipeline)
+		pipeline, _ := l.clientManager.MetadataClient().GetPipelineFromExecution(ctx, execution.GetID())
+		err = l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, pipeline)
 		if err != nil {
 			glog.Errorf("failed to update DAG state: %s", err.Error())
 		}
@@ -220,7 +226,20 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.options.Namespace, bucketConfig)
+
+	openBucketConfig := &OpenBucketConfig{
+		ctx:       ctx,
+		k8sClient: l.clientManager.K8sClient(),
+		namespace: l.options.Namespace,
+		config:    bucketConfig,
+	}
+
+	bucket, err := objectstore.OpenBucket(
+		openBucketConfig.ctx,
+		openBucketConfig.k8sClient,
+		openBucketConfig.namespace,
+		openBucketConfig.config,
+	)
 	if err != nil {
 		return err
 	}
@@ -235,10 +254,12 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		l.args,
 		bucket,
 		bucketConfig,
-		l.metadataClient,
+		l.clientManager.MetadataClient(),
 		l.options.Namespace,
-		l.k8sClient,
+		l.clientManager.K8sClient(),
 		l.options.PublishLogs,
+		l.options.CaCertPath,
+		openBucketConfig,
 	)
 	if err != nil {
 		return err
@@ -251,16 +272,16 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			return fmt.Errorf("failed to get id from createdExecution")
 		}
 		task := &api.Task{
-			//TODO how to differentiate between shared pipeline and namespaced pipeline
+			// TODO how to differentiate between shared pipeline and namespaced pipeline
 			PipelineName:    "pipeline/" + l.options.PipelineName,
 			Namespace:       l.options.Namespace,
 			RunId:           l.options.RunID,
 			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
-			FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
+			CreatedAt:       timestamppb.New(time.Unix(executedStartedTime, 0)),
+			FinishedAt:      timestamppb.New(time.Unix(time.Now().Unix(), 0)),
 			Fingerprint:     fingerPrint,
 		}
-		return l.cacheClient.CreateExecutionCache(ctx, task)
+		return l.clientManager.CacheClient().CreateExecutionCache(ctx, task)
 	}
 
 	return nil
@@ -306,7 +327,7 @@ func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execut
 			err = fmt.Errorf("failed to pre-publish Pod info to ML Metadata: %w", err)
 		}
 	}()
-	execution, err = l.metadataClient.GetExecution(ctx, l.executionID)
+	execution, err = l.clientManager.MetadataClient().GetExecution(ctx, l.executionID)
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +336,7 @@ func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execut
 		PodUID:    l.options.PodUID,
 		Namespace: l.options.Namespace,
 	}
-	return l.metadataClient.PrePublishExecution(ctx, execution, ecfg)
+	return l.clientManager.MetadataClient().PrePublishExecution(ctx, execution, ecfg)
 }
 
 // TODO(Bobgy): consider passing output artifacts info from executor output.
@@ -326,17 +347,25 @@ func (l *LauncherV2) publish(
 	outputArtifacts []*metadata.OutputArtifact,
 	status pb.Execution_State,
 ) (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to publish results to ML Metadata: %w", err)
-		}
-	}()
-	outputParameters := executorOutput.GetParameterValues()
+	if execution == nil {
+		return fmt.Errorf("failed to publish results to ML Metadata: execution is nil")
+	}
+
+	var outputParameters map[string]*structpb.Value
+	if executorOutput != nil {
+		outputParameters = executorOutput.GetParameterValues()
+	}
+
 	// TODO(Bobgy): upload output artifacts.
 	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 	// to publish output artifacts to the context too.
 	// return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
-	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
+	err = l.clientManager.MetadataClient().PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
+	if err != nil {
+		return fmt.Errorf("failed to publish results to ML Metadata: %w", err)
+	}
+
+	return nil
 }
 
 // executeV2 handles placeholder substitution for inputs, calls execute to
@@ -353,6 +382,8 @@ func executeV2(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
+	customCAPath string,
+	openBucketConfig *OpenBucketConfig,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 
 	// Add parameter default values to executorInput, if there is not already a user input.
@@ -379,6 +410,7 @@ func executeV2(
 		namespace,
 		k8sClient,
 		publishLogs,
+		customCAPath,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -390,15 +422,38 @@ func executeV2(
 	if err != nil {
 		return nil, nil, err
 	}
-	// TODO(Bobgy): should we log metadata per each artifact, or batched after uploading all artifacts.
+
 	outputArtifacts, err := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
 		bucketConfig:   bucketConfig,
 		bucket:         bucket,
 		metadataClient: metadataClient,
 	})
+
 	if err != nil {
-		return nil, nil, err
+		glog.Errorf("Failed to upload output artifacts: %v", err)
+
+		glog.Info("Refreshing credentials before retrying artifacts upload.")
+		bucket, err = objectstore.OpenBucket(
+			openBucketConfig.ctx,
+			openBucketConfig.k8sClient,
+			openBucketConfig.namespace,
+			openBucketConfig.config,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		glog.Info("Executing second uploadOutputArtifacts attempt.")
+		outputArtifacts, err = uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         bucket,
+			metadataClient: metadataClient,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
 	}
+
 	// TODO(Bobgy): only return executor output. Merge info in output artifacts
 	// to executor output.
 	return executorOutput, outputArtifacts, nil
@@ -445,7 +500,7 @@ func prettyPrint(jsonStr string) string {
 	if err != nil {
 		return jsonStr
 	}
-	return string(prettyJSON.Bytes())
+	return prettyJSON.String()
 }
 
 const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
@@ -492,7 +547,30 @@ func execute(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
+	customCAPath string,
 ) (*pipelinespec.ExecutorOutput, error) {
+	// If a custom CA path is input, append to system CA and save to a temp file for executor access.
+	if customCAPath != "" {
+		var caBundleTmpPath string
+		var err error
+		if caBundleTmpPath, err = compileTempCABundleWithCustomCA(customCAPath); err != nil {
+			return nil, err
+		}
+
+		err = os.Setenv("REQUESTS_CA_BUNDLE", caBundleTmpPath)
+		if err != nil {
+			glog.Errorf("Error setting REQUESTS_CA_BUNDLE environment variable, %s", err.Error())
+		}
+		err = os.Setenv("AWS_CA_BUNDLE", caBundleTmpPath)
+		if err != nil {
+			glog.Errorf("Error setting AWS_CA_BUNDLE environment variable, %s", err.Error())
+		}
+		err = os.Setenv("SSL_CERT_FILE", caBundleTmpPath)
+		if err != nil {
+			glog.Errorf("Error setting SSL_CERT_FILE environment variable, %s", err.Error())
+		}
+
+	}
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
 	}
@@ -524,13 +602,68 @@ func execute(
 	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
 }
 
+// Create a temp file that contains the system CA bundle (and custom CA if it has been mounted).
+func compileTempCABundleWithCustomCA(customCAPath string) (string, error) {
+	// Possible certificate files; stop after finding one. List from https://go.dev/src/crypto/x509/root_linux.go
+	var systemCAs = []string{
+		"/etc/ssl/certs/ca-certificates.crt",
+		"/etc/pki/tls/certs/ca-bundle.crt",
+		"/etc/ssl/ca-bundle.pem",
+		"/etc/pki/tls/cacert.pem",
+		"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+		"/etc/ssl/cert.pem",
+	}
+	sslCertFilePath := os.Getenv("SSL_CERT_FILE")
+	// If SSL_CERT_FILE is set to a different value than the custom CA path, append it to the beginning of the systemCAs slice.
+	if sslCertFilePath != "" && sslCertFilePath != customCAPath {
+		systemCAs = append([]string{sslCertFilePath}, systemCAs...)
+	}
+	tmpCaBundle, err := os.CreateTemp("", "ca-bundle-*.crt")
+	if err != nil {
+		return "", err
+	}
+	var systemCaBundle []byte
+	for _, file := range systemCAs {
+		systemCaBundle, err = os.ReadFile(file)
+		if err != nil {
+			glog.Errorf("Error reading CA bundle file, %s.", err)
+		}
+		// Once a non-nil system CA file is found, break.
+		if systemCaBundle != nil {
+			break
+		}
+	}
+	// Append mounted custom CA cert to System CA bundle.
+	customCa, err := os.ReadFile(customCAPath)
+	if err != nil {
+		return "", err
+	}
+	systemCaBundle = append(systemCaBundle, customCa...)
+	_, err = tmpCaBundle.Write(systemCaBundle)
+	if err != nil {
+		return "", err
+	}
+	// Update temp file permissions to 444 (read-only).
+	err = tmpCaBundle.Chmod(0444)
+	if err != nil {
+		return "", err
+	}
+	// Return filepath for tmpCaBundle
+	return tmpCaBundle.Name(), nil
+}
+
 type uploadOutputArtifactsOptions struct {
 	bucketConfig   *objectstore.Config
 	bucket         *blob.Bucket
 	metadataClient metadata.ClientInterface
 }
 
-func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.ExecutorInput, executorOutput *pipelinespec.ExecutorOutput, opts uploadOutputArtifactsOptions) ([]*metadata.OutputArtifact, error) {
+func uploadOutputArtifacts(
+	ctx context.Context,
+	executorInput *pipelinespec.ExecutorInput,
+	executorOutput *pipelinespec.ExecutorOutput,
+	opts uploadOutputArtifactsOptions,
+) ([]*metadata.OutputArtifact, error) {
 	// Register artifacts with MLMD.
 	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
 	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
@@ -547,7 +680,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 			}
 
 			// Upload artifacts from local path to remote storages.
-			localDir, err := LocalPathForURI(outputArtifact.Uri)
+			localDir, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
 			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
@@ -632,6 +765,12 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 		for _, artifact := range artifactList.Artifacts {
 			// Iterating through the artifact list allows for collected artifacts to be properly consumed.
 			inputArtifact := artifact
+			// Skip downloading if the artifact is flagged as already present in the workspace
+			if inputArtifact.GetMetadata() != nil {
+				if v, ok := inputArtifact.GetMetadata().GetFields()["_kfp_workspace"]; ok && v.GetBoolValue() {
+					continue
+				}
+			}
 			localPath, err := LocalPathForURI(inputArtifact.Uri)
 			if err != nil {
 				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
@@ -775,6 +914,20 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, name)
 		placeholders[key] = inputArtifact.Uri
 
+		// If the artifact is marked as already in the workspace, map to the workspace path
+		// with the same shape as LocalPathForURI, but rebased under the workspace mount.
+		if inputArtifact.GetMetadata() != nil {
+			if v, ok := inputArtifact.GetMetadata().GetFields()["_kfp_workspace"]; ok && v.GetBoolValue() {
+				localPath, lerr := LocalWorkspacePathForURI(inputArtifact.Uri)
+				if lerr != nil {
+					return nil, fmt.Errorf("failed to get local workspace path for input artifact %q: %w", name, lerr)
+				}
+				key = fmt.Sprintf(`{{$.inputs.artifacts['%s'].path}}`, name)
+				placeholders[key] = localPath
+				continue
+			}
+		}
+
 		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
@@ -864,6 +1017,10 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 			}
 		}
 	}
+
+	if src.CustomPath != nil && *src.CustomPath != "" {
+		dst.CustomPath = src.CustomPath
+	}
 }
 
 func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
@@ -911,6 +1068,31 @@ func LocalPathForURI(uri string) (string, error) {
 		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
+}
+
+func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error) {
+	// If artifact custom path is set, use custom path. Otherwise, use URI.
+	customPath := artifact.CustomPath
+	if customPath != nil {
+		return *customPath, nil
+	} else {
+		return LocalPathForURI(artifact.Uri)
+	}
+}
+
+// LocalWorkspacePathForURI returns the local workspace path for a given artifact URI.
+// It preserves the same path shape as LocalPathForURI, but rebases it under the
+// workspace artifacts directory: /kfp-workspace/.artifacts/...
+func LocalWorkspacePathForURI(uri string) (string, error) {
+	if strings.HasPrefix(uri, "oci://") {
+		return "", fmt.Errorf("failed to generate workspace path for URI %s: OCI not supported for workspace artifacts", uri)
+	}
+	localPath, err := LocalPathForURI(uri)
+	if err != nil {
+		return "", err
+	}
+	// Rebase under the workspace mount, stripping the leading '/'
+	return filepath.Join(WorkspaceMountPath, ".artifacts", strings.TrimPrefix(localPath, "/")), nil
 }
 
 func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {

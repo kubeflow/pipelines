@@ -11,7 +11,7 @@ data:
     until the changes take effect. A quick way to restart all deployments in a
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
-  appVersion: 2.5.0
+  appVersion: 2.15.0
   dbHost: mysql # relic to be removed after release
   dbPort: "3306" # relic to be removed after release
   dbType: mysql
@@ -63,8 +63,8 @@ data:
   ## cacheImage is the image that the mutating webhook will use to patch
   ## cached steps with. Will be used to echo a message announcing that 
   ## the cached step result will be used. If not set it will default to 
-  ## 'registry.k8s.io/busybox'
-  cacheImage: "registry.k8s.io/busybox"
+  ## 'ghcr.io/containerd/busybox'
+  cacheImage: "ghcr.io/containerd/busybox"
   ## cacheNodeRestrictions the dummy container runing if output is cached
   ## will run with the same affinity and node selector as the default pipeline
   ## step. This is defaulted to 'false' to allow the pod to be scheduled on 
@@ -94,3 +94,16 @@ data:
   ## to be nanoseconds.
   ConMaxLifeTime: "120s"
   LOG_LEVEL: "info"
+  ## ARTIFACTS_PROXY_ENABLED: Controls whether the artifact proxy is enabled
+  ## to support accessing out-of-kubeflow scope buckets. The artifact proxy
+  ## has known security and architectural flaws, so it should only be enabled
+  ## if you specifically need to access unique pipeline root buckets per
+  ## namespace that are outside the kubeflow namespace's access.
+  ## Valid values are 'true' and 'false'. Defaults to 'false'.
+  ## For more information see: https://github.com/kubeflow/pipelines/pull/11965
+  ARTIFACTS_PROXY_ENABLED: "false"
+  ## ARTIFACT_RETENTION_DAYS: Defines the retention period (in days) for artifacts stored in SeaweedFS.  
+  ## - A positive integer specifies the number of days after which the artifact will be automatically deleted.  
+  ## - A negative integer (e.g., -1) disables automatic deletion, meaning artifacts are retained indefinitely.  
+  ## Note: The unit of this configuration is always in days.  
+  ARTIFACT_RETENTION_DAYS: "-1"

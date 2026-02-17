@@ -9,7 +9,7 @@ Method | HTTP request | Description
 
 
 # **upload_pipeline**
-> V2beta1Pipeline upload_pipeline(uploadfile, name=name, description=description, namespace=namespace)
+> V2beta1Pipeline upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace)
 
 
 
@@ -49,11 +49,12 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     api_instance = kfp_server_api.PipelineUploadServiceApi(api_client)
     uploadfile = '/path/to/file' # file | The pipeline to upload. Maximum size of 32MB is supported.
 name = 'name_example' # str |  (optional)
+display_name = 'display_name_example' # str |  (optional)
 description = 'description_example' # str |  (optional)
 namespace = 'namespace_example' # str |  (optional)
 
     try:
-        api_response = api_instance.upload_pipeline(uploadfile, name=name, description=description, namespace=namespace)
+        api_response = api_instance.upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineUploadServiceApi->upload_pipeline: %s\n" % e)
@@ -65,6 +66,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
  **name** | **str**|  | [optional] 
+ **display_name** | **str**|  | [optional] 
  **description** | **str**|  | [optional] 
  **namespace** | **str**|  | [optional] 
 
@@ -90,7 +92,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **upload_pipeline_version**
-> V2beta1PipelineVersion upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description)
+> V2beta1PipelineVersion upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description)
 
 
 
@@ -130,11 +132,12 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     api_instance = kfp_server_api.PipelineUploadServiceApi(api_client)
     uploadfile = '/path/to/file' # file | The pipeline to upload. Maximum size of 32MB is supported.
 name = 'name_example' # str |  (optional)
+display_name = 'display_name_example' # str |  (optional)
 pipelineid = 'pipelineid_example' # str |  (optional)
 description = 'description_example' # str |  (optional)
 
     try:
-        api_response = api_instance.upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description)
+        api_response = api_instance.upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineUploadServiceApi->upload_pipeline_version: %s\n" % e)
@@ -146,6 +149,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
  **name** | **str**|  | [optional] 
+ **display_name** | **str**|  | [optional] 
  **pipelineid** | **str**|  | [optional] 
  **description** | **str**|  | [optional] 
 

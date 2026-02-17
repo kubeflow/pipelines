@@ -13,14 +13,14 @@
 // limitations under the License.
 import { readFileSync } from 'fs';
 import { Transform, TransformOptions } from 'stream';
-import path from 'path';
+import { posix as path } from 'path';
 
 /** get the server address from host, port, and schema (defaults to 'http'). */
 export function getAddress({
   host,
   port,
   namespace,
-  schema = 'http',
+  schema,
 }: {
   host: string;
   port?: string | number;
@@ -299,4 +299,8 @@ function parseK8sError(error: any): ErrorDetails | undefined {
     message: error.body.message,
     additionalInfo: error.body,
   };
+}
+
+export function isAllowedResourceName(name: string): boolean {
+  return name.length > 0 && name.length <= 63 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name);
 }

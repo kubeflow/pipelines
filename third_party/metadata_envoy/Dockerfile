@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM envoyproxy/envoy:v1.27.3
+FROM envoyproxy/envoy:v1.37.0
 
 RUN apt-get update -y && \
   apt-get install --no-install-recommends -y -q gettext openssl
 
-COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
 
 # Copy license files.
 #RUN mkdir -p /third_party
 COPY third_party/metadata_envoy/license.txt /third_party/license.txt
 
 ENTRYPOINT ["/usr/local/bin/envoy", "-c"]
-CMD ["/etc/envoy.yaml"]

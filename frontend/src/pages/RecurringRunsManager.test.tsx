@@ -15,51 +15,42 @@
  */
 
 import * as React from 'react';
-import TestUtils from 'src/TestUtils';
-import { ListRequest, Apis } from 'src/lib/Apis';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
+import { Apis } from 'src/lib/Apis';
+import TestUtils, { expectErrors } from 'src/TestUtils';
 import RecurringRunsManager, { RecurringRunListProps } from './RecurringRunsManager';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
+const RECURRINGRUNS: V2beta1RecurringRun[] = [
+  {
+    created_at: new Date(2018, 10, 9, 8, 7, 6),
+    display_name: 'test recurring run name',
+    recurring_run_id: 'recurringrun1',
+    status: V2beta1RecurringRunStatus.ENABLED,
+  },
+  {
+    created_at: new Date(2018, 10, 9, 8, 7, 6),
+    display_name: 'test recurring run name2',
+    recurring_run_id: 'recurringrun2',
+    status: V2beta1RecurringRunStatus.DISABLED,
+  },
+  {
+    created_at: new Date(2018, 10, 9, 8, 7, 6),
+    display_name: 'test recurring run name3',
+    recurring_run_id: 'recurringrun3',
+    status: V2beta1RecurringRunStatus.STATUSUNSPECIFIED,
+  },
+];
+
 describe('RecurringRunsManager', () => {
-  class TestRecurringRunsManager extends RecurringRunsManager {
-    public async _loadRuns(request: ListRequest): Promise<string> {
-      return super._loadRuns(request);
-    }
-    public _setEnabledState(id: string, enabled: boolean): Promise<void> {
-      return super._setEnabledState(id, enabled);
-    }
-  }
-
-  let tree: ReactWrapper | ShallowWrapper;
-
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const listRecurringRunsSpy = jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
-  const enableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
-  const disableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun');
-  jest.spyOn(console, 'error').mockImplementation();
-
-  const RECURRINGRUNS: V2beta1RecurringRun[] = [
-    {
-      created_at: new Date(2018, 10, 9, 8, 7, 6),
-      display_name: 'test recurring run name',
-      recurring_run_id: 'recurringrun1',
-      status: V2beta1RecurringRunStatus.ENABLED,
-    },
-    {
-      created_at: new Date(2018, 10, 9, 8, 7, 6),
-      display_name: 'test recurring run name2',
-      recurring_run_id: 'recurringrun2',
-      status: V2beta1RecurringRunStatus.DISABLED,
-    },
-    {
-      created_at: new Date(2018, 10, 9, 8, 7, 6),
-      display_name: 'test recurring run name3',
-      recurring_run_id: 'recurringrun3',
-      status: V2beta1RecurringRunStatus.STATUSUNSPECIFIED,
-    },
-  ];
+  let updateDialogSpy: ReturnType<typeof vi.fn>;
+  let updateSnackbarSpy: ReturnType<typeof vi.fn>;
+  let listRecurringRunsSpy: ReturnType<typeof vi.spyOn>;
+  let enableRecurringRunSpy: ReturnType<typeof vi.spyOn>;
+  let disableRecurringRunSpy: ReturnType<typeof vi.spyOn>;
+  let managerRef: React.RefObject<RecurringRunsManager> | null = null;
 
   function generateProps(): RecurringRunListProps {
     return {
@@ -72,22 +63,53 @@ describe('RecurringRunsManager', () => {
     };
   }
 
+  function renderManager(): ReturnType<typeof render> {
+    managerRef = React.createRef<RecurringRunsManager>();
+    return render(
+      <MemoryRouter>
+        <RecurringRunsManager ref={managerRef} {...generateProps()} />
+      </MemoryRouter>,
+    );
+  }
+
+  function getRowById(id: string): HTMLElement {
+    const rows = screen.getAllByTestId('table-row');
+    const row = rows.find(element => element.getAttribute('data-row-id') === id);
+    if (!row) {
+      throw new Error(`Row not found: ${id}`);
+    }
+    return row;
+  }
+
   beforeEach(() => {
-    listRecurringRunsSpy.mockReset();
-    listRecurringRunsSpy.mockImplementation(() => ({ recurringRuns: RECURRINGRUNS }));
-    enableRecurringRunSpy.mockReset();
-    disableRecurringRunSpy.mockReset();
-    updateDialogSpy.mockReset();
-    updateSnackbarSpy.mockReset();
+    updateDialogSpy = vi.fn();
+    updateSnackbarSpy = vi.fn();
+    listRecurringRunsSpy = vi
+      .spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns')
+      .mockResolvedValue({ recurringRuns: RECURRINGRUNS });
+    enableRecurringRunSpy = vi
+      .spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun')
+      .mockResolvedValue(undefined as any);
+    disableRecurringRunSpy = vi
+      .spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun')
+      .mockResolvedValue(undefined as any);
   });
 
-  afterEach(() => tree.unmount());
+  afterEach(() => {
+    managerRef = null;
+    vi.restoreAllMocks();
+  });
 
   it('calls API to load recurring runs', async () => {
-    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    await (tree.instance() as TestRecurringRunsManager)._loadRuns({});
-    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
-    expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
+    renderManager();
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
+
+    listRecurringRunsSpy.mockClear();
+    await act(async () => {
+      await (managerRef!.current as any)._loadRuns({});
+    });
+
+    expect(listRecurringRunsSpy).toHaveBeenCalledWith(
       undefined,
       undefined,
       undefined,
@@ -95,15 +117,23 @@ describe('RecurringRunsManager', () => {
       undefined,
       'test-experiment',
     );
-    expect(tree.state('runs')).toEqual(RECURRINGRUNS);
-    expect(tree).toMatchSnapshot();
+    expect(managerRef!.current!.state.runs).toEqual(RECURRINGRUNS);
+    expect(screen.getByText('test recurring run name')).toBeInTheDocument();
   });
 
   it('shows error dialog if listing fails', async () => {
-    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy, 'woops!');
-    jest.spyOn(console, 'error').mockImplementation();
-    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    await (tree.instance() as TestRecurringRunsManager)._loadRuns({});
+    const assertErrors = expectErrors();
+    renderManager();
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
+
+    updateDialogSpy.mockClear();
+    listRecurringRunsSpy.mockClear();
+    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy as any, 'woops!');
+
+    await act(async () => {
+      await (managerRef!.current as any)._loadRuns({});
+    });
+
     expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -111,27 +141,35 @@ describe('RecurringRunsManager', () => {
         title: 'Error retrieving recurring run configs',
       }),
     );
-    expect(tree.state('runs')).toEqual([]);
+    expect(managerRef!.current!.state.runs).toEqual([]);
+    assertErrors();
   });
 
   it('calls API to enable run', async () => {
-    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
+    renderManager();
+    await act(async () => {
+      await (managerRef!.current as any)._setEnabledState('test-run', true);
+    });
     expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
     expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('test-run');
   });
 
   it('calls API to disable run', async () => {
-    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
+    renderManager();
+    await act(async () => {
+      await (managerRef!.current as any)._setEnabledState('test-run', false);
+    });
     expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
     expect(disableRecurringRunSpy).toHaveBeenLastCalledWith('test-run');
   });
 
   it('shows error if enable API call fails', async () => {
-    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    TestUtils.makeErrorResponseOnce(enableRecurringRunSpy, 'cannot enable');
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
+    const assertErrors = expectErrors();
+    renderManager();
+    TestUtils.makeErrorResponseOnce(enableRecurringRunSpy as any, 'cannot enable');
+    await act(async () => {
+      await (managerRef!.current as any)._setEnabledState('test-run', true);
+    });
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -139,12 +177,16 @@ describe('RecurringRunsManager', () => {
         title: 'Error',
       }),
     );
+    assertErrors();
   });
 
   it('shows error if disable API call fails', async () => {
-    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    TestUtils.makeErrorResponseOnce(disableRecurringRunSpy, 'cannot disable');
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
+    const assertErrors = expectErrors();
+    renderManager();
+    TestUtils.makeErrorResponseOnce(disableRecurringRunSpy as any, 'cannot disable');
+    await act(async () => {
+      await (managerRef!.current as any)._setEnabledState('test-run', false);
+    });
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -152,71 +194,62 @@ describe('RecurringRunsManager', () => {
         title: 'Error',
       }),
     );
+    assertErrors();
   });
 
-  it('renders run name as link to its details page', () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
-    expect(
-      (tree.instance() as RecurringRunsManager)._nameCustomRenderer({
-        id: 'run-id',
-        value: 'test-run',
-      }),
-    ).toMatchSnapshot();
+  it('renders run name as link to its details page', async () => {
+    renderManager();
+    const link = await screen.findByRole('link', { name: 'test recurring run name' });
+    expect(link).toHaveAttribute('href', '/recurringrun/details/recurringrun1');
   });
 
   it('renders a disable button if the run is enabled, clicking the button calls disable API', async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
-    await TestUtils.flushPromises();
-    tree.update();
+    renderManager();
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
-    const enableBtn = tree.find('.tableRow Button').at(0);
-    expect(enableBtn).toMatchSnapshot();
+    const row = getRowById('recurringrun1');
+    const button = within(row).getByRole('button', { name: 'Enabled' });
+    fireEvent.click(button);
 
-    enableBtn.simulate('click');
     await TestUtils.flushPromises();
     expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
-    expect(disableRecurringRunSpy).toHaveBeenLastCalledWith(RECURRINGRUNS[0].recurring_run_id);
+    expect(disableRecurringRunSpy).toHaveBeenLastCalledWith('recurringrun1');
   });
 
   it('renders an enable button if the run is disabled, clicking the button calls enable API', async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
-    await TestUtils.flushPromises();
-    tree.update();
+    renderManager();
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
-    const enableBtn = tree.find('.tableRow Button').at(1);
-    expect(enableBtn).toMatchSnapshot();
+    const row = getRowById('recurringrun2');
+    const button = within(row).getByRole('button', { name: 'Disabled' });
+    fireEvent.click(button);
 
-    enableBtn.simulate('click');
     await TestUtils.flushPromises();
     expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
-    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith(RECURRINGRUNS[1].recurring_run_id);
+    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('recurringrun2');
   });
 
   it("renders an enable button if the run's enabled field is undefined, clicking the button calls enable API", async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
-    await TestUtils.flushPromises();
-    tree.update();
+    renderManager();
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
 
-    const enableBtn = tree.find('.tableRow Button').at(2);
-    expect(enableBtn).toMatchSnapshot();
+    const row = getRowById('recurringrun3');
+    const button = within(row).getByRole('button', { name: 'Disabled' });
+    fireEvent.click(button);
 
-    enableBtn.simulate('click');
     await TestUtils.flushPromises();
     expect(enableRecurringRunSpy).toHaveBeenCalledTimes(1);
-    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith(RECURRINGRUNS[2].recurring_run_id);
+    expect(enableRecurringRunSpy).toHaveBeenLastCalledWith('recurringrun3');
   });
 
   it('reloads the list of runs after enable/disabling', async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
-    await TestUtils.flushPromises();
-    tree.update();
+    renderManager();
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1));
 
-    const enableBtn = tree.find('.tableRow Button').at(0);
-    expect(enableBtn).toMatchSnapshot();
+    const row = getRowById('recurringrun1');
+    const button = within(row).getByRole('button', { name: 'Enabled' });
+    fireEvent.click(button);
 
-    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
-    enableBtn.simulate('click');
-    await TestUtils.flushPromises();
-    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalledTimes(2));
   });
 });

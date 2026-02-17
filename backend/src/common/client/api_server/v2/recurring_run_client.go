@@ -15,7 +15,10 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
+
+	httptransport "github.com/go-openapi/runtime/client"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -44,10 +47,10 @@ type RecurringRunClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*RecurringRunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}
@@ -60,10 +63,10 @@ func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool) (
+func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*RecurringRunClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -71,6 +74,24 @@ func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool) (
 	return &RecurringRunClient{
 		apiClient:      apiClient,
 		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
+	}, nil
+}
+
+func NewMultiUserRecurringRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
+	*RecurringRunClient, error) {
+
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
+	}
+
+	runtime.DefaultAuthentication = httptransport.BearerToken(userToken)
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating job client
+	return &RecurringRunClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
 	}, nil
 }
 
@@ -85,8 +106,8 @@ func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreate
 	response, err := c.apiClient.RecurringRunService.RecurringRunServiceCreateRecurringRun(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create job '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.RecurringRun),
+			fmt.Sprintf("Failed to create job '%v'", parameters.RecurringRun.DisplayName))
 	}
 
 	return response.Payload, nil
@@ -173,7 +194,7 @@ func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecu
 	if err != nil {
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list jobs"))
+			"Failed to list jobs")
 	}
 
 	return response.Payload.RecurringRuns, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil

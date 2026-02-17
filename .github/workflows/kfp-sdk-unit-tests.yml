@@ -1,0 +1,67 @@
+name: KFP SDK Unit Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'sdk/**'
+      - './test/presubmit-tests-sdk-unit.sh'
+      - '.github/workflows/kfp-sdk-unit-tests.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+concurrency:
+  group: sdk-unit-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk-unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.13']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install protobuf dependencies & kfp-pipeline-spec
+      id: install-protobuf-deps
+      uses: ./.github/actions/protobuf
+
+    - name: Install kfp & kfp-kubernetes from source
+      id: install-kfp-k8s-deps
+      uses: ./.github/actions/kfp-k8s
+
+    - name: Install Test dependencies
+      run: |
+        pip install pytest-cov
+        pip install -r sdk/python/requirements-dev.txt
+
+    - name: Run SDK Tests
+      id: run-tests
+      env:
+        # We setup the env in the CI
+        SETUP_ENV: false
+        REPO_NAME: ${{ github.repository }}
+        PULL_NUMBER: ${{ github.event.pull_request.number }}
+        JUNIT_XML: "sdk-unit.xml"
+      run: |
+        ./test/presubmit-tests-sdk-unit.sh
+        echo "JUNIT_XML=$JUNIT_XML" >> "$GITHUB_OUTPUT"
+
+    - name: Publish Junit Summary
+      id: summary
+      uses: ./.github/actions/junit-summary
+      if: (!cancelled())
+      with:
+        xml_files: ${{ steps.run-tests.outputs.JUNIT_XML }}
+      continue-on-error: true

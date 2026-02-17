@@ -15,7 +15,7 @@
 
 import copy
 import textwrap
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 import warnings
 
 from google_cloud_pipeline_components import _placeholders
@@ -76,6 +76,9 @@ def create_custom_training_job_from_component(
     reservation_affinity_type: Optional[str] = None,
     reservation_affinity_key: Optional[str] = None,
     reservation_affinity_values: Optional[List[str]] = None,
+    psc_interface_config: Optional[
+        Dict[str, Union[str, List[Dict[str, str]]]]
+    ] = None,
 ) -> Callable:
   # fmt: off
   """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
@@ -109,6 +112,7 @@ def create_custom_training_job_from_component(
     reservation_affinity_type: The type of [reservation affinity](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#reservationaffinity). Valid values are "NO_RESERVATION", "ANY_RESERVATION", "SPECIFIC_RESERVATION".
     reservation_affinity_key: Corresponds to the label key of a reservation resource. To target a SPECIFIC_RESERVATION by name, use compute.googleapis.com/reservation-name as the key and specify the name of your reservation as its value.
     reservation_affinity_values: Corresponds to the label values of a reservation resource. This must be the full resource name of the reservation.
+    psc_interface_config: Configuration CustomJob with PSC-I. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#PscInterfaceConfig).
 
    Returns:
     A KFP component with CustomJob specification applied.
@@ -147,6 +151,11 @@ def create_custom_training_job_from_component(
   # load_component_from_text to load the YAML).
   # After adding the appropriate description and the name, the new component
   # is returned.
+  if network and psc_interface_config:
+    raise ValueError(
+        '`network` and `psc_interface_config` field cannot be set at the same'
+        ' time.'
+    )
 
   cj_pipeline_spec = json_format.MessageToDict(
       component.custom_training_job.pipeline_spec
@@ -224,17 +233,25 @@ def create_custom_training_job_from_component(
       'tensorboard': tensorboard,
       'enable_web_access': enable_web_access,
       'network': network,
-      'reserved_ip_ranges': reserved_ip_ranges or [],
+      'reserved_ip_ranges': reserved_ip_ranges,
       'base_output_directory': base_output_directory,
-      'labels': labels or {},
+      'labels': labels,
       'encryption_spec_key_name': encryption_spec_key_name,
       'persistent_resource_id': persistent_resource_id,
+      'psc_interface_config': psc_interface_config,
   }
 
   for param_name, default_value in custom_job_param_defaults.items():
-    cj_component_spec['inputDefinitions']['parameters'][param_name][
-        'defaultValue'
-    ] = default_value
+    param_definition = cj_component_spec['inputDefinitions']['parameters'][
+        param_name
+    ]
+    if default_value is None:
+      # If the provided value is None, remove the defaultValue key
+      if 'defaultValue' in param_definition:
+        del param_definition['defaultValue']
+    else:
+      # Otherwise, set the defaultValue to the provided value
+      param_definition['defaultValue'] = default_value
 
   # merge parameters from user component into the customjob component
   cj_component_spec['inputDefinitions']['parameters'].update(

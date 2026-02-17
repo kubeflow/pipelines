@@ -164,13 +164,14 @@ class PipelineTask:
             self.pipeline_spec = self.component_spec.implementation.graph
 
         self._outputs = {
-            output_name: pipeline_channel.create_pipeline_channel(
-                name=output_name,
-                channel_type=output_spec.type,
-                task_name=self._task_spec.name,
-                is_artifact_list=output_spec.is_artifact_list,
-            ) for output_name, output_spec in (
-                component_spec.outputs or {}).items()
+            output_name:
+                pipeline_channel.create_pipeline_channel(
+                    name=output_name,
+                    channel_type=output_spec.type,
+                    task_name=self._task_spec.name,
+                    is_artifact_list=output_spec.is_artifact_list,
+                ) for output_name, output_spec in (
+                    component_spec.outputs or {}).items()
         }
 
         self._inputs = args
@@ -566,7 +567,9 @@ class PipelineTask:
 
     @block_if_final()
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
-        """Sets accelerator type to use when executing this task.
+        """Deprecated. Use :meth:`set_accelerator_type` instead.
+
+        Sets accelerator type to use when executing this task.
 
         Args:
             accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
@@ -650,7 +653,7 @@ class PipelineTask:
         Pipeline Parameters or outputs from previous tasks, which are resolved at runtime.
 
         Args:
-            name: The container image name as a static string (e.g., "python:3.9-alpine")
+            name: The container image name as a static string (e.g., "python:3.11-alpine")
                 or a dynamic reference (e.g., a PipelineParameter instance or
                 a task output like `task.outputs['image_name']`).
 
@@ -658,9 +661,22 @@ class PipelineTask:
             Self return to allow chained setting calls.
         """
         self._ensure_container_spec_exists()
+        pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
+            name)
+
         if isinstance(name, pipeline_channel.PipelineChannel):
             name = str(name)
+
         self.container_spec.image = name
+
+        if pipeline_channels:
+            existing_channel_patterns = {
+                channel.pattern for channel in self._channel_inputs
+            }
+            for channel in pipeline_channels:
+                if channel.pattern not in existing_channel_patterns:
+                    self._channel_inputs.append(channel)
+                    existing_channel_patterns.add(channel.pattern)
         return self
 
     @block_if_final()

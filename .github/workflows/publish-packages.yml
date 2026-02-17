@@ -1,0 +1,207 @@
+name: Publish Python Packages
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: "Tag associated with the release (e.g.: 2.14.0)"
+      packages:
+        type: choice
+        required: true
+        description: "Which package(s) to publish"
+        options:
+          - all
+          - kfp-pipeline-spec
+          - kfp-server-api
+          - kfp
+          - kfp-kubernetes
+      dry_run:
+        type: boolean
+        required: true
+        default: true
+        description: "Dry run - build packages without publishing to PyPI"
+
+env:
+  PYTHON_VERSION: "3.9"
+
+jobs:
+  publish-kfp-pipeline-spec:
+    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-pipeline-spec' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build kfp-pipeline-spec
+        run: |
+          cd api
+          make python
+          cd v2alpha1/python
+          twine check dist/*
+
+      - name: Publish to PyPI
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: api/v2alpha1/python/dist/
+          print-hash: true
+
+      - name: Upload artifacts (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-pipeline-spec-dist
+          path: api/v2alpha1/python/dist/
+
+  publish-kfp-server-api:
+    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-server-api' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install twine
+
+      - name: Build kfp-server-api
+        run: |
+          cd backend/api/v2beta1/python_http_client
+          rm -rf dist
+          python setup.py --quiet sdist
+          twine check dist/*
+
+      - name: Publish to PyPI
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: backend/api/v2beta1/python_http_client/dist/
+          print-hash: true
+
+      - name: Upload artifacts (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-server-api-dist
+          path: backend/api/v2beta1/python_http_client/dist/
+
+  publish-kfp:
+    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp' }}
+    # Uncomment once all packages in PyPi are configured to be released from this repo.
+    # needs: [publish-kfp-pipeline-spec, publish-kfp-server-api]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build kfp
+        run: |
+          cd sdk
+          make python
+          cd python
+          twine check dist/*
+
+      - name: Publish to PyPI
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdk/python/dist/
+          print-hash: true
+
+      - name: Upload artifacts (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-dist
+          path: sdk/python/dist/
+
+  publish-kfp-kubernetes:
+    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-kubernetes' }}
+    # Uncomment once all packages in PyPi are configured to be released from this repo.
+    # needs: [publish-kfp-pipeline-spec, publish-kfp]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build kfp-kubernetes
+        run: |
+          cd kubernetes_platform
+          make python
+          cd python
+          twine check dist/*
+
+      - name: Publish to PyPI
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: kubernetes_platform/python/dist/
+          print-hash: true
+
+      - name: Upload artifacts (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-kubernetes-dist
+          path: kubernetes_platform/python/dist/

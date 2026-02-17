@@ -17,10 +17,10 @@ deploymentSpec:
     exec-echo:
       container:
         args:
-        - '{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}'
+          - '{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}'
         command:
-        - echo
-        image: public.ecr.aws/docker/library/python:3.12
+          - echo
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   name: echo
 root:

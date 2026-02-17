@@ -1,0 +1,72 @@
+name: Approve Workflow Runs
+
+permissions:
+  actions: write
+  contents: read
+
+on:
+  pull_request_target:
+    types:
+      - labeled
+      - synchronize
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  ok-to-test:
+    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test') || github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Check if author is a Kubeflow GitHub member
+        id: membership-check
+        env:
+          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::group::PR Information"
+          echo "PR Number: #$PR_NUMBER"
+          echo "PR Author: $PR_AUTHOR"
+          echo "Author Association: $AUTHOR_ASSOCIATION"
+          echo "::endgroup::"
+          
+          # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
+          if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
+            echo "::notice::Author '$PR_AUTHOR' is a trusted contributor (association: $AUTHOR_ASSOCIATION). Auto-approving workflow runs."
+            echo "is_member=true" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::Author '$PR_AUTHOR' is not a trusted contributor (association: $AUTHOR_ASSOCIATION). Checking for 'ok-to-test' label."
+            echo "is_member=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Approve Pending Workflow Runs
+        if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+        uses: actions/github-script@v8
+        with:
+          retries: 3
+          script: |
+            const request = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event: "pull_request",
+              status: "action_required",
+              head_sha: context.payload.pull_request.head.sha,
+            }
+
+            core.info(`Getting workflow runs that need approval for commit ${request.head_sha}`)
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, request)
+
+            core.info(`Found ${runs.length} workflow runs that need approval`)
+            for (const run of runs) {
+              core.info(`Approving workflow run ${run.id}`)
+              const request = {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: run.id,
+              }
+              await github.rest.actions.approveWorkflowRun(request)
+            }

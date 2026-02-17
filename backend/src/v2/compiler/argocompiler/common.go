@@ -16,7 +16,14 @@ package argocompiler
 
 import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	k8score "k8s.io/api/core/v1"
+)
+
+const (
+	MLPipelineTLSEnabledEnvVar  = "ML_PIPELINE_TLS_ENABLED"
+	DefaultMLPipelineTLSEnabled = false
 )
 
 // env vars in metadata-grpc-configmap is defined in component package
@@ -45,6 +52,53 @@ var commonEnvs = []k8score.EnvVar{{
 		},
 	},
 }}
+
+// ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
+func ConfigureCustomCABundle(tmpl *wfapi.Template) {
+	caBundleSecretName := common.GetCaBundleSecretName()
+	caBundleConfigMapName := common.GetCaBundleConfigMapName()
+	// If CABUNDLE_KEY_NAME is not set, use "ca.crt".
+	caBundleKeyName := common.GetCABundleKey()
+	if caBundleKeyName == "" {
+		caBundleKeyName = "ca.crt"
+	}
+	volumeSource := k8score.VolumeSource{}
+
+	// CABUNDLE_SECRET_NAME is prioritized above CABUNDLE_CONFIGMAP_NAME.
+	if caBundleSecretName != "" { // nolint:gocritic // ifElseChain is preferred here for clarity over a switch
+		volumeSource.Secret = &k8score.SecretVolumeSource{
+			SecretName: caBundleSecretName,
+			Items: []k8score.KeyToPath{
+				{
+					Key:  caBundleKeyName,
+					Path: "ca.crt",
+				},
+			},
+		}
+	} else if caBundleConfigMapName != "" {
+		volumeSource.ConfigMap = &k8score.ConfigMapVolumeSource{
+			LocalObjectReference: k8score.LocalObjectReference{Name: caBundleConfigMapName},
+			Items: []k8score.KeyToPath{
+				{
+					Key:  caBundleKeyName,
+					Path: "ca.crt",
+				},
+			},
+		}
+	} else {
+		glog.Error("Neither CABUNDLE_SECRET_NAME nor CABUNDLE_CONFIGMAP_NAME is set. Failed to configure custom CA bundle.")
+		return
+	}
+	volume := k8score.Volume{
+		Name:         "custom-ca",
+		VolumeSource: volumeSource,
+	}
+	tmpl.Volumes = append(tmpl.Volumes, volume)
+
+	volumeMount := k8score.VolumeMount{Name: "custom-ca", MountPath: common.CABundleDir}
+	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
+
+}
 
 // addExitTask adds an exit lifecycle hook to a task if exitTemplate is not empty.
 func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {

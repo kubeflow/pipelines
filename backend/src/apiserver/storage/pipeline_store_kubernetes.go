@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -20,6 +21,8 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
+
+const deletionPollTimeout = 3 * time.Second
 
 var (
 	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
@@ -175,7 +178,7 @@ func (k *PipelineStoreKubernetes) DeletePipeline(pipelineId string) error {
 		return util.NewInternalServerError(err, "Failed to delete the pipeline")
 	}
 
-	return nil
+	return k.deleteWithTimeout(k8sPipeline.Namespace, k8sPipeline.Name, &v2beta1.Pipeline{})
 }
 
 func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
@@ -221,6 +224,8 @@ func (k *PipelineStoreKubernetes) CreatePipeline(pipeline *model.Pipeline) (*mod
 		return nil, util.NewAlreadyExistError(
 			"Failed to create a new pipeline. The name %v already exists. Please specify a new name", pipeline.Name,
 		)
+	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
+		return nil, util.NewBadKubernetesNameError("pipeline")
 	} else if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create the pipeline")
 	}
@@ -445,7 +450,30 @@ func (k *PipelineStoreKubernetes) DeletePipelineVersion(pipelineVersionId string
 		return util.NewInternalServerError(err, "Failed to delete the pipeline version")
 	}
 
-	return nil
+	return k.deleteWithTimeout(k8sPipelineVersion.Namespace, k8sPipelineVersion.Name, &v2beta1.PipelineVersion{})
+}
+
+// deleteWithTimeout polls until the given namespaced resource is NotFound or the timeout expires.
+func (k *PipelineStoreKubernetes) deleteWithTimeout(namespace string, name string, exampleObject ctrlclient.Object) error {
+	ctx, cancel := context.WithTimeout(context.Background(), deletionPollTimeout)
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// No need to return an error here, because the resource is deleted, it's just the cache hasn't updated yet.
+			return nil
+		default:
+			err := k.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, exampleObject)
+			if k8serrors.IsNotFound(err) {
+				return nil
+			}
+			if err != nil {
+				return util.NewInternalServerError(err, "failed to check deletion status")
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }
 
 func (k *PipelineStoreKubernetes) getK8sPipeline(pipelineId string) (*v2beta1.Pipeline, error) {
@@ -510,7 +538,7 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 
 	err := k.client.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, errMsg)
+		return nil, util.NewInternalServerError(err, "%s", errMsg)
 	}
 
 	// If there is no pipeline version ID filter, then just return the results
@@ -527,7 +555,7 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 	// Fallback to not using the cache if the specific pipeline version is missing
 	err = k.clientNoCache.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, errMsg)
+		return nil, util.NewInternalServerError(err, "%s", errMsg)
 	}
 
 	for _, pipelineVersion := range pipelineVersions.Items {
@@ -563,6 +591,8 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 			"Failed to create a new pipeline version. The name %v already exists. Please specify a new name",
 			pipelineVersion.Name,
 		)
+	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
+		return nil, util.NewBadKubernetesNameError("pipeline version")
 	} else if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create the pipeline version")
 	}

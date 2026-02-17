@@ -16,10 +16,23 @@
 import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Type, Union
+
+try:
+    from typing import get_args, get_origin
+except ImportError:  # pragma: no cover
+
+    def get_origin(tp):
+        return getattr(tp, '__origin__', None)
+
+    def get_args(tp):
+        return getattr(tp, '__args__', ())
+
+
 import warnings
 
 import kfp
 from kfp.dsl import task_final_status
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 
@@ -146,6 +159,18 @@ def is_task_final_status_type(type_name: Optional[Union[str, dict]]) -> bool:
         type_name == task_final_status.PipelineTaskFinalStatus.__name__)
 
 
+def is_task_config_type(type_name: Optional[Union[str, dict]]) -> bool:
+    """Check if a ComponentSpec I/O type is TaskConfig.
+
+    Args:
+      type_name: type name of the ComponentSpec I/O type.
+
+    Returns:
+      True if the type name is 'TaskConfig'.
+    """
+    return isinstance(type_name, str) and (type_name == TaskConfig.__name__)
+
+
 def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     """Check if a ComponentSpec I/O type is considered as a parameter type.
 
@@ -163,7 +188,8 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
         return False
 
     return type_name.lower(
-    ) in PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
+    ) in PARAMETER_TYPES_MAPPING or is_task_final_status_type(
+        type_name) or is_task_config_type(type_name)
 
 
 def bundled_artifact_to_artifact_proto(
@@ -195,8 +221,8 @@ def get_parameter_type(
     Raises:
       AttributeError: if type_name is not a string type.
     """
-    # Special handling for PipelineTaskFinalStatus, treat it as Dict type.
-    if is_task_final_status_type(param_type):
+    # Special handling for PipelineTaskFinalStatus and TaskConfig, treat them as Dict type.
+    if is_task_final_status_type(param_type) or is_task_config_type(param_type):
         param_type = 'dict'
     if type(param_type) == type:
         type_name = param_type.__name__
@@ -461,6 +487,7 @@ IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
     'STRUCT': 'Dict',
     'BOOLEAN': 'Boolean',
     'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
+    'TASK_CONFIG': TaskConfig.__name__,
 }
 
 IR_TYPE_TO_COMMENT_TYPE_STRING = {
@@ -471,6 +498,7 @@ IR_TYPE_TO_COMMENT_TYPE_STRING = {
     'STRUCT': dict.__name__,
     'BOOLEAN': bool.__name__,
     'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
+    'TASK_CONFIG': TaskConfig.__name__,
 }
 
 IN_MEMORY_SPEC_TYPE_TO_IR_TYPE = {
@@ -556,6 +584,24 @@ def _annotation_to_type_struct(annotation):
         annotation = annotation.to_dict()
     if isinstance(annotation, dict):
         return annotation
+
+    origin = get_origin(annotation)
+    if origin in {list, dict}:
+        annotation_module = getattr(annotation, '__module__', None)
+        if annotation_module in ('typing', 'typing_extensions'):
+            return str(annotation)
+        origin_type = get_canonical_type_name_for_type(origin)
+        inner_annotations = get_args(annotation)
+        if inner_annotations:
+            inner_types = []
+            for inner_annotation in inner_annotations:
+                inner_type = _annotation_to_type_struct(inner_annotation)
+                inner_types.append(
+                    inner_type
+                    if inner_type is not None else str(inner_annotation))
+            return f"{origin_type}[{', '.join(inner_types)}]"
+        return origin_type
+
     if isinstance(annotation, type):
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:

@@ -20,6 +20,9 @@ import (
 	"regexp"
 	"strings"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"go.uber.org/zap/zapcore"
 )
@@ -53,7 +56,7 @@ func ParseResourceIdsFromFullName(p string) map[string]string {
 		"ExperimentId":      "",
 		"PipelineId":        "",
 		"PipelineVersionId": "",
-		"RunId":             "",
+		"RunID":             "",
 		"RecurringRunId":    "",
 		"ArtifactId":        "",
 		"ExecutionId":       "",
@@ -72,7 +75,7 @@ func ParseResourceIdsFromFullName(p string) map[string]string {
 			case "experiments", "experiment":
 				results["ExperimentId"] = names[i+1]
 			case "runs", "run":
-				results["RunId"] = names[i+1]
+				results["RunID"] = names[i+1]
 			case "jobs", "job", "recurringruns", "recurringrun", "recurring_runs", "recurring_run":
 				results["RecurringRunId"] = names[i+1]
 			case "artifacts", "artifact":
@@ -98,7 +101,7 @@ func PatchPipelineDefaultParameter(text string) (string, error) {
 		"{{kfp-project-id}}":     projectId,
 	}
 	for key, value := range toPatch {
-		text = strings.Replace(text, key, value, -1)
+		text = strings.ReplaceAll(text, key, value)
 	}
 	return text, nil
 }
@@ -142,4 +145,23 @@ func ParseLogLevel(logLevel string) (zapcore.Level, error) {
 func FileExists(filePath string) bool {
 	_, err := os.Stat(filePath)
 	return !os.IsNotExist(err)
+}
+
+// CustomMarshaler will create a custom marshaler to use snake_case
+// for proto field names, and allow the api server to error on
+// invalid fields.
+func CustomMarshaler() *runtime.JSONPb {
+	return &runtime.JSONPb{
+		MarshalOptions: protojson.MarshalOptions{
+			// This allows us to use proto field names which are
+			// in snake_case format
+			UseProtoNames:   true,
+			EmitUnpopulated: false,
+		},
+		UnmarshalOptions: protojson.UnmarshalOptions{
+			// We want to allow the api server to error on
+			// invalid fields
+			DiscardUnknown: false,
+		},
+	}
 }

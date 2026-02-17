@@ -1,0 +1,89 @@
+# PIPELINE DEFINITION
+# Name: producer-consumer-param-pipeline
+# Inputs:
+#    text: str [Default: 'Hello world']
+components:
+  comp-consumer:
+    executorLabel: exec-consumer
+    inputDefinitions:
+      parameters:
+        input_value:
+          parameterType: STRING
+  comp-producer:
+    executorLabel: exec-producer
+    inputDefinitions:
+      parameters:
+        input_text:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output_value:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-consumer:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          echo "Read from an input parameter: " && echo "$0"
+
+          '
+        - '{{$.inputs.parameters[''input_value'']}}'
+        image: registry.access.redhat.com/ubi9/python-311:latest
+    exec-producer:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -e -x
+
+          mkdir -p "$(dirname "$1")"
+
+          echo "$0, this is an output parameter" > "$1"
+
+          '
+        - '{{$.inputs.parameters[''input_text'']}}'
+        - '{{$.outputs.parameters[''output_value''].output_file}}'
+        image: registry.access.redhat.com/ubi9/python-311:latest
+pipelineInfo:
+  name: producer-consumer-param-pipeline
+root:
+  dag:
+    tasks:
+      consumer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-consumer
+        dependentTasks:
+        - producer
+        inputs:
+          parameters:
+            input_value:
+              taskOutputParameter:
+                outputParameterKey: output_value
+                producerTask: producer
+        taskInfo:
+          name: consumer
+      producer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-producer
+        inputs:
+          parameters:
+            input_text:
+              componentInputParameter: text
+        taskInfo:
+          name: producer
+  inputDefinitions:
+    parameters:
+      text:
+        defaultValue: Hello world
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6

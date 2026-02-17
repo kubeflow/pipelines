@@ -149,7 +149,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       customRenderer: NameWithTooltip,
       flex: 1,
       label: 'Pipeline name',
-      sortKey: PipelineSortKeys.NAME,
+      sortKey: PipelineSortKeys.DISPLAY_NAME,
     },
     { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
@@ -160,7 +160,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       customRenderer: NameWithTooltip,
       flex: 2,
       label: 'Version name',
-      sortKey: PipelineVersionSortKeys.NAME,
+      sortKey: PipelineVersionSortKeys.DISPLAY_NAME,
     },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
@@ -263,6 +263,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                     <Button
                       color='secondary'
                       id='choosePipelineBtn'
+                      aria-label='Choose pipeline'
                       onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
@@ -288,6 +289,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                     <Button
                       color='secondary'
                       id='choosePipelineVersionBtn'
+                      aria-label='Choose pipeline version'
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                       disabled={!unconfirmedSelectedPipeline}
@@ -748,6 +750,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     let experimentName = '';
     const breadcrumbs = [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }];
     if (experimentId) {
+      let experimentFetchError: Error | undefined;
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
         experimentName = experiment.name || '';
@@ -756,11 +759,36 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
         });
       } catch (err) {
-        await this.showPageError(
-          `Error: failed to retrieve associated experiment: ${experimentId}.`,
-          err,
-        );
-        logger.error(`Failed to retrieve associated experiment: ${experimentId}`, err);
+        experimentFetchError = err instanceof Error ? err : new Error(await errorToMessage(err));
+      }
+
+      if (!experiment) {
+        try {
+          const v2Experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
+          experiment = {
+            id: v2Experiment.experiment_id,
+            name: v2Experiment.display_name,
+            description: v2Experiment.description,
+            created_at: v2Experiment.created_at,
+          };
+          experimentName = experiment.name || '';
+          breadcrumbs.push({
+            displayName: experimentName!,
+            href: RoutePage.EXPERIMENT_DETAILS.replace(
+              ':' + RouteParams.experimentId,
+              experimentId,
+            ),
+          });
+        } catch (err) {
+          const error =
+            experimentFetchError ||
+            (err instanceof Error ? err : new Error(await errorToMessage(err)));
+          await this.showPageError(
+            `Error: failed to retrieve associated experiment: ${experimentId}.`,
+            error,
+          );
+          logger.error(`Failed to retrieve associated experiment: ${experimentId}`, error);
+        }
       }
     }
 
@@ -946,6 +974,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
           ? await Apis.uploadPipeline(
+              name,
               name,
               description || '',
               file!,
@@ -1284,7 +1313,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
       this.setStateSafe({ errorMessage: '' });
     } catch (err) {
-      this.setStateSafe({ errorMessage: err.message });
+      this.setStateSafe({
+        errorMessage: err instanceof Error ? err.message : 'Validation failed for run inputs.',
+      });
     }
   }
 

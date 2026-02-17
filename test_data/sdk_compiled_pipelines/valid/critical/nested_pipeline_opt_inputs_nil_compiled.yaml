@@ -1,0 +1,173 @@
+# PIPELINE DEFINITION
+# Name: nested-pipeline-opt-inputs-nil
+components:
+  comp-component-bool:
+    executorLabel: exec-component-bool
+    inputDefinitions:
+      parameters:
+        componentInput:
+          isOptional: true
+          parameterType: BOOLEAN
+  comp-component-int:
+    executorLabel: exec-component-int
+    inputDefinitions:
+      parameters:
+        componentInput:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+  comp-component-str:
+    executorLabel: exec-component-str
+    inputDefinitions:
+      parameters:
+        componentInput:
+          isOptional: true
+          parameterType: STRING
+  comp-nested-pipeline:
+    dag:
+      tasks:
+        component-bool:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-bool
+          inputs:
+            parameters:
+              componentInput:
+                componentInputParameter: nestedInputBool
+          taskInfo:
+            name: component-bool
+        component-int:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-int
+          inputs:
+            parameters:
+              componentInput:
+                componentInputParameter: nestedInputInt
+          taskInfo:
+            name: component-int
+        component-str:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-str
+          inputs:
+            parameters:
+              componentInput:
+                componentInputParameter: nestedInputStr
+          taskInfo:
+            name: component-str
+    inputDefinitions:
+      parameters:
+        nestedInputBool:
+          isOptional: true
+          parameterType: BOOLEAN
+        nestedInputInt:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        nestedInputStr:
+          isOptional: true
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-bool:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_bool
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_bool(componentInput: bool = None):\n    if componentInput\
+          \ is not None:\n        raise ValueError(f\"componentInput should be None\
+          \ but is {componentInput}\")\n\n"
+        image: python:3.11
+    exec-component-int:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_int
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_int(componentInput: int = None):\n    if componentInput\
+          \ is not None:\n        raise ValueError(f\"componentInput should be None\
+          \ but is {componentInput}\")\n\n"
+        image: python:3.11
+    exec-component-str:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_str
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_str(componentInput: str = None):\n    if componentInput\
+          \ is not None:\n        raise ValueError(f\"componentInput should be None\
+          \ but is {componentInput}\")\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: nested-pipeline-opt-inputs-nil
+root:
+  dag:
+    tasks:
+      nested-pipeline:
+        cachingOptions: {}
+        componentRef:
+          name: comp-nested-pipeline
+        taskInfo:
+          name: nested-pipeline
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.2

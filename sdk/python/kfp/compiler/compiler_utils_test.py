@@ -106,7 +106,68 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
                 },
                 'replica_count': 1
             }],
-        },)
+        },
+        {
+            'data': [{
+                'first_name':
+                    f'my_first_name: {str(pipeline_channel.PipelineParameterChannel(name="Output", channel_type="String", task_name="first_name"))}',
+                'last_name':
+                    f'my_last_name: {str(pipeline_channel.PipelineParameterChannel(name="Output", channel_type="String", task_name="last_name"))}',
+            }],
+            'old_value':
+                '{{channel:task=first_name;name=Output;type=String;}}',
+            'new_value':
+                '{{$.inputs.parameters['
+                'pipelinechannel--first_name-Output'
+                ']}}',
+            'expected': [{
+                'first_name':
+                    'my_first_name: {{$.inputs.parameters[pipelinechannel--first_name-Output]}}',
+                'last_name':
+                    f'my_last_name: {str(pipeline_channel.PipelineParameterChannel(name="Output", channel_type="String", task_name="last_name"))}',
+            }],
+        },
+        {
+            'data': [{
+                'project': 'project',
+                'location': 'US',
+                'job_configuration_query': {
+                    'query': 'SELECT * FROM `project.dataset.input_table`',
+                    'destinationTable': {
+                        'projectId':
+                            'project',
+                        'datasetId':
+                            'dataset',
+                        'tableId':
+                            f'output_table_{str(pipeline_channel.PipelineParameterChannel(name="Output", channel_type="String", task_name="table_suffix"))}',
+                    },
+                    'writeDisposition': 'WRITE_TRUNCATE',
+                },
+            }],
+            'old_value':
+                '{{channel:task=table_suffix;name=Output;type=String;}}',
+            'new_value':
+                '{{$.inputs.parameters['
+                'pipelinechannel--table_suffix-Output'
+                ']}}',
+            'expected': [{
+                'project': 'project',
+                'location': 'US',
+                'job_configuration_query': {
+                    'query': 'SELECT * FROM `project.dataset.input_table`',
+                    'destinationTable': {
+                        'projectId':
+                            'project',
+                        'datasetId':
+                            'dataset',
+                        'tableId':
+                            'output_table_{{$.inputs.parameters[pipelinechannel--table_suffix-Output]}}',
+                    },
+                    'writeDisposition': 'WRITE_TRUNCATE',
+                },
+            }],
+        },
+    )
     def test_recursive_replace_placeholders(self, data, old_value, new_value,
                                             expected):
         self.assertEqual(

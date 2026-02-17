@@ -1,38 +1,311 @@
-# Changelog
+Changelog
+
+## 2.15.0 (2025-11-21)
+
+### Bug Fixes
+
+- **CI** Reduces CI time. Fixes #11768 ([#12093](https://github.com/kubeflow/pipelines/pull/12093))
+- **sdk** Set spec.description when compiling to Kubernetes manifests ([#12132](https://github.com/kubeflow/pipelines/pull/12132))
+- **manifests** Include WC Deployment patch when updating Argo manifests. Fixes #12144 ([#12145](https://github.com/kubeflow/pipelines/pull/12145))
+- **tools** Fix a typo in convert_to_k8s_format ([#12161](https://github.com/kubeflow/pipelines/pull/12161))
+- **docs** Fix local development after the SeaweedFS migration ([#12160](https://github.com/kubeflow/pipelines/pull/12160))
+- **backend** Fix mutating webhook when pipeline name label value is too long ([#12162](https://github.com/kubeflow/pipelines/pull/12162))
+- **docs** Fix driver remote debugging instructions ([#12177](https://github.com/kubeflow/pipelines/pull/12177))
+- **backend** Used bitnamilegacy Docker images instead of bitnami ones which will cease to work on Thursday, August 28, 2025. Fixes #12170 ([#12171](https://github.com/kubeflow/pipelines/pull/12171))
+- **CI** Fix the CI failures due to disk space ([#12179](https://github.com/kubeflow/pipelines/pull/12179))
+- **doc** Add a release note for the additional_funcs component option ([#12182](https://github.com/kubeflow/pipelines/pull/12182))
+- **CI** Fix a variable reference typo in the GitHub workflow ([#12181](https://github.com/kubeflow/pipelines/pull/12181))
+- **backend** Return from pipeline deletions after the cache is updated ([#12153](https://github.com/kubeflow/pipelines/pull/12153))
+- **backend/sdk** Fix REST API outputs for pipeline versions with invalid platform specs ([#12183](https://github.com/kubeflow/pipelines/pull/12183))
+- **backend** Add support for additional filters on the Kubernetes native API ([#12189](https://github.com/kubeflow/pipelines/pull/12189))
+- **backend** Guard against panic when MLMD execution publishing fails ([#12203](https://github.com/kubeflow/pipelines/pull/12203))
+- **CI** Fix test-config sample CI failure ([#12223](https://github.com/kubeflow/pipelines/pull/12223))
+- **ui** Disable caching for AWS credential files ([#12225](https://github.com/kubeflow/pipelines/pull/12225))
+- **sdk** Add support for SELinux on the Docker runner and fix workspace mounts in Docker runner ([#12236](https://github.com/kubeflow/pipelines/pull/12236))
+- **backend** Fix critical and high CVEs found by Trivy ([#12233](https://github.com/kubeflow/pipelines/pull/12233))
+- **frontend** Fix artifact downloading. Fixes #12000 ([#12244](https://github.com/kubeflow/pipelines/pull/12244))
+- fix first interaction workflow ([#12247](https://github.com/kubeflow/pipelines/pull/12247))
+- **manifests** Fix a typo in the multi-user roles ([#12261](https://github.com/kubeflow/pipelines/pull/12261))
+- **deps** Bump Go versions to address CVE CVE-2025-47907 ([#12267](https://github.com/kubeflow/pipelines/pull/12267))
+- **CI** Build the generator and release images on pushes ([#12273](https://github.com/kubeflow/pipelines/pull/12273))
+- **ci** correct PROXY check in workflow files ([#12266](https://github.com/kubeflow/pipelines/pull/12266))
+- **sdk** Align the versions on kfp[kubernetes] install ([#12283](https://github.com/kubeflow/pipelines/pull/12283))
+- **docs/CI** Small documentation updates and CI fixes after test refactoring ([#12279](https://github.com/kubeflow/pipelines/pull/12279))
+- **tests** Fix ginkgo compiler tests for disabled cache ([#12304](https://github.com/kubeflow/pipelines/pull/12304))
+- **CI** Switch the Kind cluster in CI to use root for storage ([#12309](https://github.com/kubeflow/pipelines/pull/12309))
+- replace delete with null assignment ([#12316](https://github.com/kubeflow/pipelines/pull/12316))
+- Fix go linting errors ([#12326](https://github.com/kubeflow/pipelines/pull/12326))
+- **test** fix migration script integration test ([#12331](https://github.com/kubeflow/pipelines/pull/12331))
+- include requirements files in python sdist ([#12330](https://github.com/kubeflow/pipelines/pull/12330))
+- **logging** reduce verbose logging for security. Fixes #12293 ([#12295](https://github.com/kubeflow/pipelines/pull/12295))
+- **test** fix timeout error caused by KFP Kubernetes Native Migration Tests ([#12335](https://github.com/kubeflow/pipelines/pull/12335))
+- include requirements files in python sdist for kfp-pipeline-spec ([#12339](https://github.com/kubeflow/pipelines/pull/12339))
+- **test** respect TLSEnabled flag in integration tests ([#12338](https://github.com/kubeflow/pipelines/pull/12338))
+- **CI** ensure SeaweedFS S3 auth is set up before tests  ([#12322](https://github.com/kubeflow/pipelines/pull/12322))
+- **test/backend** Fix pod to pod TLS ([#12357](https://github.com/kubeflow/pipelines/pull/12357))
+- **backend** Fix pod name truncation issue in PVC creation. Fixes #12350 ([#12351](https://github.com/kubeflow/pipelines/pull/12351))
+- **test** overriding kfp version when loading component def from yaml ([#12364](https://github.com/kubeflow/pipelines/pull/12364))
+- **artifact-proxy** sets namespace. Fixes #12041 ([#12374](https://github.com/kubeflow/pipelines/pull/12374))
+- **backend** RetrievePodName with POD_NAMES v1 ([#12303](https://github.com/kubeflow/pipelines/pull/12303))
+- **backend** Remove the default workspace configuration ([#12369](https://github.com/kubeflow/pipelines/pull/12369))
+- **components** Replace deprecated method_whitelist with allowed_methods in urllib3 Retry. Fixes kubeflow#12134 ([#12397](https://github.com/kubeflow/pipelines/pull/12397))
+- **CI** Harden PR commands workflow ([#12395](https://github.com/kubeflow/pipelines/pull/12395))
+- **components** Fix for dataproc batch components pipeline failure
+- **manifests** Fix the profile controller for Minio deployment ([#12404](https://github.com/kubeflow/pipelines/pull/12404))
+- **components** Remove deprecated AutoML XGBoost trainer
+- **CI/SDK** Fix tests for pipelines with optional input parameters and an SDK syntax error ([#12420](https://github.com/kubeflow/pipelines/pull/12420))
+- **manifests** update minio image ref ([#12424](https://github.com/kubeflow/pipelines/pull/12424))
+- **components** enforce mutual exclusivity between `network` and `psc_interface_config` in custom job spec from GCPC SDK
+- **backend** Allow pod namespace configuration on env.go metadata-grpc service address ([#12428](https://github.com/kubeflow/pipelines/pull/12428))
+- **sdk** Add support for list and dict parameter type hints ([#12410](https://github.com/kubeflow/pipelines/pull/12410))
+- **backend** Parse JSON and decode base64 in artifact client ([#12467](https://github.com/kubeflow/pipelines/pull/12467))
+### Documentation
+
+- **KEP** K8s native api test plan (WIP) ([#12035](https://github.com/kubeflow/pipelines/pull/12035))
+- add pipeline anatomy documentation ([#12142](https://github.com/kubeflow/pipelines/pull/12142))
+- Document the supported Argo Workflows versions ([#12190](https://github.com/kubeflow/pipelines/pull/12190))
+- **KEP** adding test plan for to validate different argo workflow controller versions ([#12152](https://github.com/kubeflow/pipelines/pull/12152))
+- Add pipeline flow details to contribution ([#12226](https://github.com/kubeflow/pipelines/pull/12226))
+- Add an AGENTS.md file ([#12254](https://github.com/kubeflow/pipelines/pull/12254))
+- Add a KEP for Jupyter notebook components ([#12238](https://github.com/kubeflow/pipelines/pull/12238))
+- **testplan** adding MLMD removal test plan ([#12323](https://github.com/kubeflow/pipelines/pull/12323))
+- Add a --insecure flag for the Kubernetes native API migration script ([#12286](https://github.com/kubeflow/pipelines/pull/12286))
+### Features
+
+- **backend/sdk** define and use dsl.WORKSPACE_PATH_PLACEHOLDER for workspace access ([#12078](https://github.com/kubeflow/pipelines/pull/12078))
+- **components** Explicitly set base_image=python:3.9 for all dsl.component's, in case the default python image changes
+- Updated dockerfile to support Power ([#12125](https://github.com/kubeflow/pipelines/pull/12125))
+- **frontend** Add custom credential provider  ([#12173](https://github.com/kubeflow/pipelines/pull/12173))
+- **sdk** Allow sharing util functions across components ([#12178](https://github.com/kubeflow/pipelines/pull/12178))
+- **components** Introduce psc_interface_config to custom job to v1 GCPC custom job components/utils
+- **sdk/backend** Support forwarding task configuration to external workloads ([#12185](https://github.com/kubeflow/pipelines/pull/12185))
+- **sdk** Add Docker runner support for KFP workspaces ([#12215](https://github.com/kubeflow/pipelines/pull/12215))
+- **backend** Add mounted PVCs to the generated cache key ([#12220](https://github.com/kubeflow/pipelines/pull/12220))
+- **SDK+backend** Add optional field for the secret/configmap as env vars ([#12216](https://github.com/kubeflow/pipelines/pull/12216))
+- Make artifact proxy opt-in via ARTIFACTS_PROXY_ENABLED configuration ([#12242](https://github.com/kubeflow/pipelines/pull/12242))
+- **backend** Add support for Pythonic artifacts ([#12256](https://github.com/kubeflow/pipelines/pull/12256))
+- **sdk** add compile-time validation for workspace size ([#12234](https://github.com/kubeflow/pipelines/pull/12234))
+- **backend** adding a retry logic to object store s3 configuration ([#12281](https://github.com/kubeflow/pipelines/pull/12281))
+- bump express version ([#12045](https://github.com/kubeflow/pipelines/pull/12045))
+- **SDK** Add SemaphoreKey and MutexName fields to DSL ([#11340](https://github.com/kubeflow/pipelines/pull/11340))
+- **sdk** Add notebook components and embedded artifacts support ([#12294](https://github.com/kubeflow/pipelines/pull/12294))
+- **backend** Add configuration to conditionally disable shared pipeline resources ([#12202](https://github.com/kubeflow/pipelines/pull/12202))
+- **backend** Adding Multi-CPU architecture support in Dockerfile.* files for supporting Arm64 platform ([#12313](https://github.com/kubeflow/pipelines/pull/12313))
+- **backend** Patch pipeline spec from APIServer EnvVar ([#12317](https://github.com/kubeflow/pipelines/pull/12317))
+- **backend, sdk** Add custom_path field to RuntimeArtifact ([#12248](https://github.com/kubeflow/pipelines/pull/12248))
+- **metadata-writer** Configure gRPC max_receive_message_length via environment variable ([#12438](https://github.com/kubeflow/pipelines/pull/12438))
+- **backend/sdk** Add download_to_workspace option to dsl.importer ([#12353](https://github.com/kubeflow/pipelines/pull/12353))
+### Fix
+
+- Seaweedfs admin credentials not loaded after restart ([#12460](https://github.com/kubeflow/pipelines/pull/12460))
+### Other
+
+- cherrypick 2.14 release branch ([#12112](https://github.com/kubeflow/pipelines/pull/12112))
+- update sphinx deps ([#12114](https://github.com/kubeflow/pipelines/pull/12114))
+- ignore adding pb2.py files for kfp-k8s docs ([#12115](https://github.com/kubeflow/pipelines/pull/12115))
+- switch to using git-cliff instead of changelog and test for kfp-server codegen ([#12113](https://github.com/kubeflow/pipelines/pull/12113))
+- add ci to test sphinx builds ([#12116](https://github.com/kubeflow/pipelines/pull/12116))
+- **deps** bump tmp from 0.2.3 to 0.2.4 in /frontend/server ([#12118](https://github.com/kubeflow/pipelines/pull/12118))
+- update release instructions ([#12117](https://github.com/kubeflow/pipelines/pull/12117))
+- Add security context at pod level for workflow-controller ([#12124](https://github.com/kubeflow/pipelines/pull/12124))
+- **CI** Fix invalid references in workflow conditions and update GitHub Actions to use `actions/checkout@v5` consistently ([#12121](https://github.com/kubeflow/pipelines/pull/12121))
+- **backend** migrate GORM v1 to v2 ([#12013](https://github.com/kubeflow/pipelines/pull/12013))
+- Seaweedfs as Minio replacement ([#11965](https://github.com/kubeflow/pipelines/pull/11965))
+- **deps** bump github.com/go-viper/mapstructure/v2 from 2.3.0 to 2.4.0 ([#12167](https://github.com/kubeflow/pipelines/pull/12167))
+- **deps-dev** bump cipher-base from 1.0.4 to 1.0.6 in /frontend ([#12166](https://github.com/kubeflow/pipelines/pull/12166))
+- Run e2e CI tests using various versions of AWF. Fixes #12150 ([#12151](https://github.com/kubeflow/pipelines/pull/12151))
+- Add CI for uploading pipelines as Kubernetes objects ([#12148](https://github.com/kubeflow/pipelines/pull/12148))
+- Add gmfrasca to Reviewers lists ([#12195](https://github.com/kubeflow/pipelines/pull/12195))
+- fix bold syntax in release instructions ([#12199](https://github.com/kubeflow/pipelines/pull/12199))
+- **backend** introduce dialect-aware LargeText and replace longtext (+call-site type adjustments). Part of #12063 ([#12163](https://github.com/kubeflow/pipelines/pull/12163))
+- fix import order in 6 files (baseline formatting) ([#12201](https://github.com/kubeflow/pipelines/pull/12201))
+- **release** bump version to 2.14.3 on master branch ([#12207](https://github.com/kubeflow/pipelines/pull/12207))
+- **components** Bump image version for Structured Data pipelines
+- **CI** fixing typo in cluster variable name ([#12133](https://github.com/kubeflow/pipelines/pull/12133))
+- **backend** correct node id for metrics reporting ([#12213](https://github.com/kubeflow/pipelines/pull/12213))
+- add Sophotech to adopters list ([#12221](https://github.com/kubeflow/pipelines/pull/12221))
+- **CI** add vuln scan workflow ([#12219](https://github.com/kubeflow/pipelines/pull/12219))
+- **samples/components** Remove abandoned contrib components and samples ([#12237](https://github.com/kubeflow/pipelines/pull/12237))
+- **components** GCPC 2.21.0 Release
+- update mlmd removal proto/schema design ([#12253](https://github.com/kubeflow/pipelines/pull/12253))
+- **frontend** Increase node version to 22.19.0 ([#12257](https://github.com/kubeflow/pipelines/pull/12257))
+- **frontend** Remediate CVE-2021-23358 (underscore) ([#12268](https://github.com/kubeflow/pipelines/pull/12268))
+- **frontend** remediate CVE-2023-36665 and CVE-2022-25878 protobufjs ([#12270](https://github.com/kubeflow/pipelines/pull/12270))
+- **refactor** Test refactor with workflow refactor ([#12222](https://github.com/kubeflow/pipelines/pull/12222))
+- Updating frontend dependency versions ([#12272](https://github.com/kubeflow/pipelines/pull/12272))
+- fix broken link in README ([#12282](https://github.com/kubeflow/pipelines/pull/12282))
+- **frontend** Remediating vulns in frontend package.json ([#12280](https://github.com/kubeflow/pipelines/pull/12280))
+- **frontend** update node-fetch and node-forge to remediate vulns ([#12287](https://github.com/kubeflow/pipelines/pull/12287))
+- **frontend** vuln fixes in frontend/server package.json ([#12288](https://github.com/kubeflow/pipelines/pull/12288))
+- fix import order and redundance in 15 files (baseline formatting) ([#12296](https://github.com/kubeflow/pipelines/pull/12296))
+- Replace sdk in pipeline files ([#12297](https://github.com/kubeflow/pipelines/pull/12297))
+- **ci** adding nsingla as a reviewer and an approver ([#12311](https://github.com/kubeflow/pipelines/pull/12311))
+- **frontend** upgrade http-proxy-middleware to fix CVE-2024-21536 ([#12300](https://github.com/kubeflow/pipelines/pull/12300))
+- refactor pre-commit workflow to correctly detect new lint issues ([#12302](https://github.com/kubeflow/pipelines/pull/12302))
+- remove --whole-files flag from precommit check ([#12319](https://github.com/kubeflow/pipelines/pull/12319))
+- **refactor** Sdk Tests Refactor ([#12310](https://github.com/kubeflow/pipelines/pull/12310))
+- Add Integration tests for Kubernetes Native API Migration script ([#12180](https://github.com/kubeflow/pipelines/pull/12180))
+- Carryover 2.14.5 ([#12337](https://github.com/kubeflow/pipelines/pull/12337))
+- add publish package workflow ([#12344](https://github.com/kubeflow/pipelines/pull/12344))
+- regenerate files for ver upgrade ([#12341](https://github.com/kubeflow/pipelines/pull/12341))
+- update versioning policy ([#12342](https://github.com/kubeflow/pipelines/pull/12342))
+- remove pin on protobuf 6 ver ([#12345](https://github.com/kubeflow/pipelines/pull/12345))
+- update release process ([#12359](https://github.com/kubeflow/pipelines/pull/12359))
+- Add artifact proxy deployment to sync.py ([#12285](https://github.com/kubeflow/pipelines/pull/12285))
+- **tests** add errorToMessage tests ([#12360](https://github.com/kubeflow/pipelines/pull/12360))
+- Apply patches for Openshift env to seaweedfs deployment ([#12314](https://github.com/kubeflow/pipelines/pull/12314))
+- Apply patches for Openshift env to init-seaweedfs job ([#12384](https://github.com/kubeflow/pipelines/pull/12384))
+- Consolidate system CA bundle logic into launcher_v2.go ([#12382](https://github.com/kubeflow/pipelines/pull/12382))
+- Upgrade to Argo Workflows v3.7.3 ([#12312](https://github.com/kubeflow/pipelines/pull/12312))
+- add GH Workflow linter & format existing workflows ([#12371](https://github.com/kubeflow/pipelines/pull/12371))
+- update py image refs to 3.11 ([#12383](https://github.com/kubeflow/pipelines/pull/12383))
+- **components** Bump image version for Structured Data pipelines
+- update SeaweedFS to 4.00 and make it more robust ([#12406](https://github.com/kubeflow/pipelines/pull/12406))
+- **ci** updating k8s version in the CI workflows ([#12365](https://github.com/kubeflow/pipelines/pull/12365))
+- **ci** do not add any check annotations as it causes lot of noise for the re… ([#12409](https://github.com/kubeflow/pipelines/pull/12409))
+- fixing http client creation and renaming e2e pipeline name prefix ([#12421](https://github.com/kubeflow/pipelines/pull/12421))
+- **components** GCPC 2.22.0 Release
+- update google-cloud-components-image ([#12432](https://github.com/kubeflow/pipelines/pull/12432))
+- add repo agnosticism to e2e/integration tests ([#12378](https://github.com/kubeflow/pipelines/pull/12378))
+- **deps** bump min-document from 2.19.0 to 2.19.2 in /frontend ([#12443](https://github.com/kubeflow/pipelines/pull/12443))
+- Extend and update the stalebot ([#12408](https://github.com/kubeflow/pipelines/pull/12408))
+- add missing branch name to v1 upgrade test ([#12446](https://github.com/kubeflow/pipelines/pull/12446))
+- **deps** bump golang.org/x/crypto from 0.36.0 to 0.45.0 in /test/tools/project-cleaner ([#12464](https://github.com/kubeflow/pipelines/pull/12464))
+### [cherry-pick]
+
+- chore: update release notes and scripts ([#12470](https://github.com/kubeflow/pipelines/pull/12470)) ([#12471](https://github.com/kubeflow/pipelines/pull/12471))
+### Chrore
+
+- adding myself as a reviewer ([#12325](https://github.com/kubeflow/pipelines/pull/12325))
+### Ci
+
+- first interaction ([#12209](https://github.com/kubeflow/pipelines/pull/12209))# 
+
+### [2.14.3](https://github.com/kubeflow/pipelines/compare/2.14.0...2.14.3) (2025-08-28)
+
+
+### Bug Fixes
+
+* **backend:** Add support for additional filters on the Kubernetes native API ([\#12189](https://github.com/kubeflow/pipelines/issues/12189)) ([8bb97be](https://github.com/kubeflow/pipelines/commit/8bb97be463a99c9abfa1d6d824ebedbe2957c077))
+* **backend:** Fix mutating webhook when pipeline name label value is too long ([\#12162](https://github.com/kubeflow/pipelines/issues/12162)) ([1b6fd87](https://github.com/kubeflow/pipelines/commit/1b6fd87f851fb31e7b81d55f6c6ff1206ef43d18))
+* **backend:** Return from pipeline deletions after the cache is updated ([\#12153](https://github.com/kubeflow/pipelines/issues/12153)) ([df79a7a](https://github.com/kubeflow/pipelines/commit/df79a7ac2574dde0130fa665e9ac72c51aa05304))
+* **backend/sdk:** Fix REST API outputs for pipeline versions with invalid platform specs ([\#12183](https://github.com/kubeflow/pipelines/issues/12183)) ([0cafb3d](https://github.com/kubeflow/pipelines/commit/0cafb3db99fdcea38fc37d0aef2f7dd237559065))
+* **sdk:** Set spec.description when compiling to Kubernetes manifests ([\#12132](https://github.com/kubeflow/pipelines/issues/12132)) ([5ffddad](https://github.com/kubeflow/pipelines/commit/5ffddad045db75e9e5fb2957226b4a28706637bd))
+* **tools:** Fix a typo in convert_to_k8s_format ([\#12161](https://github.com/kubeflow/pipelines/issues/12161)) ([9984fb7](https://github.com/kubeflow/pipelines/commit/9984fb79cd6371e8fa58c23bb4a8b0fc1ee57465))
+
+
+### Other Pull Requests
+
+* Cherry-Pick 2.14.2 SDK changes  ([\#12123](https://github.com/kubeflow/pipelines/issues/12123)) ([ec00fa3](https://github.com/kubeflow/pipelines/commit/ec00fa3ca34492c92271835fa87764cd1883ebda))
+* ignore adding pb2.py files for kfp-k8s docs ([3fad4df](https://github.com/kubeflow/pipelines/commit/3fad4df5dfa2246d6d52fd43f12b4802704a760a))
+* update sphinx deps ([25805b8](https://github.com/kubeflow/pipelines/commit/25805b8d352631b17bba334e98bdd00911ee8cb5))
+
+## [2.14.0](https://github.com/kubeflow/pipelines/compare/2.5.0...2.14.0) (2025-08-05)
+
+
+### Features
+
+* **backend:** Add CLI flags to support Kubernetes native API implementation ([\#11907](https://github.com/kubeflow/pipelines/issues/11907)) ([c368ac6](https://github.com/kubeflow/pipelines/commit/c368ac6881b75331a3b7aa31e3adb36eacf858a1))
+* **backend:** Add migration script to create Pipeline and PipelineVersion objects from the database to Kubernetes API ([\#11884](https://github.com/kubeflow/pipelines/issues/11884)) ([988477a](https://github.com/kubeflow/pipelines/commit/988477a7de1c9376abb51618c4b926226afe587f))
+* **backend:** Add support for platform specs on K8s native API ([\#12016](https://github.com/kubeflow/pipelines/issues/12016)) ([04407fb](https://github.com/kubeflow/pipelines/commit/04407fbe9397def09fd1e12df34190ba95f5d8a2))
+* **backend:** Add the Kubernetes native pipeline store ([\#11881](https://github.com/kubeflow/pipelines/issues/11881)) ([c03127d](https://github.com/kubeflow/pipelines/commit/c03127d9671ed2ac29350840b4a56c5cf0c227eb))
+* **backend:** add the option to enable/disable cache globally ([\#11831](https://github.com/kubeflow/pipelines/issues/11831)) ([9aebb62](https://github.com/kubeflow/pipelines/commit/9aebb62be1a9412d960fc681787468e1e3ab2001))
+* **backend:** Allow the launcher command to be configurable ([\#11888](https://github.com/kubeflow/pipelines/issues/11888)) ([70d2888](https://github.com/kubeflow/pipelines/commit/70d28885f27bff40397f9c9ea790e5985deb91e1))
+* **backend:** parameterize retryStrategy  input in Argo workflow ([\#11861](https://github.com/kubeflow/pipelines/issues/11861)) ([9245739](https://github.com/kubeflow/pipelines/commit/9245739f6fdd76769cd477f8952706cfe0eabc34))
+* **backend:** support for optional input parameters in nested pipelines ([\#11980](https://github.com/kubeflow/pipelines/issues/11980)) ([ecfe94e](https://github.com/kubeflow/pipelines/commit/ecfe94ebc3adc0dd41da9a944056ce4170ce9064))
+* **backend:** Support more than one label & annotations setting per component ([\#12049](https://github.com/kubeflow/pipelines/issues/12049)) ([a870b1a](https://github.com/kubeflow/pipelines/commit/a870b1a325dae0c82c8b6f57941468ee1aea960b))
+* **backend:** update Argo Workflow Compiler to create workspace PVCs ([\#11982](https://github.com/kubeflow/pipelines/issues/11982)) ([daac099](https://github.com/kubeflow/pipelines/commit/daac099508865670f41eeeef135fa22f9ec880f1))
+* **backend:** Use native k8s probes for api-server and visualization ([\#11960](https://github.com/kubeflow/pipelines/issues/11960)) ([cc78308](https://github.com/kubeflow/pipelines/commit/cc7830812ae3ced24962238dcbf5f113f28c4772))
+* **backend/frontend:** Add the name field for pipelines and pipeline versions ([\#11952](https://github.com/kubeflow/pipelines/issues/11952)) ([ea20731](https://github.com/kubeflow/pipelines/commit/ea207310601ffaf807b148a79a9ddcb8d4812886))
+* **backend/sdk:** enable dsl.Collected for parameters & artifacts ([\#11725](https://github.com/kubeflow/pipelines/issues/11725)) ([ed828b5](https://github.com/kubeflow/pipelines/commit/ed828b513aef4826f1f05e47168cf7b08a3c74ab))
+* **backend/sdk:** support PipelineTaskFinalStatus input ([\#11953](https://github.com/kubeflow/pipelines/issues/11953)) ([0d857b6](https://github.com/kubeflow/pipelines/commit/0d857b6f8a1261477bb05bc65aa474d992b57084))
+* **docs:** erdiagram of kfp-db ([\#12009](https://github.com/kubeflow/pipelines/issues/12009)) ([99326e1](https://github.com/kubeflow/pipelines/commit/99326e1bd13e6223c1cfb657524c9e5926d95ce5))
+* **docs:** Guide to report security vulnerabilities ([\#12044](https://github.com/kubeflow/pipelines/issues/12044)) ([9aa3dfb](https://github.com/kubeflow/pipelines/commit/9aa3dfb0d9810e3d3940b728e2e39dad1e956587))
+* **frontend:** Add "Always Use Latest Version" option for recurring runs (fixes [\#11581](https://github.com/kubeflow/pipelines/issues/11581)) ([\#11755](https://github.com/kubeflow/pipelines/issues/11755)) ([0e7e806](https://github.com/kubeflow/pipelines/commit/0e7e806b4cd52c20397220d6e0e8db79cae35894))
+* **proto:** Add WorkspaceConfig and KubernetesWorkspaceConfig message types to pipeline_spec proto ([\#11921](https://github.com/kubeflow/pipelines/issues/11921)) ([67f9b7d](https://github.com/kubeflow/pipelines/commit/67f9b7d73c895fd0fd027488ba20c255918d735e))
+* **sdk:** Add support for compiling pipelines to Kubernetes native format in SDK ([\#12012](https://github.com/kubeflow/pipelines/issues/12012)) ([dc398f6](https://github.com/kubeflow/pipelines/commit/dc398f689eb0b19e86fdbb554b33d9f6cb1095e3))
+* **sdk:** Add Support for Docker Container Run Arguments ([\#12006](https://github.com/kubeflow/pipelines/issues/12006)) ([268e089](https://github.com/kubeflow/pipelines/commit/268e0898ecdd3f9447988b6e675676eb21c584f0))
+* **sdk:** update PipelineConfig to reflect new workspace Protobuf changes ([\#11934](https://github.com/kubeflow/pipelines/issues/11934)) ([dda6033](https://github.com/kubeflow/pipelines/commit/dda6033a03a8f69e51c6672d964169521744357b))
+* **ui:** add `ESC` shortcut for closing SidePanel. Fixes [\#11873](https://github.com/kubeflow/pipelines/issues/11873) ([\#11874](https://github.com/kubeflow/pipelines/issues/11874)) ([c3d05eb](https://github.com/kubeflow/pipelines/commit/c3d05eb0b1ee492098c9db769371d975ebf0241a))
+* add openshift env to manifests ([\#11932](https://github.com/kubeflow/pipelines/issues/11932)) ([8329e64](https://github.com/kubeflow/pipelines/commit/8329e64716dab0e3485381f712aeadc80beb05f3))
+
+
+### Bug Fixes
+
+* **backend:** omit unknown fields in json marshaling ([\#12101](https://github.com/kubeflow/pipelines/issues/12101)) ([000a111](https://github.com/kubeflow/pipelines/commit/000a111396213847a437296afb511564ccc0c60d))
+* **deps:** revert metadata_writer k8s version ([\#12099](https://github.com/kubeflow/pipelines/issues/12099)) ([c64feac](https://github.com/kubeflow/pipelines/commit/c64feac20edf6129523fd5d8241d1f7140107fdd))
+* **sdk,backend:** Make the workspace size required ([\#12094](https://github.com/kubeflow/pipelines/issues/12094)) ([4bd3d4b](https://github.com/kubeflow/pipelines/commit/4bd3d4b4e99b5af38380ddad9693a2a0bbe4e968))
+* backwards compatibility for pipeline spec task_name ([\#12061](https://github.com/kubeflow/pipelines/issues/12061)) ([bcb9ee4](https://github.com/kubeflow/pipelines/commit/bcb9ee4324c4606f34ac000315b8b2f60df8c31e))
+* **apiserver:** fix typos in resource_manager.go: ([\#11998](https://github.com/kubeflow/pipelines/issues/11998)) ([3154ef9](https://github.com/kubeflow/pipelines/commit/3154ef9258c1dfb179fdb5d036989b126b2412fe))
+* **backend:** Fix boolean flag syntax for `--cache_disabled` and update test to cover pipelines with outputs ([\#12001](https://github.com/kubeflow/pipelines/issues/12001)) ([f240685](https://github.com/kubeflow/pipelines/commit/f240685bf3169251ca343fc985bbb5607be3f727))
+* **backend:** Fix the pipeline samples ([\#11967](https://github.com/kubeflow/pipelines/issues/11967)) ([b477269](https://github.com/kubeflow/pipelines/commit/b4772693ae0f7d90425f604ebdafbda1a1c4a5f3))
+* **backend:** increase max_metadata_size for ml-metadata grpc server ([\#12062](https://github.com/kubeflow/pipelines/issues/12062)) ([09ced38](https://github.com/kubeflow/pipelines/commit/09ced38500725c5e8542ce4885eee8d3cee58f02))
+* **backend:** Stop logging the strack trace on benign user errors ([\#11883](https://github.com/kubeflow/pipelines/issues/11883)) ([56da004](https://github.com/kubeflow/pipelines/commit/56da004d91d8db9b46b57544d1ad6699ddb4de4c))
+* **backend/sdk:** update proto packages ([\#12067](https://github.com/kubeflow/pipelines/issues/12067)) ([cc35187](https://github.com/kubeflow/pipelines/commit/cc35187dff270008c6bef505c828f442773ec97d))
+* **cache:** Optimize cache expiration query solves [\#11614](https://github.com/kubeflow/pipelines/issues/11614) ([\#11920](https://github.com/kubeflow/pipelines/issues/11920)) ([faa2c8c](https://github.com/kubeflow/pipelines/commit/faa2c8cd16bd5dddec2c30dd456f6d8f55f12471))
+* **components:** Changed method_whitelist. Fixes [\#11880](https://github.com/kubeflow/pipelines/issues/11880) ([\#11961](https://github.com/kubeflow/pipelines/issues/11961)) ([a123d53](https://github.com/kubeflow/pipelines/commit/a123d53be0158b961e8527999392358a4403d191))
+* **sdk:** Fixes for Identifying Untagged Images for Running ([\#11984](https://github.com/kubeflow/pipelines/issues/11984)) ([e8e23f0](https://github.com/kubeflow/pipelines/commit/e8e23f0d7a0a583b93e11e5690504306f4e0091e))
+* **sdk:** Move version info to version.py for editable installs. ([\#11997](https://github.com/kubeflow/pipelines/issues/11997)) ([ada935a](https://github.com/kubeflow/pipelines/commit/ada935a0ad86d02329e3cb6b9a36a399d9fd4a79))
+* **sdk:** Support partial replace of placeholders in dict/list objects ([\#12039](https://github.com/kubeflow/pipelines/issues/12039)) ([ce84873](https://github.com/kubeflow/pipelines/commit/ce848730b8f4bf8a2d07f3b53691d9801b0e60f5))
+* Delete the pipeline along with its all versions. Fixes [\#11665](https://github.com/kubeflow/pipelines/issues/11665) ([\#12019](https://github.com/kubeflow/pipelines/issues/12019)) ([ad2730c](https://github.com/kubeflow/pipelines/commit/ad2730cf19febf2d8a0a7d42ac8eafe1bb458a14))
+* input resolution with set_display_name ([\#11938](https://github.com/kubeflow/pipelines/issues/11938)) ([7f60100](https://github.com/kubeflow/pipelines/commit/7f60100602deefa3ed6ffbef22a948b7790c360f))
+* **sdk:** fix pip install for dev ([\#11891](https://github.com/kubeflow/pipelines/issues/11891)) ([4503eae](https://github.com/kubeflow/pipelines/commit/4503eae10d19518bc35310c57d2ef957b31f959c))
+* **sdk:** resolve issue when creating pipeline version from pipeline name using the cli. Fixes [\#11810](https://github.com/kubeflow/pipelines/issues/11810) ([\#11866](https://github.com/kubeflow/pipelines/issues/11866)) ([c68640d](https://github.com/kubeflow/pipelines/commit/c68640d95038f1b577caa44a2ff0bd966d059b94))
+* **sdk:** Resolves issue when using ParallelFor with param and depending tasks ([\#11903](https://github.com/kubeflow/pipelines/issues/11903)) ([ef94ccd](https://github.com/kubeflow/pipelines/commit/ef94ccd734957bdee3bbb98ea043738bb5795dc7))
+* **test:** Fix the frontend sample test ([\#11968](https://github.com/kubeflow/pipelines/issues/11968)) ([5447563](https://github.com/kubeflow/pipelines/commit/54475637a241f55957149a32b80cb8c44d8f6458))
+* **tests:** free up space in kfp samples test workflow ([\#11942](https://github.com/kubeflow/pipelines/issues/11942)) ([8fe090d](https://github.com/kubeflow/pipelines/commit/8fe090d461d7c2e1226c2fc46a80479790bcd2e5))
+
+
+### Other Pull Requests
+
+* revert changelog ([62082a4](https://github.com/kubeflow/pipelines/commit/62082a4812b84ed00102f05a81e8e924f02f36fe))
+* test generating backend proto go code ([\#12108](https://github.com/kubeflow/pipelines/issues/12108)) ([5685e88](https://github.com/kubeflow/pipelines/commit/5685e884f459da6d1f63c46a3185a7a24b22dfca))
+* update python packages to 2.14 ([3ffde88](https://github.com/kubeflow/pipelines/commit/3ffde88e5f306268e00ccbe0e450dd76e7baf1bf))
+* add versioning policy for KFP ([\#12105](https://github.com/kubeflow/pipelines/issues/12105)) ([9f5abab](https://github.com/kubeflow/pipelines/commit/9f5abab7d2d995b5a5f197c7e697fb30bc8c9ab7))
+* feat(sdk) Add Input Parameter support for node affinity ([\#12028](https://github.com/kubeflow/pipelines/issues/12028)) ([ecf488b](https://github.com/kubeflow/pipelines/commit/ecf488b65fed923595ed048a2d0e9ba3d932f409))
+* Fix broken Pipeline Root documentation link ([\#12051](https://github.com/kubeflow/pipelines/issues/12051)) ([f20cec5](https://github.com/kubeflow/pipelines/commit/f20cec5b7097a628f18765d6160dd2316f41dec4))
+* add new KFP maintainers ([\#12059](https://github.com/kubeflow/pipelines/issues/12059)) ([69a1846](https://github.com/kubeflow/pipelines/commit/69a184637a97458037d65f6a9b938013d9e2f579))
+* user master for dev manifests ([\#11977](https://github.com/kubeflow/pipelines/issues/11977)) ([5181358](https://github.com/kubeflow/pipelines/commit/5181358d6a4ca4d0923ac90733cf83470763cdd2))
+* feat(frontend) Use native k8s probes for pipeline-ui ([\#11955](https://github.com/kubeflow/pipelines/issues/11955)) ([48468ae](https://github.com/kubeflow/pipelines/commit/48468ae1fa126f8668e275817f77023a585175f9))
+* feat(backend) implement retryStrategy for nested pipelines  ([\#11908](https://github.com/kubeflow/pipelines/issues/11908)) ([beae62f](https://github.com/kubeflow/pipelines/commit/beae62fb528fc9044af54bf2c46771727d5d22b2))
+* - fix(launcher): missing executorInput parameter values caused by {{$}} evaluation order ([\#11925](https://github.com/kubeflow/pipelines/issues/11925)) ([3337b5e](https://github.com/kubeflow/pipelines/commit/3337b5e32377653968f477b05e5cbd5d6a081bdf))
+* add maintainer to kfp ([\#11900](https://github.com/kubeflow/pipelines/issues/11900)) ([e276474](https://github.com/kubeflow/pipelines/commit/e276474f970a1a92db7cf8c01d5ef716acc3ee4b))
+* No public description ([d90e4e8](https://github.com/kubeflow/pipelines/commit/d90e4e8a54fdd08a73ca9b0ebb404e7cb6035f7c))
+* update release doc paths & make script executable ([\#11871](https://github.com/kubeflow/pipelines/issues/11871)) ([8a402c1](https://github.com/kubeflow/pipelines/commit/8a402c10a8e3d36f964fb451760319c99a185e8f))
 
 ## [2.5.0](https://github.com/kubeflow/pipelines/compare/2.4.1...2.5.0) (2025-04-29)
 
 
 ### Features
 
-* **backend:** Add a mutating webhook for the PipelineVersion kind (#11782) ([c9be64d](https://github.com/kubeflow/pipelines/commit/c9be64dca362a33dcfad186fe579066a646a6df1))
-* **backend:** Add the ability to set a proxy for accessing external resources (#11771) ([6e3548f](https://github.com/kubeflow/pipelines/commit/6e3548f33e226ba374e4d43a175ae8ac9018e268))
-* **backend:** Add types for KFP Kubernete Native API (#11672) ([0d9a7b0](https://github.com/kubeflow/pipelines/commit/0d9a7b00e926130b07058ea71148fbb9cab69d2b))
-* **backend:** Create a validating webhook for the PipelineVersion kind (#11774) ([2efcde5](https://github.com/kubeflow/pipelines/commit/2efcde5efd3952b91ea79a5ee6dbf064282f719a))
-* **backend:** implement logs as artifacts (#11762) ([cd3e747](https://github.com/kubeflow/pipelines/commit/cd3e747b5de3d7e1e338e309cc57311dd4a91258))
-* **backend:** implement logs as artifacts + CI updates (#11809) ([464ca39](https://github.com/kubeflow/pipelines/commit/464ca3974fbbc46e022f863e49c4fbaabd1a8265))
-* **backend/sdk:** Add input parameterization for various k8s resources  (#11770) ([fd1b48b](https://github.com/kubeflow/pipelines/commit/fd1b48b4712038afe8a78e37843672d4773dc080))
-* **proto:** Add TTL fields to KFP IR yaml proto (#11758) ([c5aba41](https://github.com/kubeflow/pipelines/commit/c5aba41bcaf3c214d984db4571c1ecae4a0d551d))
-* **sdk:** add upload pipeline and upload pipeline version from pipeline function (#11804) ([1ad4f60](https://github.com/kubeflow/pipelines/commit/1ad4f608a0b9dea2362cf89f9cf7abdebf20e080))
+* **backend:** Add a mutating webhook for the PipelineVersion kind ([\#11782](https://github.com/kubeflow/pipelines/issues/11782)) ([c9be64d](https://github.com/kubeflow/pipelines/commit/c9be64dca362a33dcfad186fe579066a646a6df1))
+* **backend:** Add the ability to set a proxy for accessing external resources ([\#11771](https://github.com/kubeflow/pipelines/issues/11771)) ([6e3548f](https://github.com/kubeflow/pipelines/commit/6e3548f33e226ba374e4d43a175ae8ac9018e268))
+* **backend:** Add types for KFP Kubernete Native API ([\#11672](https://github.com/kubeflow/pipelines/issues/11672)) ([0d9a7b0](https://github.com/kubeflow/pipelines/commit/0d9a7b00e926130b07058ea71148fbb9cab69d2b))
+* **backend:** Create a validating webhook for the PipelineVersion kind ([\#11774](https://github.com/kubeflow/pipelines/issues/11774)) ([2efcde5](https://github.com/kubeflow/pipelines/commit/2efcde5efd3952b91ea79a5ee6dbf064282f719a))
+* **backend:** implement logs as artifacts ([\#11762](https://github.com/kubeflow/pipelines/issues/11762)) ([cd3e747](https://github.com/kubeflow/pipelines/commit/cd3e747b5de3d7e1e338e309cc57311dd4a91258))
+* **backend:** implement logs as artifacts + CI updates ([\#11809](https://github.com/kubeflow/pipelines/issues/11809)) ([464ca39](https://github.com/kubeflow/pipelines/commit/464ca3974fbbc46e022f863e49c4fbaabd1a8265))
+* **backend/sdk:** Add input parameterization for various k8s resources  ([\#11770](https://github.com/kubeflow/pipelines/issues/11770)) ([fd1b48b](https://github.com/kubeflow/pipelines/commit/fd1b48b4712038afe8a78e37843672d4773dc080))
+* **proto:** Add TTL fields to KFP IR yaml proto ([\#11758](https://github.com/kubeflow/pipelines/issues/11758)) ([c5aba41](https://github.com/kubeflow/pipelines/commit/c5aba41bcaf3c214d984db4571c1ecae4a0d551d))
+* **sdk:** add upload pipeline and upload pipeline version from pipeline function ([\#11804](https://github.com/kubeflow/pipelines/issues/11804)) ([1ad4f60](https://github.com/kubeflow/pipelines/commit/1ad4f608a0b9dea2362cf89f9cf7abdebf20e080))
 
 
 ### Bug Fixes
 
-* **backend:** Fix run submissions with OwnerReferencesPermissionEnforcement on (#11821) ([69ba50b](https://github.com/kubeflow/pipelines/commit/69ba50b3fb03bd8441f833950a6c77835a2d47a1))
-* **backend:** fixed Dockerfile (#11841) ([d38418e](https://github.com/kubeflow/pipelines/commit/d38418efeadec3ea3bea55b3373bcc311dacc135))
-* **backend:** Include missing go.mod for cacheserver/viewercontroller images (#11776) ([715ed40](https://github.com/kubeflow/pipelines/commit/715ed40b92f9bca521f94e0df5201425d9d30866))
+* **backend:** Fix run submissions with OwnerReferencesPermissionEnforcement on ([\#11821](https://github.com/kubeflow/pipelines/issues/11821)) ([69ba50b](https://github.com/kubeflow/pipelines/commit/69ba50b3fb03bd8441f833950a6c77835a2d47a1))
+* **backend:** fixed Dockerfile ([\#11841](https://github.com/kubeflow/pipelines/issues/11841)) ([d38418e](https://github.com/kubeflow/pipelines/commit/d38418efeadec3ea3bea55b3373bcc311dacc135))
+* **backend:** Include missing go.mod for cacheserver/viewercontroller images ([\#11776](https://github.com/kubeflow/pipelines/issues/11776)) ([715ed40](https://github.com/kubeflow/pipelines/commit/715ed40b92f9bca521f94e0df5201425d9d30866))
 * **components:** Set tensorboard_experiment_name to random uuid when uploading plots in Starry Net pipeline ([cc56d04](https://github.com/kubeflow/pipelines/commit/cc56d04c46d01666a8e091b124473c2654e1b6d3))
-* **deployment:** Update kustomize manifests to use new label and patch syntax (#11733) ([230c1b8](https://github.com/kubeflow/pipelines/commit/230c1b8f1332ffab575b2e69b65d9a6958167195))
-* **deps:** widen urllib3 upper bound to <3.0.0 (#11819) ([866ff35](https://github.com/kubeflow/pipelines/commit/866ff3556a4454ccb52f1594bbca4167a04c0d3e))
-* **docs:** Remove Podman as backend README pre-req (#11824) ([88cff55](https://github.com/kubeflow/pipelines/commit/88cff559142e5a985cf31620f07b71244645cb4a))
-* **docs:** Use the latest driver and launcher images in the dev environment (#11820) ([92e4921](https://github.com/kubeflow/pipelines/commit/92e4921c4cce8155093bf7e332abfbf03bd6eaef))
-* **local:** warn about oci:// not supported too (#11794) ([564522c](https://github.com/kubeflow/pipelines/commit/564522c42de9136dec67f1bf29590bdd64bf2333))
-* **metadata-writer:** use mlmd_store.get_context_types() instead of workaround (#11753) ([35041ef](https://github.com/kubeflow/pipelines/commit/35041ef2bd4d9b3261f1250f5803786ed9e453fe))
-* **sdk:** Add SDK support for setting resource limits on older KFP versions (#11839) ([f9d487c](https://github.com/kubeflow/pipelines/commit/f9d487cb605727f357f58783db298d96898b24d1))
-* **sdk:** allow google-cloud-storage < 4 (#11735) ([bd4fc5c](https://github.com/kubeflow/pipelines/commit/bd4fc5c6677402d5f2d9ac45481ac86f25da4640))
-* **sdk:** avoid conflicting component names in DAG when reusing pipelines (#11071) ([d1b15ef](https://github.com/kubeflow/pipelines/commit/d1b15ef4da33cbeafa491564318c7e2a68dc431f))
-* **tests:** free up space in some test runners (#11818) ([478ca08](https://github.com/kubeflow/pipelines/commit/478ca089012e64edd371feff4ece9d0d156d4710))
-* minio fsgroup for popular clusters (#11734) ([8d0ae53](https://github.com/kubeflow/pipelines/commit/8d0ae5381e8366905c90009c56fd0e4807e94f0f))
+* **deployment:** Update kustomize manifests to use new label and patch syntax ([\#11733](https://github.com/kubeflow/pipelines/issues/11733)) ([230c1b8](https://github.com/kubeflow/pipelines/commit/230c1b8f1332ffab575b2e69b65d9a6958167195))
+* **deps:** widen urllib3 upper bound to <3.0.0 ([\#11819](https://github.com/kubeflow/pipelines/issues/11819)) ([866ff35](https://github.com/kubeflow/pipelines/commit/866ff3556a4454ccb52f1594bbca4167a04c0d3e))
+* **docs:** Remove Podman as backend README pre-req ([\#11824](https://github.com/kubeflow/pipelines/issues/11824)) ([88cff55](https://github.com/kubeflow/pipelines/commit/88cff559142e5a985cf31620f07b71244645cb4a))
+* **docs:** Use the latest driver and launcher images in the dev environment ([\#11820](https://github.com/kubeflow/pipelines/issues/11820)) ([92e4921](https://github.com/kubeflow/pipelines/commit/92e4921c4cce8155093bf7e332abfbf03bd6eaef))
+* **local:** warn about oci:// not supported too ([\#11794](https://github.com/kubeflow/pipelines/issues/11794)) ([564522c](https://github.com/kubeflow/pipelines/commit/564522c42de9136dec67f1bf29590bdd64bf2333))
+* **metadata-writer:** use mlmd_store.get_context_types() instead of workaround ([\#11753](https://github.com/kubeflow/pipelines/issues/11753)) ([35041ef](https://github.com/kubeflow/pipelines/commit/35041ef2bd4d9b3261f1250f5803786ed9e453fe))
+* **sdk:** Add SDK support for setting resource limits on older KFP versions ([\#11839](https://github.com/kubeflow/pipelines/issues/11839)) ([f9d487c](https://github.com/kubeflow/pipelines/commit/f9d487cb605727f357f58783db298d96898b24d1))
+* **sdk:** allow google-cloud-storage < 4 ([\#11735](https://github.com/kubeflow/pipelines/issues/11735)) ([bd4fc5c](https://github.com/kubeflow/pipelines/commit/bd4fc5c6677402d5f2d9ac45481ac86f25da4640))
+* **sdk:** avoid conflicting component names in DAG when reusing pipelines ([\#11071](https://github.com/kubeflow/pipelines/issues/11071)) ([d1b15ef](https://github.com/kubeflow/pipelines/commit/d1b15ef4da33cbeafa491564318c7e2a68dc431f))
+* **tests:** free up space in some test runners ([\#11818](https://github.com/kubeflow/pipelines/issues/11818)) ([478ca08](https://github.com/kubeflow/pipelines/commit/478ca089012e64edd371feff4ece9d0d156d4710))
+* minio fsgroup for popular clusters ([\#11734](https://github.com/kubeflow/pipelines/issues/11734)) ([8d0ae53](https://github.com/kubeflow/pipelines/commit/8d0ae5381e8366905c90009c56fd0e4807e94f0f))
 
 
 ### Other Pull Requests
@@ -41,18 +314,18 @@
 * add list or dict support for add toleration json ([fb18235](https://github.com/kubeflow/pipelines/commit/fb182355f08e41eff1ac530be1afac0bad69e15d))
 * add backend support for toleration lists. ([90909fc](https://github.com/kubeflow/pipelines/commit/90909fc0ef58b71362017a3e48c924b38c389183))
 * switch selenium image to ghcr ([7529bbe](https://github.com/kubeflow/pipelines/commit/7529bbeba7f245366ca1cbc280169e20a7100a6a))
-* add missing release note updates to sdk main branch (#11842) ([611d582](https://github.com/kubeflow/pipelines/commit/611d5820049dc51ddf261d7d1368c4858dad5159))
-* fix component retry test (#11836) ([598826e](https://github.com/kubeflow/pipelines/commit/598826e1ccfecb5f34716876053a22cdc6605ae4))
-* **chore:** add cleanup resources to sdk execution tests (#11823) ([eee4986](https://github.com/kubeflow/pipelines/commit/eee4986f180cd4e7469a65a3c5f4ffbf3ec0b46c))
-* update driver & launcher image handling (#11533) ([38a4653](https://github.com/kubeflow/pipelines/commit/38a46533fcd47aa31e825109e2bf6940d127910a))
-* **chore:** add image builds for default branch (#11800) ([eacb586](https://github.com/kubeflow/pipelines/commit/eacb586f6225bb277642f4977552f799850e06a1))
-* fix setup env for kfp k8s lib tests (#11798) ([f10c7bf](https://github.com/kubeflow/pipelines/commit/f10c7bfbbcf01eb25f2fa8a437da62bbf07dc1f5))
-* Handle optional pipeline inputs in the driver (#11788) ([bb7a108](https://github.com/kubeflow/pipelines/commit/bb7a1082c4c5a3fb308aac2bf37bab476c3c4df6))
-* Fix recurring run output when always using latest (#11790) ([048f283](https://github.com/kubeflow/pipelines/commit/048f28332b6a0b6684632e76dcb284de2f81d829))
-* increase stale action timers (#11792) ([ade8a2d](https://github.com/kubeflow/pipelines/commit/ade8a2d072efa9897a5a0173316836236d629238))
-* Fix PSS restricted warnings (#11751) ([01999b8](https://github.com/kubeflow/pipelines/commit/01999b8fea23db52da0f633e475c457fc06ca531))
-* fix(CI) Github action is vulnerable to code execution via `comment body` (#11772) ([95c3f2c](https://github.com/kubeflow/pipelines/commit/95c3f2c04d8f19b8b656ddbda046ed9f2c81130a))
-* Fix Istio sidecar injection by moving from annotations to labels (#11750) ([df4e9c2](https://github.com/kubeflow/pipelines/commit/df4e9c2bf5b645f4a3fa831b073846eae5eaceb7))
+* add missing release note updates to sdk main branch ([\#11842](https://github.com/kubeflow/pipelines/issues/11842)) ([611d582](https://github.com/kubeflow/pipelines/commit/611d5820049dc51ddf261d7d1368c4858dad5159))
+* fix component retry test ([\#11836](https://github.com/kubeflow/pipelines/issues/11836)) ([598826e](https://github.com/kubeflow/pipelines/commit/598826e1ccfecb5f34716876053a22cdc6605ae4))
+* **chore:** add cleanup resources to sdk execution tests ([\#11823](https://github.com/kubeflow/pipelines/issues/11823)) ([eee4986](https://github.com/kubeflow/pipelines/commit/eee4986f180cd4e7469a65a3c5f4ffbf3ec0b46c))
+* update driver & launcher image handling ([\#11533](https://github.com/kubeflow/pipelines/issues/11533)) ([38a4653](https://github.com/kubeflow/pipelines/commit/38a46533fcd47aa31e825109e2bf6940d127910a))
+* **chore:** add image builds for default branch ([\#11800](https://github.com/kubeflow/pipelines/issues/11800)) ([eacb586](https://github.com/kubeflow/pipelines/commit/eacb586f6225bb277642f4977552f799850e06a1))
+* fix setup env for kfp k8s lib tests ([\#11798](https://github.com/kubeflow/pipelines/issues/11798)) ([f10c7bf](https://github.com/kubeflow/pipelines/commit/f10c7bfbbcf01eb25f2fa8a437da62bbf07dc1f5))
+* Handle optional pipeline inputs in the driver ([\#11788](https://github.com/kubeflow/pipelines/issues/11788)) ([bb7a108](https://github.com/kubeflow/pipelines/commit/bb7a1082c4c5a3fb308aac2bf37bab476c3c4df6))
+* Fix recurring run output when always using latest ([\#11790](https://github.com/kubeflow/pipelines/issues/11790)) ([048f283](https://github.com/kubeflow/pipelines/commit/048f28332b6a0b6684632e76dcb284de2f81d829))
+* increase stale action timers ([\#11792](https://github.com/kubeflow/pipelines/issues/11792)) ([ade8a2d](https://github.com/kubeflow/pipelines/commit/ade8a2d072efa9897a5a0173316836236d629238))
+* Fix PSS restricted warnings ([\#11751](https://github.com/kubeflow/pipelines/issues/11751)) ([01999b8](https://github.com/kubeflow/pipelines/commit/01999b8fea23db52da0f633e475c457fc06ca531))
+* fix(CI) Github action is vulnerable to code execution via `comment body` ([\#11772](https://github.com/kubeflow/pipelines/issues/11772)) ([95c3f2c](https://github.com/kubeflow/pipelines/commit/95c3f2c04d8f19b8b656ddbda046ed9f2c81130a))
+* Fix Istio sidecar injection by moving from annotations to labels ([\#11750](https://github.com/kubeflow/pipelines/issues/11750)) ([df4e9c2](https://github.com/kubeflow/pipelines/commit/df4e9c2bf5b645f4a3fa831b073846eae5eaceb7))
 
 ## [2.5.0](https://github.com/kubeflow/pipelines/compare/2.3.0...2.5.0) (2025-04-28)
 
@@ -4506,7 +4779,6 @@
 * **test:** Fix presubmit with python version upgrade ([\#5033](https://github.com/kubeflow/pipelines/issues/5033)) ([a8b7fc9](https://github.com/kubeflow/pipelines/commit/a8b7fc97b177b8fd835315d116482bf293cfa8a4))
 * **test:** Pin pip version in presubmit-tests-tfx.sh Fixes [\#5049](https://github.com/kubeflow/pipelines/issues/5049) ([\#5050](https://github.com/kubeflow/pipelines/issues/5050)) ([cad02dc](https://github.com/kubeflow/pipelines/commit/cad02dc2836ee25dac7c29658d0c0f6dea6fc17e))
 
-
 ### Other Pull Requests
 
 * Add references for Tekton backend ([\#4821](https://github.com/kubeflow/pipelines/issues/4821)) ([b5e820e](https://github.com/kubeflow/pipelines/commit/b5e820e217b7de947131f440a8391f6be475a6bf))
@@ -4560,7 +4832,6 @@
 * **sdk.v2:** Fix the bug where pipeline_parameters is not used. ([\#5002](https://github.com/kubeflow/pipelines/issues/5002)) ([0c600a2](https://github.com/kubeflow/pipelines/commit/0c600a2cb8c8e55b3214745154732af661799b55))
 * **test:** Fix presubmit with python version upgrade ([\#5033](https://github.com/kubeflow/pipelines/issues/5033)) ([a8b7fc9](https://github.com/kubeflow/pipelines/commit/a8b7fc97b177b8fd835315d116482bf293cfa8a4))
 * **test:** Pin pip version in presubmit-tests-tfx.sh Fixes [\#5049](https://github.com/kubeflow/pipelines/issues/5049) ([\#5050](https://github.com/kubeflow/pipelines/issues/5050)) ([cad02dc](https://github.com/kubeflow/pipelines/commit/cad02dc2836ee25dac7c29658d0c0f6dea6fc17e))
-
 
 ### Other Pull Requests
 
@@ -6610,9 +6881,9 @@ Detailed PR can be found [here](https://github.com/kubeflow/pipelines/commits)
 ## [0.1.27](https://github.com/kubeflow/pipelines/tree/0.1.27) (2019-08-22)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.26...0.1.27)
 
- **Merged pull requests:**
+**Merged pull requests:**
 
- - update namespaced-install.yaml  [\#1926](https://github.com/kubeflow/pipelines/pull/1926) ([IronPan](https://github.com/IronPan))
+- update namespaced-install.yaml  [\#1926](https://github.com/kubeflow/pipelines/pull/1926) ([IronPan](https://github.com/IronPan))
 - Fix lint related issue [\#1922](https://github.com/kubeflow/pipelines/pull/1922) ([numerology](https://github.com/numerology))
 - Cleanup pipeline-lite deployment [\#1921](https://github.com/kubeflow/pipelines/pull/1921) ([IronPan](https://github.com/IronPan))
 - Allow visualization kernel timeout to be specifiable via environment variables [\#1920](https://github.com/kubeflow/pipelines/pull/1920) ([ajchili](https://github.com/ajchili))
@@ -6842,12 +7113,12 @@ Detailed PR can be found [here](https://github.com/kubeflow/pipelines/commits)
 - SDK - Travis configuration for Python 3.5 and 3.7 [\#1467](https://github.com/kubeflow/pipelines/pull/1467) ([kvalev](https://github.com/kvalev))
 - Add timeout out in dsl [\#1465](https://github.com/kubeflow/pipelines/pull/1465) ([gaoning777](https://github.com/gaoning777))
 
- ## [0.1.22](https://github.com/kubeflow/pipelines/tree/0.1.22) (2019-06-21)
+## [0.1.22](https://github.com/kubeflow/pipelines/tree/0.1.22) (2019-06-21)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.21...0.1.22)
 
- **Merged pull requests:**
+**Merged pull requests:**
 
- - increment sdk versions [\#1538](https://github.com/kubeflow/pipelines/pull/1538) ([hongye-sun](https://github.com/hongye-sun))
+- increment sdk versions [\#1538](https://github.com/kubeflow/pipelines/pull/1538) ([hongye-sun](https://github.com/hongye-sun))
 - SDK/Client - Added support for all APIs [\#1536](https://github.com/kubeflow/pipelines/pull/1536) ([Ark-kun](https://github.com/Ark-kun))
 - SDK/Client - Added the upload\_pipeline API [\#1535](https://github.com/kubeflow/pipelines/pull/1535) ([Ark-kun](https://github.com/Ark-kun))
 - Update Watson pipeline component source to the latest commit [\#1533](https://github.com/kubeflow/pipelines/pull/1533) ([Tomcli](https://github.com/Tomcli))
@@ -6953,12 +7224,12 @@ Detailed PR can be found [here](https://github.com/kubeflow/pipelines/commits)
 ## [0.1.20](https://github.com/kubeflow/pipelines/tree/0.1.20) (2019-05-14)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.19...0.1.20)
 
- **Closed issues:**
+**Closed issues:**
 
- - Cannot create job for experiment via Pipelines Go CLI [\#1321](https://github.com/kubeflow/pipelines/issues/1321)
- - Support a container flow inside one pod [\#1313](https://github.com/kubeflow/pipelines/issues/1313)
- - toleration support for ContainerOp [\#1265](https://github.com/kubeflow/pipelines/issues/1265)
- - Can only create recurring run from within experiment page [\#1217](https://github.com/kubeflow/pipelines/issues/1217)
+- Cannot create job for experiment via Pipelines Go CLI [\#1321](https://github.com/kubeflow/pipelines/issues/1321)
+- Support a container flow inside one pod [\#1313](https://github.com/kubeflow/pipelines/issues/1313)
+- toleration support for ContainerOp [\#1265](https://github.com/kubeflow/pipelines/issues/1265)
+- Can only create recurring run from within experiment page [\#1217](https://github.com/kubeflow/pipelines/issues/1217)
 
 **Merged pull requests:**
 
@@ -6987,25 +7258,25 @@ Detailed PR can be found [here](https://github.com/kubeflow/pipelines/commits)
 - changelog for v0.1.19 [\#1296](https://github.com/kubeflow/pipelines/pull/1296) ([hongye-sun](https://github.com/hongye-sun))
 - add nuclio components \(to build/deploy, delete, invoke functions\) [\#1295](https://github.com/kubeflow/pipelines/pull/1295) ([yaronha](https://github.com/yaronha))
 - SDK - Failing faster in python\_op tests [\#1291](https://github.com/kubeflow/pipelines/pull/1291) ([Ark-kun](https://github.com/Ark-kun))
- - SDK - Renamed ModelBase.from\_struct/to\_struct to from\_dict/to\_dict [\#1290](https://github.com/kubeflow/pipelines/pull/1290) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Renamed ModelBase.from\_struct/to\_struct to from\_dict/to\_dict [\#1290](https://github.com/kubeflow/pipelines/pull/1290) ([Ark-kun](https://github.com/Ark-kun))
 - Backend - Marking auto-added artifacts as optional [\#1289](https://github.com/kubeflow/pipelines/pull/1289) ([Ark-kun](https://github.com/Ark-kun))
 - Update new Watson OpenScale components and pipeline [\#1287](https://github.com/kubeflow/pipelines/pull/1287) ([Tomcli](https://github.com/Tomcli))
- - Add AWS EMR and Athena components [\#1286](https://github.com/kubeflow/pipelines/pull/1286) ([Jeffwan](https://github.com/Jeffwan))
+- Add AWS EMR and Athena components [\#1286](https://github.com/kubeflow/pipelines/pull/1286) ([Jeffwan](https://github.com/Jeffwan))
 - Make confusion\_matrix and roc generic [\#1285](https://github.com/kubeflow/pipelines/pull/1285) ([Jeffwan](https://github.com/Jeffwan))
- - Components - Updating component versions in samples during release [\#1283](https://github.com/kubeflow/pipelines/pull/1283) ([Ark-kun](https://github.com/Ark-kun))
- - Sets the background color for KFP pages [\#1281](https://github.com/kubeflow/pipelines/pull/1281) ([rileyjbauer](https://github.com/rileyjbauer))
- - keep the api image name consistent between the presubmit test and staging [\#1279](https://github.com/kubeflow/pipelines/pull/1279) ([gaoning777](https://github.com/gaoning777))
- - Frontend - Add support for artifacts stored in S3 [\#1278](https://github.com/kubeflow/pipelines/pull/1278) ([Jeffwan](https://github.com/Jeffwan))
+- Components - Updating component versions in samples during release [\#1283](https://github.com/kubeflow/pipelines/pull/1283) ([Ark-kun](https://github.com/Ark-kun))
+- Sets the background color for KFP pages [\#1281](https://github.com/kubeflow/pipelines/pull/1281) ([rileyjbauer](https://github.com/rileyjbauer))
+- keep the api image name consistent between the presubmit test and staging [\#1279](https://github.com/kubeflow/pipelines/pull/1279) ([gaoning777](https://github.com/gaoning777))
+- Frontend - Add support for artifacts stored in S3 [\#1278](https://github.com/kubeflow/pipelines/pull/1278) ([Jeffwan](https://github.com/Jeffwan))
 - Release - Simplified python package building [\#1277](https://github.com/kubeflow/pipelines/pull/1277) ([Ark-kun](https://github.com/Ark-kun))
- - Add SageMaker components and example pipeline [\#1276](https://github.com/kubeflow/pipelines/pull/1276) ([Jeffwan](https://github.com/Jeffwan))
+- Add SageMaker components and example pipeline [\#1276](https://github.com/kubeflow/pipelines/pull/1276) ([Jeffwan](https://github.com/Jeffwan))
 - Tests/Travis - Simplified the Python SDK package installation [\#1275](https://github.com/kubeflow/pipelines/pull/1275) ([Ark-kun](https://github.com/Ark-kun))
- - Adds a toggle between one-off and recurring runs to NewRun page [\#1274](https://github.com/kubeflow/pipelines/pull/1274) ([rileyjbauer](https://github.com/rileyjbauer))
- - spark components [\#1272](https://github.com/kubeflow/pipelines/pull/1272) ([animeshsingh](https://github.com/animeshsingh))
+- Adds a toggle between one-off and recurring runs to NewRun page [\#1274](https://github.com/kubeflow/pipelines/pull/1274) ([rileyjbauer](https://github.com/rileyjbauer))
+- spark components [\#1272](https://github.com/kubeflow/pipelines/pull/1272) ([animeshsingh](https://github.com/animeshsingh))
 - support tolerations for ContainerOps [\#1269](https://github.com/kubeflow/pipelines/pull/1269) ([hamedhsn](https://github.com/hamedhsn))
- - make pending timeout customizable [\#1268](https://github.com/kubeflow/pipelines/pull/1268) ([cheyang](https://github.com/cheyang))
- - SDK/Client - Supporting pipeline packages with multiple files [\#1207](https://github.com/kubeflow/pipelines/pull/1207) ([Ark-kun](https://github.com/Ark-kun))
- - Retaining the component url, digest or tag when loading [\#1090](https://github.com/kubeflow/pipelines/pull/1090) ([Ark-kun](https://github.com/Ark-kun))
- - Allow to specify informers namespace in persistence agent [\#901](https://github.com/kubeflow/pipelines/pull/901) ([ywskycn](https://github.com/ywskycn))
+- make pending timeout customizable [\#1268](https://github.com/kubeflow/pipelines/pull/1268) ([cheyang](https://github.com/cheyang))
+- SDK/Client - Supporting pipeline packages with multiple files [\#1207](https://github.com/kubeflow/pipelines/pull/1207) ([Ark-kun](https://github.com/Ark-kun))
+- Retaining the component url, digest or tag when loading [\#1090](https://github.com/kubeflow/pipelines/pull/1090) ([Ark-kun](https://github.com/Ark-kun))
+- Allow to specify informers namespace in persistence agent [\#901](https://github.com/kubeflow/pipelines/pull/901) ([ywskycn](https://github.com/ywskycn))
 
 
 ## [0.1.19](https://github.com/kubeflow/pipelines/tree/0.1.19) (2019-05-03)

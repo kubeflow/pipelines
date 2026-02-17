@@ -21,6 +21,7 @@ __all__ = [
     'InputPath',
     'OutputPath',
     'PipelineTaskFinalStatus',
+    'TaskConfig',
     'Artifact',
     'ClassificationMetrics',
     'Dataset',
@@ -40,9 +41,13 @@ __all__ = [
     'PIPELINE_ROOT_PLACEHOLDER',
     'PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER',
     'PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER',
+    'WORKSPACE_PATH_PLACEHOLDER',
+    'run_notebook',
 ]
 import os
 
+from kfp.dsl.notebook_helpers import run_notebook
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
 from kfp.dsl.types.artifact_types import Artifact
 from kfp.dsl.types.artifact_types import ClassificationMetrics
@@ -53,6 +58,7 @@ from kfp.dsl.types.artifact_types import Markdown
 from kfp.dsl.types.artifact_types import Metrics
 from kfp.dsl.types.artifact_types import Model
 from kfp.dsl.types.artifact_types import SlicedClassificationMetrics
+from kfp.dsl.types.type_annotations import EmbeddedAnnotation
 from kfp.dsl.types.type_annotations import InputAnnotation
 from kfp.dsl.types.type_annotations import InputPath
 from kfp.dsl.types.type_annotations import OutputAnnotation
@@ -209,6 +215,23 @@ PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER = '{{$.pipeline_job_schedule_time_utc
             )
 """
 
+WORKSPACE_PATH_PLACEHOLDER = '{{$.workspace_path}}'
+"""A placeholder used to obtain the path to the shared workspace within a component.
+    
+    Example:
+      ::
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                workspace=dsl.WorkspaceConfig(size='100Gi'),
+            ),
+        )
+        def my_pipeline():
+            clone_repo_task = clone_repo(
+                workspacePath=dsl.WORKSPACE_PATH_PLACEHOLDER, repo='https://github.com/example/repo',
+            )
+"""
+
 T = TypeVar('T')
 Input = Annotated[T, InputAnnotation]
 """Type generic used to represent an input artifact of type ``T``, where ``T`` is an artifact class.
@@ -237,6 +260,8 @@ Example:
 """
 
 Output = Annotated[T, OutputAnnotation]
+# Runtime-only input for accessing embedded artifacts extracted at runtime.
+EmbeddedInput = Annotated[T, EmbeddedAnnotation]
 """A type generic used to represent an output artifact of type ``T``, where ``T`` is an artifact class. The argument typed with this annotation is provided at runtime by the executing backend and does not need to be passed as an input by the pipeline author (see example).
 
 Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
@@ -265,12 +290,17 @@ Example:
 # compile-time only dependencies
 if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.component_decorator import component
+    from kfp.dsl.component_task_config import TaskConfigField
+    from kfp.dsl.component_task_config import TaskConfigPassthrough
     from kfp.dsl.container_component_decorator import container_component
     # TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
     from kfp.dsl.for_loop import Collected
     from kfp.dsl.importer_node import importer
+    from kfp.dsl.notebook_component_decorator import notebook_component
     from kfp.dsl.pipeline_channel import OneOf
+    from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
     from kfp.dsl.pipeline_config import PipelineConfig
+    from kfp.dsl.pipeline_config import WorkspaceConfig
     from kfp.dsl.pipeline_context import pipeline
     from kfp.dsl.pipeline_task import PipelineTask
     from kfp.dsl.placeholders import ConcatPlaceholder
@@ -283,21 +313,10 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.tasks_group import If
     from kfp.dsl.tasks_group import ParallelFor
     __all__.extend([
-        'component',
-        'container_component',
-        'pipeline',
-        'importer',
-        'ContainerSpec',
-        'Condition',
-        'If',
-        'Elif',
-        'Else',
-        'OneOf',
-        'ExitHandler',
-        'ParallelFor',
-        'Collected',
-        'IfPresentPlaceholder',
-        'ConcatPlaceholder',
-        'PipelineTask',
-        'PipelineConfig',
+        'component', 'container_component', 'pipeline', 'importer',
+        'ContainerSpec', 'Condition', 'If', 'Elif', 'Else', 'OneOf',
+        'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
+        'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
+        'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
+        'TaskConfigPassthrough', 'notebook_component'
     ])

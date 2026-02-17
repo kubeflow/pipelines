@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23-alpine as builder
+FROM golang:1.24-alpine AS builder
 
 ARG GCFLAGS=""
 
@@ -27,12 +27,12 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
 
-FROM alpine:3.19
+FROM alpine:3.21
 
-RUN adduser -S appuser
-USER appuser
+RUN adduser -S -u 65532 appuser
+USER 65532
 
 WORKDIR /bin
 

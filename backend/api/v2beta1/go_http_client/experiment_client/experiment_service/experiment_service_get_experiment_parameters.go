@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewExperimentServiceGetExperimentParams creates a new ExperimentServiceGetExperimentParams object
-// with the default values initialized.
+// NewExperimentServiceGetExperimentParams creates a new ExperimentServiceGetExperimentParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewExperimentServiceGetExperimentParams() *ExperimentServiceGetExperimentParams {
-	var ()
 	return &ExperimentServiceGetExperimentParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewExperimentServiceGetExperimentParamsWithTimeout creates a new ExperimentServiceGetExperimentParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewExperimentServiceGetExperimentParamsWithTimeout(timeout time.Duration) *ExperimentServiceGetExperimentParams {
-	var ()
 	return &ExperimentServiceGetExperimentParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewExperimentServiceGetExperimentParamsWithContext creates a new ExperimentServiceGetExperimentParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewExperimentServiceGetExperimentParamsWithContext(ctx context.Context) *ExperimentServiceGetExperimentParams {
-	var ()
 	return &ExperimentServiceGetExperimentParams{
-
 		Context: ctx,
 	}
 }
 
 // NewExperimentServiceGetExperimentParamsWithHTTPClient creates a new ExperimentServiceGetExperimentParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewExperimentServiceGetExperimentParamsWithHTTPClient(client *http.Client) *ExperimentServiceGetExperimentParams {
-	var ()
 	return &ExperimentServiceGetExperimentParams{
 		HTTPClient: client,
 	}
 }
 
-/*ExperimentServiceGetExperimentParams contains all the parameters to send to the API endpoint
-for the experiment service get experiment operation typically these are written to a http.Request
+/*
+ExperimentServiceGetExperimentParams contains all the parameters to send to the API endpoint
+
+	for the experiment service get experiment operation.
+
+	Typically these are written to a http.Request.
 */
 type ExperimentServiceGetExperimentParams struct {
 
-	/*ExperimentID
-	  The ID of the experiment to be retrieved.
+	/* ExperimentID.
 
+	   The ID of the experiment to be retrieved.
 	*/
 	ExperimentID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the experiment service get experiment params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceGetExperimentParams) WithDefaults() *ExperimentServiceGetExperimentParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the experiment service get experiment params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceGetExperimentParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the experiment service get experiment params

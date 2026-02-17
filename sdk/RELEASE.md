@@ -8,7 +8,104 @@
 
 ## Bug fixes and other changes
 
+# 2.15.2
+
+## Bug fixes and other changes
+
+* Fixed backwards compatibility issue where pipelines compiled with KFP 2.15 failed on older
+  versions with `"output_metadata.json": proto: (line 1:237): unknown field "custom_path"`.
+
+# 2.15.1
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
 ## Documentation updates
+
+# 2.15.0
+
+## Features
+
+* Allow sharing utility functions across components via the `additional_funcs` argument to the `component` decorator;
+  functions are embedded into the generated component code before the main function (#12178).
+* feat(backend, sdk): Add custom_path field to RuntimeArtifact (#12248)
+* feat(sdk): Add notebook components and embedded artifacts support (#12294)
+* feat(sdk): add compile-time validation for workspace size
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* fix(sdk): Add support for list and dict parameter type hints (#12410)
+* fix(CI/SDK): Fix tests for pipelines with optional input parameters and an SDK syntax error (#12420)
+* chore: update py image refs to 3.11 (#12383)
+
+## Documentation updates
+
+# 2.14.6
+
+## Bug Fixes
+
+* **sdk:** chore: remove pin on protobuf 6 ver & use requirements.in for kfp-k8s and spec (#12345) 
+* **sdk:** chore: regenerate files for ver upgrade (#12341) 
+
+# 2.14.5
+
+## Bug Fixes
+
+* **sdk:**  fix: include requirements files in python sdist (#12330) 
+
+# 2.14.4
+
+## Bug Fixes
+
+* **sdk:**  fix(sdk): Align the versions on kfp-kubernetes install (#12283)
+
+# 2.14.3
+
+## Bug Fixes
+
+* **backend/sdk:** Fix REST API outputs for pipeline versions with invalid platform specs ([\#12183](https://github.com/kubeflow/pipelines/issues/12183)) ([0cafb3d](https://github.com/kubeflow/pipelines/commit/0cafb3db99fdcea38fc37d0aef2f7dd237559065))
+* **sdk:** Set spec.description when compiling to Kubernetes manifests ([\#12132](https://github.com/kubeflow/pipelines/issues/12132)) ([5ffddad](https://github.com/kubeflow/pipelines/commit/5ffddad045db75e9e5fb2957226b4a28706637bd))
+
+# 2.14.0
+
+## Features
+
+* feat(sdk): Add support for compiling pipelines to Kubernetes native format in SDK (#12012)
+* feat(backend/sdk): enable dsl.Collected for parameters & artifacts (#11725)
+* feat(sdk): update PipelineConfig to reflect new workspace Protobuf changes (#11934)
+* feat(backend/sdk): support PipelineTaskFinalStatus input (#11953)
+* feat(sdk): Add Support for Docker Container Run Arguments (#12006)
+
+## Deprecations
+* PipelineTaskFinalStatus field names pipelineJobResourceName and pipelineTaskName are deprecated. Support for these fields will be removed at a later date.
+
+## Bug fixes and other changes
+* fix(deps): widen urllib3 upper bound to <3.0.0 (#11819)
+* fix(sdk): resolve issue when creating pipeline version from pipeline name using the cli. Fixes #11810 (#11866)
+* fix(sdk): fix pip install for dev (#11891)
+* fix(sdk): Resolves issue when using ParallelFor with param and depending tasks (#11903)
+* chore(deps): bump urllib3 from 2.4.0 to 2.5.0 in /sdk/python (#11999)
+* fix: input resolution with set_display_name (#11938)
+* fix(sdk): Fixes for Identifying Untagged Images for Running (#11984)
+* fix(sdk): Move version info to version.py for editable installs. (#11997)
+* fix(sdk): Support partial replace of placeholders in dict/list objects (#12039)
+* fix(backend/sdk): update proto packages (#12067)
+* fix: backwards compatibility for pipeline spec task_name (#12061)
+* chore(backend): resolve linting errors (#12083)
+* fix(sdk,backend): Make the workspace size required (#12094)
 
 # 2.13.0
 
@@ -28,6 +125,7 @@
 ## Bug fixes and other changes
 
 * Depends on `google-cloud-storage>=2.2.1,<4` [\#11735](https://github.com/kubeflow/pipelines/pull/11735)
+* Fixed missing `kfp.__version__` when installing SDK via `pip install -e`. [\#11997](https://github.com/kubeflow/pipelines/pull/11997)
 
 # 2.12.2
 

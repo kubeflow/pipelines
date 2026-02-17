@@ -1,5 +1,0 @@
-pytorch-lightning
-sklearn
-captum
-torchtext
-torchvision

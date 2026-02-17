@@ -15,15 +15,15 @@
  */
 import MinioArtifactPreview from './MinioArtifactPreview';
 import React from 'react';
-import TestUtils from '../TestUtils';
+import TestUtils, { expectErrors } from '../TestUtils';
 import { act, render } from '@testing-library/react';
 import { Apis } from '../lib/Apis';
 
 describe('MinioArtifactPreview', () => {
-  const readFile = jest.spyOn(Apis, 'readFile');
+  const readFile = vi.spyOn(Apis, 'readFile');
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     readFile.mockResolvedValue('preview ...');
   });
 
@@ -100,13 +100,13 @@ describe('MinioArtifactPreview', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="root"
+          class="root_f96or0t"
         >
           <div
-            class="topDiv"
+            class="topDiv_f1ubk0hm"
           >
             <a
-              class="link"
+              class="link_f1fk43bf"
               href="artifacts/s3/foo/bar"
               rel="noopener"
               target="_blank"
@@ -115,10 +115,10 @@ describe('MinioArtifactPreview', () => {
               s3://foo/bar
             </a>
             <span
-              class="separater"
+              class="separater_f1lhp8th"
             />
             <a
-              class="link viewLink"
+              class="link_f1fk43bf viewLink_fheif50"
               href="artifacts/get?source=s3&bucket=foo&key=bar"
               rel="noopener"
               target="_blank"
@@ -127,7 +127,7 @@ describe('MinioArtifactPreview', () => {
             </a>
           </div>
           <div
-            class="preview"
+            class="preview_fq9axiv"
           >
             <small>
               <pre>
@@ -157,13 +157,13 @@ describe('MinioArtifactPreview', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="root"
+          class="root_f96or0t"
         >
           <div
-            class="topDiv"
+            class="topDiv_f1ubk0hm"
           >
             <a
-              class="link"
+              class="link_f1fk43bf"
               href="artifacts/minio/foo/bar"
               rel="noopener"
               target="_blank"
@@ -172,10 +172,10 @@ describe('MinioArtifactPreview', () => {
               minio://foo/bar
             </a>
             <span
-              class="separater"
+              class="separater_f1lhp8th"
             />
             <a
-              class="link viewLink"
+              class="link_f1fk43bf viewLink_fheif50"
               href="artifacts/get?source=minio&bucket=foo&key=bar"
               rel="noopener"
               target="_blank"
@@ -184,7 +184,7 @@ describe('MinioArtifactPreview', () => {
             </a>
           </div>
           <div
-            class="preview"
+            class="preview_fq9axiv"
           >
             <small>
               <pre>
@@ -214,13 +214,13 @@ describe('MinioArtifactPreview', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="root"
+          class="root_f96or0t"
         >
           <div
-            class="topDiv"
+            class="topDiv_f1ubk0hm"
           >
             <a
-              class="link"
+              class="link_f1fk43bf"
               href="artifacts/minio/foo/bar?namespace=namespace"
               rel="noopener"
               target="_blank"
@@ -229,10 +229,10 @@ describe('MinioArtifactPreview', () => {
               minio://foo/bar
             </a>
             <span
-              class="separater"
+              class="separater_f1lhp8th"
             />
             <a
-              class="link viewLink"
+              class="link_f1fk43bf viewLink_fheif50"
               href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
               rel="noopener"
               target="_blank"
@@ -241,7 +241,7 @@ describe('MinioArtifactPreview', () => {
             </a>
           </div>
           <div
-            class="preview"
+            class="preview_fq9axiv"
           >
             <small>
               <pre>
@@ -255,6 +255,7 @@ describe('MinioArtifactPreview', () => {
   });
 
   it('handles artifact cleanly even when fetch fails', async () => {
+    const assertErrors = expectErrors();
     const minioArtifact = {
       key: 'bar',
       s3Bucket: {
@@ -270,13 +271,13 @@ describe('MinioArtifactPreview', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="root"
+          class="root_f96or0t"
         >
           <div
-            class="topDiv"
+            class="topDiv_f1ubk0hm"
           >
             <a
-              class="link"
+              class="link_f1fk43bf"
               href="artifacts/minio/foo/bar"
               rel="noopener"
               target="_blank"
@@ -285,10 +286,10 @@ describe('MinioArtifactPreview', () => {
               minio://foo/bar
             </a>
             <span
-              class="separater"
+              class="separater_f1lhp8th"
             />
             <a
-              class="link viewLink"
+              class="link_f1fk43bf viewLink_fheif50"
               href="artifacts/get?source=minio&bucket=foo&key=bar"
               rel="noopener"
               target="_blank"
@@ -299,6 +300,7 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    assertErrors();
   });
 
   it('handles artifact that previews fully', async () => {
@@ -320,13 +322,13 @@ describe('MinioArtifactPreview', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="root"
+          class="root_f96or0t"
         >
           <div
-            class="topDiv"
+            class="topDiv_f1ubk0hm"
           >
             <a
-              class="link"
+              class="link_f1fk43bf"
               href="artifacts/minio/foo/bar"
               rel="noopener"
               target="_blank"
@@ -335,10 +337,10 @@ describe('MinioArtifactPreview', () => {
               minio://foo/bar
             </a>
             <span
-              class="separater"
+              class="separater_f1lhp8th"
             />
             <a
-              class="link viewLink"
+              class="link_f1fk43bf viewLink_fheif50"
               href="artifacts/get?source=minio&bucket=foo&key=bar"
               rel="noopener"
               target="_blank"
@@ -347,7 +349,7 @@ describe('MinioArtifactPreview', () => {
             </a>
           </div>
           <div
-            class="preview"
+            class="preview_fq9axiv"
           >
             <small>
               <pre>
@@ -382,13 +384,13 @@ describe('MinioArtifactPreview', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="root"
+          class="root_f96or0t"
         >
           <div
-            class="topDiv"
+            class="topDiv_f1ubk0hm"
           >
             <a
-              class="link"
+              class="link_f1fk43bf"
               href="artifacts/minio/foo/bar"
               rel="noopener"
               target="_blank"
@@ -397,10 +399,10 @@ describe('MinioArtifactPreview', () => {
               minio://foo/bar
             </a>
             <span
-              class="separater"
+              class="separater_f1lhp8th"
             />
             <a
-              class="link viewLink"
+              class="link_f1fk43bf viewLink_fheif50"
               href="artifacts/get?source=minio&bucket=foo&key=bar"
               rel="noopener"
               target="_blank"
@@ -409,7 +411,7 @@ describe('MinioArtifactPreview', () => {
             </a>
           </div>
           <div
-            class="preview"
+            class="preview_fq9axiv"
           >
             <small>
               <pre>
@@ -444,13 +446,13 @@ describe('MinioArtifactPreview', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="root"
+          class="root_f96or0t"
         >
           <div
-            class="topDiv"
+            class="topDiv_f1ubk0hm"
           >
             <a
-              class="link"
+              class="link_f1fk43bf"
               href="artifacts/minio/foo/bar"
               rel="noopener"
               target="_blank"
@@ -459,10 +461,10 @@ describe('MinioArtifactPreview', () => {
               minio://foo/bar
             </a>
             <span
-              class="separater"
+              class="separater_f1lhp8th"
             />
             <a
-              class="link viewLink"
+              class="link_f1fk43bf viewLink_fheif50"
               href="artifacts/get?source=minio&bucket=foo&key=bar"
               rel="noopener"
               target="_blank"
@@ -471,7 +473,7 @@ describe('MinioArtifactPreview', () => {
             </a>
           </div>
           <div
-            class="preview"
+            class="preview_fq9axiv"
           >
             <small>
               <pre>

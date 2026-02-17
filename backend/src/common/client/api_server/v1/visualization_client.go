@@ -27,7 +27,7 @@ type VisualizationClient struct {
 func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*VisualizationClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating visualization client: %w", err)
 	}
@@ -43,7 +43,7 @@ func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterVisualizationClient(namespace string, debug bool) (
 	*VisualizationClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -65,14 +65,14 @@ func (c *VisualizationClient) Create(parameters *params.VisualizationServiceCrea
 	response, err := c.apiClient.VisualizationService.VisualizationServiceCreateVisualizationV1(parameters, api_server.PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.VisualizationServiceCreateVisualizationV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create visualization. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create visualization '%v'", parameters.Body.Type))
+			fmt.Sprintf("Failed to create visualization. Params: '%+v'. Body: '%+v'", parameters, parameters.Visualization),
+			fmt.Sprintf("Failed to create visualization '%v'", parameters.Visualization.Type))
 	}
 
 	return response.Payload, nil

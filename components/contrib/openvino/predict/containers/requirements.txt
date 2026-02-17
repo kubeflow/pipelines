@@ -1,3 +1,0 @@
-numpy
-google-cloud-storage
-

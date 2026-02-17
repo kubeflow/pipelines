@@ -15,38 +15,42 @@
 package integration
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
+	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
+
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"google.golang.org/protobuf/types/known/structpb"
-	"sigs.k8s.io/yaml"
 )
 
-type RunApiTestSuite struct {
+type RunAPITestSuite struct {
 	suite.Suite
 	namespace            string
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 	runClient            *api_server.RunClient
 }
 
 // Check the namespace have ML pipeline installed and ready
-func (s *RunApiTestSuite) SetupTest() {
+func (s *RunAPITestSuite) SetupTest() {
 	if !*runIntegrationTests {
 		s.T().SkipNow()
 		return
@@ -58,51 +62,57 @@ func (s *RunApiTestSuite) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
-
+	var tlsCfg *tls.Config
+	var err error
+	if *config.TLSEnabled {
+		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		if err != nil {
+			glog.Fatalf("Error creating tls config: %s", err.Error())
+		}
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
-	var err error
 	s.experimentClient, err = newExperimentClient()
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*config.DebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+		tlsCfg,
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -118,7 +128,7 @@ func (s *RunApiTestSuite) SetupTest() {
 	s.cleanUp()
 }
 
-func (s *RunApiTestSuite) TestRunApis() {
+func (s *RunAPITestSuite) TestRunAPIs() {
 	t := s.T()
 
 	/* ---------- Upload pipelines YAML ---------- */
@@ -136,11 +146,11 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
-	createRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -160,7 +170,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experiment_params.ExperimentServiceCreateExperimentParams{
-		Body: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
+		Experiment: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
 	}
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
@@ -168,14 +178,14 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
 	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
-	pipeline_spec := &structpb.Struct{}
-	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
+	pipelineSpec := &structpb.Struct{}
+	err = yaml.Unmarshal(argParamsBytes, pipelineSpec)
 	assert.Nil(t, err)
 
-	createRunRequest = &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest = &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
-		PipelineSpec: pipeline_spec,
+		PipelineSpec: pipelineSpec,
 		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
 			Parameters: map[string]interface{}{
 				"param1": "goodbye",
@@ -266,7 +276,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
 	// Create a new run
-	createRunRequest.Body.DisplayName = "argument parameter 2"
+	createRunRequest.Run.DisplayName = "argument parameter 2"
 	_, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Check total number of runs is 3
@@ -299,7 +309,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].DisplayName)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, runs[0].StorageState)
+	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, *runs[0].StorageState)
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
 	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(10*time.Second))
@@ -314,7 +324,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
-	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "long running",
 		Description:  "this pipeline will run long enough for us to manually terminate it before it finishes",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -338,21 +348,21 @@ func (s *RunApiTestSuite) TestRunApis() {
 	s.checkTerminatedRunDetail(t, longRunningRun, helloWorldExperiment.ExperimentID, longRunningPipelineVersion.PipelineID, longRunningPipelineVersion.PipelineVersionID)
 }
 
-func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string, pipelineId string, pipelineVersionId string) {
+func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string, pipelineID string, pipelineVersionID string) {
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
 		DisplayName:    "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
-		State:          run_model.V2beta1RuntimeStateCANCELING,
+		State:          run_model.V2beta1RuntimeStateCANCELING.Pointer(),
 		StateHistory:   run.StateHistory,
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec:   run.PipelineSpec,
-		ExperimentID:   experimentId,
+		ExperimentID:   experimentID,
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
-			PipelineID:        pipelineId,
-			PipelineVersionID: pipelineVersionId,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		CreatedAt:   run.CreatedAt,
 		ScheduledAt: run.ScheduledAt,
@@ -362,7 +372,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 	assert.Equal(t, expectedRun, run)
 }
 
-func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string, pipelineId string, pipelineVersionId string) {
+func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string, pipelineID string, pipelineVersionID string) {
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
@@ -373,10 +383,10 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec:   run.PipelineSpec,
-		ExperimentID:   experimentId,
+		ExperimentID:   experimentID,
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
-			PipelineID:        pipelineId,
-			PipelineVersionID: pipelineVersionId,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		CreatedAt:   run.CreatedAt,
 		ScheduledAt: run.ScheduledAt,
@@ -386,7 +396,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 	assert.Equal(t, expectedRun, run)
 }
 
-func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string) {
+func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string) {
 
 	// Compare the pipeline spec first.
 	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
@@ -394,11 +404,11 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 	// pipeline_spec := &structpb.Struct{}
 	// err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
 	// assert.Nil(t, err)
-	expected_bytes, err := yaml.YAMLToJSON(argParamsBytes)
+	expectedBytes, err := yaml.YAMLToJSON(argParamsBytes)
 	assert.Nil(t, err)
-	actual_bytes, err := json.Marshal(run.PipelineSpec)
+	actualBytes, err := json.Marshal(run.PipelineSpec)
 	assert.Nil(t, err)
-	assert.Equal(t, string(expected_bytes), string(actual_bytes))
+	assert.Equal(t, string(expectedBytes), string(actualBytes))
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
@@ -415,7 +425,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 				"param2": "world",
 			},
 		},
-		ExperimentID: experimentId,
+		ExperimentID: experimentID,
 		CreatedAt:    run.CreatedAt,
 		ScheduledAt:  run.ScheduledAt,
 		FinishedAt:   run.FinishedAt,
@@ -424,11 +434,11 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 	assert.Equal(t, expectedRun, run)
 }
 
-func TestRunApi(t *testing.T) {
-	suite.Run(t, new(RunApiTestSuite))
+func TestRunAPI(t *testing.T) {
+	suite.Run(t, new(RunAPITestSuite))
 }
 
-func (s *RunApiTestSuite) TearDownSuite() {
+func (s *RunAPITestSuite) TearDownSuite() {
 	if *runIntegrationTests {
 		if !*isDevMode {
 			s.cleanUp()
@@ -436,7 +446,7 @@ func (s *RunApiTestSuite) TearDownSuite() {
 	}
 }
 
-func (s *RunApiTestSuite) cleanUp() {
+func (s *RunAPITestSuite) cleanUp() {
 	/* ---------- Clean up ---------- */
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())

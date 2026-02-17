@@ -13,8 +13,8 @@
 // limitations under the License.
 import { PassThrough, Stream } from 'stream';
 import { ClientOptions as MinioClientOptions } from 'minio';
-import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper';
-import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper';
+import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper.js';
+import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper.js';
 import * as JsYaml from 'js-yaml';
 
 export interface PartialArgoWorkflow {
@@ -181,7 +181,7 @@ export async function getKeyFormatFromArtifactRepositories(
         `artifact-repositories configmap in ${namespace} namespace is missing an artifact-repositories field.`,
       );
     }
-    const artifactRepositoriesValue = JsYaml.safeLoad(
+    const artifactRepositoriesValue = JsYaml.load(
       artifactRepositories,
     ) as PartialArtifactRepositoriesValue;
     if ('s3' in artifactRepositoriesValue) {

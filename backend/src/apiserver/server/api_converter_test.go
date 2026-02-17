@@ -17,9 +17,9 @@ package server
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -144,6 +144,16 @@ func TestToModelExperiment(t *testing.T) {
 			"Experiment must have a non-empty name",
 			nil,
 		},
+		{
+			"name too long v1",
+			&apiv1beta1.Experiment{
+				Name:        strings.Repeat("a", 129), // Max is 128
+				Description: "This is an experiment with a very long name",
+			},
+			true,
+			"Experiment.Name length cannot exceed 128",
+			nil,
+		},
 	}
 
 	for _, tc := range tests {
@@ -182,6 +192,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p1",
+				DisplayName: "p1",
 				Description: "This is a pipeline1",
 				Status:      model.PipelineCreating,
 			},
@@ -202,6 +213,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p2",
+				DisplayName: "p2",
 				Description: "This is a pipeline2",
 				Status:      model.PipelineCreating,
 			},
@@ -222,6 +234,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p3",
+				DisplayName: "p3",
 				Description: "This is a pipeline3",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
@@ -243,6 +256,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p4",
+				DisplayName: "p4",
 				Description: "This is a pipeline4",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns1",
@@ -264,10 +278,40 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p5",
+				DisplayName: "p5",
 				Description: "This is a pipeline5",
 				Status:      model.PipelineCreating,
 				Namespace:   "",
 			},
+		},
+		{
+			name: "name too long v1",
+			pipeline: &apiv1beta1.Pipeline{
+				Name:        strings.Repeat("a", 129), // Max 128
+				Description: "desc",
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Name length cannot exceed 128",
+			expectedModelPipeline: nil,
+		},
+		{
+			name: "namespace too long v1",
+			pipeline: &apiv1beta1.Pipeline{
+				Name:        "p1",
+				Description: "desc",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key: &apiv1beta1.ResourceKey{
+							Type: apiv1beta1.ResourceType_NAMESPACE,
+							Id:   strings.Repeat("n", 64), // Max 63
+						},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Namespace length cannot exceed 63",
+			expectedModelPipeline: nil,
 		},
 		{
 			"Empty namespace v2",
@@ -280,6 +324,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p6",
+				DisplayName: "p6",
 				Description: "This is a pipeline6",
 				Status:      model.PipelineCreating,
 				Namespace:   "",
@@ -297,6 +342,7 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "p7",
+				DisplayName: "p7",
 				Description: "This is a pipeline7",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns2",
@@ -313,10 +359,33 @@ func TestToModelPipeline(t *testing.T) {
 			"",
 			&model.Pipeline{
 				Name:        "",
+				DisplayName: "",
 				Description: "This is a pipeline8",
 				Status:      model.PipelineCreating,
 				Namespace:   "ns3",
 			},
+		},
+		{
+			name: "name too long v2",
+			pipeline: &apiv2beta1.Pipeline{
+				DisplayName: strings.Repeat("a", 129), // Max is 128
+				Description: "This is a pipeline with a very long name",
+				Namespace:   "ns",
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Name length cannot exceed 128",
+			expectedModelPipeline: nil,
+		},
+		{
+			name: "namespace too long v2",
+			pipeline: &apiv2beta1.Pipeline{
+				DisplayName: "p_long_ns",
+				Description: "This is a pipeline with a very long namespace",
+				Namespace:   strings.Repeat("n", 64), // Max is 63
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Namespace length cannot exceed 63",
+			expectedModelPipeline: nil,
 		},
 	}
 
@@ -361,6 +430,8 @@ func TestToModelRunDetail(t *testing.T) {
 		manifest               string
 		templateType           template.TemplateType
 		expectedModelRunDetail *model.Run
+		wantErr                bool
+		errMsg                 string
 	}{
 		{
 			name: "v1",
@@ -408,6 +479,8 @@ func TestToModelRunDetail(t *testing.T) {
 				},
 				StorageState: model.StorageStateAvailable,
 			},
+			wantErr: false,
+			errMsg:  "",
 		},
 		{
 			name: "v2",
@@ -453,13 +526,88 @@ func TestToModelRunDetail(t *testing.T) {
 				},
 				StorageState: model.StorageStateAvailable,
 			},
+			wantErr: false,
+			errMsg:  "",
+		},
+		{
+			name: "v1 namespace too long",
+			apiRun: &apiv1beta1.Run{
+				Id:          "run1",
+				Name:        "name1",
+				Description: "desc",
+				PipelineSpec: &apiv1beta1.PipelineSpec{
+					Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
+				},
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: strings.Repeat("n", 64)},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pv1"},
+						Relationship: apiv1beta1.Relationship_CREATOR,
+					},
+				},
+			},
+			workflow: util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
+				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
+			}),
+			manifest:               "workflow spec",
+			templateType:           template.V1,
+			expectedModelRunDetail: nil,
+			wantErr:                true,
+			errMsg:                 "Run.Namespace length cannot exceed 63",
+		},
+		{
+			name: "v1 experimentId too long",
+			apiRun: &apiv1beta1.Run{
+				Id:          "run1",
+				Name:        "name1",
+				Description: "desc",
+				PipelineSpec: &apiv1beta1.PipelineSpec{
+					Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
+				},
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: strings.Repeat("e", 65)},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pv1"},
+						Relationship: apiv1beta1.Relationship_CREATOR,
+					},
+				},
+			},
+			workflow: util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
+				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
+			}),
+			manifest:               "workflow spec",
+			templateType:           template.V1,
+			expectedModelRunDetail: nil,
+			wantErr:                true,
+			errMsg:                 "Run.ExperimentId length cannot exceed 64",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			modelRunDetail, err := toModelRun(tt.apiRun)
-			assert.Nil(t, err)
-			assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
+			}
 		})
 	}
 }
@@ -481,7 +629,7 @@ func TestToModelJob(t *testing.T) {
 				NoCatchup:      true,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}},
 				},
@@ -522,7 +670,7 @@ func TestToModelJob(t *testing.T) {
 				NoCatchup:      true,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}},
 				},
@@ -668,6 +816,34 @@ func TestToModelRunMetric(t *testing.T) {
 		Format:      "RAW",
 	}
 	assert.Equal(t, expectedModelRunMetric, actualModelRunMetric)
+
+	// Test Name length overflow
+	{
+		longName := strings.Repeat("a", 192)
+		apiRunMetric := &apiv1beta1.RunMetric{
+			Name:   longName,
+			NodeId: "node-1",
+			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
+			Format: apiv1beta1.RunMetric_RAW,
+		}
+		_, err := toModelRunMetric(apiRunMetric, "run-1")
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "RunMetric.Name length cannot exceed 191")
+	}
+
+	// Test NodeID length overflow
+	{
+		longNodeID := strings.Repeat("a", 192)
+		apiRunMetric := &apiv1beta1.RunMetric{
+			Name:   "metric-1",
+			NodeId: longNodeID,
+			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
+			Format: apiv1beta1.RunMetric_RAW,
+		}
+		_, err := toModelRunMetric(apiRunMetric, "run-1")
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "RunMetric.NodeID length cannot exceed 191")
+	}
 }
 
 func TestToModelPipelineVersion(t *testing.T) {
@@ -736,6 +912,7 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			&model.PipelineVersion{
 				Name:            "Version 2 v2beta1",
+				DisplayName:     "Version 2 v2beta1",
 				PipelineId:      "pipeline 333",
 				PipelineSpecURI: "http://package/3333",
 				CodeSourceUrl:   "http://repo/3333",
@@ -744,6 +921,19 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			false,
 			"",
+		},
+		{
+			name: "name too long v2",
+			pipeline: &apiv2beta1.PipelineVersion{
+				DisplayName:   strings.Repeat("a", 128), // Max is 127
+				PipelineId:    "pipeline 333",
+				PackageUrl:    &apiv2beta1.Url{PipelineUrl: "http://package/3333"},
+				CodeSourceUrl: "http://repo/3333",
+				Description:   "This is pipeline version 333",
+			},
+			expectedPipelineVersion: nil,
+			isError:                 true,
+			errMsg:                  "PipelineVersion.Name length cannot exceed 127",
 		},
 		{
 			"missing package Url v2",
@@ -791,11 +981,11 @@ func TestToApiPipelineV1(t *testing.T) {
 	apiPipeline := toApiPipelineV1(modelPipeline, modelVersion)
 	expectedApiPipeline := &apiv1beta1.Pipeline{
 		Id:        "pipeline1",
-		CreatedAt: &timestamp.Timestamp{Seconds: 1},
+		CreatedAt: timestamppb.New(time.Unix(1, 0)),
 		Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
 		DefaultVersion: &apiv1beta1.PipelineVersion{
 			Id:            "pipelineversion1",
-			CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:     timestamppb.New(time.Unix(1, 0)),
 			Description:   "desc1",
 			CodeSourceUrl: "http://repo/22222",
 			PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
@@ -863,11 +1053,11 @@ func TestToApiPipelinesV1(t *testing.T) {
 	expectedPipelines := []*apiv1beta1.Pipeline{
 		{
 			Id:        "pipeline1",
-			CreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt: timestamppb.New(time.Unix(1, 0)),
 			Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
 			DefaultVersion: &apiv1beta1.PipelineVersion{
 				Id:            "pipelineversion1",
-				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+				CreatedAt:     timestamppb.New(time.Unix(1, 0)),
 				Description:   "desc1",
 				CodeSourceUrl: "http://repo/22222",
 				PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
@@ -911,12 +1101,14 @@ func TestToApiPipeline(t *testing.T) {
 			&model.Pipeline{
 				UUID:           "p1",
 				Name:           "pipeline1",
+				DisplayName:    "pipeline1",
 				Description:    "This is pipeline1",
 				Namespace:      "ns1",
 				CreatedAtInSec: 1,
 			},
 			&apiv2beta1.Pipeline{
 				PipelineId:  "p1",
+				Name:        "pipeline1",
 				DisplayName: "pipeline1",
 				Description: "This is pipeline1",
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
@@ -939,6 +1131,7 @@ func TestToApiPipeline(t *testing.T) {
 			"empty uuid",
 			&model.Pipeline{
 				Name:           "pipeline1",
+				DisplayName:    "pipeline1",
 				Description:    "This is pipeline1",
 				Namespace:      "ns1",
 				CreatedAtInSec: 1,
@@ -957,6 +1150,7 @@ func TestToApiPipeline(t *testing.T) {
 			&model.Pipeline{
 				UUID:        "p1",
 				Name:        "pipeline1",
+				DisplayName: "pipeline1",
 				Description: "This is pipeline1",
 				Namespace:   "ns1",
 			},
@@ -993,11 +1187,13 @@ func TestToApiPipeline(t *testing.T) {
 			&model.Pipeline{
 				UUID:           "p1",
 				Name:           "pipeline1",
+				DisplayName:    "pipeline1",
 				Description:    "This is pipeline1",
 				CreatedAtInSec: 1,
 			},
 			&apiv2beta1.Pipeline{
 				PipelineId:  "p1",
+				Name:        "pipeline1",
 				DisplayName: "pipeline1",
 				Description: "This is pipeline1",
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
@@ -1017,6 +1213,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			UUID:           "p1",
 			Name:           "pipeline1",
+			DisplayName:    "pipeline1",
 			Description:    "This is pipeline1",
 			Namespace:      "ns1",
 			CreatedAtInSec: 1,
@@ -1024,6 +1221,7 @@ func TestToApiPipelines(t *testing.T) {
 		nil,
 		{
 			Name:           "pipeline1",
+			DisplayName:    "pipeline1",
 			Description:    "This is pipeline1",
 			Namespace:      "ns1",
 			CreatedAtInSec: 1,
@@ -1031,6 +1229,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			UUID:        "p1",
 			Name:        "pipeline1",
+			DisplayName: "pipeline1",
 			Description: "This is pipeline1",
 			Namespace:   "ns1",
 		},
@@ -1043,6 +1242,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			UUID:           "p1",
 			Name:           "pipeline1",
+			DisplayName:    "pipeline1",
 			Description:    "This is pipeline1",
 			CreatedAtInSec: 1,
 		},
@@ -1051,6 +1251,7 @@ func TestToApiPipelines(t *testing.T) {
 	expectedPipelines := []*apiv2beta1.Pipeline{
 		{
 			PipelineId:  "p1",
+			Name:        "pipeline1",
 			DisplayName: "pipeline1",
 			Description: "This is pipeline1",
 			CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
@@ -1092,6 +1293,7 @@ func TestToApiPipelines(t *testing.T) {
 		},
 		{
 			PipelineId:  "p1",
+			Name:        "pipeline1",
 			DisplayName: "pipeline1",
 			Description: "This is pipeline1",
 			CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
@@ -1151,9 +1353,9 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 			Id:           "run123",
 			Name:         "displayName123",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:   timestamppb.New(time.Unix(1, 0)),
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -1214,9 +1416,9 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			Id:           "run123",
 			Name:         "displayName123",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:   timestamppb.New(time.Unix(1, 0)),
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -1305,9 +1507,9 @@ func TestToApiRunsV1(t *testing.T) {
 			Id:           "run1",
 			Name:         "displayName1",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:   &timestamp.Timestamp{},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:   &timestamppb.Timestamp{Seconds: 0, Nanos: 0},
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -1328,9 +1530,9 @@ func TestToApiRunsV1(t *testing.T) {
 			Id:           "run2",
 			Name:         "displayName2",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 2},
-			FinishedAt:   &timestamp.Timestamp{},
+			CreatedAt:    timestamppb.New(time.Unix(2, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(2, 0)),
+			FinishedAt:   &timestamppb.Timestamp{Seconds: 0, Nanos: 0},
 			Status:       "Succeeded",
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1356,7 +1558,7 @@ func TestToApiTask(t *testing.T) {
 		UUID:              DefaultFakeUUID,
 		Namespace:         "",
 		PipelineName:      "pipeline/my-pipeline",
-		RunId:             NonDefaultFakeUUID,
+		RunID:             NonDefaultFakeUUID,
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1,
 		FinishedTimestamp: 2,
@@ -1369,8 +1571,8 @@ func TestToApiTask(t *testing.T) {
 		PipelineName:    "pipeline/my-pipeline",
 		RunId:           NonDefaultFakeUUID,
 		MlmdExecutionID: "1",
-		CreatedAt:       &timestamp.Timestamp{Seconds: 1},
-		FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:       timestamppb.New(time.Unix(1, 0)),
+		FinishedAt:      timestamppb.New(time.Unix(2, 0)),
 		Fingerprint:     "123",
 	}
 
@@ -1382,7 +1584,7 @@ func TestToApiTasks(t *testing.T) {
 		UUID:              "123e4567-e89b-12d3-a456-426655440000",
 		Namespace:         "ns1",
 		PipelineName:      "namespace/ns1/pipeline/my-pipeline-1",
-		RunId:             "123e4567-e89b-12d3-a456-426655440001",
+		RunID:             "123e4567-e89b-12d3-a456-426655440001",
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1,
 		FinishedTimestamp: 2,
@@ -1392,7 +1594,7 @@ func TestToApiTasks(t *testing.T) {
 		UUID:              "123e4567-e89b-12d3-a456-426655440002",
 		Namespace:         "ns2",
 		PipelineName:      "namespace/ns1/pipeline/my-pipeline-2",
-		RunId:             "123e4567-e89b-12d3-a456-426655440003",
+		RunID:             "123e4567-e89b-12d3-a456-426655440003",
 		MLMDExecutionID:   "2",
 		CreatedTimestamp:  3,
 		FinishedTimestamp: 4,
@@ -1407,8 +1609,8 @@ func TestToApiTasks(t *testing.T) {
 			PipelineName:    "namespace/ns1/pipeline/my-pipeline-1",
 			RunId:           "123e4567-e89b-12d3-a456-426655440001",
 			MlmdExecutionID: "1",
-			CreatedAt:       &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:       timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:      timestamppb.New(time.Unix(2, 0)),
 			Fingerprint:     "123",
 		},
 		{
@@ -1417,8 +1619,8 @@ func TestToApiTasks(t *testing.T) {
 			PipelineName:    "namespace/ns1/pipeline/my-pipeline-2",
 			RunId:           "123e4567-e89b-12d3-a456-426655440003",
 			MlmdExecutionID: "2",
-			CreatedAt:       &timestamp.Timestamp{Seconds: 3},
-			FinishedAt:      &timestamp.Timestamp{Seconds: 4},
+			CreatedAt:       &timestamppb.Timestamp{Seconds: 3, Nanos: 0},
+			FinishedAt:      &timestamppb.Timestamp{Seconds: 4, Nanos: 0},
 			Fingerprint:     "124",
 		},
 	}
@@ -1457,12 +1659,12 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * *",
 			}},
 		},
@@ -1512,12 +1714,12 @@ func TestPeriodicScheduledJobtoApiJob(t *testing.T) {
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &apiv1beta1.PeriodicSchedule{
-				StartTime:      &timestamp.Timestamp{Seconds: 1},
+				StartTime:      timestamppb.New(time.Unix(1, 0)),
 				IntervalSecond: 3,
 			}},
 		},
@@ -1557,8 +1759,8 @@ func TestNonScheduledJobtoApiJob(t *testing.T) {
 		Id:             "job1",
 		Name:           "name1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
@@ -1646,8 +1848,8 @@ func TestToApiJob_V2(t *testing.T) {
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		Status:         "STATUS_UNSPECIFIED",
@@ -1659,7 +1861,7 @@ func TestToApiJob_V2(t *testing.T) {
 		},
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 2},
+				StartTime: timestamppb.New(time.Unix(2, 0)),
 				Cron:      "2 * *",
 			}},
 		},
@@ -1730,13 +1932,13 @@ func TestToApiJobs(t *testing.T) {
 			Id:             "job1",
 			Name:           "name 1",
 			Enabled:        true,
-			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-			UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+			UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 			MaxConcurrency: 1,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-					StartTime: &timestamp.Timestamp{Seconds: 1},
+					StartTime: timestamppb.New(time.Unix(1, 0)),
 					Cron:      "1 * *",
 				}},
 			},
@@ -1756,14 +1958,14 @@ func TestToApiJobs(t *testing.T) {
 			Id:             "job2",
 			Name:           "name 2",
 			Enabled:        true,
-			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+			UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 			MaxConcurrency: 2,
 			NoCatchup:      true,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-					StartTime: &timestamp.Timestamp{Seconds: 2},
+					StartTime: timestamppb.New(time.Unix(2, 0)),
 					Cron:      "2 * *",
 				}},
 			},
@@ -1906,7 +2108,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp1",
 			Name:         "experiment1",
 			Description:  "experiment1 was created using V2 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1919,7 +2121,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp2",
 			Name:         "experiment2",
 			Description:  "experiment2 was created using V2 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:    timestamppb.New(time.Unix(2, 0)),
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1932,7 +2134,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp3",
 			Name:         "experiment3",
 			Description:  "experiment3 was created using V1 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 3},
+			CreatedAt:    &timestamppb.Timestamp{Seconds: 3, Nanos: 0},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1945,7 +2147,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp4",
 			Name:         "experiment4",
 			Description:  "experiment4 was created using V1 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 4},
+			CreatedAt:    &timestamppb.Timestamp{Seconds: 4, Nanos: 0},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1959,7 +2161,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp5",
 			Name:         "experiment5",
 			Description:  "experiment5 was created using V2 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -2019,32 +2221,32 @@ func TestToApiExperiments(t *testing.T) {
 			ExperimentId:     "exp1",
 			DisplayName:      "experiment1",
 			Description:      "My name is experiment1",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 1},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:        timestamppb.New(time.Unix(1, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(1, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["AVAILABLE"]),
 		},
 		{
 			ExperimentId:     "exp2",
 			DisplayName:      "experiment2",
 			Description:      "My name is experiment2",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 2},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:        timestamppb.New(time.Unix(2, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(2, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"]),
 		},
 		{
 			ExperimentId:     "exp3",
 			DisplayName:      "experiment3",
 			Description:      "experiment3 was created using V1 APIV1BETA1",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 1},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:        timestamppb.New(time.Unix(1, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(1, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["AVAILABLE"]),
 		},
 		{
 			ExperimentId:     "exp4",
 			DisplayName:      "experiment4",
 			Description:      "experiment4 was created using V1 APIV1BETA1",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 2},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:        timestamppb.New(time.Unix(2, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(2, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"]),
 		},
 		{},
@@ -2052,8 +2254,8 @@ func TestToApiExperiments(t *testing.T) {
 			ExperimentId:     "exp5",
 			DisplayName:      "experiment5",
 			Description:      "My name is experiment5",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 1},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:        timestamppb.New(time.Unix(1, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(1, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"]),
 		},
 	}
@@ -2160,8 +2362,8 @@ func TestToApiRecurringRun(t *testing.T) {
 		RecurringRunId: "job1",
 		DisplayName:    "name 1",
 		Mode:           apiv2beta1.RecurringRun_ENABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionReference{
@@ -2171,7 +2373,7 @@ func TestToApiRecurringRun(t *testing.T) {
 		},
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 2},
+				StartTime: timestamppb.New(time.Unix(2, 0)),
 				Cron:      "2 * *",
 			}},
 		},
@@ -2212,13 +2414,13 @@ func TestToApiRecurringRun(t *testing.T) {
 		RecurringRunId: "job1",
 		DisplayName:    "name 1",
 		Mode:           apiv2beta1.RecurringRun_DISABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 2},
+				StartTime: timestamppb.New(time.Unix(2, 0)),
 				Cron:      "2 * *",
 			}},
 		},
@@ -2500,7 +2702,7 @@ func Test_toApiRuntimeStateV1(t *testing.T) {
 			"Succeeded",
 		},
 		{
-			"v2 cancelling",
+			"v2 canceling",
 			model.RuntimeStateCancelling,
 			"Terminating",
 		},
@@ -2551,7 +2753,7 @@ func Test_toApiRuntimeState(t *testing.T) {
 			apiv2beta1.RuntimeState_SUCCEEDED,
 		},
 		{
-			"v2 cancelling",
+			"v2 canceling",
 			model.RuntimeStateCancelling,
 			apiv2beta1.RuntimeState_CANCELING,
 		},
@@ -2928,7 +3130,7 @@ func Test_toModelTask(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "ns1",
 				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "3",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  4,
@@ -2986,7 +3188,7 @@ func Test_toModelTask(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "",
 				PipelineName:      "",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "7",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  5,
@@ -3098,7 +3300,7 @@ func Test_toModelTasks_v2(t *testing.T) {
 			UUID:              "1",
 			Namespace:         "",
 			PipelineName:      "",
-			RunId:             "2",
+			RunID:             "2",
 			MLMDExecutionID:   "7",
 			CreatedTimestamp:  4,
 			StartedTimestamp:  5,
@@ -3129,7 +3331,7 @@ func Test_toModelTasks_wf(t *testing.T) {
 		{
 			PodName:           "run1-file-passing-pipelines-node0",
 			Namespace:         "kubeflow",
-			RunId:             "run1_uid_true",
+			RunID:             "run1_uid_true",
 			CreatedTimestamp:  -62135596800,
 			StartedTimestamp:  1675734919,
 			FinishedTimestamp: 1675735118,
@@ -3140,7 +3342,7 @@ func Test_toModelTasks_wf(t *testing.T) {
 		{
 			PodName:           "run1-print-text-node1",
 			Namespace:         "kubeflow",
-			RunId:             "run1_uid_true",
+			RunID:             "run1_uid_true",
 			CreatedTimestamp:  -62135596800,
 			StartedTimestamp:  1675735015,
 			FinishedTimestamp: 1675735041,
@@ -3170,7 +3372,7 @@ func Test_toApiTaskV1(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "ns1",
 				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "3",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  4,
@@ -3201,7 +3403,7 @@ func Test_toApiTaskV1(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "ns1",
 				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "7",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  5,
@@ -3247,7 +3449,7 @@ func Test_toApiTasksV1(t *testing.T) {
 			UUID:              "1",
 			Namespace:         "ns1",
 			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunId:             "2",
+			RunID:             "2",
 			MLMDExecutionID:   "3",
 			CreatedTimestamp:  4,
 			StartedTimestamp:  4,
@@ -3265,7 +3467,7 @@ func Test_toApiTasksV1(t *testing.T) {
 			UUID:              "1",
 			Namespace:         "ns1",
 			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunId:             "2",
+			RunID:             "2",
 			MLMDExecutionID:   "7",
 			CreatedTimestamp:  4,
 			StartedTimestamp:  5,
@@ -3326,7 +3528,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "ns1",
 				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "3",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  4,
@@ -3353,7 +3555,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "ns1",
 				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "7",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  5,
@@ -3418,7 +3620,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "ns1",
 				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "7",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  5,
@@ -3451,7 +3653,7 @@ func Test_toApiPipelineTaskDetail(t *testing.T) {
 				UUID:              "1",
 				Namespace:         "ns1",
 				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunId:             "2",
+				RunID:             "2",
 				MLMDExecutionID:   "7",
 				CreatedTimestamp:  4,
 				StartedTimestamp:  5,
@@ -3499,7 +3701,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 			UUID:              "1",
 			Namespace:         "ns1",
 			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunId:             "2",
+			RunID:             "2",
 			MLMDExecutionID:   "3",
 			CreatedTimestamp:  4,
 			StartedTimestamp:  4,
@@ -3511,7 +3713,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 			UUID:              "1",
 			Namespace:         "ns1",
 			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunId:             "2",
+			RunID:             "2",
 			MLMDExecutionID:   "7",
 			CreatedTimestamp:  4,
 			StartedTimestamp:  5,
@@ -3588,7 +3790,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 			UUID:              "1",
 			Namespace:         "ns1",
 			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunId:             "2",
+			RunID:             "2",
 			MLMDExecutionID:   "7",
 			CreatedTimestamp:  4,
 			StartedTimestamp:  5,
@@ -3612,7 +3814,7 @@ func Test_toApiPipelineTaskDetails(t *testing.T) {
 			UUID:              "1",
 			Namespace:         "ns1",
 			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunId:             "2",
+			RunID:             "2",
 			MLMDExecutionID:   "7",
 			CreatedTimestamp:  4,
 			StartedTimestamp:  5,
@@ -3687,9 +3889,9 @@ func TestToModelRun(t *testing.T) {
 							RunId:          "run1",
 							TaskId:         "task1",
 							DisplayName:    "this is task",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_FAILED,
 							ExecutionId:    14,
@@ -3716,9 +3918,9 @@ func TestToModelRun(t *testing.T) {
 							RunId:          "run1",
 							TaskId:         "task2",
 							DisplayName:    "this is task 2",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_CANCELED,
 							ExecutionId:    14,
@@ -3782,7 +3984,7 @@ func TestToModelRun(t *testing.T) {
 							UUID:              "task1",
 							Namespace:         "",
 							PipelineName:      "",
-							RunId:             "run1",
+							RunID:             "run1",
 							MLMDExecutionID:   "14",
 							CreatedTimestamp:  11,
 							StartedTimestamp:  12,
@@ -3805,7 +4007,7 @@ func TestToModelRun(t *testing.T) {
 							UUID:              "task2",
 							Namespace:         "",
 							PipelineName:      "",
-							RunId:             "run1",
+							RunID:             "run1",
 							MLMDExecutionID:   "14",
 							CreatedTimestamp:  11,
 							StartedTimestamp:  12,
@@ -3883,9 +4085,9 @@ func TestToModelRun(t *testing.T) {
 							RunId:          "run2",
 							TaskId:         "task1",
 							DisplayName:    "this is task",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_RUNNING,
 							ExecutionId:    14,
@@ -3944,7 +4146,7 @@ func TestToModelRun(t *testing.T) {
 							UUID:              "task1",
 							Namespace:         "",
 							PipelineName:      "",
-							RunId:             "run2",
+							RunID:             "run2",
 							MLMDExecutionID:   "14",
 							CreatedTimestamp:  11,
 							StartedTimestamp:  12,
@@ -3970,6 +4172,103 @@ func TestToModelRun(t *testing.T) {
 			},
 			false,
 			"",
+		},
+		{ // all fields are same as "v2 full pipeline version except invalid ExperimentId
+			"v2 ExperimentId overflow",
+			&apiv2beta1.Run{
+				ExperimentId: strings.Repeat("e", 65),
+				RunId:        "run1",
+				DisplayName:  "name1",
+				Description:  "this is a run",
+				StorageState: apiv2beta1.Run_ARCHIVED,
+				PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+					PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+						PipelineId:        "p1",
+						PipelineVersionId: "pv1",
+					},
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+				ServiceAccount: "sa1",
+				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
+				State:          apiv2beta1.RuntimeState_FAILED,
+				Error:          util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
+						{
+							RunId:          "run1",
+							TaskId:         "task1",
+							DisplayName:    "this is task",
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_FAILED,
+							ExecutionId:    14,
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							StateHistory: []*apiv2beta1.RuntimeStatus{
+								{
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_FAILED,
+									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
+								},
+							},
+							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task2"},
+								},
+							},
+						},
+						{
+							RunId:          "run1",
+							TaskId:         "task2",
+							DisplayName:    "this is task 2",
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_CANCELED,
+							ExecutionId:    14,
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							ParentTaskId: "task1",
+							StateHistory: []*apiv2beta1.RuntimeStatus{
+								{
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_CANCELED,
+								},
+							},
+						},
+					},
+				},
+				RecurringRunId: "job1",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_FAILED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
+					},
+				},
+			},
+			nil,
+			true,
+			"Run.ExperimentId length cannot exceed 64",
 		},
 	}
 	for _, tt := range tests {
@@ -4152,7 +4451,7 @@ func Test_toApiRun(t *testing.T) {
 							UUID:              "task1",
 							Namespace:         "",
 							PipelineName:      "",
-							RunId:             "run2",
+							RunID:             "run2",
 							MLMDExecutionID:   "14",
 							CreatedTimestamp:  11,
 							StartedTimestamp:  12,
@@ -4225,9 +4524,9 @@ func Test_toApiRun(t *testing.T) {
 							RunId:          "run2",
 							TaskId:         "task1",
 							DisplayName:    "this is task",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_FAILED,
 							ExecutionId:    14,
@@ -4293,7 +4592,7 @@ func Test_toApiRun(t *testing.T) {
 							UUID:              "task1",
 							Namespace:         "",
 							PipelineName:      "",
-							RunId:             "run2",
+							RunID:             "run2",
 							MLMDExecutionID:   "14",
 							CreatedTimestamp:  11,
 							StartedTimestamp:  12,
@@ -4355,7 +4654,7 @@ func Test_toApiRun(t *testing.T) {
 							UUID:              "task1",
 							Namespace:         "",
 							PipelineName:      "",
-							RunId:             "run2",
+							RunID:             "run2",
 							MLMDExecutionID:   "14",
 							CreatedTimestamp:  11,
 							StartedTimestamp:  12,

@@ -6,14 +6,16 @@ package pipeline_upload_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1PipelineVersion v2beta1 pipeline version
+//
 // swagger:model v2beta1PipelineVersion
 type V2beta1PipelineVersion struct {
 
@@ -30,7 +32,7 @@ type V2beta1PipelineVersion struct {
 	// Optional input field. Short description of the pipeline version.
 	Description string `json:"description,omitempty"`
 
-	// Required input field. Pipeline version name provided by user.
+	// Optional input field. Pipeline version display name provided by user.
 	DisplayName string `json:"display_name,omitempty"`
 
 	// In case any error happens retrieving a pipeline version field, only
@@ -38,6 +40,9 @@ type V2beta1PipelineVersion struct {
 	// Client has the flexibility of choosing how to handle the error.
 	// This is especially useful during List() calls.
 	Error *GooglerpcStatus `json:"error,omitempty"`
+
+	// Required input field. Pipeline version name provided by user.
+	Name string `json:"name,omitempty"`
 
 	// Input. Required. The URL to the source of the pipeline version.
 	// This is required when creating the pipeine version through
@@ -77,7 +82,6 @@ func (m *V2beta1PipelineVersion) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1PipelineVersion) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -90,7 +94,6 @@ func (m *V2beta1PipelineVersion) validateCreatedAt(formats strfmt.Registry) erro
 }
 
 func (m *V2beta1PipelineVersion) validateError(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Error) { // not required
 		return nil
 	}
@@ -99,6 +102,8 @@ func (m *V2beta1PipelineVersion) validateError(formats strfmt.Registry) error {
 		if err := m.Error.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
 			}
 			return err
 		}
@@ -108,7 +113,6 @@ func (m *V2beta1PipelineVersion) validateError(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1PipelineVersion) validatePackageURL(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PackageURL) { // not required
 		return nil
 	}
@@ -117,6 +121,68 @@ func (m *V2beta1PipelineVersion) validatePackageURL(formats strfmt.Registry) err
 		if err := m.PackageURL.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("package_url")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("package_url")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 pipeline version based on the context it is used
+func (m *V2beta1PipelineVersion) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateError(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidatePackageURL(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1PipelineVersion) contextValidateError(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Error != nil {
+
+		if swag.IsZero(m.Error) { // not required
+			return nil
+		}
+
+		if err := m.Error.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1PipelineVersion) contextValidatePackageURL(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.PackageURL != nil {
+
+		if swag.IsZero(m.PackageURL) { // not required
+			return nil
+		}
+
+		if err := m.PackageURL.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("package_url")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("package_url")
 			}
 			return err
 		}

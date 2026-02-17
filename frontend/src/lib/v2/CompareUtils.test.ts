@@ -53,7 +53,7 @@ function newMockExecution(id: number, displayName?: string): Execution {
     const displayNameValue = new Value();
     displayNameValue.setStringValue(displayName);
     customPropertiesMap.set('display_name', displayNameValue);
-    jest.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+    vi.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
   }
   return execution;
 }
@@ -103,7 +103,7 @@ function newMockArtifact(
     customPropertiesMap.set('confidenceMetrics', confidenceMetrics);
   }
 
-  jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+  vi.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
   return artifact;
 }
 

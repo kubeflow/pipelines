@@ -15,24 +15,28 @@
 package integration
 
 import (
+	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
+	"sigs.k8s.io/yaml"
+
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"sigs.k8s.io/yaml"
 )
 
 // This test suit tests various methods to import pipeline to pipeline system, including
@@ -43,8 +47,10 @@ import (
 type PipelineVersionApiTest struct {
 	suite.Suite
 	namespace            string
+	repoName             string
+	branchName           string
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 }
 
 // Check the namespace have ML job installed and ready
@@ -61,31 +67,40 @@ func (s *PipelineVersionApiTest) SetupTest() {
 		}
 	}
 
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
-	if *isKubeflowMode {
-		s.namespace = *namespace
+	s.namespace = *config.Namespace
+	s.repoName = *config.REPO_NAME
+	s.branchName = *config.BRANCH_NAME
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+	var tlsCfg *tls.Config
+	var err error
+	if *config.TLSEnabled {
+		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		if err != nil {
+			glog.Fatalf("Error creating tls config: %s", err.Error())
 		}
+	}
+	if *isKubeflowMode {
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
-	var err error
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*config.DebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+		tlsCfg,
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -109,6 +124,8 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", pipelineParams)
 	require.Nil(t, err)
 	assert.Equal(t, "test-pipeline", pipeline.DisplayName)
+	// Verify that the pipeline name defaults to the display name for backwards compatibility.
+	assert.Equal(t, "test-pipeline", pipeline.Name)
 
 	/* ---------- Get pipeline id ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})
@@ -132,24 +149,28 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Contains(t, err.Error(), "Failed to upload pipeline version")
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
+	pipelineURL, err := testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml")
+	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
-		Body: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+			Name:        "sequential-v2",
 			DisplayName: "sequential",
 			PackageURL: &pipeline_model.V2beta1URL{
-				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
+				PipelineURL: pipelineURL,
 			},
 			PipelineID: pipelineId,
 		},
 	})
 	require.Nil(t, err)
+	assert.Equal(t, "sequential-v2", sequentialPipelineVersion.Name)
 	assert.Equal(t, "sequential", sequentialPipelineVersion.DisplayName)
 
 	/* ---------- Upload pipeline version zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
-		"../resources/arguments.pipeline.zip", &upload_params.UploadPipelineVersionParams{
+		"../resources/arguments_parameters.zip", &upload_params.UploadPipelineVersionParams{
 			Name:       util.StringPointer("zip-arguments-parameters"),
 			Pipelineid: util.StringPointer(pipelineId),
 		})
@@ -157,16 +178,12 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipelineVersion.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
-
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
-	}
-
+	pipelineURL, err = testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "test_data/sdk_compiled_pipelines/valid/arguments_parameters.zip")
+	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
-		Body: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "arguments",
 			PackageURL: &pipeline_model.V2beta1URL{
 				PipelineURL: pipelineURL,
@@ -187,6 +204,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	for _, p := range pipelineVersions {
 		assert.NotNil(t, *p)
 		assert.NotNil(t, p.CreatedAt)
+		assert.Contains(t, []string{"test-pipeline" /*default version created with pipeline*/, "sequential-v2", "arguments", "arguments-parameters.yaml", "zip-arguments-parameters"}, p.Name)
 		assert.Contains(t, []string{"test-pipeline" /*default version created with pipeline*/, "sequential", "arguments", "arguments-parameters.yaml", "zip-arguments-parameters"}, p.DisplayName)
 	}
 

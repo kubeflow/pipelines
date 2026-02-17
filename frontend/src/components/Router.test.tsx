@@ -15,31 +15,35 @@
  */
 
 import * as React from 'react';
-
-import { shallow, mount } from 'enzyme';
-import Router, { RouteConfig } from './Router';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from 'react-router';
+import { MemoryRouter } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
+import Router, { RouteConfig } from './Router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
-import { createMemoryHistory } from 'history';
 
 describe('Router', () => {
   it('initial render', () => {
-    const tree = shallow(<Router />);
-    expect(tree).toMatchSnapshot();
+    const renderResult = render(
+      <MemoryRouter initialEntries={['/does-not-exist']}>
+        <Router />
+      </MemoryRouter>,
+    );
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('does not share state between pages', () => {
+  it('does not share state between pages', async () => {
     class ApplePage extends Page<{}, {}> {
-      getInitialToolbarState(): ToolbarProps {
+      public getInitialToolbarState(): ToolbarProps {
         return {
           pageTitle: 'Apple',
           actions: {},
           breadcrumbs: [],
         };
       }
-      async refresh() {}
-      render() {
+      public async refresh() {}
+      public render() {
         return <div>apple</div>;
       }
     }
@@ -58,16 +62,13 @@ describe('Router', () => {
     const history = createMemoryHistory({
       initialEntries: ['/apple'],
     });
-    const tree = mount(
+    render(
       <ReactRouter history={history}>
         <Router configs={configs} />
       </ReactRouter>,
     );
-    expect(tree.getDOMNode().querySelector('[data-testid=page-title]')!.textContent).toEqual(
-      'Apple',
-    );
-    // When visiting the second page, page title should be reset automatically.
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Apple');
     history.push('/pear');
-    expect(tree.getDOMNode().querySelector('[data-testid=page-title]')!.textContent).toEqual('');
+    await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
   });
 });

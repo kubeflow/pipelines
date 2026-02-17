@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        searches:
+          - NAMESPACE.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+        options:
+          - name: timeout
+            value: "10"
+          - name: attempts
+            value: "5"
+          - name: ndots
+            value: "2"
+      containers:
+        - name: ml-pipeline-api-server
+          env:
+            - name: V2_DRIVER_IMAGE
+              value: kind-registry:5000/driver
+            - name: V2_LAUNCHER_IMAGE
+              value: kind-registry:5000/launcher
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: DBCONFIG_HOST_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: dns-config
+                  key: dbHost
+            # Additional MySQL hostname environment variables to prevent fallback to "mysql" default
+            - name: DBCONFIG_MYSQLCONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dns-config
+                  key: dbHost
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dns-config
+                  key: dbHost
+            - name: DBCONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dns-config
+                  key: dbHost

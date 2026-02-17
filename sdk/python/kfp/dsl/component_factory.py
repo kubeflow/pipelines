@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import base64
 import dataclasses
+import gzip
 import inspect
+import io
 import itertools
 import pathlib
 import re
+import tarfile
 import textwrap
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
                     Union)
@@ -32,12 +36,14 @@ from kfp.dsl import placeholders
 from kfp.dsl import python_component
 from kfp.dsl import structures
 from kfp.dsl import task_final_status
+from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import custom_artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 
-_DEFAULT_BASE_IMAGE = 'python:3.9'
+_DEFAULT_BASE_IMAGE = 'python:3.11'
 SINGLE_OUTPUT_NAME = 'Output'
 
 
@@ -59,6 +65,7 @@ class ComponentInfo():
     pip_index_urls: Optional[List[str]] = None
     pip_trusted_hosts: Optional[List[str]] = None
     use_venv: bool = False
+    task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None
 
 
 # A map from function_name to components.  This is always populated when a
@@ -165,6 +172,20 @@ def _get_packages_to_install_command(
     index_url_options = make_index_url_options(pip_index_urls,
                                                pip_trusted_hosts)
 
+    # Install packages before KFP. This allows us to
+    # control where we source kfp-pipeline-spec.
+    # This is particularly useful for development and
+    # CI use-case when you want to install the spec
+    # from source.
+    if packages_to_install:
+        user_packages_pip_install_command = make_pip_install_command(
+            install_parts=packages_to_install,
+            index_url_options=index_url_options,
+        )
+        pip_install_strings.append(user_packages_pip_install_command)
+        if inject_kfp_install:
+            pip_install_strings.append(' && ')
+
     if inject_kfp_install:
         if use_venv:
             pip_install_strings.append(_use_venv_script_template)
@@ -183,16 +204,6 @@ def _get_packages_to_install_command(
                 index_url_options=index_url_options,
             )
         pip_install_strings.append(kfp_pip_install_command)
-
-        if packages_to_install:
-            pip_install_strings.append(' && ')
-
-    if packages_to_install:
-        user_packages_pip_install_command = make_pip_install_command(
-            install_parts=packages_to_install,
-            index_url_options=index_url_options,
-        )
-        pip_install_strings.append(user_packages_pip_install_command)
 
     return [
         'sh', '-c',
@@ -265,6 +276,9 @@ def get_name_to_specs(
         if annotation == inspect._empty:
             raise TypeError(f'Missing type annotation for argument: {name}')
 
+        # Exclude EmbeddedInput[...] from interface (runtime-only)
+        elif type_annotations.is_embedded_input_annotation(annotation):
+            continue
         # is Input[Artifact], Input[List[<Artifact>]], <param> (e.g., str), or InputPath(<param>)
         elif (type_annotations.is_artifact_wrapped_in_Input(annotation) or
               isinstance(
@@ -401,8 +415,12 @@ def make_input_spec(annotation: Any,
     default = None if inspect_param.default == inspect.Parameter.empty or type_annotations.issubclass_of_artifact(
         annotation) else inspect_param.default
 
-    optional = inspect_param.default is not inspect.Parameter.empty or type_utils.is_task_final_status_type(
-        getattr(inspect_param.annotation, '__name__', ''))
+    optional = (
+        inspect_param.default is not inspect.Parameter.empty or
+        type_utils.is_task_final_status_type(
+            getattr(inspect_param.annotation, '__name__', '')) or
+        type_utils.is_task_config_type(
+            getattr(inspect_param.annotation, '__name__', '')))
     return structures.InputSpec(
         **input_output_spec_args,
         default=default,
@@ -486,7 +504,11 @@ CONTAINERIZED_PYTHON_COMPONENT_COMMAND = [
 
 
 def _get_command_and_args_for_lightweight_component(
-        func: Callable) -> Tuple[List[str], List[str]]:
+    func: Callable,
+    additional_funcs: Optional[List[Callable]] = None,
+    embedded_artifact_path: Optional[str] = None,
+    _helper_source_template: Optional[str] = None,
+) -> Tuple[List[str], List[str]]:
     imports_source = [
         'import kfp',
         'from kfp import dsl',
@@ -495,11 +517,60 @@ def _get_command_and_args_for_lightweight_component(
     ] + custom_artifact_types.get_custom_artifact_type_import_statements(func)
 
     func_source = _get_function_source_definition(func)
+    additional_funcs_source = ''
+    if additional_funcs:
+        additional_funcs_source = '\n\n' + '\n\n'.join(
+            _get_function_source_definition(_f) for _f in additional_funcs)
+    # If an embedded_artifact_path is provided, build the archive and generate
+    # a shared extraction helper.
+    helper_source = None
+    if embedded_artifact_path:
+        asset_path = pathlib.Path(embedded_artifact_path)
+        if not asset_path.exists():
+            raise ValueError(
+                f'embedded_artifact_path does not exist: {embedded_artifact_path}'
+            )
+
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode='w') as tar:
+            if asset_path.is_dir():
+                tar.add(asset_path, arcname='.')
+            else:
+                tar.add(asset_path, arcname=asset_path.name)
+
+        archive_bytes = buf.getvalue()
+
+        compressed_bytes = gzip.compress(archive_bytes)
+        compressed_size_mb = len(compressed_bytes) / (1024 * 1024)
+        if compressed_size_mb > 1:
+            warnings.warn(
+                f'Embedded artifact archive is large ({compressed_size_mb:.1f}MB compressed). '
+                f'Consider moving large assets to a container image or object store.',
+                UserWarning,
+                stacklevel=4)
+
+        archive_b64 = base64.b64encode(compressed_bytes).decode('ascii')
+
+        if _helper_source_template:
+            # Allow callers to inject a custom helper source via a template.
+            # Use literal replacement to avoid str.format interpreting other braces
+            # in the helper source (e.g., f-strings) as format fields.
+            helper_source = _helper_source_template.replace(
+                '{embedded_archive}', archive_b64)
+        else:
+            file_basename = asset_path.name if asset_path.is_file() else None
+            helper_source = _generate_shared_extraction_helper(
+                archive_b64, file_basename)
+
+    helper_block = f'\n\n{helper_source}\n' if helper_source else ''
     source = textwrap.dedent('''
-        {imports_source}
+        {imports_source}{additional_funcs_source}{helper_block}
 
         {func_source}\n''').format(
-        imports_source='\n'.join(imports_source), func_source=func_source)
+        imports_source='\n'.join(imports_source),
+        additional_funcs_source=additional_funcs_source,
+        helper_block=helper_block,
+        func_source=func_source)
     command = [
         'sh',
         '-ec',
@@ -525,6 +596,127 @@ def _get_command_and_args_for_lightweight_component(
     return command, args
 
 
+def _generate_shared_extraction_helper(embedded_archive_b64: str,
+                                       file_basename: Optional[str] = None
+                                      ) -> str:
+    """Generate shared archive extraction helper source code.
+
+    Produces Python source that extracts a tar.gz archive (provided as
+    base64) into a temporary directory, then prepends that directory to
+    sys.path. When a single file was embedded, sets
+    __KFP_EMBEDDED_ASSET_FILE to the extracted file path; otherwise only
+    __KFP_EMBEDDED_ASSET_DIR is set.
+    """
+    file_assignment = ''
+    if file_basename:
+        file_assignment = f"\n__KFP_EMBEDDED_ASSET_FILE = __kfp_os.path.join(__KFP_EMBEDDED_ASSET_DIR, '{file_basename}')\n"
+    return f'''__KFP_EMBEDDED_ARCHIVE_B64 = '{embedded_archive_b64}'
+
+import base64 as __kfp_b64
+import io as __kfp_io
+import os as __kfp_os
+import sys as __kfp_sys
+import tarfile as __kfp_tarfile
+import tempfile as __kfp_tempfile
+
+# Extract embedded archive at import time to ensure sys.path and globals are set
+__kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()
+__KFP_EMBEDDED_ASSET_DIR = __kfp_tmpdir.name
+try:
+    __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode('ascii'))
+    with __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode='r:gz') as __kfp_tar:
+        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)
+except Exception as __kfp_e:
+    raise RuntimeError(f'Failed to extract embedded archive: {{__kfp_e}}')
+
+# Always prepend the extracted directory to sys.path for import resolution
+if __KFP_EMBEDDED_ASSET_DIR not in __kfp_sys.path:
+    __kfp_sys.path.insert(0, __KFP_EMBEDDED_ASSET_DIR)
+{file_assignment}
+'''
+
+
+def create_notebook_component_from_func(
+    func: Callable,
+    *,
+    notebook_path: str,
+    base_image: Optional[str] = None,
+    packages_to_install: Optional[List[str]] = None,
+    pip_index_urls: Optional[List[str]] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None,
+    pip_trusted_hosts: Optional[List[str]] = None,
+    use_venv: bool = False,
+    task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
+) -> python_component.PythonComponent:
+    """Builds a notebook-based component by delegating to
+    create_component_from_func.
+
+    Validates the notebook path and constructs a helper source template
+    that executes the embedded notebook at runtime. The common
+    component-building logic is reused by passing the template and the
+    notebook path as an embedded artifact.
+    """
+
+    # Resolve default packages for notebooks when not specified
+    if packages_to_install is None:
+        packages_to_install = [
+            'nbclient>=0.10,<1', 'ipykernel>=6,<7', 'jupyter_client>=7,<9'
+        ]
+
+    # Validate notebook path and determine relpath
+    nb_path = pathlib.Path(notebook_path)
+    if not nb_path.exists():
+        raise ValueError(f'Notebook path does not exist: {notebook_path}')
+
+    if nb_path.is_dir():
+        # Ignore .ipynb_checkpoints directories
+        ipynbs = [
+            p for p in nb_path.rglob('*.ipynb')
+            if p.is_file() and '.ipynb_checkpoints' not in p.parts
+        ]
+        if len(ipynbs) == 0:
+            raise ValueError(
+                f'No .ipynb files found in directory: {notebook_path}')
+        if len(ipynbs) > 1:
+            raise ValueError(
+                f'Multiple .ipynb files found in directory: {notebook_path}. Exactly one is required.'
+            )
+        nb_file = ipynbs[0]
+        notebook_relpath = nb_file.relative_to(nb_path).as_posix()
+    else:
+        if nb_path.suffix.lower() != '.ipynb':
+            raise ValueError(
+                f'Invalid notebook_path (expected .ipynb file): {notebook_path}'
+            )
+        notebook_relpath = nb_path.name
+
+    # Build the helper source template with a placeholder for the embedded archive
+    from kfp.dsl.templates.notebook_executor import \
+        get_notebook_executor_source
+    helper_template = get_notebook_executor_source('{embedded_archive}',
+                                                   notebook_relpath)
+
+    # Delegate to the common component creation using the embedded artifact path
+    return create_component_from_func(
+        func=func,
+        base_image=base_image,
+        target_image=None,
+        embedded_artifact_path=notebook_path,
+        _helper_source_template=helper_template,
+        packages_to_install=packages_to_install or [],
+        pip_index_urls=pip_index_urls,
+        output_component_file=output_component_file,
+        install_kfp_package=install_kfp_package,
+        kfp_package_path=kfp_package_path,
+        pip_trusted_hosts=pip_trusted_hosts,
+        use_venv=use_venv,
+        additional_funcs=None,
+        task_config_passthroughs=task_config_passthroughs,
+    )
+
+
 def _get_command_and_args_for_containerized_component(
         function_name: str) -> Tuple[List[str], List[str]]:
 
@@ -541,6 +733,7 @@ def create_component_from_func(
     func: Callable,
     base_image: Optional[str] = None,
     target_image: Optional[str] = None,
+    embedded_artifact_path: Optional[str] = None,
     packages_to_install: List[str] = None,
     pip_index_urls: Optional[List[str]] = None,
     output_component_file: Optional[str] = None,
@@ -548,6 +741,9 @@ def create_component_from_func(
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    additional_funcs: Optional[List[Callable]] = None,
+    task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
+    _helper_source_template: Optional[str] = None,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -570,10 +766,10 @@ def create_component_from_func(
     if base_image is None:
         base_image = _DEFAULT_BASE_IMAGE
         warnings.warn(
-            ("The default base_image used by the @dsl.component decorator will switch from 'python:3.9' to 'python:3.10' on Oct 1, 2025. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.10."
+            ("The default base_image used by the @dsl.component decorator will switch from 'python:3.11' to 'python:3.12' on Oct 1, 2027. To ensure your existing components work with versions of the KFP SDK released after that date, you should provide an explicit base_image argument and ensure your component works as intended on Python 3.12."
             ),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
 
     component_image = base_image
@@ -584,9 +780,16 @@ def create_component_from_func(
             function_name=func.__name__,)
     else:
         command, args = _get_command_and_args_for_lightweight_component(
-            func=func)
+            func=func,
+            additional_funcs=additional_funcs,
+            embedded_artifact_path=embedded_artifact_path,
+            _helper_source_template=_helper_source_template,
+        )
 
     component_spec = extract_component_interface(func)
+    # Attach task_config_passthroughs to the ComponentSpec structure if provided.
+    if task_config_passthroughs:
+        component_spec.task_config_passthroughs = task_config_passthroughs
     component_spec.implementation = structures.Implementation(
         container=structures.ContainerSpecImplementation(
             image=component_image,
@@ -609,7 +812,8 @@ def create_component_from_func(
         base_image=base_image,
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
-        pip_trusted_hosts=pip_trusted_hosts)
+        pip_trusted_hosts=pip_trusted_hosts,
+        task_config_passthroughs=task_config_passthroughs)
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
@@ -652,6 +856,9 @@ def make_input_for_parameterized_container_component_function(
         # small hack to encode the runtime value's type for a custom json.dumps function
         if (annotation == task_final_status.PipelineTaskFinalStatus or
                 type_utils.is_task_final_status_type(annotation)):
+            placeholder._ir_type = 'STRUCT'
+        elif annotation == TaskConfig:
+            # Treat as STRUCT for IR and use reserved input name at runtime.
             placeholder._ir_type = 'STRUCT'
         else:
             placeholder._ir_type = type_utils.get_parameter_type_name(

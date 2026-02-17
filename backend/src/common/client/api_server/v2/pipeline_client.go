@@ -15,6 +15,7 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/go-openapi/runtime"
@@ -34,7 +35,7 @@ type PipelineInterface interface {
 	CreatePipelineAndVersion(params *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2beta1Pipeline, error)
 	Get(params *params.PipelineServiceGetPipelineParams) (*model.V2beta1Pipeline, error)
 	Delete(params *params.PipelineServiceDeletePipelineParams) error
-	//GetTemplate(params *params.GetTemplateParams) (template.Template, error)
+	// GetTemplate(params *params.GetTemplateParams) (template.Template, error)
 	List(params *params.PipelineServiceListPipelinesParams) ([]*model.V2beta1Pipeline, int, string, error)
 	ListAll(params *params.PipelineServiceListPipelinesParams, maxResultSize int) (
 		[]*model.V2beta1Pipeline, error)
@@ -46,15 +47,15 @@ type PipelineClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*PipelineClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
-		return nil, fmt.Errorf("Error occurred when creating pipeline client: %w", err)
+		return nil, fmt.Errorf("error occurred when creating pipeline client: %w", err)
 	}
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating pipeline client
 	return &PipelineClient{
@@ -62,17 +63,33 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
+func NewKubeflowInClusterPipelineClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*PipelineClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating pipeline client
 	return &PipelineClient{
 		apiClient:      apiClient,
 		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
+	}, nil
+}
+
+func NewMultiUserPipelineClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
+	*PipelineClient, error) {
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
+	if err != nil {
+		return nil, fmt.Errorf("error occurred when creating pipeline client: %w", err)
+	}
+
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
+
+	// Creating pipeline client
+	return &PipelineClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
 	}, nil
 }
 
@@ -93,7 +110,7 @@ func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipeline
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to create pipeline '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create pipeline '%v'", parameters.Pipeline.DisplayName))
 	}
 
 	return response.Payload, nil
@@ -209,7 +226,7 @@ func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesPar
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list pipelines. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list pipelines"))
+			"Failed to list pipelines")
 	}
 
 	return response.Payload.Pipelines, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
@@ -286,7 +303,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list pipeline versions. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list pipeline versions"))
+			"Failed to list pipeline versions")
 	}
 
 	return response.Payload.PipelineVersions, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil

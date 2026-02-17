@@ -13,63 +13,84 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceTerminateRunParams creates a new RunServiceTerminateRunParams object
-// with the default values initialized.
+// NewRunServiceTerminateRunParams creates a new RunServiceTerminateRunParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceTerminateRunParams() *RunServiceTerminateRunParams {
-	var ()
 	return &RunServiceTerminateRunParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceTerminateRunParamsWithTimeout creates a new RunServiceTerminateRunParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceTerminateRunParamsWithTimeout(timeout time.Duration) *RunServiceTerminateRunParams {
-	var ()
 	return &RunServiceTerminateRunParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceTerminateRunParamsWithContext creates a new RunServiceTerminateRunParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceTerminateRunParamsWithContext(ctx context.Context) *RunServiceTerminateRunParams {
-	var ()
 	return &RunServiceTerminateRunParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceTerminateRunParamsWithHTTPClient creates a new RunServiceTerminateRunParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceTerminateRunParamsWithHTTPClient(client *http.Client) *RunServiceTerminateRunParams {
-	var ()
 	return &RunServiceTerminateRunParams{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceTerminateRunParams contains all the parameters to send to the API endpoint
-for the run service terminate run operation typically these are written to a http.Request
+/*
+RunServiceTerminateRunParams contains all the parameters to send to the API endpoint
+
+	for the run service terminate run operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceTerminateRunParams struct {
 
-	/*RunID
-	  The ID of the run to be terminated.
+	/* ExperimentID.
 
+	   The ID of the parent experiment.
+	*/
+	ExperimentID *string
+
+	/* RunID.
+
+	   The ID of the run to be terminated.
 	*/
 	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service terminate run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceTerminateRunParams) WithDefaults() *RunServiceTerminateRunParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service terminate run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceTerminateRunParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service terminate run params
@@ -105,6 +126,17 @@ func (o *RunServiceTerminateRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithExperimentID adds the experimentID to the run service terminate run params
+func (o *RunServiceTerminateRunParams) WithExperimentID(experimentID *string) *RunServiceTerminateRunParams {
+	o.SetExperimentID(experimentID)
+	return o
+}
+
+// SetExperimentID adds the experimentId to the run service terminate run params
+func (o *RunServiceTerminateRunParams) SetExperimentID(experimentID *string) {
+	o.ExperimentID = experimentID
+}
+
 // WithRunID adds the runID to the run service terminate run params
 func (o *RunServiceTerminateRunParams) WithRunID(runID string) *RunServiceTerminateRunParams {
 	o.SetRunID(runID)
@@ -123,6 +155,23 @@ func (o *RunServiceTerminateRunParams) WriteToRequest(r runtime.ClientRequest, r
 		return err
 	}
 	var res []error
+
+	if o.ExperimentID != nil {
+
+		// query param experiment_id
+		var qrExperimentID string
+
+		if o.ExperimentID != nil {
+			qrExperimentID = *o.ExperimentID
+		}
+		qExperimentID := qrExperimentID
+		if qExperimentID != "" {
+
+			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
+				return err
+			}
+		}
+	}
 
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {

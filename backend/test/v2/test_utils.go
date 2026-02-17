@@ -15,12 +15,14 @@
 package test
 
 import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
@@ -30,8 +32,12 @@ import (
 	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+
+	"github.com/cenkalti/backoff"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -167,6 +173,34 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T, 
 	for _, pv := range pipelineVersions {
 		assert.Nil(t, client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineId, PipelineVersionID: pv.PipelineVersionID}))
 	}
+
+	// Wait for pipeline versions to be deleted. In Kubernetes mode, there can be a slight delay before the cache is
+	// updated.
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// This should be a ContextDeadlineExceeded error and causes the test to fail.
+			require.Nil(t, ctx.Err(), "Pipeline versions have not been deleted after 5 seconds")
+
+			return
+		default:
+			pipelineVersions, _, _, err = ListPipelineVersions(client, pipelineId)
+			if err != nil {
+				glog.Errorf("Error listing pipeline versions, will retry: %v", err)
+
+				continue
+			}
+
+			if len(pipelineVersions) == 0 {
+				return
+			}
+
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
 }
 
 func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
@@ -186,4 +220,43 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	for _, isRemoved := range deletedPipelines {
 		assert.True(t, isRemoved)
 	}
+}
+
+func GetPipelineUploadClient(
+	uploadPipelinesWithKubernetes bool,
+	isKubeflowMode bool,
+	isDebugMode bool,
+	namespace string,
+	clientConfig clientcmd.ClientConfig,
+	tlsCfg *tls.Config,
+) (api_server.PipelineUploadInterface, error) {
+	if uploadPipelinesWithKubernetes {
+		return api_server.NewPipelineUploadClientKubernetes(clientConfig, namespace)
+	}
+
+	if isKubeflowMode {
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode, tlsCfg)
+	}
+
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode, tlsCfg)
+}
+
+// GetTLSConfig returns TLS config set with system CA certs as well as custom CA stored at input caCertPath if provided.
+func GetTLSConfig(caCertPath string) (*tls.Config, error) {
+	caCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, err
+	}
+	if caCertPath != "" {
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, err
+		}
+		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+			return nil, err
+		}
+	}
+	return &tls.Config{
+		RootCAs: caCertPool,
+	}, nil
 }

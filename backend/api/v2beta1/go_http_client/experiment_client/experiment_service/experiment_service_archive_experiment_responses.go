@@ -6,14 +6,14 @@ package experiment_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	experiment_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 )
 
 // ExperimentServiceArchiveExperimentReader is a Reader for the ExperimentServiceArchiveExperiment structure.
@@ -24,14 +24,12 @@ type ExperimentServiceArchiveExperimentReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ExperimentServiceArchiveExperimentReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewExperimentServiceArchiveExperimentOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewExperimentServiceArchiveExperimentDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewExperimentServiceArchiveExperimentOK() *ExperimentServiceArchiveExperime
 	return &ExperimentServiceArchiveExperimentOK{}
 }
 
-/*ExperimentServiceArchiveExperimentOK handles this case with default header values.
+/*
+ExperimentServiceArchiveExperimentOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type ExperimentServiceArchiveExperimentOK struct {
 	Payload interface{}
 }
 
+// IsSuccess returns true when this experiment service archive experiment o k response has a 2xx status code
+func (o *ExperimentServiceArchiveExperimentOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this experiment service archive experiment o k response has a 3xx status code
+func (o *ExperimentServiceArchiveExperimentOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this experiment service archive experiment o k response has a 4xx status code
+func (o *ExperimentServiceArchiveExperimentOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this experiment service archive experiment o k response has a 5xx status code
+func (o *ExperimentServiceArchiveExperimentOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this experiment service archive experiment o k response a status code equal to that given
+func (o *ExperimentServiceArchiveExperimentOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the experiment service archive experiment o k response
+func (o *ExperimentServiceArchiveExperimentOK) Code() int {
+	return 200
+}
+
 func (o *ExperimentServiceArchiveExperimentOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}:archive][%d] experimentServiceArchiveExperimentOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}:archive][%d] experimentServiceArchiveExperimentOK %s", 200, payload)
+}
+
+func (o *ExperimentServiceArchiveExperimentOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}:archive][%d] experimentServiceArchiveExperimentOK %s", 200, payload)
+}
+
+func (o *ExperimentServiceArchiveExperimentOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ExperimentServiceArchiveExperimentOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -78,14 +117,40 @@ func NewExperimentServiceArchiveExperimentDefault(code int) *ExperimentServiceAr
 	}
 }
 
-/*ExperimentServiceArchiveExperimentDefault handles this case with default header values.
+/*
+ExperimentServiceArchiveExperimentDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type ExperimentServiceArchiveExperimentDefault struct {
 	_statusCode int
 
-	Payload *experiment_model.RuntimeError
+	Payload *experiment_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this experiment service archive experiment default response has a 2xx status code
+func (o *ExperimentServiceArchiveExperimentDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this experiment service archive experiment default response has a 3xx status code
+func (o *ExperimentServiceArchiveExperimentDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this experiment service archive experiment default response has a 4xx status code
+func (o *ExperimentServiceArchiveExperimentDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this experiment service archive experiment default response has a 5xx status code
+func (o *ExperimentServiceArchiveExperimentDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this experiment service archive experiment default response a status code equal to that given
+func (o *ExperimentServiceArchiveExperimentDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the experiment service archive experiment default response
@@ -94,12 +159,22 @@ func (o *ExperimentServiceArchiveExperimentDefault) Code() int {
 }
 
 func (o *ExperimentServiceArchiveExperimentDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}:archive][%d] ExperimentService_ArchiveExperiment default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}:archive][%d] ExperimentService_ArchiveExperiment default %s", o._statusCode, payload)
+}
+
+func (o *ExperimentServiceArchiveExperimentDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/experiments/{experiment_id}:archive][%d] ExperimentService_ArchiveExperiment default %s", o._statusCode, payload)
+}
+
+func (o *ExperimentServiceArchiveExperimentDefault) GetPayload() *experiment_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *ExperimentServiceArchiveExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.RuntimeError)
+	o.Payload = new(experiment_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -26,8 +26,10 @@ import kfp
 from kfp.dsl import placeholders
 from kfp.dsl import utils
 from kfp.dsl import v1_structures
+from kfp.dsl.component_task_config import TaskConfigPassthrough
 from kfp.dsl.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
@@ -223,7 +225,9 @@ def spec_type_is_parameter(type_: str) -> bool:
     in_memory_type = type_annotations.maybe_strip_optional_from_annotation_string(
         type_utils.get_canonical_name_for_outer_generic(type_))
 
-    return in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or in_memory_type == 'PipelineTaskFinalStatus'
+    return (in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or
+            in_memory_type == 'PipelineTaskFinalStatus' or
+            in_memory_type == 'TaskConfig')
 
 
 @dataclasses.dataclass
@@ -445,6 +449,7 @@ class ImporterSpec:
     schema_version: str
     reimport: bool
     metadata: Optional[Mapping[str, Any]] = None
+    download_to_workspace: bool = False
 
 
 @dataclasses.dataclass
@@ -570,6 +575,8 @@ class ComponentSpec:
     outputs: Optional[Dict[str, OutputSpec]] = None
     platform_spec: pipeline_spec_pb2.PlatformSpec = dataclasses.field(
         default_factory=pipeline_spec_pb2.PlatformSpec)
+    # Optional passthroughs for TaskConfig fields
+    task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None
 
     def __post_init__(self) -> None:
         self._transform_name()
@@ -640,8 +647,9 @@ class ComponentSpec:
         ]
         env = {
             key:
-            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                command, component_dict=component_dict)
+                placeholders
+                .maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                    command, component_dict=component_dict)
             for key, command in container.get('env', {}).items()
         }
         container_spec = ContainerSpecImplementation.from_container_dict({

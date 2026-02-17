@@ -35,7 +35,7 @@ parser.add_argument(
          "being stopped."
 )
 
-args = parser.parse_args()
+args, _unknown = parser.parse_known_args()
 _exporter = exporter.Exporter(args.timeout)
 
 

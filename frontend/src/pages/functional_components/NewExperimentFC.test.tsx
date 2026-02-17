@@ -17,7 +17,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { expectErrors } from 'src/TestUtils';
 import { NewExperimentFC } from './NewExperimentFC';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
@@ -26,11 +26,11 @@ import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
 
 describe('NewExperiment', () => {
   const TEST_EXPERIMENT_ID = 'new-experiment-id';
-  const createExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
-  const historyPushSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
+  const createExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
+  const historyPushSpy = vi.fn();
+  const updateDialogSpy = vi.fn();
+  const updateSnackbarSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
 
   function generateProps(): PageProps {
     return {
@@ -46,9 +46,9 @@ describe('NewExperiment', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // mock both v2_alpha and functional feature keys are enable.
-    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
     createExperimentSpy.mockImplementation(() => ({
       experiment_id: 'new-experiment-id',
@@ -192,7 +192,7 @@ describe('NewExperiment', () => {
   it('includes pipeline ID and version ID in NewRun page query params if present', async () => {
     const pipelineId = 'some-pipeline-id';
     const pipelineVersionId = 'version-id';
-    const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+    const listPipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
     listPipelineVersionsSpy.mockImplementation(() => ({
       pipeline_versions: [{ pipeline_version_id: pipelineVersionId }],
     }));
@@ -259,6 +259,7 @@ describe('NewExperiment', () => {
   });
 
   it('shows error dialog when experiment creation fails', async () => {
+    const assertErrors = expectErrors();
     TestUtils.makeErrorResponseOnce(createExperimentSpy, 'There was something wrong!');
     render(
       <CommonTestWrapper>
@@ -282,6 +283,7 @@ describe('NewExperiment', () => {
         title: 'Experiment creation failed',
       }),
     );
+    assertErrors();
   });
 
   it('navigates to experiment list page upon cancellation', () => {

@@ -1,0 +1,335 @@
+# PIPELINE DEFINITION
+# Name: collected-param-pipeline
+components:
+  comp-collecting-parameters:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--prepend-id-Output
+              producerSubtask: for-loop-1
+      tasks:
+        consume-ids:
+          cachingOptions: {}
+          componentRef:
+            name: comp-consume-ids
+          dependentTasks:
+          - for-loop-1
+          inputs:
+            parameters:
+              ids:
+                taskOutputParameter:
+                  outputParameterKey: pipelinechannel--prepend-id-Output
+                  producerTask: for-loop-1
+          taskInfo:
+            name: consume-ids
+        for-loop-1:
+          componentRef:
+            name: comp-for-loop-1
+          dependentTasks:
+          - split-ids
+          inputs:
+            parameters:
+              pipelinechannel--split-ids-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: split-ids
+          parameterIterator:
+            itemInput: pipelinechannel--split-ids-Output-loop-item
+            items:
+              inputParameter: pipelinechannel--split-ids-Output
+          taskInfo:
+            name: for-loop-1
+        split-ids:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-split-ids
+          inputs:
+            parameters:
+              ids:
+                componentInputParameter: model_ids
+          taskInfo:
+            name: split-ids
+    inputDefinitions:
+      parameters:
+        model_ids:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-consume-ids:
+    executorLabel: exec-consume-ids
+    inputDefinitions:
+      parameters:
+        ids:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-consume-ids-2:
+    executorLabel: exec-consume-ids-2
+    inputDefinitions:
+      parameters:
+        ids:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-consume-single-id:
+    executorLabel: exec-consume-single-id
+    inputDefinitions:
+      parameters:
+        id:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-for-loop-1:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--prepend-id-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: prepend-id
+      tasks:
+        consume-single-id:
+          cachingOptions: {}
+          componentRef:
+            name: comp-consume-single-id
+          dependentTasks:
+          - prepend-id
+          inputs:
+            parameters:
+              id:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: prepend-id
+          taskInfo:
+            name: consume-single-id
+        prepend-id:
+          cachingOptions: {}
+          componentRef:
+            name: comp-prepend-id
+          inputs:
+            parameters:
+              content:
+                componentInputParameter: pipelinechannel--split-ids-Output-loop-item
+          taskInfo:
+            name: prepend-id
+    inputDefinitions:
+      parameters:
+        pipelinechannel--split-ids-Output:
+          parameterType: LIST
+        pipelinechannel--split-ids-Output-loop-item:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        pipelinechannel--prepend-id-Output:
+          parameterType: LIST
+  comp-prepend-id:
+    executorLabel: exec-prepend-id
+    inputDefinitions:
+      parameters:
+        content:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-split-ids:
+    executorLabel: exec-split-ids
+    inputDefinitions:
+      parameters:
+        ids:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+deploymentSpec:
+  executors:
+    exec-consume-ids:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consume_ids
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consume_ids(ids: List[str]) -> str:\n    for id in ids:\n   \
+          \     print(f'Consuming: {id}')\n    return 'completed'\n\n"
+        image: python:3.11
+    exec-consume-ids-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consume_ids
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consume_ids(ids: List[str]) -> str:\n    for id in ids:\n   \
+          \     print(f'Consuming: {id}')\n    return 'completed'\n\n"
+        image: python:3.11
+    exec-consume-single-id:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consume_single_id
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consume_single_id(id: str) -> str:\n    print(f'Consuming single:\
+          \ {id}')\n    return 'completed'\n\n"
+        image: python:3.11
+    exec-prepend-id:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - prepend_id
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef prepend_id(content: str) -> str:\n    print(f\"prepending: {content}\
+          \ with 'model_id'\")\n    return f'model_id_{content}'\n\n"
+        image: python:3.11
+    exec-split-ids:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - split_ids
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef split_ids(ids: str) -> list:\n    return ids.split(',')\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: collected-param-pipeline
+root:
+  dag:
+    tasks:
+      collecting-parameters:
+        cachingOptions: {}
+        componentRef:
+          name: comp-collecting-parameters
+        inputs:
+          parameters:
+            model_ids:
+              runtimeValue:
+                constant: s1,s2,s3
+        taskInfo:
+          name: collecting-parameters
+      consume-ids:
+        cachingOptions: {}
+        componentRef:
+          name: comp-consume-ids-2
+        dependentTasks:
+        - collecting-parameters
+        inputs:
+          parameters:
+            ids:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: collecting-parameters
+        taskInfo:
+          name: consume-ids
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.2

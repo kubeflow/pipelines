@@ -13,10 +13,11 @@
 # limitations under the License.
 """Code for locally executing a compiled pipeline."""
 import logging
+import os
+import shutil
 from typing import Any, Dict, List
 
 from kfp.local import config
-from kfp.local import dag_orchestrator
 from kfp.local import logging_utils
 from kfp.local import placeholder_utils
 from kfp.local import status
@@ -86,33 +87,62 @@ def _run_local_pipeline_implementation(
     # convert to dict for consistency with executors
     components = dict(pipeline_spec.components.items())
     fail_stack: List[str] = []
-    outputs, dag_status = dag_orchestrator.run_dag(
-        pipeline_resource_name=pipeline_resource_name,
-        dag_component_spec=pipeline_spec.root,
-        executors=executors,
-        components=components,
-        dag_arguments=arguments,
-        pipeline_root=pipeline_root,
-        runner=runner,
-        unique_pipeline_id=placeholder_utils.make_random_id(),
-        fail_stack=fail_stack,
-    )
-    if dag_status == status.Status.SUCCESS:
-        status_with_color = logging_utils.format_status(status.Status.SUCCESS)
-        with logging_utils.local_logger_context():
-            logging.info(
-                f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}'
+    try:
+        dag_component_spec = pipeline_spec.root
+        dag_spec = dag_component_spec.dag
+        has_control_flow = any(
+            task_spec.trigger_policy.condition or
+            task_spec.WhichOneof('iterator')
+            for task_spec in dag_spec.tasks.values())
+        if has_control_flow:
+            from kfp.local.orchestrator import enhanced_dag_orchestrator
+            outputs, dag_status = enhanced_dag_orchestrator.run_enhanced_dag(
+                pipeline_resource_name=pipeline_resource_name,
+                dag_component_spec=dag_component_spec,
+                executors=executors,
+                components=components,
+                dag_arguments=arguments,
+                pipeline_root=pipeline_root,
+                runner=runner,
+                unique_pipeline_id=placeholder_utils.make_random_id(),
+                fail_stack=fail_stack,
             )
-        return outputs
-    elif dag_status == status.Status.FAILURE:
-        log_and_maybe_raise_for_failure(
-            pipeline_name=pipeline_name,
-            fail_stack=fail_stack,
-            raise_on_error=raise_on_error,
-        )
-        return {}
-    else:
-        raise ValueError(f'Got unknown task status {dag_status.name}')
+        else:
+            from kfp.local.orchestrator import dag_orchestrator
+            outputs, dag_status = dag_orchestrator.run_dag(
+                pipeline_resource_name=pipeline_resource_name,
+                dag_component_spec=dag_component_spec,
+                executors=executors,
+                components=components,
+                dag_arguments=arguments,
+                pipeline_root=pipeline_root,
+                runner=runner,
+                unique_pipeline_id=placeholder_utils.make_random_id(),
+                fail_stack=fail_stack,
+            )
+        if dag_status == status.Status.SUCCESS:
+            status_with_color = logging_utils.format_status(
+                status.Status.SUCCESS)
+            with logging_utils.local_logger_context():
+                logging.info(
+                    f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}'
+                )
+            return outputs
+        elif dag_status == status.Status.FAILURE:
+            log_and_maybe_raise_for_failure(
+                pipeline_name=pipeline_name,
+                fail_stack=fail_stack,
+                raise_on_error=raise_on_error,
+            )
+            return {}
+        else:
+            raise ValueError(f'Got unknown task status {dag_status.name}')
+    finally:
+        # Clean up the workspace directory
+        workspace_root = config.LocalExecutionConfig.instance.workspace_root
+        if workspace_root and os.path.exists(workspace_root):
+            shutil.rmtree(workspace_root)
+            logging.info(f'Cleaned up workspace: {workspace_root}')
 
 
 def log_and_maybe_raise_for_failure(

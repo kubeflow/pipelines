@@ -32,6 +32,7 @@ export interface BaseResource {
   created_at?: Date;
   description?: string;
   name?: string;
+  display_name?: string;
   error?: string;
   namespace?: string;
 }
@@ -146,7 +147,11 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
         ({
           error: (r as any).error,
           id: r.id!,
-          otherFields: [r.name, r.description, formatDateString(r.created_at)],
+          otherFields: [
+            { display_name: r.display_name, name: r.name },
+            r.description,
+            formatDateString(r.created_at),
+          ] as any,
         } as Row),
     );
   }

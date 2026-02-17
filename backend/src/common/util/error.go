@@ -107,19 +107,19 @@ func NewUserError(err error, internalMessage string, externalMessage string) *Us
 	if apiError, ok := err.(*runtime.APIError); ok {
 		if apiError.Code == API_CODE_NOT_FOUND {
 			return newUserError(
-				errors.Wrapf(err, internalMessage),
+				errors.Wrapf(err, "%s", internalMessage),
 				fmt.Sprintf("%v: %v", externalMessage, "Resource not found"),
 				codes.Code(apiError.Code))
 		} else {
 			return newUserError(
-				errors.Wrapf(err, internalMessage),
+				errors.Wrapf(err, "%s", internalMessage),
 				fmt.Sprintf("%v. Raw error from the service: %v", externalMessage, err.Error()),
 				codes.Code(apiError.Code))
 		}
 	}
 
 	return newUserError(
-		errors.Wrapf(err, internalMessage),
+		errors.Wrapf(err, "%s", internalMessage),
 		fmt.Sprintf("%v. Raw error from the service: %v", externalMessage, err.Error()),
 		codes.Internal)
 }
@@ -203,6 +203,15 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 		errors.Wrapf(err, "BadRequestError: %v", externalMessage),
 		externalMessage,
 		codes.Aborted)
+}
+
+func NewBadKubernetesNameError(objectType string) *UserError {
+	return NewBadRequestError(
+		fmt.Errorf(
+			"%s names must consist of lower case alphanumeric characters, '-' or '.', and must start and end with "+
+				"an alphanumeric character", objectType),
+		"Invalid %s name", objectType,
+	)
 }
 
 func NewFailedPreconditionError(err error, externalFormat string, a ...interface{}) *UserError {
@@ -349,7 +358,7 @@ func Wrap(err error, message string) error {
 	case *UserError:
 		return err.wrap(message)
 	default:
-		return errors.Wrapf(err, message)
+		return errors.Wrapf(err, "%s", message)
 	}
 }
 

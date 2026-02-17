@@ -1,92 +1,68 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`NewRunParameters clicking the open editor button for json parameters displays an editor 1`] = `
-<Editor
-  cursorStart={1}
-  editorProps={Object {}}
-  enableBasicAutocompletion={false}
-  enableLiveAutocompletion={false}
-  enableSnippets={false}
-  focus={false}
-  fontSize={12}
-  height="500px"
-  highlightActiveLine={true}
-  maxLines={20}
-  minLines={3}
-  mode="json"
-  name="brace-editor"
-  navigateToFileEnd={true}
-  onChange={[Function]}
-  onLoad={null}
-  onPaste={null}
-  onScroll={null}
-  placeholder={null}
-  readOnly={false}
-  scrollMargin={
-    Array [
-      0,
-      0,
-      0,
-      0,
-    ]
-  }
-  setOptions={Object {}}
-  showGutter={true}
-  showPrintMargin={true}
-  style={Object {}}
-  tabSize={4}
-  theme="github"
-  value="{\\"test\\":\\"value\\"}"
-  width="100%"
-  wrapEnabled={false}
->
-  <div
-    id="brace-editor"
-    style={
-      Object {
-        "height": "500px",
-        "width": "100%",
-      }
-    }
-  />
-</Editor>
+exports[`NewRunParameters > does not display any text fields if there are no parameters 1`] = `
+<DocumentFragment>
+  <div>
+    <div
+      class="header_f189n3y"
+    >
+      Run parameters
+    </div>
+    <div>
+      This pipeline has no parameters
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
-exports[`NewRunParameters does not display any text fields if there are no parameters 1`] = `
-<div>
-  <div
-    className="header"
-  >
-    Run parameters
-  </div>
+exports[`NewRunParameters > shows parameters 1`] = `
+<DocumentFragment>
   <div>
-    This pipeline has no parameters
+    <div
+      class="header_f189n3y"
+    >
+      Run parameters
+    </div>
+    <div>
+      Specify parameters required by the pipeline
+    </div>
+    <div>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 textfield_f2qghku"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled"
+          data-shrink="true"
+          for="newRunPipelineParam0"
+          id="newRunPipelineParam0-label"
+        >
+          testParam
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input"
+            id="newRunPipelineParam0"
+            type="text"
+            value="testVal"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+            >
+              <span>
+                testParam
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
-`;
-
-exports[`NewRunParameters shows parameters 1`] = `
-<div>
-  <div
-    className="header"
-  >
-    Run parameters
-  </div>
-  <div>
-    Specify parameters required by the pipeline
-  </div>
-  <div>
-    <ParamEditor
-      id="newRunPipelineParam0"
-      key="0"
-      onChange={[Function]}
-      param={
-        Object {
-          "name": "testParam",
-          "value": "testVal",
-        }
-      }
-    />
-  </div>
-</div>
+</DocumentFragment>
 `;

@@ -21,8 +21,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	minio "github.com/minio/minio-go/v6"
-	credentials "github.com/minio/minio-go/v6/pkg/credentials"
+	minio "github.com/minio/minio-go/v7"
+	credentials "github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pkg/errors"
 )
 
@@ -50,7 +50,11 @@ func CreateMinioClient(minioServiceHost string, minioServicePort string,
 ) (*minio.Client, error) {
 	endpoint := joinHostPort(minioServiceHost, minioServicePort)
 	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
-	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
+	minioClient, err := minio.New(endpoint, &minio.Options{
+		Creds:  cred,
+		Secure: secure,
+		Region: region,
+	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating object store client: %+v", err)
 	}

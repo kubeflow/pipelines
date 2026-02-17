@@ -23,7 +23,8 @@ import (
 	"regexp"
 	"strings"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/types/known/structpb"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -36,9 +37,9 @@ import (
 )
 
 type V2Spec struct {
-	spec          *pipelinespec.PipelineSpec
-	platformSpec  *pipelinespec.PlatformSpec
-	cacheDisabled bool
+	spec            *pipelinespec.PipelineSpec
+	platformSpec    *pipelinespec.PlatformSpec
+	templateOptions TemplateOptions
 }
 
 var _ Template = &V2Spec{}
@@ -76,6 +77,14 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	}, nil
 }
 
+func (t *V2Spec) PipelineSpec() *pipelinespec.PipelineSpec {
+	return t.spec
+}
+
+func (t *V2Spec) PlatformSpec() *pipelinespec.PlatformSpec {
+	return t.platformSpec
+}
+
 // Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
@@ -96,6 +105,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		return nil, util.Wrap(err, "Failed to convert runtime config")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
+
+	// Parameter macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] are not formatted here.
+	// They remain unformatted in the ScheduledWorkflow spec and will be formatted by the scheduled workflow controller
 	if err = t.validatePipelineJobInputs(job); err != nil {
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
@@ -110,7 +122,12 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: t.cacheDisabled})
+		opts := &argocompiler.Options{
+			CacheDisabled:        t.templateOptions.CacheDisabled,
+			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+		}
+		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -131,7 +148,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	parameters, err := StringMapToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	parameters, err := StringMapToCRDParameters(string(modelJob.RuntimeConfig.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}
@@ -155,8 +172,8 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 	return V2
 }
 
-func NewV2SpecTemplate(template []byte, cacheDisabled bool) (*V2Spec, error) {
-	v2Spec := &V2Spec{cacheDisabled: cacheDisabled}
+func NewV2SpecTemplate(template []byte, opts TemplateOptions) (*V2Spec, error) {
+	v2Spec := &V2Spec{templateOptions: opts}
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
@@ -166,11 +183,11 @@ func NewV2SpecTemplate(template []byte, cacheDisabled bool) (*V2Spec, error) {
 		if errors.Is(err, io.EOF) {
 			break
 		}
-		if value == nil {
-			continue
-		}
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to decode yaml document: %s", err.Error()))
+		}
+		if value == nil {
+			continue
 		}
 		valueBytes, err := goyaml.Marshal(&value)
 		if err != nil {
@@ -302,6 +319,37 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
+
+	// Format parameters to expand macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] (V1 forward compatibility).
+	// Uses NewSWFParameterFormatter to support all macros. For standalone runs, [[ScheduledTime]] and [[Index]] remain unformatted
+
+	if job.RuntimeConfig != nil && len(job.RuntimeConfig.GetParameterValues()) > 0 {
+		scheduledEpoch := int64(-1) // disabled by default
+
+		if modelRun.ScheduledAtInSec > 0 {
+			scheduledEpoch = modelRun.ScheduledAtInSec
+		}
+		formatter := util.NewSWFParameterFormatter(
+			options.RunID,
+			scheduledEpoch,
+			options.RunAt,
+			-1,
+		)
+		// Convert structpb.Value to strings, format, convert back
+		paramValues := job.RuntimeConfig.GetParameterValues()
+		stringParams := make(map[string]string)
+		for key, val := range paramValues {
+			if strVal := val.GetStringValue(); strVal != "" {
+				stringParams[key] = strVal
+			}
+		}
+		// Format the string parameters
+		formattedParams := formatter.FormatWorkflowParameters(stringParams)
+		// Convert formatted strings back to structpb.Value
+		for key, formattedVal := range formattedParams {
+			paramValues[key] = structpb.NewStringValue(formattedVal)
+		}
+	}
 	if err = t.validatePipelineJobInputs(job); err != nil {
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
@@ -315,7 +363,12 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: options.CacheDisabled})
+		opts := &argocompiler.Options{
+			CacheDisabled:        t.templateOptions.CacheDisabled,
+			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+		}
+		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -332,20 +385,20 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	// Add label to the workflow so it can be persisted by persistent agent later.
-	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
-	err = executionSpec.ReplaceUID(options.RunId)
+	err = executionSpec.ReplaceUID(options.RunID)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
-	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	return executionSpec, nil
 }
 
 func (t *V2Spec) IsCacheDisabled() bool {
-	return t.cacheDisabled
+	return t.templateOptions.CacheDisabled
 }
 
 func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
@@ -399,7 +452,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			// Verify the parameter type is correct
 			switch param.GetParameterType() {
 			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
-				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s has unspecified type", name))
+				return util.NewInvalidInputError("%s", fmt.Sprintf("input parameter %s has unspecified type", name))
 			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
 				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
 					return util.NewInvalidInputError("input parameter %s requires type double or integer, "+

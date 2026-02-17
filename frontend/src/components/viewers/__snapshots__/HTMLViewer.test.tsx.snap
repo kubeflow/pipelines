@@ -1,46 +1,25 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`HTMLViewer does not break on empty data 1`] = `
-<HTMLViewer
-  configs={Array []}
-/>
-`;
+exports[`HTMLViewer > does not break on empty data 1`] = `<DocumentFragment />`;
 
-exports[`HTMLViewer renders a smaller snapshot version 1`] = `
-<HTMLViewer
-  configs={
-    Array [
-      Object {
-        "htmlContent": "<html><body><div>Hello World!</div></body></html>",
-        "type": "web-app",
-      },
-    ]
-  }
-  maxDimension={100}
->
+exports[`HTMLViewer > renders a smaller snapshot version 1`] = `
+<DocumentFragment>
   <iframe
-    className="iframe"
+    class="iframe_f1438udb"
     sandbox="allow-scripts"
     src="about:blank"
+    srcdoc="<html><body><div>Hello World!</div></body></html>"
   />
-</HTMLViewer>
+</DocumentFragment>
 `;
 
-exports[`HTMLViewer renders some basic HTML 1`] = `
-<HTMLViewer
-  configs={
-    Array [
-      Object {
-        "htmlContent": "<html><body><div>Hello World!</div></body></html>",
-        "type": "web-app",
-      },
-    ]
-  }
->
+exports[`HTMLViewer > renders some basic HTML 1`] = `
+<DocumentFragment>
   <iframe
-    className="iframe"
+    class="iframe_f1rwn2in"
     sandbox="allow-scripts"
     src="about:blank"
+    srcdoc="<html><body><div>Hello World!</div></body></html>"
   />
-</HTMLViewer>
+</DocumentFragment>
 `;

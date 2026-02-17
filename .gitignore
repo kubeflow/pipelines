@@ -26,6 +26,7 @@ dist
 frontend/test/ui/visual-regression/errorShots
 frontend/test/ui/visual-regression/screenshots/diff
 frontend/test/ui/visual-regression/screenshots/screen
+frontend/.visual/
 
 # sqlite db
 *.db
@@ -34,6 +35,7 @@ frontend/test/ui/visual-regression/screenshots/screen
 .idea/
 .ijwb/
 *.iml
+.obsidian/
 
 # Merge files
 *.orig
@@ -68,6 +70,7 @@ _build
 
 # virtualenv
 .venv/
+venv/
 
 # python sdk package
 *.tar.gz
@@ -93,3 +96,20 @@ kubeconfig_dev-pipelines-api
 backend/Dockerfile.driver-debug
 
 backend/src/crd/kubernetes/bin
+
+**/allure-*
+**/*.html
+!frontend/index.html
+reports/
+logs/
+*.out
+*test_*output*
+
+# Project-local tools
+bin/
+
+# UI Smoke Test working directory
+.ui-smoke-test/
+frontend/scripts/ui-smoke-test/node_modules/
+.npm-cache/
+.npm/

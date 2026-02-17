@@ -52,7 +52,7 @@ func (r MetricsReporter) ReportMetrics(workflow util.ExecutionSpec) error {
 		// Skip reporting if the workflow doesn't have the run id label
 		return nil
 	}
-	runMetrics, partialFailures := workflow.ExecutionStatus().CollectionMetrics(r.pipelineClient.ReadArtifact)
+	runMetrics, partialFailures := workflow.ExecutionStatus().CollectionMetrics(r.pipelineClient.ArtifactClient().ReadArtifact)
 	if len(runMetrics) == 0 {
 		return aggregateErrors(partialFailures)
 	}
@@ -112,5 +112,5 @@ func aggregateErrors(errors []error) error {
 		}
 		errorMsgs = append(errorMsgs, err.Error())
 	}
-	return util.NewCustomErrorf(code, strings.Join(errorMsgs, "\n"))
+	return util.NewCustomErrorf(code, "%s", strings.Join(errorMsgs, "\n"))
 }

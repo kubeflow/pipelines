@@ -14,6 +14,7 @@
 
 import argparse
 import requests
+import urllib3
 import yaml
 import os
 from pathlib import Path
@@ -32,6 +33,8 @@ def parse_args():
                         help="KFP pipeline server host (e.g., https://<host>). Defaults to the value of the KFP_SERVER_HOST environment variable.")
     parser.add_argument("--token", default=os.getenv("KFP_BEARER_TOKEN"), help="Bearer token for authentication. Defaults to the value of the KFP_BEARER_TOKEN environment variable.")    
     parser.add_argument("--ca-bundle", default=os.getenv("CA_BUNDLE"), help="Path to custom CA bundle file. Defaults to the value of the CA_BUNDLE environment variable")
+    parser.add_argument("--insecure", "--skip-tls-verify", dest="skip_tls_verify", action="store_true",
+                        help="Skip TLS certificate verification for HTTPS requests (insecure)")
     parser.add_argument('--output', '-o', default=DEFAULT_OUTPUT_DIR, help="Output directory path where pipeline YAMLs will be written(e.g., '/path/to/exported-pipelines')")
     parser.add_argument('--namespace', default=DEFAULT_NAMESPACE, help="Namespace to filter pipelines from")
     parser.add_argument('--batch-size', type=int, default=20,
@@ -120,7 +123,7 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
     display_name = pipeline.get('display_name')
 
     # Clean and convert the pipeline name to be k8s-compatible
-    pipeline_name = utils.maybe_rename_for_k8s(pipeline.get('display_name', 'unnamed'))
+    pipeline_name = utils.maybe_rename_for_k8s(pipeline.get('name', 'unnamed'))
     versions = pipeline_versions
 
     # Create the Pipeline object
@@ -132,17 +135,28 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
             "namespace": namespace,
             "annotations": {
                 "pipelines.kubeflow.org/original-id": original_id,
-                "pipelines.kubeflow.org/display-name": display_name
-            }
+            },
+        },
+        "spec": {
+            "displayName": display_name
         }
     }
     k8s_objects.append(pipeline_obj)
 
      # Create a PipelineVersion object for each version
     for i, version in enumerate(versions):
-        version_display_name = version.get("display_name", f"v{i}")
-        pipeline_version_name = get_version_name(pipeline_name, version_display_name, i, add_prefix)        
+        version_name = version.get("name", f"v{i}")
+        version_display_name = version.get("display_name", version_name)
+        pipeline_version_name = get_version_name(pipeline_name, version_name, i, add_prefix)
+        platform_spec = None
         pipeline_spec = version.get("pipeline_spec", {})
+
+        # When a pipeline has a platform spec, pipeline_spec is a dictionary with "pipeline_spec" and "platform_spec"
+        # keys.
+        if 'pipeline_spec' in pipeline_spec:
+            platform_spec = pipeline_spec.get("platform_spec", {})
+            pipeline_spec = pipeline_spec.get("pipeline_spec", {})
+
         pipeline_version_id = version.get("pipeline_version_id")
         
         pipeline_version_obj = {
@@ -153,14 +167,18 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
                 "namespace": namespace,
                 "annotations": {
                     "pipelines.kubeflow.org/original-id": pipeline_version_id,
-                    "pipelines.kubeflow.org/display-name": version_display_name
                 }
             },
             "spec": {
                 "pipelineName": pipeline_name,
-                "pipelineSpec": pipeline_spec
+                "pipelineSpec": pipeline_spec,
+                "displayName": version_display_name,
             }
         }
+
+        if platform_spec:
+            pipeline_version_obj["spec"]["platformSpec"] = platform_spec
+
         k8s_objects.append(pipeline_version_obj)
    
     return pipeline_name, k8s_objects
@@ -179,7 +197,11 @@ def migrate():
     headers = {"Content-Type": "application/json"}
     if args.token:
         headers["Authorization"] = f"Bearer {args.token}"
-    verify = args.ca_bundle if args.ca_bundle else True
+    verify = False if args.skip_tls_verify else (args.ca_bundle if args.ca_bundle else True)
+
+    # Suppress urllib3 warnings when explicitly running with insecure TLS
+    if args.skip_tls_verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     try:
         all_objects = []

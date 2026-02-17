@@ -15,15 +15,14 @@
  */
 
 import { render } from '@testing-library/react';
-import { mount } from 'enzyme';
 import * as React from 'react';
 import MarkdownViewer, { MarkdownViewerConfig } from './MarkdownViewer';
 import { PlotType } from './Viewer';
 
 describe('MarkdownViewer', () => {
   it('does not break on empty data', () => {
-    const tree = mount(<MarkdownViewer configs={[]} />).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<MarkdownViewer configs={[]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders some basic markdown', () => {
@@ -33,8 +32,8 @@ describe('MarkdownViewer', () => {
       type: PlotType.MARKDOWN,
     };
 
-    const tree = mount(<MarkdownViewer configs={[config]} />).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<MarkdownViewer configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('sanitizes the markdown to remove XSS', () => {
@@ -47,8 +46,8 @@ describe('MarkdownViewer', () => {
       type: PlotType.MARKDOWN,
     };
 
-    const tree = mount(<MarkdownViewer configs={[config]} />).getDOMNode();
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<MarkdownViewer configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('returns a user friendly display name', () => {

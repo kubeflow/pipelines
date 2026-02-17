@@ -16,7 +16,7 @@ import { Apis } from './Apis';
 import { StorageService } from './WorkflowParser';
 
 const fetchSpy = (response: string) => {
-  const spy = jest.fn(() =>
+  const spy = vi.fn(() =>
     Promise.resolve({
       ok: true,
       text: () => response,
@@ -27,7 +27,7 @@ const fetchSpy = (response: string) => {
 };
 
 const failedFetchSpy = (response: string) => {
-  const spy = jest.fn(() =>
+  const spy = vi.fn(() =>
     Promise.resolve({
       ok: false,
       text: () => response,
@@ -98,15 +98,17 @@ describe('Apis', () => {
   });
 
   it('getPodLogs error', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => null);
-    window.fetch = jest.fn(() =>
+    vi.spyOn(console, 'error').mockImplementation(() => null);
+    window.fetch = vi.fn(() =>
       Promise.resolve({
         ok: false,
         text: () => 'bad response',
       }),
     );
-    expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).rejects.toThrowError('bad response');
-    expect(
+    await expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).rejects.toThrowError(
+      'bad response',
+    );
+    await expect(
       Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name'),
     ).rejects.toThrowError('bad response');
   });
@@ -120,7 +122,7 @@ describe('Apis', () => {
     };
     const spy = fetchSpy(JSON.stringify(expectedBuildInfo));
     const actualBuildInfo = await Apis.getBuildInfo();
-    expect(spy).toHaveBeenCalledWith('apis/v1beta1/healthz', { credentials: 'same-origin' });
+    expect(spy).toHaveBeenCalledWith('apis/v2beta1/healthz', { credentials: 'same-origin' });
     expect(actualBuildInfo).toEqual(expectedBuildInfo);
   });
 
@@ -132,7 +134,7 @@ describe('Apis', () => {
   });
 
   it('isJupyterHubAvailable returns false if the response for the /hub/ url was not ok', async () => {
-    const spy = jest.fn(() => Promise.resolve({ ok: false }));
+    const spy = vi.fn(() => Promise.resolve({ ok: false }));
     window.fetch = spy;
     const isJupyterHubAvailable = await Apis.isJupyterHubAvailable();
     expect(spy).toHaveBeenCalledWith('/hub/', { credentials: 'same-origin' });
@@ -253,7 +255,7 @@ describe('Apis', () => {
                   },
                   {
                     name: 'S3_ENDPOINT',
-                    value: 'http://minio-service:9000',
+                    value: 'http://seaweedfs:9000',
                   },
                   {
                     name: 'S3_USE_HTTPS',
@@ -300,6 +302,7 @@ describe('Apis', () => {
     const spy = fetchSpy(JSON.stringify({ name: 'resultName' }));
     const result = await Apis.uploadPipeline(
       'test pipeline name',
+      'test display name',
       'test description',
       new File([], 'test name'),
     );
@@ -307,6 +310,8 @@ describe('Apis', () => {
     expect(spy).toHaveBeenCalledWith(
       'apis/v1beta1/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
+        '&display_name=' +
+        encodeURIComponent('test display name') +
         '&description=' +
         encodeURIComponent('test description'),
       {

@@ -41,6 +41,8 @@ spec:
             properties:
               description:
                 type: string
+              displayName:
+                type: string
             type: object
         type: object
     served: true

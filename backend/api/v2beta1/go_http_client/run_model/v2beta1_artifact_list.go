@@ -6,12 +6,14 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1ArtifactList A list of artifact metadata.
+//
 // swagger:model v2beta1ArtifactList
 type V2beta1ArtifactList struct {
 
@@ -21,6 +23,11 @@ type V2beta1ArtifactList struct {
 
 // Validate validates this v2beta1 artifact list
 func (m *V2beta1ArtifactList) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 artifact list based on context it is used
+func (m *V2beta1ArtifactList) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

@@ -39,9 +39,9 @@ class TestApiStatus(unittest.TestCase):
                 error = '0', 
                 code = 56, 
                 details = [
-                    kfp_server_api.models.protobuf_any.protobufAny(
-                        type_url = '0', 
-                        value = 'YQ==', )
+                    {
+                        'key' : None
+                        }
                     ]
             )
         else :

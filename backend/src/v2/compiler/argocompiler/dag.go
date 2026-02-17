@@ -20,9 +20,12 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -248,6 +251,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			component:      componentSpecPlaceholder,
 			task:           taskSpecJson,
 			iterationIndex: inputs.iterationIndex,
+			taskName:       name,
 		})
 		if err != nil {
 			return nil, err
@@ -289,6 +293,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				parentDagID:      inputs.parentDagID,
 				iterationIndex:   inputs.iterationIndex,
 				kubernetesConfig: kubernetesConfigPlaceholder,
+				taskName:         name,
 			})
 			if task.GetTriggerPolicy().GetCondition() == "" {
 				driverOutputs.condition = ""
@@ -305,13 +310,16 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				driver.Name = name
 				return []wfapi.DAGTask{*driver}, nil
 			}
-			executor := c.containerExecutorTask(name, containerExecutorInputs{
+			executor, err := c.containerExecutorTask(name, containerExecutorInputs{
 				podSpecPatch:    driverOutputs.podSpecPatch,
 				cachedDecision:  driverOutputs.cached,
 				condition:       driverOutputs.condition,
 				exitTemplate:    inputs.exitTemplate,
 				hookParentDagID: inputs.parentDagID,
 			}, task)
+			if err != nil {
+				return nil, fmt.Errorf("error creating executor for %q: %v", name, err)
+			}
 			executor.Depends = depends([]string{driverTaskName})
 			return []wfapi.DAGTask{*driver, *executor}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Importer:
@@ -320,7 +328,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				// it's impossible to add a when condition based on driver outputs.
 				return nil, fmt.Errorf("triggerPolicy.condition on importer task is not supported")
 			}
-			importer, err := c.importerTask(name, task, taskSpecJson, inputs.parentDagID)
+			importer, err := c.importerTask(name, task, taskSpecJson, inputs.parentDagID, e.Importer.GetDownloadToWorkspace())
 			if err != nil {
 				return nil, err
 			}
@@ -475,6 +483,7 @@ type dagDriverInputs struct {
 	parentDagID    string                                  // parent DAG execution ID. optional, the root DAG does not have parent
 	component      string                                  // input placeholder for component spec
 	task           string                                  // optional, the root DAG does not have task spec.
+	taskName       string                                  // optional, the name of the task, used for input resolving
 	runtimeConfig  *pipelinespec.PipelineJob_RuntimeConfig // optional, only root DAG needs this
 	iterationIndex string                                  // optional, iterator passes iteration index to iteration tasks
 }
@@ -518,6 +527,13 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 			Value: wfapi.AnyStringPtr(inputs.task),
 		})
 	}
+
+	if inputs.taskName != "" && inputs.taskName != "iteration-item" {
+		params = append(params, wfapi.Parameter{
+			Name:  paramTaskName,
+			Value: wfapi.AnyStringPtr(inputs.taskName),
+		})
+	}
 	t := &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addDAGDriverTemplate(),
@@ -548,6 +564,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--dag_execution_id", inputValue(paramParentDagID),
 		"--component", inputValue(paramComponent),
 		"--task", inputValue(paramTask),
+		"--task_name", inputValue(paramTaskName),
 		"--runtime_config", inputValue(paramRuntimeConfig),
 		"--iteration_index", inputValue(paramIterationIndex),
 		"--execution_id_path", outputPath(paramExecutionID),
@@ -556,10 +573,28 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.cacheDisabled {
-		args = append(args, "--cache_disabled", "true")
+		args = append(args, "--cache_disabled")
 	}
+	if c.mlPipelineTLSEnabled {
+		args = append(args, "--ml_pipeline_tls_enabled")
+	}
+	if common.GetMetadataTLSEnabled() {
+		args = append(args, "--metadata_tls_enabled")
+	}
+
+	setCABundle := false
+	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to DAG driver.
+	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
+		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
+		setCABundle = true
+	}
+
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -567,13 +602,14 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		args = append(args, "--publish_logs", value)
 	}
 
-	t := &wfapi.Template{
+	template := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent}, // Required.
 				{Name: paramRuntimeConfig, Default: wfapi.AnyStringPtr("")},
 				{Name: paramTask, Default: wfapi.AnyStringPtr("")},
+				{Name: paramTaskName, Default: wfapi.AnyStringPtr("")},
 				{Name: paramParentDagID, Default: wfapi.AnyStringPtr("0")},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 				{Name: paramDriverType, Default: wfapi.AnyStringPtr("DAG")},
@@ -594,8 +630,13 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
-	c.templates[name] = t
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
+	applySecurityContextToTemplate(template)
+	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
+	if setCABundle {
+		ConfigureCustomCABundle(template)
+	}
+	c.templates[name] = template
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
 	return name
 }
 
@@ -630,8 +671,6 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 				if err := addDep(input.GetTaskOutputParameter().GetProducerTask()); err != nil {
 					return wrap(err)
 				}
-			case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
-				return wrap(fmt.Errorf("task final status not supported yet"))
 			default:
 				// other parameter input types do not introduce implicit dependencies
 			}

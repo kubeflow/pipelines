@@ -17,8 +17,10 @@ on:
       - 'kubernetes_platform/**/*.go'
       - 'backend/src/crd/kubernetes/**/*.go'
       - 'manifests/kustomize/base/crds/*.yaml'
+      - 'sdk/**/*.py'
       - '!**/*.md'
       - '!**/OWNERS'
+      - 'VERSION'
 
 jobs:
   validate-generated-files:
@@ -27,34 +29,74 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
-      
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y protobuf-compiler jq default-jdk
-          python3 -m pip install setuptools wheel
+          cache: 'pip'
 
-      - name: Generate API proto files
-        working-directory: ./api
-        run: make clean all
-  
-      - name: Generate kfp-kubernetes proto files from source
-        working-directory: ./kubernetes_platform
-        run: make clean all
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
+        with:
+          generate_golang_proto: "true"
+
+      - name: Install kfp & kfp-kubernetes from source
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
+        with:
+          generate_golang_proto: "true"
 
       - name: Generate K8s Native API CRDs
         working-directory: ./backend/src/crd/kubernetes
         run: make generate manifests
 
+      - name: Generate backend proto code v2beta1
+        working-directory: ./backend/api
+        env:
+          API_VERSION: v2beta1
+        run: make generate
+
+      - name: Generate backend proto code v1beta1
+        working-directory: ./backend/api
+        env:
+          API_VERSION: v1beta1
+        run: make generate
+
+      - name: Generate backend proto code v2beta1
+        working-directory: ./backend/api
+        env:
+          API_VERSION: v2beta1
+        run: make generate-kfp-server-api-package
+
+      - name: Generate backend proto code v1beta1
+        working-directory: ./backend/api
+        env:
+          API_VERSION: v1beta1
+        run: make generate-kfp-server-api-package
+
       - name: Check for Changes
         run: make check-diff
+
+  validate-backwards-compabitiblity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Validate Go proto code backwards compatibility
+        working-directory: ./backend/test/proto_tests
+        env:
+          UPDATE_EXPORTED: false
+        run: go test .

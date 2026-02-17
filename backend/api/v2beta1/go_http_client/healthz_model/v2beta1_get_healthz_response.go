@@ -6,12 +6,14 @@ package healthz_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1GetHealthzResponse v2beta1 get healthz response
+//
 // swagger:model v2beta1GetHealthzResponse
 type V2beta1GetHealthzResponse struct {
 
@@ -21,10 +23,18 @@ type V2beta1GetHealthzResponse struct {
 	//
 	// Returns if KFP in multi-user mode
 	MultiUser bool `json:"multi_user,omitempty"`
+
+	// Returns the pipeline storage type (database or kubernetes)
+	PipelineStore string `json:"pipeline_store,omitempty"`
 }
 
 // Validate validates this v2beta1 get healthz response
 func (m *V2beta1GetHealthzResponse) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 get healthz response based on context it is used
+func (m *V2beta1GetHealthzResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

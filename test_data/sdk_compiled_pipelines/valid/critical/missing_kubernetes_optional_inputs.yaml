@@ -1,0 +1,126 @@
+# PIPELINE DEFINITION
+# Name: missing-kubernetes-optional-inputs-pipeline
+# Inputs:
+#    optional_affinity: dict
+#    optional_config_map_name: str
+#    optional_image_pull_secret_name: str
+#    optional_secret_name: str
+#    optional_selector: dict
+#    optional_tolerations: list
+components:
+  comp-log-message:
+    executorLabel: exec-log-message
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-log-message:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - log_message
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: missing-kubernetes-optional-inputs-pipeline
+root:
+  dag:
+    tasks:
+      log-message:
+        cachingOptions: {}
+        componentRef:
+          name: comp-log-message
+        inputs:
+          parameters:
+            message:
+              runtimeValue:
+                constant: baseline task
+        taskInfo:
+          name: log-message
+  inputDefinitions:
+    parameters:
+      optional_affinity:
+        isOptional: true
+        parameterType: STRUCT
+      optional_config_map_name:
+        isOptional: true
+        parameterType: STRING
+      optional_image_pull_secret_name:
+        isOptional: true
+        parameterType: STRING
+      optional_secret_name:
+        isOptional: true
+        parameterType: STRING
+      optional_selector:
+        isOptional: true
+        parameterType: STRUCT
+      optional_tolerations:
+        isOptional: true
+        parameterType: LIST
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-log-message:
+          configMapAsEnv:
+          - configMapNameParameter:
+              componentInputParameter: optional_config_map_name
+            keyToEnv:
+            - configMapKey: setting
+              envVar: SETTING
+            optional: true
+          configMapAsVolume:
+          - configMapNameParameter:
+              componentInputParameter: optional_config_map_name
+            mountPath: /mnt/config
+            optional: true
+          imagePullSecret:
+          - secretNameParameter:
+              componentInputParameter: optional_image_pull_secret_name
+          nodeAffinity:
+          - nodeAffinityJson:
+              componentInputParameter: optional_affinity
+          nodeSelector:
+            nodeSelectorJson:
+              componentInputParameter: optional_selector
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: PASSWORD
+              secretKey: password
+            optional: true
+            secretNameParameter:
+              componentInputParameter: optional_secret_name
+          secretAsVolume:
+          - mountPath: /mnt/secret
+            optional: true
+            secretNameParameter:
+              componentInputParameter: optional_secret_name
+          tolerations:
+          - tolerationJson:
+              componentInputParameter: optional_tolerations

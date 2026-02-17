@@ -207,6 +207,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     }
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
+    const runtimeParametersInRealType: RuntimeParameters = {};
     let allParamtersWithDefault = true;
     let errMsg: string[] = [];
     Object.keys(specParameters).forEach(key => {
@@ -218,6 +219,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
           key,
           specParameters[key].defaultValue,
         );
+        // Convert to real type for handleParameterChange
+        runtimeParametersInRealType[key] = convertInput(
+          runtimeParametersWithDefault[key],
+          specParameters[key].parameterType,
+        );
       } else {
         allParamtersWithDefault = false;
         errMsg[key] = 'Missing parameter.';
@@ -227,6 +233,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     setErrorMessages(errMsg);
     if (setIsValidInput) {
       setIsValidInput(allParamtersWithDefault);
+    }
+    // Propagate default parameter values to parent component so they are included in runtime_config
+    // This ensures default parameters are visible in Compare Runs feature
+    if (handleParameterChange) {
+      handleParameterChange(runtimeParametersInRealType);
     }
   }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
 
@@ -242,7 +253,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       <div className={commonCss.header}>Pipeline Root</div>
       <div>
         Pipeline Root represents an artifact repository, refer to{' '}
-        <ExternalLink href='https://www.kubeflow.org/docs/components/pipelines/overview/pipeline-root/'>
+        <ExternalLink href='https://www.kubeflow.org/docs/components/pipelines/concepts/pipeline-root/'>
           Pipeline Root Documentation
         </ExternalLink>
         .
@@ -298,9 +309,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
             };
 
             return (
-              <div>
+              <div key={k}>
                 <ParamEditor
-                  key={k}
                   id={k}
                   onChange={value => {
                     let allInputsValid: boolean = true;
@@ -479,6 +489,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               maxLines={20}
               mode='json'
               theme='github'
+              editorProps={{ $blockScrolling: Infinity }}
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}

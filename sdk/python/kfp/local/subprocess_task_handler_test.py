@@ -13,7 +13,9 @@
 # limitations under the License.
 """Tests for subprocess_local_task_handler.py."""
 import contextlib
+import functools
 import io
+import os
 from typing import NamedTuple, Optional
 import unittest
 from unittest import mock
@@ -26,6 +28,7 @@ from kfp.dsl import Dataset
 from kfp.dsl import Output
 from kfp.local import subprocess_task_handler
 from kfp.local import testing_utilities
+import pytest
 
 # NOTE: When testing SubprocessRunner, use_venv=True throughout to avoid
 # modifying current code under test.
@@ -33,6 +36,26 @@ from kfp.local import testing_utilities
 # the code may install kfp from PyPI rather from source. To mitigate the
 # impact of such an error we should not install into the main test process'
 # environment.
+
+root_dir = os.path.dirname(
+    os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+kfp_pipeline_spec_path = os.path.join(root_dir, 'api', 'v2alpha1', 'python')
+
+
+@pytest.fixture(autouse=True)
+def set_packages_for_test_classes(monkeypatch, request):
+    if request.cls.__name__ in {
+            'TestSubprocessRunner', 'TestRunLocalSubproces',
+            'TestUseCurrentPythonExecutable', 'TestUseVenv',
+            'TestLightweightPythonComponentLogic'
+    }:
+        original_dsl_component = dsl.component
+        monkeypatch.setattr(
+            dsl, 'component',
+            functools.partial(
+                original_dsl_component,
+                packages_to_install=[kfp_pipeline_spec_path]))
 
 
 class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
@@ -54,7 +77,7 @@ class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
     def test_image_warning(self):
         with self.assertWarnsRegex(
                 RuntimeWarning,
-                r"You may be attemping to run a task that uses custom or non-Python base image 'my_custom_image' in a Python environment\. This may result in incorrect dependencies and/or incorrect behavior\."
+                r"You may be attemping to run a task that uses custom or non-Python base image \"my_custom_image\" in a Python environment\. This may result in incorrect dependencies and/or incorrect behavior\. Consider using the \"DockerRunner\" to run this task in a container\."
         ):
             subprocess_task_handler.SubprocessTaskHandler(
                 image='my_custom_image',
@@ -85,7 +108,7 @@ class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
     def test_cannot_run_containerized_python_component(self):
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
-        @dsl.component(target_image='foo')
+        @dsl.component(target_image='foo', packages_to_install=[])
         def comp():
             pass
 
@@ -138,7 +161,8 @@ class TestUseVenv(testing_utilities.LocalRunnerEnvironmentTestCase):
     def test_use_venv_true(self, **kwargs):
         local.init(**kwargs)
 
-        @dsl.component(packages_to_install=['cloudpickle'])
+        @dsl.component(
+            packages_to_install=[kfp_pipeline_spec_path, 'cloudpickle'])
         def installer_component():
             import cloudpickle
             print('Cloudpickle is installed:', cloudpickle)

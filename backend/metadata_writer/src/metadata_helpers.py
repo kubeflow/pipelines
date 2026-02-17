@@ -32,15 +32,38 @@ def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
 
 
 def connect_to_mlmd() -> metadata_store.MetadataStore:
-    metadata_service_host = os.environ.get(
-        'METADATA_GRPC_SERVICE_SERVICE_HOST', 'metadata-grpc-service')
-    metadata_service_port = int(os.environ.get(
-        'METADATA_GRPC_SERVICE_SERVICE_PORT', 8080))
+    pod_namespace = os.environ.get("POD_NAMESPACE", "kubeflow")
+    cluster_domain = os.environ.get("CLUSTER_DOMAIN",  ".svc.cluster.local")
+    metadata_service_host = "metadata-grpc-service." + pod_namespace + cluster_domain
+    metadata_service_port = 8080
 
     mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
         host="[{}]".format(metadata_service_host) if isIPv6(metadata_service_host) else metadata_service_host,
         port=metadata_service_port,
     )
+
+    # Configure gRPC channel options
+    max_receive_message_length = os.environ.get("METADATA_GRPC_MAX_RECEIVE_MESSAGE_LENGTH")
+    if max_receive_message_length:
+        try:
+            max_length = int(max_receive_message_length)
+            mlmd_connection_config.channel_arguments.max_receive_message_length = max_length
+            print('Configured gRPC max_receive_message_length to {} bytes'.format(max_length))
+        except ValueError:
+            print('Warning: Invalid METADATA_GRPC_MAX_RECEIVE_MESSAGE_LENGTH value: {}. Using default.'.format(max_receive_message_length), file=sys.stderr)
+
+    tls_enabled = os.environ.get("METADATA_TLS_ENABLED", "false").lower() in ("1", "true", "yes")
+
+    if tls_enabled:
+        ca_pem = None
+        ca_cert_path = os.environ.get("CA_CERT_PATH")
+
+        if ca_cert_path and os.path.exists(ca_cert_path):
+            with open(ca_cert_path, "r", encoding="utf-8") as f:
+                ca_pem = f.read()
+
+        ssl_cfg = metadata_store_pb2.MetadataStoreClientConfig.SSLConfig(custom_ca=ca_pem)
+        mlmd_connection_config.ssl_config.CopyFrom(ssl_cfg)
 
     # Checking the connection to the Metadata store.
     for _ in range(100):

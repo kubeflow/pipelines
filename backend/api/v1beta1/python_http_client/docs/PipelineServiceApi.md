@@ -19,7 +19,7 @@ Method | HTTP request | Description
 
 
 # **pipeline_service_create_pipeline_v1**
-> ApiPipeline pipeline_service_create_pipeline_v1(body)
+> ApiPipeline pipeline_service_create_pipeline_v1(pipeline)
 
 Creates a pipeline.
 
@@ -57,11 +57,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    body = kfp_server_api.ApiPipeline() # ApiPipeline | 
+    pipeline = kfp_server_api.ApiPipeline() # ApiPipeline | 
 
     try:
         # Creates a pipeline.
-        api_response = api_instance.pipeline_service_create_pipeline_v1(body)
+        api_response = api_instance.pipeline_service_create_pipeline_v1(pipeline)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineServiceApi->pipeline_service_create_pipeline_v1: %s\n" % e)
@@ -71,7 +71,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**ApiPipeline**](ApiPipeline.md)|  | 
+ **pipeline** | [**ApiPipeline**](ApiPipeline.md)|  | 
 
 ### Return type
 
@@ -95,7 +95,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_create_pipeline_version_v1**
-> ApiPipelineVersion pipeline_service_create_pipeline_version_v1(body)
+> ApiPipelineVersion pipeline_service_create_pipeline_version_v1(version)
 
 Adds a pipeline version to the specified pipeline.
 
@@ -133,11 +133,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    body = kfp_server_api.ApiPipelineVersion() # ApiPipelineVersion | ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to.
+    version = kfp_server_api.ApiPipelineVersion() # ApiPipelineVersion | ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to.
 
     try:
         # Adds a pipeline version to the specified pipeline.
-        api_response = api_instance.pipeline_service_create_pipeline_version_v1(body)
+        api_response = api_instance.pipeline_service_create_pipeline_version_v1(version)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineServiceApi->pipeline_service_create_pipeline_version_v1: %s\n" % e)
@@ -147,7 +147,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**ApiPipelineVersion**](ApiPipelineVersion.md)| ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to. | 
+ **version** | [**ApiPipelineVersion**](ApiPipelineVersion.md)| ResourceReference inside PipelineVersion specifies the pipeline that this version belongs to. | 
 
 ### Return type
 

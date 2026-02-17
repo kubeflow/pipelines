@@ -23,6 +23,6 @@
   "DEFAULTPIPELINERUNNERSERVICEACCOUNT": "pipeline-runner",
   "CacheEnabled": "true",
   "CRON_SCHEDULE_TIMEZONE": "UTC",
-  "CACHE_IMAGE": "registry.k8s.io/busybox",
+  "CACHE_IMAGE": "ghcr.io/containerd/busybox",
   "CACHE_NODE_RESTRICTIONS": "false"
 }

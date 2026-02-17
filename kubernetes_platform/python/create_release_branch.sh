@@ -17,13 +17,14 @@
 # run from within ./kubernetes_platform/python
 # set environment variable KFP_KUBERNETES_VERSION
 
+USE_FIND_LINKS="${USE_FIND_LINKS:-false}"
 PKG_ROOT=$(pwd)
 REPO_ROOT=$(dirname $(dirname $PKG_ROOT))
 echo $REPO_ROOT
 
 echo "Generating Python protobuf code..."
 pushd "$PKG_ROOT/.."
-make clean-python python
+make clean-python python USE_FIND_LINKS=${USE_FIND_LINKS}
 popd
 
 SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
@@ -51,7 +52,7 @@ else
     git add $PKG_ROOT/docs/.readthedocs.yml
     git add $REPO_ROOT/.readthedocs.yml
     git add $REPO_ROOT/kubernetes_platform/.gitignore
-    git add $REPO_ROOT/*_pb2.py
+    git commit -m "chore: kfp-kubernetes docs branch for release ${KFP_KUBERNETES_VERSION}"
 
     echo "Next steps:"
     echo "1. Inspect and commit the modified files."

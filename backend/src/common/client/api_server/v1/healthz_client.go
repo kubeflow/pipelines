@@ -37,7 +37,7 @@ type HealthzClient struct {
 }
 
 func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*HealthzClient, error) {
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*Healthz
 func NewKubeflowInClusterHealthzClient(namespace string, debug bool) (
 	*HealthzClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -69,7 +69,7 @@ func (c *HealthzClient) GetHealthz() (*model.APIGetHealthzResponse, error) {
 	response, err := c.apiClient.HealthzService.HealthzServiceGetHealthz(parameters, api_server.PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.HealthzServiceGetHealthzDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}

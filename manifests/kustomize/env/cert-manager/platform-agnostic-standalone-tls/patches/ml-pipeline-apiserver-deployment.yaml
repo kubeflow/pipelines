@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-api-server
+          command:
+            - "/bin/apiserver"
+          args:
+            - "--config=/config"
+            - "--sampleconfig=/config/sample_config.json"
+            - "-logtostderr=true"
+            - "--tlsCertPath=/etc/pki/tls/certs/tls.crt"
+            - "--tlsCertKeyPath=/etc/pki/tls/certs/tls.key"
+          env:
+            - name: CABUNDLE_SECRET_NAME
+              value: "kfp-api-tls-cert"
+            - name: METADATA_TLS_ENABLED
+              value: "true"
+            - name: ML_PIPELINE_SERVICE_HOST
+              value: "ml-pipeline.kubeflow.svc.cluster.local"
+          readinessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+              scheme: HTTPS
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+              scheme: HTTPS
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          startupProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+              scheme: HTTPS
+            failureThreshold: 12
+            periodSeconds: 5
+            timeoutSeconds: 2
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/pki/tls/certs
+              readOnly: true
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert

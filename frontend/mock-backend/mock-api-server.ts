@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import express from 'express';
-import proxy from 'http-proxy-middleware';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import mockApiMiddleware from './mock-api-middleware';
 
 const app = express();
@@ -38,14 +38,14 @@ export const HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS = {
 /** Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server */
 app.all(
   '/ml_metadata.*',
-  proxy({
+  createProxyMiddleware({
     changeOrigin: true,
     onProxyReq: proxyReq => {
       console.log('Metadata proxied request: ', (proxyReq as any).path);
     },
     headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     target: getAddress({ host: 'localhost', port: '9090' }),
-  }),
+  }) as any,
 );
 
 mockApiMiddleware(app as any);

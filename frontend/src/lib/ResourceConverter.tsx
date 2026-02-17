@@ -22,6 +22,7 @@ export function convertExperimentToResource(e: V2beta1Experiment): BaseResource 
   return {
     id: e.experiment_id,
     name: e.display_name,
+    display_name: e.display_name,
     description: e.description,
     created_at: e.created_at,
   };
@@ -30,7 +31,8 @@ export function convertExperimentToResource(e: V2beta1Experiment): BaseResource 
 export function convertPipelineToResource(p: V2beta1Pipeline): BaseResource {
   return {
     id: p.pipeline_id,
-    name: p.display_name,
+    name: p.name,
+    display_name: p.display_name,
     description: p.description,
     created_at: p.created_at,
     error: p.error?.toString(),
@@ -40,7 +42,8 @@ export function convertPipelineToResource(p: V2beta1Pipeline): BaseResource {
 export function convertPipelineVersionToResource(v: V2beta1PipelineVersion): BaseResource {
   return {
     id: v.pipeline_version_id,
-    name: v.display_name,
+    name: v.name,
+    display_name: v.display_name,
     description: v.description,
     created_at: v.created_at,
     error: v.error?.toString(),

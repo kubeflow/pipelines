@@ -140,10 +140,59 @@ html_theme_options = {
     'version_info': [
         {
             'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.2/',
+            'title':
+                '2.15.2',
+            'aliases': ['stable'],
+        },
+        {
+            'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.1/',
+            'title':
+                '2.15.1',
+            'aliases': [],
+        },
+        {
+            'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.0/',
+            'title':
+                '2.15.0',
+            'aliases': ['stable'],
+        },
+        {
+            'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.6/',
+            'title':
+                '2.14.6',
+            'aliases': [],
+        },
+        {
+            'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.5/',
+            'title':
+                '2.14.5',
+            'aliases': [],
+        },
+        {
+            'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.4/',
+            'title':
+                '2.14.4',
+            'aliases': [],
+        },
+        {
+            'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.0/',
+            'title':
+                '2.14.0',
+            'aliases': [],
+        },
+        {
+            'version':
                 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.5.0/',
             'title':
                 '1.5.0',
-            'aliases': ['stable'],
+            'aliases': [],
         },
         {
             'version':

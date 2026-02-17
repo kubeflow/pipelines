@@ -388,16 +388,14 @@ index d986a048b..866696419 100644
 +  google.protobuf.Struct pvc_spec_patch = 1;
 +}
 +
- // Spec for pipeline-level config options. See PipelineConfig DSL class.
+// Spec for pipeline-level config options. See PipelineConfig DSL class.
  message PipelineConfig {
-   // Name of the semaphore key to control pipeline concurrency
-@@ -1115,4 +1128,7 @@ message PipelineConfig {
    // Time to live configuration after the pipeline run is completed for
    // ephemeral resources created by the pipeline run.
-   int32 resource_ttl = 3;
-+
-+  // Configuration for the workspace
-+  optional WorkspaceConfig workspace = 4;
+   int32 resource_ttl = 1;
+
+   // Configuration for the workspace
+   optional WorkspaceConfig workspace = 2;
  }
 ```
 
@@ -509,7 +507,7 @@ kind: Workflow
 spec:
   volumeClaimTemplates:
     - metadata:
-        name: kfp-workspace-46f1d52e-c72b-42fc-88ae-789edf7c33fd # The suffix is the run ID
+        name: kfp-workspace
       spec:
         accessModes:
           - ReadWriteMany
@@ -564,8 +562,9 @@ When an input artifact is from a workspace, an input parameter is `dsl.WORKSPACE
 parameter is a component output result that is a path to the workspace (e.g. starts with `/kfp-workspace`), the driver
 should set the volume mount of the KFP workspace in the `Pod` spec patch.
 
-Lastly, the Driver should disallow user mounted volumes in or under `/kfp-workspace` as this could lead to confusing
-behavior.
+Lastly, the Driver should disallow user mounted volumes in or under `/kfp-workspace` as this could lead to confusing behavior. The validation should check for:
+1. Volume mount paths that conflict with the workspace mount path (`/kfp-workspace`)
+2. Volume mount names that conflict with the workspace volume name (`kfp-workspace`)
 
 #### Launcher
 

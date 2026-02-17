@@ -18,11 +18,11 @@ import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
-import { isAWSS3Endpoint } from './aws-helper';
-import { S3ProviderInfo } from './handlers/artifacts';
-import { getK8sSecret } from './k8s-helper';
-import { parseJSONString } from './utils';
-const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
+import { isAWSS3Endpoint } from './aws-helper.js';
+import { S3ProviderInfo } from './handlers/artifacts.js';
+import { getK8sSecret } from './k8s-helper.js';
+import { parseJSONString } from './utils.js';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
   bucket: string;
@@ -34,6 +34,12 @@ export interface MinioRequestConfig {
 /** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
 export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
   endPoint: string;
+}
+
+export interface Credentials {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken?: string;
 }
 
 /**
@@ -51,17 +57,40 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
  *
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')
- * @param authorizeFn
- * @param req
+ * @param providerInfoString
  * @param namespace
- * @param providerInfoString?? json string container optional provider info
+ * @param customCredentialProvider An optional function which can be added to resolve credentials from a non-standard source. Useful
+ * for enterprises who may have bespoke credential retrieval processes or for refreshing short-lived tokens.
  */
 export async function createMinioClient(
   config: MinioClientOptionsWithOptionalSecrets,
   providerType: string,
   providerInfoString?: string,
   namespace?: string,
+  customCredentialProvider?: () => Promise<Credentials> | Credentials,
 ) {
+  if (customCredentialProvider) {
+    try {
+      const creds = await customCredentialProvider();
+
+      if (creds && creds.accessKeyId && creds.secretAccessKey) {
+        return new MinioClient({
+          ...config,
+          accessKey: creds.accessKeyId,
+          secretKey: creds.secretAccessKey,
+          sessionToken: creds.sessionToken,
+        });
+      } else {
+        console.warn(
+          'Custom credential resolver returned incomplete credentials, falling back to default chain',
+        );
+      }
+    } catch (error) {
+      console.error('Custom credential resolver failed:', error);
+      console.warn('Falling back to default credential resolution chain');
+    }
+  }
+
   if (providerInfoString) {
     const providerInfo = parseJSONString<S3ProviderInfo>(providerInfoString);
     if (!providerInfo) {
@@ -82,7 +111,7 @@ export async function createMinioClient(
     // AWS S3 with credentials from provider chain
     if (isAWSS3Endpoint(config.endPoint)) {
       try {
-        const credentials = fromNodeProviderChain();
+        const credentials = fromNodeProviderChain({ ignoreCache: true });
         const awsCredentials = await credentials();
         if (awsCredentials) {
           const {

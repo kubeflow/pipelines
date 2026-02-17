@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-grpc-deployment
+spec:
+  template:
+    spec:
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        searches:
+        - NAMESPACE.svc.cluster.local
+        - svc.cluster.local
+        - cluster.local
+        options:
+        - name: timeout
+          value: "10"
+        - name: attempts
+          value: "5"
+        - name: ndots
+          value: "2"
+      containers:
+      - name: container
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: dns-config
+              key: dbHost
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: mysqlPort
+

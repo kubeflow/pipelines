@@ -11,21 +11,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
-import { createMinioClient, isTarball, maybeTarball, getObjectStream } from './minio-helper';
-const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
+import {
+  createMinioClient,
+  isTarball,
+  maybeTarball,
+  getObjectStream,
+  MinioClientOptionsWithOptionalSecrets,
+  Credentials,
+} from './minio-helper.js';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
-jest.mock('minio');
-jest.mock('@aws-sdk/credential-providers');
+vi.mock('minio');
+vi.mock('@aws-sdk/credential-providers');
 
 describe('minio-helper', () => {
-  const MockedMinioClient: jest.Mock = MinioClient as any;
-  const MockedAuthorizeFn: jest.Mock = jest.fn(x => undefined);
+  const MockedMinioClient: Mock = MinioClient as any;
+  const MockedAuthorizeFn: Mock = vi.fn(x => undefined);
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('createMinioClient', () => {
@@ -47,6 +55,34 @@ describe('minio-helper', () => {
       });
     });
 
+    it('Builds a client where credentials are resolved using a custom provider.', async () => {
+      const provider = async (): Promise<Credentials> => {
+        return {
+          accessKeyId: 'providedKey',
+          secretAccessKey: 'providedSecret',
+          sessionToken: 'providedToken',
+        };
+      };
+
+      const client = await createMinioClient(
+        {
+          endPoint: 'minio.kubeflow:80',
+        },
+        's3',
+        '',
+        '',
+        provider,
+      );
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'providedKey',
+        endPoint: 'minio.kubeflow:80',
+        secretKey: 'providedSecret',
+        sessionToken: 'providedToken',
+      });
+    });
+
     it('fallbacks to the provided configs if EC2 metadata is not available.', async () => {
       const client = await createMinioClient(
         {
@@ -62,7 +98,7 @@ describe('minio-helper', () => {
     });
 
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
-      (fromNodeProviderChain as jest.Mock).mockImplementation(() => () =>
+      (fromNodeProviderChain as Mock).mockImplementation(() => () =>
         Promise.resolve({
           accessKeyId: 'AccessKeyId',
           secretAccessKey: 'SecretAccessKey',
@@ -109,23 +145,27 @@ describe('minio-helper', () => {
     const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
     const tarBuffer = zlib.gunzipSync(tarGzBuffer);
 
-    it('return the content for the 1st file inside a tarball', done => {
+    it('return the content for the 1st file inside a tarball', async () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end(tarBuffer);
-      stream.on('end', () => {
-        expect(maybeTar.read().toString()).toBe('hello world\n');
-        done();
+      await new Promise<void>(resolve => {
+        stream.on('end', () => {
+          expect(maybeTar.read().toString()).toBe('hello world\n');
+          resolve();
+        });
       });
     });
 
-    it('return the content normal if is not a tarball', done => {
+    it('return the content normal if is not a tarball', async () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end('hello world');
-      stream.on('end', () => {
-        expect(maybeTar.read().toString()).toBe('hello world');
-        done();
+      await new Promise<void>(resolve => {
+        stream.on('end', () => {
+          expect(maybeTar.read().toString()).toBe('hello world');
+          resolve();
+        });
       });
     });
   });
@@ -137,10 +177,10 @@ describe('minio-helper', () => {
     const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
     const tarBuffer = zlib.gunzipSync(tarGzBuffer);
     let minioClient: MinioClient;
-    let mockedMinioGetObject: jest.Mock;
+    let mockedMinioGetObject: Mock;
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       minioClient = new MinioClient({
         endPoint: 's3.amazonaws.com',
         accessKey: '',
@@ -149,7 +189,7 @@ describe('minio-helper', () => {
       mockedMinioGetObject = minioClient.getObject as any;
     });
 
-    it('unpacks a gzipped tarball', async done => {
+    it('unpacks a gzipped tarball', async () => {
       const objStream = new PassThrough();
       objStream.end(tarGzBuffer);
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
@@ -163,11 +203,10 @@ describe('minio-helper', () => {
             .toString()
             .trim(),
         ).toBe('hello world');
-        done();
       });
     });
 
-    it('unpacks a uncompressed tarball', async done => {
+    it('unpacks a uncompressed tarball', async () => {
       const objStream = new PassThrough();
       objStream.end(tarBuffer);
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
@@ -181,11 +220,10 @@ describe('minio-helper', () => {
             .toString()
             .trim(),
         ).toBe('hello world');
-        done();
       });
     });
 
-    it('returns the content as a stream', async done => {
+    it('returns the content as a stream', async () => {
       const objStream = new PassThrough();
       objStream.end('hello world');
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
@@ -199,7 +237,6 @@ describe('minio-helper', () => {
             .toString()
             .trim(),
         ).toBe('hello world');
-        done();
       });
     });
   });

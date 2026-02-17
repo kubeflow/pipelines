@@ -3,13 +3,15 @@ package cacheutils
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
+
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -23,8 +25,7 @@ const (
 	// MaxGRPCMessageSize contains max grpc message size supported by the client
 	MaxClientGRPCMessageSize = 100 * 1024 * 1024
 	// The endpoint uses Kubernetes service DNS name with namespace:
-	//https://kubernetes.io/docs/concepts/services-networking/service/#dns
-	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8887"
+	// https://kubernetes.io/docs/concepts/services-networking/service/#dns
 )
 
 type Client interface {
@@ -35,16 +36,23 @@ type Client interface {
 		outputs *pipelinespec.ExecutorInput_Outputs,
 		outputParametersTypeMap map[string]string,
 		cmdArgs []string, image string,
+		pvcNames []string,
 	) (*cachekey.CacheKey, error)
 	GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error)
 }
 
-type disabledCacheClient struct {
-}
+type disabledCacheClient struct{}
 
 var _ Client = &disabledCacheClient{}
 
-func (d disabledCacheClient) GenerateCacheKey(*pipelinespec.ExecutorInput_Inputs, *pipelinespec.ExecutorInput_Outputs, map[string]string, []string, string) (*cachekey.CacheKey, error) {
+func (d disabledCacheClient) GenerateCacheKey(
+	*pipelinespec.ExecutorInput_Inputs,
+	*pipelinespec.ExecutorInput_Outputs,
+	map[string]string,
+	[]string,
+	string,
+	[]string,
+) (*cachekey.CacheKey, error) {
 	panic("GenerateCacheKey is not supposed to be called when cache is disabled")
 }
 
@@ -68,16 +76,23 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient creates a Client.
-func NewClient(cacheDisabled bool) (Client, error) {
+func NewClient(mlPipelineServerAddress string, mlPipelineServerPort string, cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
 	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}
 
-	cacheEndPoint := cacheDefaultEndpoint()
+	creds := insecure.NewCredentials()
+	if tlsCfg != nil {
+		creds = credentials.NewTLS(tlsCfg)
+	}
+	cacheEndPoint := mlPipelineServerAddress + ":" + mlPipelineServerPort
 	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
-	conn, err := grpc.Dial(cacheEndPoint,
+	conn, err := grpc.NewClient(
+		cacheEndPoint,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
+		grpc.WithTransportCredentials(creds),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
 	}
@@ -85,22 +100,6 @@ func NewClient(cacheDisabled bool) (Client, error) {
 	return &client{
 		svc: api.NewTaskServiceClient(conn),
 	}, nil
-}
-
-func cacheDefaultEndpoint() string {
-	// Discover ml-pipeline in the same namespace by env var.
-	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
-	cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
-	cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT_GRPC")
-	if cacheHost != "" && cachePort != "" {
-		// If there is a ml-pipeline Kubernetes service in the same namespace,
-		// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should
-		// exist by default, so we use it as default.
-		return cacheHost + ":" + cachePort
-	}
-	// If the env vars do not exist, use default ml-pipeline grpc endpoint `ml-pipeline.kubeflow:8887`.
-	glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultKfpApiEndpoint)
-	return defaultKfpApiEndpoint
 }
 
 func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
@@ -175,8 +174,9 @@ func (c *client) GenerateCacheKey(
 	inputs *pipelinespec.ExecutorInput_Inputs,
 	outputs *pipelinespec.ExecutorInput_Outputs,
 	outputParametersTypeMap map[string]string,
-	cmdArgs []string, image string) (*cachekey.CacheKey, error) {
-
+	cmdArgs []string, image string,
+	pvcNames []string,
+) (*cachekey.CacheKey, error) {
 	cacheKey := cachekey.CacheKey{
 		InputArtifactNames:   make(map[string]*cachekey.ArtifactNameList),
 		InputParameterValues: make(map[string]*structpb.Value),
@@ -220,10 +220,10 @@ func (c *client) GenerateCacheKey(
 	}
 
 	cacheKey.ContainerSpec = &cachekey.ContainerSpec{
-		Image:   image,
-		CmdArgs: cmdArgs,
+		Image:    image,
+		CmdArgs:  cmdArgs,
+		PvcNames: pvcNames,
 	}
 
 	return &cacheKey, nil
-
 }

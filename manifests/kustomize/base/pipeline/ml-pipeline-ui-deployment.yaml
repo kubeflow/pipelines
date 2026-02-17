@@ -16,6 +16,7 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       volumes:
@@ -40,6 +41,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         env:
           - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
             value: /etc/config/viewer-pod-template.json
@@ -67,27 +70,29 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
+          - name: CLUSTER_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: CLUSTER_DOMAIN
+                optional: true
+          - name: ARTIFACTS_SERVICE_PROXY_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACTS_PROXY_ENABLED
+                optional: true
         readinessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:3000/apis/v1beta1/healthz
+          httpGet:
+            path: /apis/v1beta1/healthz
+            port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
         livenessProbe:
-          exec:
-            command:
-              - wget
-              - -q # quiet
-              - -S # show server response
-              - -O
-              - "-" # Redirect output to stdout
-              - http://localhost:3000/apis/v1beta1/healthz
+          httpGet:
+            path: /apis/v1beta1/healthz
+            port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2

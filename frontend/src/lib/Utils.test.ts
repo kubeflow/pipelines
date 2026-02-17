@@ -19,6 +19,7 @@ import {
   decodeCompressedNodes,
   enabledDisplayString,
   enabledDisplayStringV2,
+  errorToMessage,
   formatDateString,
   generateMinioArtifactUrl,
   generateS3ArtifactUrl,
@@ -28,13 +29,14 @@ import {
   mergeApiParametersByNames,
 } from './Utils';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { expectErrors } from 'src/TestUtils';
 
 describe('Utils', () => {
   describe('log', () => {
     it('logs to console', () => {
       // tslint:disable-next-line:no-console
       const backup = console.log;
-      global.console.log = jest.fn();
+      global.console.log = vi.fn();
       logger.verbose('something to console');
       // tslint:disable-next-line:no-console
       expect(console.log).toBeCalledWith('something to console');
@@ -44,7 +46,7 @@ describe('Utils', () => {
     it('logs to console error', () => {
       // tslint:disable-next-line:no-console
       const backup = console.error;
-      global.console.error = jest.fn();
+      global.console.error = vi.fn();
       logger.error('something to console error');
       // tslint:disable-next-line:no-console
       expect(console.error).toBeCalledWith('something to console error');
@@ -70,6 +72,44 @@ describe('Utils', () => {
 
     it('handles undefined', () => {
       expect(formatDateString(undefined)).toBe('-');
+    });
+  });
+
+  describe('errorToMessage', () => {
+    it('handles an Error instance', async () => {
+      expect(await errorToMessage(new Error('test error'))).toBe('test error');
+    });
+
+    it('handles object with text() method that returns a string', async () => {
+      const mockResponse = {
+        text: () => 'direct string response',
+      };
+      const result = await errorToMessage(mockResponse);
+      expect(result).toBe('direct string response');
+    });
+
+    it('handles plain object input', async () => {
+      const errorObj = { message: 'error message', code: 500 };
+      const result = await errorToMessage(errorObj);
+      expect(result).toBe(JSON.stringify(errorObj));
+    });
+
+    it('handles string input', async () => {
+      expect(await errorToMessage('string error')).toBe('"string error"');
+    });
+
+    it('handles undefined input', async () => {
+      expect(await errorToMessage(undefined)).toBe('');
+    });
+
+    it('handles array input', async () => {
+      expect(await errorToMessage([1, 'error', { key: 'value' }])).toBe(
+        '[1,"error",{"key":"value"}]',
+      );
+    });
+
+    it('handles number input', async () => {
+      expect(await errorToMessage(404)).toBe('404');
     });
   });
 
@@ -277,19 +317,23 @@ describe('Utils', () => {
     it('decompress encoded gzipped json', async () => {
       let compressedNodes =
         'H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
-      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({
+      await expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({
         nodes: [{ name: 'node1', id: 1 }],
       });
 
       compressedNodes = 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA';
-      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({ node1: { id: 'node1' } });
+      await expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({
+        node1: { id: 'node1' },
+      });
     });
 
     it('raise exception if failed to decompress data', async () => {
+      const assertErrors = expectErrors();
       let compressedNodes = 'I4sIAAAAAAACE6tWystPSS1WslKIrlxNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
       await expect(decodeCompressedNodes(compressedNodes)).rejects.toEqual(
         'failed to ungzip data: incorrect header check',
       );
+      assertErrors();
     });
   });
 

@@ -1,0 +1,94 @@
+name: KFP e2e frontend tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - '.github/workflows/e2e-test-frontend.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/actions/deploy/**'
+      - '.github/resources/**'
+      - 'frontend/**'
+      - 'manifests/kustomize/**'
+      - 'test/server-integration-test/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds.yml
+
+  frontend-integration-test:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.34.0" ]
+        pod_to_pod_tls_enabled: [ "true", "false" ]
+    name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.9
+
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+        continue-on-error: true
+
+      - name: Deploy
+        id: deploy
+        uses: ./.github/actions/deploy
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        with:
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+
+      - name: Forward Frontend port
+        id: forward-frontend-port
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
+        continue-on-error: true
+
+      - name: Server integration tests
+        id: server-tests
+        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
+        working-directory: ./test/server-integration-test
+        run: |
+          node server-test.js --url http://localhost:3000
+          node k8s-integration-test.js --url http://localhost:3000
+        continue-on-error: true
+
+      - name: Build frontend integration tests image
+        working-directory: ./test/frontend-integration-test
+        run: docker build . -t kfp-frontend-integration-test:local
+
+      - name: Frontend integration tests
+        id: tests
+        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
+        run: docker run --net=host kfp-frontend-integration-test:local
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.deploy.outcome != 'success' || steps.forward-frontend-port.outcome != 'success' || steps.server-tests.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+          path: /tmp/tmp*/*

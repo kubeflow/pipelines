@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23-alpine as builder
+FROM golang:1.24-alpine AS builder
 
 # Needed musl-dev for github.com/mattn/go-sqlite3
 RUN apk update && apk upgrade && \
@@ -31,7 +31,7 @@ COPY . .
 
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 
-FROM alpine:3.19
+FROM alpine:3.21
 
 RUN apk --no-cache add tzdata
 
@@ -41,7 +41,7 @@ USER appuser
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller
-ENV NAMESPACE ""
-ENV LOG_LEVEL info
+ENV NAMESPACE=""
+ENV LOG_LEVEL=info
 
-CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL}
+CMD ["/bin/sh", "-c", "/bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL} --clientQPS=${CLIENT_QPS:-5} --clientBurst=${CLIENT_BURST:-10} --recurringRunResyncIntervalSeconds=${RESYNC_INTERVAL_SECONDS:-30} --metricsPort=${METRICS_PORT:-9090}"]

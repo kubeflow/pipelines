@@ -15,7 +15,10 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
+
+	httptransport "github.com/go-openapi/runtime/client"
 
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client"
@@ -41,15 +44,15 @@ type ExperimentClient struct {
 	apiClient *apiclient.Experiment
 }
 
-func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*ExperimentClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
-		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
+		return nil, fmt.Errorf("error occurred when creating experiment client: %w", err)
 	}
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating experiment client
 	return &ExperimentClient{
@@ -57,12 +60,28 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
+func NewKubeflowInClusterExperimentClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*ExperimentClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
+
+	// Creating experiment client
+	return &ExperimentClient{
+		apiClient: apiClient,
+	}, nil
+}
+
+func NewMultiUserExperimentClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
+	*ExperimentClient, error) {
+
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
+	if err != nil {
+		return nil, fmt.Errorf("error occurred when creating experiment client: %w", err)
+	}
+	httpRuntime.DefaultAuthentication = httptransport.BearerToken(userToken)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating experiment client
 	return &ExperimentClient{
@@ -81,8 +100,8 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperiment(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create experiment '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Experiment),
+			fmt.Sprintf("Failed to create experiment '%v'", parameters.Experiment.DisplayName))
 	}
 
 	return response.Payload, nil
@@ -118,7 +137,7 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	if err != nil {
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list experiments"))
+			"Failed to list experiments")
 	}
 
 	return response.Payload.Experiments, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
@@ -135,7 +154,7 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to delete experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to delete experiment"))
+			"Failed to delete experiment")
 	}
 
 	return nil
@@ -183,7 +202,7 @@ func (c *ExperimentClient) Archive(parameters *params.ExperimentServiceArchiveEx
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to archive experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to archive experiments"))
+			"Failed to archive experiments")
 	}
 
 	return nil
@@ -201,7 +220,7 @@ func (c *ExperimentClient) Unarchive(parameters *params.ExperimentServiceUnarchi
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to unarchive experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to unarchive experiments"))
+			"Failed to unarchive experiments")
 	}
 
 	return nil

@@ -6,14 +6,16 @@ package pipeline_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1Pipeline v2beta1 pipeline
+//
 // swagger:model v2beta1Pipeline
 type V2beta1Pipeline struct {
 
@@ -24,13 +26,16 @@ type V2beta1Pipeline struct {
 	// Optional input field. A short description of the pipeline.
 	Description string `json:"description,omitempty"`
 
-	// Required input field. Pipeline name provided by user.
+	// Required if name is not provided. Pipeline display name provided by user.
 	DisplayName string `json:"display_name,omitempty"`
 
 	// In case any error happens retrieving a pipeline field, only pipeline ID,
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle the error. This is especially useful during listing call.
 	Error *GooglerpcStatus `json:"error,omitempty"`
+
+	// Required if display_name is not provided. Pipeline name provided by user.
+	Name string `json:"name,omitempty"`
 
 	// Input. A namespace this pipeline belongs to.
 	// Causes error if user is not authorized to access the specified namespace.
@@ -60,7 +65,6 @@ func (m *V2beta1Pipeline) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Pipeline) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -73,7 +77,6 @@ func (m *V2beta1Pipeline) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Pipeline) validateError(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Error) { // not required
 		return nil
 	}
@@ -82,6 +85,43 @@ func (m *V2beta1Pipeline) validateError(formats strfmt.Registry) error {
 		if err := m.Error.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 pipeline based on the context it is used
+func (m *V2beta1Pipeline) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateError(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1Pipeline) contextValidateError(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Error != nil {
+
+		if swag.IsZero(m.Error) { // not required
+			return nil
+		}
+
+		if err := m.Error.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
 			}
 			return err
 		}

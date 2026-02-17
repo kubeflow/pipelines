@@ -158,17 +158,17 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def experiment_service_create_experiment(self, body, **kwargs):  # noqa: E501
+    def experiment_service_create_experiment(self, experiment, **kwargs):  # noqa: E501
         """Creates a new experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.experiment_service_create_experiment(body, async_req=True)
+        >>> thread = api.experiment_service_create_experiment(experiment, async_req=True)
         >>> result = thread.get()
 
-        :param body: The experiment to be created. (required)
-        :type body: V2beta1Experiment
+        :param experiment: The experiment to be created. (required)
+        :type experiment: V2beta1Experiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -184,19 +184,19 @@ class ExperimentServiceApi(object):
         :rtype: V2beta1Experiment
         """
         kwargs['_return_http_data_only'] = True
-        return self.experiment_service_create_experiment_with_http_info(body, **kwargs)  # noqa: E501
+        return self.experiment_service_create_experiment_with_http_info(experiment, **kwargs)  # noqa: E501
 
-    def experiment_service_create_experiment_with_http_info(self, body, **kwargs):  # noqa: E501
+    def experiment_service_create_experiment_with_http_info(self, experiment, **kwargs):  # noqa: E501
         """Creates a new experiment.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.experiment_service_create_experiment_with_http_info(body, async_req=True)
+        >>> thread = api.experiment_service_create_experiment_with_http_info(experiment, async_req=True)
         >>> result = thread.get()
 
-        :param body: The experiment to be created. (required)
-        :type body: V2beta1Experiment
+        :param experiment: The experiment to be created. (required)
+        :type experiment: V2beta1Experiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -219,7 +219,7 @@ class ExperimentServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'body'
+            'experiment'
         ]
         all_params.extend(
             [
@@ -238,10 +238,10 @@ class ExperimentServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `experiment_service_create_experiment`")  # noqa: E501
+        # verify the required parameter 'experiment' is set
+        if self.api_client.client_side_validation and ('experiment' not in local_var_params or  # noqa: E501
+                                                        local_var_params['experiment'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `experiment` when calling `experiment_service_create_experiment`")  # noqa: E501
 
         collection_formats = {}
 
@@ -255,8 +255,8 @@ class ExperimentServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'experiment' in local_var_params:
+            body_params = local_var_params['experiment']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501

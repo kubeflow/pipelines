@@ -1,0 +1,608 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: collected-param-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-690594f98b930e924d092cdddb1c8379f51c5ea407e8ff519feae9d7947be1c2
+      value: '{"executorLabel":"exec-consume-ids","inputDefinitions":{"parameters":{"ids":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-690594f98b930e924d092cdddb1c8379f51c5ea407e8ff519feae9d7947be1c2
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","consume_ids"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        consume_ids(ids: List[str]) -\u003e str:\n    for id in ids:\n        print(f''Consuming:
+        {id}'')\n    return ''completed''\n\n"],"image":"python:3.11"}'
+    - name: components-7afbc0576341694fb223cf141107254be822a3b82ec9ee880741d0440246a0c0
+      value: '{"executorLabel":"exec-consume-single-id","inputDefinitions":{"parameters":{"id":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-7afbc0576341694fb223cf141107254be822a3b82ec9ee880741d0440246a0c0
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","consume_single_id"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        consume_single_id(id: str) -\u003e str:\n    print(f''Consuming single: {id}'')\n    return
+        ''completed''\n\n"],"image":"python:3.11"}'
+    - name: components-579756e400e5e7eb1e9d6fabfb7a8e87a8971dbe30dcfb3fee4b6bf02148944a
+      value: '{"executorLabel":"exec-prepend-id","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-579756e400e5e7eb1e9d6fabfb7a8e87a8971dbe30dcfb3fee4b6bf02148944a
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","prepend_id"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        prepend_id(content: str) -\u003e str:\n    print(f\"prepending: {content}
+        with ''model_id''\")\n    return f''model_id_{content}''\n\n"],"image":"python:3.11"}'
+    - name: components-comp-for-loop-1
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--prepend-id-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"prepend-id"}}}},"tasks":{"consume-single-id":{"cachingOptions":{},"componentRef":{"name":"comp-consume-single-id"},"dependentTasks":["prepend-id"],"inputs":{"parameters":{"id":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"prepend-id"}}}},"taskInfo":{"name":"consume-single-id"}},"prepend-id":{"cachingOptions":{},"componentRef":{"name":"comp-prepend-id"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"prepend-id"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-ids-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--prepend-id-Output":{"parameterType":"LIST"}}}}'
+    - name: components-675759a85fbbe43a31184fa3998f5ad3d5231281f0a7b9bea7eae605a3f8f570
+      value: '{"executorLabel":"exec-split-ids","inputDefinitions":{"parameters":{"ids":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
+    - name: implementations-675759a85fbbe43a31184fa3998f5ad3d5231281f0a7b9bea7eae605a3f8f570
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","split_ids"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        split_ids(ids: str) -\u003e list:\n    return ids.split('','')\n\n"],"image":"python:3.11"}'
+    - name: components-comp-collecting-parameters
+      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"pipelinechannel--prepend-id-Output","producerSubtask":"for-loop-1"}}}},"tasks":{"consume-ids":{"cachingOptions":{},"componentRef":{"name":"comp-consume-ids"},"dependentTasks":["for-loop-1"],"inputs":{"parameters":{"ids":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--prepend-id-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"consume-ids"}},"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-ids"],"inputs":{"parameters":{"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}},"split-ids":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}}},"inputDefinitions":{"parameters":{"model_ids":{"defaultValue":"","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"collecting-parameters":{"cachingOptions":{},"componentRef":{"name":"comp-collecting-parameters"},"inputs":{"parameters":{"model_ids":{"runtimeValue":{"constant":"s1,s2,s3"}}}},"taskInfo":{"name":"collecting-parameters"}},"consume-ids":{"cachingOptions":{},"componentRef":{"name":"comp-consume-ids-2"},"dependentTasks":["collecting-parameters"],"inputs":{"parameters":{"ids":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"collecting-parameters"}}}},"taskInfo":{"name":"consume-ids"}}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - collected-param-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-7afbc0576341694fb223cf141107254be822a3b82ec9ee880741d0440246a0c0}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-consume-single-id"},"dependentTasks":["prepend-id"],"inputs":{"parameters":{"id":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"prepend-id"}}}},"taskInfo":{"name":"consume-single-id"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-7afbc0576341694fb223cf141107254be822a3b82ec9ee880741d0440246a0c0}}'
+          - name: task-name
+            value: consume-single-id
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: prepend-id.Succeeded
+        name: consume-single-id-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.consume-single-id-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.consume-single-id-driver.outputs.parameters.cached-decision}}'
+        depends: consume-single-id-driver.Succeeded
+        name: consume-single-id
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-579756e400e5e7eb1e9d6fabfb7a8e87a8971dbe30dcfb3fee4b6bf02148944a}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-prepend-id"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"prepend-id"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-579756e400e5e7eb1e9d6fabfb7a8e87a8971dbe30dcfb3fee4b6bf02148944a}}'
+          - name: task-name
+            value: prepend-id
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: prepend-id-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.prepend-id-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.prepend-id-driver.outputs.parameters.cached-decision}}'
+        depends: prepend-id-driver.Succeeded
+        name: prepend-id
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-1
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - collected-param-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: ""
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-ids"],"inputs":{"parameters":{"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-1
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-1-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-ids"],"inputs":{"parameters":{"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-1-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-1-for-loop-1-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-690594f98b930e924d092cdddb1c8379f51c5ea407e8ff519feae9d7947be1c2}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-consume-ids"},"dependentTasks":["for-loop-1"],"inputs":{"parameters":{"ids":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--prepend-id-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"consume-ids"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-690594f98b930e924d092cdddb1c8379f51c5ea407e8ff519feae9d7947be1c2}}'
+          - name: task-name
+            value: consume-ids
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: for-loop-1.Succeeded
+        name: consume-ids-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.consume-ids-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.consume-ids-driver.outputs.parameters.cached-decision}}'
+        depends: consume-ids-driver.Succeeded
+        name: consume-ids
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: split-ids.Succeeded
+        name: for-loop-1
+        template: comp-for-loop-1-for-loop-1-iterator
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-675759a85fbbe43a31184fa3998f5ad3d5231281f0a7b9bea7eae605a3f8f570}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-675759a85fbbe43a31184fa3998f5ad3d5231281f0a7b9bea7eae605a3f8f570}}'
+          - name: task-name
+            value: split-ids
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: split-ids-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.split-ids-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.split-ids-driver.outputs.parameters.cached-decision}}'
+        depends: split-ids-driver.Succeeded
+        name: split-ids
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-collecting-parameters
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-collecting-parameters}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-collecting-parameters"},"inputs":{"parameters":{"model_ids":{"runtimeValue":{"constant":"s1,s2,s3"}}}},"taskInfo":{"name":"collecting-parameters"}}'
+          - name: task-name
+            value: collecting-parameters
+        name: collecting-parameters-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.collecting-parameters-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.collecting-parameters-driver.outputs.parameters.condition}}'
+        depends: collecting-parameters-driver.Succeeded
+        name: collecting-parameters
+        template: comp-collecting-parameters
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-690594f98b930e924d092cdddb1c8379f51c5ea407e8ff519feae9d7947be1c2}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-consume-ids-2"},"dependentTasks":["collecting-parameters"],"inputs":{"parameters":{"ids":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"collecting-parameters"}}}},"taskInfo":{"name":"consume-ids"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-690594f98b930e924d092cdddb1c8379f51c5ea407e8ff519feae9d7947be1c2}}'
+          - name: task-name
+            value: consume-ids
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: collecting-parameters.Succeeded
+        name: consume-ids-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.consume-ids-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.consume-ids-driver.outputs.parameters.cached-decision}}'
+        depends: consume-ids-driver.Succeeded
+        name: consume-ids
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

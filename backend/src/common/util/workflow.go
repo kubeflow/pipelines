@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package util
 package util
 
 import (
@@ -19,6 +20,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/encoding/protojson"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
@@ -29,8 +32,8 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -121,7 +124,7 @@ func UnmarshParametersWorkflow(paramsString string) (SpecParameters, error) {
 	return rev, nil
 }
 
-// Marshal parameters to JSON encoded string.
+// MarshalParametersWorkflow marshal parameters to JSON encoded string.
 // This also checks result is not longer than a limit.
 func MarshalParametersWorkflow(params SpecParameters) (string, error) {
 	if params == nil {
@@ -147,13 +150,12 @@ func MarshalParametersWorkflow(params SpecParameters) (string, error) {
 	return string(paramBytes), nil
 }
 
-// Get ExecutionType: ArgoWorkflow
+// ExecutionType ArgoWorkflow
 func (w *Workflow) ExecutionType() ExecutionType {
 	return ArgoWorkflow
 }
 
-// ExecutionSpec interface: Get ExecutionStatus which can be used to
-// access status related information
+// ExecutionStatus access status related information
 func (w *Workflow) ExecutionStatus() ExecutionStatus {
 	return w
 }
@@ -200,12 +202,12 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 		return nil, nil, NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
 	}
 
-	newWF := w.Workflow.DeepCopy()
+	newWF := w.DeepCopy()
 	// Delete/reset fields which indicate workflow completed
 	delete(newWF.Labels, common.LabelKeyCompleted)
 	// Delete/reset fields which indicate workflow is finished being persisted to the database
 	delete(newWF.Labels, LabelKeyWorkflowPersistedFinalState)
-	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(workflowapi.NodeRunning)
+	newWF.Labels[common.LabelKeyPhase] = string(workflowapi.NodeRunning)
 	newWF.Status.Phase = workflowapi.WorkflowRunning
 	newWF.Status.Conditions.UpsertCondition(workflowapi.Condition{Status: metav1.ConditionFalse, Type: workflowapi.ConditionTypeCompleted})
 	newWF.Status.Message = ""
@@ -217,7 +219,7 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 
 	// Iterate the previous nodes. If it was successful Pod carry it forward
 	newWF.Status.Nodes = make(map[string]workflowapi.NodeStatus)
-	onExitNodeName := w.ObjectMeta.Name + ".onExit"
+	onExitNodeName := w.Name + ".onExit"
 	var podsToDelete []string
 	for _, node := range w.Status.Nodes {
 		oldNodeID := RetrievePodName(*w.Workflow, node)
@@ -279,7 +281,7 @@ func (w *Workflow) ExecutionName() string {
 	return w.Name
 }
 
-// OverrideName sets the name of a Workflow.
+// SetExecutionName sets the name of a Workflow.
 func (w *Workflow) SetExecutionName(name string) {
 	w.GenerateName = ""
 	w.Name = name
@@ -377,11 +379,13 @@ func (w *Workflow) ScheduledWorkflowUUIDAsStringOrEmpty() string {
 	return ""
 }
 
-// Derives the Pod name from a given workflowapi.Workflow and workflowapi.NodeStatus
+// RetrievePodName derives the Pod name from a given workflowapi.Workflow and workflowapi.NodeStatus
 // This is a workaround for an upstream breaking change with node.ID and node.Name mismatches,
 // see https://github.com/argoproj/argo-workflows/issues/10107#issuecomment-1536113642
+// This behavior can be reverted by setting POD_NAMES=v1 on the workflow controller
+// https://argo-workflows.readthedocs.io/en/release-3.5/upgrading/#e5b131a33-feat-add-template-node-to-pod-name-fixes-1319-6712
 func RetrievePodName(wf workflowapi.Workflow, node workflowapi.NodeStatus) string {
-	if wf.APIVersion == "v1" {
+	if wf.APIVersion == "v1" || wf.Annotations["workflows.argoproj.io/pod-name-format"] == "v1" {
 		return node.ID
 	}
 	if wf.Name == node.Name {
@@ -477,12 +481,12 @@ const (
 	maxMetricsCountLimit = 50
 )
 
-func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.RunMetric, []error) {
+func (w *Workflow) CollectionMetrics(readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error)) ([]*api.RunMetric, []error) {
 	runID := w.Labels[LabelKeyWorkflowRunId]
 	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
 	partialFailures := make([]error, 0, len(w.Status.Nodes))
 	for _, nodeStatus := range w.Status.Nodes {
-		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, retrieveArtifact, *w.Workflow)
+		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, readArtifact, *w.Workflow)
 		if err != nil {
 			partialFailures = append(partialFailures, err)
 			continue
@@ -501,23 +505,29 @@ func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.
 	return runMetrics, partialFailures
 }
 
-func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact, wf workflowapi.Workflow) (
+func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error), wf workflowapi.Workflow) (
 	[]*api.RunMetric, error,
 ) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, retrieveArtifact, &wf)
+	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, readArtifact, &wf)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
 
-	retrievedNodeID := RetrievePodName(wf, *nodeStatus)
+	retrievedNodeID := nodeStatus.ID
 	// Proto json lib requires a proto message before unmarshal data from JSON. We use
 	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
 	// user can provide.
 	reportMetricsRequest := new(api.ReportRunMetricsRequest)
-	err = jsonpb.UnmarshalString(metricsJSON, reportMetricsRequest)
+	transformedJSON, err := transformJSONForBackwardCompatibility(metricsJSON)
+	if err != nil {
+		fmt.Printf("Failed to transform JSON: %v\n", err)
+		return nil, err
+	}
+
+	err = protojson.Unmarshal([]byte(transformedJSON), reportMetricsRequest)
 	if err != nil {
 		// User writes invalid metrics JSON.
 		// TODO(#1426): report the error back to api server to notify user
@@ -540,8 +550,21 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 	return reportMetricsRequest.GetMetrics(), nil
 }
 
+// Previously number_value for RunMetrics in backend/api/v1beta1/run.proto
+// allowed camelCase field values in JSON, to be consistent with the
+// rest of the API (as well as with KFP api docs); this value was switched
+// to support snake case. This function will convert old values to the
+// newer snakecase so we can continue to support camelcase Metric Values for
+// backwards compatibility for the end user.
+func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
+	replacer := strings.NewReplacer(
+		`"numberValue":`, `"number_value":`,
+	)
+	return replacer.Replace(jsonStr), nil
+}
+
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
-	retrieveArtifact RetrieveArtifact, wf *workflowapi.Workflow,
+	readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error), wf *workflowapi.Workflow,
 ) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
@@ -557,20 +580,20 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		return "", nil // No metrics artifact, skip the reporting
 	}
 
-	artifactRequest := &api.ReadArtifactRequest{
-		RunId:        runID,
-		NodeId:       RetrievePodName(*wf, *nodeStatus),
+	artifactRequest := &artifactclient.ReadArtifactRequest{
+		RunID:        runID,
+		NodeID:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
-	artifactResponse, err := retrieveArtifact(artifactRequest)
+	artifactResponse, err := readArtifact(artifactRequest)
 	if err != nil {
 		return "", err
 	}
-	if artifactResponse == nil || artifactResponse.GetData() == nil || len(artifactResponse.GetData()) == 0 {
+	if artifactResponse == nil || artifactResponse.Data == nil || len(artifactResponse.Data) == 0 {
 		// If artifact is not found or empty content, skip the reporting.
 		return "", nil
 	}
-	archivedFiles, err := ExtractTgz(string(artifactResponse.GetData()))
+	archivedFiles, err := ExtractTgz(string(artifactResponse.Data))
 	if err != nil {
 		// Invalid tgz file. This should never happen unless there is a bug in the system and
 		// it is a unrecoverable error.
@@ -686,7 +709,7 @@ func (w *Workflow) SetPodMetadataLabels(key string, value string) {
 }
 
 func (w *Workflow) ReplaceUID(id string) error {
-	newWorkflowString := strings.Replace(w.ToStringForStore(), "{{workflow.uid}}", id, -1)
+	newWorkflowString := strings.ReplaceAll(w.ToStringForStore(), "{{workflow.uid}}", id)
 	var workflow *workflowapi.Workflow
 	if err := json.Unmarshal([]byte(newWorkflowString), &workflow); err != nil {
 		return NewInternalServerError(err,
@@ -751,7 +774,7 @@ func (w *Workflow) IsV2Compatible() bool {
 }
 
 func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
-	err := validate.ValidateWorkflow(nil, nil, w.Workflow, validate.ValidateOpts{
+	err := validate.ValidateWorkflow(nil, nil, w.Workflow, nil, validate.ValidateOpts{
 		Lint:                       lint,
 		IgnoreEntrypoint:           ignoreEntrypoint,
 		WorkflowTemplateValidation: false, // not used by kubeflow

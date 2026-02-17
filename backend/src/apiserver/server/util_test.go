@@ -190,3 +190,11 @@ func TestReadPipelineFile_UnknownFileFormat(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unexpected pipeline file format")
 }
+
+func TestReadPipelineFile_SizeTooLarge_RecommendationIncluded(t *testing.T) {
+	big := strings.Repeat("X", 1024)
+	_, err := ReadPipelineFile("large.yaml", strings.NewReader(big), 10)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "File size too large")
+	assert.Contains(t, err.Error(), "Consider moving large embedded artifacts or notebooks")
+}

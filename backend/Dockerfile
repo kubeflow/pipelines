@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.23-bookworm as builder
+FROM golang:1.24-bookworm AS builder
 RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
@@ -28,18 +28,23 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.9 as compiler
+FROM python:3.11 AS compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
+ARG TARGETARCH
+RUN echo "Building for architecture: ${TARGETARCH}"
+
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION v3.5.14
-RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
-    gunzip argo-linux-amd64.gz && \
-    chmod +x argo-linux-amd64 && \
-    mv ./argo-linux-amd64 /usr/local/bin/argo
+ENV ARGO_VERSION=v3.7.3
+RUN curl -sL -H "Accept: application/octet-stream" \
+        https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz \
+    -o argo-linux-$TARGETARCH.gz && \
+    gunzip argo-linux-$TARGETARCH.gz && \
+    chmod +x argo-linux-$TARGETARCH && \
+    mv ./argo-linux-$TARGETARCH /usr/local/bin/argo
 
 WORKDIR /
 COPY ./samples /samples
@@ -60,7 +65,7 @@ ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
 ARG TAG_NAME=unknown
 ENV TAG_NAME=${TAG_NAME}
-ENV LOG_LEVEL info 
+ENV LOG_LEVEL=info
 
 WORKDIR /bin
 
@@ -81,4 +86,4 @@ RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_confi
 EXPOSE 8888
 
 # Start the apiserver
-CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=${LOG_LEVEL}
+CMD ["/bin/sh", "-c", "/bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=${LOG_LEVEL}"]

@@ -13,63 +13,97 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRecurringRunServiceDeleteRecurringRunParams creates a new RecurringRunServiceDeleteRecurringRunParams object
-// with the default values initialized.
+// NewRecurringRunServiceDeleteRecurringRunParams creates a new RecurringRunServiceDeleteRecurringRunParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRecurringRunServiceDeleteRecurringRunParams() *RecurringRunServiceDeleteRecurringRunParams {
-	var ()
 	return &RecurringRunServiceDeleteRecurringRunParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRecurringRunServiceDeleteRecurringRunParamsWithTimeout creates a new RecurringRunServiceDeleteRecurringRunParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRecurringRunServiceDeleteRecurringRunParamsWithTimeout(timeout time.Duration) *RecurringRunServiceDeleteRecurringRunParams {
-	var ()
 	return &RecurringRunServiceDeleteRecurringRunParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRecurringRunServiceDeleteRecurringRunParamsWithContext creates a new RecurringRunServiceDeleteRecurringRunParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRecurringRunServiceDeleteRecurringRunParamsWithContext(ctx context.Context) *RecurringRunServiceDeleteRecurringRunParams {
-	var ()
 	return &RecurringRunServiceDeleteRecurringRunParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRecurringRunServiceDeleteRecurringRunParamsWithHTTPClient creates a new RecurringRunServiceDeleteRecurringRunParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRecurringRunServiceDeleteRecurringRunParamsWithHTTPClient(client *http.Client) *RecurringRunServiceDeleteRecurringRunParams {
-	var ()
 	return &RecurringRunServiceDeleteRecurringRunParams{
 		HTTPClient: client,
 	}
 }
 
-/*RecurringRunServiceDeleteRecurringRunParams contains all the parameters to send to the API endpoint
-for the recurring run service delete recurring run operation typically these are written to a http.Request
+/*
+RecurringRunServiceDeleteRecurringRunParams contains all the parameters to send to the API endpoint
+
+	for the recurring run service delete recurring run operation.
+
+	Typically these are written to a http.Request.
 */
 type RecurringRunServiceDeleteRecurringRunParams struct {
 
-	/*RecurringRunID
-	  The ID of the recurring run to be deleted.
+	/* PropagationPolicy.
 
+	   Optional input field. Set the propagation policy when deleting the recurring run.
+
+	   Default: "DELETE_PROPAGATION_POLICY_UNSPECIFIED"
+	*/
+	PropagationPolicy *string
+
+	/* RecurringRunID.
+
+	   The ID of the recurring run to be deleted.
 	*/
 	RecurringRunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the recurring run service delete recurring run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RecurringRunServiceDeleteRecurringRunParams) WithDefaults() *RecurringRunServiceDeleteRecurringRunParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the recurring run service delete recurring run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RecurringRunServiceDeleteRecurringRunParams) SetDefaults() {
+	var (
+		propagationPolicyDefault = string("DELETE_PROPAGATION_POLICY_UNSPECIFIED")
+	)
+
+	val := RecurringRunServiceDeleteRecurringRunParams{
+		PropagationPolicy: &propagationPolicyDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the recurring run service delete recurring run params
@@ -105,6 +139,17 @@ func (o *RecurringRunServiceDeleteRecurringRunParams) SetHTTPClient(client *http
 	o.HTTPClient = client
 }
 
+// WithPropagationPolicy adds the propagationPolicy to the recurring run service delete recurring run params
+func (o *RecurringRunServiceDeleteRecurringRunParams) WithPropagationPolicy(propagationPolicy *string) *RecurringRunServiceDeleteRecurringRunParams {
+	o.SetPropagationPolicy(propagationPolicy)
+	return o
+}
+
+// SetPropagationPolicy adds the propagationPolicy to the recurring run service delete recurring run params
+func (o *RecurringRunServiceDeleteRecurringRunParams) SetPropagationPolicy(propagationPolicy *string) {
+	o.PropagationPolicy = propagationPolicy
+}
+
 // WithRecurringRunID adds the recurringRunID to the recurring run service delete recurring run params
 func (o *RecurringRunServiceDeleteRecurringRunParams) WithRecurringRunID(recurringRunID string) *RecurringRunServiceDeleteRecurringRunParams {
 	o.SetRecurringRunID(recurringRunID)
@@ -123,6 +168,23 @@ func (o *RecurringRunServiceDeleteRecurringRunParams) WriteToRequest(r runtime.C
 		return err
 	}
 	var res []error
+
+	if o.PropagationPolicy != nil {
+
+		// query param propagation_policy
+		var qrPropagationPolicy string
+
+		if o.PropagationPolicy != nil {
+			qrPropagationPolicy = *o.PropagationPolicy
+		}
+		qPropagationPolicy := qrPropagationPolicy
+		if qPropagationPolicy != "" {
+
+			if err := r.SetQueryParam("propagation_policy", qPropagationPolicy); err != nil {
+				return err
+			}
+		}
+	}
 
 	// path param recurring_run_id
 	if err := r.SetPathParam("recurring_run_id", o.RecurringRunID); err != nil {

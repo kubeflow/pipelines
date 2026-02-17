@@ -32,6 +32,7 @@ message CacheKey {
 message ContainerSpec {
   string image = 1;
   repeated string cmdArgs = 2;
+  repeated string pvcNames = 3;
 }
 
 message ArtifactNameList {

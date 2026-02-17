@@ -24,6 +24,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -46,25 +47,25 @@ const (
 func TestUploadPipeline(t *testing.T) {
 	// TODO(v2): when we add a field to distinguish between v1 and v2 template, verify it's in the response
 	tt := []struct {
-		name        string
-		spec        []byte
-		api_version string
+		name       string
+		spec       []byte
+		apiVersion string
 	}{{
-		name:        "upload argo workflow YAML",
-		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
-		api_version: "v1beta1",
+		name:       "upload argo workflow YAML",
+		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		apiVersion: "v1beta1",
 	}, {
-		name:        "upload argo workflow YAML",
-		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
-		api_version: "v2beta1",
+		name:       "upload argo workflow YAML",
+		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		apiVersion: "v2beta1",
 	}, {
-		name:        "upload pipeline v2 job in proto yaml",
-		spec:        []byte(v2SpecHelloWorld),
-		api_version: "v1beta1",
+		name:       "upload pipeline v2 job in proto yaml",
+		spec:       []byte(v2SpecHelloWorld),
+		apiVersion: "v1beta1",
 	}, {
-		name:        "upload pipeline v2 job in proto yaml",
-		spec:        []byte(v2SpecHelloWorld),
-		api_version: "v2beta1",
+		name:       "upload pipeline v2 job in proto yaml",
+		spec:       []byte(v2SpecHelloWorld),
+		apiVersion: "v2beta1",
 	}}
 	for _, test := range tt {
 		t.Run(test.name, func(t *testing.T) {
@@ -72,10 +73,11 @@ func TestUploadPipeline(t *testing.T) {
 			bytesBuffer, writer := setupWriter("")
 			setWriterWithBuffer("uploadfile", "hello-world.yaml", string(test.spec), writer)
 			var response *httptest.ResponseRecorder
-			if test.api_version == "v1beta1" {
+			switch test.apiVersion {
+			case "v1beta1":
 				response = uploadPipeline("/apis/v1beta1/pipelines/upload",
 					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineV1)
-			} else if test.api_version == "v2beta1" {
+			case "v2beta1":
 				response = uploadPipeline("/apis/v2beta1/pipelines/upload",
 					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 			}
@@ -98,10 +100,11 @@ func TestUploadPipeline(t *testing.T) {
 			assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
 
 			// Verify v1 API returns v1 object while v2 API returns v2 object.
-			if test.api_version == "v1beta1" {
+			switch test.apiVersion {
+			case "v1beta1":
 				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.ID)
 				assert.Equal(t, "", parsedResponse.PipelineID)
-			} else if test.api_version == "v2beta1" {
+			case "v2beta1":
 				assert.Equal(t, "", parsedResponse.ID)
 				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
 			}
@@ -115,6 +118,7 @@ func TestUploadPipeline(t *testing.T) {
 					UUID:           DefaultFakeUUID,
 					CreatedAtInSec: 1,
 					Name:           "hello-world.yaml",
+					DisplayName:    "hello-world.yaml",
 					Status:         model.PipelineReady,
 					Namespace:      "",
 				},
@@ -124,6 +128,7 @@ func TestUploadPipeline(t *testing.T) {
 					UUID:           DefaultFakeUUID,
 					CreatedAtInSec: 2,
 					Name:           "hello-world.yaml",
+					DisplayName:    "hello-world.yaml",
 					Parameters:     "[]",
 					Status:         model.PipelineVersionReady,
 					PipelineId:     DefaultFakeUUID,
@@ -162,20 +167,22 @@ func TestUploadPipeline(t *testing.T) {
 					UUID:           DefaultFakeUUID,
 					CreatedAtInSec: 2,
 					Name:           "hello-world.yaml",
+					DisplayName:    "hello-world.yaml",
 					Parameters:     "[]",
 					Status:         model.PipelineVersionReady,
 					PipelineId:     DefaultFakeUUID,
-					PipelineSpec:   string(test.spec),
+					PipelineSpec:   model.LargeText(test.spec),
 				},
 				{
 					UUID:           fakeVersionUUID,
 					CreatedAtInSec: 3,
 					Name:           fakeVersionName,
+					DisplayName:    fakeVersionName,
 					Description:    fakeDescription,
 					Parameters:     "[]",
 					Status:         model.PipelineVersionReady,
 					PipelineId:     DefaultFakeUUID,
-					PipelineSpec:   string(test.spec),
+					PipelineSpec:   model.LargeText(test.spec),
 				},
 			}
 			// Expect 2 versions, one is created by default when creating pipeline and the other is what we manually created
@@ -191,19 +198,19 @@ func TestUploadPipeline(t *testing.T) {
 }
 
 func TestUploadPipelineV2_NameValidation(t *testing.T) {
-	v2Template, _ := template.New([]byte(v2SpecHelloWorld), true)
+	v2Template, _ := template.New([]byte(v2SpecHelloWorld), template.TemplateOptions{CacheDisabled: true})
 	v2spec := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldDash), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDash), template.TemplateOptions{CacheDisabled: true})
 	v2specDash := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldCapitalized), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldCapitalized), template.TemplateOptions{CacheDisabled: true})
 	invalidV2specCapitalized := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldDot), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDot), template.TemplateOptions{CacheDisabled: true})
 	invalidV2specDot := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldLong), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldLong), template.TemplateOptions{CacheDisabled: true})
 	invalidV2specLong := string(v2Template.Bytes())
 
 	tt := []struct {
@@ -228,19 +235,19 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 			name:    "invalid - capitalized",
 			spec:    []byte(invalidV2specCapitalized),
 			wantErr: true,
-			errMsg:  "pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
+			errMsg:  "Failed to create a pipeline and a pipeline version",
 		},
 		{
 			name:    "invalid - dot",
 			spec:    []byte(invalidV2specDot),
 			wantErr: true,
-			errMsg:  "pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
+			errMsg:  "Failed to create a pipeline and a pipeline version",
 		},
 		{
 			name:    "invalid - too long",
 			spec:    []byte(invalidV2specLong),
 			wantErr: true,
-			errMsg:  "pipeline's name must contain no more than 128 characters",
+			errMsg:  "Failed to create a pipeline and a pipeline version",
 		},
 	}
 	for _, test := range tt {
@@ -278,6 +285,74 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 	}
 }
 
+func TestUploadPipeline_NameAndNamespaceTooLong(t *testing.T) {
+	type testCase struct {
+		name       string
+		apiVersion string
+		uploadFunc func(http.ResponseWriter, *http.Request)
+		query      string
+		wantStatus int
+		wantErrMsg string
+	}
+
+	cases := []testCase{
+		{
+			name:       "v1 name too long",
+			apiVersion: "v1beta1",
+			uploadFunc: nil, // set in t.Run
+			query:      "?name=" + url.PathEscape(strings.Repeat("a", 129)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Name length cannot exceed 128",
+		},
+		{
+			name:       "v1 namespace too long",
+			apiVersion: "v1beta1",
+			uploadFunc: nil,
+			query:      "?namespace=" + url.PathEscape(strings.Repeat("n", 64)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Namespace length cannot exceed 63",
+		},
+		{
+			name:       "v2 name too long",
+			apiVersion: "v2beta1",
+			uploadFunc: nil,
+			query:      "?name=" + url.PathEscape(strings.Repeat("a", 129)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Name length cannot exceed 128",
+		},
+		{
+			name:       "v2 namespace too long",
+			apiVersion: "v2beta1",
+			uploadFunc: nil,
+			query:      "?namespace=" + url.PathEscape(strings.Repeat("n", 64)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "Pipeline.Namespace length cannot exceed 63",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, server := setupClientManagerAndServer()
+			bytesBuffer, writer := setupWriter("")
+			setWriterWithBuffer("uploadfile", "hello.yaml",
+				"apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+			uploadFunc := tc.uploadFunc
+			if uploadFunc == nil {
+				if tc.apiVersion == "v1beta1" {
+					uploadFunc = server.UploadPipelineV1
+				} else {
+					uploadFunc = server.UploadPipeline
+				}
+			}
+			endpoint := fmt.Sprintf("/apis/%s/pipelines/upload%s", tc.apiVersion, tc.query)
+			resp := uploadPipeline(endpoint,
+				bytes.NewReader(bytesBuffer.Bytes()), writer, uploadFunc)
+			assert.Equal(t, tc.wantStatus, resp.Code)
+			assert.Contains(t, resp.Body.String(), tc.wantErrMsg)
+		})
+	}
+}
+
 func TestUploadPipeline_Tarball(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
@@ -297,6 +372,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 1,
 			Name:           "arguments.tar.gz",
+			DisplayName:    "arguments.tar.gz",
 			Status:         model.PipelineReady,
 			Namespace:      "",
 		},
@@ -312,6 +388,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 2,
 			Name:           "arguments.tar.gz",
+			DisplayName:    "arguments.tar.gz",
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -344,6 +421,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 2,
 			Name:           "arguments.tar.gz",
+			DisplayName:    "arguments.tar.gz",
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -353,6 +431,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			UUID:           fakeVersionUUID,
 			CreatedAtInSec: 3,
 			Name:           "arguments-version.tar.gz",
+			DisplayName:    "arguments-version.tar.gz",
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -394,6 +473,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 1,
 			Name:           "foo-bar",
+			DisplayName:    "foo-bar",
 			Status:         model.PipelineReady,
 			Namespace:      "",
 		},
@@ -411,6 +491,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 2,
 			Name:           "foo-bar",
+			DisplayName:    "foo-bar",
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -442,6 +523,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			UUID:           DefaultFakeUUID,
 			CreatedAtInSec: 1,
 			Name:           "foo-bar",
+			DisplayName:    "foo-bar",
 			Status:         model.PipelineReady,
 			Description:    "description of foo bar",
 			Namespace:      "",
@@ -461,6 +543,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			Description:    "description of foo bar",
 			CreatedAtInSec: 2,
 			Name:           "foo-bar",
+			DisplayName:    "foo-bar",
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
@@ -491,7 +574,28 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+DefaultFakeUUID,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 400, response.Code)
-	assert.Contains(t, response.Body.String(), "error parsing pipeline spec filename")
+	assert.Contains(t, response.Body.String(), "Failed to create a pipeline version")
+}
+
+func TestUploadPipelineVersion_NameTooLong(t *testing.T) {
+	_, server := setupClientManagerAndServer()
+	// a valid workflow body
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, 200, response.Code)
+
+	// a name too long（>127）
+	longName := strings.Repeat("a", 128)
+	endpoint := fmt.Sprintf("/apis/v1beta1/pipelines/upload_version?name=%s&pipelineid=%s",
+		url.PathEscape(longName), DefaultFakeUUID)
+
+	resp := uploadPipeline(endpoint,
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "PipelineVersion.Name length cannot exceed")
 }
 
 func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
@@ -628,7 +732,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-world
 root:
@@ -685,7 +789,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-world
 root:
@@ -726,7 +830,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-world-
 root:
@@ -751,7 +855,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hEllo-world
 root:
@@ -776,7 +880,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: more than  128 characters more than  128 characters more than  128 characters more than  128 characters more than  128 characters
 root:
@@ -801,7 +905,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-worl.d
 root:

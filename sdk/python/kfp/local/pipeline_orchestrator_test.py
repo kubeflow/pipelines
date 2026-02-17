@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for pipeline_orchestrator.py."""
-
+import functools
 import io as stdlib_io
 import os
-from typing import NamedTuple
+import sys
+from typing import List, NamedTuple
 import unittest
 from unittest import mock
 
@@ -27,8 +28,30 @@ from kfp.dsl import Model
 from kfp.dsl import Output
 from kfp.dsl import pipeline_task
 from kfp.local import testing_utilities
+import pytest
 
 ROOT_FOR_TESTING = './testing_root'
+
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
+
+
+@pytest.fixture(autouse=True)
+def set_packages_for_test_classes(monkeypatch, request):
+    if request.cls and request.cls.__name__ in {
+            'TestRunLocalPipeline',
+            'TestFstringContainerComponent',
+    }:
+        root_dir = os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+        kfp_pipeline_spec_path = os.path.join(root_dir, 'api', 'v2alpha1',
+                                              'python')
+        original_dsl_component = dsl.component
+        monkeypatch.setattr(
+            dsl, 'component',
+            functools.partial(
+                original_dsl_component,
+                packages_to_install=[kfp_pipeline_spec_path]))
 
 
 class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
@@ -74,9 +97,11 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             my_pipeline()
 
     def test_no_io(self):
-        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
 
-        @dsl.component
+        @dsl.component()
         def pass_op():
             pass
 
@@ -285,6 +310,133 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         })
         self.assert_output_dir_contents(1, 2)
 
+    def test_notebook_component_local_exec(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        import json as _json
+        import os as _os
+        import tempfile as _tempfile
+
+        nb = {
+            'cells': [
+                {
+                    'cell_type': 'code',
+                    'execution_count': None,
+                    'metadata': {
+                        'tags': ['parameters']
+                    },
+                    'outputs': [],
+                    'source': ['# parameters\n', "text='hello'\n"],
+                },
+                {
+                    'cell_type':
+                        'code',
+                    'execution_count':
+                        None,
+                    'metadata': {},
+                    'outputs': [],
+                    'source': [
+                        'import os\n',
+                        "os.makedirs('/tmp/kfp_nb_outputs', exist_ok=True)\n",
+                        "with open('/tmp/kfp_nb_outputs/log.txt','w') as f: f.write(text)\n",
+                    ],
+                },
+            ],
+            'metadata': {
+                'kernelspec': {
+                    'display_name': 'Python 3',
+                    'language': 'python',
+                    'name': 'python3',
+                },
+                'language_info': {
+                    'name': 'python',
+                    'version': '3.11'
+                },
+            },
+            'nbformat': 4,
+            'nbformat_minor': 5,
+        }
+
+        with _tempfile.TemporaryDirectory() as tmpdir:
+            nb_path = _os.path.join(tmpdir, 'nb.ipynb')
+            with open(nb_path, 'w', encoding='utf-8') as f:
+                _json.dump(nb, f)
+
+            @dsl.notebook_component(
+                notebook_path=nb_path, kfp_package_path=_KFP_PACKAGE_PATH)
+            def nb_comp(msg: str) -> str:
+                dsl.run_notebook(text=msg)
+
+                with open(
+                        '/tmp/kfp_nb_outputs/log.txt', 'r',
+                        encoding='utf-8') as f:
+                    return f.read()
+
+            @dsl.pipeline
+            def my_pipeline() -> str:
+                comp_result = nb_comp(msg='hi')
+                return comp_result.output
+
+            result = my_pipeline()
+            self.assertEqual(result.output, 'hi')
+
+        self.assert_output_dir_contents(1, 1)
+
+    def test_embedded_artifact_local_exec(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        import os as _os
+        import tempfile as _tempfile
+
+        with _tempfile.TemporaryDirectory() as srcdir:
+            with open(
+                    _os.path.join(srcdir, 'data.txt'), 'w',
+                    encoding='utf-8') as f:
+                f.write('EMBED')
+
+            @dsl.component(embedded_artifact_path=srcdir)
+            def use_embed(cfg: dsl.EmbeddedInput[dsl.Dataset]) -> dsl.Dataset:
+                out = dsl.Dataset(uri=dsl.get_uri('out'))
+                import os
+                import shutil
+                shutil.copy(os.path.join(cfg.path, 'data.txt'), out.path)
+                return out
+
+            @dsl.pipeline
+            def my_pipeline() -> dsl.Dataset:
+                return use_embed().output
+
+            task = my_pipeline()
+            out_ds = task.output
+            with open(out_ds.path, 'r', encoding='utf-8') as f:
+                self.assertEqual(f.read(), 'EMBED')
+            self.assert_output_dir_contents(1, 1)
+
+    def test_notebook_component_invalid_notebook_raises(self):
+        local.init(
+            local.SubprocessRunner(),
+            pipeline_root=ROOT_FOR_TESTING,
+            raise_on_error=True)
+
+        import os as _os
+        import tempfile as _tempfile
+
+        tmpdir = _tempfile.mkdtemp()
+        bad_nb = _os.path.join(tmpdir, 'bad.ipynb')
+        with open(bad_nb, 'w', encoding='utf-8') as f:
+            f.write('not a json')
+
+        @dsl.notebook_component(notebook_path=bad_nb,)
+        def nb_comp():
+            dsl.run_notebook()
+
+        @dsl.pipeline
+        def my_pipeline():
+            nb_comp()
+
+        with self.assertRaises(RuntimeError):
+            my_pipeline()
+
     def test_input_artifact_constant_not_permitted(self):
         local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
 
@@ -409,8 +561,12 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertAlmostEqual(task.output, 44.745992817228334)
         self.assert_output_dir_contents(1, 7)
 
-    def test_parallel_for_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_parallel_for_supported(self):
+        # Use use_venv=False to avoid pip race conditions when installing
+        # packages in parallel virtual environments
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def pass_op():
@@ -421,14 +577,108 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with dsl.ParallelFor([1, 2, 3]):
                 pass_op()
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"'dsl\.ParallelFor' is not supported by local pipeline execution\."
-        ):
-            my_pipeline()
+        # Should now execute successfully with enhanced orchestrator
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        # ParallelFor detection should route to enhanced orchestrator
+        # and execute tasks in parallel
 
-    def test_condition_not_supported(self):
-        local.init(local.SubprocessRunner())
+    def test_parallel_for_with_venv(self):
+        # Use use_venv=True with pip installation serialization enabled
+        # This test demonstrates the fix for pip race conditions
+        local.init(
+            local.SubprocessRunner(
+                use_venv=True,
+                serialize_pip_installs=True  # Enable serialization to prevent race conditions
+            ),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
+        import sys
+        numpy_version = 'numpy>=1.26.0' if sys.version_info >= (
+            3, 13) else 'numpy==1.24.3'
+
+        @dsl.component(packages_to_install=[numpy_version])
+        def package_using_op() -> List[int]:
+            import numpy as np
+            return np.array([1, 2, 3]).tolist()
+
+        @dsl.pipeline
+        def my_pipeline():
+            # Use more parallel tasks to increase chance of race condition
+            with dsl.ParallelFor([1, 2, 3, 4, 5, 6, 7, 8]):
+                package_using_op()
+
+        # This test now passes reliably with pip installation serialization
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+
+    def test_parallel_for_with_venv_race_condition(self):
+        # Use use_venv=True to demonstrate pip race conditions when installing
+        # packages in parallel virtual environments
+        local.init(
+            local.SubprocessRunner(
+                use_venv=True,
+                serialize_pip_installs=True  # Enable serialization to prevent race conditions
+            ),
+            pipeline_root=ROOT_FOR_TESTING)
+
+        # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
+        import sys
+        numpy_version = 'numpy>=1.26.0' if sys.version_info >= (
+            3, 13) else 'numpy==1.24.3'
+
+        @dsl.component(packages_to_install=[numpy_version])
+        def package_using_op() -> List[int]:
+            import numpy as np
+            return np.array([1, 2, 3]).tolist()
+
+        @dsl.pipeline
+        def my_pipeline():
+            # Use more parallel tasks to increase chance of race condition
+            with dsl.ParallelFor([1, 2, 3, 4, 5, 6, 7, 8]):
+                package_using_op()
+
+        # This test now passes reliably with pip installation serialization
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+
+    def test_parallel_for_with_max_concurrent_pip_installs(self):
+        # Use use_venv=True with pip installation serialization enabled
+        local.init(
+            local.SubprocessRunner(
+                use_venv=True,
+                serialize_pip_installs=False,  # Allow concurrent installs
+                max_concurrent_pip_installs=2,  # But limit to 2 concurrent
+            ),
+            pipeline_root=ROOT_FOR_TESTING,
+            raise_on_error=False)
+
+        # Use packages that require installation to demonstrate serialization
+        @dsl.component(packages_to_install=['requests==2.28.2'])
+        def network_task(url: str) -> str:
+            # Simple task that imports requests but doesn't make actual network calls
+            return f'Would fetch from {url}'
+
+        @dsl.pipeline
+        def my_pipeline():
+            # Use parallel tasks that will install packages concurrently
+            urls = ['http://example.com/' + str(i) for i in range(4)]
+            with dsl.ParallelFor(urls) as url:
+                network_task(url=url)
+
+        # This should work reliably with concurrent pip installations
+        task = my_pipeline()
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+
+        # Check concurrent execution stats
+        from kfp.local.pip_install_manager import pip_install_manager
+        stats = pip_install_manager.get_stats()
+        self.assertLessEqual(stats['concurrent_peak'],
+                             2)  # Should respect max concurrent limit
+
+    def test_condition_supported(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def pass_op():
@@ -439,11 +689,11 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with dsl.Condition(x == 'foo'):
                 pass_op()
 
-        with self.assertRaisesRegex(
-                NotImplementedError,
-                r"'dsl\.Condition' is not supported by local pipeline execution\."
-        ):
-            my_pipeline(x='bar')
+        # Should now execute successfully with enhanced orchestrator
+        task = my_pipeline(x='bar')
+        self.assertIsInstance(task, pipeline_task.PipelineTask)
+        # Condition detection should route to enhanced orchestrator
+        # and evaluate the condition (false in this case, so task is skipped)
 
     @mock.patch('sys.stdout', new_callable=stdlib_io.StringIO)
     def test_fails_with_raise_on_error_true(self, mock_stdout):
@@ -656,6 +906,71 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         task = my_pipeline()
         self.assertEqual(task.output, 'foo-bar-baz')
+
+    def test_workspace_functionality(self):
+        import tempfile
+
+        # Create temporary directory for workspace
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = os.path.join(temp_dir, 'workspace')
+            os.makedirs(workspace_root, exist_ok=True)
+
+            local.init(
+                local.SubprocessRunner(),
+                pipeline_root=ROOT_FOR_TESTING,
+                workspace_root=workspace_root)
+
+            @dsl.component
+            def write_to_workspace(text: str, workspace_path: str) -> str:
+                import os
+                output_file = os.path.join(workspace_path, 'output.txt')
+                with open(output_file, 'w') as f:
+                    f.write(text)
+                return output_file
+
+            @dsl.component
+            def read_from_workspace(file_path: str) -> str:
+                with open(file_path, 'r') as f:
+                    return f.read()
+
+            @dsl.pipeline(
+                pipeline_config=dsl.PipelineConfig(
+                    workspace=dsl.WorkspaceConfig(size='1Gi')))
+            def my_pipeline(text: str = 'Hello workspace!') -> str:
+                # Write to workspace
+                write_task = write_to_workspace(
+                    text=text, workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+                # Read from workspace
+                read_task = read_from_workspace(file_path=write_task.output)
+
+                return read_task.output
+
+            task = my_pipeline(text='Test workspace functionality!')
+            self.assertEqual(task.output, 'Test workspace functionality!')
+            self.assert_output_dir_contents(1, 2)
+
+    def test_docker_runner_workspace_functionality(self):
+        import tempfile
+
+        # Create temporary directory for workspace
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = os.path.join(temp_dir, 'workspace')
+            os.makedirs(workspace_root, exist_ok=True)
+
+            # Test that DockerRunner can be initialized with workspace
+            local.init(
+                local.DockerRunner(),
+                pipeline_root=ROOT_FOR_TESTING,
+                workspace_root=workspace_root)
+
+            # Verify that the workspace is properly configured
+            self.assertEqual(
+                local.config.LocalExecutionConfig.instance.workspace_root,
+                workspace_root)
+            self.assertEqual(
+                type(local.config.LocalExecutionConfig.instance.runner),
+                local.DockerRunner)
 
 
 class TestFstringContainerComponent(

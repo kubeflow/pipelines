@@ -1,0 +1,211 @@
+# PIPELINE DEFINITION
+# Name: test-node-affinity
+components:
+  comp-print-hello-with-empty-json:
+    executorLabel: exec-print-hello-with-empty-json
+  comp-print-hello-with-json-affinity:
+    executorLabel: exec-print-hello-with-json-affinity
+  comp-print-hello-with-json-affinity-2:
+    executorLabel: exec-print-hello-with-json-affinity-2
+  comp-print-hello-with-preferred-affinity:
+    executorLabel: exec-print-hello-with-preferred-affinity
+deploymentSpec:
+  executors:
+    exec-print-hello-with-empty-json:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_hello_with_empty_json
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_hello_with_empty_json():\n    pass\n\n"
+        image: python:3.11
+    exec-print-hello-with-json-affinity:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_hello_with_json_affinity
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_hello_with_json_affinity():\n    pass\n\n"
+        image: python:3.11
+    exec-print-hello-with-json-affinity-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_hello_with_json_affinity
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_hello_with_json_affinity():\n    pass\n\n"
+        image: python:3.11
+    exec-print-hello-with-preferred-affinity:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_hello_with_preferred_affinity
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_hello_with_preferred_affinity():\n    pass\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: test-node-affinity
+root:
+  dag:
+    tasks:
+      print-hello-with-empty-json:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-hello-with-empty-json
+        taskInfo:
+          name: print-hello-with-empty-json
+      print-hello-with-json-affinity:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-hello-with-json-affinity
+        taskInfo:
+          name: print-hello-with-json-affinity
+      print-hello-with-json-affinity-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-hello-with-json-affinity-2
+        taskInfo:
+          name: print-hello-with-json-affinity-2
+      print-hello-with-preferred-affinity:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-hello-with-preferred-affinity
+        taskInfo:
+          name: print-hello-with-preferred-affinity
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-print-hello-with-empty-json:
+          nodeAffinity:
+          - nodeAffinityJson:
+              runtimeValue:
+                constant: {}
+        exec-print-hello-with-json-affinity:
+          nodeAffinity:
+          - nodeAffinityJson:
+              runtimeValue:
+                constant:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                  - preference:
+                      matchExpressions:
+                      - key: disktype
+                        operator: In
+                        values:
+                        - ssd
+                    weight: 100.0
+        exec-print-hello-with-json-affinity-2:
+          nodeAffinity:
+          - nodeAffinityJson:
+              runtimeValue:
+                constant:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                  - preference:
+                      matchExpressions:
+                      - key: zone
+                        operator: In
+                        values:
+                        - us-west-1
+                    weight: 100.0
+                  - preference:
+                      matchExpressions:
+                      - key: instance-type
+                        operator: In
+                        values:
+                        - n1-standard-4
+                    weight: 50.0
+        exec-print-hello-with-preferred-affinity:
+          nodeAffinity:
+          - matchExpressions:
+            - key: zone
+              operator: In
+              values:
+              - us-west-1
+            weight: 50.0

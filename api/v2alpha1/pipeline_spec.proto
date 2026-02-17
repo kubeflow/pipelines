@@ -95,6 +95,8 @@ message ComponentSpec {
   }
   // Supports platform-specific component features.
   repeated SinglePlatformSpec single_platform_specs = 5;
+  // Specifies the task configurations that can be passed through to an external workload.
+  repeated TaskConfigPassthrough task_config_passthroughs = 6;
 }
 
 // A DAG contains multiple tasks.
@@ -442,7 +444,43 @@ message ParameterType {
     // Indicates that a parameter is a TaskFinalStatus type; these types can only accept inputs
     // specified by InputParameterSpec.task_final_status
     TASK_FINAL_STATUS = 7;
+    // Indicates that a parameter is a TaskConfig type; these types are
+    // injected by the backend to provide the configuration set on the task.
+    TASK_CONFIG = 8;
   }
+}
+
+
+// Represents the task configurations that can be passed through to an external workload.
+message TaskConfigPassthroughType {
+  enum TaskConfigPassthroughTypeEnum {
+    // Throwaway default value.
+    NONE = 0;
+    // Indicates that the resource limits and requests should be passed through to the external workload.
+    // Be cautious about also setting apply_to_task=true since that will double the resources required for
+    // the task.
+    RESOURCES = 1;
+    // Indicates that the environment variables should be passed through to the external workload.
+    // It is generally safe to always set apply_to_task=true on this field.
+    ENV = 2;
+    // Indicates that the Kubernetes node affinity should be passed through to the external workload.
+    KUBERNETES_AFFINITY = 3;
+    // Indicates that the Kubernetes node tolerations should be passed through to the external workload.
+    KUBERNETES_TOLERATIONS = 4;
+    // Indicates that the Kubernetes node selector should be passed through to the external workload.
+    KUBERNETES_NODE_SELECTOR = 5;
+    // Indicates that the Kubernetes persistent volumes and ConfigMaps/Secrets mounted as volumes should be
+    // passed through to the external workload. Be sure that when setting apply_to_task=true, the volumes are
+    // ReadWriteMany or ReadOnlyMany or else the task's pod may not start.
+    // This is useful when the task prepares a shared volume for the external workload or defines output artifact
+    // (e.g. dsl.Model) that is created by the external workload.
+    KUBERNETES_VOLUMES = 6;
+  }
+}
+
+message TaskConfigPassthrough {
+  TaskConfigPassthroughType.TaskConfigPassthroughTypeEnum field = 1;
+  bool apply_to_task = 2;
 }
 
 // The spec of a pipeline task.
@@ -830,11 +868,14 @@ message PipelineDeploymentConfig {
     map<string, ValueOrRuntimeParameter> custom_properties = 4
         [deprecated = true];
 
+    // Whether or not import an artifact regardless it has been imported before.
+    bool reimport = 5;
+
     // Properties of the Artifact.
     google.protobuf.Struct metadata = 6;
 
-    // Whether or not import an artifact regardless it has been imported before.
-    bool reimport = 5;
+    // If true, download artifact into the pipeline workspace.
+    bool download_to_workspace = 7;
   }
 
   // ResolverSpec resolves artifacts from historical metadata and returns them
@@ -929,6 +970,9 @@ message RuntimeArtifact {
 
   // Properties of the Artifact.
   google.protobuf.Struct metadata = 6;
+
+  // Custom path for output artifact.
+  optional string custom_path = 7;
 }
 
 // Message that represents a list of artifacts.
@@ -1125,17 +1169,11 @@ message KubernetesWorkspaceConfig {
 
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 message PipelineConfig {
-  // Name of the semaphore key to control pipeline concurrency
-  string semaphore_key = 1;
-
-  // Name of the mutex to ensure mutual exclusion
-  string mutex_name = 2;
-
   // Time to live configuration after the pipeline run is completed for
   // ephemeral resources created by the pipeline run.
-  int32 resource_ttl = 3;
+  int32 resource_ttl = 1;
 
   // Configuration for a shared storage workspace that persists for the duration of the pipeline run.
   // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
-  optional WorkspaceConfig workspace = 4;
+  optional WorkspaceConfig workspace = 2;
 }

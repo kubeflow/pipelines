@@ -6,14 +6,16 @@ package recurring_run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1CronSchedule CronSchedule allow scheduling the recurring run with unix-like cron.
+//
 // swagger:model v2beta1CronSchedule
 type V2beta1CronSchedule struct {
 
@@ -49,7 +51,6 @@ func (m *V2beta1CronSchedule) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1CronSchedule) validateEndTime(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.EndTime) { // not required
 		return nil
 	}
@@ -62,7 +63,6 @@ func (m *V2beta1CronSchedule) validateEndTime(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1CronSchedule) validateStartTime(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StartTime) { // not required
 		return nil
 	}
@@ -71,6 +71,11 @@ func (m *V2beta1CronSchedule) validateStartTime(formats strfmt.Registry) error {
 		return err
 	}
 
+	return nil
+}
+
+// ContextValidate validates this v2beta1 cron schedule based on context it is used
+func (m *V2beta1CronSchedule) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

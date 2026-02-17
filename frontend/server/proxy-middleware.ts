@@ -13,9 +13,9 @@
 // limitations under the License.
 
 import express from 'express';
-import proxy from 'http-proxy-middleware';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
   const index = referer.indexOf(proxyPrefix);
@@ -69,7 +69,7 @@ export default (app: express.Application, apisPrefix: string) => {
 
   app.all(
     proxyPrefix + '*',
-    proxy({
+    createProxyMiddleware({
       changeOrigin: true,
       logLevel: process.env.NODE_ENV === 'test' ? 'warn' : 'debug',
       target: 'http://127.0.0.1',
