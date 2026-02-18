@@ -250,9 +250,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       // This should be impossible to reach
       return;
     }
-    const selectedIds = event.target.checked
-      ? this.props.rows.map(v => v.id)
-      : [];
+    const selectedIds = event.target.checked ? this.props.rows.map(v => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }

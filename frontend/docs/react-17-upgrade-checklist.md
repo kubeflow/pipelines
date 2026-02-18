@@ -1,6 +1,6 @@
 # React 17 Upgrade Checklist (Frontend)
 
-Last updated: 2026-02-18 17:24 EST
+Last updated: 2026-02-18 18:31 EST
 
 Purpose: status tracker for the React 17 frontend upgrade. Completed items stay crossed out; this file tracks the remaining React 17 scope plus post-upgrade cleanup.
 
@@ -42,9 +42,19 @@ Purpose: status tracker for the React 17 frontend upgrade. Completed items stay 
 
 ## Active Plan (remaining to complete React 17)
 - [x] ~~Rebase `react-17-core-pr` on latest `master` after PR #12829 merge~~
-- [ ] Run final verification on this branch and capture results:
+- [x] ~~Run final verification on this branch and capture results~~:
   - `npm run test:ci`
   - `npm run build`
+
+## Latest Verification Notes (2026-02-18)
+- `npm run format:check` passed.
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test:ui:coverage:loop` (`--maxWorkers 4`) had 7 failures that were mostly 5s timeouts under local load.
+- Serial rerun of the same failing suites passed:
+  - `npx vitest run --maxWorkers 1 src/pages/NewExperiment.test.tsx src/pages/ExperimentDetails.test.tsx src/pages/NewRun.test.tsx src/pages/NewRunV2.test.tsx`
+- `npm run test:server:coverage` passed.
+- `npm run build` passed.
 
 ## Post-Upgrade Cleanup TODO (non-blocking)
 - [ ] Reduce remaining `react-dom/test-utils` usage in UI tests:
