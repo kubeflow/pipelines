@@ -20,14 +20,14 @@ import { classes, cssRaw } from 'typestyle';
 import { LineageTypedResource } from './LineageTypes';
 import { getResourceDescription, getResourceName } from './Utils';
 import { Artifact } from 'src/third_party/mlmd';
-import { CARD_ROW_CENTER_Y, EDGE_PORT_SIZE, px } from './LineageCss';
+import { CARD_ROW_CENTER_Y, CARD_ROW_HEIGHT, EDGE_PORT_SIZE, px } from './LineageCss';
 
 cssRaw(`
 .cardRow {
   align-items: center;
   border-bottom: 1px solid var(--grey-200);
   display: flex;
-  height: 54px;
+  height: ${px(CARD_ROW_HEIGHT)};
   padding: 6px 0px;
   position: relative;
 }

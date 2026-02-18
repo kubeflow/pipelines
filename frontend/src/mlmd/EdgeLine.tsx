@@ -28,17 +28,20 @@ interface EdgeLineProps {
 
 export const EdgeLine: React.FC<EdgeLineProps> = props => {
   const { height, width, y1, y4 } = props;
-  const points = [
-    { x: 0, y: y1 },
-    { x: HORIZONTAL_CONTROL_POINT_OFFSET, y: y1 },
-    { x: width - HORIZONTAL_CONTROL_POINT_OFFSET, y: y4 },
-    { x: width, y: y4 },
-  ];
-  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`);
+  // Legacy react-svg-line-chart rendered with an inverted Y axis.
+  // Preserve that orientation so edge direction matches existing lineage visuals.
+  const startY = height - y1;
+  const endY = height - y4;
+  const controlPointStartX = HORIZONTAL_CONTROL_POINT_OFFSET;
+  const controlPointEndX = width - HORIZONTAL_CONTROL_POINT_OFFSET;
+  const path = [
+    `M0,${startY}`,
+    `C${controlPointStartX},${startY} ${controlPointEndX},${endY} ${width},${endY}`,
+  ].join(' ');
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden='true'>
-      <path d={path.join(' ')} fill='none' stroke='#BDC1C6' strokeWidth={1} opacity={1} />
+      <path d={path} fill='none' stroke='#BDC1C6' strokeWidth={1} opacity={1} />
     </svg>
   );
 };
