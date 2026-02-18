@@ -100,7 +100,7 @@ interface TooltipPayloadEntry {
 interface TooltipContentProps {
   active?: boolean;
   label?: number | string;
-  payload?: TooltipPayloadEntry[];
+  payload?: ReadonlyArray<TooltipPayloadEntry>;
 }
 
 interface TooltipRow {
