@@ -26,17 +26,31 @@ import {
   YAxis,
 } from 'recharts';
 import Viewer, { ViewerConfig } from './Viewer';
-import { color, commonCss } from '../../Css';
+import { color, commonCss, fontsize } from '../../Css';
 import { stylesheet } from 'typestyle';
+
+const axisTickStyle = {
+  fill: color.grey,
+  fontSize: fontsize.small,
+  fontWeight: 400,
+} as const;
+
+const axisLabelStyle = {
+  fill: color.strong,
+  fontSize: fontsize.small + 1,
+  fontWeight: 500,
+} as const;
 
 const css = stylesheet({
   crosshair: {
-    backgroundColor: '#1d2744',
+    backgroundColor: color.tooltipBg,
     borderRadius: 5,
-    boxShadow: '1px 1px 5px #aaa',
+    boxShadow: `1px 1px 5px ${color.tooltipShadow}`,
+    color: color.background,
     padding: 10,
   },
   crosshairLabel: {
+    color: color.background,
     fontWeight: 'bold',
     whiteSpace: 'nowrap',
   },
@@ -211,14 +225,12 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             ticks={this.xTicks}
             interval={0}
             tickFormatter={(value: number) => value.toFixed(2)}
-            tick={{ fill: '#666', fontSize: 12, fontWeight: 400 }}
+            tick={axisTickStyle}
             label={{
               value: 'fpr',
               position: 'insideBottom',
               offset: 0,
-              fill: '#444',
-              fontSize: 13,
-              fontWeight: 500,
+              ...axisLabelStyle,
             }}
           />
           <YAxis
@@ -227,15 +239,13 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             ticks={this.yTicks}
             interval={0}
             tickFormatter={(value: number) => value.toFixed(1)}
-            tick={{ fill: '#666', fontSize: 12, fontWeight: 400 }}
+            tick={axisTickStyle}
             label={{
               value: 'tpr',
               angle: -90,
               position: 'insideLeft',
               offset: 14,
-              fill: '#444',
-              fontSize: 13,
-              fontWeight: 500,
+              ...axisLabelStyle,
             }}
           />
           <ReferenceLine
@@ -268,7 +278,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           )}
           {!isSmall && (
             <Tooltip
-              cursor={{ stroke: '#9aa0a6' }}
+              cursor={{ stroke: color.weak }}
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) {
                   return null;
