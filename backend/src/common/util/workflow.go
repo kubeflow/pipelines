@@ -880,26 +880,24 @@ func (wc *WorkflowClient) OnDeletePipelineVersion(pipelineVersionID string, name
 		return
 	}
 	// Clean up ConfigMap entries asynchronously to avoid blocking
-	defer func() {
-		go func() {
-			restConfig, err := GetKubernetesConfig()
-			if err != nil {
-				glog.Warningf("Failed to get Kubernetes config for ConfigMap cleanup: %v", err)
-				return
+	go func() {
+		restConfig, err := GetKubernetesConfig()
+		if err != nil {
+			glog.Warningf("Failed to get Kubernetes config for ConfigMap cleanup: %v", err)
+			return
+		}
+		clientset, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			glog.Warningf("Failed to create Kubernetes clientset for ConfigMap cleanup: %v", err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		for _, namespace := range namespaces {
+			if err := deletePipelineParallelismConfigMapEntry(ctx, clientset.CoreV1().ConfigMaps(namespace), namespace, pipelineVersionID); err != nil {
+				glog.Warningf("Failed to delete pipeline parallelism ConfigMap entry: %v", err)
 			}
-			clientset, err := kubernetes.NewForConfig(restConfig)
-			if err != nil {
-				glog.Warningf("Failed to create Kubernetes clientset for ConfigMap cleanup: %v", err)
-				return
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			for _, namespace := range namespaces {
-				if err := deletePipelineParallelismConfigMapEntry(ctx, clientset.CoreV1().ConfigMaps(namespace), namespace, pipelineVersionID); err != nil {
-					glog.Warningf("Failed to delete pipeline parallelism ConfigMap entry: %v", err)
-				}
-			}
-		}()
+		}
 	}()
 }
 
