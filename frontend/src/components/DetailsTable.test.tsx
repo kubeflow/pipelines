@@ -19,9 +19,9 @@ import * as React from 'react';
 import DetailsTable from './DetailsTable';
 import { render } from '@testing-library/react';
 
-jest.mock('./Editor', () => {
-  return ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>;
-});
+vi.mock('./Editor', () => ({
+  default: ({ value }: { value: string }) => <pre data-testid='Editor'>{value}</pre>,
+}));
 
 describe('DetailsTable', () => {
   it('shows no rows', () => {
@@ -39,15 +39,15 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value
             </span>
@@ -62,21 +62,21 @@ describe('DetailsTable', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="header2"
+          class="header2_f1tq2tps"
         >
           some title
         </div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value
             </span>
@@ -109,15 +109,15 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               Lorem Ipsum is simply dummy text of the printing and typesetting
             industry. Lorem Ipsum has been the industry's standard dummy text ever
@@ -141,15 +141,15 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value
             </span>
@@ -167,10 +167,10 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
@@ -195,10 +195,10 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
@@ -219,10 +219,10 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
@@ -243,15 +243,15 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               null
             </span>
@@ -267,15 +267,15 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               10
             </span>
@@ -291,15 +291,15 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               "some string"
             </span>
@@ -322,29 +322,29 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key1
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               true
             </span>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key2
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               false
             </span>
@@ -373,24 +373,24 @@ describe('DetailsTable', () => {
       <div>
         <div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key1
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value1
             </span>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key2
             </span>
@@ -405,38 +405,38 @@ describe('DetailsTable', () => {
             </pre>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key3
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value3
             </span>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key4
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value4
             </span>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key5
             </span>
@@ -451,43 +451,43 @@ describe('DetailsTable', () => {
             </pre>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key6
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value6
             </span>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key6
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               value7
             </span>
           </div>
           <div
-            class="row"
+            class="row_f16w1c9n"
           >
             <span
-              class="key"
+              class="key_f1e93q8f"
             >
               key
             </span>
             <span
-              class="valueText"
+              class="valueText_f1nujmdy"
             >
               [object Object]
             </span>

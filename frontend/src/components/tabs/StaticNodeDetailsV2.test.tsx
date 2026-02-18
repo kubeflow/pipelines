@@ -19,12 +19,8 @@ import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { StaticNodeDetailsV2 } from './StaticNodeDetailsV2';
-import fs from 'fs';
-
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
-const V2_SUBDAG_PIPELINE_PATH = 'src/data/test/pipeline_with_loops_and_conditions.yaml';
-const v2YamlSubDagTemplateString = fs.readFileSync(V2_SUBDAG_PIPELINE_PATH, 'utf8');
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import v2YamlSubDagTemplateString from 'src/data/test/pipeline_with_loops_and_conditions.yaml?raw';
 
 testBestPractices();
 

@@ -1,31 +1,65 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`CollapseButton initial render 1`] = `
-<div>
-  <WithStyles(Button)
-    className="collapseBtn"
-    onClick={[Function]}
-    title="Expand/Collapse this section"
-  >
-    <pure(ArrowDropUpIcon)
-      className="icon"
-    />
-    testSection
-  </WithStyles(Button)>
-</div>
+exports[`CollapseButton > initial render 1`] = `
+<DocumentFragment>
+  <div>
+    <button
+      class="MuiButtonBase-root MuiButton-root MuiButton-text collapseBtn_flpzte2"
+      tabindex="0"
+      title="Expand/Collapse this section"
+      type="button"
+    >
+      <span
+        class="MuiButton-label"
+      >
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root icon_f12h700d"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 14l5-5 5 5z"
+          />
+        </svg>
+        testSection
+      </span>
+      <span
+        class="MuiTouchRipple-root"
+      />
+    </button>
+  </div>
+</DocumentFragment>
 `;
 
-exports[`CollapseButton renders the button collapsed if in collapsedSections 1`] = `
-<div>
-  <WithStyles(Button)
-    className="collapseBtn"
-    onClick={[Function]}
-    title="Expand/Collapse this section"
-  >
-    <pure(ArrowDropUpIcon)
-      className="icon collapsed"
-    />
-    testSection
-  </WithStyles(Button)>
-</div>
+exports[`CollapseButton > renders the button collapsed if in collapsedSections 1`] = `
+<DocumentFragment>
+  <div>
+    <button
+      class="MuiButtonBase-root MuiButton-root MuiButton-text collapseBtn_flpzte2"
+      tabindex="0"
+      title="Expand/Collapse this section"
+      type="button"
+    >
+      <span
+        class="MuiButton-label"
+      >
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root icon_f12h700d collapsed_f18a0vkk"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 14l5-5 5 5z"
+          />
+        </svg>
+        testSection
+      </span>
+      <span
+        class="MuiTouchRipple-root"
+      />
+    </button>
+  </div>
+</DocumentFragment>
 `;

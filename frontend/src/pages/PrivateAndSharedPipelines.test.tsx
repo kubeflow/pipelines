@@ -42,10 +42,10 @@ function generatePageProps(): PageProps {
     location: '' as any,
     match: {} as any,
     toolbarProps: {} as any,
-    updateBanner: jest.fn(),
-    updateDialog: jest.fn(),
-    updateSnackbar: jest.fn(),
-    updateToolbar: jest.fn(),
+    updateBanner: vi.fn(),
+    updateDialog: vi.fn(),
+    updateSnackbar: vi.fn(),
+    updateToolbar: vi.fn(),
   };
 }
 
@@ -69,8 +69,8 @@ describe('PrivateAndSharedPipelines', () => {
     initialEntries: ['/does-not-matter'],
   });
   beforeEach(() => {
-    jest.clearAllMocks();
-    let listPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
+    vi.clearAllMocks();
+    let listPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
     listPipelineSpy.mockImplementation((...args) => {
       const response: V2beta1ListPipelinesResponse = {
         pipelines: [oldPipeline, newPipeline],
@@ -81,7 +81,7 @@ describe('PrivateAndSharedPipelines', () => {
   });
 
   afterEach(async () => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('it renders correctly in multi user mode', async () => {

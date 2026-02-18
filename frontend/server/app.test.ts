@@ -11,23 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { vi, describe, it, expect, afterAll, afterEach, beforeEach, Mock } from 'vitest';
 import express from 'express';
 
-import fetch from 'node-fetch';
 import requests from 'supertest';
 
-import { UIServer } from './app';
-import { loadConfigs } from './configs';
-import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper';
+import { UIServer } from './app.js';
+import { loadConfigs } from './configs.js';
+import { TEST_ONLY as K8S_TEST_EXPORT } from './k8s-helper.js';
 import { Server } from 'http';
-import { commonSetup } from './integration-tests/test-helper';
+import { commonSetup } from './integration-tests/test-helper.js';
 
-jest.mock('node-fetch');
+const mockedFetch = vi.fn();
+vi.stubGlobal('fetch', mockedFetch);
 
 // TODO: move sections of tests here to individual files in `frontend/server/integration-tests/`
 // for better organization and shorter/more focused tests.
 
-const mockedFetch: jest.Mock = fetch as any;
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('UIServer apis', () => {
   let app: UIServer;
@@ -35,14 +38,58 @@ describe('UIServer apis', () => {
   const commitHash = 'abcdefg';
   const { argv, buildDate, indexHtmlContent } = commonSetup({ tagName, commitHash });
 
-  afterEach(() => {
+  async function waitForListening(server: Server): Promise<void> {
+    if (server.listening) {
+      return;
+    }
+    await new Promise<void>((resolve, reject) => {
+      const onListening = (): void => {
+        cleanup();
+        resolve();
+      };
+      const onError = (err: Error): void => {
+        cleanup();
+        reject(err);
+      };
+      const cleanup = (): void => {
+        server.off('listening', onListening);
+        server.off('error', onError);
+      };
+
+      server.on('listening', onListening);
+      server.on('error', onError);
+    });
+  }
+
+  afterEach(async () => {
     if (app) {
-      app.close();
+      await app.close();
     }
   });
 
+  it('allows restarting on the same port after close resolves', async () => {
+    app = new UIServer(loadConfigs(argv, {}));
+
+    const firstServer = app.start(0);
+    await waitForListening(firstServer);
+    const firstAddress = firstServer.address();
+    if (!firstAddress || typeof firstAddress === 'string') {
+      throw new Error('Expected first server to bind to a TCP port');
+    }
+
+    await app.close();
+
+    const secondServer = app.start(firstAddress.port);
+    await waitForListening(secondServer);
+    const secondAddress = secondServer.address();
+    if (!secondAddress || typeof secondAddress === 'string') {
+      throw new Error('Expected second server to bind to a TCP port');
+    }
+    expect(secondAddress.port).toBe(firstAddress.port);
+  });
+
   describe('/', () => {
-    it('responds with unmodified index.html if it is not a kubeflow deployment', done => {
+    it('responds with unmodified index.html if it is not a kubeflow deployment', async () => {
       const expectedIndexHtml = `
 <html>
 <head>
@@ -56,14 +103,14 @@ describe('UIServer apis', () => {
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get('/')
         .expect('Content-Type', 'text/html; charset=utf-8')
-        .expect(200, expectedIndexHtml, done);
+        .expect(200, expectedIndexHtml);
     });
 
-    it('responds with a modified index.html if it is a kubeflow deployment and sets HIDE_SIDENAV', done => {
+    it('responds with a modified index.html if it is a kubeflow deployment and sets HIDE_SIDENAV', async () => {
       const expectedIndexHtml = `
 <html>
 <head>
@@ -77,14 +124,14 @@ describe('UIServer apis', () => {
       const configs = loadConfigs(argv, { DEPLOYMENT: 'kubeflow' });
       app = new UIServer(configs);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get('/')
         .expect('Content-Type', 'text/html; charset=utf-8')
-        .expect(200, expectedIndexHtml, done);
+        .expect(200, expectedIndexHtml);
     });
 
-    it('responds with flag DEPLOYMENT=MARKETPLACE if it is a marketplace deployment', done => {
+    it('responds with flag DEPLOYMENT=MARKETPLACE if it is a marketplace deployment', async () => {
       const expectedIndexHtml = `
 <html>
 <head>
@@ -98,15 +145,15 @@ describe('UIServer apis', () => {
       const configs = loadConfigs(argv, { DEPLOYMENT: 'marketplace' });
       app = new UIServer(configs);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get('/')
         .expect('Content-Type', 'text/html; charset=utf-8')
-        .expect(200, expectedIndexHtml, done);
+        .expect(200, expectedIndexHtml);
     });
   });
 
-  it('responds with flag HIDE_SIDENAV=false even when DEPLOYMENT=KUBEFLOW', done => {
+  it('responds with flag HIDE_SIDENAV=false even when DEPLOYMENT=KUBEFLOW', async () => {
     const expectedIndexHtml = `
 <html>
 <head>
@@ -120,36 +167,33 @@ describe('UIServer apis', () => {
     const configs = loadConfigs(argv, { DEPLOYMENT: 'KUBEFLOW', HIDE_SIDENAV: 'false' });
     app = new UIServer(configs);
 
-    const request = requests(app.start());
-    request
+    const request = requests(app.app);
+    await request
       .get('/')
       .expect('Content-Type', 'text/html; charset=utf-8')
-      .expect(200, expectedIndexHtml, done);
+      .expect(200, expectedIndexHtml);
   });
 
   describe('/apis/v1beta1/healthz', () => {
-    it('responds with apiServerReady to be false if ml-pipeline api server is not ready.', done => {
+    it('responds with apiServerReady to be false if ml-pipeline api server is not ready.', async () => {
       (fetch as any).mockImplementationOnce((_url: string, _opt: any) => ({
         json: () => Promise.reject('Unknown error'),
       }));
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      requests(app.start())
+      const res = await requests(app.app)
         .get('/apis/v1beta1/healthz')
-        .expect(
-          200,
-          {
-            apiServerReady: false,
-            buildDate,
-            frontendCommitHash: commitHash,
-            frontendTagName: tagName,
-          },
-          done,
-        );
+        .expect(200);
+      expect(res.body).toMatchObject({
+        apiServerReady: false,
+        frontendCommitHash: commitHash,
+        frontendTagName: tagName,
+      });
+      expect(res.body).toHaveProperty('buildDate');
     });
 
-    it('responds with both ui server and ml-pipeline api state if ml-pipeline api server is also ready.', done => {
+    it('responds with both ui server and ml-pipeline api state if ml-pipeline api server is also ready.', async () => {
       (fetch as any).mockImplementationOnce((_url: string, _opt: any) => ({
         json: () =>
           Promise.resolve({
@@ -161,28 +205,25 @@ describe('UIServer apis', () => {
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      requests(app.start())
+      const res = await requests(app.app)
         .get('/apis/v1beta1/healthz')
-        .expect(
-          200,
-          {
-            apiServerCommitHash: 'commit_sha',
-            apiServerTagName: '1.0.0',
-            apiServerMultiUser: false,
-            multi_user: false,
-            apiServerReady: true,
-            buildDate,
-            frontendCommitHash: commitHash,
-            frontendTagName: tagName,
-          },
-          done,
-        );
+        .expect(200);
+      expect(res.body).toMatchObject({
+        apiServerCommitHash: 'commit_sha',
+        apiServerTagName: '1.0.0',
+        apiServerMultiUser: false,
+        multi_user: false,
+        apiServerReady: true,
+        frontendCommitHash: commitHash,
+        frontendTagName: tagName,
+      });
+      expect(res.body).toHaveProperty('buildDate');
     });
   });
 
   describe('/system', () => {
     describe('/cluster-name', () => {
-      it('responds with cluster name data from gke metadata', done => {
+      it('responds with cluster name data from gke metadata', async () => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/instance/attributes/cluster-name'
             ? Promise.resolve({ ok: true, text: () => Promise.resolve('test-cluster') })
@@ -190,13 +231,13 @@ describe('UIServer apis', () => {
         );
         app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
-        const request = requests(app.start());
-        request
+        const request = requests(app.app);
+        await request
           .get('/system/cluster-name')
           .expect('Content-Type', 'text/html; charset=utf-8')
-          .expect(200, 'test-cluster', done);
+          .expect(200, 'test-cluster');
       });
-      it('responds with 500 status code if corresponding endpoint is not ok', done => {
+      it('responds with 500 status code if corresponding endpoint is not ok', async () => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/instance/attributes/cluster-name'
             ? Promise.resolve({ ok: false, text: () => Promise.resolve('404 not found') })
@@ -204,22 +245,22 @@ describe('UIServer apis', () => {
         );
         app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
-        const request = requests(app.start());
-        request.get('/system/cluster-name').expect(500, 'Failed fetching GKE cluster name', done);
+        const request = requests(app.app);
+        await request.get('/system/cluster-name').expect(500, 'Failed fetching GKE cluster name');
       });
-      it('responds with endpoint disabled if DISABLE_GKE_METADATA env is true', done => {
+      it('responds with endpoint disabled if DISABLE_GKE_METADATA env is true', async () => {
         const configs = loadConfigs(argv, { DISABLE_GKE_METADATA: 'true' });
         app = new UIServer(configs);
 
-        const request = requests(app.start());
-        request
+        const request = requests(app.app);
+        await request
           .get('/system/cluster-name')
-          .expect(500, 'GKE metadata endpoints are disabled.', done);
+          .expect(500, 'GKE metadata endpoints are disabled.');
       });
     });
 
     describe('/project-id', () => {
-      it('responds with project id data from gke metadata', done => {
+      it('responds with project id data from gke metadata', async () => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/project/project-id'
             ? Promise.resolve({ ok: true, text: () => Promise.resolve('test-project') })
@@ -227,10 +268,10 @@ describe('UIServer apis', () => {
         );
         app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
-        const request = requests(app.start());
-        request.get('/system/project-id').expect(200, 'test-project', done);
+        const request = requests(app.app);
+        await request.get('/system/project-id').expect(200, 'test-project');
       });
-      it('responds with 500 status code if metadata request is not ok', done => {
+      it('responds with 500 status code if metadata request is not ok', async () => {
         mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
           url === 'http://metadata/computeMetadata/v1/project/project-id'
             ? Promise.resolve({ ok: false, text: () => Promise.resolve('404 not found') })
@@ -238,14 +279,14 @@ describe('UIServer apis', () => {
         );
         app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'false' }));
 
-        const request = requests(app.start());
-        request.get('/system/project-id').expect(500, 'Failed fetching GKE project id', done);
+        const request = requests(app.app);
+        await request.get('/system/project-id').expect(500, 'Failed fetching GKE project id');
       });
-      it('responds with endpoint disabled if DISABLE_GKE_METADATA env is true', done => {
+      it('responds with endpoint disabled if DISABLE_GKE_METADATA env is true', async () => {
         app = new UIServer(loadConfigs(argv, { DISABLE_GKE_METADATA: 'true' }));
 
-        const request = requests(app.start());
-        request.get('/system/project-id').expect(500, 'GKE metadata endpoints are disabled.', done);
+        const request = requests(app.app);
+        await request.get('/system/project-id').expect(500, 'GKE metadata endpoints are disabled.');
       });
     });
   });
@@ -254,36 +295,30 @@ describe('UIServer apis', () => {
     let request: requests.SuperTest<requests.Test>;
     beforeEach(() => {
       app = new UIServer(loadConfigs(argv, {}));
-      request = requests(app.start());
+      request = requests(app.app);
     });
 
-    it('asks for podname if not provided', done => {
-      request.get('/k8s/pod').expect(422, 'podname argument is required', done);
+    it('asks for podname if not provided', async () => {
+      await request.get('/k8s/pod').expect(422, 'podname argument is required');
     });
 
-    it('asks for podnamespace if not provided', done => {
-      request
+    it('asks for podnamespace if not provided', async () => {
+      await request
         .get('/k8s/pod?podname=test-pod')
-        .expect(422, 'podnamespace argument is required', done);
+        .expect(422, 'podnamespace argument is required');
     });
 
-    it('responds with pod info in JSON', done => {
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
-      readPodSpy.mockImplementation(() =>
-        Promise.resolve({
-          body: { kind: 'Pod' }, // only body is used
-        } as any),
-      );
-      request
+    it('responds with pod info in JSON', async () => {
+      const readPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() => Promise.resolve({ kind: 'Pod' } as any));
+      await request
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
-        .expect(200, '{"kind":"Pod"}', err => {
-          expect(readPodSpy).toHaveBeenCalledWith('test-pod', 'test-ns');
-          done(err);
-        });
+        .expect(200, '{"kind":"Pod"}');
+      expect(readPodSpy).toHaveBeenCalledWith({ name: 'test-pod', namespace: 'test-ns' });
     });
 
-    it('responds with error when failed to retrieve pod info', done => {
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+    it('responds with error when failed to retrieve pod info', async () => {
+      const readPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
       readPodSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -292,17 +327,15 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
-      request
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
+      await request
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
-        .expect(500, 'Could not get pod test-pod in namespace test-ns', () => {
-          expect(spyError).toHaveBeenCalledTimes(1);
-          done();
-        });
+        .expect(500, 'Could not get pod test-pod in namespace test-ns');
+      expect(spyError).toHaveBeenCalledTimes(1);
     });
 
-    it('responds with error when invalid resource name', done => {
-      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+    it('responds with error when invalid resource name', async () => {
+      const readPodSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
       readPodSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -311,15 +344,13 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
-      request
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
+      await request
         .get(
           '/k8s/pod?podname=test-pod-name&podnamespace=test-namespace%7d%7dt93g1%3Cscript%3Ealert(1)%3C%2fscript%3Ej66h',
         )
-        .expect(500, 'Invalid resource name', err => {
-          expect(spyError).toHaveBeenCalledTimes(1);
-          done(err);
-        });
+        .expect(500, 'Invalid resource name');
+      expect(spyError).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -327,12 +358,14 @@ describe('UIServer apis', () => {
     let authServer: Server;
     const authPort = 3002;
 
-    beforeEach(() => {
-      authServer = express()
-        .post('/apis/v1beta1/auth', (_, res) => {
-          res.status(401).send('Unauthorized');
-        })
-        .listen(authPort);
+    beforeEach(async () => {
+      authServer = await new Promise<Server>(resolve => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
 
       app = new UIServer(
         loadConfigs(argv, {
@@ -343,15 +376,17 @@ describe('UIServer apis', () => {
       );
     });
 
-    afterEach(done => {
-      authServer.close(() => done());
+    afterEach(async () => {
+      if (authServer) {
+        await new Promise<void>(resolve => authServer.close(() => resolve()));
+      }
     });
 
-    it('responds with 403 when authorization is rejected', done => {
-      const authRequest = requests(app.start());
-      authRequest
+    it('responds with 403 when authorization is rejected', async () => {
+      const authRequest = requests(app.app);
+      await authRequest
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
-        .expect(403, 'Access denied to namespace', done);
+        .expect(403, 'Access denied to namespace');
     });
   });
 
@@ -359,42 +394,34 @@ describe('UIServer apis', () => {
     let request: requests.SuperTest<requests.Test>;
     beforeEach(() => {
       app = new UIServer(loadConfigs(argv, {}));
-      request = requests(app.start());
+      request = requests(app.app);
     });
 
-    it('asks for podname if not provided', done => {
-      request.get('/k8s/pod/events').expect(422, 'podname argument is required', done);
+    it('asks for podname if not provided', async () => {
+      await request.get('/k8s/pod/events').expect(422, 'podname argument is required');
     });
 
-    it('asks for podnamespace if not provided', done => {
-      request
+    it('asks for podnamespace if not provided', async () => {
+      await request
         .get('/k8s/pod/events?podname=test-pod')
-        .expect(422, 'podnamespace argument is required', done);
+        .expect(422, 'podnamespace argument is required');
     });
 
-    it('responds with pod info in JSON', done => {
-      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
-      listEventSpy.mockImplementation(() =>
-        Promise.resolve({
-          body: { kind: 'EventList' }, // only body is used
-        } as any),
-      );
-      request
+    it('responds with pod info in JSON', async () => {
+      const listEventSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() => Promise.resolve({ kind: 'EventList' } as any));
+      await request
         .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
-        .expect(200, '{"kind":"EventList"}', err => {
-          expect(listEventSpy).toHaveBeenCalledWith(
-            'test-ns',
-            undefined,
-            undefined,
-            undefined,
-            'involvedObject.namespace=test-ns,involvedObject.name=test-pod,involvedObject.kind=Pod',
-          );
-          done(err);
-        });
+        .expect(200, '{"kind":"EventList"}');
+      expect(listEventSpy).toHaveBeenCalledWith({
+        namespace: 'test-ns',
+        fieldSelector:
+          'involvedObject.namespace=test-ns,involvedObject.name=test-pod,involvedObject.kind=Pod',
+      });
     });
 
-    it('responds with error when failed to retrieve pod info', done => {
-      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+    it('responds with error when failed to retrieve pod info', async () => {
+      const listEventSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
       listEventSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -403,17 +430,15 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
-      request
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
+      await request
         .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
-        .expect(500, 'Error when listing pod events for pod test-pod in namespace test-ns', err => {
-          expect(spyError).toHaveBeenCalledTimes(1);
-          done(err);
-        });
+        .expect(500, 'Error when listing pod events for pod test-pod in namespace test-ns');
+      expect(spyError).toHaveBeenCalledTimes(1);
     });
 
-    it('responds with error when invalid resource name', done => {
-      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+    it('responds with error when invalid resource name', async () => {
+      const listEventSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
       listEventSpy.mockImplementation(() =>
         Promise.reject({
           body: {
@@ -422,15 +447,13 @@ describe('UIServer apis', () => {
           },
         } as any),
       );
-      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
-      request
+      const spyError = vi.spyOn(console, 'error').mockImplementation(() => null);
+      await request
         .get(
           '/k8s/pod/events?podname=test-pod-name&podnamespace=test-namespace%7d%7dt93g1%3Cscript%3Ealert(1)%3C%2fscript%3Ej66h',
         )
-        .expect(500, 'Invalid resource name', err => {
-          expect(spyError).toHaveBeenCalledTimes(1);
-          done(err);
-        });
+        .expect(500, 'Invalid resource name');
+      expect(spyError).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -438,12 +461,14 @@ describe('UIServer apis', () => {
     let authServer: Server;
     const authPort = 3003;
 
-    beforeEach(() => {
-      authServer = express()
-        .post('/apis/v1beta1/auth', (_, res) => {
-          res.status(401).send('Unauthorized');
-        })
-        .listen(authPort);
+    beforeEach(async () => {
+      authServer = await new Promise<Server>(resolve => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
 
       app = new UIServer(
         loadConfigs(argv, {
@@ -454,15 +479,17 @@ describe('UIServer apis', () => {
       );
     });
 
-    afterEach(done => {
-      authServer.close(() => done());
+    afterEach(async () => {
+      if (authServer) {
+        await new Promise<void>(resolve => authServer.close(() => resolve()));
+      }
     });
 
-    it('responds with 403 when authorization is rejected', done => {
-      const authRequest = requests(app.start());
-      authRequest
+    it('responds with 403 when authorization is rejected', async () => {
+      const authRequest = requests(app.app);
+      await authRequest
         .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
-        .expect(403, 'Access denied to namespace', done);
+        .expect(403, 'Access denied to namespace');
     });
   });
 
@@ -470,11 +497,11 @@ describe('UIServer apis', () => {
     let request: requests.SuperTest<requests.Test>;
     beforeEach(() => {
       app = new UIServer(loadConfigs(argv, {}));
-      request = requests(app.start());
+      request = requests(app.app);
     });
 
-    it('asks for podname if not provided', done => {
-      request.get('/k8s/pod/logs').expect(400, 'podname argument is required', done);
+    it('asks for podname if not provided', async () => {
+      await request.get('/k8s/pod/logs').expect(400, 'podname argument is required');
     });
   });
 
@@ -482,12 +509,14 @@ describe('UIServer apis', () => {
     let authServer: Server;
     const authPort = 3004;
 
-    beforeEach(() => {
-      authServer = express()
-        .post('/apis/v1beta1/auth', (_, res) => {
-          res.status(401).send('Unauthorized');
-        })
-        .listen(authPort);
+    beforeEach(async () => {
+      authServer = await new Promise<Server>(resolve => {
+        const server = express()
+          .post('/apis/v1beta1/auth', (_, res) => {
+            res.status(401).send('Unauthorized');
+          })
+          .listen(authPort, () => resolve(server));
+      });
 
       app = new UIServer(
         loadConfigs(argv, {
@@ -498,15 +527,24 @@ describe('UIServer apis', () => {
       );
     });
 
-    afterEach(done => {
-      authServer.close(() => done());
+    afterEach(async () => {
+      if (authServer) {
+        await new Promise<void>(resolve => authServer.close(() => resolve()));
+      }
     });
 
-    it('responds with 403 when authorization is rejected', done => {
-      const authRequest = requests(app.start());
-      authRequest
+    it('responds with 403 when authorization is rejected', async () => {
+      const authRequest = requests(app.app);
+      await authRequest
         .get('/k8s/pod/logs?podname=test-pod&podnamespace=test-ns')
-        .expect(403, 'Access denied to namespace', done);
+        .expect(403, 'Access denied to namespace');
+    });
+
+    it('asks for podnamespace if not provided when authorization is enabled', async () => {
+      const authRequest = requests(app.app);
+      await authRequest
+        .get('/k8s/pod/logs?podname=test-pod')
+        .expect(422, 'podnamespace argument is required');
     });
   });
 
@@ -527,58 +565,55 @@ describe('UIServer apis', () => {
           ML_PIPELINE_SERVICE_HOST: 'localhost',
         }),
       );
-      request = requests(app.start());
+      request = requests(app.app);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       if (kfpApiServer) {
-        kfpApiServer.close();
+        await new Promise<void>(resolve => kfpApiServer.close(() => resolve()));
       }
     });
 
-    it('rejects reportMetrics because it is not public kfp api', done => {
+    it('rejects reportMetrics because it is not public kfp api', async () => {
       const runId = 'a-random-run-id';
-      request
+      await request
         .post(`/apis/v1beta1/runs/${runId}:reportMetrics`)
         .expect(
           403,
           '/apis/v1beta1/runs/a-random-run-id:reportMetrics endpoint is not meant for external usage.',
-          done,
         );
     });
 
-    it('rejects reportWorkflow because it is not public kfp api', done => {
+    it('rejects reportWorkflow because it is not public kfp api', async () => {
       const workflowId = 'a-random-workflow-id';
-      request
+      await request
         .post(`/apis/v1beta1/workflows/${workflowId}`)
         .expect(
           403,
           '/apis/v1beta1/workflows/a-random-workflow-id endpoint is not meant for external usage.',
-          done,
         );
     });
 
-    it('rejects reportScheduledWorkflow because it is not public kfp api', done => {
+    it('rejects reportScheduledWorkflow because it is not public kfp api', async () => {
       const swf = 'a-random-swf-id';
-      request
+      await request
         .post(`/apis/v1beta1/scheduledworkflows/${swf}`)
         .expect(
           403,
           '/apis/v1beta1/scheduledworkflows/a-random-swf-id endpoint is not meant for external usage.',
-          done,
         );
     });
 
-    it('does not reject similar apis', done => {
-      request // use reportMetrics as runId to see if it can confuse route parsing
+    it('does not reject similar apis', async () => {
+      await request // use reportMetrics as runId to see if it can confuse route parsing
         .post(`/apis/v1beta1/runs/xxx-reportMetrics:archive`)
-        .expect(200, 'KFP API is working', done);
+        .expect(200, 'KFP API is working');
     });
 
-    it('proxies other run apis', done => {
-      request
+    it('proxies other run apis', async () => {
+      await request
         .post(`/apis/v1beta1/runs/a-random-run-id:archive`)
-        .expect(200, 'KFP API is working', done);
+        .expect(200, 'KFP API is working');
     });
   });
 });

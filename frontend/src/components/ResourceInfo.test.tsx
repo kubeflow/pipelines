@@ -61,7 +61,7 @@ describe('ResourceInfo', () => {
     );
     expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent))
       .toMatchInlineSnapshot(`
-      Array [
+      [
         "Properties",
         "Custom Properties",
       ]

@@ -11,24 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import fetch from 'node-fetch';
-import { awsInstanceProfileCredentials, isAWSS3Endpoint } from './aws-helper';
-
-// mock node-fetch module
-jest.mock('node-fetch');
+import { vi, describe, it, expect, afterAll, beforeEach, Mock } from 'vitest';
+import { awsInstanceProfileCredentials, isAWSS3Endpoint } from './aws-helper.js';
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const mockedFetch = vi.fn();
+
 beforeEach(() => {
   awsInstanceProfileCredentials.reset();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
+  vi.stubGlobal('fetch', mockedFetch);
+});
+
+afterAll(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('awsInstanceProfileCredentials', () => {
-  const mockedFetch: jest.Mock = fetch as any;
-
   describe('getCredentials', () => {
     it('retrieves, caches, and refreshes the AWS EC2 instance profile and session credentials everytime it is called.', async () => {
       let count = 0;

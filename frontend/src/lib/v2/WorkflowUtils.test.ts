@@ -22,13 +22,12 @@ import {
 } from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
 import * as features from 'src/features';
-import fs from 'fs';
+import v2LightweightYaml from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import jsyaml from 'js-yaml';
 
-const V2_LW_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const V2_LW_YAML_TEMPLATE_STRING = fs.readFileSync(V2_LW_PIPELINESPEC_PATH, 'utf8');
-const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
-const V2_PVC_YAML_STRING = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
+const V2_LW_YAML_TEMPLATE_STRING = v2LightweightYaml;
+const V2_PVC_YAML_STRING = v2PvcYamlString;
 // The templateStr used in WorkflowUtils is not directly from yaml file.
 // Instead, it is from BE (already been processed).
 const V2_PVC_TEMPLATE_STRING_OBJ = {
@@ -64,16 +63,16 @@ describe('WorkflowUtils', () => {
   });
 
   it('detects v2 template (yaml file without k8s platform spec)', () => {
-    jest
-      .spyOn(features, 'isFeatureEnabled')
-      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+    );
     expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
   });
 
   it('detects v2 template (yaml file with k8s platform spec)', () => {
-    jest
-      .spyOn(features, 'isFeatureEnabled')
-      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+    );
     expect(isTemplateV2(V2_PVC_TEMPLATE_STRING)).toBeTruthy();
   });
 

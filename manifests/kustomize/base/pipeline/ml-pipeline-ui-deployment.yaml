@@ -16,6 +16,7 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       volumes:
@@ -40,6 +41,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         env:
           - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
             value: /etc/config/viewer-pod-template.json
@@ -67,6 +70,12 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
+          - name: CLUSTER_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: CLUSTER_DOMAIN
+                optional: true
           - name: ARTIFACTS_SERVICE_PROXY_ENABLED
             valueFrom:
               configMapKeyRef:

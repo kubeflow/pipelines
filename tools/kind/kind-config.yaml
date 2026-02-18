@@ -2,7 +2,7 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
-  # Expose the UI, MySQL, MLMD, Minio, and the visualization server
+  # Expose the UI, MySQL, MLMD, SeaweedFS, and the visualization server
   extraPortMappings:
   - containerPort: 30300
     hostPort: 3000

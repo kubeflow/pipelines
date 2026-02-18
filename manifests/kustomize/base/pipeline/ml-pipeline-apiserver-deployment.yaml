@@ -16,6 +16,7 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -37,6 +38,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: CLUSTER_DOMAIN
+              value: "cluster.local"
             - name: OBJECTSTORECONFIG_SECURE
               value: "false"
             - name: OBJECTSTORECONFIG_BUCKETNAME
@@ -45,7 +48,7 @@ spec:
                   name: pipeline-install-config
                   key: bucketName
             - name: OBJECTSTORECONFIG_HOST
-              value: "minio-service.kubeflow"
+              value: "seaweedfs.kubeflow"
             - name: OBJECTSTORECONFIG_PORT
               value: "9000"
             # relic variables
@@ -169,6 +172,8 @@ spec:
             capabilities:
               drop:
                 - ALL
+            seccompProfile:
+              type: RuntimeDefault
           resources:
             requests:
               cpu: 250m
