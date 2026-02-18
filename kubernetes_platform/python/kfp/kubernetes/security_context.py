@@ -26,12 +26,21 @@ def set_security_context(
 ) -> PipelineTask:
     """Set the security context for the task's container.
 
-    Sets fields on the container's
+    Sets identity fields (``runAsUser``, ``runAsGroup``) on the container's
     `securityContext
     <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.26/#securitycontext-v1-core>`_.
 
     All capabilities are automatically dropped to comply with Pod Security
     Standards (PSS) baseline.
+
+    Note:
+        Platform security defaults (``allowPrivilegeEscalation=false``,
+        ``drop ALL capabilities``, ``seccompProfile=RuntimeDefault``) are
+        enforced separately by the compiler and are not affected by this
+        function. If an administrator or the compiler has already set
+        ``runAsUser`` or ``runAsGroup``, the values provided here will be
+        ignored and a warning will be logged by the backend. Admin-set
+        security context values cannot be overridden by the SDK.
 
     Args:
         task: Pipeline task.
