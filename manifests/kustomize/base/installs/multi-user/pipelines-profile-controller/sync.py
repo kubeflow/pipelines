@@ -142,7 +142,10 @@ def fill_json_template(path, **kwargs):
     with open(path, "r") as file:
         loaded_template = file.read()
 
-    if loaded_template == "":
+    # Treat empty and whitespace-only templates as "no template".
+    # This avoids json.JSONDecodeError when the file contains only
+    # whitespace or newlines, which is easy to introduce when editing.
+    if not loaded_template.strip():
         return []
 
     template = Template(loaded_template)
@@ -364,9 +367,25 @@ def server_factory(
             )
 
             # Exclude secrets from the print statement
-            non_secret_resources = [
-                r for r in desired_resources if r["kind"] != "Secret"
-            ]
+            non_secret_resources = []
+            invalid_resources = []
+            for r in desired_resources:
+                if not isinstance(r, dict):
+                    invalid_resources.append(r)
+                    continue
+                kind = r.get("kind")
+                if kind is None:
+                    invalid_resources.append(r)
+                    continue
+                if kind != "Secret":
+                    non_secret_resources.append(r)
+            if invalid_resources:
+                # Log malformed resources instead of failing the controller.
+                print(
+                    "Warning: Skipping malformed desired_resources items "
+                    "without a valid 'kind' when logging:",
+                    json.dumps(invalid_resources, sort_keys=True),
+                )
             print("Received request:\n", json.dumps(parent, sort_keys=True))
             print(
                 "Desired resources except secrets:\n",
