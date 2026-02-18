@@ -6,7 +6,7 @@ readme = { text = "This file contains REST API specification for Kubeflow Pipeli
 license = { text = "Apache-2.0" }
 requires-python = ">=3.9"
 authors = [
-  { name = "google", email = "kubeflow-pipelines@google.com" }
+  { name = "The Kubeflow Authors" }
 ]
 keywords = ["OpenAPI", "OpenAPI-Generator", "Kubeflow Pipelines API"]
 dependencies = [
