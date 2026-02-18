@@ -375,8 +375,7 @@ func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
 	require.Equal(t, pb.Execution_CACHED, state)
 
 	// Third run with a different PVC name should still hit cache,
-	// because the component uses a fixed cacheKey that does not
-	// include the PVC name in its cache fingerprint.
+	// because the component uses a fixed cacheKey.
 	otherPVCName := fmt.Sprintf("%s-alt", pvcName)
 	// Create the alternate PVC so the pipeline can mount it
 	pvcAlt := &v1.PersistentVolumeClaim{
