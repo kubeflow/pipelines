@@ -44,6 +44,11 @@ FROM alpine:3.21
 
 COPY --from=builder /test.tar.gz /
 RUN tar -xzvf /test.tar.gz
+
+# Run as non-root user for security hardening
+RUN adduser -S -u 1000 appuser
+USER appuser
+
 WORKDIR /test/integration
 
 ENTRYPOINT [ "./run.sh" ]

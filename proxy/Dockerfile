@@ -36,4 +36,8 @@ RUN mv kubectl /usr/local/bin/
 
 ADD ./ /opt/proxy
 
+# Run as non-root user for security hardening
+RUN adduser --system --uid 1000 appuser
+USER appuser
+
 CMD ["/bin/sh", "-c", "/opt/proxy/attempt-register-vm-on-proxy.sh"]

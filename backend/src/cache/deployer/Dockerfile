@@ -18,4 +18,8 @@ RUN chmod +x webhook-patch-ca-bundle.sh
 
 COPY third_party/license.txt /third_party/license.txt
 
+# Run as non-root user for security hardening
+RUN adduser -S -u 1000 appuser
+USER appuser
+
 ENTRYPOINT ["/bin/sh", "/kfp/cache/deployer/deploy-cache-service.sh"]

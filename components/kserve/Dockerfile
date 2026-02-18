@@ -10,5 +10,9 @@ ENV APP_HOME /app
 COPY src $APP_HOME
 WORKDIR $APP_HOME
 
+# Run as non-root user for security hardening
+RUN adduser --system --uid 1000 appuser
+USER appuser
+
 ENTRYPOINT ["python"]
 CMD ["kservedeployer.py"]

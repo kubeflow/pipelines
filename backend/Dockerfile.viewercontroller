@@ -36,6 +36,9 @@ WORKDIR /bin
 COPY --from=builder /bin/controller /bin/controller
 RUN chmod +x /bin/controller
 
+# Run as non-root user for security hardening
+RUN adduser -S -u 1000 appuser
+USER appuser
 
 ENV MAX_NUM_VIEWERS "50"
 ENV NAMESPACE "kubeflow"

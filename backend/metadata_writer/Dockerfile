@@ -4,4 +4,9 @@ COPY backend/metadata_writer/requirements.txt /kfp/metadata_writer/
 RUN python3 -m pip install -r /kfp/metadata_writer/requirements.txt
 
 COPY backend/metadata_writer/src/* /kfp/metadata_writer/
+
+# Run as non-root user for security hardening
+RUN adduser --system --uid 1000 appuser
+USER appuser
+
 CMD python3 -u /kfp/metadata_writer/metadata_writer.py

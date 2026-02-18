@@ -16,9 +16,22 @@ spec:
         control-plane: controller-manager
         controller-tools.k8s.io: "1.0"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - command:
           - /kube-app-manager
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+              - ALL
+            seccompProfile:
+              type: RuntimeDefault
           # Built from https://github.com/kubernetes-sigs/application master branch on the date specified in the image tag.
           image: gcr.io/ml-pipeline/application-crd-controller:20231101
           imagePullPolicy: IfNotPresent

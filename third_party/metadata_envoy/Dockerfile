@@ -22,4 +22,8 @@ RUN apt-get update -y && \
 #RUN mkdir -p /third_party
 COPY third_party/metadata_envoy/license.txt /third_party/license.txt
 
+# Run as non-root user for security hardening
+# The envoy base image provides uid 101 (envoy user)
+USER 101
+
 ENTRYPOINT ["/usr/local/bin/envoy", "-c"]

@@ -32,5 +32,9 @@ WORKDIR /server
 EXPOSE 3000
 RUN npm ci
 RUN npm run build
+
+# Run as non-root user for security hardening
+USER node
+
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000

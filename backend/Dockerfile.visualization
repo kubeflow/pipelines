@@ -37,4 +37,8 @@ RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 COPY backend/src/apiserver/visualization /src
 
+# Run as non-root user for security hardening
+RUN adduser --system --uid 1000 appuser
+USER appuser
+
 ENTRYPOINT [ "python3", "server.py" ]

@@ -15,9 +15,22 @@ spec:
         app: cloudsqlproxy
     spec:
       serviceAccountName: kubeflow-pipelines-cloudsql-proxy
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - image: gcr.io/cloudsql-docker/gce-proxy:1.25.0
           name: cloudsqlproxy
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+              - ALL
+            seccompProfile:
+              type: RuntimeDefault
           env:            
             - name: GCP_CLOUDSQL_INSTANCE_NAME
               valueFrom:

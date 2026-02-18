@@ -14,8 +14,21 @@ spec:
         app: proxy-agent
     spec:
       hostNetwork: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - image: ghcr.io/kubeflow/kfp-inverse-proxy-agent:dummy
         imagePullPolicy: IfNotPresent
         name: proxy-agent
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
       serviceAccountName: proxy-agent-runner
