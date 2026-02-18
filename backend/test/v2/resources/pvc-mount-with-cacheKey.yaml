@@ -80,6 +80,7 @@ root:
       consumer:
         cachingOptions:
           enableCache: true
+          cacheKey: consumerCacheKey
         componentRef:
           name: comp-consumer
         dependentTasks:
@@ -89,6 +90,7 @@ root:
       producer:
         cachingOptions:
           enableCache: true
+          cacheKey: producerCacheKey
         componentRef:
           name: comp-producer
         taskInfo:
