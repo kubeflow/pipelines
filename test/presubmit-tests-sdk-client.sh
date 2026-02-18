@@ -14,19 +14,5 @@
 # limitations under the License.
 
 source_root=$(pwd)
-SETUP_ENV="${SETUP_ENV:-true}"
-
-if [ "${SETUP_ENV}" = "true" ]; then
-  # Generate proto files (requires Docker)
-  cd api/
-  make clean python
-  cd ..
-
-  # Sync all dependencies using uv
-  uv sync --extra ci
-
-  # Install workspace packages in editable mode
-  uv pip install -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
-fi
 
 uv run python -m pytest sdk/python/test/client/ -v -s -m client --cov=kfp

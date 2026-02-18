@@ -4,10 +4,6 @@ inputs:
   python-version:
     description: "Python version to use"
     required: true
-  extra:
-    description: "Extra dependencies group to install (e.g., 'ci', 'dev')"
-    required: false
-    default: "ci"
 runs:
   using: "composite"
   steps:
@@ -20,9 +16,5 @@ runs:
       uses: astral-sh/setup-uv@v7
 
     - name: Install dependencies
-      run: uv sync --python ${{ inputs.python-version }} --extra ${{ inputs.extra }}
-      shell: bash
-
-    - name: Ensure pip is available in venv
-      run: uv pip install pip setuptools wheel
+      run: uv sync --python ${{ inputs.python-version }} --extra ci
       shell: bash

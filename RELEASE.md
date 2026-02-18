@@ -216,6 +216,10 @@ Once done you should see a diff in `requirements.txt`. Confirm the changes.
 
 Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
 
+Also update the `kfp-kubernetes==` pin in `sdk/python/pyproject.toml` to match the new version.
+
+Also update the `kfp-pipeline-spec==` and `kfp-server-api==` pins in `sdk/python/pyproject.toml` and the `kfp==` pin in `kubernetes_platform/python/pyproject.toml` to match the new version.
+
 #### Update `kfp-kubernetes` requirements
 
 If this version of `kfp-kubernetes` depends on new api changes to: 

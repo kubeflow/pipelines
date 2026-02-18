@@ -68,7 +68,7 @@ jobs:
       - name: Install requirements
         id: install-requirements
         if: ${{ steps.install-kfp-k8s-deps.outcome == 'success' }}
-        run: uv pip install -r ./test/kfp-kubernetes-native-migration-tests/requirements.txt
+        run: uv pip install pytest-mock kubernetes
 
       - name: Create test pipelines in DB mode
         if: ${{ steps.install-requirements.outcome == 'success' }}

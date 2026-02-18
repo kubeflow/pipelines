@@ -49,11 +49,15 @@ test = [
   "absl-py",
   "docker",
   "google-cloud-pipeline-components",
+  "kubernetes",
   "nbformat",
   "pip",
   "pytest",
   "pytest-cov",
+  "pytest-mock",
   "pytest-xdist",
+  "setuptools",
+  "wheel",
 ]
 
 # Development (lint + test + type checking)

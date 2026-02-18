@@ -27,19 +27,14 @@ pushd "$PKG_ROOT/.."
 make clean-python python USE_FIND_LINKS=${USE_FIND_LINKS}
 popd
 
-# Use uv run if available to pick up the venv, otherwise fall back to python
-if command -v uv &> /dev/null; then
-    SETUPPY_VERSION=$(uv run python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
-else
-    SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
-fi
+SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
 
 if [ -z "$KFP_KUBERNETES_VERSION" ]
 then
     echo "Set \$KFP_KUBERNETES_VERSION to use this script. Got empty variable."
 elif [[ "$KFP_KUBERNETES_VERSION" != "$SETUPPY_VERSION" ]]
 then
-    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in setup.py '$SETUPPY_VERSION'."
+    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in __init__.py '$SETUPPY_VERSION'."
 else
     echo "Got version $KFP_KUBERNETES_VERSION from env var \$KFP_KUBERNETES_VERSION"
 
