@@ -66,9 +66,6 @@ const css = stylesheet({
     marginRight: 6,
     width: 10,
   },
-  root: {
-    margin: 'auto',
-  },
 });
 
 // Used the following color palette, with some slight brightness modifications, as reference:
@@ -192,7 +189,6 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           width={width}
           height={height}
           data={chartData}
-          className={css.root}
           margin={{ top: 5, right: 5, bottom: 20, left: 32 }}
           onMouseDown={
             !isSmall

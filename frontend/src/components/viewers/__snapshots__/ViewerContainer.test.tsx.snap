@@ -139,7 +139,7 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
 <DocumentFragment>
   <div>
     <div
-      class="recharts-wrapper root_ftu9a9a"
+      class="recharts-wrapper"
       height="520"
       style="position: relative; cursor: default; width: 800px; height: 520px;"
       width="800"

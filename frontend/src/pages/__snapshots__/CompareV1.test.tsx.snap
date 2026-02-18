@@ -2078,7 +2078,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
             </div>
             <div>
               <div
-                class="recharts-wrapper root_ftu9a9a"
+                class="recharts-wrapper"
                 height="260"
                 style="position: relative; cursor: default; width: 400px; height: 260px;"
                 width="400"
@@ -2366,7 +2366,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
             </div>
             <div>
               <div
-                class="recharts-wrapper root_ftu9a9a"
+                class="recharts-wrapper"
                 height="260"
                 style="position: relative; cursor: default; width: 400px; height: 260px;"
                 width="400"
@@ -2623,7 +2623,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
             </div>
             <div>
               <div
-                class="recharts-wrapper root_ftu9a9a"
+                class="recharts-wrapper"
                 height="260"
                 style="position: relative; cursor: default; width: 400px; height: 260px;"
                 width="400"
