@@ -3,8 +3,13 @@ from unittest import mock
 from unittest.mock import MagicMock
 import threading
 import sync
-from sync import (get_settings_from_env, server_factory, fill_json_template,
-                  load_desired_resources, compute_desired_status)
+from sync import (
+    get_settings_from_env,
+    server_factory,
+    fill_json_template,
+    load_desired_resources,
+    compute_desired_status,
+)
 import json
 
 import pytest
@@ -30,9 +35,7 @@ EXISTING_SECRET = {
 DATA_CORRECT_ATTACHMENTS = {
     "object": {
         "metadata": {
-            "labels": {
-                "pipelines.kubeflow.org/enabled": "true"
-            },
+            "labels": {"pipelines.kubeflow.org/enabled": "true"},
             "name": NAMESPACE,
         }
     },
@@ -47,16 +50,14 @@ DATA_CORRECT_ATTACHMENTS = {
         },
         "Deployment.apps/v1": {},
         "Service.v1": {},
-    }
+    },
 }
 
 # Attachments with incorrect counts (nothing exists yet)
 DATA_INCORRECT_ATTACHMENTS = {
     "object": {
         "metadata": {
-            "labels": {
-                "pipelines.kubeflow.org/enabled": "true"
-            },
+            "labels": {"pipelines.kubeflow.org/enabled": "true"},
             "name": NAMESPACE,
         }
     },
@@ -65,7 +66,7 @@ DATA_INCORRECT_ATTACHMENTS = {
         "ConfigMap.v1": {},
         "Deployment.apps/v1": {},
         "Service.v1": {},
-    }
+    },
 }
 
 DATA_MISSING_PIPELINE_ENABLED = {"object": {}, "attachments": {}}
@@ -84,28 +85,36 @@ ENV_VARIABLES_BASE = {
     "CONTROLLER_PORT": "0",  # HTTPServer randomly assigns the port to a free port
 }
 
-ENV_KFP_VERSION_ONLY = dict(ENV_VARIABLES_BASE,
-                            **{
-                                "KFP_VERSION": KFP_VERSION,
-                            })
+ENV_KFP_VERSION_ONLY = dict(
+    ENV_VARIABLES_BASE,
+    **{
+        "KFP_VERSION": KFP_VERSION,
+    },
+)
 
-ENV_IMAGES_WITH_TAGS = dict(ENV_VARIABLES_BASE,
-                            **{
-                                "FRONTEND_IMAGE": FRONTEND_IMAGE,
-                                "FRONTEND_TAG": FRONTEND_TAG,
-                            })
+ENV_IMAGES_WITH_TAGS = dict(
+    ENV_VARIABLES_BASE,
+    **{
+        "FRONTEND_IMAGE": FRONTEND_IMAGE,
+        "FRONTEND_TAG": FRONTEND_TAG,
+    },
+)
 
-ENV_IMAGES_WITH_TAGS_AND_ISTIO = dict(ENV_IMAGES_WITH_TAGS,
-                                      **{
-                                          "DISABLE_ISTIO_SIDECAR": "false",
-                                          "ARTIFACTS_PROXY_ENABLED": "false",
-                                          "ARTIFACT_RETENTION_DAYS": "-1",
-                                      })
+ENV_IMAGES_WITH_TAGS_AND_ISTIO = dict(
+    ENV_IMAGES_WITH_TAGS,
+    **{
+        "DISABLE_ISTIO_SIDECAR": "false",
+        "ARTIFACTS_PROXY_ENABLED": "false",
+        "ARTIFACT_RETENTION_DAYS": "-1",
+    },
+)
 
-ENV_WITH_PROXY_ENABLED = dict(ENV_IMAGES_WITH_TAGS,
-                              **{
-                                  "ARTIFACTS_PROXY_ENABLED": "true",
-                              })
+ENV_WITH_PROXY_ENABLED = dict(
+    ENV_IMAGES_WITH_TAGS,
+    **{
+        "ARTIFACTS_PROXY_ENABLED": "true",
+    },
+)
 
 
 def generate_image_name(imagename, tag):
@@ -124,8 +133,9 @@ def mock_iam_and_s3():
     }
     mock_s3 = MagicMock()
 
-    with mock.patch.object(sync, 'iam', mock_iam), \
-         mock.patch.object(sync, 's3', mock_s3):
+    with mock.patch.object(
+        sync, "default_client_factory", return_value=(mock_s3, mock_iam)
+    ):
         yield mock_iam, mock_s3
 
 
@@ -181,9 +191,7 @@ class TestFillJsonTemplate:
     def test_fills_placeholders(self, tmp_path):
         """Template placeholders are replaced with provided values."""
         template_file = tmp_path / "template.json"
-        template_file.write_text(
-            '[{"name": "${name}", "namespace": "${ns}"}]'
-        )
+        template_file.write_text('[{"name": "${name}", "namespace": "${ns}"}]')
         result = fill_json_template(
             str(template_file), name="my-resource", ns="default"
         )
@@ -275,14 +283,17 @@ class TestLoadDesiredResources:
             object_store_host="seaweedfs",
         )
         ar = next(
-            r for r in resources
+            r
+            for r in resources
             if r["metadata"]["name"] == "artifact-repositories"
         )
         data = json.loads(ar["data"]["default-namespaced"])
         assert data["s3"]["bucket"] == "mlpipeline"
         assert "test-ns" in data["s3"]["keyFormat"]
-        assert data["s3"]["endpoint"] == \
-            "seaweedfs.kubeflow.svc.cluster.local:9000"
+        assert (
+            data["s3"]["endpoint"]
+            == "seaweedfs.kubeflow.svc.cluster.local:9000"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -304,10 +315,9 @@ class TestLoadDesiredResources:
             True,
         ),
     ],
-    indirect=["sync_server"]
+    indirect=["sync_server"],
 )
-def test_sync_server_with_pipeline_enabled(
-        sync_server, data, expected_ready):
+def test_sync_server_with_pipeline_enabled(sync_server, data, expected_ready):
     """
     Nearly end-to-end test of how Controller serves .sync as a POST.
 
@@ -320,7 +330,7 @@ def test_sync_server_with_pipeline_enabled(
     x = requests.post(url, data=json.dumps(data))
     results = json.loads(x.text)
 
-    assert results['status']['kubeflow-pipelines-ready'] is expected_ready
+    assert results["status"]["kubeflow-pipelines-ready"] is expected_ready
 
     # Verify ConfigMap resources are present in attachments
     resource_names = [
@@ -342,10 +352,11 @@ def test_sync_server_with_pipeline_enabled(
             True,
         ),
     ],
-    indirect=["sync_server_from_arguments"]
+    indirect=["sync_server_from_arguments"],
 )
 def test_sync_server_with_direct_passing_of_settings(
-        sync_server_from_arguments, data, expected_ready):
+    sync_server_from_arguments, data, expected_ready
+):
     """
     Nearly end-to-end test of how Controller serves .sync as a POST,
     taking variables as arguments.
@@ -356,7 +367,7 @@ def test_sync_server_with_direct_passing_of_settings(
     x = requests.post(url, data=json.dumps(data))
     results = json.loads(x.text)
 
-    assert results['status']['kubeflow-pipelines-ready'] is expected_ready
+    assert results["status"]["kubeflow-pipelines-ready"] is expected_ready
 
 
 @pytest.mark.parametrize(
@@ -364,10 +375,11 @@ def test_sync_server_with_direct_passing_of_settings(
     [
         (ENV_IMAGES_WITH_TAGS, DATA_MISSING_PIPELINE_ENABLED, {}, []),
     ],
-    indirect=["sync_server"]
+    indirect=["sync_server"],
 )
-def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status,
-                                              expected_attachments):
+def test_sync_server_without_pipeline_enabled(
+    sync_server, data, expected_status, expected_attachments
+):
     """
     Tests case where metadata.labels.pipelines.kubeflow.org/enabled does not
     exist and thus server returns an empty reply.
@@ -378,8 +390,8 @@ def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status
     x = requests.post(url, data=json.dumps(data))
     results = json.loads(x.text)
 
-    assert results['status'] == expected_status
-    assert results['attachments'] == expected_attachments
+    assert results["status"] == expected_status
+    assert results["attachments"] == expected_attachments
 
 
 @pytest.mark.parametrize(
@@ -387,7 +399,7 @@ def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status
     [
         (ENV_WITH_PROXY_ENABLED, DATA_CORRECT_ATTACHMENTS),
     ],
-    indirect=["sync_server"]
+    indirect=["sync_server"],
 )
 def test_sync_server_with_proxy_enabled(sync_server, data):
     """
@@ -408,27 +420,26 @@ def test_sync_server_with_proxy_enabled(sync_server, data):
     deployment = next(
         r for r in results["attachments"] if r["kind"] == "Deployment"
     )
-    container_image = (
-        deployment["spec"]["template"]["spec"]["containers"][0]["image"]
-    )
-    assert container_image == generate_image_name(
-        FRONTEND_IMAGE, FRONTEND_TAG
-    )
+    container_image = deployment["spec"]["template"]["spec"]["containers"][0][
+        "image"
+    ]
+    assert container_image == generate_image_name(FRONTEND_IMAGE, FRONTEND_TAG)
 
 
 def test_create_iam_client_uses_endpoint(monkeypatch):
     called = {}
 
     class DummySession:
-        def create_client(self, service_name, region_name=None, endpoint_url=None):
+        def create_client(
+            self, service_name, region_name=None, endpoint_url=None
+        ):
             called["service_name"] = service_name
             called["endpoint_url"] = endpoint_url
             return object()
 
     monkeypatch.setenv("AWS_ENDPOINT_URL", "http://seaweedfs.kubeflow:8111")
-    monkeypatch.setattr(sync, "session", DummySession())
 
-    sync.create_iam_client()
+    sync.create_iam_client(DummySession())
 
     assert called["service_name"] == "iam"
     assert called["endpoint_url"] == "http://seaweedfs.kubeflow:8111"

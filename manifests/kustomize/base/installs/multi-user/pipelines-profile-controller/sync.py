@@ -22,27 +22,17 @@ from string import Template
 # From awscli installed in alpine/k8s image
 import botocore.session
 
-S3_BUCKET_NAME = "mlpipeline"
-
 _TEMPLATE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-session = botocore.session.get_session()
-# S3 client for lifecycle policy management
-s3_endpoint_url = os.environ.get(
-    "S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333"
-)
-s3 = session.create_client(
-    "s3", region_name="foobar", endpoint_url=s3_endpoint_url
-)
 
 
 def _normalize_domain(domain):
     return domain if domain.startswith(".") else "." + domain
 
 
-def create_iam_client():
+def create_iam_client(session, endpoint_url=None):
     # To interact with SeaweedFS user management. Region does not matter.
-    endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
+    if endpoint_url is None:
+        endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
     if endpoint_url:
         return session.create_client(
             "iam", region_name="foobar", endpoint_url=endpoint_url
@@ -50,7 +40,13 @@ def create_iam_client():
     return session.create_client("iam", region_name="foobar")
 
 
-iam = create_iam_client()
+def default_client_factory(s3_endpoint_url, aws_endpoint_url):
+    session = botocore.session.get_session()
+    s3 = session.create_client(
+        "s3", region_name="foobar", endpoint_url=s3_endpoint_url
+    )
+    iam = create_iam_client(session, endpoint_url=aws_endpoint_url)
+    return s3, iam
 
 
 def main():
@@ -68,6 +64,10 @@ def get_settings_from_env(
     artifact_retention_days=None,
     cluster_domain=None,
     object_store_host=None,
+    s3_bucket_name=None,
+    s3_secret_name=None,
+    s3_endpoint_url=None,
+    aws_endpoint_url=None,
 ):
     """
     Returns a dict of settings from environment variables relevant to the
@@ -106,6 +106,20 @@ def get_settings_from_env(
 
     settings["object_store_host"] = object_store_host or os.environ.get(
         "OBJECT_STORE_HOST", "seaweedfs"
+    )
+
+    settings["s3_secret_name"] = s3_secret_name or os.environ.get(
+        "S3_SECRET_NAME", "mlpipeline-minio-artifact"
+    )
+
+    settings["s3_bucket_name"] = s3_bucket_name or os.environ.get(
+        "S3_BUCKET_NAME", "mlpipeline"
+    )
+    settings["s3_endpoint_url"] = s3_endpoint_url or os.environ.get(
+        "S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333"
+    )
+    settings["aws_endpoint_url"] = aws_endpoint_url or os.environ.get(
+        "AWS_ENDPOINT_URL"
     )
 
     # Look for specific tags for each image first, falling back to
@@ -279,12 +293,21 @@ def server_factory(
     artifact_retention_days,
     cluster_domain=".svc.cluster.local",
     object_store_host="seaweedfs",
+    s3_bucket_name="mlpipeline",
+    s3_secret_name="mlpipeline-minio-artifact",
+    s3_endpoint_url="http://seaweedfs.kubeflow:8333",
+    aws_endpoint_url=None,
     url="",
     controller_port=8080,
+    client_factory=None,
 ):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
+
+    if client_factory is None:
+        client_factory = default_client_factory
+    s3, iam = client_factory(s3_endpoint_url, aws_endpoint_url)
 
     class Controller(BaseHTTPRequestHandler):
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
@@ -405,7 +428,7 @@ def server_factory(
             # reuse it. Otherwise create new IAM credentials on
             # seaweedfs for the namespace.
             if s3_secret := attachments["Secret.v1"].get(
-                f"{namespace}/mlpipeline-minio-artifact"
+                f"{namespace}/{s3_secret_name}"
             ):
                 desired_resources.append(s3_secret)
                 print("Using existing secret")
@@ -430,10 +453,10 @@ def server_factory(
                                         "s3:List*",
                                     ],
                                     "Resource": [
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
+                                        f"arn:aws:s3:::{s3_bucket_name}/artifacts/*",
+                                        f"arn:aws:s3:::{s3_bucket_name}/private-artifacts/{namespace}/*",
+                                        f"arn:aws:s3:::{s3_bucket_name}/private/{namespace}/*",
+                                        f"arn:aws:s3:::{s3_bucket_name}/shared/*",
                                     ],
                                 }
                             ],
@@ -442,14 +465,14 @@ def server_factory(
                 )
 
                 self.upsert_lifecycle_policy(
-                    S3_BUCKET_NAME, artifact_retention_days
+                    s3_bucket_name, artifact_retention_days
                 )
 
                 s3_secret = {
                     "apiVersion": "v1",
                     "kind": "Secret",
                     "metadata": {
-                        "name": "mlpipeline-minio-artifact",
+                        "name": s3_secret_name,
                         "namespace": namespace,
                     },
                     "data": {
