@@ -124,6 +124,8 @@ interface ROCCurveState {
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   private cachedConfigs: ROCCurveConfig[] | null = null;
   private cachedChartData: Array<Record<string, number | null>> = [];
+  private readonly xTicks = Array.from({ length: 20 }, (_, i) => Number((i * 0.05).toFixed(2)));
+  private readonly yTicks = Array.from({ length: 10 }, (_, i) => Number((i * 0.1).toFixed(1)));
 
   constructor(props: any) {
     super(props);
@@ -166,6 +168,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           height={height}
           data={chartData}
           className={css.root}
+          margin={{ top: 5, right: 5, bottom: 20, left: 32 }}
           onMouseDown={
             !isSmall
               ? e => {
@@ -209,14 +212,35 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             type='number'
             dataKey='x'
             domain={xDomain}
-            tick={{ fontSize: fontsize.medium, fontWeight: 700 }}
-            label={{ value: 'fpr', position: 'insideBottom', offset: -6 }}
+            ticks={this.xTicks}
+            interval={0}
+            tickFormatter={(value: number) => value.toFixed(2)}
+            tick={{ fill: '#666', fontSize: 12, fontWeight: 400 }}
+            label={{
+              value: 'fpr',
+              position: 'insideBottom',
+              offset: 0,
+              fill: '#444',
+              fontSize: 13,
+              fontWeight: 500,
+            }}
           />
           <YAxis
             type='number'
             domain={[0, 1]}
-            tick={{ fontSize: fontsize.medium, fontWeight: 700 }}
-            label={{ value: 'tpr', angle: -90, position: 'insideLeft' }}
+            ticks={this.yTicks}
+            interval={0}
+            tickFormatter={(value: number) => value.toFixed(1)}
+            tick={{ fill: '#666', fontSize: 12, fontWeight: 400 }}
+            label={{
+              value: 'tpr',
+              angle: -90,
+              position: 'insideLeft',
+              offset: 14,
+              fill: '#444',
+              fontSize: 13,
+              fontWeight: 500,
+            }}
           />
           <ReferenceLine
             segment={[

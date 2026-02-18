@@ -37,11 +37,11 @@ exports[`ROCCurve > does not break on empty data 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
                 y1="5"
@@ -49,15 +49,15 @@ exports[`ROCCurve > does not break on empty data 1`] = `
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="485"
-                y2="485"
+                y1="470"
+                y2="470"
               />
             </g>
             <g
@@ -65,27 +65,27 @@ exports[`ROCCurve > does not break on empty data 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
-                x2="65"
+                width="703"
+                x="92"
+                x1="92"
+                x2="92"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
+                width="703"
+                x="92"
                 x1="795"
                 x2="795"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
             </g>
           </g>
@@ -98,9 +98,9 @@ exports[`ROCCurve > does not break on empty data 1`] = `
             id="recharts3-clip"
           >
             <rect
-              height="480"
-              width="730"
-              x="65"
+              height="465"
+              width="703"
+              x="92"
               y="5"
             />
           </clippath>
@@ -130,13 +130,13 @@ exports[`ROCCurve > does not break on empty data 1`] = `
               height="30"
               orientation="bottom"
               stroke="#666"
-              width="730"
-              x="65"
-              x1="65"
+              width="703"
+              x="92"
+              x1="92"
               x2="795"
-              y="485"
-              y1="485"
-              y2="485"
+              y="470"
+              y1="470"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
@@ -149,16 +149,16 @@ exports[`ROCCurve > does not break on empty data 1`] = `
               angle="0"
               class="recharts-cartesian-axis-line"
               fill="none"
-              height="480"
+              height="465"
               orientation="left"
               stroke="#666"
               width="60"
-              x="5"
-              x1="65"
-              x2="65"
+              x="32"
+              x1="92"
+              x2="92"
               y="5"
               y1="5"
-              y2="485"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
@@ -182,31 +182,35 @@ exports[`ROCCurve > does not break on empty data 1`] = `
         >
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="-6"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="0"
             text-anchor="middle"
-            x="430"
-            y="521"
+            x="443.5"
+            y="500"
           >
             <tspan
               dy="0em"
-              x="430"
+              x="443.5"
             >
               fpr
             </tspan>
           </text>
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="5"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="14"
             text-anchor="start"
-            transform="rotate(-90, 10, 245)"
-            x="10"
-            y="245"
+            transform="rotate(-90, 46, 237.5)"
+            x="46"
+            y="237.5"
           >
             <tspan
               dy="0.355em"
-              x="10"
+              x="46"
             >
               tpr
             </tspan>
@@ -258,11 +262,11 @@ exports[`ROCCurve > does not break on no config 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
                 y1="5"
@@ -270,15 +274,15 @@ exports[`ROCCurve > does not break on no config 1`] = `
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="485"
-                y2="485"
+                y1="470"
+                y2="470"
               />
             </g>
             <g
@@ -286,27 +290,27 @@ exports[`ROCCurve > does not break on no config 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
-                x2="65"
+                width="703"
+                x="92"
+                x1="92"
+                x2="92"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
+                width="703"
+                x="92"
                 x1="795"
                 x2="795"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
             </g>
           </g>
@@ -319,9 +323,9 @@ exports[`ROCCurve > does not break on no config 1`] = `
             id="recharts1-clip"
           >
             <rect
-              height="480"
-              width="730"
-              x="65"
+              height="465"
+              width="703"
+              x="92"
               y="5"
             />
           </clippath>
@@ -351,13 +355,13 @@ exports[`ROCCurve > does not break on no config 1`] = `
               height="30"
               orientation="bottom"
               stroke="#666"
-              width="730"
-              x="65"
-              x1="65"
+              width="703"
+              x="92"
+              x1="92"
               x2="795"
-              y="485"
-              y1="485"
-              y2="485"
+              y="470"
+              y1="470"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
@@ -370,16 +374,16 @@ exports[`ROCCurve > does not break on no config 1`] = `
               angle="0"
               class="recharts-cartesian-axis-line"
               fill="none"
-              height="480"
+              height="465"
               orientation="left"
               stroke="#666"
               width="60"
-              x="5"
-              x1="65"
-              x2="65"
+              x="32"
+              x1="92"
+              x2="92"
               y="5"
               y1="5"
-              y2="485"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
@@ -403,31 +407,35 @@ exports[`ROCCurve > does not break on no config 1`] = `
         >
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="-6"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="0"
             text-anchor="middle"
-            x="430"
-            y="521"
+            x="443.5"
+            y="500"
           >
             <tspan
               dy="0em"
-              x="430"
+              x="443.5"
             >
               fpr
             </tspan>
           </text>
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="5"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="14"
             text-anchor="start"
-            transform="rotate(-90, 10, 245)"
-            x="10"
-            y="245"
+            transform="rotate(-90, 46, 237.5)"
+            x="46"
+            y="237.5"
           >
             <tspan
               dy="0.355em"
-              x="10"
+              x="46"
             >
               tpr
             </tspan>
@@ -479,59 +487,131 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="485"
-                y2="485"
+                y1="470"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="365"
-                y2="365"
+                y1="423.5"
+                y2="423.5"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="245"
-                y2="245"
+                y1="377"
+                y2="377"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="125"
-                y2="125"
+                y1="330.5"
+                y2="330.5"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="284"
+                y2="284"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="237.5"
+                y2="237.5"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="191"
+                y2="191"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="144.50000000000003"
+                y2="144.50000000000003"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="97.99999999999999"
+                y2="97.99999999999999"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="51.49999999999999"
+                y2="51.49999999999999"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
                 y1="5"
@@ -543,63 +623,255 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
-                x2="65"
+                width="703"
+                x="92"
+                x1="92"
+                x2="92"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="247.5"
-                x2="247.5"
+                width="703"
+                x="92"
+                x1="127.14999999999999"
+                x2="127.14999999999999"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="430"
-                x2="430"
+                width="703"
+                x="92"
+                x1="162.3"
+                x2="162.3"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="612.5"
-                x2="612.5"
+                width="703"
+                x="92"
+                x1="197.45"
+                x2="197.45"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
+                width="703"
+                x="92"
+                x1="232.60000000000002"
+                x2="232.60000000000002"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="267.75"
+                x2="267.75"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="302.9"
+                x2="302.9"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="338.05"
+                x2="338.05"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="373.2"
+                x2="373.2"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="408.35"
+                x2="408.35"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="443.5"
+                x2="443.5"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="478.65000000000003"
+                x2="478.65000000000003"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="513.8"
+                x2="513.8"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="548.95"
+                x2="548.95"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="584.1"
+                x2="584.1"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="619.25"
+                x2="619.25"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="654.4"
+                x2="654.4"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="689.55"
+                x2="689.55"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="724.7"
+                x2="724.7"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="759.85"
+                x2="759.85"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
                 x1="795"
                 x2="795"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
             </g>
           </g>
@@ -612,9 +884,9 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             id="recharts6-clip"
           >
             <rect
-              height="480"
-              width="730"
-              x="65"
+              height="465"
+              width="703"
+              x="92"
               y="5"
             />
           </clippath>
@@ -641,9 +913,9 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               stroke="#ddd"
               stroke-dasharray="4 4"
               stroke-width="1"
-              x1="65"
+              x1="92"
               x2="795"
-              y1="485"
+              y1="470"
               y2="5"
             />
           </g>
@@ -652,14 +924,14 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
           >
             <path
               class="recharts-curve recharts-line-curve"
-              d="M65,485L89.33333333333333,461C113.66666666666667,437,162.33333333333334,389,223.16666666666666,333C284,277,357,213,442.1666666666667,165.00000000000003C527.3333333333334,117.00000000000001,624.6666666666666,85,685.5,61C746.3333333333334,36.99999999999999,770.6666666666666,20.999999999999996,782.8333333333334,12.999999999999998L795,5"
+              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
               fill="none"
-              height="480"
+              height="465"
               id="recharts-line-uid-7"
               stroke="#4285f4"
               stroke-dasharray="0px 0px"
               stroke-width="2"
-              width="730"
+              width="703"
             />
           </g>
         </g>
@@ -676,13 +948,13 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               height="30"
               orientation="bottom"
               stroke="#666"
-              width="730"
-              x="65"
-              x1="65"
+              width="703"
+              x="92"
+              x1="92"
               x2="795"
-              y="485"
-              y1="485"
-              y2="485"
+              y="470"
+              y1="470"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
@@ -700,13 +972,13 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="65"
-                    x2="65"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="92"
+                    x2="92"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -719,13 +991,13 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="247.5"
-                    x2="247.5"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="127.14999999999999"
+                    x2="127.14999999999999"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -738,13 +1010,13 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="430"
-                    x2="430"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="162.3"
+                    x2="162.3"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -757,13 +1029,13 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="612.5"
-                    x2="612.5"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="197.45"
+                    x2="197.45"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -776,13 +1048,298 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="795"
-                    x2="795"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="232.60000000000002"
+                    x2="232.60000000000002"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="267.75"
+                    x2="267.75"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="302.9"
+                    x2="302.9"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="338.05"
+                    x2="338.05"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="373.2"
+                    x2="373.2"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="408.35"
+                    x2="408.35"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="443.5"
+                    x2="443.5"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="478.65000000000003"
+                    x2="478.65000000000003"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="513.8"
+                    x2="513.8"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="548.95"
+                    x2="548.95"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="584.1"
+                    x2="584.1"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="619.25"
+                    x2="619.25"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="654.4"
+                    x2="654.4"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="689.55"
+                    x2="689.55"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="724.7"
+                    x2="724.7"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="759.85"
+                    x2="759.85"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
               </g>
@@ -795,16 +1352,16 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               angle="0"
               class="recharts-cartesian-axis-line"
               fill="none"
-              height="480"
+              height="465"
               orientation="left"
               stroke="#666"
               width="60"
-              x="5"
-              x1="65"
-              x2="65"
+              x="32"
+              x1="92"
+              x2="92"
               y="5"
               y1="5"
-              y2="485"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
@@ -819,16 +1376,16 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="485"
-                    y2="485"
+                    y1="470"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -838,16 +1395,16 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="365"
-                    y2="365"
+                    y1="423.5"
+                    y2="423.5"
                   />
                 </g>
                 <g
@@ -857,16 +1414,16 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="245"
-                    y2="245"
+                    y1="377"
+                    y2="377"
                   />
                 </g>
                 <g
@@ -876,16 +1433,16 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="125"
-                    y2="125"
+                    y1="330.5"
+                    y2="330.5"
                   />
                 </g>
                 <g
@@ -895,16 +1452,111 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="5"
-                    y2="5"
+                    y1="284"
+                    y2="284"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="237.5"
+                    y2="237.5"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="191"
+                    y2="191"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="144.50000000000003"
+                    y2="144.50000000000003"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="97.99999999999999"
+                    y2="97.99999999999999"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="51.49999999999999"
+                    y2="51.49999999999999"
                   />
                 </g>
               </g>
@@ -935,21 +1587,21 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="65"
-                y="493"
+                width="703"
+                x="92"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="65"
+                  x="92"
                 >
-                  0
+                  0.00
                 </tspan>
               </text>
             </g>
@@ -959,19 +1611,115 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="247.5"
-                y="493"
+                width="703"
+                x="127.14999999999999"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="247.5"
+                  x="127.14999999999999"
+                >
+                  0.05
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="162.3"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="162.3"
+                >
+                  0.10
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="197.45"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="197.45"
+                >
+                  0.15
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="232.60000000000002"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="232.60000000000002"
+                >
+                  0.20
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="267.75"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="267.75"
                 >
                   0.25
                 </tspan>
@@ -983,21 +1731,21 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="430"
-                y="493"
+                width="703"
+                x="302.9"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="430"
+                  x="302.9"
                 >
-                  0.5
+                  0.30
                 </tspan>
               </text>
             </g>
@@ -1007,19 +1755,211 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="612.5"
-                y="493"
+                width="703"
+                x="338.05"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="612.5"
+                  x="338.05"
+                >
+                  0.35
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="373.2"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="373.2"
+                >
+                  0.40
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="408.35"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="408.35"
+                >
+                  0.45
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="443.5"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="443.5"
+                >
+                  0.50
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="478.65000000000003"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="478.65000000000003"
+                >
+                  0.55
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="513.8"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="513.8"
+                >
+                  0.60
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="548.95"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="548.95"
+                >
+                  0.65
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="584.1"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="584.1"
+                >
+                  0.70
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="619.25"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="619.25"
                 >
                   0.75
                 </tspan>
@@ -1031,36 +1971,110 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="795"
-                y="493"
+                width="703"
+                x="654.4"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="795"
+                  x="654.4"
                 >
-                  1
+                  0.80
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="689.55"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="689.55"
+                >
+                  0.85
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="724.7"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="724.7"
+                >
+                  0.90
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="759.85"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="759.85"
+                >
+                  0.95
                 </tspan>
               </text>
             </g>
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="-6"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="0"
             text-anchor="middle"
-            x="430"
-            y="521"
+            x="443.5"
+            y="500"
           >
             <tspan
               dy="0em"
-              x="430"
+              x="443.5"
             >
               fpr
             </tspan>
@@ -1074,21 +2088,21 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="485"
+                x="84"
+                y="470"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  0
+                  0.0
                 </tspan>
               </text>
             </g>
@@ -1098,21 +2112,21 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="365"
+                x="84"
+                y="423.5"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  0.25
+                  0.1
                 </tspan>
               </text>
             </g>
@@ -1122,19 +2136,91 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="245"
+                x="84"
+                y="377"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
+                >
+                  0.2
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="330.5"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.3
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="284"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.4
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="237.5"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
                 >
                   0.5
                 </tspan>
@@ -1146,21 +2232,21 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="125"
+                x="84"
+                y="191"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  0.75
+                  0.6
                 </tspan>
               </text>
             </g>
@@ -1170,37 +2256,87 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="5"
+                x="84"
+                y="144.50000000000003"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  1
+                  0.7
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="97.99999999999999"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.8
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="51.49999999999999"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.9
                 </tspan>
               </text>
             </g>
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="5"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="14"
             text-anchor="start"
-            transform="rotate(-90, 10, 245)"
-            x="10"
-            y="245"
+            transform="rotate(-90, 46, 237.5)"
+            x="46"
+            y="237.5"
           >
             <tspan
               dy="0.355em"
-              x="10"
+              x="46"
             >
               tpr
             </tspan>
@@ -1252,59 +2388,131 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="485"
-                y2="485"
+                y1="470"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="365"
-                y2="365"
+                y1="423.5"
+                y2="423.5"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="245"
-                y2="245"
+                y1="377"
+                y2="377"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
-                y1="125"
-                y2="125"
+                y1="330.5"
+                y2="330.5"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="284"
+                y2="284"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="237.5"
+                y2="237.5"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="191"
+                y2="191"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="144.50000000000003"
+                y2="144.50000000000003"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="97.99999999999999"
+                y2="97.99999999999999"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
+                x2="795"
+                y="5"
+                y1="51.49999999999999"
+                y2="51.49999999999999"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="92"
                 x2="795"
                 y="5"
                 y1="5"
@@ -1316,63 +2524,255 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="65"
-                x2="65"
+                width="703"
+                x="92"
+                x1="92"
+                x2="92"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="247.5"
-                x2="247.5"
+                width="703"
+                x="92"
+                x1="127.14999999999999"
+                x2="127.14999999999999"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="430"
-                x2="430"
+                width="703"
+                x="92"
+                x1="162.3"
+                x2="162.3"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
-                x1="612.5"
-                x2="612.5"
+                width="703"
+                x="92"
+                x1="197.45"
+                x2="197.45"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
               <line
                 fill="none"
-                height="480"
+                height="465"
                 stroke="#ccc"
-                width="730"
-                x="65"
+                width="703"
+                x="92"
+                x1="232.60000000000002"
+                x2="232.60000000000002"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="267.75"
+                x2="267.75"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="302.9"
+                x2="302.9"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="338.05"
+                x2="338.05"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="373.2"
+                x2="373.2"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="408.35"
+                x2="408.35"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="443.5"
+                x2="443.5"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="478.65000000000003"
+                x2="478.65000000000003"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="513.8"
+                x2="513.8"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="548.95"
+                x2="548.95"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="584.1"
+                x2="584.1"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="619.25"
+                x2="619.25"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="654.4"
+                x2="654.4"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="689.55"
+                x2="689.55"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="724.7"
+                x2="724.7"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
+                x1="759.85"
+                x2="759.85"
+                y="5"
+                y1="5"
+                y2="470"
+              />
+              <line
+                fill="none"
+                height="465"
+                stroke="#ccc"
+                width="703"
+                x="92"
                 x1="795"
                 x2="795"
                 y="5"
                 y1="5"
-                y2="485"
+                y2="470"
               />
             </g>
           </g>
@@ -1385,9 +2785,9 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             id="recharts16-clip"
           >
             <rect
-              height="480"
-              width="730"
-              x="65"
+              height="465"
+              width="703"
+              x="92"
               y="5"
             />
           </clippath>
@@ -1414,9 +2814,9 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               stroke="#ddd"
               stroke-dasharray="4 4"
               stroke-width="1"
-              x1="65"
+              x1="92"
               x2="795"
-              y1="485"
+              y1="470"
               y2="5"
             />
           </g>
@@ -1425,14 +2825,14 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           >
             <path
               class="recharts-curve recharts-line-curve"
-              d="M65,485L89.33333333333333,461C113.66666666666667,437,162.33333333333334,389,223.16666666666666,333C284,277,357,213,442.1666666666667,165.00000000000003C527.3333333333334,117.00000000000001,624.6666666666666,85,685.5,61C746.3333333333334,36.99999999999999,770.6666666666666,20.999999999999996,782.8333333333334,12.999999999999998L795,5"
+              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
               fill="none"
-              height="480"
+              height="465"
               id="recharts-line-uid-17"
               stroke="#4285f4"
               stroke-dasharray="0px 0px"
               stroke-width="2"
-              width="730"
+              width="703"
             />
           </g>
           <g
@@ -1440,14 +2840,14 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           >
             <path
               class="recharts-curve recharts-line-curve"
-              d="M65,485L89.33333333333333,461C113.66666666666667,437,162.33333333333334,389,223.16666666666666,333C284,277,357,213,442.1666666666667,165.00000000000003C527.3333333333334,117.00000000000001,624.6666666666666,85,685.5,61C746.3333333333334,36.99999999999999,770.6666666666666,20.999999999999996,782.8333333333334,12.999999999999998L795,5"
+              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
               fill="none"
-              height="480"
+              height="465"
               id="recharts-line-uid-18"
               stroke="#2b9c1e"
               stroke-dasharray="0px 0px"
               stroke-width="2"
-              width="730"
+              width="703"
             />
           </g>
           <g
@@ -1455,14 +2855,14 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           >
             <path
               class="recharts-curve recharts-line-curve"
-              d="M65,485L89.33333333333333,461C113.66666666666667,437,162.33333333333334,389,223.16666666666666,333C284,277,357,213,442.1666666666667,165.00000000000003C527.3333333333334,117.00000000000001,624.6666666666666,85,685.5,61C746.3333333333334,36.99999999999999,770.6666666666666,20.999999999999996,782.8333333333334,12.999999999999998L795,5"
+              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
               fill="none"
-              height="480"
+              height="465"
               id="recharts-line-uid-19"
               stroke="#e00000"
               stroke-dasharray="0px 0px"
               stroke-width="2"
-              width="730"
+              width="703"
             />
           </g>
         </g>
@@ -1479,13 +2879,13 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               height="30"
               orientation="bottom"
               stroke="#666"
-              width="730"
-              x="65"
-              x1="65"
+              width="703"
+              x="92"
+              x1="92"
               x2="795"
-              y="485"
-              y1="485"
-              y2="485"
+              y="470"
+              y1="470"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
@@ -1503,13 +2903,13 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="65"
-                    x2="65"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="92"
+                    x2="92"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -1522,13 +2922,13 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="247.5"
-                    x2="247.5"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="127.14999999999999"
+                    x2="127.14999999999999"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -1541,13 +2941,13 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="430"
-                    x2="430"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="162.3"
+                    x2="162.3"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -1560,13 +2960,13 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="612.5"
-                    x2="612.5"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="197.45"
+                    x2="197.45"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -1579,13 +2979,298 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     height="30"
                     orientation="bottom"
                     stroke="#666"
-                    width="730"
-                    x="65"
-                    x1="795"
-                    x2="795"
-                    y="485"
-                    y1="491"
-                    y2="485"
+                    width="703"
+                    x="92"
+                    x1="232.60000000000002"
+                    x2="232.60000000000002"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="267.75"
+                    x2="267.75"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="302.9"
+                    x2="302.9"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="338.05"
+                    x2="338.05"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="373.2"
+                    x2="373.2"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="408.35"
+                    x2="408.35"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="443.5"
+                    x2="443.5"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="478.65000000000003"
+                    x2="478.65000000000003"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="513.8"
+                    x2="513.8"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="548.95"
+                    x2="548.95"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="584.1"
+                    x2="584.1"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="619.25"
+                    x2="619.25"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="654.4"
+                    x2="654.4"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="689.55"
+                    x2="689.55"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="724.7"
+                    x2="724.7"
+                    y="470"
+                    y1="476"
+                    y2="470"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="30"
+                    orientation="bottom"
+                    stroke="#666"
+                    width="703"
+                    x="92"
+                    x1="759.85"
+                    x2="759.85"
+                    y="470"
+                    y1="476"
+                    y2="470"
                   />
                 </g>
               </g>
@@ -1598,16 +3283,16 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               angle="0"
               class="recharts-cartesian-axis-line"
               fill="none"
-              height="480"
+              height="465"
               orientation="left"
               stroke="#666"
               width="60"
-              x="5"
-              x1="65"
-              x2="65"
+              x="32"
+              x1="92"
+              x2="92"
               y="5"
               y1="5"
-              y2="485"
+              y2="470"
             />
             <g
               class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
@@ -1622,16 +3307,16 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="485"
-                    y2="485"
+                    y1="470"
+                    y2="470"
                   />
                 </g>
                 <g
@@ -1641,16 +3326,16 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="365"
-                    y2="365"
+                    y1="423.5"
+                    y2="423.5"
                   />
                 </g>
                 <g
@@ -1660,16 +3345,16 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="245"
-                    y2="245"
+                    y1="377"
+                    y2="377"
                   />
                 </g>
                 <g
@@ -1679,16 +3364,16 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="125"
-                    y2="125"
+                    y1="330.5"
+                    y2="330.5"
                   />
                 </g>
                 <g
@@ -1698,16 +3383,111 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
                     angle="0"
                     class="recharts-cartesian-axis-tick-line"
                     fill="none"
-                    height="480"
+                    height="465"
                     orientation="left"
                     stroke="#666"
                     width="60"
-                    x="5"
-                    x1="59"
-                    x2="65"
+                    x="32"
+                    x1="86"
+                    x2="92"
                     y="5"
-                    y1="5"
-                    y2="5"
+                    y1="284"
+                    y2="284"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="237.5"
+                    y2="237.5"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="191"
+                    y2="191"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="144.50000000000003"
+                    y2="144.50000000000003"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="97.99999999999999"
+                    y2="97.99999999999999"
+                  />
+                </g>
+                <g
+                  class="recharts-layer recharts-cartesian-axis-tick"
+                >
+                  <line
+                    angle="0"
+                    class="recharts-cartesian-axis-tick-line"
+                    fill="none"
+                    height="465"
+                    orientation="left"
+                    stroke="#666"
+                    width="60"
+                    x="32"
+                    x1="86"
+                    x2="92"
+                    y="5"
+                    y1="51.49999999999999"
+                    y2="51.49999999999999"
                   />
                 </g>
               </g>
@@ -1738,21 +3518,21 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="65"
-                y="493"
+                width="703"
+                x="92"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="65"
+                  x="92"
                 >
-                  0
+                  0.00
                 </tspan>
               </text>
             </g>
@@ -1762,19 +3542,115 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="247.5"
-                y="493"
+                width="703"
+                x="127.14999999999999"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="247.5"
+                  x="127.14999999999999"
+                >
+                  0.05
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="162.3"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="162.3"
+                >
+                  0.10
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="197.45"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="197.45"
+                >
+                  0.15
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="232.60000000000002"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="232.60000000000002"
+                >
+                  0.20
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="267.75"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="267.75"
                 >
                   0.25
                 </tspan>
@@ -1786,21 +3662,21 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="430"
-                y="493"
+                width="703"
+                x="302.9"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="430"
+                  x="302.9"
                 >
-                  0.5
+                  0.30
                 </tspan>
               </text>
             </g>
@@ -1810,19 +3686,211 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="612.5"
-                y="493"
+                width="703"
+                x="338.05"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="612.5"
+                  x="338.05"
+                >
+                  0.35
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="373.2"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="373.2"
+                >
+                  0.40
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="408.35"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="408.35"
+                >
+                  0.45
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="443.5"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="443.5"
+                >
+                  0.50
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="478.65000000000003"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="478.65000000000003"
+                >
+                  0.55
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="513.8"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="513.8"
+                >
+                  0.60
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="548.95"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="548.95"
+                >
+                  0.65
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="584.1"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="584.1"
+                >
+                  0.70
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="619.25"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="619.25"
                 >
                   0.75
                 </tspan>
@@ -1834,36 +3902,110 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
+                font-size="12"
+                font-weight="400"
                 height="30"
                 orientation="bottom"
                 stroke="none"
                 text-anchor="middle"
-                width="730"
-                x="795"
-                y="493"
+                width="703"
+                x="654.4"
+                y="478"
               >
                 <tspan
                   dy="0.71em"
-                  x="795"
+                  x="654.4"
                 >
-                  1
+                  0.80
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="689.55"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="689.55"
+                >
+                  0.85
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="724.7"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="724.7"
+                >
+                  0.90
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="30"
+                orientation="bottom"
+                stroke="none"
+                text-anchor="middle"
+                width="703"
+                x="759.85"
+                y="478"
+              >
+                <tspan
+                  dy="0.71em"
+                  x="759.85"
+                >
+                  0.95
                 </tspan>
               </text>
             </g>
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="-6"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="0"
             text-anchor="middle"
-            x="430"
-            y="521"
+            x="443.5"
+            y="500"
           >
             <tspan
               dy="0em"
-              x="430"
+              x="443.5"
             >
               fpr
             </tspan>
@@ -1877,21 +4019,21 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="485"
+                x="84"
+                y="470"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  0
+                  0.0
                 </tspan>
               </text>
             </g>
@@ -1901,21 +4043,21 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="365"
+                x="84"
+                y="423.5"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  0.25
+                  0.1
                 </tspan>
               </text>
             </g>
@@ -1925,19 +4067,91 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="245"
+                x="84"
+                y="377"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
+                >
+                  0.2
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="330.5"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.3
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="284"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.4
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="237.5"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
                 >
                   0.5
                 </tspan>
@@ -1949,21 +4163,21 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="125"
+                x="84"
+                y="191"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  0.75
+                  0.6
                 </tspan>
               </text>
             </g>
@@ -1973,37 +4187,87 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
                 fill="#666"
-                font-size="16"
-                font-weight="700"
-                height="480"
+                font-size="12"
+                font-weight="400"
+                height="465"
                 orientation="left"
                 stroke="none"
                 text-anchor="end"
                 width="60"
-                x="57"
-                y="5"
+                x="84"
+                y="144.50000000000003"
               >
                 <tspan
                   dy="0.355em"
-                  x="57"
+                  x="84"
                 >
-                  1
+                  0.7
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="97.99999999999999"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.8
+                </tspan>
+              </text>
+            </g>
+            <g
+              class="recharts-layer recharts-cartesian-axis-tick-label"
+            >
+              <text
+                class="recharts-text recharts-cartesian-axis-tick-value"
+                fill="#666"
+                font-size="12"
+                font-weight="400"
+                height="465"
+                orientation="left"
+                stroke="none"
+                text-anchor="end"
+                width="60"
+                x="84"
+                y="51.49999999999999"
+              >
+                <tspan
+                  dy="0.355em"
+                  x="84"
+                >
+                  0.9
                 </tspan>
               </text>
             </g>
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#808080"
-            offset="5"
+            fill="#444"
+            font-size="13"
+            font-weight="500"
+            offset="14"
             text-anchor="start"
-            transform="rotate(-90, 10, 245)"
-            x="10"
-            y="245"
+            transform="rotate(-90, 46, 237.5)"
+            x="46"
+            y="237.5"
           >
             <tspan
               dy="0.355em"
-              x="10"
+              x="46"
             >
               tpr
             </tspan>
