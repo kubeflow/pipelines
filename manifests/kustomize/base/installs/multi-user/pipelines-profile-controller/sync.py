@@ -209,7 +209,7 @@ def load_desired_resources(**kwargs):
         resources = list(resources_template)
         artifact_proxy_resources = []
 
-    resources += fill_json_template(
+    additional_resources = fill_json_template(
         path=_template_path("additional_resources.json"),
         namespace=namespace,
         cluster_domain=cluster_domain,
@@ -221,6 +221,15 @@ def load_desired_resources(**kwargs):
         frontend_tag=frontend_tag,
         ml_pipeline_service_host=ml_pipeline_service_host,
     )
+
+    if not isinstance(additional_resources, list) or not all(
+        isinstance(resource, dict) for resource in additional_resources
+    ):
+        raise ValueError(
+            "additional_resources.json must render to a list of objects"
+        )
+
+    resources += additional_resources
 
     # Conditionally add artifact proxy resources from template
     if str(artifacts_proxy_enabled).lower() == "true":
