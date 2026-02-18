@@ -81,6 +81,12 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 // PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
 // different, the execution shouldn't be reused for the cache.
 func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client, pvcNames []string) (string, error) {
+	// using cacheKey provided user, for more information check link below
+	// https://github.com/kubeflow/pipelines/issues/11328
+	if cacheKey := opts.Task.GetCachingOptions().GetCacheKey(); cacheKey != "" {
+		glog.Infof("using cacheKey {%s} from PipelineTaskSpec", cacheKey)
+		return cacheKey, nil
+	}
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
 		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
