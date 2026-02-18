@@ -22,7 +22,8 @@ PKG_ROOT=$(pwd)
 REPO_ROOT=$(dirname $(dirname $PKG_ROOT))
 echo $REPO_ROOT
 
-SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
+# Extract version from __init__.py without importing (avoids needing protobuf installed)
+SETUPPY_VERSION=$(grep -oP "^__version__ = '\K[^']+" kfp/kubernetes/__init__.py)
 
 if [ -z "$KFP_KUBERNETES_VERSION" ]
 then
