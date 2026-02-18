@@ -22,26 +22,32 @@ from string import Template
 # From awscli installed in alpine/k8s image
 import botocore.session
 
-S3_BUCKET_NAME = 'mlpipeline'
+S3_BUCKET_NAME = "mlpipeline"
 
 _TEMPLATE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy management
-s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
-s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
+s3_endpoint_url = os.environ.get(
+    "S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333"
+)
+s3 = session.create_client(
+    "s3", region_name="foobar", endpoint_url=s3_endpoint_url
+)
 
 
 def _normalize_domain(domain):
-    return domain if domain.startswith('.') else '.' + domain
+    return domain if domain.startswith(".") else "." + domain
 
 
 def create_iam_client():
     # To interact with SeaweedFS user management. Region does not matter.
     endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
     if endpoint_url:
-        return session.create_client('iam', region_name='foobar', endpoint_url=endpoint_url)
-    return session.create_client('iam', region_name='foobar')
+        return session.create_client(
+            "iam", region_name="foobar", endpoint_url=endpoint_url
+        )
+    return session.create_client("iam", region_name="foobar")
 
 
 iam = create_iam_client()
@@ -53,16 +59,19 @@ def main():
     server.serve_forever()
 
 
-def get_settings_from_env(controller_port=None,
-                          frontend_image=None,
-                          frontend_tag=None,
-                          disable_istio_sidecar=None,
-                          artifacts_proxy_enabled=None,
-                          artifact_retention_days=None,
-                          cluster_domain=None,
-                          object_store_host=None):
+def get_settings_from_env(
+    controller_port=None,
+    frontend_image=None,
+    frontend_tag=None,
+    disable_istio_sidecar=None,
+    artifacts_proxy_enabled=None,
+    artifact_retention_days=None,
+    cluster_domain=None,
+    object_store_host=None,
+):
     """
-    Returns a dict of settings from environment variables relevant to the controller
+    Returns a dict of settings from environment variables relevant to the
+    controller
 
     Environment settings can be overridden by passing them here as arguments.
 
@@ -74,41 +83,45 @@ def get_settings_from_env(controller_port=None,
         disable_istio_sidecar: Required (no default)
     """
     settings = dict()
-    settings["controller_port"] = \
-        controller_port or \
-        os.environ.get("CONTROLLER_PORT", "8080")
+    settings["controller_port"] = controller_port or os.environ.get(
+        "CONTROLLER_PORT", "8080"
+    )
 
-    settings["frontend_image"] = \
-        frontend_image or \
-        os.environ.get("FRONTEND_IMAGE", "ghcr.io/kubeflow/kfp-frontend")
+    settings["frontend_image"] = frontend_image or os.environ.get(
+        "FRONTEND_IMAGE", "ghcr.io/kubeflow/kfp-frontend"
+    )
 
-    settings["artifacts_proxy_enabled"] = \
-        artifacts_proxy_enabled or \
-        os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+    settings["artifacts_proxy_enabled"] = (
+        artifacts_proxy_enabled
+        or os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+    )
 
-    settings["artifact_retention_days"] = \
-        artifact_retention_days or \
-        os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
+    settings["artifact_retention_days"] = (
+        artifact_retention_days or os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
+    )
 
-    settings["cluster_domain"] = \
-        cluster_domain or \
-        os.environ.get("CLUSTER_DOMAIN", ".svc.cluster.local")
+    settings["cluster_domain"] = cluster_domain or os.environ.get(
+        "CLUSTER_DOMAIN", ".svc.cluster.local"
+    )
 
-    settings["object_store_host"] = \
-        object_store_host or \
-        os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
+    settings["object_store_host"] = object_store_host or os.environ.get(
+        "OBJECT_STORE_HOST", "seaweedfs"
+    )
 
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
-    settings["frontend_tag"] = \
-        frontend_tag or \
-        os.environ.get("FRONTEND_TAG") or \
-        os.environ["KFP_VERSION"]
+    settings["frontend_tag"] = (
+        frontend_tag
+        or os.environ.get("FRONTEND_TAG")
+        or os.environ["KFP_VERSION"]
+    )
 
-    settings["disable_istio_sidecar"] = \
-        disable_istio_sidecar if disable_istio_sidecar is not None \
-            else os.environ.get("DISABLE_ISTIO_SIDECAR") == "true"
+    settings["disable_istio_sidecar"] = (
+        disable_istio_sidecar
+        if disable_istio_sidecar is not None
+        else os.environ.get("DISABLE_ISTIO_SIDECAR") == "true"
+    )
 
     return settings
 
@@ -147,15 +160,13 @@ def fill_json_template(path, **kwargs):
 
 
 def load_desired_resources(**kwargs):
-    """Load desired resources from JSON template files and build complex
-    resources that cannot be cleanly represented as templates.
+    """Load desired resources from JSON template files.
 
-    Simple resources are loaded from desired_resources.json and
-    additional_resources.json. The artifact-repositories ConfigMap is
-    built in code because its data contains nested JSON with Argo
-    workflow template variables ({{workflow.name}}, etc.), and we keep
-    it inline to avoid templating and escaping issues. Artifact proxy
-    resources are loaded conditionally from artifact_proxy_resources.json.
+    All resources are loaded from template files:
+    - desired_resources.json: Base resources
+    - additional_resources.json: Additional resources
+    - artifact_repositories_configmap.json: ConfigMap with S3 artifact repository configuration
+    - artifact_proxy_resources.json: Artifact proxy resources (conditionally loaded)
     """
     namespace = kwargs.get("namespace")
     cluster_domain = kwargs.get("cluster_domain", ".svc.cluster.local")
@@ -172,56 +183,51 @@ def load_desired_resources(**kwargs):
         path=_template_path("additional_resources.json"), **kwargs
     )
 
-    # Build artifact-repositories ConfigMap in code because it contains
-    # nested JSON with Argo template variables (e.g. {{workflow.name}}),
-    # and we want to avoid templating/escaping surprises.
-    resources.append({
-        "apiVersion": "v1",
-        "kind": "ConfigMap",
-        "metadata": {
-            "name": "artifact-repositories",
-            "namespace": namespace,
-            "annotations": {
-                "workflows.argoproj.io/default-artifact-repository":
-                    "default-namespaced"
-            }
-        },
-        "data": {
-            "default-namespaced": json.dumps({
-                "archiveLogs": True,
-                "s3": {
-                    "endpoint": (
-                        f"{object_store_host}.kubeflow"
-                        f"{_normalize_domain(cluster_domain)}:9000"
-                    ),
-                    "bucket": S3_BUCKET_NAME,
-                    "keyFormat": (
-                        f"private-artifacts/{namespace}/"
-                        "{{workflow.name}}/"
-                        "{{workflow.creationTimestamp.Y}}/"
-                        "{{workflow.creationTimestamp.m}}/"
-                        "{{workflow.creationTimestamp.d}}/"
-                        "{{pod.name}}"
-                    ),
-                    "insecure": True,
-                    "accessKeySecret": {
-                        "name": "mlpipeline-minio-artifact",
-                        "key": "accesskey",
-                    },
-                    "secretKeySecret": {
-                        "name": "mlpipeline-minio-artifact",
-                        "key": "secretkey",
-                    }
-                }
-            })
+    # Build artifact repository config with nested JSON containing Argo template variables
+    artifact_repository_config = json.dumps(
+        {
+            "archiveLogs": True,
+            "s3": {
+                "endpoint": (
+                    f"{object_store_host}.kubeflow"
+                    f"{_normalize_domain(cluster_domain)}:9000"
+                ),
+                "bucket": S3_BUCKET_NAME,
+                "keyFormat": (
+                    f"private-artifacts/{namespace}/"
+                    "{{workflow.name}}/"
+                    "{{workflow.creationTimestamp.Y}}/"
+                    "{{workflow.creationTimestamp.m}}/"
+                    "{{workflow.creationTimestamp.d}}/"
+                    "{{pod.name}}"
+                ),
+                "insecure": True,
+                "accessKeySecret": {
+                    "name": "mlpipeline-minio-artifact",
+                    "key": "accesskey",
+                },
+                "secretKeySecret": {
+                    "name": "mlpipeline-minio-artifact",
+                    "key": "secretkey",
+                },
+            },
         }
-    })
+    )
+
+    # Load artifact-repositories ConfigMap from template
+    artifact_repositories_configmap = fill_json_template(
+        path=_template_path("artifact_repositories_configmap.json"),
+        namespace=namespace,
+        artifact_repository_config=json.dumps(artifact_repository_config),
+    )
+    resources.append(artifact_repositories_configmap)
 
     # Conditionally add artifact proxy resources from template
     if str(artifacts_proxy_enabled).lower() == "true":
         istio_sidecar_annotation = (
             '"sidecar.istio.io/inject": "false",'
-            if disable_istio_sidecar else ""
+            if disable_istio_sidecar
+            else ""
         )
         image_spec_hash = hashlib.sha256(
             f"{frontend_image}:{frontend_tag}".encode()
@@ -265,34 +271,46 @@ def compute_desired_status(attachments, desired_resources):
     return {"kubeflow-pipelines-ready": all(desired_status.values())}
 
 
-def server_factory(frontend_image,
-                   frontend_tag,
-                   disable_istio_sidecar,
-                   artifacts_proxy_enabled,
-                   artifact_retention_days,
-                   cluster_domain=".svc.cluster.local",
-                   object_store_host="seaweedfs",
-                   url="",
-                   controller_port=8080):
+def server_factory(
+    frontend_image,
+    frontend_tag,
+    disable_istio_sidecar,
+    artifacts_proxy_enabled,
+    artifact_retention_days,
+    cluster_domain=".svc.cluster.local",
+    object_store_host="seaweedfs",
+    url="",
+    controller_port=8080,
+):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
+
     class Controller(BaseHTTPRequestHandler):
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
             """Configures or deletes the lifecycle policy based on the artifact_retention_days string."""
             try:
                 retention_days = int(artifact_retention_days)
             except ValueError:
-                print(f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update.")
+                print(
+                    f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update."
+                )
                 return
 
             # To disable lifecycle policy we need to delete it
             if retention_days <= 0:
-                print(f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.")
+                print(
+                    f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy."
+                )
                 try:
-                    response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
+                    response = s3.get_bucket_lifecycle_configuration(
+                        Bucket=bucket_name
+                    )
                     # Check if there are any enabled rules
-                    has_enabled_rules = any(rule.get('Status') == 'Enabled' for rule in response.get('Rules', []))
+                    has_enabled_rules = any(
+                        rule.get("Status") == "Enabled"
+                        for rule in response.get("Rules", [])
+                    )
 
                     if has_enabled_rules:
                         s3.delete_bucket_lifecycle(Bucket=bucket_name)
@@ -314,27 +332,35 @@ def server_factory(frontend_image,
                     },
                 ]
             }
-            print('upsert_lifecycle_policy:', life_cycle_policy)
+            print("upsert_lifecycle_policy:", life_cycle_policy)
 
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
-                    Bucket=bucket_name,
-                    LifecycleConfiguration = life_cycle_policy
+                    Bucket=bucket_name, LifecycleConfiguration=life_cycle_policy
                 )
-                print('Lifecycle policy configured successfully:', api_response)
+                print("Lifecycle policy configured successfully:", api_response)
             except Exception as exception:
-                if hasattr(exception, 'response') and 'Error' in exception.response:
-                    print(f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}")
+                if (
+                    hasattr(exception, "response")
+                    and "Error" in exception.response
+                ):
+                    print(
+                        f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}"
+                    )
                 else:
-                    print(f"ERROR: Failed to configure lifecycle policy: {exception}")
-
+                    print(
+                        f"ERROR: Failed to configure lifecycle policy: {exception}"
+                    )
 
         def sync(self, parent, attachments):
             # parent is a namespace
             namespace = parent.get("metadata", {}).get("name")
 
-            pipeline_enabled = parent.get("metadata", {}).get(
-                "labels", {}).get("pipelines.kubeflow.org/enabled")
+            pipeline_enabled = (
+                parent.get("metadata", {})
+                .get("labels", {})
+                .get("pipelines.kubeflow.org/enabled")
+            )
 
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
@@ -363,11 +389,12 @@ def server_factory(frontend_image,
             # reuse it. Otherwise create new IAM credentials on
             # seaweedfs for the namespace.
             if s3_secret := attachments["Secret.v1"].get(
-                    f"{namespace}/mlpipeline-minio-artifact"):
+                f"{namespace}/mlpipeline-minio-artifact"
+            ):
                 desired_resources.append(s3_secret)
-                print('Using existing secret')
+                print("Using existing secret")
             else:
-                print('Creating new access key.')
+                print("Creating new access key.")
                 s3_access_key = iam.create_access_key(UserName=namespace)
                 # Use the AWS IAM API of seaweedfs to manage access
                 # policies to bucket. This policy ensures that a user
@@ -378,47 +405,46 @@ def server_factory(frontend_image,
                     PolicyDocument=json.dumps(
                         {
                             "Version": "2012-10-17",
-                            "Statement": [{
-                                "Effect": "Allow",
-                                "Action": [
-                                    "s3:Put*",
-                                    "s3:Get*",
-                                    "s3:List*"
-                                ],
-                                "Resource": [
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
-                                    f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
-                                ]
-                            }]
-                        })
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:Put*",
+                                        "s3:Get*",
+                                        "s3:List*",
+                                    ],
+                                    "Resource": [
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
+                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
+                                    ],
+                                }
+                            ],
+                        }
+                    ),
                 )
 
                 self.upsert_lifecycle_policy(
                     S3_BUCKET_NAME, artifact_retention_days
                 )
 
-                desired_resources.insert(
-                    0,
-                    {
-                        "apiVersion": "v1",
-                        "kind": "Secret",
-                        "metadata": {
-                            "name": "mlpipeline-minio-artifact",
-                            "namespace": namespace,
-                        },
-                        "data": {
-                            "accesskey": base64.b64encode(
-                                s3_access_key["AccessKey"]["AccessKeyId"]
-                                .encode('utf-8')
-                            ).decode("utf-8"),
-                            "secretkey": base64.b64encode(
-                                s3_access_key["AccessKey"]["SecretAccessKey"]
-                                .encode('utf-8')
-                            ).decode("utf-8"),
-                        },
-                    })
+                # Create S3 secret from template
+                s3_secret = fill_json_template(
+                    path=_template_path("s3_secret.json"),
+                    namespace=namespace,
+                    access_key_base64=base64.b64encode(
+                        s3_access_key["AccessKey"]["AccessKeyId"].encode(
+                            "utf-8"
+                        )
+                    ).decode("utf-8"),
+                    secret_key_base64=base64.b64encode(
+                        s3_access_key["AccessKey"]["SecretAccessKey"].encode(
+                            "utf-8"
+                        )
+                    ).decode("utf-8"),
+                )
+                desired_resources.insert(0, s3_secret)
 
             desired_status = compute_desired_status(
                 attachments, desired_resources
@@ -429,13 +455,14 @@ def server_factory(frontend_image,
         def do_POST(self):
             # Serve the sync() function as a JSON webhook.
             observed = json.loads(
-                self.rfile.read(int(self.headers.get("content-length"))))
+                self.rfile.read(int(self.headers.get("content-length")))
+            )
             desired = self.sync(observed["object"], observed["attachments"])
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(bytes(json.dumps(desired), 'utf-8'))
+            self.wfile.write(bytes(json.dumps(desired), "utf-8"))
 
     return HTTPServer((url, int(controller_port)), Controller)
 
