@@ -19,12 +19,7 @@ runs:
       run: |
         rm -rf dist/
         uv build --out-dir dist/
-        wheel_file=$(ls dist/*.whl 2>/dev/null | head -n1)
-        if [ -z "$wheel_file" ]; then
-          echo "Error: No wheel file found"
-          exit 1
-        fi
-        uv pip install "$wheel_file"
+        uv pip install dist/*.whl
 
     - name: Build kfp dist
       id: install-kfp
