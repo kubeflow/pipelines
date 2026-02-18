@@ -182,7 +182,7 @@ exports[`ROCCurve > does not break on empty data 1`] = `
         >
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="0"
@@ -199,7 +199,7 @@ exports[`ROCCurve > does not break on empty data 1`] = `
           </text>
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="14"
@@ -407,7 +407,7 @@ exports[`ROCCurve > does not break on no config 1`] = `
         >
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="0"
@@ -424,7 +424,7 @@ exports[`ROCCurve > does not break on no config 1`] = `
           </text>
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="14"
@@ -1586,7 +1586,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1610,7 +1610,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1634,7 +1634,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1658,7 +1658,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1682,7 +1682,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1706,7 +1706,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1730,7 +1730,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1754,7 +1754,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1778,7 +1778,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1802,7 +1802,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1826,7 +1826,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1850,7 +1850,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1874,7 +1874,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1898,7 +1898,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1922,7 +1922,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1946,7 +1946,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1970,7 +1970,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -1994,7 +1994,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -2018,7 +2018,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -2042,7 +2042,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -2064,7 +2064,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="0"
@@ -2087,7 +2087,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2111,7 +2111,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2135,7 +2135,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2159,7 +2159,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2183,7 +2183,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2207,7 +2207,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2231,7 +2231,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2255,7 +2255,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2279,7 +2279,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2303,7 +2303,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -2325,7 +2325,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="14"
@@ -3517,7 +3517,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3541,7 +3541,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3565,7 +3565,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3589,7 +3589,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3613,7 +3613,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3637,7 +3637,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3661,7 +3661,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3685,7 +3685,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3709,7 +3709,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3733,7 +3733,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3757,7 +3757,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3781,7 +3781,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3805,7 +3805,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3829,7 +3829,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3853,7 +3853,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3877,7 +3877,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3901,7 +3901,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3925,7 +3925,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3949,7 +3949,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3973,7 +3973,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="30"
@@ -3995,7 +3995,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="0"
@@ -4018,7 +4018,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4042,7 +4042,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4066,7 +4066,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4090,7 +4090,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4114,7 +4114,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4138,7 +4138,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4162,7 +4162,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4186,7 +4186,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4210,7 +4210,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4234,7 +4234,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#666"
+                fill="#5f6368"
                 font-size="12"
                 font-weight="400"
                 height="465"
@@ -4256,7 +4256,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#444"
+            fill="#202124"
             font-size="13"
             font-weight="500"
             offset="14"

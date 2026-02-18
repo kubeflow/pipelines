@@ -2105,11 +2105,11 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       >
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
+                          width="303"
+                          x="92"
+                          x1="92"
                           x2="395"
                           y="5"
                           y1="5"
@@ -2117,15 +2117,15 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         />
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
+                          width="303"
+                          x="92"
+                          x1="92"
                           x2="395"
                           y="5"
-                          y1="225"
-                          y2="225"
+                          y1="210"
+                          y2="210"
                         />
                       </g>
                       <g
@@ -2133,27 +2133,27 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       >
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
-                          x2="65"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="92"
                           y="5"
                           y1="5"
-                          y2="225"
+                          y2="210"
                         />
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
+                          width="303"
+                          x="92"
                           x1="395"
                           x2="395"
                           y="5"
                           y1="5"
-                          y2="225"
+                          y2="210"
                         />
                       </g>
                     </g>
@@ -2166,9 +2166,9 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       id="recharts-id-0"
                     >
                       <rect
-                        height="220"
-                        width="330"
-                        x="65"
+                        height="205"
+                        width="303"
+                        x="92"
                         y="5"
                       />
                     </clippath>
@@ -2198,13 +2198,13 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         height="30"
                         orientation="bottom"
                         stroke="#666"
-                        width="330"
-                        x="65"
-                        x1="65"
+                        width="303"
+                        x="92"
+                        x1="92"
                         x2="395"
-                        y="225"
-                        y1="225"
-                        y2="225"
+                        y="210"
+                        y1="210"
+                        y2="210"
                       />
                       <g
                         class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
@@ -2217,16 +2217,16 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         angle="0"
                         class="recharts-cartesian-axis-line"
                         fill="none"
-                        height="220"
+                        height="205"
                         orientation="left"
                         stroke="#666"
                         width="60"
-                        x="5"
-                        x1="65"
-                        x2="65"
+                        x="32"
+                        x1="92"
+                        x2="92"
                         y="5"
                         y1="5"
-                        y2="225"
+                        y2="210"
                       />
                       <g
                         class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
@@ -2250,31 +2250,35 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   >
                     <text
                       class="recharts-text recharts-label"
-                      fill="#808080"
-                      offset="-6"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="0"
                       text-anchor="middle"
-                      x="230"
-                      y="261"
+                      x="243.5"
+                      y="240"
                     >
                       <tspan
                         dy="0em"
-                        x="230"
+                        x="243.5"
                       >
                         fpr
                       </tspan>
                     </text>
                     <text
                       class="recharts-text recharts-label"
-                      fill="#808080"
-                      offset="5"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="14"
                       text-anchor="start"
-                      transform="rotate(-90, 10, 115)"
-                      x="10"
-                      y="115"
+                      transform="rotate(-90, 46, 107.5)"
+                      x="46"
+                      y="107.5"
                     >
                       <tspan
                         dy="0.355em"
-                        x="10"
+                        x="46"
                       >
                         tpr
                       </tspan>
@@ -2389,11 +2393,11 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       >
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
+                          width="303"
+                          x="92"
+                          x1="92"
                           x2="395"
                           y="5"
                           y1="5"
@@ -2401,15 +2405,15 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         />
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
+                          width="303"
+                          x="92"
+                          x1="92"
                           x2="395"
                           y="5"
-                          y1="225"
-                          y2="225"
+                          y1="210"
+                          y2="210"
                         />
                       </g>
                       <g
@@ -2417,27 +2421,27 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       >
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
-                          x2="65"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="92"
                           y="5"
                           y1="5"
-                          y2="225"
+                          y2="210"
                         />
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
+                          width="303"
+                          x="92"
                           x1="395"
                           x2="395"
                           y="5"
                           y1="5"
-                          y2="225"
+                          y2="210"
                         />
                       </g>
                     </g>
@@ -2450,9 +2454,9 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       id="recharts-id-1"
                     >
                       <rect
-                        height="220"
-                        width="330"
-                        x="65"
+                        height="205"
+                        width="303"
+                        x="92"
                         y="5"
                       />
                     </clippath>
@@ -2482,13 +2486,13 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         height="30"
                         orientation="bottom"
                         stroke="#666"
-                        width="330"
-                        x="65"
-                        x1="65"
+                        width="303"
+                        x="92"
+                        x1="92"
                         x2="395"
-                        y="225"
-                        y1="225"
-                        y2="225"
+                        y="210"
+                        y1="210"
+                        y2="210"
                       />
                       <g
                         class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
@@ -2501,16 +2505,16 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         angle="0"
                         class="recharts-cartesian-axis-line"
                         fill="none"
-                        height="220"
+                        height="205"
                         orientation="left"
                         stroke="#666"
                         width="60"
-                        x="5"
-                        x1="65"
-                        x2="65"
+                        x="32"
+                        x1="92"
+                        x2="92"
                         y="5"
                         y1="5"
-                        y2="225"
+                        y2="210"
                       />
                       <g
                         class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
@@ -2534,31 +2538,35 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   >
                     <text
                       class="recharts-text recharts-label"
-                      fill="#808080"
-                      offset="-6"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="0"
                       text-anchor="middle"
-                      x="230"
-                      y="261"
+                      x="243.5"
+                      y="240"
                     >
                       <tspan
                         dy="0em"
-                        x="230"
+                        x="243.5"
                       >
                         fpr
                       </tspan>
                     </text>
                     <text
                       class="recharts-text recharts-label"
-                      fill="#808080"
-                      offset="5"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="14"
                       text-anchor="start"
-                      transform="rotate(-90, 10, 115)"
-                      x="10"
-                      y="115"
+                      transform="rotate(-90, 46, 107.5)"
+                      x="46"
+                      y="107.5"
                     >
                       <tspan
                         dy="0.355em"
-                        x="10"
+                        x="46"
                       >
                         tpr
                       </tspan>
@@ -2642,11 +2650,11 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       >
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
+                          width="303"
+                          x="92"
+                          x1="92"
                           x2="395"
                           y="5"
                           y1="5"
@@ -2654,15 +2662,15 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         />
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
+                          width="303"
+                          x="92"
+                          x1="92"
                           x2="395"
                           y="5"
-                          y1="225"
-                          y2="225"
+                          y1="210"
+                          y2="210"
                         />
                       </g>
                       <g
@@ -2670,27 +2678,27 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       >
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
-                          x1="65"
-                          x2="65"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="92"
                           y="5"
                           y1="5"
-                          y2="225"
+                          y2="210"
                         />
                         <line
                           fill="none"
-                          height="220"
+                          height="205"
                           stroke="#ccc"
-                          width="330"
-                          x="65"
+                          width="303"
+                          x="92"
                           x1="395"
                           x2="395"
                           y="5"
                           y1="5"
-                          y2="225"
+                          y2="210"
                         />
                       </g>
                     </g>
@@ -2703,9 +2711,9 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       id="recharts-id-2"
                     >
                       <rect
-                        height="220"
-                        width="330"
-                        x="65"
+                        height="205"
+                        width="303"
+                        x="92"
                         y="5"
                       />
                     </clippath>
@@ -2735,13 +2743,13 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         height="30"
                         orientation="bottom"
                         stroke="#666"
-                        width="330"
-                        x="65"
-                        x1="65"
+                        width="303"
+                        x="92"
+                        x1="92"
                         x2="395"
-                        y="225"
-                        y1="225"
-                        y2="225"
+                        y="210"
+                        y1="210"
+                        y2="210"
                       />
                       <g
                         class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
@@ -2754,16 +2762,16 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         angle="0"
                         class="recharts-cartesian-axis-line"
                         fill="none"
-                        height="220"
+                        height="205"
                         orientation="left"
                         stroke="#666"
                         width="60"
-                        x="5"
-                        x1="65"
-                        x2="65"
+                        x="32"
+                        x1="92"
+                        x2="92"
                         y="5"
                         y1="5"
-                        y2="225"
+                        y2="210"
                       />
                       <g
                         class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
@@ -2787,31 +2795,35 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   >
                     <text
                       class="recharts-text recharts-label"
-                      fill="#808080"
-                      offset="-6"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="0"
                       text-anchor="middle"
-                      x="230"
-                      y="261"
+                      x="243.5"
+                      y="240"
                     >
                       <tspan
                         dy="0em"
-                        x="230"
+                        x="243.5"
                       >
                         fpr
                       </tspan>
                     </text>
                     <text
                       class="recharts-text recharts-label"
-                      fill="#808080"
-                      offset="5"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="14"
                       text-anchor="start"
-                      transform="rotate(-90, 10, 115)"
-                      x="10"
-                      y="115"
+                      transform="rotate(-90, 46, 107.5)"
+                      x="46"
+                      y="107.5"
                     >
                       <tspan
                         dy="0.355em"
-                        x="10"
+                        x="46"
                       >
                         tpr
                       </tspan>
