@@ -111,4 +111,37 @@ describe('ROCCurve', () => {
     const singlePointSeries = [{ x: 0.5, y: 0.5, label: 'only' }];
     expect(findNearestDisplayPoint(singlePointSeries, 0.9)?.label).toBe('only');
   });
+
+  it('uses payload x for tooltip matching when label is not numeric', () => {
+    const rocCurve = new ROCCurve({ configs: [] } as any);
+    const hoveredX = (rocCurve as any).resolveHoveredX({
+      label: 'not-a-number',
+      payload: [{ payload: { x: '0.42' } }],
+    });
+    expect(hoveredX).toBeCloseTo(0.42);
+  });
+
+  it('renders tooltip rows using nearest points for each series', () => {
+    const rocCurve = new ROCCurve({ configs: [] } as any);
+    const labels = ['threshold (Series #1)', 'threshold (Series #2)'];
+    const tooltip = (rocCurve as any).renderTooltipContent(
+      {
+        active: true,
+        label: 'invalid',
+        payload: [{ payload: { x: '0.39' } }],
+      },
+      [
+        [
+          { x: 0.2, y: 0.3, label: 'left' },
+          { x: 0.4, y: 0.6, label: 'right' },
+        ],
+        [{ x: 0.2, y: 0.7, label: 'single' }],
+      ],
+      labels,
+    );
+    expect(tooltip).not.toBeNull();
+    render(<>{tooltip}</>);
+    expect(screen.getByText('threshold (Series #1): right')).toBeInTheDocument();
+    expect(screen.getByText('threshold (Series #2): single')).toBeInTheDocument();
+  });
 });

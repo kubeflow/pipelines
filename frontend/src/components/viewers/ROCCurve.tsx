@@ -93,6 +93,21 @@ export interface DisplayPoint {
   y: number;
 }
 
+interface TooltipPayloadEntry {
+  payload?: { x?: number | string };
+}
+
+interface TooltipContentProps {
+  active?: boolean;
+  label?: number | string;
+  payload?: TooltipPayloadEntry[];
+}
+
+interface TooltipRow {
+  index: number;
+  label: string;
+}
+
 export const findNearestDisplayPoint = (
   data: DisplayPoint[],
   targetX: number,
@@ -279,40 +294,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           {!isSmall && (
             <Tooltip
               cursor={{ stroke: color.weak }}
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) {
-                  return null;
-                }
-                const labelNumber = typeof label === 'number' ? label : Number(label);
-                const payloadPoint = payload[0]?.payload as { x?: number | string } | undefined;
-                const payloadX =
-                  payloadPoint && payloadPoint.x != null ? Number(payloadPoint.x) : NaN;
-                const hoveredX = Number.isFinite(labelNumber) ? labelNumber : payloadX;
-                if (!Number.isFinite(hoveredX)) {
-                  return null;
-                }
-                const rows = datasets
-                  .map((dataset, index) => {
-                    const nearest = findNearestDisplayPoint(dataset, hoveredX);
-                    if (!nearest) {
-                      return null;
-                    }
-                    return { index, label: nearest.label };
-                  })
-                  .filter((row): row is { index: number; label: string } => !!row);
-                if (!rows.length) {
-                  return null;
-                }
-                return (
-                  <div className={css.crosshair}>
-                    {rows.map(row => (
-                      <div key={row.index} className={css.crosshairLabel}>
-                        {`${labels[row.index]}: ${row.label}`}
-                      </div>
-                    ))}
-                  </div>
-                );
-              }}
+              content={tooltipProps => this.renderTooltipContent(tooltipProps, datasets, labels)}
             />
           )}
         </LineChart>
@@ -384,6 +366,59 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
       this.cachedChartData = this.buildChartData(datasets);
     }
     return this.cachedChartData;
+  }
+
+  private resolveHoveredX({ label, payload }: TooltipContentProps): number | null {
+    const labelNumber = typeof label === 'number' ? label : Number(label);
+    if (Number.isFinite(labelNumber)) {
+      return labelNumber;
+    }
+    const payloadPoint = payload?.[0]?.payload;
+    const payloadX = payloadPoint?.x != null ? Number(payloadPoint.x) : NaN;
+    return Number.isFinite(payloadX) ? payloadX : null;
+  }
+
+  private buildTooltipRows(datasets: DisplayPoint[][], hoveredX: number): TooltipRow[] {
+    return datasets
+      .map((dataset, index) => {
+        const nearest = findNearestDisplayPoint(dataset, hoveredX);
+        if (!nearest) {
+          return null;
+        }
+        return { index, label: nearest.label };
+      })
+      .filter((row): row is TooltipRow => !!row);
+  }
+
+  private renderTooltipRows(rows: TooltipRow[], labels: string[]): JSX.Element {
+    return (
+      <div className={css.crosshair}>
+        {rows.map(row => (
+          <div key={row.index} className={css.crosshairLabel}>
+            {`${labels[row.index]}: ${row.label}`}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  private renderTooltipContent(
+    tooltipProps: TooltipContentProps,
+    datasets: DisplayPoint[][],
+    labels: string[],
+  ): React.ReactNode {
+    if (!tooltipProps.active || !tooltipProps.payload?.length) {
+      return null;
+    }
+    const hoveredX = this.resolveHoveredX(tooltipProps);
+    if (hoveredX == null) {
+      return null;
+    }
+    const rows = this.buildTooltipRows(datasets, hoveredX);
+    if (!rows.length) {
+      return null;
+    }
+    return this.renderTooltipRows(rows, labels);
   }
 }
 
