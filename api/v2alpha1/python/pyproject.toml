@@ -5,7 +5,7 @@ description = "Kubeflow Pipelines pipeline spec"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.9"
 authors = [
-  { name = "google", email = "kubeflow-pipelines@google.com" }
+  { name = "The Kubeflow Authors" }
 ]
 keywords = ["Kubeflow", "Pipelines", "Pipeline Spec"]
 dependencies = [
