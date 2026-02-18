@@ -19,8 +19,7 @@ import re
 import subprocess
 import tempfile
 import textwrap
-import typing
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, Literal, NamedTuple, Optional
 import unittest
 
 from absl.testing import parameterized
@@ -191,7 +190,7 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_compile_pipeline_with_literal_input_valid(self):
 
         @dsl.component
-        def literal_component(literal_param: typing.Literal['a', 'b']):
+        def literal_component(literal_param: Literal['a', 'b']):
             print_op(message=literal_param)
 
         @dsl.pipeline(name='test-literal-pipeline')
@@ -211,8 +210,8 @@ class TestCompilePipeline(parameterized.TestCase):
         with self.assertRaises(TypeError):
 
             @dsl.component
-            def literal_component_with_mixed_types(
-                    literal_param: typing.Literal[1, 2, 'a']):
+            def literal_component_with_mixed_types(literal_param: Literal[1, 2,
+                                                                          'a']):
                 print_op(message=literal_param)
 
     def test_can_use_dsl_attribute_on_kfp(self):

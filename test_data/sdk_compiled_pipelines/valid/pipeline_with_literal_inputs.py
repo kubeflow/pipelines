@@ -4,12 +4,12 @@ This test ensures that pipelines using typing.Literal inputs compile correctly
 and produce stable IR output.
 """
 
-import typing
+from typing import Literal
 from kfp import dsl
 
 
 @dsl.component
-def literal_component(literal_param: typing.Literal['a', 'b']):
+def literal_component(literal_param: Literal['a', 'b']):
     print(literal_param)
 
 

@@ -27,232 +27,123 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 dsl.component = functools.partial(
     dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH)
 
-from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
-    echo as arguments_parameters_echo
-from test_data.sdk_compiled_pipelines.valid.artifacts_complex import \
-    math_pipeline as artifacts_complex_pipeline
-from test_data.sdk_compiled_pipelines.valid.artifacts_simple import \
-    math_pipeline as artifacts_simple_pipeline
-from test_data.sdk_compiled_pipelines.valid.collected_artifacts import \
-    collected_artifact_pipeline
-from test_data.sdk_compiled_pipelines.valid.component_with_metadata_fields import \
-    dataset_joiner
-from test_data.sdk_compiled_pipelines.valid.component_with_task_final_status import \
-    exit_comp as task_final_status_pipeline
-from test_data.sdk_compiled_pipelines.valid.components_with_optional_artifacts import \
-    pipeline as optional_artifacts_pipeline
-from test_data.sdk_compiled_pipelines.valid.conditional_producer_and_consumers import \
-    math_pipeline as conditional_producer_consumers_pipeline
+from test_data.sdk_compiled_pipelines.valid.arguments_parameters import echo as arguments_parameters_echo
+from test_data.sdk_compiled_pipelines.valid.artifacts_complex import math_pipeline as artifacts_complex_pipeline
+from test_data.sdk_compiled_pipelines.valid.artifacts_simple import math_pipeline as artifacts_simple_pipeline
+from test_data.sdk_compiled_pipelines.valid.collected_artifacts import collected_artifact_pipeline
+from test_data.sdk_compiled_pipelines.valid.component_with_metadata_fields import dataset_joiner
+from test_data.sdk_compiled_pipelines.valid.component_with_task_final_status import exit_comp as task_final_status_pipeline
+from test_data.sdk_compiled_pipelines.valid.components_with_optional_artifacts import pipeline as optional_artifacts_pipeline
+from test_data.sdk_compiled_pipelines.valid.conditional_producer_and_consumers import math_pipeline as conditional_producer_consumers_pipeline
 from test_data.sdk_compiled_pipelines.valid.container_io import container_io
-from test_data.sdk_compiled_pipelines.valid.container_with_artifact_output import \
-    container_with_artifact_output
-from test_data.sdk_compiled_pipelines.valid.container_with_concat_placeholder import \
-    container_with_concat_placeholder
-from test_data.sdk_compiled_pipelines.valid.container_with_if_placeholder import \
-    container_with_if_placeholder
-from test_data.sdk_compiled_pipelines.valid.container_with_if_placeholder import \
-    container_with_if_placeholder as pipeline_with_if_placeholder_pipeline
-from test_data.sdk_compiled_pipelines.valid.container_with_placeholder_in_fstring import \
-    container_with_placeholder_in_fstring
-from test_data.sdk_compiled_pipelines.valid.containerized_python_component import \
-    concat_message as containerized_concat_message
-from test_data.sdk_compiled_pipelines.valid.create_pod_metadata_complex import \
-    pipeline_with_pod_metadata as create_pod_metadata_complex
-from test_data.sdk_compiled_pipelines.valid.critical.add_numbers import \
-    add_numbers
-from test_data.sdk_compiled_pipelines.valid.critical.artifact_cache import \
-    crust as artifact_cache_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.artifact_crust import \
-    crust as artifact_crust_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.collected_parameters import \
-    collected_param_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.component_with_optional_inputs import \
-    pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.container_component_with_no_inputs import \
-    pipeline as container_no_inputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.flip_coin import \
-    flipcoin_pipeline as flip_coin
-from test_data.sdk_compiled_pipelines.valid.critical.loop_consume_upstream import \
-    loop_consume_upstream
-from test_data.sdk_compiled_pipelines.valid.critical.missing_kubernetes_optional_inputs import \
-    missing_kubernetes_optional_inputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import \
-    crust as mixed_parameters_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.modelcar.modelcar import \
-    pipeline_modelcar_test
-from test_data.sdk_compiled_pipelines.valid.critical.multiple_artifacts_namedtuple import \
-    crust as multiple_artifacts_namedtuple_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple import \
-    crust as multiple_params_namedtuple_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_input_child_level import \
-    nested_pipeline_opt_input_child_level
-from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_inputs_nil import \
-    nested_pipeline_opt_inputs_nil
-from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_inputs_parent_level import \
-    nested_pipeline_opt_inputs_parent_level
-from test_data.sdk_compiled_pipelines.valid.critical.parallel_for_after_dependency import \
-    loop_with_after_dependency_set
-from test_data.sdk_compiled_pipelines.valid.critical.parameter_cache import \
-    crust as parameter_cache_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.parameter_oneof import \
-    crust as parameter_oneof_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.parameters_simple import \
-    math_pipeline as parameters_simple_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_artifact_upload_download import \
-    my_pipeline as artifact_upload_download_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_env import \
-    my_pipeline as env_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import \
-    pipeline_with_importer_workspace
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_input_status_state import \
-    status_state_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_placeholders import \
-    pipeline_with_placeholders
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_pod_metadata import \
-    pipeline_with_pod_metadata
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_secret_as_env import \
-    pipeline_secret_env
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_workspace import \
-    pipeline_with_workspace
-from test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param import \
-    producer_consumer_param_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.pythonic_artifacts_test_pipeline import \
-    pythonic_artifacts_test_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.two_step_pipeline_containerized import \
-    my_pipeline as two_step_containerized_pipeline
-from test_data.sdk_compiled_pipelines.valid.cross_loop_after_topology import \
-    my_pipeline as cross_loop_after_topology_pipeline
+from test_data.sdk_compiled_pipelines.valid.container_with_artifact_output import container_with_artifact_output
+from test_data.sdk_compiled_pipelines.valid.container_with_concat_placeholder import container_with_concat_placeholder
+from test_data.sdk_compiled_pipelines.valid.container_with_if_placeholder import container_with_if_placeholder
+from test_data.sdk_compiled_pipelines.valid.container_with_if_placeholder import container_with_if_placeholder as pipeline_with_if_placeholder_pipeline
+from test_data.sdk_compiled_pipelines.valid.container_with_placeholder_in_fstring import container_with_placeholder_in_fstring
+from test_data.sdk_compiled_pipelines.valid.containerized_python_component import concat_message as containerized_concat_message
+from test_data.sdk_compiled_pipelines.valid.create_pod_metadata_complex import pipeline_with_pod_metadata as create_pod_metadata_complex
+from test_data.sdk_compiled_pipelines.valid.critical.add_numbers import add_numbers
+from test_data.sdk_compiled_pipelines.valid.critical.artifact_cache import crust as artifact_cache_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.artifact_crust import crust as artifact_crust_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.collected_parameters import collected_param_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.component_with_optional_inputs import pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.container_component_with_no_inputs import pipeline as container_no_inputs_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.flip_coin import flipcoin_pipeline as flip_coin
+from test_data.sdk_compiled_pipelines.valid.critical.loop_consume_upstream import loop_consume_upstream
+from test_data.sdk_compiled_pipelines.valid.critical.missing_kubernetes_optional_inputs import missing_kubernetes_optional_inputs_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import crust as mixed_parameters_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.modelcar.modelcar import pipeline_modelcar_test
+from test_data.sdk_compiled_pipelines.valid.critical.multiple_artifacts_namedtuple import crust as multiple_artifacts_namedtuple_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple import crust as multiple_params_namedtuple_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_input_child_level import nested_pipeline_opt_input_child_level
+from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_inputs_nil import nested_pipeline_opt_inputs_nil
+from test_data.sdk_compiled_pipelines.valid.critical.nested_pipeline_opt_inputs_parent_level import nested_pipeline_opt_inputs_parent_level
+from test_data.sdk_compiled_pipelines.valid.critical.parallel_for_after_dependency import loop_with_after_dependency_set
+from test_data.sdk_compiled_pipelines.valid.critical.parameter_cache import crust as parameter_cache_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.parameter_oneof import crust as parameter_oneof_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.parameters_simple import math_pipeline as parameters_simple_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_artifact_upload_download import my_pipeline as artifact_upload_download_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_env import my_pipeline as env_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import pipeline_with_importer_workspace
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_input_status_state import status_state_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_placeholders import pipeline_with_placeholders
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_pod_metadata import pipeline_with_pod_metadata
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_secret_as_env import pipeline_secret_env
+from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_workspace import pipeline_with_workspace
+from test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param import producer_consumer_param_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.pythonic_artifacts_test_pipeline import pythonic_artifacts_test_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.two_step_pipeline_containerized import my_pipeline as two_step_containerized_pipeline
+from test_data.sdk_compiled_pipelines.valid.cross_loop_after_topology import my_pipeline as cross_loop_after_topology_pipeline
 from test_data.sdk_compiled_pipelines.valid.dict_input import dict_input
 from test_data.sdk_compiled_pipelines.valid.env_var import test_env_exists
-from test_data.sdk_compiled_pipelines.valid.essential.component_with_pip_index_urls import \
-    pipeline as pip_index_urls_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.component_with_pip_install import \
-    component_with_pip_install as pip_install_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.component_with_pip_install_in_venv import \
-    component_with_pip_install as pip_install_venv_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.concat_message import \
-    concat_message
-from test_data.sdk_compiled_pipelines.valid.essential.container_no_input import \
-    container_no_input
-from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_pipeline import \
-    pipeline as lightweight_python_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs import \
-    pipeline as lightweight_python_with_outputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline import \
-    my_pipeline as pipeline_in_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline_complex import \
-    my_pipeline as pipeline_in_pipeline_complex
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline_loaded_from_yaml import \
-    my_pipeline as pipeline_in_pipeline_loaded_from_yaml
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_after import \
-    my_pipeline as after_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_condition import \
-    my_pipeline as condition_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_if_placeholder import \
-    pipeline_none
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_loops import \
-    my_pipeline as loops_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_metrics_outputs import \
-    my_pipeline as metrics_outputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_nested_conditions import \
-    my_pipeline as nested_conditions_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_nested_conditions_yaml import \
-    my_pipeline as pipeline_with_nested_conditions_yaml
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_outputs import \
-    my_pipeline as outputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_params_containing_format import \
-    my_pipeline as pipeline_with_params_containing_format
-from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_reused_component import \
-    my_pipeline as reused_component_pipeline
-from test_data.sdk_compiled_pipelines.valid.failing.pipeline_with_exit_handler import \
-    my_pipeline as exit_handler_pipeline
-from test_data.sdk_compiled_pipelines.valid.failing.pipeline_with_multiple_exit_handlers import \
-    my_pipeline as multiple_exit_handlers_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.component_with_pip_index_urls import pipeline as pip_index_urls_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.component_with_pip_install import component_with_pip_install as pip_install_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.component_with_pip_install_in_venv import component_with_pip_install as pip_install_venv_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.concat_message import concat_message
+from test_data.sdk_compiled_pipelines.valid.essential.container_no_input import container_no_input
+from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_pipeline import pipeline as lightweight_python_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs import pipeline as lightweight_python_with_outputs_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline import my_pipeline as pipeline_in_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline_complex import my_pipeline as pipeline_in_pipeline_complex
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_in_pipeline_loaded_from_yaml import my_pipeline as pipeline_in_pipeline_loaded_from_yaml
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_after import my_pipeline as after_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_condition import my_pipeline as condition_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_if_placeholder import pipeline_none
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_loops import my_pipeline as loops_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_metrics_outputs import my_pipeline as metrics_outputs_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_nested_conditions import my_pipeline as nested_conditions_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_nested_conditions_yaml import my_pipeline as pipeline_with_nested_conditions_yaml
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_outputs import my_pipeline as outputs_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_params_containing_format import my_pipeline as pipeline_with_params_containing_format
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_reused_component import my_pipeline as reused_component_pipeline
+from test_data.sdk_compiled_pipelines.valid.failing.pipeline_with_exit_handler import my_pipeline as exit_handler_pipeline
+from test_data.sdk_compiled_pipelines.valid.failing.pipeline_with_multiple_exit_handlers import my_pipeline as multiple_exit_handlers_pipeline
 from test_data.sdk_compiled_pipelines.valid.hello_world import echo
 from test_data.sdk_compiled_pipelines.valid.identity import identity
-from test_data.sdk_compiled_pipelines.valid.if_elif_else_complex import \
-    lucky_number_pipeline
-from test_data.sdk_compiled_pipelines.valid.if_elif_else_with_oneof_parameters import \
-    outer_pipeline as if_elif_else_oneof_params_pipeline
-from test_data.sdk_compiled_pipelines.valid.if_else_with_oneof_artifacts import \
-    outer_pipeline as if_else_oneof_artifacts_pipeline
-from test_data.sdk_compiled_pipelines.valid.if_else_with_oneof_parameters import \
-    flip_coin_pipeline as if_else_oneof_params_pipeline
-from test_data.sdk_compiled_pipelines.valid.input_artifact import \
-    input_artifact
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_literal_inputs import \
-    literal_pipeline
-from test_data.sdk_compiled_pipelines.valid.long_running import \
-    wait_awhile as long_running_pipeline
-from test_data.sdk_compiled_pipelines.valid.metrics_visualization_v2 import \
-    metrics_visualization_pipeline
+from test_data.sdk_compiled_pipelines.valid.if_elif_else_complex import lucky_number_pipeline
+from test_data.sdk_compiled_pipelines.valid.if_elif_else_with_oneof_parameters import outer_pipeline as if_elif_else_oneof_params_pipeline
+from test_data.sdk_compiled_pipelines.valid.if_else_with_oneof_artifacts import outer_pipeline as if_else_oneof_artifacts_pipeline
+from test_data.sdk_compiled_pipelines.valid.if_else_with_oneof_parameters import flip_coin_pipeline as if_else_oneof_params_pipeline
+from test_data.sdk_compiled_pipelines.valid.input_artifact import input_artifact
+from test_data.sdk_compiled_pipelines.valid.long_running import wait_awhile as long_running_pipeline
+from test_data.sdk_compiled_pipelines.valid.metrics_visualization_v2 import metrics_visualization_pipeline
 from test_data.sdk_compiled_pipelines.valid.nested_return import nested_return
-from test_data.sdk_compiled_pipelines.valid.nested_with_parameters import \
-    math_pipeline as nested_with_parameters_pipeline
-from test_data.sdk_compiled_pipelines.valid.output_metrics import \
-    output_metrics
-from test_data.sdk_compiled_pipelines.valid.parameters_complex import \
-    math_pipeline as parameters_complex_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_as_exit_task import \
-    my_pipeline as pipeline_as_exit_task
-from test_data.sdk_compiled_pipelines.valid.pipeline_producer_consumer import \
-    math_pipeline as producer_consumer_parallel_for_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_concat_placeholder import \
-    pipeline_with_concat_placeholder as \
-    pipeline_with_concat_placeholder_pipeline
+from test_data.sdk_compiled_pipelines.valid.nested_with_parameters import math_pipeline as nested_with_parameters_pipeline
+from test_data.sdk_compiled_pipelines.valid.output_metrics import output_metrics
+from test_data.sdk_compiled_pipelines.valid.parameters_complex import math_pipeline as parameters_complex_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_as_exit_task import my_pipeline as pipeline_as_exit_task
+from test_data.sdk_compiled_pipelines.valid.pipeline_producer_consumer import math_pipeline as producer_consumer_parallel_for_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_concat_placeholder import pipeline_with_concat_placeholder as pipeline_with_concat_placeholder_pipeline
 # Final batch of remaining missing pipeline imports
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_condition_dynamic_task_output_custom_training_job import \
-    pipeline_with_dynamic_condition_output
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_dynamic_importer_metadata import \
-    my_pipeline as pipeline_with_dynamic_importer_metadata
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_google_artifact_type import \
-    my_pipeline as pipeline_with_google_artifact_type
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_importer import \
-    my_pipeline as importer_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_importer_and_gcpc_types import \
-    my_pipeline as pipeline_with_importer_and_gcpc_types
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_loops_and_conditions import \
-    my_pipeline as loops_and_conditions_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_metadata_fields import \
-    dataset_concatenator as pipeline_with_metadata_fields
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_nested_loops import \
-    my_pipeline as nested_loops_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts import \
-    my_pipeline as pipeline_with_parallelfor_list_artifacts
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism import \
-    my_pipeline as pipeline_with_parallelfor_parallelism
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_retry import \
-    my_pipeline as retry_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_secret_as_volume import \
-    pipeline_secret_volume
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_pipeline_input import \
-    pipeline as pipeline_with_string_machine_fields_pipeline_input
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_task_output import \
-    pipeline as pipeline_with_string_machine_fields_task_output
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_task_final_status import \
-    my_pipeline as pipeline_with_task_final_status
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_task_using_ignore_upstream_failure import \
-    my_pipeline as pipeline_with_task_using_ignore_upstream_failure
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_utils import \
-    pipeline_with_utils
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_various_io_types import \
-    my_pipeline as various_io_types_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_volume import \
-    pipeline_with_volume
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_volume_no_cache import \
-    pipeline_with_volume_no_cache
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_condition_dynamic_task_output_custom_training_job import pipeline_with_dynamic_condition_output
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_dynamic_importer_metadata import my_pipeline as pipeline_with_dynamic_importer_metadata
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_google_artifact_type import my_pipeline as pipeline_with_google_artifact_type
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_importer import my_pipeline as importer_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_importer_and_gcpc_types import my_pipeline as pipeline_with_importer_and_gcpc_types
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_literal_inputs import literal_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_loops_and_conditions import my_pipeline as loops_and_conditions_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_metadata_fields import dataset_concatenator as pipeline_with_metadata_fields
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_nested_loops import my_pipeline as nested_loops_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts import my_pipeline as pipeline_with_parallelfor_list_artifacts
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism import my_pipeline as pipeline_with_parallelfor_parallelism
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_retry import my_pipeline as retry_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_secret_as_volume import pipeline_secret_volume
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_pipeline_input import pipeline as pipeline_with_string_machine_fields_pipeline_input
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_task_output import pipeline as pipeline_with_string_machine_fields_task_output
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_task_final_status import my_pipeline as pipeline_with_task_final_status
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_task_using_ignore_upstream_failure import my_pipeline as pipeline_with_task_using_ignore_upstream_failure
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_utils import pipeline_with_utils
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_various_io_types import my_pipeline as various_io_types_pipeline
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_volume import pipeline_with_volume
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_volume_no_cache import pipeline_with_volume_no_cache
 from test_data.sdk_compiled_pipelines.valid.preprocess import preprocess
-from test_data.sdk_compiled_pipelines.valid.pythonic_artifact_with_single_return import \
-    make_language_model_pipeline as pythonic_artifact_with_single_return
-from test_data.sdk_compiled_pipelines.valid.pythonic_artifacts_with_list_of_artifacts import \
-    make_and_join_datasets as pythonic_artifacts_with_list_of_artifacts
-from test_data.sdk_compiled_pipelines.valid.pythonic_artifacts_with_multiple_returns import \
-    split_datasets_and_return_first as pythonic_artifacts_multiple_returns
+from test_data.sdk_compiled_pipelines.valid.pythonic_artifact_with_single_return import make_language_model_pipeline as pythonic_artifact_with_single_return
+from test_data.sdk_compiled_pipelines.valid.pythonic_artifacts_with_list_of_artifacts import make_and_join_datasets as pythonic_artifacts_with_list_of_artifacts
+from test_data.sdk_compiled_pipelines.valid.pythonic_artifacts_with_multiple_returns import split_datasets_and_return_first as pythonic_artifacts_multiple_returns
 from test_data.sdk_compiled_pipelines.valid.sequential_v2 import sequential
-from test_data.sdk_compiled_pipelines.valid.two_step_pipeline import \
-    my_pipeline as two_step_pipeline
-from test_data.sdk_compiled_pipelines.valid.xgboost_sample_pipeline import \
-    xgboost_pipeline
+from test_data.sdk_compiled_pipelines.valid.two_step_pipeline import my_pipeline as two_step_pipeline
+from test_data.sdk_compiled_pipelines.valid.xgboost_sample_pipeline import xgboost_pipeline
 
 from ..test_utils.comparison_utils import ComparisonUtils
 from ..test_utils.file_utils import FileUtils

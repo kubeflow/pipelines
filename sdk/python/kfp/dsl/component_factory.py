@@ -348,7 +348,11 @@ def get_name_to_specs(
             if not type_annotations.is_list_of_artifacts(
                     annotation) and not type_annotations.is_artifact_class(
                         annotation):
-                annotation = type_utils._annotation_to_type_struct(annotation)
+                result = type_utils._annotation_to_type_struct(annotation)
+                if isinstance(result, tuple):
+                    annotation, _ = result
+                else:
+                    annotation = result
             name_to_output_specs[maybe_make_unique(
                 name,
                 list(name_to_output_specs))] = make_output_spec(annotation)
@@ -360,8 +364,12 @@ def get_name_to_specs(
             ' 0.1.32. Please use typing.NamedTuple to declare multiple'
             ' outputs.', DeprecationWarning)
         for output_name, output_type_annotation in return_ann.items():
-            output_type, _ = type_utils._annotation_to_type_struct(
+            result = type_utils._annotation_to_type_struct(
                 output_type_annotation)
+            if isinstance(result, tuple):
+                output_type, _ = result
+            else:
+                output_type = result
             name_to_output_specs[maybe_make_unique(
                 output_name, list(name_to_output_specs))] = output_type
     # is the simple single return case (can be `-> <param>` or `-> Artifact`)

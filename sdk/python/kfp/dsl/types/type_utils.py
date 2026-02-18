@@ -36,6 +36,16 @@ from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 
+try:
+    from typing import Literal as _TypingLiteral
+except ImportError:  # pragma: no cover
+    _TypingLiteral = None
+
+try:
+    import typing_extensions as _typing_extensions
+except ImportError:  # pragma: no cover
+    _typing_extensions = None
+
 DEFAULT_ARTIFACT_SCHEMA_VERSION = '0.0.1'
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
@@ -606,24 +616,17 @@ def _annotation_to_type_struct(annotation):
     origin = get_origin(annotation)
 
     if origin is not None:
-
-        # Check for Literal by name and type
-        origin_name = getattr(origin, '__name__', '')
-        is_literal = origin_name == 'Literal'
-
-        if not is_literal:
-            try:
-                import typing_extensions
-                if hasattr(typing_extensions,
-                           'Literal') and origin is typing_extensions.Literal:
-                    is_literal = True
-            except ImportError:
-                pass
+        is_literal = (
+            origin is _TypingLiteral or
+            (_typing_extensions is not None and
+             getattr(_typing_extensions, 'Literal', None) is not None and
+             origin is _typing_extensions.Literal) or
+            getattr(origin, '__name__', '') == 'Literal')
 
         if is_literal:
             args = get_args(annotation)
             if not args:
-                return None, None
+                return None
 
             elem_types = {type(v) for v in args}
             if len(elem_types) > 1:
@@ -657,9 +660,11 @@ def _annotation_to_type_struct(annotation):
             inner_types = []
             for inner_annotation in inner_annotations:
                 inner_type = _annotation_to_type_struct(inner_annotation)
+                if isinstance(inner_type, tuple):
+                    inner_type = inner_type[0]
                 inner_types.append(
-                    inner_type
-                    if inner_type is not None else str(inner_annotation))
+                    str(inner_type
+                       ) if inner_type is not None else str(inner_annotation))
             return f"{origin_type}[{', '.join(inner_types)}]"
         return origin_type
 
