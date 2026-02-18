@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -132,6 +134,18 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 		}
 	}()
 	ctx := context.Background()
+
+	// Support reading component spec from a file if value starts with @
+	// This bypasses exec() argument size limits for large workflows
+	if strings.HasPrefix(args.Component, "@") {
+		filePath := (args.Component)[1:] // Remove the "@" prefix
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read component spec from file %s: %w", filePath, err)
+		}
+		args.Component = string(data)
+		glog.Infof("Read component spec from file: %s (%d bytes)", filePath, len(data))
+	}
 
 	proxy.InitializeConfig(args.HTTPProxy, args.HTTPSProxy, args.NoProxy)
 

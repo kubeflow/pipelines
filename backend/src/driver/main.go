@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -75,8 +74,6 @@ func main() {
 	if err != nil {
 		glog.Warningf("Failed to start http server: %s", err.Error())
 	}
-	// temporary for preventing pod deletion before getting logs in e2e failed tests
-	time.Sleep(10 * time.Second)
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.
