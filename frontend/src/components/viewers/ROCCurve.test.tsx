@@ -16,10 +16,8 @@
 
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import renderer from 'react-test-renderer';
-import { LineSeries } from 'react-vis';
 import { PlotType } from './Viewer';
-import ROCCurve from './ROCCurve';
+import ROCCurve, { findNearestDisplayPoint } from './ROCCurve';
 
 describe('ROCCurve', () => {
   const data = [
@@ -46,11 +44,9 @@ describe('ROCCurve', () => {
   });
 
   it('renders a reference base line series', () => {
-    const tree = renderer.create(
-      <ROCCurve configs={[{ data, type: PlotType.ROC }]} disableAnimation />,
-    );
-    const lineSeries = tree.root.findAllByType(LineSeries);
-    expect(lineSeries.length).toBeGreaterThanOrEqual(2);
+    const { container } = render(<ROCCurve configs={[{ data, type: PlotType.ROC }]} />);
+    const referenceLines = container.querySelectorAll('.recharts-reference-line-line');
+    expect(referenceLines.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders an ROC curve using three configs', () => {
@@ -61,10 +57,12 @@ describe('ROCCurve', () => {
 
   it('renders three lines with three different colors', () => {
     const config = { data, type: PlotType.ROC };
-    const tree = renderer.create(<ROCCurve configs={[config, config, config]} disableAnimation />);
-    const lineSeries = tree.root.findAllByType(LineSeries);
-    expect(lineSeries.length).toBeGreaterThanOrEqual(4); // +1 for baseline
-    const dataLineColors = lineSeries.map(series => series.props.color).filter(Boolean);
+    const { container } = render(<ROCCurve configs={[config, config, config]} />);
+    const dataLines = Array.from(container.querySelectorAll('.recharts-line-curve'));
+    expect(dataLines.length).toBeGreaterThanOrEqual(3);
+    const dataLineColors = dataLines
+      .map(line => line.getAttribute('stroke'))
+      .filter((stroke): stroke is string => !!stroke);
     expect(new Set(dataLineColors).size).toBeGreaterThanOrEqual(3);
   });
 
@@ -94,5 +92,56 @@ describe('ROCCurve', () => {
     const config = { data, type: PlotType.ROC };
     render(<ROCCurve configs={[config]} forceLegend />);
     screen.getByText('Series #1');
+  });
+
+  it('finds nearest point when series x values do not align', () => {
+    const sparseSeries = [
+      { x: 0.2, y: 0.1, label: 'near-start' },
+      { x: 0.8, y: 0.9, label: 'near-end' },
+    ];
+    expect(findNearestDisplayPoint(sparseSeries, 0.05)?.label).toBe('near-start');
+    expect(findNearestDisplayPoint(sparseSeries, 0.95)?.label).toBe('near-end');
+  });
+
+  it('returns null for nearest point when no data exists', () => {
+    expect(findNearestDisplayPoint([], 0.5)).toBeNull();
+  });
+
+  it('returns the only point when nearest-point series has one item', () => {
+    const singlePointSeries = [{ x: 0.5, y: 0.5, label: 'only' }];
+    expect(findNearestDisplayPoint(singlePointSeries, 0.9)?.label).toBe('only');
+  });
+
+  it('uses payload x for tooltip matching when label is not numeric', () => {
+    const rocCurve = new ROCCurve({ configs: [] } as any);
+    const hoveredX = (rocCurve as any).resolveHoveredX({
+      label: 'not-a-number',
+      payload: [{ payload: { x: '0.42' } }],
+    });
+    expect(hoveredX).toBeCloseTo(0.42);
+  });
+
+  it('renders tooltip rows using nearest points for each series', () => {
+    const rocCurve = new ROCCurve({ configs: [] } as any);
+    const labels = ['threshold (Series #1)', 'threshold (Series #2)'];
+    const tooltip = (rocCurve as any).renderTooltipContent(
+      {
+        active: true,
+        label: 'invalid',
+        payload: [{ payload: { x: '0.39' } }],
+      },
+      [
+        [
+          { x: 0.2, y: 0.3, label: 'left' },
+          { x: 0.4, y: 0.6, label: 'right' },
+        ],
+        [{ x: 0.2, y: 0.7, label: 'single' }],
+      ],
+      labels,
+    );
+    expect(tooltip).not.toBeNull();
+    render(<>{tooltip}</>);
+    expect(screen.getByText('threshold (Series #1): right')).toBeInTheDocument();
+    expect(screen.getByText('threshold (Series #2): single')).toBeInTheDocument();
   });
 });

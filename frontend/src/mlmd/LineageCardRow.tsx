@@ -20,13 +20,14 @@ import { classes, cssRaw } from 'typestyle';
 import { LineageTypedResource } from './LineageTypes';
 import { getResourceDescription, getResourceName } from './Utils';
 import { Artifact } from 'src/third_party/mlmd';
+import { CARD_ROW_CENTER_Y, CARD_ROW_HEIGHT, EDGE_PORT_SIZE, px } from './LineageCss';
 
 cssRaw(`
 .cardRow {
   align-items: center;
   border-bottom: 1px solid var(--grey-200);
   display: flex;
-  height: 54px;
+  height: ${px(CARD_ROW_HEIGHT)};
   padding: 6px 0px;
   position: relative;
 }
@@ -142,12 +143,12 @@ cssRaw(`
   overflow: hidden;
 }
 .cardRow [class^='edge'] {
-  width: 8px;
-  height: 8px;
+  width: ${px(EDGE_PORT_SIZE)};
+  height: ${px(EDGE_PORT_SIZE)};
   background-color: var(--grey-700);
   border-radius: 2px;
   position: absolute;
-  top: 50%;
+  top: ${px(CARD_ROW_CENTER_Y)};
   transform: translateY(-50%) translateX(-50%);
 }
 .cardRow .edgeRight {
