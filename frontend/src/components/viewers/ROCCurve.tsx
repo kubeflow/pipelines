@@ -26,14 +26,10 @@ import {
   YAxis,
 } from 'recharts';
 import Viewer, { ViewerConfig } from './Viewer';
-import { color, fontsize, commonCss } from '../../Css';
+import { color, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
 
 const css = stylesheet({
-  axis: {
-    fontSize: fontsize.medium,
-    fontWeight: 'bolder',
-  },
   crosshair: {
     backgroundColor: '#1d2744',
     borderRadius: 5,
