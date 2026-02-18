@@ -40,6 +40,7 @@ message KubernetesExecutorConfig {
     repeated PodAffinityTerm pod_affinity = 15;
     EnabledSharedMemory enabled_shared_memory = 16;
     repeated EmptyDirMount empty_dir_mounts = 17;
+    SecurityContext security_context = 18;
 }
 
 message EnabledSharedMemory {
@@ -271,6 +272,19 @@ message PodAffinityTerm {
     optional int32 weight = 7;
     //Flag indicating if it is a podaffinity or podantiaffinity
     optional bool anti = 8;
+}
+
+message SecurityContext {
+    // UID to run the container process as.
+    // Uses the container runtime default if not specified.
+    optional int64 run_as_user = 1;
+    // GID to run the container process as.
+    // Uses the container runtime default if not specified.
+    optional int64 run_as_group = 2;
+    // Fields 3-5 removed: privileged, add_capabilities, drop_capabilities
+    // violate Pod Security Standards (PSS) baseline.
+    // All capabilities are always dropped by the backend.
+    reserved 3, 4, 5;
 }
 
 message EmptyDirMount {
