@@ -10,7 +10,6 @@ configMapGenerator:
   - sync.py
   - desired_resources.json
   - additional_resources.json
-  - artifact_proxy_resources.json
   name: kubeflow-pipelines-profile-controller-code
 - envs:
   - params.env

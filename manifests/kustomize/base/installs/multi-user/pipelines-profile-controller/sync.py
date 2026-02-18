@@ -163,10 +163,8 @@ def load_desired_resources(**kwargs):
     """Load desired resources from JSON template files.
 
     All resources are loaded from template files:
-    - desired_resources.json: Base resources
+    - desired_resources.json: Base resources and artifact proxy resources
     - additional_resources.json: Additional resources
-    - artifact_repositories_configmap.json: ConfigMap with S3 artifact repository configuration
-    - artifact_proxy_resources.json: Artifact proxy resources (conditionally loaded)
     """
     namespace = kwargs.get("namespace")
     cluster_domain = kwargs.get("cluster_domain", ".svc.cluster.local")
@@ -176,76 +174,66 @@ def load_desired_resources(**kwargs):
     frontend_image = kwargs.get("frontend_image", "")
     frontend_tag = kwargs.get("frontend_tag", "")
 
-    # Load base resources from templates
-    resources = fill_json_template(
-        path=_template_path("desired_resources.json"), **kwargs
-    ) + fill_json_template(
-        path=_template_path("additional_resources.json"), **kwargs
+    istio_sidecar_annotation = (
+        '"sidecar.istio.io/inject": "false",' if disable_istio_sidecar else ""
+    )
+    image_spec_hash = hashlib.sha256(
+        f"{frontend_image}:{frontend_tag}".encode()
+    ).hexdigest()[:16]
+    normalized_cluster_domain = _normalize_domain(cluster_domain)
+    ml_pipeline_service_host = (
+        f"ml-pipeline.kubeflow{normalized_cluster_domain}"
     )
 
-    # Build artifact repository config with nested JSON containing Argo template variables
-    artifact_repository_config = json.dumps(
-        {
-            "archiveLogs": True,
-            "s3": {
-                "endpoint": (
-                    f"{object_store_host}.kubeflow"
-                    f"{_normalize_domain(cluster_domain)}:9000"
-                ),
-                "bucket": S3_BUCKET_NAME,
-                "keyFormat": (
-                    f"private-artifacts/{namespace}/"
-                    "{{workflow.name}}/"
-                    "{{workflow.creationTimestamp.Y}}/"
-                    "{{workflow.creationTimestamp.m}}/"
-                    "{{workflow.creationTimestamp.d}}/"
-                    "{{pod.name}}"
-                ),
-                "insecure": True,
-                "accessKeySecret": {
-                    "name": "mlpipeline-minio-artifact",
-                    "key": "accesskey",
-                },
-                "secretKeySecret": {
-                    "name": "mlpipeline-minio-artifact",
-                    "key": "secretkey",
-                },
-            },
-        }
-    )
-
-    # Load artifact-repositories ConfigMap from template
-    artifact_repositories_configmap = fill_json_template(
-        path=_template_path("artifact_repositories_configmap.json"),
+    # Load consolidated resources from template
+    resources_template = fill_json_template(
+        path=_template_path("desired_resources.json"),
         namespace=namespace,
-        artifact_repository_config=json.dumps(artifact_repository_config),
+        cluster_domain=cluster_domain,
+        object_store_host=object_store_host,
+        normalized_cluster_domain=normalized_cluster_domain,
+        istio_sidecar_annotation=istio_sidecar_annotation,
+        image_spec_hash=image_spec_hash,
+        frontend_image=frontend_image,
+        frontend_tag=frontend_tag,
+        ml_pipeline_service_host=ml_pipeline_service_host,
     )
-    resources.append(artifact_repositories_configmap)
+
+    if isinstance(resources_template, dict):
+        resources = list(resources_template.get("base", []))
+        artifact_proxy_resources = resources_template.get("artifact_proxy", [])
+    else:
+        resources = list(resources_template)
+        artifact_proxy_resources = []
+
+    resources += fill_json_template(
+        path=_template_path("additional_resources.json"),
+        namespace=namespace,
+        cluster_domain=cluster_domain,
+        object_store_host=object_store_host,
+        normalized_cluster_domain=normalized_cluster_domain,
+        istio_sidecar_annotation=istio_sidecar_annotation,
+        image_spec_hash=image_spec_hash,
+        frontend_image=frontend_image,
+        frontend_tag=frontend_tag,
+        ml_pipeline_service_host=ml_pipeline_service_host,
+    )
 
     # Conditionally add artifact proxy resources from template
     if str(artifacts_proxy_enabled).lower() == "true":
-        istio_sidecar_annotation = (
-            '"sidecar.istio.io/inject": "false",'
-            if disable_istio_sidecar
-            else ""
-        )
-        image_spec_hash = hashlib.sha256(
-            f"{frontend_image}:{frontend_tag}".encode()
-        ).hexdigest()[:16]
-        ml_pipeline_service_host = (
-            f"ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}"
-        )
+        resources += list(artifact_proxy_resources)
 
-        resources += fill_json_template(
-            path=_template_path("artifact_proxy_resources.json"),
-            namespace=namespace,
-            frontend_image=frontend_image,
-            frontend_tag=frontend_tag,
-            image_spec_hash=image_spec_hash,
-            istio_sidecar_annotation=istio_sidecar_annotation,
-            ml_pipeline_service_host=ml_pipeline_service_host,
-            cluster_domain=cluster_domain,
-        )
+    for resource in resources:
+        if (
+            resource.get("kind") == "ConfigMap"
+            and resource.get("metadata", {}).get("name")
+            == "artifact-repositories"
+        ):
+            data = resource.get("data", {})
+            repository_config = data.get("default-namespaced")
+            if isinstance(repository_config, dict):
+                data["default-namespaced"] = json.dumps(repository_config)
+            break
 
     return resources
 
@@ -429,21 +417,26 @@ def server_factory(
                     S3_BUCKET_NAME, artifact_retention_days
                 )
 
-                # Create S3 secret from template
-                s3_secret = fill_json_template(
-                    path=_template_path("s3_secret.json"),
-                    namespace=namespace,
-                    access_key_base64=base64.b64encode(
-                        s3_access_key["AccessKey"]["AccessKeyId"].encode(
-                            "utf-8"
-                        )
-                    ).decode("utf-8"),
-                    secret_key_base64=base64.b64encode(
-                        s3_access_key["AccessKey"]["SecretAccessKey"].encode(
-                            "utf-8"
-                        )
-                    ).decode("utf-8"),
-                )
+                s3_secret = {
+                    "apiVersion": "v1",
+                    "kind": "Secret",
+                    "metadata": {
+                        "name": "mlpipeline-minio-artifact",
+                        "namespace": namespace,
+                    },
+                    "data": {
+                        "accesskey": base64.b64encode(
+                            s3_access_key["AccessKey"]["AccessKeyId"].encode(
+                                "utf-8"
+                            )
+                        ).decode("utf-8"),
+                        "secretkey": base64.b64encode(
+                            s3_access_key["AccessKey"][
+                                "SecretAccessKey"
+                            ].encode("utf-8")
+                        ).decode("utf-8"),
+                    },
+                }
                 desired_resources.insert(0, s3_secret)
 
             desired_status = compute_desired_status(
