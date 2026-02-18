@@ -6,7 +6,7 @@ readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.9"
 authors = [
-  { name = "google", email = "kubeflow-pipelines@google.com" }
+  { name = "The Kubeflow Authors" }
 ]
 dependencies = [
   "protobuf>=6.31.1,<7.0",
