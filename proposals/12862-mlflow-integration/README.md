@@ -60,8 +60,6 @@ itself.
 1. Pre-configure MLflow authentication on user containers by setting the appropriate environment variables
    (`MLFLOW_TRACKING_AUTH`, `MLFLOW_TRACKING_TOKEN`, or `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`) so that
    the MLflow Python SDK authenticates automatically without manual setup in component code.
-1. When MLflow is deployed with Kubernetes-native multi-tenancy, govern access to MLflow experiments through Kubernetes
-   RBAC.
 1. The plugin metadata interface should align with the future generic plugin architecture in
    [KEP #12700](https://github.com/kubeflow/pipelines/pull/12700) to ensure no breaking changes when that architecture
    is adopted.
@@ -153,7 +151,6 @@ sequenceDiagram
     participant Launcher
 
     User->>APIServer: CreateRun (optionally with plugins_input.mlflow overrides)
-    APIServer->>APIServer: Authorization check (authType=kubernetes)
     APIServer->>MLflow: Create experiment (if needed)
     APIServer->>MLflow: Create parent run (tag: KFP run URL)
     APIServer-->>User: Return Run with plugins_output.mlflow
@@ -290,8 +287,6 @@ and MLflow is configured, the run is tracked under the `"Default"` MLflow experi
 
 When a run is created and MLflow is enabled for the namespace:
 
-1. If `authType` is `"kubernetes"`, perform the authorization check (see
-   [MLflow Experiment Authorization](#mlflow-experiment-authorization)).
 1. Validate `plugins_input.mlflow` against the `MLflowPluginInput` schema (see below). Reject the request with a
    descriptive error if the struct does not conform to the expected fields. If `plugins_input.mlflow.disabled` is
    `true`, skip all subsequent MLflow steps for this run.
@@ -494,30 +489,7 @@ environment variable is intentionally **not** used in this mode because Kubernet
 rotate during the pod's lifetime. For long-running tasks, a token captured at pod startup could expire before the task
 completes. The auth provider reads the token from disk on every HTTP request, ensuring it always uses the current token.
 
-### MLflow Experiment Authorization
-
-MLflow experiment authorization applies only when `authType` is `"kubernetes"`. When `authType` is `"bearer"` or
-`"basic-auth"`, authorization is skipped and the user is assumed to have access to create experiments and add runs.
-
-When `authType` is `"kubernetes"`, the API server performs a Kubernetes RBAC check before making MLflow API calls on the
-user's behalf. The `experiments` resource in the `mlflow.kubeflow.org` API group is used for RBAC checks. No actual CRD
-instances exist; the resource exists solely for Kubernetes RBAC authorization.
-
-- **Standalone mode** (optional, disabled by default): When enabled via a config flag, a `SubjectAccessReview` is
-  performed using the user identity and group membership from kube-rbac-proxy forwarded headers (`X-Remote-User` and
-  `X-Remote-Groups` via the existing `KUBEFLOW_USERID_HEADER` config in
-  `backend/src/apiserver/auth/authenticator_http_headers.go`). Both user and groups are included in the
-  `SubjectAccessReview` so that RBAC rules bound to groups (e.g., via `RoleBinding` to a group) are evaluated correctly.
-  The review checks `create` and `update` verbs on `experiments.mlflow.kubeflow.org`. This path is separate from general
-  KFP authorization, which currently skips entirely in standalone mode (see the `IsAuthorized` function in
-  `backend/src/apiserver/resource/resource_manager.go`).
-- **Multi-user mode**: A `SelfSubjectAccessReview` is performed using the user's own token (already available via the
-  existing authenticators) checking `create` and `update` verbs on `experiments.mlflow.kubeflow.org` in the target
-  namespace.
-
-After authorization passes, the API server uses its own service account token for all MLflow REST API calls.
-
-#### Required Permissions by Layer
+### Required Permissions by Layer
 
 **Kubernetes-native mode.** In this mode, the Kubernetes
 [workspace provider](https://github.com/opendatahub-io/mlflow/tree/master/kubernetes-workspace-provider) authorizes
@@ -527,7 +499,7 @@ Run operations (create, update, log) are authorized under `experiments` permissi
 
 | Service Account                     | Kubernetes Permissions                         | `mlflow.kubeflow.org` Permissions                  |
 | ----------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
-| `ml-pipeline` (API server)          | `create` on `subjectaccessreviews` (existing)  | `get`, `list`, `create`, `update` on `experiments` |
+| `ml-pipeline` (API server)          | (no new Kubernetes permissions)                | `get`, `list`, `create`, `update` on `experiments` |
 | `pipeline-runner` (driver/launcher) | `get` on `secrets` and `configmaps` (existing) | `get`, `list`, `create`, `update` on `experiments` |
 
 If user code in a task calls the MLflow SDK directly for operations beyond experiment tracking (e.g., logging datasets,
@@ -600,16 +572,15 @@ calls.
 
 Three `authType` values are supported:
 
-- **`"kubernetes"`** (default): The API server's service account token is used for MLflow API calls.
-  `SubjectAccessReview` / `SelfSubjectAccessReview` is performed to verify the user has permission before acting on
-  their behalf. Workspaces default to enabled, mapping Kubernetes namespaces to MLflow workspaces. This assumes MLflow
+- **`"kubernetes"`** (default): The API server's service account token is used for MLflow API calls. Workspaces default
+  to enabled, mapping Kubernetes namespaces to MLflow workspaces. This assumes MLflow
   is deployed with Kubernetes-native multi-tenancy. A Kubeflow-wide proposal to donate the MLflow plugins that make
   MLflow Kubernetes-native to the Kubeflow community is coming soon.
-- **`"bearer"`**: The user provides an API token in a Kubernetes Secret in the pipeline run's namespace. Authorization
-  is skipped. This supports MLflow deployments using token-based authentication (including Databricks managed MLflow via
-  personal access tokens) or a reverse proxy that accepts bearer tokens.
+- **`"bearer"`**: The user provides an API token in a Kubernetes Secret in the pipeline run's namespace. This supports
+  MLflow deployments using token-based authentication (including Databricks managed MLflow via personal access tokens)
+  or a reverse proxy that accepts bearer tokens.
 - **`"basic-auth"`**: The user provides username and password in a Kubernetes Secret in the pipeline run's namespace.
-  Authorization is skipped. This is the default authentication mechanism for self-hosted MLflow using its
+  This is the default authentication mechanism for self-hosted MLflow using its
   [built-in authentication](https://mlflow.org/docs/latest/ml/auth/).
 
 For `"bearer"` and `"basic-auth"`, `credentialSecretRef` is required. Workspaces default to disabled but can be enabled.
