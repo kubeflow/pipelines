@@ -314,7 +314,7 @@ func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
 		return
 	}
 
-	pvcPipelinePath := "../resources/pvc-mount-with-cacheKey.yaml"
+	pvcPipelinePath := "../resources/pvc-mount-with-cachekey.yaml"
 
 	// Create a small PVC up-front so the pipeline can mount it by name.
 	restCfg, err := util.GetKubernetesConfig()
