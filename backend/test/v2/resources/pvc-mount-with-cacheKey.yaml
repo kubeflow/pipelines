@@ -73,7 +73,7 @@ deploymentSpec:
           \        return f.read()\n\n"
         image: python:3.11
 pipelineInfo:
-  name: pvc-mount-pipeline
+  name: pvc-mount-pipeline-with-cachekey
 root:
   dag:
     tasks:
