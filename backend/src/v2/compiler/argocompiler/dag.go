@@ -356,7 +356,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	}
 }
 
-func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterator task: %w", err)
@@ -364,7 +364,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	}()
 	componentName := task.GetComponentRef().GetName()
 	// Set up Loop Control Template
-	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJson, parentDagID, name)
+	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJSON, parentDagID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +406,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	return tasks, nil
 }
 
-func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string, parallelForTaskKey string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string, parallelForTaskKey string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterationItem task: %w", err)
@@ -423,7 +423,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	driverInputs := dagDriverInputs{
 		component:   componentSpecPlaceholder,
 		parentDagID: parentDagID,
-		task:        taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
+		task:        taskJSON, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
 		taskName:    parallelForTaskKey,
 	}
 	driver, driverOutputs, err := c.dagDriverTask(driverArgoName, driverInputs)
