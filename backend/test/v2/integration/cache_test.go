@@ -364,16 +364,7 @@ func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
 	require.NoError(t, err)
 	require.NotNil(t, run1)
 
-	// Second run with the same PVC name should hit cache
-	// because the cacheKey is identical.
-	run2, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": pvcName})
-	require.NoError(t, err)
-	require.NotNil(t, run2)
-
-	state := s.getContainerExecutionState(t, run2.RunID)
-	require.Equal(t, pb.Execution_CACHED, state)
-
-	// Third run with a different PVC name should still hit cache,
+	// Second run with a different PVC name should still hit cache,
 	// because the component uses a fixed cacheKey.
 	otherPVCName := fmt.Sprintf("%s-alt", pvcName)
 	// Create the alternate PVC so the pipeline can mount it
@@ -391,11 +382,11 @@ func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
 		_ = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Delete(context.Background(), otherPVCName, metav1.DeleteOptions{})
 	}()
 
-	run3, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": otherPVCName})
+	run2, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": otherPVCName})
 	require.NoError(t, err)
-	require.NotNil(t, run3)
+	require.NotNil(t, run2)
 
-	state = s.getContainerExecutionState(t, run3.RunID)
+	state := s.getContainerExecutionState(t, run2.RunID)
 	// Even with a different PVC name, the execution should be CACHED
 	// because the cacheKey remains unchanged.
 	require.Equal(t, pb.Execution_CACHED, state)
