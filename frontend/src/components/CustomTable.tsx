@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import ArrowRight from '@material-ui/icons/ArrowRight';
-import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
+import Checkbox from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -27,7 +27,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
 import Separator from '../atoms/Separator';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
+import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
@@ -245,14 +245,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     };
   }
 
-  public handleSelectAllClick(event: React.ChangeEvent): void {
+  public handleSelectAllClick(event: React.ChangeEvent<HTMLInputElement>): void {
     if (this.props.disableSelection === true) {
       // This should be impossible to reach
       return;
     }
-    const selectedIds = (event.target as CheckboxProps).checked
-      ? this.props.rows.map(v => v.id)
-      : [];
+    const selectedIds = event.target.checked ? this.props.rows.map(v => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
@@ -609,8 +607,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
   }
 
-  private async _requestRowsPerPage(event: React.ChangeEvent): Promise<void> {
-    const pageSize = (event.target as TextFieldProps).value as number;
+  private async _requestRowsPerPage(
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ): Promise<void> {
+    const pageSize = Number(event.target.value);
 
     this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
   }
