@@ -51,6 +51,8 @@ export const color = {
   warningText: '#ee8100',
   infoBg: '#f3f4ff',
   infoText: '#1a73e8',
+  tooltipBg: '#1d2744',
+  tooltipShadow: '#aaa',
   weak: '#9aa0a6',
   link: '#0d47a1',
   linkLight: '#5472d3',
