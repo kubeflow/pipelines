@@ -127,6 +127,28 @@ class TestSecurityContext:
             }
         }
 
+    def test_security_context_bool_run_as_user(self):
+        with pytest.raises(
+            TypeError,
+            match=r'Argument for "run_as_user" must be an int, not bool',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.set_security_context(task, run_as_user=True)
+
+    def test_security_context_bool_run_as_group(self):
+        with pytest.raises(
+            TypeError,
+            match=r'Argument for "run_as_group" must be an int, not bool',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.set_security_context(task, run_as_group=True)
+
     def test_security_context_run_as_user_zero(self):
 
         @dsl.pipeline

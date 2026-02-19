@@ -91,6 +91,11 @@ type Options struct {
 	PipelineJobCreateTimeUTC string
 
 	PipelineJobScheduleTimeUTC string
+
+	// Admin-configured default runAsUser for user containers. Nil means not set.
+	DefaultRunAsUser *int64
+	// Admin-configured default runAsGroup for user containers. Nil means not set.
+	DefaultRunAsGroup *int64
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
