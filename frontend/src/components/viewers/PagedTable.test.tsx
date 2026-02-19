@@ -76,7 +76,7 @@ describe('PagedTable', () => {
   });
 
   it('does not emit DOM nesting warnings when rendering pagination', () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleErrorSpy = vi.spyOn(console, 'error');
     try {
       render(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
 
