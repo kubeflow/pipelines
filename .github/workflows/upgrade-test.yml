@@ -19,6 +19,7 @@ on:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/resources/**'
+      - 'Makefile'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/metadata_writer/**'
@@ -58,7 +59,7 @@ jobs:
         shell: bash
         id: get-tag
         run: |
-          lastRelease=$(curl -sSL -H "Accept: application/vnd.github+json" "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name)
+          lastRelease=$(make get-last-release-tag)
           echo "Fetched last release tag: $lastRelease"
           echo "lastRelease=$lastRelease" >> "$GITHUB_OUTPUT"
 
@@ -71,15 +72,7 @@ jobs:
       - name: Deploy Last Release
         shell: bash
         id: deploy-release
-        run: |
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=${{ steps.get-tag.outputs.lastRelease }}
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=${{ steps.get-tag.outputs.lastRelease }}
-          source "./.github/resources/scripts/helper-functions.sh"
-          wait_for_pods || EXIT_CODE=$?
-          if [[ $EXIT_CODE -ne 0 ]]; then
-            echo "Deploy unsuccessful. Not all pods running."
-            exit 1
-          fi
+        run: make deploy-last-release RELEASE_TAG=${{ steps.get-tag.outputs.lastRelease }}
 
       - name: Forward API port
         id: forward-api-port
@@ -91,9 +84,7 @@ jobs:
       - name: Prepare for Upgrade
         id: prepare-upgrade
         if: ${{ steps.forward-api-port.outcome == 'success' }}
-        working-directory: ${{ env.TESTS_DIR }}
-        run: |
-          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
+        run: make prepare-upgrade TESTS_DIR=${{ env.TESTS_DIR }} NUMBER_OF_PARALLEL_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
         continue-on-error: true
 
       - name: Stop port forwarding
