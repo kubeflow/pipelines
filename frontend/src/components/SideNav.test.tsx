@@ -15,8 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { createMemoryHistory } from 'history';
 import { vi } from 'vitest';

@@ -15,8 +15,8 @@
  */
 
 import React from 'react';
-import { render } from '@testing-library/react';
-import TestUtils, { diffHTML } from 'src/TestUtils';
+import { render, screen } from '@testing-library/react';
+import TestUtils from 'src/TestUtils';
 import { Apis } from 'src/lib/Apis';
 import { V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 import { GettingStarted } from './GettingStarted';
@@ -64,44 +64,17 @@ describe('GettingStarted page', () => {
       };
       return Promise.resolve(response);
     });
-    const { container } = render(<GettingStarted {...generateProps()} />);
-    const base = container.innerHTML;
+    render(<GettingStarted {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(pipelineListSpy.mock.calls).toMatchSnapshot();
-    expect(diffHTML({ base, update: container.innerHTML })).toMatchInlineSnapshot(`
-      "Snapshot Diff:
-      - Expected
-      + Received
-
-      @@ --- --- @@
-              <strong>Tutorials</strong> - Learn pipeline concepts by following a
-              tutorial.
-            </p>
-            <ul>
-              <li>
-      -         <a href="#/pipelines" class="link_f1fk43bf"
-      +         <a href="#/pipelines/details/pipeline-id-1?" class="link_f1fk43bf"
-                  >Data passing in Python components</a
-                >
-                <ul>
-                  <li>
-                    Shows how to pass data between Python components.
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
-      -         <a href="#/pipelines" class="link_f1fk43bf">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-2?" class="link_f1fk43bf"
-      +           >DSL - Control structures</a
-      +         >
-                <ul>
-                  <li>
-                    Shows how to use conditional execution and exit handlers.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures""
-    `);
+    expect(screen.getByRole('link', { name: 'Data passing in Python components' })).toHaveAttribute(
+      'href',
+      '#/pipelines/details/pipeline-id-1?',
+    );
+    expect(screen.getByRole('link', { name: 'DSL - Control structures' })).toHaveAttribute(
+      'href',
+      '#/pipelines/details/pipeline-id-2?',
+    );
   });
 
   it('fallbacks to show pipeline list page if request failed', async () => {
@@ -118,29 +91,15 @@ describe('GettingStarted page', () => {
         });
       },
     );
-    const { container } = render(<GettingStarted {...generateProps()} />);
-    const base = container.innerHTML;
+    render(<GettingStarted {...generateProps()} />);
     await TestUtils.flushPromises();
-    expect(diffHTML({ base, update: container.innerHTML })).toMatchInlineSnapshot(`
-      "Snapshot Diff:
-      - Expected
-      + Received
-
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
-      -         <a href="#/pipelines" class="link_f1fk43bf">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-2?" class="link_f1fk43bf"
-      +           >DSL - Control structures</a
-      +         >
-                <ul>
-                  <li>
-                    Shows how to use conditional execution and exit handlers.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures""
-    `);
+    expect(screen.getByRole('link', { name: 'Data passing in Python components' })).toHaveAttribute(
+      'href',
+      '#/pipelines',
+    );
+    expect(screen.getByRole('link', { name: 'DSL - Control structures' })).toHaveAttribute(
+      'href',
+      '#/pipelines/details/pipeline-id-2?',
+    );
   });
 });

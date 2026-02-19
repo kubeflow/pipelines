@@ -15,8 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { LineageActionBar, LineageActionBarProps, LineageActionBarState } from './LineageActionBar';
 import { buildTestModel, testModel } from './TestUtils';
