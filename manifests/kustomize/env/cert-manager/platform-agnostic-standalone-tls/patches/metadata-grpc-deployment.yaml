@@ -21,6 +21,16 @@ spec:
         - name: generate-config
           image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           command: [ "/bin/sh", "-ec" ]
           args:
             - |
@@ -82,7 +92,7 @@ spec:
             - "--grpc_port=8080"
             - "--metadata_store_server_config_file=/etc/grpc/config.proto"
             - "--enable_database_upgrade=true"
-            - "--grpc_channel_arguments=grpc.max_metadata_size=16384"
+            - "--grpc_channel_arguments=grpc.max_metadata_size=16384,grpc.max_receive_message_length=104857600,grpc.max_send_message_length=104857600"
           volumeMounts:
             - name: tls-certs
               mountPath: /etc/pki/tls/certs

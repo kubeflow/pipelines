@@ -1,148 +1,580 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Router initial render 1`] = `
-<SideNavLayout>
-  <Switch>
-    <Route
-      exact={true}
-      path="/"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="0"
-      path="/start"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="1"
-      path="/archive/runs"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="2"
-      path="/archive/experiments"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="3"
-      path="/artifacts"
-      render={[Function]}
-    />
-    <Route
-      exact={false}
-      key="4"
-      path="/artifacts/:id"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="5"
-      path="/executions"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="6"
-      path="/executions/:id"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="7"
-      path="/experiments"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="8"
-      path="/experiments/details/:eid"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="9"
-      path="/experiments/new"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="10"
-      path="/pipeline_versions/new"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="11"
-      path="/runs/new"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="12"
-      path="/pipelines"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="13"
-      path="/pipelines/details/:pid/version/:vid?"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="14"
-      path="/pipelines/details/:pid?"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="15"
-      path="/runs"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="16"
-      path="/recurringruns"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="17"
-      path="/recurringrun/details/:rrid"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="18"
-      path="/runs/details/:rid"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="19"
-      path="/runs/details/:rid/execution/:executionid"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="20"
-      path="/compare"
-      render={[Function]}
-    />
-    <Route
-      exact={true}
-      key="21"
-      path="/frontend_features"
-      render={[Function]}
-    />
-    <Route>
-      <RoutedPage />
-    </Route>
-  </Switch>
-</SideNavLayout>
+exports[`Router > initial render 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk"
+  >
+    <div
+      class="flexGrow_fr87ocy"
+    >
+      <div
+        class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
+        id="sideNav"
+      >
+        <div
+          style="flex-grow: 1;"
+        >
+          <div
+            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
+          />
+          <a
+            class="unstyled_f1ikaigl"
+            href="/pipelines"
+            id="pipelinesBtn"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <div
+                    class="alignItems"
+                  >
+                    <svg
+                      height="20px"
+                      version="1.1"
+                      viewBox="0 0 20 20"
+                      width="20px"
+                      xmlns="http://www.w3.org/2000/svg"
+                      xmlns:xlink="http://www.w3.org/1999/xlink"
+                    >
+                      <g
+                        fill="none"
+                        fill-rule="evenodd"
+                        id="Symbols"
+                        stroke="none"
+                        stroke-width="1"
+                      >
+                        <g
+                          transform="translate(-2.000000, -4.000000)"
+                        >
+                          <polygon
+                            id="Shape"
+                            points="0 0 24 0 24 24 0 24"
+                          />
+                          <path
+                            d="M12.7244079,9.74960425 L17.4807112,9.74960425 C17.7675226,9.74960425
+                      18,9.51894323 18,9.23437272 L18,4.51523153 C18,4.23066102 17.7675226,4
+                      17.4807112,4 L12.7244079,4 C12.4375965,4 12.2051191,4.23066102
+                      12.2051191,4.51523153 L12.2051191,6.06125154 L9.98218019,6.06125154
+                      C9.52936032,6.06125154 9.16225043,6.42549311 9.16225043,6.87477501
+                      L9.16225043,11.2135669 L7.05995053,11.2135669 C6.71661861,10.189612
+                      5.74374462,9.45093267 4.59644424,9.45093267 C3.16249641,9.45093267
+                      2,10.6043462 2,12.0270903 C2,13.4498886 3.16249641,14.603248
+                      4.59644424,14.603248 C5.74379928,14.603248 6.71661861,13.8645687
+                      7.06000519,12.8406138 L9.16225043,12.8406138 L9.16225043,17.1794057
+                      C9.16225043,17.6286875 9.52936032,17.9929291 9.98218019,17.9929291
+                      L12.2051191,17.9929291 L12.2051191,19.4847685 C12.2051191,19.769339
+                      12.4375965,20 12.7244079,20 L17.4807112,20 C17.7675226,20 18,19.769339
+                      18,19.4847685 L18,14.7656273 C18,14.4810568 17.7675226,14.2503957
+                      17.4807112,14.2503957 L12.7244079,14.2503957 C12.4375965,14.2503957
+                      12.2051191,14.4810568 12.2051191,14.7656273 L12.2051191,16.3658822
+                      L10.80211,16.3658822 L10.80211,7.68829848 L12.2051191,7.68829848
+                      L12.2051191,9.23437272 C12.2051191,9.51894323 12.4375965,9.74960425
+                      12.7244079,9.74960425 Z"
+                            fill="#9aa0a6"
+                            id="Path"
+                          />
+                        </g>
+                      </g>
+                    </svg>
+                  </div>
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Pipelines
+                  </span>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <div
+            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
+          />
+          <a
+            class="unstyled_f1ikaigl"
+            href="/experiments"
+            id="experimentsBtn"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <div
+                    class="alignItems"
+                  >
+                    <svg
+                      height="20"
+                      viewBox="0 0 20 12"
+                      width="20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <g
+                        fill="none"
+                        fill-rule="evenodd"
+                        id="Symbols"
+                      >
+                        <g
+                          transform="translate(-26 -72)"
+                        >
+                          <g
+                            transform="translate(0 12)"
+                          >
+                            <g
+                              transform="translate(0 44)"
+                            >
+                              <g
+                                id="Group-3"
+                              >
+                                <g
+                                  transform="translate(26 12)"
+                                >
+                                  <polygon
+                                    points="0 0 20 0 20 20 0 20"
+                                  />
+                                  <path
+                                    d="M15,5.83333333 L13.825,4.65833333 L8.54166667,9.94166667
+                      L9.71666667,11.1166667 L15,5.83333333 Z M18.5333333,4.65833333
+                      L9.71666667,13.475 L6.23333333,10 L5.05833333,11.175 L9.71666667,15.8333333
+                      L19.7166667,5.83333333 L18.5333333,4.65833333 Z M0.341666667,11.175
+                      L5,15.8333333 L6.175,14.6583333 L1.525,10 L0.341666667,11.175 Z"
+                                    fill="#9aa0a6"
+                                    fill-rule="nonzero"
+                                  />
+                                </g>
+                              </g>
+                            </g>
+                          </g>
+                        </g>
+                      </g>
+                    </svg>
+                  </div>
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Experiments
+                  </span>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <div
+            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
+          />
+          <a
+            class="unstyled_f1ikaigl"
+            href="/runs"
+            id="runsBtn"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"
+                    />
+                  </svg>
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Runs
+                  </span>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <div
+            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
+          />
+          <a
+            class="unstyled_f1ikaigl"
+            href="/recurringruns"
+            id="recurringRunsBtn"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M22 5.72l-4.6-3.86-1.29 1.53 4.6 3.86L22 5.72zM7.88 3.39L6.6 1.86 2 5.71l1.29 1.53 4.59-3.85zM12.5 8H11v6l4.75 2.85.75-1.23-4-2.37V8zM12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"
+                    />
+                  </svg>
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Recurring Runs
+                  </span>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <div
+            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
+          />
+          <a
+            class="unstyled_f1ikaigl"
+            href="/artifacts"
+            id="artifactsBtn"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      cx="7.2"
+                      cy="14.4"
+                      r="3.2"
+                    />
+                    <circle
+                      cx="14.8"
+                      cy="18"
+                      r="2"
+                    />
+                    <circle
+                      cx="15.2"
+                      cy="8.8"
+                      r="4.8"
+                    />
+                  </svg>
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Artifacts
+                  </span>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <div
+            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
+          />
+          <a
+            class="unstyled_f1ikaigl"
+            href="/executions"
+            id="executionsBtn"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M8 5v14l11-7z"
+                    />
+                  </svg>
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Executions
+                  </span>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <hr
+            class="separator_furuwhr"
+          />
+          <a
+            class="unstyled_f1ikaigl"
+            href="https://www.kubeflow.org/docs/pipelines/"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root icon_f1e8lhs7"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+                    />
+                  </svg>
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Documentation
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root openInNewTabIcon_fiish9a"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                    />
+                  </svg>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <a
+            class="unstyled_f1ikaigl"
+            href="https://github.com/kubeflow/pipelines"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text button_f17w3f2d"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <div
+                  class="flex flex-row flex-shrink-0"
+                >
+                  <img
+                    alt="Github"
+                    class="icon_f1e8lhs7 iconImage_f1w1k0by"
+                    src="/src/icons/GitHub-Mark-120px-plus.png"
+                  />
+                  <span
+                    class="label_f15zusur"
+                  >
+                    Github Repo
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root openInNewTabIcon_fiish9a"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                    />
+                  </svg>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </a>
+          <hr
+            class="separator_furuwhr"
+          />
+          <button
+            class="MuiButtonBase-root MuiIconButton-root chevron_f1eaw8uj"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
+        <div
+          class="infoVisible_f9kvncf"
+        >
+          <div
+            class="envMetadata_f15ayk27"
+            title="Build date: unknown, Commit hash: unknown"
+          >
+            <span>
+              Version: 
+            </span>
+            <a
+              class="link_fvmzhfr unstyled_f1ikaigl"
+              href="https://www.github.com/kubeflow/pipelines"
+              rel="noopener"
+              target="_blank"
+            >
+              unknown
+            </a>
+          </div>
+          <div
+            class="envMetadata_f15ayk27"
+            title="Report an Issue"
+          >
+            <a
+              class="link_fvmzhfr unstyled_f1ikaigl"
+              href="https://github.com/kubeflow/pipelines/issues/new/choose"
+              rel="noopener"
+              target="_blank"
+            >
+              Report an Issue
+            </a>
+          </div>
+        </div>
+      </div>
+      <div
+        class="page_f1flacxk"
+      >
+        <div
+          class="root_f1vld0bw topLevelToolbar_faeji1w"
+        >
+          <div
+            style="min-width: 100px;"
+          >
+            <div
+              class="breadcrumbs_farqb1 flex_f16jawj4"
+            >
+              <span
+                class="flex_f16jawj4"
+                title=""
+              >
+                <a
+                  class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+                  href="/"
+                />
+              </span>
+            </div>
+            <div
+              class="flex_f16jawj4"
+            >
+              <div
+                class=""
+                title="Back"
+              >
+                 
+                <button
+                  class="MuiButtonBase-root MuiIconButton-root backLink_fxaclcu Mui-disabled Mui-disabled"
+                  disabled=""
+                  tabindex="-1"
+                  type="button"
+                >
+                  <span
+                    class="MuiIconButton-label"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root backIcon_f116wd06 disabled_fl0don4"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+              <span
+                class="pageName_fe4yf9p ellipsis_f15ay66x"
+                data-testid="page-title"
+              />
+            </div>
+          </div>
+          <div
+            class="actions_ffoeey"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;

@@ -19,7 +19,7 @@ import { NodePhase } from '../lib/StatusUtils';
 import { Constants } from './Constants';
 import WorkflowParser, { StorageService } from './WorkflowParser';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
 import { stringValue } from 'src/mlmd/TestUtils';
 
@@ -153,13 +153,15 @@ describe('WorkflowParser', () => {
           },
         },
       };
-      const execution = new Execution().setLastKnownState(Execution.State.CACHED);
+      const execution = new metadataStorePb.Execution().setLastKnownState(
+        metadataStorePb.Execution.State.CACHED,
+      );
       execution.getCustomPropertiesMap().set(KfpExecutionProperties.POD_NAME, stringValue('node1'));
 
       const g = WorkflowParser.createRuntimeGraph(workflow as any, [execution]);
       expect(g.nodes()).toEqual(['node1']);
       expect(g.node('node1')['icon']).toMatchInlineSnapshot(`
-        <WithStyles(Tooltip)
+        <WithStyles(ForwardRef(Tooltip))
           title={
             <div>
               <div>
@@ -172,7 +174,7 @@ describe('WorkflowParser', () => {
             <StatusCached
               data-testid="node-status-sign"
               style={
-                Object {
+                {
                   "color": "#34a853",
                   "height": 18,
                   "width": 18,
@@ -180,7 +182,7 @@ describe('WorkflowParser', () => {
               }
             />
           </div>
-        </WithStyles(Tooltip)>
+        </WithStyles(ForwardRef(Tooltip))>
       `);
     });
 

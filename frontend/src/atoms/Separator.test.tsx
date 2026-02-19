@@ -15,23 +15,22 @@
  */
 
 import * as React from 'react';
+import { render } from '@testing-library/react';
 import Separator from './Separator';
-import toJson from 'enzyme-to-json';
-import { shallow } from 'enzyme';
 
 describe('Separator', () => {
   it('renders with the right styles by default', () => {
-    const tree = shallow(<Separator />);
-    expect(toJson(tree)).toMatchSnapshot();
+    const { asFragment } = render(<Separator />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders with the specified orientation', () => {
-    const tree = shallow(<Separator orientation='vertical' />);
-    expect(toJson(tree)).toMatchSnapshot();
+    const { asFragment } = render(<Separator orientation='vertical' />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders with the specified units', () => {
-    const tree = shallow(<Separator units={123} />);
-    expect(toJson(tree)).toMatchSnapshot();
+    const { asFragment } = render(<Separator units={123} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 });

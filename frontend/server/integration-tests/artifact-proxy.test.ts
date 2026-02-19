@@ -25,8 +25,10 @@ describe('/artifacts/get namespaced proxy', () => {
   let app: UIServer;
   const { argv } = commonSetup();
 
-  afterEach(() => {
-    app?.close();
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   function setupMinioArtifactDeps({ content }: { content: string }) {

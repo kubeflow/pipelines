@@ -1,9 +1,9 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`GettingStarted page initially renders documentation 1`] = `
+exports[`GettingStarted page > initially renders documentation 1`] = `
 <div>
   <div
-    class="page kfp-start-page"
+    class="page_f1flacxk f9qqjqd kfp-start-page"
   >
     <div>
       <p>
@@ -18,7 +18,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
         <li>
           Kubeflow Pipelines 
           <a
-            class="link"
+            class="link_f1fk43bf"
             href="https://www.kubeflow.org/docs/pipelines/sdk/v2/"
             rel="noopener"
             target="_blank"
@@ -47,7 +47,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
       <ul>
         <li>
           <a
-            class="link"
+            class="link_f1fk43bf"
             href="#/pipelines"
           >
             Data passing in Python components
@@ -57,7 +57,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             <li>
               Shows how to pass data between Python components. 
               <a
-                class="link"
+                class="link_f1fk43bf"
                 href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
                 rel="noopener"
                 target="_blank"
@@ -69,7 +69,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
         </li>
         <li>
           <a
-            class="link"
+            class="link_f1fk43bf"
             href="#/pipelines"
           >
             DSL - Control structures
@@ -79,7 +79,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             <li>
               Shows how to use conditional execution and exit handlers. 
               <a
-                class="link"
+                class="link_f1fk43bf"
                 href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
                 rel="noopener"
                 target="_blank"
@@ -93,7 +93,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
       <p>
         Want to learn more? 
         <a
-          class="link"
+          class="link_f1fk43bf"
           href="https://www.kubeflow.org/docs/pipelines/tutorials/"
           rel="noopener"
           target="_blank"
@@ -106,16 +106,16 @@ exports[`GettingStarted page initially renders documentation 1`] = `
 </div>
 `;
 
-exports[`GettingStarted page renders documentation with pipeline deep link after querying demo pipelines 1`] = `
-Array [
-  Array [
+exports[`GettingStarted page > renders documentation with pipeline deep link after querying demo pipelines 1`] = `
+[
+  [
     undefined,
     undefined,
     10,
     undefined,
     "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22operation%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BTutorial%5D%20Data%20passing%20in%20python%20components%22%7D%5D%7D",
   ],
-  Array [
+  [
     undefined,
     undefined,
     10,

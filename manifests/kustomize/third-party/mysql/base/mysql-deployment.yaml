@@ -61,6 +61,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - mountPath: /var/lib/mysql
           name: mysql-persistent-storage
@@ -69,6 +71,7 @@ spec:
             cpu: 100m
             memory: 800Mi
       securityContext:
+        runAsNonRoot: true
         fsGroup: 999
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:

@@ -121,6 +121,10 @@ jobs:
         with:
           ref: ${{env.SOURCE_BRANCH}}
 
+      - name: Get checked-out commit SHA
+        id: get_commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -174,6 +178,10 @@ jobs:
           push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            COMMIT_SHA=${{ steps.get_commit.outputs.sha }}
+            COMMIT_HASH=${{ steps.get_commit.outputs.sha }}
+            TAG_NAME=${{ inputs.target_tag }}
 
       # This step generates an artifact attestation for the image,
       # which is an unforgeable statement about where and how it was built.

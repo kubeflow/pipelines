@@ -10,7 +10,6 @@ SeaweedFS is a simple and highly scalable distributed file system. It has an S3 
 - Kubernetes (any recent Version should work)
 - You should have `kubectl` available and configured to talk to the desired cluster.
 - `kustomize`
-- If you installed kubeflow with minio, use the `istio` dir instead of `base` for the kustomize commands.
 
 ## Compile manifests
 
@@ -20,13 +19,7 @@ kubectl kustomize ./base/
 
 ## Install SeaweedFS
 
-**WARNING**
-This replaces the service `minio-service` and will redirect the traffic to seaweedfs.
-
 ```bash
-# Optional, but recommended to backup existing minio-service
-kubectl get -n kubeflow svc minio-service -o=jsonpath='{.metadata.annotations.kubectl\.kubernetes\.io/last-applied-configuration}' > svc-minio-service-backup.json
-
 kubectl kustomize ./base/ | kubectl apply -f -
 ```
 
@@ -168,6 +161,4 @@ kubectl logs -n kubeflow deployment/seaweedfs -f
 
 ```bash
 kubectl kustomize ./base/ | kubectl delete -f -
-# Restore minio-service from backup
-kubectl apply -f svc-minio-service-backup.json
 ```

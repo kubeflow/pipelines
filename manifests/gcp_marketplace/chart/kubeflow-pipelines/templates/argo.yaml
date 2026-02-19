@@ -835,6 +835,15 @@ data:
   # Choice of an executor is deprecated in favor of emissary executor
   executor: |
     imagePullPolicy: IfNotPresent
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
     resources:
       requests:
         cpu: 0.01
@@ -848,7 +857,7 @@ data:
   artifactRepository: |
     archiveLogs: true
     s3:
-      endpoint: "minio-service.{{ .Release.Namespace }}:9000"
+      endpoint: "seaweedfs.{{ .Release.Namespace }}:9000"
       bucket: "{{ if .Values.managedstorage.enabled }}{{ .Values.managedstorage.gcsBucketName }}{{ else }}mlpipeline{{ end }}"
       # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
       # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
@@ -972,8 +981,12 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
       nodeSelector:
         kubernetes.io/os: linux
       priorityClassName: workflow-controller
       securityContext:
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

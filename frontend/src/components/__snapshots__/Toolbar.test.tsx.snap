@@ -1,898 +1,971 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Toolbar disables the back button when there is no browser history 1`] = `
-<div
-  className="root topLevelToolbar"
->
+exports[`Toolbar > renders outlined action buttons 1`] = `
+<DocumentFragment>
   <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
   >
     <div
-      className="breadcrumbs flex"
+      style="min-width: 100px;"
     >
-      <span
-        className="flex"
-        key="0"
-        title="test display name"
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
       >
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path"
+        <span
+          class="flex_f16jawj4"
+          title="test display name"
         >
-          test display name
-        </Link>
-      </span>
-      <span
-        className="flex"
-        key="1"
-        title="test display name2"
-      >
-        <pure(ChevronRightIcon)
-          className="chevron"
-        />
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path2"
-        >
-          test display name2
-        </Link>
-      </span>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Back"
-      >
-        <div>
-           
-          <WithStyles(IconButton)
-            className="backLink"
-            disabled={true}
-            onClick={[Function]}
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path"
           >
-            <pure(ArrowBackIcon)
-              className="backIcon disabled"
-            />
-          </WithStyles(IconButton)>
-        </div>
-      </WithStyles(Tooltip)>
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      />
-    </div>
-  </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="1"
-      title="test disabled title2"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          disabled={true}
-          icon={[Function]}
-          id="test id2"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title2"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
-`;
-
-exports[`Toolbar renders nothing when there are no breadcrumbs or actions 1`] = `""`;
-
-exports[`Toolbar renders outlined action buttons 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    >
-      <span
-        className="flex"
-        key="0"
-        title="test display name"
-      >
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path"
+            test display name
+          </a>
+        </span>
+        <span
+          class="flex_f16jawj4"
+          title="test display name2"
         >
-          test display name
-        </Link>
-      </span>
-      <span
-        className="flex"
-        key="1"
-        title="test display name2"
-      >
-        <pure(ChevronRightIcon)
-          className="chevron"
-        />
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path2"
-        >
-          test display name2
-        </Link>
-      </span>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Back"
-      >
-        <div>
-           
-          <WithStyles(IconButton)
-            className="backLink"
-            disabled={false}
-            onClick={[Function]}
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root chevron_fin4unf"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <pure(ArrowBackIcon)
-              className="backIcon enabled"
+            <path
+              d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
             />
-          </WithStyles(IconButton)>
-        </div>
-      </WithStyles(Tooltip)>
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      />
-    </div>
-  </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test outlined tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          id="test outlined id"
-          onClick={[MockFunction]}
-          outlined={true}
-          title="test outlined title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
-`;
-
-exports[`Toolbar renders primary action buttons 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    >
-      <span
-        className="flex"
-        key="0"
-        title="test display name"
-      >
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path"
-        >
-          test display name
-        </Link>
-      </span>
-      <span
-        className="flex"
-        key="1"
-        title="test display name2"
-      >
-        <pure(ChevronRightIcon)
-          className="chevron"
-        />
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path2"
-        >
-          test display name2
-        </Link>
-      </span>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Back"
-      >
-        <div>
-           
-          <WithStyles(IconButton)
-            className="backLink"
-            disabled={false}
-            onClick={[Function]}
+          </svg>
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path2"
           >
-            <pure(ArrowBackIcon)
-              className="backIcon enabled"
-            />
-          </WithStyles(IconButton)>
-        </div>
-      </WithStyles(Tooltip)>
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      />
-    </div>
-  </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test primary tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className="buttonAction"
-          color="secondary"
-          id="test primary id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test primary title"
-        />
+            test display name2
+          </a>
+        </span>
       </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
-`;
-
-exports[`Toolbar renders primary action buttons without outline, even if outline is true 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    >
-      <span
-        className="flex"
-        key="0"
-        title="test display name"
-      >
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path"
-        >
-          test display name
-        </Link>
-      </span>
-      <span
-        className="flex"
-        key="1"
-        title="test display name2"
-      >
-        <pure(ChevronRightIcon)
-          className="chevron"
-        />
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path2"
-        >
-          test display name2
-        </Link>
-      </span>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Back"
-      >
-        <div>
-           
-          <WithStyles(IconButton)
-            className="backLink"
-            disabled={false}
-            onClick={[Function]}
-          >
-            <pure(ArrowBackIcon)
-              className="backIcon enabled"
-            />
-          </WithStyles(IconButton)>
-        </div>
-      </WithStyles(Tooltip)>
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      />
-    </div>
-  </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className="buttonAction"
-          color="secondary"
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
-`;
-
-exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    >
-      <span
-        className="flex"
-        key="0"
-        title="test display name"
-      >
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path"
-        >
-          test display name
-        </Link>
-      </span>
-      <span
-        className="flex"
-        key="1"
-        title="test display name2"
-      >
-        <pure(ChevronRightIcon)
-          className="chevron"
-        />
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path2"
-        >
-          test display name2
-        </Link>
-      </span>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Back"
-      >
-        <div>
-           
-          <WithStyles(IconButton)
-            className="backLink"
-            disabled={false}
-            onClick={[Function]}
-          >
-            <pure(ArrowBackIcon)
-              className="backIcon enabled"
-            />
-          </WithStyles(IconButton)>
-        </div>
-      </WithStyles(Tooltip)>
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      />
-    </div>
-  </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="1"
-      title="test disabled title2"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          disabled={true}
-          icon={[Function]}
-          id="test id2"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title2"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
-`;
-
-exports[`Toolbar renders without actions and one breadcrumb 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    >
-      <span
-        className="flex"
-        key="0"
-        title="test display name"
-      >
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path"
-        >
-          test display name
-        </Link>
-      </span>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Back"
-      >
-        <div>
-           
-          <WithStyles(IconButton)
-            className="backLink"
-            disabled={false}
-            onClick={[Function]}
-          >
-            <pure(ArrowBackIcon)
-              className="backIcon enabled"
-            />
-          </WithStyles(IconButton)>
-        </div>
-      </WithStyles(Tooltip)>
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      >
-        test page title
-      </span>
-    </div>
-  </div>
-  <div
-    className="actions"
-  />
-</div>
-`;
-
-exports[`Toolbar renders without actions, one breadcrumb, and a page name 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    >
-      <span
-        className="flex"
-        key="0"
-        title="test display name"
-      >
-        <Link
-          className="unstyled ellipsis link"
-          replace={false}
-          to="/some/test/path"
-        >
-          test display name
-        </Link>
-      </span>
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(Tooltip)
-        enterDelay={300}
-        title="Back"
-      >
-        <div>
-           
-          <WithStyles(IconButton)
-            className="backLink"
-            disabled={false}
-            onClick={[Function]}
-          >
-            <pure(ArrowBackIcon)
-              className="backIcon enabled"
-            />
-          </WithStyles(IconButton)>
-        </div>
-      </WithStyles(Tooltip)>
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      >
-        test page title
-      </span>
-    </div>
-  </div>
-  <div
-    className="actions"
-  />
-</div>
-`;
-
-exports[`Toolbar renders without breadcrumbs and a component page title 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    />
-    <div
-      className="flex"
-    >
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
+      <div
+        class="flex_f16jawj4"
       >
         <div
-          id="myComponent"
+          class=""
+          title="Back"
+        >
+           
+          <button
+            class="MuiButtonBase-root MuiIconButton-root backLink_fxaclcu"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root backIcon_f116wd06 enabled_fep5z4h"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        />
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test outlined tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textPrimary"
+          id="test outlined id"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <span>
+              test outlined title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Toolbar > renders primary action buttons 1`] = `
+<DocumentFragment>
+  <div
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
+  >
+    <div
+      style="min-width: 100px;"
+    >
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      >
+        <span
+          class="flex_f16jawj4"
+          title="test display name"
+        >
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path"
+          >
+            test display name
+          </a>
+        </span>
+        <span
+          class="flex_f16jawj4"
+          title="test display name2"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root chevron_fin4unf"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path2"
+          >
+            test display name2
+          </a>
+        </span>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <div
+          class=""
+          title="Back"
+        >
+           
+          <button
+            class="MuiButtonBase-root MuiIconButton-root backLink_fxaclcu"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root backIcon_f116wd06 enabled_fep5z4h"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        />
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test primary tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+          id="test primary id"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <span>
+              test primary title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Toolbar > renders primary action buttons without outline, even if outline is true 1`] = `
+<DocumentFragment>
+  <div
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
+  >
+    <div
+      style="min-width: 100px;"
+    >
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      >
+        <span
+          class="flex_f16jawj4"
+          title="test display name"
+        >
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path"
+          >
+            test display name
+          </a>
+        </span>
+        <span
+          class="flex_f16jawj4"
+          title="test display name2"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root chevron_fin4unf"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path2"
+          >
+            test display name2
+          </a>
+        </span>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <div
+          class=""
+          title="Back"
+        >
+           
+          <button
+            class="MuiButtonBase-root MuiIconButton-root backLink_fxaclcu"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root backIcon_f116wd06 enabled_fep5z4h"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        />
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+          id="test id"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <span>
+              test title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
+<DocumentFragment>
+  <div
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
+  >
+    <div
+      style="min-width: 100px;"
+    >
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      >
+        <span
+          class="flex_f16jawj4"
+          title="test display name"
+        >
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path"
+          >
+            test display name
+          </a>
+        </span>
+        <span
+          class="flex_f16jawj4"
+          title="test display name2"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root chevron_fin4unf"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path2"
+          >
+            test display name2
+          </a>
+        </span>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <div
+          class=""
+          title="Back"
+        >
+           
+          <button
+            class="MuiButtonBase-root MuiIconButton-root backLink_fxaclcu"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root backIcon_f116wd06 enabled_fep5z4h"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        />
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary"
+          id="test id"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+              />
+            </svg>
+            <span>
+              test title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
+      <div
+        class=""
+        title="test disabled title2"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+          disabled=""
+          id="test id2"
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+              />
+            </svg>
+            <span>
+              test title2
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Toolbar > renders without actions and one breadcrumb 1`] = `
+<DocumentFragment>
+  <div
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
+  >
+    <div
+      style="min-width: 100px;"
+    >
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      >
+        <span
+          class="flex_f16jawj4"
+          title="test display name"
+        >
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path"
+          >
+            test display name
+          </a>
+        </span>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <div
+          class=""
+          title="Back"
+        >
+           
+          <button
+            class="MuiButtonBase-root MuiIconButton-root backLink_fxaclcu"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root backIcon_f116wd06 enabled_fep5z4h"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
         >
           test page title
+        </span>
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    />
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Toolbar > renders without actions, one breadcrumb, and a page name 1`] = `
+<DocumentFragment>
+  <div
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
+  >
+    <div
+      style="min-width: 100px;"
+    >
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      >
+        <span
+          class="flex_f16jawj4"
+          title="test display name"
+        >
+          <a
+            class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
+            href="/some/test/path"
+          >
+            test display name
+          </a>
+        </span>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <div
+          class=""
+          title="Back"
+        >
+           
+          <button
+            class="MuiButtonBase-root MuiIconButton-root backLink_fxaclcu"
+            tabindex="0"
+            type="button"
+          >
+            <span
+              class="MuiIconButton-label"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root backIcon_f116wd06 enabled_fep5z4h"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                />
+              </svg>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
         </div>
-      </span>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        >
+          test page title
+        </span>
+      </div>
     </div>
+    <div
+      class="actions_ffoeey"
+    />
   </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="1"
-      title="test disabled title2"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          disabled={true}
-          icon={[Function]}
-          id="test id2"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title2"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`Toolbar renders without breadcrumbs and a string page title 1`] = `
-<div
-  className="root topLevelToolbar"
->
+exports[`Toolbar > renders without breadcrumbs and a component page title 1`] = `
+<DocumentFragment>
   <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
   >
     <div
-      className="breadcrumbs flex"
-    />
-    <div
-      className="flex"
+      style="min-width: 100px;"
     >
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      />
+      <div
+        class="flex_f16jawj4"
       >
-        test page title
-      </span>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        >
+          <div
+            id="myComponent"
+          >
+            test page title
+          </div>
+        </span>
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary"
+          id="test id"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+              />
+            </svg>
+            <span>
+              test title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
+      <div
+        class=""
+        title="test disabled title2"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+          disabled=""
+          id="test id2"
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+              />
+            </svg>
+            <span>
+              test title2
+            </span>
+          </span>
+        </button>
+      </div>
     </div>
   </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="1"
-      title="test disabled title2"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          disabled={true}
-          icon={[Function]}
-          id="test id2"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title2"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`Toolbar renders without breadcrumbs and one action 1`] = `
-<div
-  className="root topLevelToolbar"
->
+exports[`Toolbar > renders without breadcrumbs and a string page title 1`] = `
+<DocumentFragment>
   <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
   >
     <div
-      className="breadcrumbs flex"
-    />
-    <div
-      className="flex"
+      style="min-width: 100px;"
     >
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      />
+      <div
+        class="flex_f16jawj4"
       >
-        test page title
-      </span>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        >
+          test page title
+        </span>
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary"
+          id="test id"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+              />
+            </svg>
+            <span>
+              test title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
+      <div
+        class=""
+        title="test disabled title2"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+          disabled=""
+          id="test id2"
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+              />
+            </svg>
+            <span>
+              test title2
+            </span>
+          </span>
+        </button>
+      </div>
     </div>
   </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`Toolbar renders without breadcrumbs and two actions 1`] = `
-<div
-  className="root topLevelToolbar"
->
+exports[`Toolbar > renders without breadcrumbs and one action 1`] = `
+<DocumentFragment>
   <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
   >
     <div
-      className="breadcrumbs flex"
-    />
-    <div
-      className="flex"
+      style="min-width: 100px;"
     >
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      />
+      <div
+        class="flex_f16jawj4"
       >
-        test page title
-      </span>
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        >
+          test page title
+        </span>
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary"
+          id="test id"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+              />
+            </svg>
+            <span>
+              test title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
     </div>
   </div>
+</DocumentFragment>
+`;
+
+exports[`Toolbar > renders without breadcrumbs and two actions 1`] = `
+<DocumentFragment>
   <div
-    className="actions"
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
   >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
+    <div
+      style="min-width: 100px;"
     >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      />
+      <div
+        class="flex_f16jawj4"
+      >
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        >
+          test page title
+        </span>
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    >
+      <div
+        class=""
+        title="test tooltip"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary"
           id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+              />
+            </svg>
+            <span>
+              test title
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
       </div>
-    </WithStyles(Tooltip)>
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="1"
-      title="test disabled title2"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          disabled={true}
-          icon={[Function]}
+      <div
+        class=""
+        title="test disabled title2"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+          disabled=""
           id="test id2"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title2"
-        />
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root icon_f1ojihnt"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+              />
+            </svg>
+            <span>
+              test title2
+            </span>
+          </span>
+        </button>
       </div>
-    </WithStyles(Tooltip)>
+    </div>
   </div>
-</div>
+</DocumentFragment>
 `;

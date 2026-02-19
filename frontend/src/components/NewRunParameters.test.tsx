@@ -15,48 +15,49 @@
  */
 
 import * as React from 'react';
-import { mount, shallow } from 'enzyme';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import NewRunParameters, { NewRunParametersProps } from './NewRunParameters';
 
 describe('NewRunParameters', () => {
   it('shows parameters', () => {
     const props = {
-      handleParamChange: jest.fn(),
+      handleParamChange: vi.fn(),
       initialParams: [{ name: 'testParam', value: 'testVal' }],
       titleMessage: 'Specify parameters required by the pipeline',
     } as NewRunParametersProps;
-    expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
+    const { asFragment } = render(<NewRunParameters {...props} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('does not display any text fields if there are no parameters', () => {
     const props = {
-      handleParamChange: jest.fn(),
+      handleParamChange: vi.fn(),
       initialParams: [],
       titleMessage: 'This pipeline has no parameters',
     } as NewRunParametersProps;
-    expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
+    const { asFragment } = render(<NewRunParameters {...props} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('clicking the open editor button for json parameters displays an editor', () => {
-    const handleParamChange = jest.fn();
+    const handleParamChange = vi.fn();
     const props = {
       handleParamChange,
       initialParams: [{ name: 'testParam', value: '{"test":"value"}' }],
       titleMessage: 'Specify json parameters required by the pipeline',
     } as NewRunParametersProps;
-    const tree = mount(<NewRunParameters {...props} />);
-    tree
-      .findWhere(el => el.text() === 'Open Json Editor')
-      .hostNodes()
-      .find('Button')
-      .simulate('click');
+    render(<NewRunParameters {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Json Editor' }));
+
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(0, '{\n  "test": "value"\n}');
-    expect(tree.find('Editor')).toMatchSnapshot();
+    expect(document.querySelector('.ace_editor')).toBeInTheDocument();
   });
 
   it('fires handleParamChange callback on change', () => {
-    const handleParamChange = jest.fn();
+    const handleParamChange = vi.fn();
     const props = {
       handleParamChange,
       initialParams: [
@@ -66,10 +67,10 @@ describe('NewRunParameters', () => {
       titleMessage: 'Specify parameters required by the pipeline',
     } as NewRunParametersProps;
 
-    const tree = mount(<NewRunParameters {...props} />);
-    tree
-      .find('input#newRunPipelineParam1')
-      .simulate('change', { target: { value: 'test param value' } });
+    render(<NewRunParameters {...props} />);
+    fireEvent.change(screen.getByLabelText('testParam2'), {
+      target: { value: 'test param value' },
+    });
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(1, 'test param value');
   });

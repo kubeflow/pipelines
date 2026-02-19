@@ -15,8 +15,6 @@
  */
 
 import * as React from 'react';
-// @ts-ignore
-import LineChart from 'react-svg-line-chart';
 
 // How many pixels away from the point the curve should start at.
 const HORIZONTAL_CONTROL_POINT_OFFSET = 30;
@@ -30,27 +28,20 @@ interface EdgeLineProps {
 
 export const EdgeLine: React.FC<EdgeLineProps> = props => {
   const { height, width, y1, y4 } = props;
+  // Legacy react-svg-line-chart rendered with an inverted Y axis.
+  // Preserve that orientation so edge direction matches existing lineage visuals.
+  const startY = height - y1;
+  const endY = height - y4;
+  const controlPointStartX = HORIZONTAL_CONTROL_POINT_OFFSET;
+  const controlPointEndX = width - HORIZONTAL_CONTROL_POINT_OFFSET;
+  const path = [
+    `M0,${startY}`,
+    `C${controlPointStartX},${startY} ${controlPointEndX},${endY} ${width},${endY}`,
+  ].join(' ');
 
   return (
-    <LineChart
-      data={[
-        { x: 0, y: y1 },
-        { x: HORIZONTAL_CONTROL_POINT_OFFSET, y: y1 },
-        { x: width - HORIZONTAL_CONTROL_POINT_OFFSET, y: y4 },
-        { x: width, y: y4 },
-      ]}
-      areaVisible={false}
-      axisVisible={false}
-      gridVisible={false}
-      labelsVisible={false}
-      pathColor={'#BDC1C6'}
-      pathVisible={true}
-      pathWidth={1}
-      pathOpacity={1}
-      pointsVisible={false}
-      viewBoxHeight={height}
-      viewBoxWidth={width}
-      pathSmoothing={0}
-    />
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden='true'>
+      <path d={path} fill='none' stroke='#BDC1C6' strokeWidth={1} opacity={1} />
+    </svg>
   );
 };

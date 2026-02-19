@@ -25,56 +25,49 @@ import {
   GetExecutionTypesResponse,
   Value,
 } from 'src/third_party/mlmd';
-import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { RoutePage } from 'src/components/Router';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
 import ExecutionList from 'src/pages/ExecutionList';
 import { PageProps } from 'src/pages/Page';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { vi, Mock } from 'vitest';
 
 testBestPractices();
 
 describe('ExecutionList ("Default" view)', () => {
-  let updateBannerSpy: jest.Mock<{}>;
-  let updateDialogSpy: jest.Mock<{}>;
-  let updateSnackbarSpy: jest.Mock<{}>;
-  let updateToolbarSpy: jest.Mock<{}>;
-  let historyPushSpy: jest.Mock<{}>;
-  let getExecutionsSpy: jest.Mock<{}>;
-  let getExecutionTypesSpy: jest.Mock<{}>;
+  let updateBannerSpy: Mock;
+  let updateDialogSpy: Mock;
+  let updateSnackbarSpy: Mock;
+  let updateToolbarSpy: Mock;
+  let historyPushSpy: Mock;
+  let getExecutionsSpy: Mock;
+  let getExecutionTypesSpy: Mock;
 
-  const listOperationOpts = new ListOperationOptions();
-  listOperationOpts.setMaxResultSize(10);
-  const getExecutionsRequest = new GetExecutionsRequest();
-  getExecutionsRequest.setOptions(listOperationOpts),
-    beforeEach(() => {
-      updateBannerSpy = jest.fn();
-      updateDialogSpy = jest.fn();
-      updateSnackbarSpy = jest.fn();
-      updateToolbarSpy = jest.fn();
-      historyPushSpy = jest.fn();
-      getExecutionsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
-      getExecutionTypesSpy = jest.spyOn(
-        Api.getInstance().metadataStoreService,
-        'getExecutionTypes',
-      );
+  beforeEach(() => {
+    updateBannerSpy = vi.fn();
+    updateDialogSpy = vi.fn();
+    updateSnackbarSpy = vi.fn();
+    updateToolbarSpy = vi.fn();
+    historyPushSpy = vi.fn();
+    getExecutionsSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutions');
+    getExecutionTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionTypes');
 
-      getExecutionTypesSpy.mockImplementation(() => {
-        const executionType = new ExecutionType();
-        executionType.setId(6);
-        executionType.setName('String');
-        const response = new GetExecutionTypesResponse();
-        response.setExecutionTypesList([executionType]);
-        return Promise.resolve(response);
-      });
-
-      getExecutionsSpy.mockImplementation(() => {
-        const executions = mockNExecutions(5);
-        const response = new GetExecutionsResponse();
-        response.setExecutionsList(executions);
-        return Promise.resolve(response);
-      });
+    getExecutionTypesSpy.mockImplementation(() => {
+      const executionType = new ExecutionType();
+      executionType.setId(6);
+      executionType.setName('String');
+      const response = new GetExecutionTypesResponse();
+      response.setExecutionTypesList([executionType]);
+      return Promise.resolve(response);
     });
+
+    getExecutionsSpy.mockImplementation(() => {
+      const executions = mockNExecutions(5);
+      const response = new GetExecutionsResponse();
+      response.setExecutionsList(executions);
+      return Promise.resolve(response);
+    });
+  });
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
@@ -165,21 +158,22 @@ describe('ExecutionList ("Default" view)', () => {
       return Promise.resolve(response);
     });
 
-    const originalRowsPerPage = screen.getByText('10');
-    fireEvent.click(originalRowsPerPage);
-    const newRowsPerPage = screen.getByText('20'); // Change to render 20 rows per page.
+    const rowsPerPageButton = screen.getByRole('button', { name: '10' });
+    fireEvent.mouseDown(rowsPerPageButton);
+    const newRowsPerPage = await screen.findByRole('option', { name: '20' });
     fireEvent.click(newRowsPerPage);
 
-    listOperationOpts.setMaxResultSize(20);
-    getExecutionsRequest.setOptions(listOperationOpts),
-      await waitFor(() => {
-        // API will be called again if "Rows per page" is changed
-        expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
-        expect(getExecutionsSpy).toHaveBeenLastCalledWith(getExecutionsRequest);
-      });
+    await waitFor(() => {
+      // API will be called again if "Rows per page" is changed
+      expect(getExecutionTypesSpy).toHaveBeenCalledTimes(1);
+      expect(getExecutionsSpy).toHaveBeenCalledTimes(2);
+    });
 
-    screen.getByText('test execution 20'); // The 20th execution appears.
-  });
+    const lastRequest = getExecutionsSpy.mock.calls.at(-1)?.[0] as GetExecutionsRequest;
+    expect(lastRequest.getOptions()?.getMaxResultSize()).toBe(20);
+
+    await screen.findByText('test execution 20'); // The 20th execution appears.
+  }, 20000);
 
   it('finds no execution', async () => {
     getExecutionsSpy.mockClear();
