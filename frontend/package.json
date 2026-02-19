@@ -160,7 +160,6 @@
     "react-test-renderer": "^17.0.2",
     "rollup-plugin-visualizer": "^5.12.0",
     "semver": "^7.7.4",
-    "snapshot-diff": "^0.6.1",
     "style-loader": "^3.3.4",
     "tailwindcss": "^3.0.11",
     "ts-node": "^10.9.2",

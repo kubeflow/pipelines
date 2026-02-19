@@ -15,8 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import TensorboardViewer, { TensorboardViewerConfig } from './Tensorboard';
 import TestUtils from '../../TestUtils';
