@@ -32,7 +32,10 @@ interface History {
   layer: string;
   path: string;
 }
-const baseLinkButton = {
+const baseLinkButton: Pick<
+  React.CSSProperties,
+  'backgroundColor' | 'border' | 'cursor' | 'display' | 'margin' | 'padding'
+> = {
   backgroundColor: 'transparent',
   border: 'none',
   cursor: 'pointer',

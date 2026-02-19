@@ -607,7 +607,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
   }
 
-  private async _requestRowsPerPage(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+  private async _requestRowsPerPage(
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ): Promise<void> {
     const pageSize = Number(event.target.value);
 
     this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
