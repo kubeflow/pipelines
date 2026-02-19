@@ -125,7 +125,7 @@ export function getArtifactsAuthMiddleware(
     if (!namespace) {
       console.warn(
         `[SECURITY] Missing namespace parameter. ` +
-          `User: ${userId}, Path: ${request.originalUrl}`,
+        `User: ${userId}, Path: ${request.originalUrl}`,
       );
       response.status(400).send('Namespace parameter is required when authentication is enabled');
       return;
@@ -134,8 +134,8 @@ export function getArtifactsAuthMiddleware(
     if (!isAllowedResourceName(namespace)) {
       console.warn(
         `[SECURITY] Invalid namespace format. ` +
-          `User: ${userId}, ` +
-          `Namespace: ${namespace}, Path: ${request.originalUrl}`,
+        `User: ${userId}, ` +
+        `Namespace: ${namespace}, Path: ${request.originalUrl}`,
       );
       response.status(400).send('Invalid namespace format');
       return;
@@ -153,9 +153,9 @@ export function getArtifactsAuthMiddleware(
     if (authError) {
       console.warn(
         `[SECURITY] Unauthorized cross-namespace access attempt. ` +
-          `User: ${userId}, ` +
-          `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
-          `Reason: ${authError.message}`,
+        `User: ${userId}, ` +
+        `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
+        `Reason: ${authError.message}`,
       );
       response.status(403).send(authError.message);
       return;
@@ -245,8 +245,6 @@ export function getArtifactsHandler({
             'minio',
             providerInfo,
             namespace,
-            options.auth.enabled,
-            minio.namespaceSecretName,
           );
         } catch (error) {
           response
@@ -271,8 +269,6 @@ export function getArtifactsHandler({
             's3',
             providerInfo,
             namespace,
-            options.auth.enabled,
-            options.artifacts.minio.namespaceSecretName,
           );
         } catch (error) {
           response.status(500).send(`Failed to initialize S3 Client for S3 Provider: ${error}`);
@@ -440,11 +436,11 @@ function getGCSArtifactHandler(
         // escapes everything else.
         const regex = new RegExp(
           '^' +
-            key
-              .split(/\*+/)
-              .map(escapeRegexChars)
-              .join('.*') +
-            '$',
+          key
+            .split(/\*+/)
+            .map(escapeRegexChars)
+            .join('.*') +
+          '$',
         );
         return regex.test(f.name);
       });

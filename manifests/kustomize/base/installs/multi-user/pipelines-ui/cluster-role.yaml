@@ -17,13 +17,6 @@ rules:
   verbs:
   - list
 - apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-- apiGroups:
   - "kubeflow.org"
   resources:
   - viewers

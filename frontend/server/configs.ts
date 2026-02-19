@@ -57,12 +57,6 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     MINIO_HOST = 'seaweedfs',
     MINIO_NAMESPACE = 'kubeflow',
     MINIO_SSL = 'false',
-    /**
-     * Name of the Kubernetes secret in each namespace containing object storage credentials.
-     * Used for multi-user credential isolation (Issue #12373 (https://github.com/kubeflow/pipelines/issues/12373)).
-     * The secret should have 'accesskey' and 'secretkey' data fields.
-     */
-    OBJECT_STORAGE_NAMESPACE_SECRET_NAME = 'mlpipeline-minio-artifact',
     /** S3-compatible storage credentials */
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
@@ -179,7 +173,6 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         port: parseInt(MINIO_PORT, 10),
         secretKey: MINIO_SECRET_KEY,
         useSSL: asBool(MINIO_SSL),
-        namespaceSecretName: OBJECT_STORAGE_NAMESPACE_SECRET_NAME,
       },
       proxy: loadArtifactsProxyConfig(env),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
@@ -205,8 +198,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
           ? Deployments.KUBEFLOW
           : DEPLOYMENT_STR.toUpperCase() === Deployments.MARKETPLACE
-          ? Deployments.MARKETPLACE
-          : Deployments.NOT_SPECIFIED,
+            ? Deployments.MARKETPLACE
+            : Deployments.NOT_SPECIFIED,
       hideSideNav:
         HIDE_SIDENAV === undefined
           ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
@@ -242,11 +235,6 @@ export interface MinioConfigs {
   endPoint: string;
   port: number;
   useSSL: boolean;
-  /**
-   * Name of the Kubernetes secret in each namespace containing object storage credentials.
-   * Used for multi-user credential isolation (Issue #12373 https://github.com/kubeflow/pipelines/issues/12373).
-   */
-  namespaceSecretName: string;
 }
 export interface AWSConfigs {
   endPoint: string;
