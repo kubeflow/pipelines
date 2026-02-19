@@ -1,0 +1,58 @@
+# PIPELINE DEFINITION
+# Name: my-pipeline
+components:
+  comp-print-greeting:
+    executorLabel: exec-print-greeting
+deploymentSpec:
+  executors:
+    exec-print-greeting:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_greeting
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_greeting():\n    print('hello world')\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks:
+      print-greeting:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-print-greeting
+        taskInfo:
+          name: print-greeting
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-print-greeting:
+          securityContext:
+            runAsGroup: '0'
+            runAsUser: '65534'

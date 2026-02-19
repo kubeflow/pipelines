@@ -144,6 +144,18 @@ function assertContains(str, substring, msg) {
   }
 }
 
+function normalizeAssetPath(assetPath) {
+  const trimmed = assetPath.trim();
+  const withoutDotPrefix = trimmed.startsWith('./') ? trimmed.slice(1) : trimmed;
+  return withoutDotPrefix.startsWith('/') ? withoutDotPrefix : `/${withoutDotPrefix}`;
+}
+
+function findAssetPath(indexHtml, pattern, errorMessage) {
+  const match = indexHtml.match(pattern);
+  assertTrue(match && match[1], errorMessage);
+  return normalizeAssetPath(match[1]);
+}
+
 // ============================================================================
 // Test Suites
 // ============================================================================
@@ -155,13 +167,19 @@ async function testStaticServing() {
     const res = await request('GET', '/');
     assertEqual(res.status, 200, 'Status code');
     assertContains(res.body.toLowerCase(), '<!doctype html>', 'HTML doctype');
+    assertTrue(res.headers['content-type']?.includes('text/html'), 'Content-Type should be HTML');
     assertContains(res.body, 'Kubeflow Pipelines', 'Page title');
+    assertTrue(
+      /<div[^>]+id=["']root["'][^>]*>\s*<\/div>/.test(res.body),
+      'React root element should be present',
+    );
   });
 
   await test('GET /index.html returns index.html', async () => {
     const res = await request('GET', '/index.html');
     assertEqual(res.status, 200, 'Status code');
     assertContains(res.body.toLowerCase(), '<!doctype html>', 'HTML doctype');
+    assertTrue(res.headers['content-type']?.includes('text/html'), 'Content-Type should be HTML');
   });
 
   await test('GET /static/*.js returns JavaScript', async () => {
@@ -171,7 +189,7 @@ async function testStaticServing() {
     const jsMatch = indexRes.body.match(/(?:\.?\/)static\/(?:js\/)?[a-zA-Z0-9_-]+[-\.][a-zA-Z0-9_-]+\.js/);
     assertTrue(jsMatch, 'Could not find JS bundle path in index.html');
 
-    const res = await request('GET', jsMatch[0].replace(/^\.\//, '/'));
+    const res = await request('GET', normalizeAssetPath(jsMatch[0]));
     assertEqual(res.status, 200, 'Status code');
     assertTrue(res.headers['content-type']?.includes('javascript'), 'Content-Type should be JavaScript');
   });
@@ -182,7 +200,7 @@ async function testStaticServing() {
     const cssMatch = indexRes.body.match(/(?:\.?\/)static\/(?:css\/)?[a-zA-Z0-9_-]+[-\.][a-zA-Z0-9_-]+\.css/);
     assertTrue(cssMatch, 'Could not find CSS bundle path in index.html');
 
-    const res = await request('GET', cssMatch[0].replace(/^\.\//, '/'));
+    const res = await request('GET', normalizeAssetPath(cssMatch[0]));
     assertEqual(res.status, 200, 'Status code');
     assertTrue(res.headers['content-type']?.includes('css'), 'Content-Type should be CSS');
   });

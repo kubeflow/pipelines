@@ -1,6 +1,7 @@
 import os
 from unittest import mock
 import threading
+import sync
 from sync import get_settings_from_env, server_factory
 import json
 
@@ -284,3 +285,21 @@ def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status
     # Test overall status of whether children are ok
     assert results['status'] == expected_status
     assert results['children'] == expected_children
+
+
+def test_create_iam_client_uses_endpoint(monkeypatch):
+    called = {}
+
+    class DummySession:
+        def create_client(self, service_name, region_name=None, endpoint_url=None):
+            called["service_name"] = service_name
+            called["endpoint_url"] = endpoint_url
+            return object()
+
+    monkeypatch.setenv("AWS_ENDPOINT_URL", "http://seaweedfs.kubeflow:8111")
+    monkeypatch.setattr(sync, "session", DummySession())
+
+    sync.create_iam_client()
+
+    assert called["service_name"] == "iam"
+    assert called["endpoint_url"] == "http://seaweedfs.kubeflow:8111"

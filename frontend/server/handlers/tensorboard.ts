@@ -57,7 +57,13 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      res.send(await k8sHelper.getTensorboardInstance(logdir as string, namespace as string));
+      res.send(
+        await k8sHelper.getTensorboardInstance(
+          logdir as string,
+          namespace as string,
+          tensorboardConfig.clusterDomain,
+        ),
+      );
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);
@@ -123,11 +129,13 @@ export const getTensorboardHandlers = (
         (image || tensorboardConfig.tfImageName) as string,
         (tfversion as string) || '',
         podTemplateSpec || tensorboardConfig.podTemplateSpec,
+        tensorboardConfig.clusterDomain,
       );
       const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
         logdir as string,
         namespace as string,
         60 * 1000,
+        tensorboardConfig.clusterDomain,
       );
       res.send(tensorboardAddress);
     } catch (err) {
@@ -165,7 +173,11 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      await k8sHelper.deleteTensorboardInstance(logdir as string, namespace as string);
+      await k8sHelper.deleteTensorboardInstance(
+        logdir as string,
+        namespace as string,
+        tensorboardConfig.clusterDomain,
+      );
       res.send('Tensorboard deleted.');
     } catch (err) {
       const details = await parseError(err);

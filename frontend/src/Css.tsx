@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
+import { createTheme } from '@material-ui/core/styles';
 import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
 
@@ -51,6 +51,8 @@ export const color = {
   warningText: '#ee8100',
   infoBg: '#f3f4ff',
   infoText: '#1a73e8',
+  tooltipBg: '#1d2744',
+  tooltipShadow: '#aaa',
   weak: '#9aa0a6',
   link: '#0d47a1',
   linkLight: '#5472d3',
@@ -109,23 +111,23 @@ const palette = {
   },
 };
 
-export const theme = createMuiTheme({
+export const theme = createTheme({
   overrides: {
     MuiButton: {
-      flat: {
+      text: {
         fontSize: fontsize.base,
         fontWeight: 'bold',
         minHeight: dimension.tiny,
         textTransform: 'none',
       },
-      flatPrimary: {
+      textPrimary: {
         border: '1px solid #ddd',
         cursor: 'pointer',
         fontSize: fontsize.base,
         marginRight: 10,
         textTransform: 'none',
       },
-      flatSecondary: {
+      textSecondary: {
         color: color.theme,
       },
       root: {
@@ -182,6 +184,28 @@ export const theme = createMuiTheme({
       },
       root: { padding: 0 },
     },
+    MuiTableSortLabel: {
+      // Match v3 behavior more closely: keep header text color inherited
+      // from table column styles and avoid washed-out inactive labels.
+      root: {
+        '&$active': {
+          color: 'inherit',
+        },
+        '&:hover': {
+          color: 'inherit',
+        },
+        color: 'inherit',
+      },
+      icon: {
+        color: `${color.strong} !important`,
+      },
+    },
+    MuiSvgIcon: {
+      // Keep icon sizing consistent with MUI v3 where these were fixed pixel values.
+      root: { fontSize: 24 },
+      fontSizeSmall: { fontSize: 20 },
+      fontSizeLarge: { fontSize: 35 },
+    },
     MuiTooltip: {
       tooltip: {
         backgroundColor: '#666',
@@ -193,8 +217,7 @@ export const theme = createMuiTheme({
   palette,
   typography: {
     fontFamily: fonts.main,
-    fontSize: (fontsize.base + ' !important') as any,
-    useNextVariants: true,
+    fontSize: fontsize.base,
   },
 });
 

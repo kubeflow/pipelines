@@ -421,23 +421,32 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    screen.getByText('Filter runs');
+    screen.getByLabelText('Filter runs');
     screen.getByText('There are no Parameters available on the selected runs.');
     screen.getByText('Scalar Metrics');
 
-    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
-    expect(screen.queryByText('Filter runs')).toBeNull();
+    const getSectionToggle = (name: string) =>
+      screen.getByText(name).closest('button') as HTMLButtonElement;
 
-    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
-    screen.getByText('Filter runs');
+    fireEvent.click(getSectionToggle(OVERVIEW_SECTION_NAME));
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Filter runs')).toBeNull();
+    });
 
-    fireEvent.click(screen.getByText(PARAMS_SECTION_NAME));
-    expect(
-      screen.queryByText('There are no Parameters available on the selected runs.'),
-    ).toBeNull();
+    fireEvent.click(getSectionToggle(OVERVIEW_SECTION_NAME));
+    await screen.findByLabelText('Filter runs');
 
-    fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
-    expect(screen.queryByText('Scalar Metrics')).toBeNull();
+    fireEvent.click(getSectionToggle(PARAMS_SECTION_NAME));
+    await waitFor(() => {
+      expect(
+        screen.queryByText('There are no Parameters available on the selected runs.'),
+      ).toBeNull();
+    });
+
+    fireEvent.click(getSectionToggle(METRICS_SECTION_NAME));
+    await waitFor(() => {
+      expect(screen.queryByText('Scalar Metrics')).toBeNull();
+    });
   });
 
   it('All runs are initially selected', async () => {
@@ -493,7 +502,7 @@ describe('CompareV2', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     await waitFor(() => {
       expect(getBodyText()).toContain(
         'An error is preventing the Confusion Matrix from being displayed.',
@@ -503,14 +512,14 @@ describe('CompareV2', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     await waitFor(() => {
       expect(getBodyText()).toContain(
         'An error is preventing the Confusion Matrix from being displayed.',
       );
     });
 
-    fireEvent.click(screen.getByText('Scalar Metrics'));
+    fireEvent.click(screen.getByRole('button', { name: 'Scalar Metrics' }));
     await waitFor(() => {
       expect(getBodyText()).toContain(
         'An error is preventing the Scalar Metrics from being displayed.',
@@ -546,28 +555,28 @@ describe('CompareV2', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     await waitFor(() => {
       expect(getBodyText()).toContain(
         'There are no Confusion Matrix artifacts available on the selected runs.',
       );
     });
 
-    fireEvent.click(screen.getByText('HTML'));
+    fireEvent.click(screen.getByRole('button', { name: 'HTML' }));
     await waitFor(() => {
       expect(getBodyText()).toContain(
         'There are no HTML artifacts available on the selected runs.',
       );
     });
 
-    fireEvent.click(screen.getByText('Markdown'));
+    fireEvent.click(screen.getByRole('button', { name: 'Markdown' }));
     await waitFor(() => {
       expect(getBodyText()).toContain(
         'There are no Markdown artifacts available on the selected runs.',
       );
     });
 
-    fireEvent.click(screen.getByText('ROC Curve'));
+    fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
     await waitFor(() => {
       expect(getBodyText()).toContain(
         'There are no ROC Curve artifacts available on the selected runs.',
@@ -630,7 +639,7 @@ describe('CompareV2', () => {
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
@@ -644,7 +653,7 @@ describe('CompareV2', () => {
 
     // Change the tab and return, ensure that the confusion matrix and selected item are present.
     fireEvent.click(screen.getByText('HTML'));
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     await waitFor(() => {
       screen.getByText(/Confusion Matrix: artifactName/);
       screen.getByText(/200/);
@@ -712,7 +721,7 @@ describe('CompareV2', () => {
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
@@ -784,7 +793,7 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    fireEvent.click(screen.getByText('ROC Curve'));
+    fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
     await waitFor(() => screen.getByText('ROC Curve: artifactName'));
 
     let runCheckboxes = await waitForRunCheckboxes(3);
@@ -850,8 +859,8 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('ROC Curve: multiple artifacts');
-    screen.getByText('Filter artifacts');
+    fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
+    await screen.findByText('ROC Curve: multiple artifacts');
+    await screen.findByLabelText('Filter artifacts');
   });
 });

@@ -20,16 +20,11 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-179"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -51,16 +46,11 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-179"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -109,16 +99,11 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-77"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -140,16 +125,11 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-77"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -171,16 +151,11 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-77"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -202,16 +177,11 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-77"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -233,16 +203,11 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-77"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -264,16 +229,11 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-77"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -446,16 +406,11 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-128"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -471,16 +426,11 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-128"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -521,16 +471,11 @@ exports[`Graph > renders a graph with a selected node 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-162"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -552,16 +497,11 @@ exports[`Graph > renders a graph with a selected node 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-162"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -610,16 +550,11 @@ exports[`Graph > renders a graph with colored edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-111"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -641,16 +576,11 @@ exports[`Graph > renders a graph with colored edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-111"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -699,16 +629,11 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-94"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -730,16 +655,11 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-94"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -770,16 +690,11 @@ exports[`Graph > renders a graph with one node 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-9"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -810,16 +725,11 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-43"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -841,16 +751,11 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-43"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -899,16 +804,11 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-60"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -930,16 +830,11 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-60"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -988,16 +883,11 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-26"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
@@ -1019,16 +909,11 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root-26"
+          class="MuiSvgIcon-root"
           focusable="false"
-          role="presentation"
           title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
-          <path
-            d="M0 0h24v24H0z"
-            fill="none"
-          />
           <path
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />

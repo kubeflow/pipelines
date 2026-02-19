@@ -67,8 +67,10 @@ describe('/artifacts', () => {
     });
   });
 
-  afterEach(() => {
-    app?.close();
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('/get', () => {

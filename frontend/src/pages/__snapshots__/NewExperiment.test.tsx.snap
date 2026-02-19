@@ -19,138 +19,126 @@ exports[`NewExperiment > enables the 'Next' button when an experiment name is en
         Think of an Experiment as a space that contains the history of all pipelines and their associated runs
       </div>
       <div
-        class="MuiFormControl-root-187 textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root-202 MuiFormLabel-filled-206 MuiFormLabel-focused-203 MuiInputLabel-focused-192 MuiFormLabel-required-207 MuiInputLabel-required-195 MuiInputLabel-root-191 MuiInputLabel-formControl-196 MuiInputLabel-animated-199 MuiInputLabel-shrink-198 MuiInputLabel-outlined-201"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-focused Mui-focused Mui-required Mui-required"
           data-shrink="true"
           for="experimentName"
+          id="experimentName-label"
         >
           Experiment name
           <span
-            class="MuiFormLabel-asterisk-208"
+            aria-hidden="true"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root-222 MuiOutlinedInput-root-209 MuiInputBase-focused-224 MuiOutlinedInput-focused-210 MuiInputBase-formControl-223"
+          class="MuiInputBase-root MuiOutlinedInput-root Mui-focused Mui-focused MuiInputBase-formControl"
         >
-          <fieldset
-            aria-hidden="true"
-            class="MuiPrivateNotchedOutline-root-239 MuiOutlinedInput-notchedOutline-216"
-            style="padding-left: 8px;"
-          >
-            <legend
-              class="MuiPrivateNotchedOutline-legend-240"
-              style="width: 0px;"
-            >
-              <span>
-                ​
-              </span>
-            </legend>
-          </fieldset>
           <input
             aria-invalid="false"
-            class="MuiInputBase-input-232 MuiOutlinedInput-input-217"
+            class="MuiInputBase-input MuiOutlinedInput-input"
             id="experimentName"
             required=""
             type="text"
             value="experiment name"
           />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-9 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-11 PrivateNotchedOutline-legendNotched-12"
+            >
+              <span>
+                Experiment name *
+              </span>
+            </legend>
+          </fieldset>
         </div>
       </div>
       <div
-        class="MuiFormControl-root-187 textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
         spellcheck="false"
         style="height: auto; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root-202 MuiInputLabel-root-191 MuiInputLabel-formControl-196 MuiInputLabel-animated-199 MuiInputLabel-outlined-201"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
           data-shrink="false"
           for="experimentDescription"
+          id="experimentDescription-label"
         >
           Description
         </label>
         <div
-          class="MuiInputBase-root-222 MuiOutlinedInput-root-209 MuiInputBase-formControl-223 MuiInputBase-multiline-230 MuiOutlinedInput-multiline-215"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl MuiInputBase-multiline MuiOutlinedInput-multiline"
         >
+          <textarea
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            id="experimentDescription"
+            rows="1"
+            style="height: 0px; overflow: hidden;"
+          />
+          <textarea
+            aria-hidden="true"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            readonly=""
+            style="visibility: hidden; position: absolute; overflow: hidden; height: 0px; top: 0px; left: 0px; transform: translateZ(0); width: 100%;"
+            tabindex="-1"
+          />
           <fieldset
             aria-hidden="true"
-            class="MuiPrivateNotchedOutline-root-239 MuiOutlinedInput-notchedOutline-216"
-            style="padding-left: 8px;"
+            class="PrivateNotchedOutline-root-9 MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="MuiPrivateNotchedOutline-legend-240"
-              style="width: 0.01px;"
+              class="PrivateNotchedOutline-legendLabelled-11"
             >
               <span>
-                ​
+                Description
               </span>
             </legend>
           </fieldset>
-          <div
-            class="MuiPrivateTextarea-root-241"
-          >
-            <textarea
-              aria-hidden="true"
-              class="MuiPrivateTextarea-textarea-242 MuiPrivateTextarea-shadow-243"
-              readonly=""
-              rows="1"
-              tabindex="-1"
-            />
-            <textarea
-              aria-hidden="true"
-              class="MuiPrivateTextarea-textarea-242 MuiPrivateTextarea-shadow-243"
-              readonly=""
-              rows="1"
-              tabindex="-1"
-            />
-            <textarea
-              aria-invalid="false"
-              class="MuiPrivateTextarea-textarea-242 MuiInputBase-input-232 MuiOutlinedInput-input-217 MuiInputBase-inputMultiline-234 MuiOutlinedInput-inputMultiline-219"
-              id="experimentDescription"
-              rows="1"
-              style="height: 19px;"
-            />
-          </div>
         </div>
       </div>
       <div
         class="flex_f16jawj4"
       >
         <button
-          class="MuiButtonBase-root-270 MuiButton-root-244 MuiButton-text-246 MuiButton-textSecondary-248 MuiButton-flat-249 MuiButton-flatSecondary-251 root_f1gmzqw4 buttonAction_f1olq6uy"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
           id="createExperimentBtn"
           tabindex="0"
           type="button"
         >
           <span
-            class="MuiButton-label-245"
+            class="MuiButton-label"
           >
             <span>
               Next
             </span>
           </span>
           <span
-            class="MuiTouchRipple-root-273"
+            class="MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root-270 MuiButton-root-244 MuiButton-text-246 MuiButton-flat-249"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
           id="cancelNewExperimentBtn"
           tabindex="0"
           type="button"
         >
           <span
-            class="MuiButton-label-245"
+            class="MuiButton-label"
           >
             Cancel
           </span>
           <span
-            class="MuiTouchRipple-root-273"
+            class="MuiTouchRipple-root"
           />
         </button>
         <div
@@ -181,117 +169,105 @@ exports[`NewExperiment > re-disables the 'Next' button when an experiment name i
         Think of an Experiment as a space that contains the history of all pipelines and their associated runs
       </div>
       <div
-        class="MuiFormControl-root-280 textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root-295 MuiFormLabel-focused-296 MuiInputLabel-focused-285 MuiFormLabel-required-300 MuiInputLabel-required-288 MuiInputLabel-root-284 MuiInputLabel-formControl-289 MuiInputLabel-animated-292 MuiInputLabel-shrink-291 MuiInputLabel-outlined-294"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-focused Mui-focused Mui-required Mui-required"
           data-shrink="true"
           for="experimentName"
+          id="experimentName-label"
         >
           Experiment name
           <span
-            class="MuiFormLabel-asterisk-301"
+            aria-hidden="true"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root-315 MuiOutlinedInput-root-302 MuiInputBase-focused-317 MuiOutlinedInput-focused-303 MuiInputBase-formControl-316"
+          class="MuiInputBase-root MuiOutlinedInput-root Mui-focused Mui-focused MuiInputBase-formControl"
         >
-          <fieldset
-            aria-hidden="true"
-            class="MuiPrivateNotchedOutline-root-332 MuiOutlinedInput-notchedOutline-309"
-            style="padding-left: 8px;"
-          >
-            <legend
-              class="MuiPrivateNotchedOutline-legend-333"
-              style="width: 0px;"
-            >
-              <span>
-                ​
-              </span>
-            </legend>
-          </fieldset>
           <input
             aria-invalid="false"
-            class="MuiInputBase-input-325 MuiOutlinedInput-input-310"
+            class="MuiInputBase-input MuiOutlinedInput-input"
             id="experimentName"
             required=""
             type="text"
             value=""
           />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-13 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-15 PrivateNotchedOutline-legendNotched-16"
+            >
+              <span>
+                Experiment name *
+              </span>
+            </legend>
+          </fieldset>
         </div>
       </div>
       <div
-        class="MuiFormControl-root-280 textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
         spellcheck="false"
         style="height: auto; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root-295 MuiInputLabel-root-284 MuiInputLabel-formControl-289 MuiInputLabel-animated-292 MuiInputLabel-outlined-294"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
           data-shrink="false"
           for="experimentDescription"
+          id="experimentDescription-label"
         >
           Description
         </label>
         <div
-          class="MuiInputBase-root-315 MuiOutlinedInput-root-302 MuiInputBase-formControl-316 MuiInputBase-multiline-323 MuiOutlinedInput-multiline-308"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl MuiInputBase-multiline MuiOutlinedInput-multiline"
         >
+          <textarea
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            id="experimentDescription"
+            rows="1"
+            style="height: 0px; overflow: hidden;"
+          />
+          <textarea
+            aria-hidden="true"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            readonly=""
+            style="visibility: hidden; position: absolute; overflow: hidden; height: 0px; top: 0px; left: 0px; transform: translateZ(0); width: 100%;"
+            tabindex="-1"
+          />
           <fieldset
             aria-hidden="true"
-            class="MuiPrivateNotchedOutline-root-332 MuiOutlinedInput-notchedOutline-309"
-            style="padding-left: 8px;"
+            class="PrivateNotchedOutline-root-13 MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="MuiPrivateNotchedOutline-legend-333"
-              style="width: 0.01px;"
+              class="PrivateNotchedOutline-legendLabelled-15"
             >
               <span>
-                ​
+                Description
               </span>
             </legend>
           </fieldset>
-          <div
-            class="MuiPrivateTextarea-root-334"
-          >
-            <textarea
-              aria-hidden="true"
-              class="MuiPrivateTextarea-textarea-335 MuiPrivateTextarea-shadow-336"
-              readonly=""
-              rows="1"
-              tabindex="-1"
-            />
-            <textarea
-              aria-hidden="true"
-              class="MuiPrivateTextarea-textarea-335 MuiPrivateTextarea-shadow-336"
-              readonly=""
-              rows="1"
-              tabindex="-1"
-            />
-            <textarea
-              aria-invalid="false"
-              class="MuiPrivateTextarea-textarea-335 MuiInputBase-input-325 MuiOutlinedInput-input-310 MuiInputBase-inputMultiline-327 MuiOutlinedInput-inputMultiline-312"
-              id="experimentDescription"
-              rows="1"
-              style="height: 19px;"
-            />
-          </div>
         </div>
       </div>
       <div
         class="flex_f16jawj4"
       >
         <button
-          class="MuiButtonBase-root-363 MuiButtonBase-disabled-364 MuiButton-root-337 MuiButton-text-339 MuiButton-textSecondary-341 MuiButton-flat-342 MuiButton-flatSecondary-344 MuiButton-disabled-357 root_f1gmzqw4 buttonAction_f1olq6uy"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary Mui-disabled Mui-disabled"
           disabled=""
           id="createExperimentBtn"
           tabindex="-1"
           type="button"
         >
           <span
-            class="MuiButton-label-338"
+            class="MuiButton-label"
           >
             <span>
               Next
@@ -299,18 +275,18 @@ exports[`NewExperiment > re-disables the 'Next' button when an experiment name i
           </span>
         </button>
         <button
-          class="MuiButtonBase-root-363 MuiButton-root-337 MuiButton-text-339 MuiButton-flat-342"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
           id="cancelNewExperimentBtn"
           tabindex="0"
           type="button"
         >
           <span
-            class="MuiButton-label-338"
+            class="MuiButton-label"
           >
             Cancel
           </span>
           <span
-            class="MuiTouchRipple-root-366"
+            class="MuiTouchRipple-root"
           />
         </button>
         <div
@@ -343,117 +319,105 @@ exports[`NewExperiment > renders the new experiment page 1`] = `
         Think of an Experiment as a space that contains the history of all pipelines and their associated runs
       </div>
       <div
-        class="MuiFormControl-root-1 textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root-16 MuiFormLabel-focused-17 MuiInputLabel-focused-6 MuiFormLabel-required-21 MuiInputLabel-required-9 MuiInputLabel-root-5 MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-focused Mui-focused Mui-required Mui-required"
           data-shrink="true"
           for="experimentName"
+          id="experimentName-label"
         >
           Experiment name
           <span
-            class="MuiFormLabel-asterisk-22"
+            aria-hidden="true"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root-36 MuiOutlinedInput-root-23 MuiInputBase-focused-38 MuiOutlinedInput-focused-24 MuiInputBase-formControl-37"
+          class="MuiInputBase-root MuiOutlinedInput-root Mui-focused Mui-focused MuiInputBase-formControl"
         >
-          <fieldset
-            aria-hidden="true"
-            class="MuiPrivateNotchedOutline-root-53 MuiOutlinedInput-notchedOutline-30"
-            style="padding-left: 8px;"
-          >
-            <legend
-              class="MuiPrivateNotchedOutline-legend-54"
-              style="width: 0px;"
-            >
-              <span>
-                ​
-              </span>
-            </legend>
-          </fieldset>
           <input
             aria-invalid="false"
-            class="MuiInputBase-input-46 MuiOutlinedInput-input-31"
+            class="MuiInputBase-input MuiOutlinedInput-input"
             id="experimentName"
             required=""
             type="text"
             value=""
           />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+            >
+              <span>
+                Experiment name *
+              </span>
+            </legend>
+          </fieldset>
         </div>
       </div>
       <div
-        class="MuiFormControl-root-1 textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
         spellcheck="false"
         style="height: auto; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root-16 MuiInputLabel-root-5 MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-outlined-15"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
           data-shrink="false"
           for="experimentDescription"
+          id="experimentDescription-label"
         >
           Description
         </label>
         <div
-          class="MuiInputBase-root-36 MuiOutlinedInput-root-23 MuiInputBase-formControl-37 MuiInputBase-multiline-44 MuiOutlinedInput-multiline-29"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl MuiInputBase-multiline MuiOutlinedInput-multiline"
         >
+          <textarea
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            id="experimentDescription"
+            rows="1"
+            style="height: 0px; overflow: hidden;"
+          />
+          <textarea
+            aria-hidden="true"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            readonly=""
+            style="visibility: hidden; position: absolute; overflow: hidden; height: 0px; top: 0px; left: 0px; transform: translateZ(0); width: 100%;"
+            tabindex="-1"
+          />
           <fieldset
             aria-hidden="true"
-            class="MuiPrivateNotchedOutline-root-53 MuiOutlinedInput-notchedOutline-30"
-            style="padding-left: 8px;"
+            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="MuiPrivateNotchedOutline-legend-54"
-              style="width: 0.01px;"
+              class="PrivateNotchedOutline-legendLabelled-3"
             >
               <span>
-                ​
+                Description
               </span>
             </legend>
           </fieldset>
-          <div
-            class="MuiPrivateTextarea-root-55"
-          >
-            <textarea
-              aria-hidden="true"
-              class="MuiPrivateTextarea-textarea-56 MuiPrivateTextarea-shadow-57"
-              readonly=""
-              rows="1"
-              tabindex="-1"
-            />
-            <textarea
-              aria-hidden="true"
-              class="MuiPrivateTextarea-textarea-56 MuiPrivateTextarea-shadow-57"
-              readonly=""
-              rows="1"
-              tabindex="-1"
-            />
-            <textarea
-              aria-invalid="false"
-              class="MuiPrivateTextarea-textarea-56 MuiInputBase-input-46 MuiOutlinedInput-input-31 MuiInputBase-inputMultiline-48 MuiOutlinedInput-inputMultiline-33"
-              id="experimentDescription"
-              rows="1"
-              style="height: 19px;"
-            />
-          </div>
         </div>
       </div>
       <div
         class="flex_f16jawj4"
       >
         <button
-          class="MuiButtonBase-root-84 MuiButtonBase-disabled-85 MuiButton-root-58 MuiButton-text-60 MuiButton-textSecondary-62 MuiButton-flat-63 MuiButton-flatSecondary-65 MuiButton-disabled-78 root_f1gmzqw4 buttonAction_f1olq6uy"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary Mui-disabled Mui-disabled"
           disabled=""
           id="createExperimentBtn"
           tabindex="-1"
           type="button"
         >
           <span
-            class="MuiButton-label-59"
+            class="MuiButton-label"
           >
             <span>
               Next
@@ -461,18 +425,18 @@ exports[`NewExperiment > renders the new experiment page 1`] = `
           </span>
         </button>
         <button
-          class="MuiButtonBase-root-84 MuiButton-root-58 MuiButton-text-60 MuiButton-flat-63"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
           id="cancelNewExperimentBtn"
           tabindex="0"
           type="button"
         >
           <span
-            class="MuiButton-label-59"
+            class="MuiButton-label"
           >
             Cancel
           </span>
           <span
-            class="MuiTouchRipple-root-87"
+            class="MuiTouchRipple-root"
           />
         </button>
         <div

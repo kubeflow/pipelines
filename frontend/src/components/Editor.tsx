@@ -36,23 +36,28 @@ class Editor extends AceEditor {
 
   public updatePlaceholder(): void {
     const editor = this.editor;
-    const { placeholder } = this.props;
+    const placeholder = this.props.placeholder ?? '';
+    const renderer = editor.renderer as {
+      placeholderNode?: HTMLDivElement | null;
+      scroller: HTMLElement;
+    };
 
     const showPlaceholder = !editor.session.getValue().length;
-    let node = editor.renderer.placeholderNode;
-    if (!showPlaceholder && node) {
-      editor.renderer.scroller.removeChild(editor.renderer.placeholderNode);
-      editor.renderer.placeholderNode = null;
-    } else if (showPlaceholder && !node) {
-      node = editor.renderer.placeholderNode = document.createElement('div');
-      node.innerHTML = placeholder || '';
+    const existingNode = renderer.placeholderNode ?? null;
+    if (!showPlaceholder && existingNode) {
+      renderer.scroller.removeChild(existingNode);
+      renderer.placeholderNode = null;
+    } else if (showPlaceholder && !existingNode) {
+      const node = document.createElement('div');
+      node.innerHTML = placeholder;
       node.className = 'ace_comment ace_placeholder';
       node.style.padding = '0 9px';
       node.style.position = 'absolute';
       node.style.zIndex = '3';
-      editor.renderer.scroller.appendChild(node);
-    } else if (showPlaceholder && node) {
-      node.innerHTML = placeholder;
+      renderer.placeholderNode = node;
+      renderer.scroller.appendChild(node);
+    } else if (showPlaceholder && existingNode) {
+      existingNode.innerHTML = placeholder;
     }
   }
 }

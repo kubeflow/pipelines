@@ -21,6 +21,16 @@ spec:
         - name: generate-config
           image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           command: [ "/bin/sh", "-ec" ]
           args:
             - |
