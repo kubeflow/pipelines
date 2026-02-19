@@ -2316,24 +2316,23 @@ func Test_extendPodSpecPatch_SecurityContext_AdminSetPreserved(t *testing.T) {
 	userUID := int64(65534)
 	userGID := int64(0)
 
+	// Fresh pod spec — matches production flow from initPodSpecPatch.
 	got := &k8score.PodSpec{Containers: []k8score.Container{
-		{
-			Name: "main",
-			SecurityContext: &k8score.SecurityContext{
-				RunAsUser:  &adminUID,
-				RunAsGroup: &adminGID,
-			},
-		},
+		{Name: "main"},
 	}}
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
-			SecurityContext: &kubernetesplatform.SecurityContext{
-				RunAsUser:  &userUID,
-				RunAsGroup: &userGID,
+		Options{
+			DefaultRunAsUser:  &adminUID,
+			DefaultRunAsGroup: &adminGID,
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser:  &userUID,
+					RunAsGroup: &userGID,
+				},
 			},
-		}},
+		},
 		nil,
 		nil,
 		nil,
@@ -2343,20 +2342,32 @@ func Test_extendPodSpecPatch_SecurityContext_AdminSetPreserved(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, got)
 	// Admin-set values are preserved; user-specified values are ignored.
-	assert.Equal(t, &k8score.PodSpec{
-		Containers: []k8score.Container{
-			{
-				Name: "main",
-				SecurityContext: &k8score.SecurityContext{
-					RunAsUser:  &adminUID,
-					RunAsGroup: &adminGID,
-					Capabilities: &k8score.Capabilities{
-						Drop: []k8score.Capability{"ALL"},
-					},
-				},
-			},
+	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsUser)
+	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsGroup)
+	// Capabilities always dropped.
+	assert.Equal(t, &k8score.Capabilities{Drop: []k8score.Capability{"ALL"}}, got.Containers[0].SecurityContext.Capabilities)
+}
+
+func Test_extendPodSpecPatch_SecurityContext_AdminDefaultsNoUserOverride(t *testing.T) {
+	adminUID := int64(1000)
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{
+			DefaultRunAsUser: &adminUID,
+			// No KubernetesExecutorConfig — user didn't call set_security_context.
 		},
-	}, got)
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	assert.Nil(t, err)
+	// Admin defaults are applied even without user SecurityContext.
+	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsUser)
 }
 
 func Test_extendPodSpecPatch_SecurityContext_RootOnHardenedContainer(t *testing.T) {

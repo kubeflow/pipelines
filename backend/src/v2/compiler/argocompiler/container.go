@@ -236,6 +236,12 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
 		args = append(args, "--publish_logs", value)
 	}
+	if c.defaultRunAsUser != nil {
+		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+	}
+	if c.defaultRunAsGroup != nil {
+		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+	}
 
 	template := &wfapi.Template{
 		Name: name,

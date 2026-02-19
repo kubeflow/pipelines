@@ -54,6 +54,14 @@ def set_security_context(
         raise ValueError(
             'At least one security context field must be provided.'
         )
+    if run_as_user is not None and isinstance(run_as_user, bool):
+        raise TypeError(
+            f'Argument for "run_as_user" must be an int, not bool. Got: {run_as_user}.'
+        )
+    if run_as_group is not None and isinstance(run_as_group, bool):
+        raise TypeError(
+            f'Argument for "run_as_group" must be an int, not bool. Got: {run_as_group}.'
+        )
     if run_as_user is not None and run_as_user < 0:
         raise ValueError(
             f'Argument for "run_as_user" must be greater than or equal to 0. Got invalid input: {run_as_user}.'
