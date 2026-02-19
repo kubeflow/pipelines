@@ -311,7 +311,6 @@ func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
 
 	if !*cacheEnabled {
 		t.Skip("Skipping PVC cache test: cache is disabled")
-
 		return
 	}
 
@@ -323,7 +322,7 @@ func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
 	clientset, err := kubernetes.NewForConfig(restCfg)
 	require.NoError(t, err)
 
-	pvcName := fmt.Sprintf("test-cache-pvc-%d", time.Now().UnixNano())
+	pvcName := fmt.Sprintf("test-cache-pvc-with-cachekey-%d", time.Now().UnixNano())
 	storageClass := "standard"
 	qty := k8sres.MustParse("5Mi")
 	pvc := &v1.PersistentVolumeClaim{
@@ -353,7 +352,7 @@ func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
 	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
 		pvcPipelinePath,
 		&uploadParams.UploadPipelineVersionParams{
-			Name:       util.StringPointer("pvc-cache-version"),
+			Name:       util.StringPointer("pvc-cache-with-cachekey-version"),
 			Pipelineid: util.StringPointer(pipeline.PipelineID),
 		},
 	)

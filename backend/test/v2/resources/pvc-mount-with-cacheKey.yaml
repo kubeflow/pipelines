@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: pvc-mount-pipeline
+# Name: pvc-mount-pipeline-with-cachekey
 # Inputs:
 #    pvc_name: str
 components:
@@ -80,7 +80,7 @@ root:
       consumer:
         cachingOptions:
           enableCache: true
-          cacheKey: consumerCacheKey
+          cacheKey: testCacheKey
         componentRef:
           name: comp-consumer
         dependentTasks:
@@ -90,7 +90,7 @@ root:
       producer:
         cachingOptions:
           enableCache: true
-          cacheKey: producerCacheKey
+          cacheKey: testCacheKey
         componentRef:
           name: comp-producer
         taskInfo:
