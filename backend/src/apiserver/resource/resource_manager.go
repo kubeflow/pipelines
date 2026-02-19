@@ -121,6 +121,8 @@ type ResourceManagerOptions struct {
 	CacheDisabled        bool                              `json:"cache_disabled,omitempty"`
 	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
 	MLPipelineTLSEnabled bool                              `json:"ml_pipeline_tls_enabled,omitempty"`
+	DefaultRunAsUser     *int64                            `json:"default_run_as_user,omitempty"`
+	DefaultRunAsGroup    *int64                            `json:"default_run_as_group,omitempty"`
 }
 
 type ResourceManager struct {
@@ -423,6 +425,8 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 		CacheDisabled:        r.options.CacheDisabled,
 		DefaultWorkspace:     r.options.DefaultWorkspace,
 		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
+		DefaultRunAsUser:     r.options.DefaultRunAsUser,
+		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
@@ -1156,6 +1160,8 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			CacheDisabled:        r.options.CacheDisabled,
 			DefaultWorkspace:     r.options.DefaultWorkspace,
 			MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
+			DefaultRunAsUser:     r.options.DefaultRunAsUser,
+			DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 		}
 		tmpl, err := template.New(manifest, templateOptions)
 		if err != nil {
@@ -1557,6 +1563,8 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		CacheDisabled:        r.options.CacheDisabled,
 		DefaultWorkspace:     r.options.DefaultWorkspace,
 		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
+		DefaultRunAsUser:     r.options.DefaultRunAsUser,
+		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 	}
 	tmpl, err := template.New([]byte(manifest), templateOptions)
 	if err != nil {
@@ -1745,6 +1753,8 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		CacheDisabled:        r.options.CacheDisabled,
 		DefaultWorkspace:     r.options.DefaultWorkspace,
 		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
+		DefaultRunAsUser:     r.options.DefaultRunAsUser,
+		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
