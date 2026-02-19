@@ -71,8 +71,6 @@ describe('minio-helper', () => {
         's3',
         '',
         '',
-        false,
-        undefined,
         provider,
       );
 

@@ -245,8 +245,6 @@ export function getArtifactsHandler({
             'minio',
             providerInfo,
             namespace,
-            options.auth.enabled,
-            minio.namespaceSecretName,
           );
         } catch (error) {
           response
@@ -271,8 +269,6 @@ export function getArtifactsHandler({
             's3',
             providerInfo,
             namespace,
-            options.auth.enabled,
-            options.artifacts.minio.namespaceSecretName,
           );
         } catch (error) {
           response.status(500).send(`Failed to initialize S3 Client for S3 Provider: ${error}`);
