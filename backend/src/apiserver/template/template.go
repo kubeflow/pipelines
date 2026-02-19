@@ -145,6 +145,8 @@ type TemplateOptions struct {
 	CacheDisabled        bool
 	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec
 	MLPipelineTLSEnabled bool
+	DefaultRunAsUser     *int64
+	DefaultRunAsGroup    *int64
 }
 
 func New(bytes []byte, opts TemplateOptions) (Template, error) {
