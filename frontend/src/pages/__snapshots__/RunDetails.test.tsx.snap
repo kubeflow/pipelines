@@ -144,13 +144,13 @@ exports[`RunDetails > closes side panel when close button is clicked 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: translateX(1024px) translateX(NaNpx); transform: translateX(1024px) translateX(NaNpx); transition: transform 195ms cubic-bezier(0.4, 0, 0.6, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: translateX(1024px) translateX(NaNpx); transform: translateX(1024px) translateX(NaNpx); transition: transform 195ms cubic-bezier(0.4, 0, 0.6, 1) 0ms;"
             >
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -175,10 +175,6 @@ exports[`RunDetails > closes side panel when close button is clicked 1`] = `
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -1294,7 +1290,7 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -1496,11 +1492,11 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -1525,10 +1521,6 @@ exports[`RunDetails > logs tab > does not load logs if clicked node status is sk
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -1674,7 +1666,7 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -1911,11 +1903,11 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -1940,10 +1932,6 @@ exports[`RunDetails > logs tab > keeps side pane open and on same tab when logs 
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -2096,7 +2084,7 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -2333,11 +2321,11 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -2362,10 +2350,6 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -2518,7 +2502,7 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -2774,11 +2758,11 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -2803,10 +2787,6 @@ exports[`RunDetails > logs tab > switches to logs tab in side pane 1`] = `
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -2952,7 +2932,7 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -3182,11 +3162,11 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -3211,10 +3191,6 @@ exports[`RunDetails > opens side panel when graph node is clicked 1`] = `
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -4264,7 +4240,7 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -4539,11 +4515,11 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -4568,10 +4544,6 @@ exports[`RunDetails > switches to inputs/outputs tab in side pane 1`] = `
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -4724,7 +4696,7 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -4936,11 +4908,11 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -4965,10 +4937,6 @@ exports[`RunDetails > switches to manifest tab in side pane 1`] = `
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
@@ -5216,7 +5184,7 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
             </div>
             <div
               class="sidepane_f1k92udk"
-              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
+              style="position: relative; user-select: auto; width: 70%; height: auto; max-width: 90%; min-width: 100px; box-sizing: border-box; flex-shrink: 0; -webkit-transform: none; transform: none; transition: transform 225ms cubic-bezier(0.0, 0, 0.2, 1) 0ms;"
             >
               <div
                 class="page_f1flacxk"
@@ -5428,11 +5396,11 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
                   </div>
                 </div>
               </div>
-              <span>
+              <div>
                 <div
                   style="position: absolute; user-select: none; width: 10px; height: 100%; top: 0px; left: -5px; cursor: col-resize;"
                 />
-              </span>
+              </div>
             </div>
             <div
               class="footer_fv7248q"
@@ -5457,10 +5425,6 @@ exports[`RunDetails > switches to volumes tab in side pane 1`] = `
                 </span>
               </div>
             </div>
-            <div
-              class="__resizable_base__"
-              style="width: 100%; height: 100%; position: absolute; transform: scale(0, 0); left: 0px; flex: 0 1 0%;"
-            />
           </div>
         </div>
       </div>
