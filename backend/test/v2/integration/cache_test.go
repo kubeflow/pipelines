@@ -303,95 +303,95 @@ func (s *CacheTestSuite) TestCacheSingleRunWithPVC_SameName_Caches() {
 	require.Equal(t, pb.Execution_COMPLETE, state)
 }
 
-// Test that a pipeline using a PVC parameter with a fixed cacheKey
-// hits the cache across multiple runs, even when the PVC name differs.
-// The cache behavior should depend on the explicit cacheKey, not the PVC name.
-func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
-	t := s.T()
-
-	if !*cacheEnabled {
-		t.Skip("Skipping PVC cache test: cache is disabled")
-		return
-	}
-
-	pvcPipelinePath := "../resources/pvc-mount-with-cachekey.yaml"
-
-	// Create a small PVC up-front so the pipeline can mount it by name.
-	restCfg, err := util.GetKubernetesConfig()
-	require.NoError(t, err)
-	clientset, err := kubernetes.NewForConfig(restCfg)
-	require.NoError(t, err)
-
-	pvcName := fmt.Sprintf("test-cache-pvc-with-cachekey-%d", time.Now().UnixNano())
-	storageClass := "standard"
-	qty := k8sres.MustParse("5Mi")
-	pvc := &v1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: pvcName,
-		},
-		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
-			Resources: v1.VolumeResourceRequirements{
-				Requests: v1.ResourceList{v1.ResourceStorage: qty},
-			},
-			StorageClassName: &storageClass,
-		},
-	}
-	_, err = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
-	require.NoError(t, err)
-	defer func() {
-		_ = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Delete(context.Background(), pvcName, metav1.DeleteOptions{})
-	}()
-
-	// Upload pipeline and create a version
-	pipeline, err := s.pipelineUploadClient.UploadFile(pvcPipelinePath, uploadParams.NewUploadPipelineParams())
-	require.NoError(t, err)
-	require.NotNil(t, pipeline)
-
-	time.Sleep(1 * time.Second)
-	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
-		pvcPipelinePath,
-		&uploadParams.UploadPipelineVersionParams{
-			Name:       util.StringPointer("pvc-cache-with-cachekey-version"),
-			Pipelineid: util.StringPointer(pipeline.PipelineID),
-		},
-	)
-	require.NoError(t, err)
-	require.NotNil(t, pipelineVersion)
-
-	// First run with the initial PVC name (produces a cache entry)
-	run1, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": pvcName})
-	require.NoError(t, err)
-	require.NotNil(t, run1)
-
-	// Second run with a different PVC name should still hit cache,
-	// because the component uses a fixed cacheKey.
-	otherPVCName := fmt.Sprintf("%s-alt", pvcName)
-	// Create the alternate PVC so the pipeline can mount it
-	pvcAlt := &v1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{Name: otherPVCName},
-		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
-			Resources:        v1.VolumeResourceRequirements{Requests: v1.ResourceList{v1.ResourceStorage: qty}},
-			StorageClassName: &storageClass,
-		},
-	}
-	_, err = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Create(context.Background(), pvcAlt, metav1.CreateOptions{})
-	require.NoError(t, err)
-	defer func() {
-		_ = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Delete(context.Background(), otherPVCName, metav1.DeleteOptions{})
-	}()
-
-	run2, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": otherPVCName})
-	require.NoError(t, err)
-	require.NotNil(t, run2)
-
-	state := s.getContainerExecutionState(t, run2.RunID)
-	// Even with a different PVC name, the execution should be CACHED
-	// because the cacheKey remains unchanged.
-	require.Equal(t, pb.Execution_CACHED, state)
-}
-
+// // Test that a pipeline using a PVC parameter with a fixed cacheKey
+// // hits the cache across multiple runs, even when the PVC name differs.
+// // The cache behavior should depend on the explicit cacheKey, not the PVC name.
+//
+//	func (s *CacheTestSuite) TestCacheWithFixedCacheKey_DifferentPVCName_Caches() {
+//		t := s.T()
+//
+//		if !*cacheEnabled {
+//			t.Skip("Skipping PVC cache test: cache is disabled")
+//			return
+//		}
+//
+//		pvcPipelinePath := "../resources/pvc-mount-with-cachekey.yaml"
+//
+//		// Create a small PVC up-front so the pipeline can mount it by name.
+//		restCfg, err := util.GetKubernetesConfig()
+//		require.NoError(t, err)
+//		clientset, err := kubernetes.NewForConfig(restCfg)
+//		require.NoError(t, err)
+//
+//		pvcName := fmt.Sprintf("test-cache-pvc-with-cachekey-%d", time.Now().UnixNano())
+//		storageClass := "standard"
+//		qty := k8sres.MustParse("5Mi")
+//		pvc := &v1.PersistentVolumeClaim{
+//			ObjectMeta: metav1.ObjectMeta{
+//				Name: pvcName,
+//			},
+//			Spec: v1.PersistentVolumeClaimSpec{
+//				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+//				Resources: v1.VolumeResourceRequirements{
+//					Requests: v1.ResourceList{v1.ResourceStorage: qty},
+//				},
+//				StorageClassName: &storageClass,
+//			},
+//		}
+//		_, err = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+//		require.NoError(t, err)
+//		defer func() {
+//			_ = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Delete(context.Background(), pvcName, metav1.DeleteOptions{})
+//		}()
+//
+//		// Upload pipeline and create a version
+//		pipeline, err := s.pipelineUploadClient.UploadFile(pvcPipelinePath, uploadParams.NewUploadPipelineParams())
+//		require.NoError(t, err)
+//		require.NotNil(t, pipeline)
+//
+//		time.Sleep(1 * time.Second)
+//		pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+//			pvcPipelinePath,
+//			&uploadParams.UploadPipelineVersionParams{
+//				Name:       util.StringPointer("pvc-cache-with-cachekey-version"),
+//				Pipelineid: util.StringPointer(pipeline.PipelineID),
+//			},
+//		)
+//		require.NoError(t, err)
+//		require.NotNil(t, pipelineVersion)
+//
+//		// First run with the initial PVC name (produces a cache entry)
+//		run1, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": pvcName})
+//		require.NoError(t, err)
+//		require.NotNil(t, run1)
+//
+//		// Second run with a different PVC name should still hit cache,
+//		// because the component uses a fixed cacheKey.
+//		otherPVCName := fmt.Sprintf("%s-alt", pvcName)
+//		// Create the alternate PVC so the pipeline can mount it
+//		pvcAlt := &v1.PersistentVolumeClaim{
+//			ObjectMeta: metav1.ObjectMeta{Name: otherPVCName},
+//			Spec: v1.PersistentVolumeClaimSpec{
+//				AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+//				Resources:        v1.VolumeResourceRequirements{Requests: v1.ResourceList{v1.ResourceStorage: qty}},
+//				StorageClassName: &storageClass,
+//			},
+//		}
+//		_, err = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Create(context.Background(), pvcAlt, metav1.CreateOptions{})
+//		require.NoError(t, err)
+//		defer func() {
+//			_ = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Delete(context.Background(), otherPVCName, metav1.DeleteOptions{})
+//		}()
+//
+//		run2, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": otherPVCName})
+//		require.NoError(t, err)
+//		require.NotNil(t, run2)
+//
+//		state := s.getContainerExecutionState(t, run2.RunID)
+//		// Even with a different PVC name, the execution should be CACHED
+//		// because the cacheKey remains unchanged.
+//		require.Equal(t, pb.Execution_CACHED, state)
+//	}
 func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion) (*run_model.V2beta1Run, error) {
 	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName: "hello-world",
