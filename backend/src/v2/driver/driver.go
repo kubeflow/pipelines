@@ -96,6 +96,8 @@ type Options struct {
 	DefaultRunAsUser *int64
 	// Admin-configured default runAsGroup for user containers. Nil means not set.
 	DefaultRunAsGroup *int64
+	// Admin-configured default runAsNonRoot for user containers. Nil means not set.
+	DefaultRunAsNonRoot *bool
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.

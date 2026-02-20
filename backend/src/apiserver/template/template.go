@@ -147,6 +147,7 @@ type TemplateOptions struct {
 	MLPipelineTLSEnabled bool
 	DefaultRunAsUser     *int64
 	DefaultRunAsGroup    *int64
+	DefaultRunAsNonRoot  *bool
 }
 
 func New(bytes []byte, opts TemplateOptions) (Template, error) {

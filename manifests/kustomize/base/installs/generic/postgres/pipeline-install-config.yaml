@@ -108,3 +108,4 @@ data:
   ## Does NOT affect executor, driver, or sidecar containers.
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
+  defaultSecurityContextRunAsNonRoot: ""

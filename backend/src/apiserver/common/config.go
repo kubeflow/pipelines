@@ -43,6 +43,7 @@ const (
 	ClusterDomain                           string = "CLUSTER_DOMAIN"
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
+	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -181,4 +182,8 @@ func GetDefaultSecurityContextRunAsUser() string {
 
 func GetDefaultSecurityContextRunAsGroup() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsGroup, "")
+}
+
+func GetDefaultSecurityContextRunAsNonRoot() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
 }

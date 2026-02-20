@@ -285,6 +285,9 @@ message SecurityContext {
     // violate Pod Security Standards (PSS) baseline.
     // All capabilities are always dropped by the backend.
     reserved 3, 4, 5;
+    // Whether the container must run as a non-root user.
+    // Uses the container runtime default if not specified.
+    optional bool run_as_non_root = 6;
 }
 
 message EmptyDirMount {

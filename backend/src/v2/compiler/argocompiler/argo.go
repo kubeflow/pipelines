@@ -54,6 +54,9 @@ type Options struct {
 	// Optional: admin-configured default runAsGroup for customer containers.
 	// Nil means not set (feature disabled).
 	DefaultRunAsGroup *int64
+	// Optional: admin-configured default runAsNonRoot for customer containers.
+	// Nil means not set (feature disabled).
+	DefaultRunAsNonRoot *bool
 }
 
 const (
@@ -190,6 +193,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.mlPipelineTLSEnabled = opts.MLPipelineTLSEnabled
 		c.defaultRunAsUser = opts.DefaultRunAsUser
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
+		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -238,6 +242,7 @@ type workflowCompiler struct {
 	mlPipelineTLSEnabled bool
 	defaultRunAsUser     *int64
 	defaultRunAsGroup    *int64
+	defaultRunAsNonRoot  *bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
