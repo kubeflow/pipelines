@@ -208,6 +208,7 @@ func main() {
 			MLPipelineTLSEnabled: tlsCfg != nil,
 			DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
 			DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
+			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -531,6 +532,21 @@ func parseOptionalInt64(s string) *int64 {
 	}
 	if v < 0 {
 		glog.Errorf("Invalid value %d: negative values are not allowed", v)
+		return nil
+	}
+	return &v
+}
+
+// parseOptionalBool parses a string to *bool. Returns nil if the string is empty
+// or consists only of whitespace. Accepts "true" and "false" (case-insensitive).
+func parseOptionalBool(s string) *bool {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	v, err := strconv.ParseBool(trimmed)
+	if err != nil {
+		glog.Errorf("Failed to parse %q as bool: %v", s, err)
 		return nil
 	}
 	return &v

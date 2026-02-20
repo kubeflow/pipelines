@@ -1615,6 +1615,9 @@ type SecurityContext struct {
 	// GID to run the container process as.
 	// Uses the container runtime default if not specified.
 	RunAsGroup    *int64 `protobuf:"varint,2,opt,name=run_as_group,json=runAsGroup,proto3,oneof" json:"run_as_group,omitempty"`
+	// Whether the container must run as a non-root user.
+	// Uses the container runtime default if not specified.
+	RunAsNonRoot  *bool  `protobuf:"varint,6,opt,name=run_as_non_root,json=runAsNonRoot,proto3,oneof" json:"run_as_non_root,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1661,6 +1664,13 @@ func (x *SecurityContext) GetRunAsGroup() int64 {
 		return *x.RunAsGroup
 	}
 	return 0
+}
+
+func (x *SecurityContext) GetRunAsNonRoot() bool {
+	if x != nil && x.RunAsNonRoot != nil {
+		return *x.RunAsNonRoot
+	}
+	return false
 }
 
 type EmptyDirMount struct {

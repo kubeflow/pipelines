@@ -123,6 +123,7 @@ type ResourceManagerOptions struct {
 	MLPipelineTLSEnabled bool                              `json:"ml_pipeline_tls_enabled,omitempty"`
 	DefaultRunAsUser     *int64                            `json:"default_run_as_user,omitempty"`
 	DefaultRunAsGroup    *int64                            `json:"default_run_as_group,omitempty"`
+	DefaultRunAsNonRoot  *bool                             `json:"default_run_as_non_root,omitempty"`
 }
 
 type ResourceManager struct {
@@ -427,6 +428,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
+		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
@@ -1565,6 +1567,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
+		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
 	}
 	tmpl, err := template.New([]byte(manifest), templateOptions)
 	if err != nil {
@@ -1755,6 +1758,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
 		DefaultRunAsUser:     r.options.DefaultRunAsUser,
 		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
+		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {

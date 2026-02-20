@@ -144,6 +144,12 @@ spec:
                   name: pipeline-install-config
                   key: defaultSecurityContextRunAsGroup
                   optional: true
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextRunAsNonRoot
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
