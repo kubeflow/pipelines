@@ -1164,6 +1164,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
 			DefaultRunAsUser:     r.options.DefaultRunAsUser,
 			DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
 		}
 		tmpl, err := template.New(manifest, templateOptions)
 		if err != nil {
