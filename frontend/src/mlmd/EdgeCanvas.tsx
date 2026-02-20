@@ -85,8 +85,8 @@ export class EdgeCanvas extends React.Component<EdgeCanvasProps> {
     const lastNodePositions = { y1: 0, y4: 0 };
 
     const edgeLines: JSX.Element[] = [];
-    cards.forEach((card, i) => {
-      card.elements.forEach((element, j) => {
+    cards.forEach(card => {
+      card.elements.forEach(element => {
         if (!element.next) {
           return;
         }

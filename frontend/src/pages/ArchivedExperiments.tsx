@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import Buttons from '../lib/Buttons';
-import ExperimentList from '../components/ExperimentList';
+import ExperimentListTable from '../components/ExperimentList';
 import { Page, PageProps } from './Page';
 import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { ToolbarProps } from '../components/Toolbar';
@@ -31,7 +31,7 @@ interface ArchivedExperimentsProp {
 interface ArchivedExperimentsState {}
 
 export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedExperimentsState> {
-  private _experimentlistRef = React.createRef<ExperimentList>();
+  private _experimentlistRef = React.createRef<ExperimentListTable>();
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
@@ -45,7 +45,7 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
   public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <ExperimentList
+        <ExperimentListTable
           onError={this.showPageError.bind(this)}
           ref={this._experimentlistRef}
           storageState={V2beta1ExperimentStorageState.ARCHIVED}

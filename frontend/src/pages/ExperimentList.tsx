@@ -23,7 +23,7 @@ import CustomTable, {
   CustomRendererProps,
 } from 'src/components/CustomTable';
 import RunList from './RunList';
-import produce from 'immer';
+import immerProduce from 'immer';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -262,7 +262,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayExperiments = produce(this.state.displayExperiments, draft => {
+    const displayExperiments = immerProduce(this.state.displayExperiments, draft => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED

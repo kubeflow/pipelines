@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import ExperimentList from './ExperimentList';
-import ArchivedExperiments from './ArchivedExperiments';
+import ExperimentsPage from './ExperimentList';
+import ArchivedExperimentsPage from './ArchivedExperiments';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
@@ -53,9 +53,9 @@ class AllExperimentsAndArchive extends Page<
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
         />
-        {this.props.view === 0 && <ExperimentList {...this.props} />}
+        {this.props.view === 0 && <ExperimentsPage {...this.props} />}
 
-        {this.props.view === 1 && <ArchivedExperiments {...this.props} />}
+        {this.props.view === 1 && <ArchivedExperimentsPage {...this.props} />}
       </div>
     );
   }

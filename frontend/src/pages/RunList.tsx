@@ -248,7 +248,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const url = props.value.usePlaceholder
       ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') +
         search
-      : !!props.value.versionId
+      : props.value.versionId
       ? RoutePage.PIPELINE_DETAILS.replace(
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
@@ -317,9 +317,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return statusToIcon(props.value);
   };
 
-  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (
-    props: CustomRendererProps<{}>,
-  ) => {
+  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = () => {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
   };
 

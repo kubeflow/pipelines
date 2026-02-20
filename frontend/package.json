@@ -136,6 +136,8 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/react-test-renderer": "^17.0.0",
     "@types/react-virtualized": "^9.22.3",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.17",
     "autoprefixer": "^10.4.1",
@@ -143,7 +145,10 @@
     "coveralls": "^3.0.2",
     "css-loader": "^6.10.0",
     "eslint": "^8.57.1",
-    "eslint-config-react-app": "^7.0.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "file-loader": "^6.2.0",
     "fs": "0.0.1-security",
     "jsdom": "^24.1.0",
@@ -215,18 +220,6 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
-    ]
-  },
-  "eslintConfig": {
-    "overrides": [
-      {
-        "files": [
-          "**/*.stories.*"
-        ],
-        "rules": {
-          "import/no-anonymous-default-export": "off"
-        }
-      }
     ]
   }
 }
