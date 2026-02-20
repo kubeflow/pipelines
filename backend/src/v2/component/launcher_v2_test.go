@@ -143,8 +143,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			false,
 		},
-<<<<<<< Updated upstream
-=======
 		{
 			"sad fail",
 			&pipelinespec.ExecutorInput{
@@ -155,7 +153,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			[]string{"-c", "echo testoutput && exit 1"},
 			true,
 		},
->>>>>>> Stashed changes
 	}
 
 	for _, test := range tests {

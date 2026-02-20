@@ -413,7 +413,19 @@ func executeV2(
 		customCAPath,
 	)
 	if err != nil {
-		return nil, nil, err
+		glog.Errorf("Component failed to execute successfully: %v", err)
+
+		outputArtifacts, uploadErr := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         bucket,
+			metadataClient: metadataClient,
+		}, false)
+
+		if uploadErr != nil {
+			glog.Errorf("Failed to upload log artifact: %v", uploadErr)
+		}
+
+		return executorOutput, outputArtifacts, err
 	}
 	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
 	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.
@@ -427,7 +439,7 @@ func executeV2(
 		bucketConfig:   bucketConfig,
 		bucket:         bucket,
 		metadataClient: metadataClient,
-	})
+	}, true)
 
 	if err != nil {
 		glog.Errorf("Failed to upload output artifacts: %v", err)
@@ -448,7 +460,7 @@ func executeV2(
 			bucketConfig:   bucketConfig,
 			bucket:         bucket,
 			metadataClient: metadataClient,
-		})
+		}, true)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -663,10 +675,18 @@ func uploadOutputArtifacts(
 	executorInput *pipelinespec.ExecutorInput,
 	executorOutput *pipelinespec.ExecutorOutput,
 	opts uploadOutputArtifactsOptions,
+	componentSucceeded bool,
 ) ([]*metadata.OutputArtifact, error) {
 	// Register artifacts with MLMD.
-	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
-	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
+	artifacts := executorInput.GetOutputs().GetArtifacts()
+	if !componentSucceeded {
+		// Only register executor log artifact if component execution failed
+		artifacts = map[string]*pipelinespec.ArtifactList{"executor-logs": artifacts["executor-logs"]}
+	}
+
+	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(artifacts))
+
+	for name, artifactList := range artifacts {
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
@@ -675,8 +695,10 @@ func uploadOutputArtifacts(
 			glog.Infof("outputArtifact in uploadOutputArtifacts call: ", outputArtifact.Name)
 
 			// Merge executor output artifact info with executor input
-			if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
-				mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
+			if executorOutput != nil {
+				if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
+					mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
+				}
 			}
 
 			// Upload artifacts from local path to remote storages.
