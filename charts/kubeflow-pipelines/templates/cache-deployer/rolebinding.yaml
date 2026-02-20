@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-rolebinding
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-deployer-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache-deployer-sa

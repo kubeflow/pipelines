@@ -1,0 +1,12 @@
+{{- if and .Values.compat.enabled .Values.compat.mysql.deployment (not .Values.mysql.enabled) }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- if .Values.compat.applicationCrdIdLabel }}
+    application-crd-id: kubeflow-pipelines
+    {{- end }}
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,8 @@
+{{- if eq .Values.objectStore.type "seaweedfs" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: seaweedfs
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+{{- end }}

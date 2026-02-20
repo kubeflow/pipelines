@@ -1,0 +1,14 @@
+{{- if .Values.apiServer.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ml-pipeline
+  labels:
+    app: ml-pipeline
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.apiServer.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app: ml-pipeline
+{{- end }}

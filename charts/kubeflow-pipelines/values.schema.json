@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Kubeflow Pipelines Helm Chart Values",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Global settings applied to all components",
+      "properties": {
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Image pull secrets for private registries",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" }
+            },
+            "required": ["name"]
+          }
+        },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "multiUser": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "required": ["enabled"]
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["mysql", "postgresql"],
+          "description": "Database backend type"
+        }
+      },
+      "required": ["type"]
+    },
+    "objectStore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["seaweedfs", "minio"],
+          "description": "Object store backend type"
+        }
+      },
+      "required": ["type"]
+    },
+    "config": {
+      "type": "object",
+      "description": "Pipeline install configuration",
+      "properties": {
+        "appName": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "bucketName": { "type": "string" },
+        "defaultPipelineRoot": { "type": "string" },
+        "autoUpdatePipelineDefaultVersion": { "type": "string" },
+        "cronScheduleTimezone": { "type": "string" },
+        "cacheImage": { "type": "string" },
+        "cacheNodeRestrictions": { "type": "string" },
+        "ConMaxLifeTime": { "type": "string" },
+        "logLevel": { "type": "string" }
+      }
+    },
+    "dbSecret": {
+      "type": "object",
+      "description": "Database credentials configuration",
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "usernameKey": { "type": "string" },
+        "passwordKey": { "type": "string" },
+        "mysql": {
+          "type": "object",
+          "properties": {
+            "username": { "type": "string" },
+            "password": { "type": "string" }
+          }
+        },
+        "postgresql": {
+          "type": "object",
+          "properties": {
+            "username": { "type": "string" },
+            "password": { "type": "string" }
+          }
+        }
+      }
+    },
+    "objectStoreSecret": {
+      "type": "object",
+      "description": "Object store credentials",
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "accessKey": { "type": "string" },
+        "secretKey": { "type": "string" },
+        "accessKeyKey": { "type": "string" },
+        "secretKeyKey": { "type": "string" }
+      }
+    },
+    "apiServer": {
+      "type": "object",
+      "description": "API server configuration",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" },
+        "podDisruptionBudget": { "$ref": "#/definitions/pdb" }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "description": "Frontend UI configuration",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "persistenceAgent": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "scheduledWorkflow": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "viewerCrd": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "visualization": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "metadataWriter": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "metadataGrpc": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" },
+        "podDisruptionBudget": { "$ref": "#/definitions/pdb" }
+      }
+    },
+    "metadataEnvoy": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "cacheServer": {
+      "type": "object",
+      "properties": {
+        "replicas": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" },
+        "podDisruptionBudget": { "$ref": "#/definitions/pdb" }
+      }
+    },
+    "cacheDeployer": {
+      "type": "object",
+      "properties": {
+        "image": { "$ref": "#/definitions/image" },
+        "resources": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array" },
+        "affinity": { "type": "object" }
+      }
+    },
+    "seaweedfs": {
+      "type": "object",
+      "description": "In-chart SeaweedFS (when objectStore.type=seaweedfs)",
+      "properties": {
+        "image": { "$ref": "#/definitions/image" },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "size": { "type": "string" },
+            "storageClass": { "type": "string" }
+          }
+        },
+        "resources": { "type": "object" }
+      }
+    },
+    "publicConfig": {
+      "type": "object",
+      "properties": {
+        "kubeflowPipelinesVersion": { "type": "string" }
+      }
+    },
+    "compat": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "applicationCrdIdLabel": { "type": "boolean" }
+      }
+    }
+  },
+  "definitions": {
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string" },
+        "tag": { "type": "string" }
+      },
+      "required": ["repository", "tag"]
+    },
+    "pdb": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "minAvailable": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

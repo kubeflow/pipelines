@@ -1,0 +1,77 @@
+{{- if .Values.multiUser.enabled }}
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: ml-pipeline-ui
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  host: ml-pipeline-ui.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: ml-pipeline
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  host: ml-pipeline.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: ml-pipeline-visualizationserver
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  host: ml-pipeline-visualizationserver.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: metadata-grpc-service
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  host: metadata-grpc-service.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+{{- if eq .Values.database.type "mysql" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: ml-pipeline-mysql
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  host: mysql.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+{{- end }}
+---
+{{- if eq .Values.objectStore.type "seaweedfs" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: ml-pipeline-seaweedfs
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  host: seaweedfs.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+{{- end }}
+{{- end }}

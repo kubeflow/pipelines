@@ -1,0 +1,37 @@
+{{- if eq .Values.objectStore.type "seaweedfs" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  labels:
+    app: seaweedfs
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: seaweedfs
+  ports:
+  - name: s3
+    port: 8333
+    protocol: TCP
+    targetPort: 8333
+  - name: iam
+    port: 8111
+    protocol: TCP
+    targetPort: 8111
+  - name: master
+    port: 9333
+    protocol: TCP
+    targetPort: 9333
+  - name: filer
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  - name: grpc-master
+    port: 19333
+    protocol: TCP
+    targetPort: 19333
+  - name: grpc-filer
+    port: 18888
+    protocol: TCP
+    targetPort: 18888
+{{- end }}

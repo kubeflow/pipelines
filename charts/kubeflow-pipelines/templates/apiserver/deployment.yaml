@@ -1,0 +1,220 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  name: ml-pipeline
+spec:
+  replicas: {{ .Values.apiServer.replicas }}
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - env:
+            - name: PUBLISH_LOGS
+              value: "true"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: PIPELINE_LOG_LEVEL
+              value: "1"
+            - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: autoUpdatePipelineDefaultVersion
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "false"
+            - name: OBJECTSTORECONFIG_BUCKETNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: bucketName
+            - name: OBJECTSTORECONFIG_HOST
+              value: {{ include "kubeflow-pipelines.objectStoreHost" . | quote }}
+            - name: OBJECTSTORECONFIG_PORT
+              value: {{ include "kubeflow-pipelines.objectStorePort" . | quote }}
+            - name: DBCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+                  key: {{ include "kubeflow-pipelines.dbSecretUsernameKey" . }}
+            - name: DBCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+                  key: {{ include "kubeflow-pipelines.dbSecretPasswordKey" . }}
+            - name: DBCONFIG_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: pipelineDb
+            - name: DBCONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbHost
+            - name: DBCONFIG_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbPort
+            - name: DBCONFIG_CONMAXLIFETIME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: ConMaxLifeTime
+            - name: DB_DRIVER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbType
+            {{- if eq .Values.database.type "postgresql" }}
+            - name: DBCONFIG_POSTGRESQLCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+                  key: {{ include "kubeflow-pipelines.dbSecretUsernameKey" . }}
+            - name: DBCONFIG_POSTGRESQLCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+                  key: {{ include "kubeflow-pipelines.dbSecretPasswordKey" . }}
+            - name: DBCONFIG_POSTGRESQLCONFIG_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: pipelineDb
+            - name: DBCONFIG_POSTGRESQLCONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: postgresHost
+            - name: DBCONFIG_POSTGRESQLCONFIG_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: postgresPort
+            {{- else }}
+            - name: DBCONFIG_MYSQLCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+                  key: {{ include "kubeflow-pipelines.dbSecretUsernameKey" . }}
+            - name: DBCONFIG_MYSQLCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.dbSecretName" . }}
+                  key: {{ include "kubeflow-pipelines.dbSecretPasswordKey" . }}
+            - name: DBCONFIG_MYSQLCONFIG_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: pipelineDb
+            - name: DBCONFIG_MYSQLCONFIG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: mysqlHost
+            - name: DBCONFIG_MYSQLCONFIG_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: mysqlPort
+            {{- end }}
+            - name: OBJECTSTORECONFIG_ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.objectStoreSecretName" . }}
+                  key: accesskey
+            - name: OBJECTSTORECONFIG_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubeflow-pipelines.objectStoreSecretName" . }}
+                  key: secretkey
+            - name: V2_DRIVER_IMAGE
+              value: {{ .Values.apiServer.driverImage }}
+            - name: V2_LAUNCHER_IMAGE
+              value: {{ .Values.apiServer.launcherImage }}
+            - name: COMPILED_PIPELINE_SPEC_PATCH
+              value: {{ .Values.apiServer.compiledPipelineSpecPatch | quote }}
+            {{- if .Values.multiUser.enabled }}
+            - name: KUBEFLOW_USERID_HEADER
+              value: kubeflow-userid
+            - name: KUBEFLOW_USERID_PREFIX
+              value: ""
+            {{- end }}
+          {{- if .Values.multiUser.enabled }}
+          envFrom:
+          - configMapRef:
+              name: pipeline-api-server-config
+          {{- end }}
+          image: "{{ .Values.apiServer.image.repository }}:{{ .Values.apiServer.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          name: ml-pipeline-api-server
+          ports:
+            - name: http
+              containerPort: 8888
+            - name: grpc
+              containerPort: 8887
+          readinessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          startupProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
+            failureThreshold: 12
+            periodSeconds: 5
+            timeoutSeconds: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          {{- with .Values.apiServer.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      serviceAccountName: ml-pipeline
+      {{- with ((kindIs "invalid" .Values.apiServer.nodeSelector) | ternary .Values.global.nodeSelector .Values.apiServer.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.apiServer.tolerations) | ternary .Values.global.tolerations .Values.apiServer.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.apiServer.affinity) | ternary .Values.global.affinity .Values.apiServer.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
