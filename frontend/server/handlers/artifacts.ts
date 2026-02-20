@@ -33,7 +33,7 @@ import { getK8sSecret } from '../k8s-helper.js';
 import { StorageOptions } from '@google-cloud/storage';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth.js';
+import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -223,7 +223,7 @@ export function getArtifactsHandler({
       return;
     }
     if (key.length > 1024) {
-      res.status(500).send('Object key too long');
+      response.status(500).send('Object key too long');
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
