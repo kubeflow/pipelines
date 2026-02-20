@@ -207,7 +207,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   // (1) changes of selected pipeline ids, and will be stored in "this.state.selectedIds" or
   // (2) changes of selected pipeline version ids, and will be stored in "selectedVersionIds" with key "pipelineId"
   private _selectionChanged(pipelineId: string | undefined, selectedIds: string[]): void {
-    if (!!pipelineId) {
+    if (pipelineId) {
       // Update selected pipeline version ids.
       this.setStateSafe({
         selectedVersionIds: {

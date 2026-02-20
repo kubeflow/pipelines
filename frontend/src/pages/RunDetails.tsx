@@ -457,7 +457,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                             key={selectedExecution.getId()}
                                             id={selectedExecution.getId()}
                                             onError={
-                                              ((msg: string, ...args: any[]) => {
+                                              ((msg: string, ..._args: any[]) => {
                                                 // TODO: show a proper error banner and retry button
                                                 console.warn(msg);
                                               }) as any

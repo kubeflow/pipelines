@@ -249,7 +249,7 @@ class CompareV1 extends Page<{}, CompareState> {
       return;
     } else if (
       runs.length > 0 &&
-      runs.every(runDetail => runDetail.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
+      runs.every(runDetail => 'pipeline_manifest' in (runDetail.run?.pipeline_spec ?? {}))
     ) {
       this.props.updateBanner({
         additionalInfo:

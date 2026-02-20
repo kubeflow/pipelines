@@ -198,14 +198,10 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     async () => {
       let viewerConfigs: ViewerConfig[] = [];
       if (linkedArtifact) {
-        try {
-          if (metricsTab === MetricsType.HTML) {
-            viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
-          } else if (metricsTab === MetricsType.MARKDOWN) {
-            viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
-          }
-        } catch (err) {
-          throw err;
+        if (metricsTab === MetricsType.HTML) {
+          viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
+        } else if (metricsTab === MetricsType.MARKDOWN) {
+          viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
         }
       }
       return viewerConfigs;

@@ -136,6 +136,7 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/react-test-renderer": "^17.0.0",
     "@types/react-virtualized": "^9.22.3",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.17",
