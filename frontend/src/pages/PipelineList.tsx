@@ -15,7 +15,7 @@
  */
 
 import Tooltip from '@material-ui/core/Tooltip';
-import produce from 'immer';
+import immerProduce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
@@ -30,10 +30,9 @@ import { Description } from 'src/components/Description';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
-import { errorToMessage } from 'src/lib/Utils';
+import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import { formatDateString } from 'src/lib/Utils';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
 
@@ -137,7 +136,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayPipelines = produce(this.state.displayPipelines, draft => {
+    const displayPipelines = immerProduce(this.state.displayPipelines, draft => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
