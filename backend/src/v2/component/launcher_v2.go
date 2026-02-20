@@ -142,7 +142,7 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 				continue
 			}
 
-			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(inputArtifact)
 			if err != nil {
 				continue
 			}
@@ -519,10 +519,10 @@ func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Wr
 		return os.Stdout
 	}
 
-	logURI := logsArtifactList.Artifacts[0].Uri
-	logFilePath, err := LocalPathForURI(logURI)
+	logArtifact := logsArtifactList.Artifacts[0]
+	logFilePath, err := retrieveArtifactPath(logArtifact)
 	if err != nil {
-		glog.Errorf("Error converting log artifact URI, %s, to file path.", logURI)
+		glog.Errorf("Error converting log artifact URI, %s, to file path.", logArtifact.Uri)
 		return os.Stdout
 	}
 
@@ -771,7 +771,7 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 					continue
 				}
 			}
-			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(inputArtifact)
 			if err != nil {
 				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
 
@@ -928,7 +928,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 			}
 		}
 
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(inputArtifact)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -947,7 +947,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := LocalPathForURI(outputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(outputArtifact)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -1110,7 +1110,7 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 
 		for _, outputArtifact := range artifactList.Artifacts {
 
-			localPath, err := LocalPathForURI(outputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 			}
