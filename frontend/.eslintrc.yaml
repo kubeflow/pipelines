@@ -1,5 +1,24 @@
+root: true
+parser: '@typescript-eslint/parser'
+env:
+    browser: true
+    es2020: true
+    node: true
+parserOptions:
+    ecmaVersion: 2020
+    sourceType: module
+    ecmaFeatures:
+        jsx: true
+settings:
+    react:
+        version: detect
+plugins:
+    - react
+    - react-hooks
+    - jsx-a11y
 extends:
-    - react-app
+    - eslint:recommended
+    - plugin:react-hooks/recommended
 ignorePatterns:
     - node_modules/
     - src/apis # these are generated api clients
@@ -10,4 +29,12 @@ ignorePatterns:
     - src/third_party/mlmd/generated # MLMD generated definition from source.
     - src/stories # Storybook is for development only.
 rules:
+    no-undef: off
+    no-unused-vars: off
+    no-extra-boolean-cast: off
+    no-useless-catch: off
+    no-prototype-builtins: off
+    no-redeclare: off
+    react/react-in-jsx-scope: off
+    react/prop-types: off
     react/jsx-no-target-blank: ['error', { "allowReferrer": true }]
