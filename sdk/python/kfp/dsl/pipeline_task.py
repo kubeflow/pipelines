@@ -430,12 +430,10 @@ class PipelineTask:
         else:
             if isinstance(limit, int):
                 if limit < 0:
-                    raise ValueError(
-                        'limit must be a non-negative integer.')
+                    raise ValueError('limit must be a non-negative integer.')
                 limit = str(limit)
             if isinstance(limit, str) and re.match(r'^\d+$', limit) is None:
-                raise ValueError(
-                    'limit must be a non-negative integer.')
+                raise ValueError('limit must be a non-negative integer.')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
