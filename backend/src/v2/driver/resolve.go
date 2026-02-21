@@ -1079,7 +1079,7 @@ func GetProducerTask(parentTask *metadata.Execution, tasks map[string]*metadata.
 					if subTask, ok := tasks[updatedSubTaskName]; ok {
 						subTaskState := subTask.GetExecution().GetLastKnownState().String()
 						glog.V(4).Infof("subTask: %w , subTaskState: %v", updatedSubTaskName, subTaskState)
-						if subTaskState == "CACHED" || subTaskState == "COMPLETE" {
+						if subTaskState == "CACHED" || subTaskState == "COMPLETE" || subTaskState == "FAILED" {
 							tempOutputKey = paramSelector.GetOutputParameterKey()
 							successfulOneOfTask = true
 							break
@@ -1111,6 +1111,7 @@ func InferIndexedTaskName(producerTaskName string, dag *metadata.Execution) stri
 		glog.Infof("Attempting to retrieve outputs from a ParallelFor iteration")
 	}
 	return producerTaskName
+	
 }
 
 // Helper for checking if collecting outputs is required for downstream tasks.
