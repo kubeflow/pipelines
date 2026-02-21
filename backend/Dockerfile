@@ -28,9 +28,15 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.11 AS compiler
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
-RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+FROM python:3.11-slim AS compiler
+# Install only required packages (jq for JSON parsing)
+# Note: Java is not needed - pipeline samples are compiled with Python
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q \
+    curl \
+    jq && \
+    rm -rf /var/lib/apt/lists/*
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 

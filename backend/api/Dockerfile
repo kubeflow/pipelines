@@ -41,8 +41,12 @@ ENV PROTOC_GEN_GO_GRPC=v1.5.1
 ENV PROTOBUF_GO=v1.36.6
 
 # Install protoc.
+# Use TARGETARCH for multi-architecture support
+ARG TARGETARCH
 RUN apt-get update -y && apt-get install -y jq sed unzip
-RUN curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+# Map TARGETARCH to protoc naming convention (amd64 -> x86_64, arm64 -> aarch_64)
+RUN PROTOC_ARCH=$(case ${TARGETARCH} in amd64) echo "x86_64";; arm64) echo "aarch_64";; *) echo "x86_64";; esac) && \
+    curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip
 RUN unzip -o protoc.zip -d /tmp/protoc && \
     mv /tmp/protoc/bin/protoc /usr/bin/protoc && \
     chmod +x /usr/bin/protoc
@@ -67,8 +71,9 @@ RUN mkdir -p /protoc-gen-openapiv2 && \
     cp -r /go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@${GRPC_GATEWAY_VERSION}/protoc-gen-openapiv2/options /protoc-gen-openapiv2/options
 
 # Download go-swagger binary.
-RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
-RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
+# Use TARGETARCH for multi-architecture support
+RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_${TARGETARCH}"
+RUN chmod +x swagger_linux_${TARGETARCH} && mv swagger_linux_${TARGETARCH} /usr/bin/swagger
 
 # Need protobuf source code for -I in protoc command.
 # Install protoc-gen-go.
