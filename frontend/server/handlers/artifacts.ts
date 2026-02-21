@@ -33,7 +33,10 @@ import { getK8sSecret } from '../k8s-helper.js';
 import { StorageOptions } from '@google-cloud/storage';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth/index.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -240,12 +243,7 @@ export function getArtifactsHandler({
         break;
       case 'minio':
         try {
-          client = await createMinioClient(
-            minio,
-            'minio',
-            providerInfo,
-            namespace,
-          );
+          client = await createMinioClient(minio, 'minio', providerInfo, namespace);
         } catch (error) {
           response
             .status(500)
@@ -264,12 +262,7 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await createMinioClient(
-            aws,
-            's3',
-            providerInfo,
-            namespace,
-          );
+          client = await createMinioClient(aws, 's3', providerInfo, namespace);
         } catch (error) {
           response.status(500).send(`Failed to initialize S3 Client for S3 Provider: ${error}`);
           return;

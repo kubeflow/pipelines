@@ -41,7 +41,6 @@ export interface Credentials {
   sessionToken?: string;
 }
 
-
 /**
  * Create minio client for s3 compatible storage
  *
@@ -272,7 +271,7 @@ function extractFirstTarRecordAsStream() {
       extract.write(chunk, callback);
     },
   });
-  extract.once('entry', function (_header, stream, next) {
+  extract.once('entry', function(_header, stream, next) {
     stream.on('data', (buffer: any) => transformStream.push(buffer));
     stream.on('end', () => {
       transformStream.emit('end');

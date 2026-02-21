@@ -24,9 +24,9 @@ import { Server } from 'http';
 import * as artifactsHandler from '../handlers/artifacts.js';
 
 beforeEach(() => {
-  vi.spyOn(global.console, 'info').mockImplementation(() => { });
-  vi.spyOn(global.console, 'log').mockImplementation(() => { });
-  vi.spyOn(global.console, 'debug').mockImplementation(() => { });
+  vi.spyOn(global.console, 'info').mockImplementation(() => {});
+  vi.spyOn(global.console, 'log').mockImplementation(() => {});
+  vi.spyOn(global.console, 'debug').mockImplementation(() => {});
 });
 
 const commonParams = {
