@@ -25,5 +25,8 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Install dependencies
+        run: make install-backend-visualization-deps
+
       - name: Run tests
-        run: ./test/presubmit-backend-visualization.sh
+        run: make test-backend-visualization
