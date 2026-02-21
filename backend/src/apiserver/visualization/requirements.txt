@@ -136,7 +136,7 @@ ml-dtypes==0.3.2
     # via tensorflow
 nbclient==0.10.2
     # via nbconvert
-nbconvert==7.16.5
+nbconvert==7.17.0
     # via -r requirements.in
 nbformat==5.10.4
     # via
