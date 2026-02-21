@@ -12,7 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { vi, describe, it, expect, afterEach, beforeEach, Mock, MockInstance } from 'vitest';
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  afterAll,
+  afterEach,
+  beforeEach,
+  Mock,
+  MockInstance,
+} from 'vitest';
 import * as minio from 'minio';
 import { PassThrough } from 'stream';
 import requests from 'supertest';
@@ -25,9 +35,7 @@ vi.mock('minio');
 vi.mock('../k8s-helper');
 
 const mockedFetch = vi.fn();
-vi.mock('portable-fetch', () => {
-  return { default: mockedFetch };
-});
+vi.stubGlobal('fetch', mockedFetch);
 
 describe('/artifacts authorization', () => {
   let app: UIServer;
@@ -52,15 +60,18 @@ describe('/artifacts authorization', () => {
     });
   });
 
-  afterEach(() => {
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  afterEach(async () => {
     if (app) {
-      app.close();
+      await app.close();
     }
-    vi.clearAllMocks();
   });
 
   describe('when auth is disabled', () => {
-    it('allows artifact access without namespace parameter', done => {
+    it('allows artifact access without namespace parameter', async () => {
       const configurations = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
         MINIO_HOST: 'minio-service',
@@ -71,13 +82,13 @@ describe('/artifacts authorization', () => {
       });
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, done);
+        .expect(200, artifactContent);
     });
 
-    it('allows artifact access with any namespace parameter', done => {
+    it('allows artifact access with any namespace parameter', async () => {
       const configurations = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
         MINIO_HOST: 'minio-service',
@@ -88,23 +99,17 @@ describe('/artifacts authorization', () => {
       });
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get(
           '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=any-namespace',
         )
-        .expect(200, artifactContent, done);
+        .expect(200, artifactContent);
     });
   });
 
   describe('when auth is enabled', () => {
-    let mockAuthorize: Mock;
-
-    beforeEach(() => {
-      mockAuthorize = mockedFetch as Mock;
-    });
-
-    it('requires namespace parameter when auth is enabled', done => {
+    it('requires namespace parameter when auth is enabled', async () => {
       const configurations = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
         MINIO_HOST: 'minio-service',
@@ -122,18 +127,15 @@ describe('/artifacts authorization', () => {
 
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      const response = await request
         .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .set('kubeflow-userid', 'user@example.com')
-        .expect(400)
-        .expect(response => {
-          expect(response.text).toContain('Namespace parameter is required');
-        })
-        .end(done);
+        .expect(400);
+      expect(response.text).toContain('Namespace parameter is required');
     });
 
-    it('rejects unauthenticated users before checking namespace', done => {
+    it('rejects unauthenticated users before checking namespace', async () => {
       const configurations = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
         MINIO_HOST: 'minio-service',
@@ -151,18 +153,15 @@ describe('/artifacts authorization', () => {
 
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      const response = await request
         .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(401)
-        .expect(response => {
-          expect(response.text).toContain('Authentication required');
-        })
-        .end(done);
+        .expect(401);
+      expect(response.text).toContain('Authentication required');
     });
 
-    it('rejects requests with invalid namespace format', done => {
-      mockAuthorize.mockResolvedValue({
+    it('rejects requests with invalid namespace format', async () => {
+      mockedFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -184,21 +183,19 @@ describe('/artifacts authorization', () => {
 
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      const response = await request
         .get(
           '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=../../../etc',
         )
         .set('kubeflow-userid', 'user@example.com')
-        .expect(400)
-        .expect(response => {
-          expect(response.text).toContain('Invalid namespace');
-        })
-        .end(done);
+        .expect(400);
+      expect(response.text).toContain('Invalid namespace');
     });
 
-    it('rejects unauthorized cross-namespace access', done => {
-      mockAuthorize.mockRejectedValue({
+    it('rejects unauthorized cross-namespace access', async () => {
+      // Mock fetch to reject (simulates auth service denial)
+      mockedFetch.mockRejectedValue({
         status: 403,
         statusText: 'Forbidden',
         text: () => Promise.resolve('User is not authorized'),
@@ -221,21 +218,19 @@ describe('/artifacts authorization', () => {
 
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      const response = await request
         .get(
           '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=other-namespace',
         )
         .set('kubeflow-userid', 'user@example.com')
-        .expect(403)
-        .expect(response => {
-          expect(response.text).toContain('not authorized');
-        })
-        .end(done);
+        .expect(403);
+      expect(response.text).toContain('not authorized');
     });
 
-    it('allows authorized namespace access', done => {
-      mockAuthorize.mockImplementation(() =>
+    it('allows authorized namespace access', async () => {
+      // Mock fetch to resolve successfully (simulates auth service approval)
+      mockedFetch.mockImplementation(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -261,13 +256,13 @@ describe('/artifacts authorization', () => {
 
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get(
           '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace',
         )
         .set('kubeflow-userid', 'user@example.com')
-        .expect(200, artifactContent, done);
+        .expect(200, artifactContent);
     });
   });
 
@@ -282,7 +277,7 @@ describe('/artifacts authorization', () => {
       consoleSpy.mockRestore();
     });
 
-    it('logs unauthorized access attempts with user info', done => {
+    it('logs unauthorized access attempts with user info', async () => {
       mockedFetch.mockRejectedValue({
         status: 403,
         statusText: 'Forbidden',
@@ -306,28 +301,24 @@ describe('/artifacts authorization', () => {
 
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get(
           '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=unauthorized-ns',
         )
         .set('kubeflow-userid', 'attacker@example.com')
-        .expect(403)
-        .end(err => {
-          expect(consoleSpy).toHaveBeenCalled();
-          const logCall = consoleSpy.mock.calls.find(
-            call => call[0] && call[0].includes('[SECURITY]'),
-          );
-          expect(logCall).toBeDefined();
-          if (logCall) {
-            expect(logCall[0]).toContain('attacker@example.com');
-            expect(logCall[0]).toContain('unauthorized-ns');
-          }
-          done(err);
-        });
+        .expect(403);
+
+      expect(consoleSpy).toHaveBeenCalled();
+      const logCall = consoleSpy.mock.calls.find(call => call[0] && call[0].includes('[SECURITY]'));
+      expect(logCall).toBeDefined();
+      if (logCall) {
+        expect(logCall[0]).toContain('attacker@example.com');
+        expect(logCall[0]).toContain('unauthorized-ns');
+      }
     });
 
-    it('logs unauthenticated access attempts', done => {
+    it('logs unauthenticated access attempts', async () => {
       const configurations = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
         MINIO_HOST: 'minio-service',
@@ -345,19 +336,16 @@ describe('/artifacts authorization', () => {
 
       app = new UIServer(configurations);
 
-      const request = requests(app.start());
-      request
+      const request = requests(app.app);
+      await request
         .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(401)
-        .end(err => {
-          expect(consoleSpy).toHaveBeenCalled();
-          const logCall = consoleSpy.mock.calls.find(
-            call =>
-              call[0] && call[0].includes('[SECURITY]') && call[0].includes('Unauthenticated'),
-          );
-          expect(logCall).toBeDefined();
-          done(err);
-        });
+        .expect(401);
+
+      expect(consoleSpy).toHaveBeenCalled();
+      const logCall = consoleSpy.mock.calls.find(
+        call => call[0] && call[0].includes('[SECURITY]') && call[0].includes('Unauthenticated'),
+      );
+      expect(logCall).toBeDefined();
     });
   });
 });
