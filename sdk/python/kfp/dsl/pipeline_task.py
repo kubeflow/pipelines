@@ -104,6 +104,8 @@ class PipelineTask:
         """Initilizes a PipelineTask instance."""
         # import within __init__ to avoid circular import
         from kfp.dsl.tasks_group import TasksGroup
+        from kfp.dsl.types import artifact_types
+
         self.state = TaskState.FUTURE
         self.parent_task_group: Union[None, TasksGroup] = None
         args = args or {}
@@ -116,6 +118,17 @@ class PipelineTask:
                     f' {input_name!r}.')
 
             input_spec = component_spec.inputs[input_name]
+
+            # Only allow constant artifact inputs for graph components (pipelines) during local execution
+            if isinstance(argument_value, artifact_types.Artifact):
+                is_graph_component = component_spec.implementation.graph is not None
+                if not (is_graph_component and execute_locally):
+                    component_type = 'pipeline' if is_graph_component else 'component'
+                    raise ValueError(
+                        f'Input artifacts are not supported for {component_type}s. '
+                        f'Got input artifact of type {argument_value.__class__.__name__!r}. '
+                        f'Artifact inputs are only supported for pipelines during local execution.'
+                    )
 
             type_utils.verify_type_compatibility(
                 given_value=argument_value,
