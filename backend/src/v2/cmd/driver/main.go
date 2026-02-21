@@ -58,7 +58,7 @@ var (
 	runID             = flag.String("run_id", "", "pipeline run uid")
 	runName           = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
 	runDisplayName    = flag.String("run_display_name", "", "pipeline run display name")
-	componentSpecJson = flag.String("component", "{}", "component spec")
+	componentSpecJson = flag.String("component", "", "component spec")
 	taskSpecJson      = flag.String("task", "", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
@@ -66,14 +66,16 @@ var (
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
-	containerSpecJson = flag.String("container", "{}", "container spec")
-	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
+	containerSpecJson = flag.String("container", "", "container spec")
+	k8sExecConfigJson = flag.String("kubernetes_config", "", "kubernetes executor config")
 
 	// config
-	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
-	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
-	mlmdServerAddress       = flag.String("mlmd_server_address", "", "MLMD server address")
-	mlmdServerPort          = flag.String("mlmd_server_port", "", "MLMD server port")
+     mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "", "The name of the ML pipeline API server address.")
+     mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "", "The port of the ML pipeline API server.")
+
+     mlmdServerAddress       = flag.String("mlmd_server_address", "", "MLMD server address")
+     mlmdServerPort          = flag.String("mlmd_server_port", "", "MLMD server port")
+
 
 	// output paths
 	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
@@ -82,13 +84,13 @@ var (
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
-	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
+	logLevel           = flag.String("log_level", "", "The verbosity level to log.")
 
 	// proxy
 	httpProxy            = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
 	httpsProxy           = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
 	noProxy              = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
-	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	publishLogs          = flag.String("publish_logs", "", "Whether to publish component logs to the object store")
 	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
 	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
 	metadataTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
@@ -131,6 +133,36 @@ func validate() error {
 	}
 	if *noProxy == unsetProxyArgValue {
 		return fmt.Errorf("argument --%s is required but can be an empty value", noProxyArg)
+	}
+	if *mlPipelineServerAddress == "" {
+		return fmt.Errorf("argument --ml_pipeline_server_address must be specified")
+	}
+	if *mlPipelineServerPort == "" {
+		return fmt.Errorf("argument --ml_pipeline_server_port must be specified")
+	}
+	if *mlmdServerAddress == "" {
+		return fmt.Errorf("argument --mlmd_server_address must be specified")
+	}
+	if *mlmdServerPort == "" {
+		return fmt.Errorf("argument --mlmd_server_port must be specified")
+	}
+	if *publishLogs == "" {
+		return fmt.Errorf("argument --publish_logs must be specified")
+	}
+	if *logLevel == "" {
+		return fmt.Errorf("argument --log_level must be specified")
+	}
+	if *componentSpecJson == "" {
+		return fmt.Errorf("argument --component must be specified")
+	}
+	if *driverType == ROOT_DAG && *runtimeConfigJson == "" {
+		return fmt.Errorf("argument --runtime_config must be specified for ROOT_DAG")
+	}
+	if (*driverType == DAG || *driverType == CONTAINER) && *taskSpecJson == "" {
+		return fmt.Errorf("argument --task must be specified for DAG/CONTAINER")
+	}
+	if *driverType == CONTAINER && *containerSpecJson == "" {
+		return fmt.Errorf("argument --container must be specified for CONTAINER")
 	}
 	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
