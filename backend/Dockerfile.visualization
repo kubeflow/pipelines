@@ -18,14 +18,21 @@
 # and exporter.py files in the directory specified above.
 
 # This image should run Python 3.11 to satisfy protobuf v4-compatible deps.
-FROM python:3.11
+FROM python:3.11-slim
+
+ARG CLOUD_SDK_VERSION=557.0.0
+ARG CLOUD_SDK_SHA256=6b048c0cb3057517a2a71e94a5a2a712fe7d30c6928f73e458bd5946187ca470
 
 RUN apt-get update \
-  && apt-get install -y wget curl tar openssl \
-  && curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz \
+  && apt-get install -y --no-install-recommends wget curl tar openssl \
+  && rm -rf /var/lib/apt/lists/* \
+  && curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
+       -o /tmp/google-cloud-sdk.tar.gz \
+  && echo "${CLOUD_SDK_SHA256}  /tmp/google-cloud-sdk.tar.gz" | sha256sum -c - \
   && mkdir -p /usr/local/gcloud \
   && tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz \
-  && /usr/local/gcloud/google-cloud-sdk/install.sh
+  && /usr/local/gcloud/google-cloud-sdk/install.sh \
+  && rm /tmp/google-cloud-sdk.tar.gz
 
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 

@@ -60,9 +60,7 @@ export default function Compare(props: PageProps) {
       if (data.length < 2 || data.length > 10) {
         setCompareVersion(CompareVersion.InvalidRunCount);
       } else {
-        const v2runs = data.filter(run =>
-          run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'),
-        );
+        const v2runs = data.filter(run => 'pipeline_manifest' in (run.run?.pipeline_spec ?? {}));
         if (v2runs.length === 0) {
           setCompareVersion(CompareVersion.V1);
         } else if (v2runs.length === data.length) {
