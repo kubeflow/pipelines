@@ -206,6 +206,9 @@ func main() {
 			CacheDisabled:        !common.GetBoolConfigWithDefault("CacheEnabled", true),
 			DefaultWorkspace:     pvcSpec,
 			MLPipelineTLSEnabled: tlsCfg != nil,
+			DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
+			DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
+			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -512,6 +515,41 @@ func initConfig() {
 	})
 
 	proxy.InitializeConfigWithEnv()
+}
+
+// parseOptionalInt64 parses a string to *int64. Returns nil if the string is empty
+// or consists only of whitespace. Negative values are rejected since they are
+// invalid for Kubernetes security context fields like runAsUser/runAsGroup.
+func parseOptionalInt64(s string) *int64 {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	v, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil {
+		glog.Errorf("Failed to parse %q as int64: %v", s, err)
+		return nil
+	}
+	if v < 0 {
+		glog.Errorf("Invalid value %d: negative values are not allowed", v)
+		return nil
+	}
+	return &v
+}
+
+// parseOptionalBool parses a string to *bool. Returns nil if the string is empty
+// or consists only of whitespace. Accepts "true" and "false" (case-insensitive).
+func parseOptionalBool(s string) *bool {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	v, err := strconv.ParseBool(trimmed)
+	if err != nil {
+		glog.Errorf("Failed to parse %q as bool: %v", s, err)
+		return nil
+	}
+	return &v
 }
 
 // getPVCSpec retrieves the default workspace PersistentVolumeClaimSpec from the config.

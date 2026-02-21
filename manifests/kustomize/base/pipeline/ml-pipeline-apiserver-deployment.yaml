@@ -132,6 +132,24 @@ spec:
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextRunAsUser
+                  optional: true
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextRunAsGroup
+                  optional: true
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextRunAsNonRoot
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
