@@ -542,6 +542,23 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
 	}
 
+	// Idempotency guard for V2 recurring runs: the SWF controller may invoke CreateRun
+	// a second time if the subsequent SWF status update fails with a 409 Conflict (a
+	// normal occurrence under load). Because the controller never creates an Argo
+	// Workflow CR with the deterministic slot name for V2 runs, its existing
+	// workflowClient.Get guard is always a no-op for this path. Instead, we check the
+	// DB here before any side-effectful work begins so that a retry returns the run
+	// that was already created for this (recurringRunId, displayName) slot.
+	if run.RecurringRunId != "" && run.DisplayName != "" {
+		existing, err := r.runStore.GetRunByScheduledSlot(run.RecurringRunId, run.DisplayName)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to check for existing run (idempotency check)")
+		}
+		if existing != nil {
+			return existing, nil
+		}
+	}
+
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Proposed flow:
 	// 1. Create an entry and assign creation timestamp and uuid.
