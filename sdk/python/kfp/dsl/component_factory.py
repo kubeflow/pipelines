@@ -21,8 +21,7 @@ import pathlib
 import re
 import tarfile
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -311,7 +310,13 @@ def get_name_to_specs(
 
         # parameter type
         else:
-            type_string = type_utils._annotation_to_type_struct(annotation)
+            result = type_utils._annotation_to_type_struct(annotation)
+            # _annotation_to_type_struct returns (type_struct, literals) for Literal types
+            # and just type_struct for other types
+            if isinstance(result, tuple):
+                type_string, _ = result
+            else:
+                type_string = result
             name_to_input_specs[maybe_make_unique(
                 name, list(name_to_input_specs))] = make_input_spec(
                     type_string, func_param)
@@ -343,7 +348,11 @@ def get_name_to_specs(
             if not type_annotations.is_list_of_artifacts(
                     annotation) and not type_annotations.is_artifact_class(
                         annotation):
-                annotation = type_utils._annotation_to_type_struct(annotation)
+                result = type_utils._annotation_to_type_struct(annotation)
+                if isinstance(result, tuple):
+                    annotation, _ = result
+                else:
+                    annotation = result
             name_to_output_specs[maybe_make_unique(
                 name,
                 list(name_to_output_specs))] = make_output_spec(annotation)
@@ -355,8 +364,12 @@ def get_name_to_specs(
             ' 0.1.32. Please use typing.NamedTuple to declare multiple'
             ' outputs.', DeprecationWarning)
         for output_name, output_type_annotation in return_ann.items():
-            output_type = type_utils._annotation_to_type_struct(
+            result = type_utils._annotation_to_type_struct(
                 output_type_annotation)
+            if isinstance(result, tuple):
+                output_type, _ = result
+            else:
+                output_type = result
             name_to_output_specs[maybe_make_unique(
                 output_name, list(name_to_output_specs))] = output_type
     # is the simple single return case (can be `-> <param>` or `-> Artifact`)
@@ -385,17 +398,30 @@ def make_input_output_spec_args(annotation: Any) -> Dict[str, Any]:
     if is_artifact_list:
         annotation = type_annotations.get_inner_type(annotation)
 
+    literals = None
+
     if type_annotations.issubclass_of_artifact(annotation):
         typ = type_utils.create_bundled_artifact_type(annotation.schema_title,
                                                       annotation.schema_version)
     else:
-        typ = type_utils._annotation_to_type_struct(annotation)
-    return {'type': typ, 'is_artifact_list': is_artifact_list}
+        result = type_utils._annotation_to_type_struct(annotation)
+        # _annotation_to_type_struct returns (type_struct, literals) for Literal types
+        # and just type_struct for other types
+        if isinstance(result, tuple):
+            typ, literals = result
+        else:
+            typ = result
+    return {
+        'type': typ,
+        'is_artifact_list': is_artifact_list,
+        'literals': literals,
+    }
 
 
 def make_output_spec(annotation: Any) -> structures.OutputSpec:
     annotation = canonicalize_annotation(annotation)
     args = make_input_output_spec_args(annotation)
+    args.pop('literals', None)
     return structures.OutputSpec(**args)
 
 
@@ -693,8 +719,7 @@ def create_notebook_component_from_func(
         notebook_relpath = nb_path.name
 
     # Build the helper source template with a placeholder for the embedded archive
-    from kfp.dsl.templates.notebook_executor import \
-        get_notebook_executor_source
+    from kfp.dsl.templates.notebook_executor import get_notebook_executor_source
     helper_template = get_notebook_executor_source('{embedded_archive}',
                                                    notebook_relpath)
 

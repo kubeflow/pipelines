@@ -19,7 +19,7 @@ import re
 import subprocess
 import tempfile
 import textwrap
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, Literal, NamedTuple, Optional
 import unittest
 
 from absl.testing import parameterized
@@ -186,6 +186,33 @@ def print_artifact(a: Input[Artifact]):
 
 
 class TestCompilePipeline(parameterized.TestCase):
+
+    def test_compile_pipeline_with_literal_input_valid(self):
+
+        @dsl.component
+        def literal_component(literal_param: Literal['a', 'b']):
+            print_op(message=literal_param)
+
+        @dsl.pipeline(name='test-literal-pipeline')
+        def literal_pipeline():
+            literal_component(literal_param='a')
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target_file = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=literal_pipeline,
+                package_path=target_file,
+            )
+            self.assertTrue(os.path.exists(target_file))
+
+    def test_compile_pipeline_with_literal_input_mixed_types_invalid(self):
+        # Mixed-type Literal should be rejected at component definition time
+        with self.assertRaises(TypeError):
+
+            @dsl.component
+            def literal_component_with_mixed_types(literal_param: Literal[1, 2,
+                                                                          'a']):
+                print_op(message=literal_param)
 
     def test_can_use_dsl_attribute_on_kfp(self):
 
