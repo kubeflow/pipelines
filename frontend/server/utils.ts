@@ -256,23 +256,52 @@ function parseGenericError(error: any): ErrorDetails | undefined {
   return undefined;
 }
 async function parseKfpApiError(error: any): Promise<ErrorDetails | undefined> {
-  if (!error || !error.json || typeof error.json !== 'function') {
+  if (!error) {
     return undefined;
   }
+
+  // Swagger client throws the fetch response directly (with json()).
+  // OpenAPI client throws ResponseError with response at error.response.
+  const response =
+    error && typeof error.json === 'function'
+      ? error
+      : error.response && typeof error.response.json === 'function'
+      ? error.response
+      : undefined;
+
+  if (!response) {
+    return undefined;
+  }
+
   try {
-    const json = await error.json();
+    const jsonSource = typeof response.clone === 'function' ? response.clone() : response;
+    const json = await jsonSource.json();
     const { error: message, details } = json;
-    if (message && details && typeof message === 'string' && typeof details === 'object') {
+    if (typeof message === 'string') {
       return {
         message,
-        additionalInfo: details,
+        additionalInfo: details ?? json,
       };
-    } else {
-      return undefined;
     }
-  } catch (err) {
+  } catch (_err) {
+    // Fall through and try parsing response text.
+  }
+
+  try {
+    const textSource = typeof response.clone === 'function' ? response.clone() : response;
+    const text = await textSource.text();
+    const parsed = parseJSONString<{ error?: string; details?: any }>(text);
+    if (parsed && typeof parsed.error === 'string') {
+      return { message: parsed.error, additionalInfo: parsed.details ?? parsed };
+    }
+    if (text) {
+      return { message: text, additionalInfo: text };
+    }
+  } catch (_err) {
     return undefined;
   }
+
+  return undefined;
 }
 function parseK8sError(error: any): ErrorDetails | undefined {
   if (!error || !error.body || typeof error.body !== 'object') {

@@ -193,7 +193,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       filter.predicates = (filter.predicates || []).concat([
         {
           key: 'storage_state',
-          operation: V2beta1PredicateOperation.NOTEQUALS,
+          operation: V2beta1PredicateOperation.NOT_EQUALS,
           string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
         },
       ]);
@@ -230,7 +230,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
                 predicates: [
                   {
                     key: 'storage_state',
-                    operation: V2beta1PredicateOperation.NOTEQUALS,
+                    operation: V2beta1PredicateOperation.NOT_EQUALS,
                     string_value: V2beta1RunStorageState.ARCHIVED.toString(),
                   },
                 ],

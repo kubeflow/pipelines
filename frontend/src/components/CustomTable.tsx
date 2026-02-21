@@ -543,7 +543,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
-          op: PredicateOp.ISSUBSTRING,
+          op: PredicateOp.IS_SUBSTRING,
           string_value: filterString,
         },
       ],
@@ -557,7 +557,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
-          operation: V2beta1PredicateOperation.ISSUBSTRING,
+          operation: V2beta1PredicateOperation.IS_SUBSTRING,
           string_value: filterString,
         },
       ],

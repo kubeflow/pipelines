@@ -512,7 +512,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNNING
 </DocumentFragment>
 `;
 
-exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNTIMESTATEUNSPECIFIED 1`] = `
+exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNTIME_STATE_UNSPECIFIED 1`] = `
 <DocumentFragment>
   <div
     class=""

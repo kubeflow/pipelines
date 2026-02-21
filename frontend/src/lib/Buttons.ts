@@ -596,7 +596,7 @@ export default class Buttons {
     selectedIds: string[],
     content: string,
     useCurrentResource: boolean,
-    api: (id: string) => Promise<void>,
+    api: (id: string) => Promise<unknown>,
     callback: (selectedIds: string[], success: boolean) => void,
     actionName: string,
     resourceName: string,
@@ -637,7 +637,7 @@ export default class Buttons {
     actionName: string,
     resourceName: string,
     useCurrentResource: boolean,
-    api: (id: string) => Promise<void>,
+    api: (id: string) => Promise<unknown>,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Promise<void> {
     if (confirmed) {

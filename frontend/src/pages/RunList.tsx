@@ -345,7 +345,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // each run individually.
       await this._getAndSetRuns(displayRuns);
       const predicates = filter.predicates?.filter(
-        p => p.key === 'name' && p.operation === V2beta1PredicateOperation.ISSUBSTRING,
+        p => p.key === 'name' && p.operation === V2beta1PredicateOperation.IS_SUBSTRING,
       );
       const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
       displayRuns = displayRuns.filter(runDetail => {
@@ -372,7 +372,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
               operation:
                 this.props.storageState === V2beta1RunStorageState.ARCHIVED
                   ? V2beta1PredicateOperation.EQUALS
-                  : V2beta1PredicateOperation.NOTEQUALS,
+                  : V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ]);

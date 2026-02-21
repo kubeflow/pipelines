@@ -139,7 +139,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
             operation:
               this.props.storageState === V2beta1ExperimentStorageState.ARCHIVED
                 ? V2beta1PredicateOperation.EQUALS
-                : V2beta1PredicateOperation.NOTEQUALS,
+                : V2beta1PredicateOperation.NOT_EQUALS,
             string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
           },
         ]);

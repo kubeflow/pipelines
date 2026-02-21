@@ -490,14 +490,14 @@ describe('RunDetails', () => {
   });
 
   it('has a Restore button if the run is archived', async () => {
-    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.STORAGESTATE_ARCHIVED;
     await renderRunDetails();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeDefined();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeUndefined();
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {
-    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.STORAGESTATE_ARCHIVED;
     await renderRunDetails();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
