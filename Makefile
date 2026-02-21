@@ -20,3 +20,8 @@ ginkgo:
 	mkdir -p $(BIN_DIR)
 	GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@latest
 	@echo "Ginkgo installed to $(BIN_DIR)/ginkgo"
+
+# kfp-kubernetes library tests
+.PHONY: test-kfp-kubernetes
+test-kfp-kubernetes:
+	pytest ./kubernetes_platform/python/test
