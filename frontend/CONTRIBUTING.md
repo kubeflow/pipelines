@@ -279,21 +279,12 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
   chmod +x /usr/local/bin/protoc-gen-grpc-web
   ```
 
-* Replace `metadata_store.proto` and `metadata_store_service.proto` proto files with target mlmd version by running
-
-  ```bash
-  npm run build:replace -- {mlmd_versions}
-  // example:
-  // npm run build:replace -- 1.0.0
-  ```
-
 * Generate new protos by running
 
   ```bash
   npm run build:protos
   ```
 
-The script run by `npm run build:replace` can be found at `scripts/replace_protos.js`.
 The script run by `npm run build:protos` can be found at `scripts/gen_grpc_web_protos.js`.
 
 The current TypeScript proto library was generated with `protoc-gen-grpc-web` version 1.2.1 with
