@@ -33,7 +33,10 @@ import { getK8sSecret } from '../k8s-helper.js';
 import { StorageOptions } from '@google-cloud/storage';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth/index.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -125,7 +128,7 @@ export function getArtifactsAuthMiddleware(
     if (!namespace) {
       console.warn(
         `[SECURITY] Missing namespace parameter. ` +
-        `User: ${userId}, Path: ${request.originalUrl}`,
+          `User: ${userId}, Path: ${request.originalUrl}`,
       );
       response.status(400).send('Namespace parameter is required when authentication is enabled');
       return;
@@ -134,8 +137,8 @@ export function getArtifactsAuthMiddleware(
     if (!isAllowedResourceName(namespace)) {
       console.warn(
         `[SECURITY] Invalid namespace format. ` +
-        `User: ${userId}, ` +
-        `Namespace: ${namespace}, Path: ${request.originalUrl}`,
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}`,
       );
       response.status(400).send('Invalid namespace format');
       return;
@@ -153,9 +156,9 @@ export function getArtifactsAuthMiddleware(
     if (authError) {
       console.warn(
         `[SECURITY] Unauthorized cross-namespace access attempt. ` +
-        `User: ${userId}, ` +
-        `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
-        `Reason: ${authError.message}`,
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
+          `Reason: ${authError.message}`,
       );
       response.status(403).send(authError.message);
       return;
@@ -240,12 +243,7 @@ export function getArtifactsHandler({
         break;
       case 'minio':
         try {
-          client = await createMinioClient(
-            minio,
-            'minio',
-            providerInfo,
-            namespace,
-          );
+          client = await createMinioClient(minio, 'minio', providerInfo, namespace);
         } catch (error) {
           response
             .status(500)
@@ -264,12 +262,7 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await createMinioClient(
-            aws,
-            's3',
-            providerInfo,
-            namespace,
-          );
+          client = await createMinioClient(aws, 's3', providerInfo, namespace);
         } catch (error) {
           response.status(500).send(`Failed to initialize S3 Client for S3 Provider: ${error}`);
           return;
@@ -436,11 +429,11 @@ function getGCSArtifactHandler(
         // escapes everything else.
         const regex = new RegExp(
           '^' +
-          key
-            .split(/\*+/)
-            .map(escapeRegexChars)
-            .join('.*') +
-          '$',
+            key
+              .split(/\*+/)
+              .map(escapeRegexChars)
+              .join('.*') +
+            '$',
         );
         return regex.test(f.name);
       });

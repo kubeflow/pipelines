@@ -52,7 +52,7 @@ describe('/artifacts', () => {
   beforeEach(() => {
     artifactContent = 'hello world'; // reset
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function () {
+    mockedMinioClient.mockImplementation(function() {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -383,7 +383,7 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function () {
+      mockedGcsStorage.mockImplementationOnce(function() {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -471,9 +471,9 @@ describe('/artifacts', () => {
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({
-            buffer: () => Promise.resolve(artifactContent),
-            body: toWebStream(artifactContent),
-          })
+              buffer: () => Promise.resolve(artifactContent),
+              body: toWebStream(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -496,9 +496,9 @@ describe('/artifacts', () => {
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({
-            buffer: () => Promise.resolve(artifactContent),
-            body: toWebStream(artifactContent),
-          })
+              buffer: () => Promise.resolve(artifactContent),
+              body: toWebStream(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -519,11 +519,11 @@ describe('/artifacts', () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt' &&
-          opts.headers.Authorization === 'someToken'
+        opts.headers.Authorization === 'someToken'
           ? Promise.resolve({
-            buffer: () => Promise.resolve(artifactContent),
-            body: toWebStream(artifactContent),
-          })
+              buffer: () => Promise.resolve(artifactContent),
+              body: toWebStream(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -549,9 +549,9 @@ describe('/artifacts', () => {
       mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt'
           ? Promise.resolve({
-            buffer: () => Promise.resolve(artifactContent),
-            body: toWebStream(artifactContent),
-          })
+              buffer: () => Promise.resolve(artifactContent),
+              body: toWebStream(artifactContent),
+            })
           : Promise.reject('Unable to retrieve http artifact.'),
       );
       const configs = loadConfigs(argv, {
@@ -578,7 +578,7 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function () {
+      mockedGcsStorage.mockImplementationOnce(function() {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -600,7 +600,7 @@ describe('/artifacts', () => {
       const mockedGcsStorage: Mock = GCSStorage as any;
       const stream = new PassThrough();
       stream.end(artifactContent);
-      mockedGcsStorage.mockImplementationOnce(function () {
+      mockedGcsStorage.mockImplementationOnce(function() {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -839,7 +839,7 @@ describe('/artifacts', () => {
       await request
         .get(
           '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=' +
-          'a'.repeat(1025),
+            'a'.repeat(1025),
         )
         .expect(500, 'Object key too long');
     });
