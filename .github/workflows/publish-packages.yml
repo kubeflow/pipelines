@@ -139,6 +139,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install build twine
 
+      - name: Set up Node.js for frontend build
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontend static assets
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
       - name: Build kfp
         run: |
           cd sdk
