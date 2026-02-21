@@ -111,6 +111,45 @@ runs:
         fi
         echo "ARGS=$ARGS" >> "$GITHUB_OUTPUT"
 
+    - name: Download Argo CLI
+      id: download-argo-cli
+      shell: bash
+      continue-on-error: true
+      env:
+        ARGO_VERSION_INPUT: ${{ inputs.argo_version }}
+      run: |
+        set -euo pipefail
+
+        if command -v argo >/dev/null 2>&1; then
+          echo "Argo CLI already available on PATH."
+          exit 0
+        fi
+
+        ARGO_VERSION=""
+        if [[ -n "${ARGO_VERSION_INPUT}" ]]; then
+          ARGO_VERSION="${ARGO_VERSION_INPUT}"
+        elif [[ -f "third_party/argo/VERSION" ]]; then
+          ARGO_VERSION="$(head -n 1 third_party/argo/VERSION | tr -d '[:space:]')"
+        fi
+
+        if [[ -z "${ARGO_VERSION}" ]]; then
+          echo "Unable to determine Argo Workflows version." >&2
+          exit 1
+        fi
+
+        if [[ "${ARGO_VERSION}" != v* ]]; then
+          ARGO_VERSION="v${ARGO_VERSION}"
+        fi
+
+        DOWNLOAD_URL="https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz"
+        TMP_DIR="$(mktemp -d)"
+        echo "Attempting to download Argo CLI ${ARGO_VERSION} from ${DOWNLOAD_URL}"
+        curl -sSfL "${DOWNLOAD_URL}" -o "${TMP_DIR}/argo.gz"
+        gunzip -c "${TMP_DIR}/argo.gz" > "${TMP_DIR}/argo"
+        chmod +x "${TMP_DIR}/argo"
+        echo "${TMP_DIR}" >> "$GITHUB_PATH"
+        echo "Downloaded Argo CLI to ${TMP_DIR}/argo"
+
     - name: Deploy KFP
       id: deploy-kfp
       if: ${{ steps.configure.outcome == 'success' }}
