@@ -12,7 +12,7 @@ jobs:
       checks: read
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
         id: label_check
@@ -42,7 +42,7 @@ jobs:
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
           echo ${{ github.event.action }} >> ./pr/event_action
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: pr
           path: pr/

@@ -34,7 +34,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.tag }}
 
@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload artifacts (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kfp-pipeline-spec-dist
           path: api/v2alpha1/python/dist/
@@ -78,7 +78,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.tag }}
 
@@ -109,7 +109,7 @@ jobs:
 
       - name: Upload artifacts (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kfp-server-api-dist
           path: backend/api/v2beta1/python_http_client/dist/
@@ -124,7 +124,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.tag }}
 
@@ -155,7 +155,7 @@ jobs:
 
       - name: Upload artifacts (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kfp-dist
           path: sdk/python/dist/
@@ -170,7 +170,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.tag }}
 
@@ -201,7 +201,7 @@ jobs:
 
       - name: Upload artifacts (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kfp-kubernetes-dist
           path: kubernetes_platform/python/dist/
