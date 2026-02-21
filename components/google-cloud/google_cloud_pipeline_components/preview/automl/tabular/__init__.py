@@ -24,10 +24,6 @@ from google_cloud_pipeline_components.preview.automl.tabular.tabnet_hyperparamet
 from google_cloud_pipeline_components.preview.automl.tabular.tabnet_trainer import tabnet_trainer as TabNetTrainerOp
 from google_cloud_pipeline_components.preview.automl.tabular.utils import get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters
 from google_cloud_pipeline_components.preview.automl.tabular.utils import get_tabnet_trainer_pipeline_and_parameters
-from google_cloud_pipeline_components.preview.automl.tabular.utils import get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters
-from google_cloud_pipeline_components.preview.automl.tabular.utils import get_wide_and_deep_trainer_pipeline_and_parameters
-from google_cloud_pipeline_components.preview.automl.tabular.wide_and_deep_hyperparameter_tuning_job import wide_and_deep_hyperparameter_tuning_job as WideAndDeepHyperparameterTuningJobOp
-from google_cloud_pipeline_components.preview.automl.tabular.wide_and_deep_trainer import wide_and_deep_trainer as WideAndDeepTrainerOp
 from kfp import components
 
 __all__ = [
@@ -37,24 +33,12 @@ __all__ = [
     'FeatureTransformEngineOp',
     'TabNetHyperparameterTuningJobOp',
     'TabNetTrainerOp',
-    'WideAndDeepHyperparameterTuningJobOp',
-    'WideAndDeepTrainerOp',
     'get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters',
     'get_tabnet_trainer_pipeline_and_parameters',
-    'get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters',
-    'get_wide_and_deep_trainer_pipeline_and_parameters',
 ]
 
 tabnet_trainer_pipeline = components.load_component_from_file(
     # Note, please don't name it as `component.yaml` which will conflict with
     # the generated file.
     os.path.join(os.path.dirname(__file__), 'tabnet_trainer_pipeline.yaml')
-)
-
-wide_and_deep_trainer_pipeline = components.load_component_from_file(
-    # Note, please don't name it as `component.yaml` which will conflict with
-    # the generated file.
-    os.path.join(
-        os.path.dirname(__file__), 'wide_and_deep_trainer_pipeline.yaml'
-    )
 )
