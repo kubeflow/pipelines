@@ -6,6 +6,7 @@
 [![SDK Supported Python versions](https://img.shields.io/pypi/pyversions/kfp.svg?color=%2334D058)](https://pypi.org/project/kfp)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9938/badge)](https://www.bestpractices.dev/projects/9938)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kubeflow/pipelines)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubeflow%2Fpipelines.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubeflow%2Fpipelines?ref=badge_shield)
 
 ## Overview of the Kubeflow pipelines service
 
@@ -100,3 +101,7 @@ Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Ar
 ## Acknowledgments
 
 Kubeflow pipelines uses [Argo Workflows](https://github.com/argoproj/argo-workflows) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubeflow%2Fpipelines.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubeflow%2Fpipelines?ref=badge_large)
