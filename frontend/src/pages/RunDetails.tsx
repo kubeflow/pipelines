@@ -207,8 +207,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             this.state.runMetadata
               ? [this.state.runMetadata!.id!]
               : runIdFromParams
-              ? [runIdFromParams]
-              : [],
+                ? [runIdFromParams]
+                : [],
           true,
           () => this.retry(),
         )
@@ -217,8 +217,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             this.state.runMetadata
               ? [this.state.runMetadata!.id!]
               : runIdFromParams
-              ? [runIdFromParams]
-              : [],
+                ? [runIdFromParams]
+                : [],
           true,
         )
         .terminateRun(
@@ -226,8 +226,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             this.state.runMetadata
               ? [this.state.runMetadata!.id!]
               : runIdFromParams
-              ? [runIdFromParams]
-              : [],
+                ? [runIdFromParams]
+                : [],
           true,
           () => this.refresh(),
         )
@@ -239,7 +239,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
   public render(): JSX.Element {
     if (this.props.isLoading) {
-      return <div>Currently loading run information</div>;
+      return (
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <CircularProgress size={40} />
+          <div style={{ marginTop: 16 }}>
+            Currently loading run information...
+          </div>
+        </div>
+      );
     }
 
     const {
@@ -359,8 +366,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       nodeStatus={
                                         this.state.workflow && this.state.workflow.status
                                           ? this.state.workflow.status.nodes[
-                                              this.state.selectedNodeDetails.id
-                                            ]
+                                          this.state.selectedNodeDetails.id
+                                          ]
                                           : undefined
                                       }
                                       namespace={this.state.workflow?.metadata?.namespace}
@@ -829,7 +836,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           : undefined;
       let reducedGraph = graph
         ? // copy graph before removing edges
-          transitiveReduction(graph)
+        transitiveReduction(graph)
         : undefined;
       if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
         reducedGraph = undefined; // disable reduction switch
@@ -978,30 +985,30 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     return !workflow.status
       ? []
       : [
-          ['Run ID', runMetadata?.id || '-'],
-          ['Workflow name', workflow.metadata?.name || '-'],
-          ['Status', workflow.status.phase],
-          ['Description', runMetadata ? runMetadata!.description! : ''],
-          [
-            'Created at',
-            workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-',
-          ],
-          ['Started at', formatDateString(workflow.status.startedAt)],
-          ['Finished at', formatDateString(workflow.status.finishedAt)],
-          ['Duration', getRunDurationFromWorkflow(workflow)],
-        ];
+        ['Run ID', runMetadata?.id || '-'],
+        ['Workflow name', workflow.metadata?.name || '-'],
+        ['Status', workflow.status.phase],
+        ['Description', runMetadata ? runMetadata!.description! : ''],
+        [
+          'Created at',
+          workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-',
+        ],
+        ['Started at', formatDateString(workflow.status.startedAt)],
+        ['Finished at', formatDateString(workflow.status.finishedAt)],
+        ['Duration', getRunDurationFromWorkflow(workflow)],
+      ];
   }
 
   private _getTaskDetailsFields(workflow: Workflow, nodeId: string): Array<KeyValue<string>> {
     return workflow?.status?.nodes?.[nodeId]
       ? [
-          ['Task ID', workflow.status.nodes[nodeId].id || '-'],
-          ['Task name', workflow.status.nodes[nodeId].displayName || '-'],
-          ['Status', workflow.status.nodes[nodeId].phase || '-'],
-          ['Started at', formatDateString(workflow.status.nodes[nodeId].startedAt) || '-'],
-          ['Finished at', formatDateString(workflow.status.nodes[nodeId].finishedAt) || '-'],
-          ['Duration', getRunDurationFromNode(workflow, nodeId) || '-'],
-        ]
+        ['Task ID', workflow.status.nodes[nodeId].id || '-'],
+        ['Task name', workflow.status.nodes[nodeId].displayName || '-'],
+        ['Status', workflow.status.nodes[nodeId].phase || '-'],
+        ['Started at', formatDateString(workflow.status.nodes[nodeId].startedAt) || '-'],
+        ['Finished at', formatDateString(workflow.status.nodes[nodeId].finishedAt) || '-'],
+        ['Duration', getRunDurationFromNode(workflow, nodeId) || '-'],
+      ]
       : [];
   }
 
@@ -1223,123 +1230,123 @@ const VisualizationsTabContent: React.FC<{
   namespace,
   onError,
 }) => {
-  const [loaded, setLoaded] = React.useState(false);
-  // Progress component expects onLoad function identity to stay the same
-  const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
+    const [loaded, setLoaded] = React.useState(false);
+    // Progress component expects onLoad function identity to stay the same
+    const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
 
-  const [progress, setProgress] = React.useState(0);
-  const [viewerConfigs, setViewerConfigs] = React.useState<ViewerConfig[]>([]);
-  const nodeCompleted: boolean = !!nodeStatus && COMPLETED_NODE_PHASES.includes(nodeStatus.phase);
+    const [progress, setProgress] = React.useState(0);
+    const [viewerConfigs, setViewerConfigs] = React.useState<ViewerConfig[]>([]);
+    const nodeCompleted: boolean = !!nodeStatus && COMPLETED_NODE_PHASES.includes(nodeStatus.phase);
 
-  React.useEffect(() => {
-    let aborted = false;
-    async function loadVisualizations() {
-      if (aborted) {
-        return;
-      }
-      setLoaded(false);
-      setProgress(0);
-      setViewerConfigs([]);
-
-      if (!nodeStatus || !nodeCompleted) {
-        setProgress(100); // Loaded will be set by Progress onComplete
-        return; // Abort, because there is no data.
-      }
-      // Load runtime outputs from the selected Node
-      const outputPaths = WorkflowParser.loadNodeOutputPaths(nodeStatus);
-      const reportProgress = (reportedProgress: number) => {
-        if (!aborted) {
-          setProgress(reportedProgress);
+    React.useEffect(() => {
+      let aborted = false;
+      async function loadVisualizations() {
+        if (aborted) {
+          return;
         }
-      };
-      const reportErrorAndReturnEmpty = (error: Error): [] => {
-        onError(error);
-        return [];
-      };
+        setLoaded(false);
+        setProgress(0);
+        setViewerConfigs([]);
 
-      // Load the viewer configurations from the output paths
-      const builtConfigs = (
-        await Promise.all([
-          ...(!execution
-            ? []
-            : [
+        if (!nodeStatus || !nodeCompleted) {
+          setProgress(100); // Loaded will be set by Progress onComplete
+          return; // Abort, because there is no data.
+        }
+        // Load runtime outputs from the selected Node
+        const outputPaths = WorkflowParser.loadNodeOutputPaths(nodeStatus);
+        const reportProgress = (reportedProgress: number) => {
+          if (!aborted) {
+            setProgress(reportedProgress);
+          }
+        };
+        const reportErrorAndReturnEmpty = (error: Error): [] => {
+          onError(error);
+          return [];
+        };
+
+        // Load the viewer configurations from the output paths
+        const builtConfigs = (
+          await Promise.all([
+            ...(!execution
+              ? []
+              : [
                 OutputArtifactLoader.buildTFXArtifactViewerConfig({
                   reportProgress,
                   execution,
                   namespace: namespace || '',
                 }).catch(reportErrorAndReturnEmpty),
               ]),
-          ...outputPaths.map(path =>
-            OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
-          ),
-        ])
-      ).flatMap(configs => configs);
-      if (aborted) {
+            ...outputPaths.map(path =>
+              OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
+            ),
+          ])
+        ).flatMap(configs => configs);
+        if (aborted) {
+          return;
+        }
+        setViewerConfigs(builtConfigs);
+
+        setProgress(100); // Loaded will be set by Progress onComplete
         return;
       }
-      setViewerConfigs(builtConfigs);
+      loadVisualizations();
 
-      setProgress(100); // Loaded will be set by Progress onComplete
-      return;
-    }
-    loadVisualizations();
+      const abort = () => {
+        aborted = true;
+      };
+      return abort;
+      // Workaround:
+      // Watches nodeStatus.phase in completed status instead of nodeStatus,
+      // because nodeStatus data won't further change after completed, but
+      // nodeStatus object instance will keep changing after new requests to get
+      // workflow status.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [nodeId, execution ? execution.getId() : undefined, nodeCompleted, onError, namespace]);
+    // Temporarily use verbose undefined detection instead of execution?.getId() for eslint issue.
 
-    const abort = () => {
-      aborted = true;
-    };
-    return abort;
-    // Workaround:
-    // Watches nodeStatus.phase in completed status instead of nodeStatus,
-    // because nodeStatus data won't further change after completed, but
-    // nodeStatus object instance will keep changing after new requests to get
-    // workflow status.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, execution ? execution.getId() : undefined, nodeCompleted, onError, namespace]);
-  // Temporarily use verbose undefined detection instead of execution?.getId() for eslint issue.
-
-  return (
-    <div className={commonCss.page}>
-      {!loaded ? (
-        <Progress value={progress} onComplete={onLoad} />
-      ) : (
-        <>
-          {viewerConfigs.length + generatedVisualizations.length === 0 && (
-            <Banner message='There are no visualizations in this step.' mode='info' />
-          )}
-          {[
-            ...viewerConfigs,
-            ...generatedVisualizations.map(visualization => visualization.config),
-          ].map((config, i) => {
-            const title = componentMap[config.type].prototype.getDisplayName();
-            return (
-              <div key={i} className={padding(20, 'lrt')}>
-                <PlotCard configs={[config]} title={title} maxDimension={500} />
-                <Hr />
-              </div>
-            );
-          })}
-          <div className={padding(20, 'lrt')}>
-            <PlotCard
-              configs={[visualizationCreatorConfig]}
-              title={VisualizationCreator.prototype.getDisplayName()}
-              maxDimension={500}
-            />
-            <Hr />
-          </div>
-          <div className={padding(20)}>
-            <p>
-              Add visualizations to your own components following instructions in{' '}
-              <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/'>
-                Visualize Results in the Pipelines UI
-              </ExternalLink>
-              .
-            </p>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
+    return (
+      <div className={commonCss.page}>
+        {!loaded ? (
+          <Progress value={progress} onComplete={onLoad} />
+        ) : (
+          <>
+            {viewerConfigs.length + generatedVisualizations.length === 0 && (
+              <Banner message='There are no visualizations in this step.' mode='info' />
+            )}
+            {[
+              ...viewerConfigs,
+              ...generatedVisualizations.map(visualization => visualization.config),
+            ].map((config, i) => {
+              const title = componentMap[config.type].prototype.getDisplayName();
+              return (
+                <div key={i} className={padding(20, 'lrt')}>
+                  <PlotCard configs={[config]} title={title} maxDimension={500} />
+                  <Hr />
+                </div>
+              );
+            })}
+            <div className={padding(20, 'lrt')}>
+              <PlotCard
+                configs={[visualizationCreatorConfig]}
+                title={VisualizationCreator.prototype.getDisplayName()}
+                maxDimension={500}
+              />
+              <Hr />
+            </div>
+            <div className={padding(20)}>
+              <p>
+                Add visualizations to your own components following instructions in{' '}
+                <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/'>
+                  Visualize Results in the Pipelines UI
+                </ExternalLink>
+                .
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
   const namespaceChanged = useNamespaceChangeEvent();
