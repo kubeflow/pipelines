@@ -19,6 +19,41 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: wait-for-ml-pipeline
+        image: ghcr.io/containerd/busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          timeout=300
+          elapsed=0
+          echo "Waiting for ml-pipeline:8888..."
+          until nc -z -w 3 ml-pipeline 8888; do
+            if [ $elapsed -ge $timeout ]; then
+              echo "ERROR: Timed out after ${elapsed}s waiting for ml-pipeline:8888"
+              exit 1
+            fi
+            echo "ml-pipeline:8888 not ready (${elapsed}s elapsed), retrying..."
+            sleep 5
+            elapsed=$((elapsed + 5))
+          done
+          echo "ml-pipeline:8888 is ready after ${elapsed}s"
+          sleep 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
       containers:
       - env:
           - name: NAMESPACE
