@@ -3261,3 +3261,73 @@ func Test_extendPodSpecPatch_PvcMounts_Passthrough_AppliedToPod(t *testing.T) {
 	assert.NotEmpty(t, taskCfg.Volumes)
 	assert.NotEmpty(t, taskCfg.VolumeMounts)
 }
+
+func Test_buildPVCDataSource(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       *structpb.Value
+		expected    *k8score.TypedLocalObjectReference
+		expectError bool
+	}{
+		{
+			name: "Valid VolumeSnapshot data source (with apiGroup)",
+			input: func() *structpb.Value {
+				v, _ := structpb.NewValue(map[string]interface{}{
+					"apiGroup": "snapshot.storage.k8s.io",
+					"kind":     "VolumeSnapshot",
+					"name":     "my-snapshot",
+				})
+				return v
+			}(),
+			expected: &k8score.TypedLocalObjectReference{
+				APIGroup: func() *string { s := "snapshot.storage.k8s.io"; return &s }(),
+				Kind:     "VolumeSnapshot",
+				Name:     "my-snapshot",
+			},
+			expectError: false,
+		},
+		{
+			name: "Valid PVC clone data source (without apiGroup)",
+			input: func() *structpb.Value {
+				v, _ := structpb.NewValue(map[string]interface{}{
+					"kind": "PersistentVolumeClaim",
+					"name": "source-pvc",
+				})
+				return v
+			}(),
+			expected: &k8score.TypedLocalObjectReference{
+				APIGroup: nil,
+				Kind:     "PersistentVolumeClaim",
+				Name:     "source-pvc",
+			},
+			expectError: false,
+		},
+		{
+			name:        "nil input",
+			input:       nil,
+			expected:    nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := buildPVCDataSource(tt.input)
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.expected.Kind, result.Kind)
+				assert.Equal(t, tt.expected.Name, result.Name)
+				if tt.expected.APIGroup != nil {
+					assert.NotNil(t, result.APIGroup)
+					assert.Equal(t, *tt.expected.APIGroup, *result.APIGroup)
+				} else {
+					assert.Nil(t, result.APIGroup)
+				}
+			}
+		})
+	}
+}
