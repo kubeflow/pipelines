@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { vi, describe, it, expect, afterEach, beforeEach, Mock, MockInstance } from 'vitest';
 import * as minio from 'minio';
 import { PassThrough } from 'stream';
 import requests from 'supertest';
@@ -20,11 +21,12 @@ import { loadConfigs } from '../configs';
 import { commonSetup } from './test-helper';
 
 const MinioClient = minio.Client;
-jest.mock('minio');
-jest.mock('../k8s-helper');
+vi.mock('minio');
+vi.mock('../k8s-helper');
 
-jest.mock('portable-fetch', () => {
-  return jest.fn();
+const mockedFetch = vi.fn();
+vi.mock('portable-fetch', () => {
+  return { default: mockedFetch };
 });
 
 describe('/artifacts authorization', () => {
@@ -54,7 +56,7 @@ describe('/artifacts authorization', () => {
     if (app) {
       app.close();
     }
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('when auth is disabled', () => {
@@ -96,11 +98,10 @@ describe('/artifacts authorization', () => {
   });
 
   describe('when auth is enabled', () => {
-    let mockAuthorize: jest.Mock;
+    let mockAuthorize: Mock;
 
     beforeEach(() => {
-      const portableFetch = require('portable-fetch');
-      mockAuthorize = portableFetch as jest.Mock;
+      mockAuthorize = mockedFetch as Mock;
     });
 
     it('requires namespace parameter when auth is enabled', done => {
@@ -271,10 +272,10 @@ describe('/artifacts authorization', () => {
   });
 
   describe('security logging', () => {
-    let consoleSpy: jest.SpyInstance;
+    let consoleSpy: MockInstance;
 
     beforeEach(() => {
-      consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -282,9 +283,7 @@ describe('/artifacts authorization', () => {
     });
 
     it('logs unauthorized access attempts with user info', done => {
-      const portableFetch = require('portable-fetch');
-      const mockAuthorize = portableFetch as jest.Mock;
-      mockAuthorize.mockRejectedValue({
+      mockedFetch.mockRejectedValue({
         status: 403,
         statusText: 'Forbidden',
         text: () => Promise.resolve('User is not authorized'),
