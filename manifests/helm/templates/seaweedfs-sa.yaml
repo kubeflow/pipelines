@@ -1,0 +1,12 @@
+{{- if .Values.seaweedfs.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: seaweedfs
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: seaweedfs
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+{{- end }}

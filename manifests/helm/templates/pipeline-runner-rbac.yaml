@@ -1,0 +1,119 @@
+# Pipeline Runner Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline-runner
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+
+---
+# Pipeline Runner Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pipeline-runner
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumes
+      - persistentvolumeclaims
+    verbs:
+      - '*'
+  - apiGroups:
+      - snapshot.storage.k8s.io
+    resources:
+      - volumesnapshots
+    verbs:
+      - create
+      - delete
+      - get
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+      - pods/log
+      - services
+    verbs:
+      - '*'
+  - apiGroups:
+      - ""
+      - apps
+      - extensions
+    resources:
+      - deployments
+      - replicasets
+    verbs:
+      - '*'
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - '*'
+  - apiGroups:
+      - machinelearning.seldon.io
+    resources:
+      - seldondeployments
+    verbs:
+      - '*'
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflowtaskresults
+    verbs:
+      - create
+      - patch
+
+---
+# Pipeline Runner RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipeline-runner-binding
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pipeline-runner
+subjects:
+  - kind: ServiceAccount
+    name: pipeline-runner
+    namespace: {{ include "kubeflow-pipelines.namespace" . }}
