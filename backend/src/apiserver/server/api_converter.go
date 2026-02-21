@@ -1518,20 +1518,22 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		apiRd = nil
 	}
 	apiRunV2 := &apiv2beta1.Run{
-		RunId:          r.UUID,
-		ExperimentId:   r.ExperimentId,
-		RecurringRunId: r.RecurringRunId,
-		DisplayName:    r.DisplayName,
-		Description:    r.Description,
-		ServiceAccount: r.ServiceAccount,
-		RuntimeConfig:  runtimeConfig,
-		StorageState:   toApiRunStorageState(&r.StorageState),
-		State:          toApiRuntimeState(&r.RunDetails.State),
-		StateHistory:   toApiRuntimeStatuses(r.RunDetails.StateHistory),
-		CreatedAt:      timestamppb.New(time.Unix(r.RunDetails.CreatedAtInSec, 0)),
-		ScheduledAt:    timestamppb.New(time.Unix(r.RunDetails.ScheduledAtInSec, 0)),
-		FinishedAt:     timestamppb.New(time.Unix(r.RunDetails.FinishedAtInSec, 0)),
-		RunDetails:     apiRd,
+		RunId:                      r.UUID,
+		ExperimentId:               r.ExperimentId,
+		RecurringRunId:             r.RecurringRunId,
+		DisplayName:                r.DisplayName,
+		Description:                r.Description,
+		ServiceAccount:             r.ServiceAccount,
+		RuntimeConfig:              runtimeConfig,
+		StorageState:               toApiRunStorageState(&r.StorageState),
+		State:                      toApiRuntimeState(&r.State),
+		StateHistory:               toApiRuntimeStatuses(r.StateHistory),
+		CreatedAt:                  timestamppb.New(time.Unix(r.CreatedAtInSec, 0)),
+		ScheduledAt:                timestamppb.New(time.Unix(r.ScheduledAtInSec, 0)),
+		FinishedAt:                 timestamppb.New(time.Unix(r.FinishedAtInSec, 0)),
+		RunDetails:                 apiRd,
+		ExperimentDisplayName:      r.ExperimentDisplayName,
+		PipelineVersionDisplayName: r.PipelineVersionDisplayName,
 	}
 	err := util.NewInvalidInputError("Failed to parse the pipeline source")
 	if r.PipelineSpec.PipelineVersionId != "" {

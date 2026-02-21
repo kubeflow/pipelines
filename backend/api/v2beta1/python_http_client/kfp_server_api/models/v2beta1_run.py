@@ -50,7 +50,9 @@ class V2beta1Run(object):
         'error': 'GooglerpcStatus',
         'run_details': 'V2beta1RunDetails',
         'recurring_run_id': 'str',
-        'state_history': 'list[V2beta1RuntimeStatus]'
+        'state_history': 'list[V2beta1RuntimeStatus]',
+        'experiment_display_name': 'str',
+        'pipeline_version_display_name': 'str'
     }
 
     attribute_map = {
@@ -71,10 +73,12 @@ class V2beta1Run(object):
         'error': 'error',
         'run_details': 'run_details',
         'recurring_run_id': 'recurring_run_id',
-        'state_history': 'state_history'
+        'state_history': 'state_history',
+        'experiment_display_name': 'experiment_display_name',
+        'pipeline_version_display_name': 'pipeline_version_display_name'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, experiment_display_name=None, pipeline_version_display_name=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -98,6 +102,8 @@ class V2beta1Run(object):
         self._run_details = None
         self._recurring_run_id = None
         self._state_history = None
+        self._experiment_display_name = None
+        self._pipeline_version_display_name = None
         self.discriminator = None
 
         if experiment_id is not None:
@@ -136,6 +142,10 @@ class V2beta1Run(object):
             self.recurring_run_id = recurring_run_id
         if state_history is not None:
             self.state_history = state_history
+        if experiment_display_name is not None:
+            self.experiment_display_name = experiment_display_name
+        if pipeline_version_display_name is not None:
+            self.pipeline_version_display_name = pipeline_version_display_name
 
     @property
     def experiment_id(self):
@@ -538,6 +548,52 @@ class V2beta1Run(object):
         """
 
         self._state_history = state_history
+
+    @property
+    def experiment_display_name(self):
+        """Gets the experiment_display_name of this V2beta1Run.  # noqa: E501
+
+        Output. Display name of the experiment this run belongs to.  # noqa: E501
+
+        :return: The experiment_display_name of this V2beta1Run.  # noqa: E501
+        :rtype: str
+        """
+        return self._experiment_display_name
+
+    @experiment_display_name.setter
+    def experiment_display_name(self, experiment_display_name):
+        """Sets the experiment_display_name of this V2beta1Run.
+
+        Output. Display name of the experiment this run belongs to.  # noqa: E501
+
+        :param experiment_display_name: The experiment_display_name of this V2beta1Run.  # noqa: E501
+        :type experiment_display_name: str
+        """
+
+        self._experiment_display_name = experiment_display_name
+
+    @property
+    def pipeline_version_display_name(self):
+        """Gets the pipeline_version_display_name of this V2beta1Run.  # noqa: E501
+
+        Output. Display name of the pipeline version used by this run.  # noqa: E501
+
+        :return: The pipeline_version_display_name of this V2beta1Run.  # noqa: E501
+        :rtype: str
+        """
+        return self._pipeline_version_display_name
+
+    @pipeline_version_display_name.setter
+    def pipeline_version_display_name(self, pipeline_version_display_name):
+        """Sets the pipeline_version_display_name of this V2beta1Run.
+
+        Output. Display name of the pipeline version used by this run.  # noqa: E501
+
+        :param pipeline_version_display_name: The pipeline_version_display_name of this V2beta1Run.  # noqa: E501
+        :type pipeline_version_display_name: str
+        """
+
+        self._pipeline_version_display_name = pipeline_version_display_name
 
     def to_dict(self):
         """Returns the model properties as a dict"""
