@@ -4,5 +4,5 @@
 #
 #    pip-compile --no-emit-index-url requirements.in
 #
-protobuf==6.31.1
+protobuf==6.33.5
     # via -r requirements.in
