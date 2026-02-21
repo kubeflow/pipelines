@@ -211,24 +211,35 @@ def server_factory(frontend_image,
                 )
                 rbac_v1.create_namespaced_role(namespace=namespace, body=role)
                 print(f"Role {role_name} created in {namespace}")
+
                 role_binding_name = "configmap-reader-binding"
+                namespace = 'kubeflow-user-example-com'
+                agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
+                role_name = "configmap-reader"
                 role_binding = client.V1RoleBinding(
                     metadata=client.V1ObjectMeta(
-                        name=role_binding_name,
+                        name="configmap-reader-binding",
                         namespace=namespace
                     ),
-                    subjects=[client.V1Subject(
-                        kind="ServiceAccount",
-                        name=agent_sa_name,
-                        namespace=namespace
-                    )],
+                    subjects=[
+                        {
+                            "kind": "ServiceAccount",
+                            "name": agent_sa_name,
+                            "namespace": namespace,
+                            "apiGroup": ""
+                        }
+                    ],
                     role_ref=client.V1RoleRef(
                         kind="Role",
                         name=role_name,
                         api_group="rbac.authorization.k8s.io"
                     )
                 )
-                rbac_v1.create_namespaced_role_binding(namespace=namespace, body=role_binding)
+
+                rbac_v1.create_namespaced_role_binding(
+                    namespace=namespace,
+                    body=role_binding
+                )
                 print(f"RoleBinding {role_binding_name} created in {namespace}")
             except ApiException as e:
                 if e.status == 409:

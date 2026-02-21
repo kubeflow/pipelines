@@ -5,7 +5,8 @@ metadata:
 data:
   sidecar.container: |
     name: driver-plugin
-    image: kind-registry:5000/driver
+    image: kind-registry:5000/driver:latest
+    imagePullPolicy: IfNotPresent
     ports:
       - containerPort: 8080
     resources:
