@@ -18,17 +18,32 @@ from kfp import dsl
 
 
 @dsl.container_component
-def container_no_input():
+def container_producer(text: str, output_data: dsl.Output[dsl.Dataset]):
     return dsl.ContainerSpec(
         image='python:3.7',
-        command=['echo', 'hello world'],
-        args=[],
+        command=[
+            'sh',
+            '-c',
+            'mkdir -p $(dirname "$1") && echo "$0" > "$1"',
+        ],
+        args=[text, output_data.path],
+    )
+
+
+@dsl.container_component
+def container_consumer(input_data: dsl.Input[dsl.Dataset]):
+    return dsl.ContainerSpec(
+        image='python:3.7',
+        command=['cat'],
+        args=[input_data.path],
     )
 
 
 @dsl.pipeline(name='v2-container-component-no-input')
-def pipeline_container_no_input():
-    container_no_input()
+def pipeline_container_no_input(message: str = 'hello world'):
+    producer_task = container_producer(text=message)
+    consumer_task = container_consumer(
+        input_data=producer_task.outputs['output_data'])
 
 
 if __name__ == '__main__':
