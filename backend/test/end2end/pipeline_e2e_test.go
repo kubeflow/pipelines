@@ -176,6 +176,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			"critical/pipeline_with_secret_as_env.yaml",
 			"critical/pipeline_with_input_status_state.yaml",
 			"critical/notebook_component_simple.yaml",
+			"huggingface_importer.yaml",
 		}
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {

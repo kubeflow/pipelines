@@ -788,6 +788,12 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 				continue
 			}
 
+			// HuggingFace artifacts are handled by the importer and already present in the workspace
+			if strings.HasPrefix(inputArtifact.Uri, "huggingface://") {
+				glog.V(1).Infof("Skipping download for HuggingFace artifact %q - handled by importer", name)
+				continue
+			}
+
 			// Copy artifact to local storage.
 			copyErr := func(err error) error {
 				return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", name, inputArtifact.Uri, err)
@@ -841,6 +847,11 @@ func fetchNonDefaultBuckets(
 			continue
 		}
 
+		// HuggingFace artifacts are handled by the importer and do not use blob.Bucket interface
+		if strings.HasPrefix(artifact.Uri, "huggingface://") {
+			continue
+		}
+
 		// The artifact does not belong under the object store path for this run. Cases:
 		// 1. Artifact is cached from a different run, so it may still be in the default bucket, but under a different run id subpath
 		// 2. Artifact is imported from the same bucket, but from a different path (re-use the same session)
@@ -856,6 +867,11 @@ func fetchNonDefaultBuckets(
 			}
 			nonDefaultBucket, bucketErr := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
 			if bucketErr != nil {
+				// HuggingFace provider does not use the blob.Bucket interface; skip it
+				if errors.Is(bucketErr, objectstore.ErrHuggingFaceNoBucket) {
+					glog.V(1).Infof("Skipping HuggingFace artifact %q with uri %q - handled by importer", name, artifact.GetUri())
+					continue
+				}
 				return nonDefaultBuckets, fmt.Errorf("failed to open bucket for output artifact %q with uri %q: %w", name, artifact.GetUri(), bucketErr)
 			}
 			nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()] = nonDefaultBucket
@@ -1066,6 +1082,9 @@ func LocalPathForURI(uri string) (string, error) {
 	}
 	if strings.HasPrefix(uri, "oci://") {
 		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
+	}
+	if strings.HasPrefix(uri, "huggingface://") {
+		return "/huggingface/" + strings.TrimPrefix(uri, "huggingface://"), nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
 }

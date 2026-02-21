@@ -64,6 +64,9 @@ var _ = BeforeSuite(func() {
 	var newPipelineClient func() (*apiserver.PipelineClient, error)
 	var newRunClient func() (*apiserver.RunClient, error)
 	var newExperimentClient func() (*apiserver.ExperimentClient, error)
+	// Wait for API server to be ready to avoid transient "connection refused" in CI
+	err = testutil.WaitForReady(2 * time.Minute)
+	Expect(err).NotTo(HaveOccurred(), "ml pipeline API server is not ready")
 	clientConfig := testutil.GetClientConfig(*config.Namespace)
 	k8Client, err = testutil.CreateK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
