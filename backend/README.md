@@ -5,6 +5,24 @@
 This directory contains code for the components that comprise the Kubeflow
 Pipelines backend.
 
+## Backend Component Overview
+
+The Kubeflow Pipelines backend is composed of several cooperating
+components that manage pipeline execution and lifecycle:
+
+- **API Server** – Exposes REST and gRPC endpoints for managing
+  pipelines, runs, and experiments.
+- **Driver** – Translates pipeline specifications into executable
+  workflow definitions.
+- **Launcher** – Executes pipeline tasks within Kubernetes pods.
+- **Persistence Agent** – Reconciles workflow state and updates
+  run status in the database.
+- **Metadata Writer** – Handles interactions with ML Metadata (MLMD).
+- **Cache Layer** – Manages execution result reuse when caching is enabled.
+
+Understanding these components helps contributors identify where
+new features, debugging logic, or lifecycle changes should be implemented.
+
 This README will help you set up your coding environment in order to build and run the Kubeflow Pipelines backend. The KFP backend powers the core functionality of the KFP platform, handling API requests, workflow management, and data persistence.
 
 ## Prerequisites
