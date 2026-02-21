@@ -19,6 +19,7 @@ import { useQuery } from 'react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
+import { logger } from 'src/lib/Utils';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { stylesheet } from 'typestyle';
 import Banner from './Banner';
@@ -73,6 +74,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
       providerInfo = sessionMap?.get(value);
       storage = WorkflowParser.parseStoragePath(value);
     } catch (error) {
+      logger.error(error);
       storage = undefined;
     }
   }
