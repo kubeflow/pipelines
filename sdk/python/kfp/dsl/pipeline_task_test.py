@@ -218,6 +218,25 @@ class PipelineTaskTest(parameterized.TestCase):
             'limit': 16,
             'expected_limit': '16',
         },
+        # Values that were previously rejected by the hardcoded allowlist
+        # but are valid Kubernetes accelerator counts.
+        {
+            'limit': 3,
+            'expected_limit': '3',
+        },
+        {
+            'limit': 32,
+            'expected_limit': '32',
+        },
+        {
+            'limit': 128,
+            'expected_limit': '128',
+        },
+        # Zero is a valid boundary value.
+        {
+            'limit': 0,
+            'expected_limit': '0',
+        },
     )
     def test_set_accelerator_limit(self, limit, expected_limit):
         task = pipeline_task.PipelineTask(
@@ -229,6 +248,23 @@ class PipelineTaskTest(parameterized.TestCase):
         task.set_accelerator_limit(limit)
         self.assertEqual(expected_limit,
                          task.container_spec.resources.accelerator_count)
+
+    @parameterized.parameters(
+        {'limit': -1},
+        {'limit': -128},
+        {'limit': 'abc'},
+        {'limit': '1.5'},
+        {'limit': '-1'},
+    )
+    def test_set_accelerator_limit_invalid(self, limit):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(ValueError,
+                                    'limit must be a non-negative integer.'):
+            task.set_accelerator_limit(limit)
 
     @parameterized.parameters(
         {
