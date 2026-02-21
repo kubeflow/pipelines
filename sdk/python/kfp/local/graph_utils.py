@@ -60,20 +60,30 @@ def topological_sort(dependency_map: Dict[str, List[str]]) -> List[str]:
 
     Returns:
         A totally ordered stack of tasks. Tasks should be executed in the order they are popped off the right side of the stack.
+    Raises:
+        RuntimeError: If a cycle is detected in the graph.
     """
+    visited: Set[str] = set()
+    visiting: Set[str] = set()
+    result = []
 
     def dfs(node: str) -> None:
+        if node in visited:
+            return
+        if node in visiting:
+            raise RuntimeError(
+                f'Pipeline has a cycle: {node} is part of a cycle.')
+
+        visiting.add(node)
+        neighbors = sorted(dependency_map.get(node, []))
+        for neighbor in neighbors:
+            dfs(neighbor)
+
+        visiting.remove(node)
         visited.add(node)
-        for neighbor in dependency_map[node]:
-            if neighbor not in visited:
-                dfs(neighbor)
         result.append(node)
 
-    # sort lists to force deterministic result
-    dependency_map = {k: sorted(v) for k, v in dependency_map.items()}
-    visited: Set[str] = set()
-    result = []
-    for node in dependency_map:
-        if node not in visited:
-            dfs(node)
+    for node in sorted(dependency_map.keys()):
+        dfs(node)
+
     return result[::-1]
