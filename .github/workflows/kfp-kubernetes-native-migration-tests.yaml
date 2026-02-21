@@ -34,11 +34,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: "3.9"
-          cache: 'pip'
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -69,12 +68,12 @@ jobs:
       - name: Install requirements
         id: install-requirements
         if: ${{ steps.install-kfp-k8s-deps.outcome == 'success' }}
-        run: pip install -r ./test/kfp-kubernetes-native-migration-tests/requirements.txt
+        run: uv pip install pytest-mock kubernetes
 
       - name: Create test pipelines in DB mode
         if: ${{ steps.install-requirements.outcome == 'success' }}
         id: create-test-pipelines
-        run: python ./test/kfp-kubernetes-native-migration-tests/create_test_pipelines.py
+        run: uv run python ./test/kfp-kubernetes-native-migration-tests/create_test_pipelines.py
         continue-on-error: true
 
       - name: Run DB mode migration tests
@@ -84,7 +83,7 @@ jobs:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
           KFP_ENDPOINT: "http://localhost:8888"
-        run: python -m pytest ./test/kfp-kubernetes-native-migration-tests/kfp_db_mode_migration_tests.py -v
+        run: uv run pytest ./test/kfp-kubernetes-native-migration-tests/kfp_db_mode_migration_tests.py -v
         continue-on-error: true
 
       - name: Install cert-manager
@@ -167,7 +166,7 @@ jobs:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
           KFP_ENDPOINT: "http://localhost:8888"
-        run: python -m pytest ./test/kfp-kubernetes-native-migration-tests/kfp_k8s_mode_migration_tests.py -v
+        run: uv run pytest ./test/kfp-kubernetes-native-migration-tests/kfp_k8s_mode_migration_tests.py -v
         continue-on-error: true
 
       - name: Collect failed logs

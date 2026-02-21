@@ -15,9 +15,6 @@
 
 source_root=$(pwd)
 
-python3 -m pip install --upgrade pip
-python3 -m pip install $(grep 'isort==' sdk/python/requirements-dev.txt)
-python3 -m pip install $(grep 'pycln==' sdk/python/requirements-dev.txt)
-
-pycln --check "${source_root}/sdk/python"
-isort --check --profile google "${source_root}/sdk/python"
+# Dependencies are already installed via 'uv sync' in CI
+uv run pycln --check "${source_root}/sdk/python"
+uv run isort --check --profile google "${source_root}/sdk/python"

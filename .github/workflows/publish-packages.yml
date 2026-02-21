@@ -38,23 +38,18 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
 
       - name: Build kfp-pipeline-spec
         run: |
           cd api
           make python
-          cd v2alpha1/python
-          twine check dist/*
+          cd ..
+          uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist
+          uv run twine check api/v2alpha1/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -82,23 +77,16 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install twine
 
       - name: Build kfp-server-api
         run: |
-          cd backend/api/v2beta1/python_http_client
-          rm -rf dist
-          python setup.py --quiet sdist
-          twine check dist/*
+          rm -rf backend/api/v2beta1/python_http_client/dist
+          uv build --package kfp-server-api --out-dir backend/api/v2beta1/python_http_client/dist
+          uv run twine check backend/api/v2beta1/python_http_client/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -128,23 +116,18 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
 
       - name: Build kfp
         run: |
           cd sdk
           make python
-          cd python
-          twine check dist/*
+          cd ..
+          uv build --package kfp --out-dir sdk/python/dist
+          uv run twine check sdk/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -174,23 +157,18 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
 
       - name: Build kfp-kubernetes
         run: |
           cd kubernetes_platform
           make python
-          cd python
-          twine check dist/*
+          cd ..
+          uv build --package kfp-kubernetes --out-dir kubernetes_platform/python/dist
+          uv run twine check kubernetes_platform/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}

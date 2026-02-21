@@ -21,28 +21,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
-          python-version: 3.9
-          cache: 'pip'
+          python-version: '3.9'
 
-      - name: Install protobuf dependencies
+      - name: Install protobuf dependencies & generate proto files
         uses: ./.github/actions/protobuf
-
-      - name: Install protobuf dependencies & kfp-pipeline-spec
-        id: install-protobuf-deps
-        uses: ./.github/actions/protobuf
-
-      - name: Install kfp & kfp-kubernetes from source
-        id: install-kfp-k8s-deps
-        uses: ./.github/actions/kfp-k8s
-
-      - name: Install Test dependencies
-        run: |
-          python3 -m pip install pytest
-          python3 -m pip install pytest-asyncio-cooperative==0.37.0
-          python3 -m pip install --upgrade pip
 
       - name: Run component YAML tests
         env:

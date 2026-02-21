@@ -1,0 +1,20 @@
+name: "Setup Python with uv"
+description: "Install Python, uv, and CI dependencies"
+inputs:
+  python-version:
+    description: "Python version to use"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+
+    - name: Install dependencies
+      run: uv sync --python ${{ inputs.python-version }} --extra ci
+      shell: bash

@@ -1,0 +1,32 @@
+[project]
+name = "kfp-kubernetes"
+dynamic = ["version"]
+description = "Kubernetes platform configuration library and generated protos."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+authors = [
+  { name = "The Kubeflow Authors" }
+]
+dependencies = [
+  "protobuf>=6.31.1,<7.0",
+  "kfp==2.15.2",
+]
+
+[project.urls]
+Documentation = "https://kfp-kubernetes.readthedocs.io/"
+"Bug Tracker" = "https://github.com/kubeflow/pipelines/issues"
+Source = "https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform/python"
+
+[tool.uv.sources]
+kfp = { workspace = true }
+
+[tool.hatch.version]
+path = "kfp/kubernetes/__init__.py"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kfp"]

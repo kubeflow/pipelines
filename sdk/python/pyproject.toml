@@ -1,0 +1,81 @@
+[project]
+name = "kfp"
+dynamic = ["version"]
+description = "Kubeflow Pipelines SDK"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+authors = [
+  { name = "The Kubeflow Authors" }
+]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "click>=8.1.8",
+  "click-option-group==0.5.7",
+  "docstring-parser>=0.7.3,<1",
+  # Pin google-api-core version for the bug fixing in 1.31.5
+  # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
+  "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
+  "google-auth>=1.6.1,<3",
+  # https://github.com/googleapis/python-storage/blob/main/CHANGELOG.md#221-2022-03-15
+  "google-cloud-storage>=2.2.1,<4",
+  # Pin kfp-pipeline-spec to the exact kfp version to prevent mismatches.
+  # Update this version in lockstep with kfp/version.py on each release.
+  # kfp-pipeline-spec package is released.
+  "kfp-pipeline-spec==2.15.2",
+  # Pin kfp-server-api to the exact kfp version to prevent mismatches.
+  # Update this version in lockstep with kfp/version.py on each release.
+  "kfp-server-api==2.15.2",
+  "kubernetes>=8.0.0,<31",
+  # protobuf version should be identical to the one in kfp-pipeline-spec
+  "protobuf>=6.31.1,<7.0",
+  "PyYAML>=5.3,<7",
+  "requests-toolbelt>=0.8.0,<2",
+  "tabulate>=0.8.6,<1",
+  "urllib3<3.0.0",
+]
+
+[project.optional-dependencies]
+all = ["kfp[kubernetes,notebooks]", "docker"]
+# Pin kfp-kubernetes to the exact kfp version to prevent mismatches.
+# Update this version in lockstep with kfp/version.py on each release.
+kubernetes = ["kfp-kubernetes==2.15.2"]
+notebooks = ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9"]
+
+[project.scripts]
+kfp = "kfp.cli.__main__:main"
+dsl-compile = "kfp.cli.compile_:main"
+
+[project.urls]
+Documentation = "https://kubeflow-pipelines.readthedocs.io/en/stable/"
+"Bug Tracker" = "https://github.com/kubeflow/pipelines/issues"
+Source = "https://github.com/kubeflow/pipelines/tree/master/sdk"
+Changelog = "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md"
+
+[tool.uv.sources]
+kfp-pipeline-spec = { workspace = true }
+kfp-server-api = { workspace = true }
+kfp-kubernetes = { workspace = true }
+
+[tool.hatch.version]
+path = "kfp/version.py"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

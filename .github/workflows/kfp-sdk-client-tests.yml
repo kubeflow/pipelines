@@ -41,11 +41,13 @@ jobs:
 
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: '3.11'
-          cache: 'pip'
+
+      - name: Install protobuf dependencies & generate proto files
+        uses: ./.github/actions/protobuf
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -68,33 +70,6 @@ jobs:
         if: ${{ steps.deploy.outcome == 'success' }}
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
         continue-on-error: true
-
-      - name: Install protobuf dependencies & kfp-pipeline-spec
-        if: ${{ steps.forward-api-port.outcome == 'success' }}
-        id: install-protobuf-deps
-        uses: ./.github/actions/protobuf
-
-      - name: Install build tool
-        shell: bash
-        run: |
-          pip install --upgrade pip
-          pip install build==${{ env.PYTHON_BUILD_PKG_VERSION }}
-
-      - name: Install Test dependencies
-        run: |
-          pip install -r sdk/python/requirements.txt
-          pip install -r sdk/python/requirements-dev.txt
-          pip install pytest
-          pip install pytest-cov
-
-      - name: Build & install kfp-server-api dist
-        id: install-kfp-server-api
-        shell: bash
-        working-directory: backend/api/v2beta1/python_http_client
-        run: |
-          rm -rf dist/
-          python -m build .
-          pip install dist/*.whl
 
       - name: Run tests
         id: tests

@@ -9,18 +9,6 @@ inputs:
     required: true
     default: "31.1"
     description: "protoc version"
-  protobuf_python_version:
-    required: true
-    default: "6.31.1"
-    description: "protobuf python package version"
-  setuptools_version:
-    required: true
-    default: "80.9.0"
-    description: "setuptools python package version"
-  wheels_version:
-    required: true
-    default: "0.42.0"
-    description: "wheels python package version"
   generate_golang_proto:
     required: true
     default: "false"
@@ -38,26 +26,20 @@ runs:
         rm $PROTOC_ZIP
         protoc --version
 
-    - name: Install setuptools
-      shell: bash
-      run: |
-        pip3 install setuptools==${{inputs.setuptools_version}}
-        pip3 freeze
-
-    - name: Install Wheel
-      shell: bash
-      run: pip3 install wheel==${{inputs.wheels_version}}
-    - name: Install protobuf
-      shell: bash
-      run: pip3 install protobuf==${{inputs.protobuf_python_version}}
     - name: Generate API proto files
       working-directory: ./api
       shell: bash
       run: make clean python
+
     - name: Install kfp-pipeline-spec from source
       shell: bash
       run: |
-        pip install api/v2alpha1/python/dist/*.whl
+        wheel_file=$(ls api/v2alpha1/python/dist/*.whl 2>/dev/null | head -n1)
+        if [ -z "$wheel_file" ]; then
+          echo "Error: No wheel files found in api/v2alpha1/python/dist/"
+          exit 1
+        fi
+        uv pip install "$wheel_file"
 
     - name: Generate kfp-pipeline-spec golang files
       if: ${{ inputs.generate_golang_proto == 'true' }}
@@ -73,9 +55,5 @@ runs:
         Installed the following dependencies:
         Binaries:
           protoc: ${{ inputs.protoc_version }}
-        Python Packages:
-          setuptools: ${{ inputs.setuptools_version }}
-          wheels: ${{ inputs.wheels_version }}
-          protobuf: ${{ inputs.protobuf_python_version }}
         EOF
         

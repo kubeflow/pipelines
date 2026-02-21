@@ -27,14 +27,15 @@ pushd "$PKG_ROOT/.."
 make clean-python python USE_FIND_LINKS=${USE_FIND_LINKS}
 popd
 
-SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
+# Extract version from __init__.py without importing (avoids needing protobuf installed)
+SETUPPY_VERSION=$(grep -oP "^__version__ = '\K[^']+" kfp/kubernetes/__init__.py)
 
 if [ -z "$KFP_KUBERNETES_VERSION" ]
 then
     echo "Set \$KFP_KUBERNETES_VERSION to use this script. Got empty variable."
 elif [[ "$KFP_KUBERNETES_VERSION" != "$SETUPPY_VERSION" ]]
 then
-    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in setup.py '$SETUPPY_VERSION'."
+    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in __init__.py '$SETUPPY_VERSION'."
 else
     echo "Got version $KFP_KUBERNETES_VERSION from env var \$KFP_KUBERNETES_VERSION"
 

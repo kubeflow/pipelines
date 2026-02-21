@@ -1,0 +1,92 @@
+[project]
+name = "kfp-workspace"
+version = "0.0.0"
+requires-python = ">=3.9"
+dependencies = [
+  "kfp",
+  "kfp-pipeline-spec",
+  "kfp-server-api",
+  "kfp-kubernetes",
+]
+
+[tool.uv.workspace]
+members = [
+  "sdk/python",
+  "kubernetes_platform/python",
+  "api/v2alpha1/python",
+  "backend/api/v2beta1/python_http_client",
+]
+
+[tool.uv.sources]
+kfp = { workspace = true }
+kfp-pipeline-spec = { workspace = true }
+kfp-server-api = { workspace = true }
+kfp-kubernetes = { workspace = true }
+
+[tool.uv]
+# Shared constraints applied during resolution for ALL workspace members
+constraint-dependencies = [
+  "protobuf>=6.31.1,<7.0",
+  "kubernetes>=8.0.0,<31",
+  "google-auth>=1.6.1,<3",
+  "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
+  "google-cloud-storage>=2.2.1,<4",
+  "PyYAML>=5.3,<7",
+  "urllib3<3.0.0",
+]
+
+[project.optional-dependencies]
+# Linting tools (pinned to avoid new lint failures)
+lint = [
+  "docformatter==1.4",
+  "isort==5.10.1",  "pre-commit-hooks",  "pycln==2.1.1",
+  "pylint==2.17.7",
+  "yapf==0.43.0",
+]
+
+# Testing tools
+test = [
+  "absl-py",
+  "docker",
+  "google-cloud-pipeline-components",
+  "kubernetes",
+  "nbformat",
+  "pip",
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
+  "pytest-xdist",
+  "setuptools",
+  "wheel",
+]
+
+# Development (lint + test + type checking)
+dev = [
+  "kfp-workspace[lint,test]",
+  "mypy",
+  "pre-commit",
+  "types-protobuf",
+  "types-PyYAML",
+  "types-requests",
+  "types-tabulate",
+]
+
+# Documentation building
+docs = [
+  "autodocsumm",
+  "m2r2",
+  "sphinx",
+  "sphinx-click",
+  "sphinx-immaterial",
+  "sphinx-rtd-theme",
+]
+
+# CI-specific tools (includes lint, test, and docs)
+ci = [
+  "kfp-workspace[lint,test,docs]",
+  "build",
+  "junit2html",
+  "requests",
+  "ruamel.yaml",
+  "twine",
+]

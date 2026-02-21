@@ -13,6 +13,7 @@
 # limitations under the License.
 
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
+UV_VERSION=0.10.3
 
 # Set USE_FIND_LINKS=true to use local sdk and pipeline_spec for buildling python builds rather than pulling from pypi
 # applies to `make python` and make pythone-dev` commands.
@@ -52,15 +53,17 @@ python: proto/kubernetes_executor_config.proto fetch-protos
 		$(if $(USE_FIND_LINKS),-e PIP_FIND_LINKS="$(FIND_LINKS_PATH)") \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+		    pip install --user --break-system-packages uv==$(UV_VERSION) && \
+		    cd kubernetes_platform/python && \
 		    python3 generate_proto.py && \
-		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		    cd /go/src/github.com/kubeflow/pipelines && \
+		    ~/.local/bin/uv build --package kfp-kubernetes --out-dir kubernetes_platform/python/dist'
 
 # Build and install in editable mode using pre-built image
 .PHONY: python-dev
 python-dev: proto/kubernetes_executor_config.proto fetch-protos
-	python3 python/generate_proto.py && cd python && pip install -e .[dev]
+	python3 python/generate_proto.py && cd python && uv pip install -e .
 
 # Delete all generated Python packages
 .PHONY: clean-python
