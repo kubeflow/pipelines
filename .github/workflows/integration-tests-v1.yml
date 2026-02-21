@@ -6,19 +6,19 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/api-integration-tests-v1.yml'
-      - '.github/workflows/image-builds.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/actions/deploy/**'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'manifests/kustomize/**'
-      - 'test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/api-integration-tests-v1.yml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/actions/deploy/**"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "manifests/kustomize/**"
+      - "test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 concurrency:
   group: legacy-integration-v1-tests-${{ github.event.pull_request.number || github.ref }}
@@ -33,8 +33,9 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.34.0" ]
-    name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
+        k8s_version: ["v1.29.2", "v1.34.0"]
+        db_type: ["mysql", "pgx"]
+    name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }} - ${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -48,6 +49,13 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: 3.9
+
+      - name: Set up Go
+        if: ${{ matrix.db_type == 'pgx' }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -64,16 +72,29 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          db_type: ${{ matrix.db_type == 'pgx' && matrix.db_type || '' }}
+          pipeline_store: "database"
+          forward_port: "true"
 
       - name: Forward MySQL port
         id: forward-mysql-port
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' && matrix.db_type == 'mysql' }}
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
         continue-on-error: true
 
+      - name: Forward Postgres port
+        id: forward-postgres-port
+        if: ${{ steps.deploy.outcome == 'success' && matrix.db_type == 'pgx' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "postgres" 5432 5432
+        continue-on-error: true
+
+      - name: Wait for API server readiness
+        if: ${{ matrix.db_type == 'pgx' && steps.forward-postgres-port.outcome == 'success' }}
+        run: kubectl -n kubeflow wait --for=condition=available deploy/ml-pipeline --timeout=300s
+
       - name: Initialization tests v1
         id: initialization-tests
-        if: ${{ steps.forward-mysql-port.outcome == 'success' }}
+        if: ${{ (matrix.db_type == 'mysql' && steps.forward-mysql-port.outcome == 'success') || (matrix.db_type == 'pgx' && steps.forward-postgres-port.outcome == 'success') }}
         working-directory: ./backend/test/initialization
         run: go test -v ./... -namespace=kubeflow -args -runIntegrationTests=true
         env:
@@ -82,15 +103,24 @@ jobs:
 
       - name: API integration tests v1
         id: integration-tests
-        if: ${{ steps.forward-mysql-port.outcome == 'success' }}
+        if: ${{ (matrix.db_type == 'mysql' && steps.forward-mysql-port.outcome == 'success') || (matrix.db_type == 'pgx' && steps.forward-postgres-port.outcome == 'success') }}
         working-directory: ./backend/test/integration
-        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
+        run: |
+          go test -v ./... \
+            ${{ matrix.db_type == 'pgx' && '-skip TestUpgrade' || '' }} \
+            -args -runIntegrationTests=true \
+            ${{ matrix.db_type == 'pgx' && '-runPostgreSQLTests=true' || '' }} \
+            -namespace=kubeflow \
+            -repoName=${{ github.repository }} \
+            -branchName=${{ github.ref_name }}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
+        if: |
+          (matrix.db_type == 'mysql' && (steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success')) ||
+          (matrix.db_type == 'pgx' && (steps.forward-postgres-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success'))
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
@@ -99,5 +129,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-initialization-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
+          name: kfp-initialization-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.db_type }}
           path: /tmp/tmp*/*

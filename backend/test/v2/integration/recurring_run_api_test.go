@@ -153,7 +153,10 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 	}
 	s.swfClient = client.NewScheduledWorkflowClientOrFatal(time.Second*30, util.ClientParameters{QPS: 5, Burst: 10})
 
+	// Clean up before each test to ensure test isolation.
+	// See comments on s.cleanUp() in run_api_test.go
 	s.cleanUp()
+
 }
 
 func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {

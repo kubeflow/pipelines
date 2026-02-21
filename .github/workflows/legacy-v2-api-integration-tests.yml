@@ -6,19 +6,19 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/legacy-v2-api-integration-tests.yml'
-      - '.github/workflows/image-builds.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/actions/deploy/**'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'manifests/kustomize/**'
-      - 'test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/legacy-v2-api-integration-tests.yml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/actions/deploy/**"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "manifests/kustomize/**"
+      - "test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 concurrency:
   group: legacy-integration-v2-tests-${{ github.event.pull_request.number || github.ref }}
@@ -33,9 +33,9 @@ jobs:
     needs: build
     strategy:
       matrix:
-        pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.34.0" ]
-        pod_to_pod_tls_enabled: [ true, false ]
+        pipeline_store: ["database", "kubernetes"]
+        k8s_version: ["v1.34.0"]
+        pod_to_pod_tls_enabled: [true, false]
         exclude:
           # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
           - pipeline_store: "kubernetes"
@@ -78,6 +78,8 @@ jobs:
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled }}
         run: |
+          echo "Waiting for kfp-api-tls-cert secret to be created by cert-manager..."
+          kubectl wait --for=jsonpath='{.data.ca\.crt}' --timeout=300s secret/kfp-api-tls-cert -n kubeflow
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 

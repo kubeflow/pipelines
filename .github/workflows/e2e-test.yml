@@ -14,27 +14,26 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/e2e-test.yml'
-      - '.github/workflows/image-builds.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/actions/deploy/**'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'proxy/**'
-      - 'manifests/kustomize/**'
-      - 'test_data/sdk_compiled_pipelines/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
-
+      - ".github/workflows/e2e-test.yml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/actions/deploy/**"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "proxy/**"
+      - "manifests/kustomize/**"
+      - "test_data/sdk_compiled_pipelines/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
   workflow_dispatch:
     inputs:
       test_label:
         description: "Test label that you want to filter on and run"
-        default: 'ApiServerTests'
+        default: "ApiServerTests"
         required: true
         type: string
       number_of_parallel_tests:
@@ -63,31 +62,52 @@ jobs:
       matrix:
         k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.3", "v3.6.7", "v3.5.14"]
-        proxy: [ "false" ]
-        test_label: [ "E2ECritical" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        argo_version: ["v3.7.3", "v3.6.7", "v3.5.14"]
+        proxy: ["false"]
+        test_label: ["E2ECritical"]
+        pod_to_pod_tls_enabled: ["false"]
+        db_type: ["mysql", "pgx"]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "false"
             argo_version: "v3.5.14"
+            db_type: "mysql"
             test_label: "E2ECritical"
           - k8s_version: "v1.34.0"
             cache_enabled: "false"
             proxy: "true"
+            db_type: "mysql"
             test_label: "E2EProxy"
           - k8s_version: "v1.34.0"
             cache_enabled: "false"
+            db_type: "mysql"
             test_label: "E2EEssential"
           - k8s_version: "v1.34.0"
             cache_enabled: "false"
+            db_type: "mysql"
             test_label: "E2EFailure"
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
+            db_type: "mysql"
             test_label: "E2ECritical"
+          - k8s_version: "v1.34.0"
+            cache_enabled: "true"
+            argo_version: "v3.7.3"
+            pod_to_pod_tls_enabled: "true"
+            proxy: "false"
+            db_type: "pgx"
+            test_label: "E2ECritical"
+
+        exclude:
+          - db_type: "pgx"
+            proxy: "true"
+          - db_type: "pgx"
+            argo_version: "v3.6.7"
+          - db_type: "pgx"
+            argo_version: "v3.5.14"
       fail-fast: false
-    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -107,6 +127,7 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          db_type: ${{ matrix.db_type }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
@@ -156,7 +177,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}"
+          report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_dbType=${{ matrix.db_type }}_tlsEnabled=${{ matrix.pod_to_pod_tls_enabled }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
@@ -167,16 +188,19 @@ jobs:
       matrix:
         k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
-        multi_user: [ "true" ]
-        test_label: [ "E2ECritical" ]
+        multi_user: ["true"]
+        db_type: ["mysql", "pgx"]
+        artifact_proxy: ["false"]
+        test_label: ["E2ECritical"]
         include:
-        - multi_user: "true"
-          artifact_proxy: "true"
-          k8s_version: "v1.34.0"
-          cache_enabled: "true"
-          test_label: "E2ECritical"
+          - multi_user: "true"
+            artifact_proxy: "true"
+            k8s_version: "v1.34.0"
+            cache_enabled: "true"
+            db_type: "mysql"
+            test_label: "E2ECritical"
       fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }}
+    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -196,6 +220,7 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           artifact_proxy: ${{ matrix.artifact_proxy }}
+          db_type: ${{ matrix.db_type }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
@@ -252,4 +277,4 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_artifactProxy=${{ matrix.artifact_proxy }}_dbType=${{ matrix.db_type }}"

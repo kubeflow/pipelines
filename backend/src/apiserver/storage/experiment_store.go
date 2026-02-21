@@ -20,6 +20,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -37,11 +38,12 @@ type ExperimentStoreInterface interface {
 }
 
 type ExperimentStore struct {
-	db                     *DB
+	db                     *sql.DB
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 	resourceReferenceStore *ResourceReferenceStore
 	defaultExperimentStore *DefaultExperimentStore
+	dbDialect              dialect.DBDialect
 }
 
 var experimentColumns = []string{
@@ -60,26 +62,32 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	errorF := func(err error) ([]*model.Experiment, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
+	q := s.dbDialect.QuoteIdentifier
 
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := sq.Select(experimentColumns...).From("experiments")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
+	qb := s.dbDialect.QueryBuilder()
+	cols := make([]string, len(experimentColumns))
+	for i, c := range experimentColumns {
+		cols[i] = q(c)
 	}
-	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
+	sqlBuilder := qb.Select(cols...).From(q("experiments"))
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.ID})
+	}
+	sqlBuilder = opts.AddFilterToSelect(sqlBuilder, q)
 
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	sqlBuilder = sq.Select("count(*)").From("experiments")
+	sqlBuilder = qb.Select("count(*)").From(q("experiments"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.ID})
 	}
-	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
+	sizeSQL, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -90,8 +98,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		glog.Errorf("Failed to start transaction to list jobs")
 		return errorF(err)
 	}
-
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -107,7 +114,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	}
 	defer rows.Close()
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -138,10 +145,16 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
-	sql, args, err := sq.
-		Select(experimentColumns...).
-		From("experiments").
-		Where(sq.Eq{"uuid": uuid}).
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	cols := make([]string, len(experimentColumns))
+	for i, c := range experimentColumns {
+		cols[i] = q(c)
+	}
+	sql, args, err := qb.
+		Select(cols...).
+		From(q("experiments")).
+		Where(sq.Eq{q("UUID"): uuid}).
 		Limit(1).
 		ToSql()
 	if err != nil {
@@ -164,12 +177,18 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 }
 
 func (s *ExperimentStore) GetExperimentByNameNamespace(name string, namespace string) (*model.Experiment, error) {
-	sql, args, err := sq.
-		Select(experimentColumns...).
-		From("experiments").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	cols := make([]string, len(experimentColumns))
+	for i, c := range experimentColumns {
+		cols[i] = q(c)
+	}
+	sql, args, err := qb.
+		Select(cols...).
+		From(q("experiments")).
 		Where(sq.Eq{
-			"Name":      name,
-			"Namespace": namespace,
+			q("Name"):      name,
+			q("Namespace"): namespace,
 		}).
 		Limit(1).
 		ToSql()
@@ -239,17 +258,18 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	if !newExperiment.StorageState.IsValid() {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q", newExperiment.StorageState)
 	}
-
-	sql, args, err := sq.
-		Insert("experiments").
-		SetMap(sq.Eq{
-			"UUID":                  newExperiment.UUID,
-			"CreatedAtInSec":        newExperiment.CreatedAtInSec,
-			"LastRunCreatedAtInSec": newExperiment.LastRunCreatedAtInSec,
-			"Name":                  newExperiment.Name,
-			"Description":           newExperiment.Description,
-			"Namespace":             newExperiment.Namespace,
-			"StorageState":          newExperiment.StorageState.ToV2().ToString(),
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sql, args, err := qb.
+		Insert(q("experiments")).
+		SetMap(map[string]interface{}{
+			q("UUID"):                  newExperiment.UUID,
+			q("CreatedAtInSec"):        newExperiment.CreatedAtInSec,
+			q("LastRunCreatedAtInSec"): newExperiment.LastRunCreatedAtInSec,
+			q("Name"):                  newExperiment.Name,
+			q("Description"):           newExperiment.Description,
+			q("Namespace"):             newExperiment.Namespace,
+			q("StorageState"):          newExperiment.StorageState.ToV2().ToString(),
 		}).
 		ToSql()
 	if err != nil {
@@ -258,7 +278,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if s.db.IsDuplicateError(err) {
+		if isDuplicateError(s.dbDialect, err) {
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new experiment. The name %v already exists. Please specify a new name", experiment.Name)
 		}
@@ -269,7 +289,9 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 }
 
 func (s *ExperimentStore) DeleteExperiment(id string) error {
-	experimentSql, experimentArgs, err := sq.Delete("experiments").Where(sq.Eq{"UUID": id}).ToSql()
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	experimentSQL, experimentArgs, err := qb.Delete(q("experiments")).Where(sq.Eq{q("UUID"): id}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to delete experiment: %s", id)
@@ -279,7 +301,7 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete experiment")
 	}
-	_, err = tx.Exec(experimentSql, experimentArgs...)
+	_, err = tx.Exec(experimentSQL, experimentArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete experiment %s from table", id)
@@ -305,90 +327,115 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	// ArchiveExperiment results in
 	// 1. The experiment getting archived
 	// 2. All the runs in the experiment getting archived no matter what previous storage state they are in
-	sql, args, err := sq.
-		Update("experiments").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	// Reusable subquery template for resource_references lookups.
+	// We use ? placeholders instead of calling ToSql() on a SelectBuilder to avoid
+	// PostgreSQL $N placeholder conflicts in UPDATE statements. When UPDATE has a SET clause
+	// consuming $1, an embedded subquery with $1,$2,$3 from ToSql() would cause conflicts.
+	// Keeping ? placeholders inline allows Squirrel to renumber all placeholders correctly.
+	resourceReferenceSubquery := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE %s = ? AND %s = ? AND %s = ?",
+		q("ResourceUUID"),
+		q("resource_references"),
+		q("ReferenceType"),
+		q("ReferenceUUID"),
+		q("ResourceType"),
+	)
+
+	sql, args, err := qb.
+		Update(q("experiments")).
 		SetMap(sq.Eq{
-			"StorageState": model.StorageStateArchived.ToString(),
+			q("StorageState"): model.StorageStateArchived.ToString(),
 		}).
-		Where(sq.Eq{"UUID": expId}).
+		Where(sq.Eq{q("UUID"): expId}).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to archive experiment")
 	}
 
-	var updateRunsArgs []interface{}
-	updateRunsArgs = append(updateRunsArgs, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
-	// TODO(gkcalat): deprecate resource_references table once we migrate to v2beta1 and switch to filtering on Run's 'experiment_id' instead.
-	updateRunsSQL := s.db.UpdateWithJointOrFrom(
-		"run_details",
-		"resource_references",
-		"StorageState = ?",
-		"run_details.UUID = resource_references.ResourceUUID",
-		"resource_references.ResourceType = ? AND resource_references.ReferenceUUID = ? AND resource_references.ReferenceType = ?")
-
-	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := sq.
-		Update("run_details").
-		SetMap(sq.Eq{
-			"StorageState": model.StorageStateArchived.ToString(),
-		}).
-		Where(sq.Eq{"ExperimentUUID": expId}).
-		Where(sq.NotEq{"StorageState": model.StorageStateArchived.ToString()}).
+	// Archive runs via resource_references
+	updateRunsSQL, updateRunsArgs, err := qb.
+		Update(q("run_details")).
+		SetMap(sq.Eq{q("StorageState"): model.StorageStateArchived.ToString()}).
+		Where(sq.Expr(
+			fmt.Sprintf("%s IN (%s)", q("UUID"), resourceReferenceSubquery),
+			model.ExperimentResourceType, // ReferenceType
+			expId,                        // ReferenceUUID
+			model.RunResourceType,        // ResourceType
+		)).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to archive runs")
 	}
 
-	var updateJobsArgs []interface{}
+	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := qb.
+		Update(q("run_details")).
+		SetMap(sq.Eq{
+			q("StorageState"): model.StorageStateArchived.ToString(),
+		}).
+		Where(sq.Eq{q("ExperimentUUID"): expId}).
+		Where(sq.NotEq{q("StorageState"): model.StorageStateArchived.ToString()}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to archive runs by ExperimentUUID")
+	}
+
+	// Disable jobs via resource_references
 	now := s.time.Now().Unix()
-	updateJobsArgs = append(updateJobsArgs, false, now, model.JobResourceType, expId, model.ExperimentResourceType)
 	// TODO(gkcalat): deprecate resource_references table once we migrate to v2beta1 and switch to filtering on Job's `experiment_id' instead.
-	updateJobsSQL := s.db.UpdateWithJointOrFrom(
-		"jobs",
-		"resource_references",
-		"Enabled = ?, UpdatedAtInSec = ?",
-		"jobs.UUID = resource_references.ResourceUUID",
-		"resource_references.ResourceType = ? AND resource_references.ReferenceUUID = ? AND resource_references.ReferenceType = ?")
+	updateJobsSQL, updateJobsArgs, err := qb.
+		Update(q("jobs")).
+		SetMap(sq.Eq{
+			q("Enabled"):        false,
+			q("UpdatedAtInSec"): now,
+		}).
+		Where(sq.Expr(
+			fmt.Sprintf("%s IN (%s)", q("UUID"), resourceReferenceSubquery),
+			model.ExperimentResourceType, // ReferenceType
+			expId,                        // ReferenceUUID
+			model.JobResourceType,        // ResourceType
+		)).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to disable jobs")
+	}
 
 	// In a single transaction, we update experiments, run_details and jobs tables.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to archive an experiment")
+		return util.NewInternalServerError(err, "Failed to create transaction to archive experiment")
 	}
 
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to archive experiment")
 	}
 
 	_, err = tx.Exec(updateRunsSQL, updateRunsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to archive runs via resource_references")
 	}
 
 	_, err = tx.Exec(updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to archive runs with ExperimentUUID being %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to archive runs via ExperimentUUID")
 	}
 
 	_, err = tx.Exec(updateJobsSQL, updateJobsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to disable all jobs in an experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to disable jobs")
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to archive an experiment %s and its runs", expId)
+		return util.NewInternalServerError(err, "Failed to commit transaction")
 	}
 
 	return nil
@@ -398,12 +445,14 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 	// UnarchiveExperiment results in
 	// 1. The experiment getting unarchived
 	// 2. All the archived runs and disabled jobs will stay archived
-	sql, args, err := sq.
-		Update("experiments").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sql, args, err := qb.
+		Update(q("experiments")).
 		SetMap(sq.Eq{
-			"StorageState": model.StorageStateAvailable.ToString(),
+			q("StorageState"): model.StorageStateAvailable.ToString(),
 		}).
-		Where(sq.Eq{"UUID": expId}).
+		Where(sq.Eq{q("UUID"): expId}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -422,12 +471,14 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 func (s *ExperimentStore) SetLastRunTimestamp(run *model.Run) error {
 	expId := run.ExperimentId
 	// SetLastRunTimestamp results in the experiment getting last_run_created_at updated
-	query, args, err := sq.
-		Update("experiments").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	query, args, err := qb.
+		Update(q("experiments")).
 		SetMap(sq.Eq{
-			"LastRunCreatedAtInSec": run.CreatedAtInSec,
+			q("LastRunCreatedAtInSec"): run.CreatedAtInSec,
 		}).
-		Where(sq.Eq{"UUID": expId}).
+		Where(sq.Eq{q("UUID"): expId}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -442,12 +493,13 @@ func (s *ExperimentStore) SetLastRunTimestamp(run *model.Run) error {
 }
 
 // factory function for experiment store.
-func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
+func NewExperimentStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *ExperimentStore {
 	return &ExperimentStore{
 		db:                     db,
 		time:                   time,
 		uuid:                   uuid,
-		resourceReferenceStore: NewResourceReferenceStore(db, nil),
-		defaultExperimentStore: NewDefaultExperimentStore(db),
+		resourceReferenceStore: NewResourceReferenceStore(db, nil, d),
+		defaultExperimentStore: NewDefaultExperimentStore(db, d),
+		dbDialect:              d,
 	}
 }

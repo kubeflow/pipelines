@@ -544,6 +544,66 @@ pip install docformatter
 docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 ```
 
+## Database query guidelines (backend storage layer)
+
+When writing or modifying database queries in the backend storage layer (`backend/src/apiserver/storage/`):
+
+### Preferred approach: Use GORM for new features
+
+- **GORM handles SQL dialects automatically**: GORM correctly quotes identifiers and generates dialect-specific SQL for both MySQL and PostgreSQL.
+- **Use GORM for**: Simple CRUD operations, basic queries, and whenever GORM supports the required functionality.
+- **Example**:
+  ```go
+  db.Model(&models.Experiment{}).
+      Where("uuid = ?", uuid).
+      Update("storage_state", models.ExperimentStorageStateARCHIVED)
+  ```
+
+### Fallback: Squirrel + DBDialect for complex queries
+
+When GORM cannot express the query (e.g., complex JOINs, subqueries, CTEs, UPSERT operations):
+
+- **Use Squirrel query builder** with the `dialect.DBDialect` helper.
+- **CRITICAL**: All table and column names MUST be quoted using `dialect.QuoteIdentifier()`.
+- **Why quoting is required**: KFP uses CamelCase schema names (legacy design). Without quoting:
+  - MySQL treats `ExperimentUUID` as `experimentuuid` (case-insensitive)
+  - PostgreSQL treats `ExperimentUUID` as `experimentuuid` (lowercased), breaking queries
+- **Example**:
+  ```go
+  func (s *ExperimentStore) ArchiveExperiment(id string) error {
+      quotedTable := s.dialect.QuoteIdentifier("Experiments")
+      quotedUUID := s.dialect.QuoteIdentifier("UUID")
+      quotedState := s.dialect.QuoteIdentifier("StorageState")
+
+      sql, args, err := s.dialect.QueryBuilder().
+          Update(quotedTable).
+          Set(quotedState, models.ExperimentStorageStateARCHIVED).
+          Where(sq.Eq{quotedUUID: id}).
+          ToSql()
+
+      _, err = s.db.Exec(sql, args...)
+      return err
+  }
+  ```
+
+### Testing and CI coverage
+
+- **Unit tests**: Use SQLite-based tests (via `NewFakeDB()`) to verify behavior.
+- **SQL generation tests**: For complex queries, add dialect-specific SQL generation tests (see `backend/src/apiserver/storage/list_filters_test.go` for examples).
+- **Integration tests**: CI workflows automatically run all tests against both MySQL and PostgreSQL via matrix testing.
+- **CI will catch dialect issues**: GitHub Actions workflows test both database types:
+  - `.github/workflows/api-server-tests.yml`: API tests with MySQL and PostgreSQL
+  - `.github/workflows/legacy-v2-api-integration-tests.yml`: MySQL integration tests
+  - `.github/workflows/legacy-v2-api-integration-tests-postgres.yml`: PostgreSQL integration tests
+
+  If you skip using dialect helpers, integration tests will fail.
+
+### Additional resources
+
+- DBDialect implementation: `backend/src/apiserver/common/sql/dialect/`
+- Storage layer README: `backend/src/apiserver/storage/README.md`
+- SQL generation test examples: `backend/src/apiserver/storage/list_filters_test.go`
+
 ## Common agent workflows
 
 - **Modify pipeline spec schema**:

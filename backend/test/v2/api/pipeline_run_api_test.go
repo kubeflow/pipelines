@@ -66,6 +66,16 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 	pipelineDirectory := "valid"
 	pipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
 
+	// getFirstYamlFile returns the first .yaml file from the list of pipeline files
+	getFirstYamlFile := func(filePaths []string) string {
+		for _, path := range filePaths {
+			if strings.HasSuffix(path, ".yaml") {
+				return path
+			}
+		}
+		panic("No .yaml file found in pipeline files")
+	}
+
 	Context("Create a valid pipeline and verify the created run >", func() {
 		for _, param := range testParams {
 			for _, pipelineFilePath := range pipelineFilePaths {
@@ -83,7 +93,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 				})
 			}
 		}
-		pipelineFile := pipelineFilePaths[0]
+		pipelineFile := getFirstYamlFile(pipelineFilePaths)
 		It(fmt.Sprintf("Create a '%s' pipeline, create an experiement and verify run with associated experiment", pipelineFile), Label(constants.SMOKE), func() {
 			createdExperiment := createExperiment(experimentName)
 			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
@@ -95,7 +105,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 	})
 
 	Context("Associate a single experiment with multiple pipeline runs >", func() {
-		pipelineFile := pipelineFilePaths[0]
+		pipelineFile := getFirstYamlFile(pipelineFilePaths)
 		It("Create an experiment and associate it multiple pipeline runs of the same pipeline", func() {
 			createdExperiment := createExperiment(experimentName)
 			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)

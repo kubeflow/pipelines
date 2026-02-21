@@ -16,16 +16,20 @@ package storage
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
+	sq "github.com/Masterminds/squirrel"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 )
 
@@ -49,9 +53,9 @@ func createExperimentInNamespace(name string, namespace string) *model.Experimen
 }
 
 func TestListExperiments_Pagination(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment3"))
@@ -115,9 +119,9 @@ func TestListExperiments_Pagination(t *testing.T) {
 }
 
 func TestListExperiments_Pagination_Descend(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment3"))
@@ -178,9 +182,9 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 }
 
 func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	expectedExperiment1 := &model.Experiment{
 		UUID:           fakeID,
@@ -202,9 +206,9 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListExperimentsError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
@@ -214,9 +218,9 @@ func TestListExperimentsError(t *testing.T) {
 }
 
 func TestGetExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	experimentExpected := model.Experiment{
 		UUID:           fakeID,
@@ -232,9 +236,9 @@ func TestGetExperiment(t *testing.T) {
 }
 
 func TestGetExperiment_NotFoundError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 
 	_, err := experimentStore.GetExperiment(fakeID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
@@ -242,9 +246,9 @@ func TestGetExperiment_NotFoundError(t *testing.T) {
 }
 
 func TestGetExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
 	_, err := experimentStore.GetExperiment("123")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
@@ -252,9 +256,9 @@ func TestGetExperiment_InternalError(t *testing.T) {
 }
 
 func TestCreateExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentExpected := model.Experiment{
 		UUID:           fakeID,
 		CreatedAtInSec: 1,
@@ -270,9 +274,9 @@ func TestCreateExperiment(t *testing.T) {
 }
 
 func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentExpected := model.Experiment{
 		UUID:           fakeID,
 		CreatedAtInSec: 1,
@@ -287,7 +291,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, experimentExpected, *experiment, "Got unexpected experiment")
 
-	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil))
+	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil), testDialect)
 	experiment = createExperimentInNamespace("experiment1", "namespace2")
 	experimentExpected = model.Experiment{
 		UUID:           fakeIDTwo,
@@ -304,14 +308,14 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 }
 
 func TestCreateExperiment_DuplicatedKey(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experiment := createExperiment("experiment1")
 	_, err := experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
 
-	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil))
+	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil), testDialect)
 	_, err = experimentStore.CreateExperiment(experiment)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The name experiment1 already exist")
@@ -319,9 +323,9 @@ func TestCreateExperiment_DuplicatedKey(t *testing.T) {
 
 func TestCreateExperiment_InternalServerError(t *testing.T) {
 	experiment := &model.Experiment{Name: "Experiment123"}
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
 
 	_, err := experimentStore.CreateExperiment(experiment)
@@ -331,9 +335,9 @@ func TestCreateExperiment_InternalServerError(t *testing.T) {
 
 func TestCreateExperiment_CreateUUIDFailure(t *testing.T) {
 	experiment := &model.Experiment{Name: "Experiment123"}
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, errors.New("error")))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, errors.New("error")), testDialect)
 	db.Close()
 
 	_, err := experimentStore.CreateExperiment(experiment)
@@ -342,9 +346,9 @@ func TestCreateExperiment_CreateUUIDFailure(t *testing.T) {
 }
 
 func TestDeleteExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	experiment, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
@@ -358,9 +362,9 @@ func TestDeleteExperiment(t *testing.T) {
 }
 
 func TestDeleteExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	experiment, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
@@ -373,9 +377,9 @@ func TestDeleteExperiment_InternalError(t *testing.T) {
 }
 
 func TestListExperiments_Filtering(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment2"))
@@ -449,8 +453,8 @@ func TestListExperiments_Filtering(t *testing.T) {
 }
 
 func TestArchiveExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	db, testDialect := NewFakeDBOrFatal()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	db.Close()
 
@@ -460,7 +464,7 @@ func TestArchiveExperiment_InternalError(t *testing.T) {
 }
 
 func TestArchiveAndUnarchiveExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 
 	// Initial state: 1 experiment and 2 runs in it.
@@ -470,11 +474,12 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		db,
 		util.NewFakeTimeForEpoch(),
 		util.NewFakeUUIDGeneratorOrFatal(fakeID, nil),
+		testDialect,
 	)
 	experimentStore.CreateExperiment(
 		createExperiment("experiment1"),
 	)
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 	run1 := &model.Run{
 		UUID:         "1",
 		DisplayName:  "run1",
@@ -507,7 +512,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	}
 	runStore.CreateRun(run1)
 	runStore.CreateRun(run2)
-	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	opts, _ := list.NewOptions(&model.Run{}, 10, "id", nil)
 	runs, total_run_size, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_run_size)
@@ -516,7 +521,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, apiv2beta1.Run_AVAILABLE.String(), runs[0].StorageState.ToString())
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job1 := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
@@ -563,7 +568,8 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
 	assert.Equal(t, "ARCHIVED", exp.StorageState.ToString())
-	opts, err = list.NewOptions(&model.Run{}, 10, "id", nil)
+	opts, _ = list.NewOptions(&model.Run{}, 10, "id", nil)
+	// Removed unused opts and err variables.
 	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_run_size)
@@ -598,11 +604,192 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 }
 
 func TestUnarchiveExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
-	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	db, testDialect := NewFakeDBOrFatal()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
 
 	err := experimentStore.UnarchiveExperiment(fakeID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected unarchive experiment to return internal error")
+}
+
+// TestArchiveExperiment_PlaceholderNumbering verifies that the ArchiveExperiment
+// query pattern (using string templates with ? placeholders) correctly generates
+// dialect-specific placeholder syntax when calling ToSql().
+//
+// This test addresses the concern raised in:
+// https://github.com/kubeflow/pipelines/pull/11472#discussion_r1937042595
+//
+// It ensures that:
+// - MySQL uses ? placeholders
+// - PostgreSQL uses $1, $2, $3... in the correct sequential order
+// - Subquery placeholders don't conflict with outer query placeholders
+func TestArchiveExperiment_PlaceholderNumbering(t *testing.T) {
+	dialects := []dialectSpec{
+		{name: "mysql", d: dialect.NewDBDialect("mysql")},
+		{name: "pgx", d: dialect.NewDBDialect("pgx")},
+	}
+
+	// Test data
+	expID := "exp-123"
+	now := int64(1234567890)
+
+	// Define test cases for each query generated by ArchiveExperiment
+	type queryCase struct {
+		name      string
+		wantBase  string              // base SQL prefix (dialect-agnostic, normalized)
+		wantFrag  map[string][]string // dialect -> fragments to verify
+		wantArgsN int                 // expected argument count
+	}
+
+	cases := []queryCase{
+		{
+			name:     "archive_experiment",
+			wantBase: "update experiments set storagestate =",
+			wantFrag: map[string][]string{
+				"mysql": {"storagestate = ?", "uuid = ?"},
+				"pgx":   {"storagestate = $1", "uuid = $2"},
+			},
+			wantArgsN: 2,
+		},
+		{
+			name:     "archive_runs_with_subquery",
+			wantBase: "update run_details set storagestate =",
+			wantFrag: map[string][]string{
+				"mysql": {
+					"storagestate = ?",
+					"uuid in (select resourceuuid",
+					"referencetype = ?",
+					"referenceuuid = ?",
+					"resourcetype = ?",
+				},
+				"pgx": {
+					"storagestate = $1",
+					"uuid in (select resourceuuid",
+					"referencetype = $2",
+					"referenceuuid = $3",
+					"resourcetype = $4",
+				},
+			},
+			wantArgsN: 4,
+		},
+		{
+			name:     "disable_jobs_with_subquery",
+			wantBase: "update jobs set",
+			wantFrag: map[string][]string{
+				"mysql": {
+					"enabled = ?",
+					"updatedatinsec = ?",
+					"uuid in (select resourceuuid",
+					"referencetype = ?",
+					"referenceuuid = ?",
+					"resourcetype = ?",
+				},
+				"pgx": {
+					"enabled = $1",
+					"updatedatinsec = $2",
+					"uuid in (select resourceuuid",
+					"referencetype = $3",
+					"referenceuuid = $4",
+					"resourcetype = $5",
+				},
+			},
+			wantArgsN: 5,
+		},
+	}
+
+	for _, dl := range dialects {
+		t.Run(dl.name, func(t *testing.T) {
+			qb := dl.d.QueryBuilder()
+			q := dl.d.QuoteIdentifier
+
+			// Build the subquery template (same pattern as experiment_store.go:343-350)
+			resourceReferenceSubquery := fmt.Sprintf(
+				"SELECT %s FROM %s WHERE %s = ? AND %s = ? AND %s = ?",
+				q("ResourceUUID"),
+				q("resource_references"),
+				q("ReferenceType"),
+				q("ReferenceUUID"),
+				q("ResourceType"),
+			)
+
+			// Query 1: Archive Experiment (lines 352-358 in experiment_store.go)
+			t.Run(cases[0].name, func(t *testing.T) {
+				sql, args, err := qb.
+					Update(q("experiments")).
+					SetMap(sq.Eq{
+						q("StorageState"): model.StorageStateArchived.ToString(),
+					}).
+					Where(sq.Eq{q("UUID"): expID}).
+					ToSql()
+
+				require.NoError(t, err)
+				require.Len(t, args, cases[0].wantArgsN)
+
+				normalized := normalizeSQL(sql)
+				require.True(t, strings.HasPrefix(normalized, cases[0].wantBase),
+					"SQL should start with: %s\nGot: %s", cases[0].wantBase, normalized)
+
+				for _, frag := range cases[0].wantFrag[dl.name] {
+					require.Containsf(t, normalized, frag,
+						"SQL should contain fragment: %s\nFull SQL: %s", frag, normalized)
+				}
+			})
+
+			// Query 2: Archive Runs via resource_references (lines 364-373 in experiment_store.go)
+			t.Run(cases[1].name, func(t *testing.T) {
+				sql, args, err := qb.
+					Update(q("run_details")).
+					SetMap(sq.Eq{q("StorageState"): model.StorageStateArchived.ToString()}).
+					Where(sq.Expr(
+						fmt.Sprintf("%s IN (%s)", q("UUID"), resourceReferenceSubquery),
+						model.ExperimentResourceType, // ReferenceType
+						expID,                        // ReferenceUUID
+						model.RunResourceType,        // ResourceType
+					)).
+					ToSql()
+
+				require.NoError(t, err)
+				require.Len(t, args, cases[1].wantArgsN)
+
+				normalized := normalizeSQL(sql)
+				require.True(t, strings.HasPrefix(normalized, cases[1].wantBase),
+					"SQL should start with: %s\nGot: %s", cases[1].wantBase, normalized)
+
+				for _, frag := range cases[1].wantFrag[dl.name] {
+					require.Containsf(t, normalized, frag,
+						"SQL should contain fragment: %s\nFull SQL: %s", frag, normalized)
+				}
+			})
+
+			// Query 3: Disable Jobs via resource_references (lines 393-405 in experiment_store.go)
+			t.Run(cases[2].name, func(t *testing.T) {
+				sql, args, err := qb.
+					Update(q("jobs")).
+					SetMap(sq.Eq{
+						q("Enabled"):        false,
+						q("UpdatedAtInSec"): now,
+					}).
+					Where(sq.Expr(
+						fmt.Sprintf("%s IN (%s)", q("UUID"), resourceReferenceSubquery),
+						model.ExperimentResourceType, // ReferenceType
+						expID,                        // ReferenceUUID
+						model.JobResourceType,        // ResourceType
+					)).
+					ToSql()
+
+				require.NoError(t, err)
+				require.Len(t, args, cases[2].wantArgsN)
+
+				normalized := normalizeSQL(sql)
+				require.True(t, strings.HasPrefix(normalized, cases[2].wantBase),
+					"SQL should start with: %s\nGot: %s", cases[2].wantBase, normalized)
+
+				for _, frag := range cases[2].wantFrag[dl.name] {
+					require.Containsf(t, normalized, frag,
+						"SQL should contain fragment: %s\nFull SQL: %s", frag, normalized)
+				}
+			})
+		})
+	}
 }
