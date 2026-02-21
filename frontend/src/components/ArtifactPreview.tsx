@@ -19,11 +19,11 @@ import { useQuery } from 'react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
+import { logger } from 'src/lib/Utils';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
-import { logger } from 'src/lib/Utils';
 import { URIToSessionInfo } from './tabs/InputOutputTab';
 
 const css = stylesheet({
@@ -75,6 +75,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
       storage = WorkflowParser.parseStoragePath(value);
     } catch (error) {
       logger.error(error);
+      storage = undefined;
     }
   }
 

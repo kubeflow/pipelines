@@ -1,4 +1,3 @@
-import { Stream } from 'stream';
 // Copyright 2019-2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,6 +53,10 @@ export interface Credentials {
  * Otherwise, assume s3 compatible credentials have been provided via configs
  * (defaultConfigs or ProviderInfo), and return a minio client configured
  * respectively.
+ *
+ * Security: Credentials are injected via environment variables (MINIO_ACCESS_KEY,
+ * MINIO_SECRET_KEY) from the deployment spec. The UI does not fetch secrets from
+ * the K8s API. See: https://github.com/kubeflow/pipelines/issues/12373
  *
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')

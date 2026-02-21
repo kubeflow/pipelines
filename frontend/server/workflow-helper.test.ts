@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
 import {
@@ -35,13 +36,41 @@ describe('workflow-helper', () => {
     secretKey: 'minio123',
   };
 
+  const streams: PassThrough[] = [];
+
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    await Promise.all(
+      streams.map(stream => {
+        return new Promise<void>(resolve => {
+          if (stream.destroyed) {
+            resolve();
+            return;
+          }
+
+          stream.removeAllListeners();
+
+          stream.on('close', () => resolve());
+          stream.destroy();
+
+          setTimeout(() => resolve(), 100);
+        });
+      }),
+    );
+    streams.length = 0;
+    vi.restoreAllMocks();
+    await new Promise(resolve => setTimeout(resolve, 50));
   });
 
   describe('composePodLogsStreamHandler', () => {
     it('returns the stream from the default handler if there is no errors.', async () => {
       const defaultStream = new PassThrough();
+      streams.push(defaultStream);
       const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.resolve(defaultStream),
       );
@@ -56,6 +85,7 @@ describe('workflow-helper', () => {
 
     it('returns the stream from the fallback handler if there is any error.', async () => {
       const fallbackStream = new PassThrough();
+      streams.push(fallbackStream);
       const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.reject('unknown error'),
       );
@@ -103,6 +133,7 @@ describe('workflow-helper', () => {
   describe('toGetPodLogsStream', () => {
     it('wraps a getMinioRequestConfig function to return the corresponding object stream.', async () => {
       const objStream = new PassThrough();
+      streams.push(objStream);
       objStream.end('some fake logs.');
 
       const client = new MinioClient(minioConfig);
@@ -117,7 +148,10 @@ describe('workflow-helper', () => {
         Promise.resolve(configs),
       );
       const stream = await toGetPodLogsStream(createRequest)('podName', '2024-08-13', 'namespace');
+      streams.push(stream as any);
       expect(mockedClientGetObject).toBeCalledWith('bucket', 'folder/key');
+
+      stream.destroy();
     });
   });
 
@@ -223,6 +257,7 @@ describe('workflow-helper', () => {
       mockedGetK8sSecret.mockResolvedValue('someSecret');
 
       const objStream = new PassThrough();
+      streams.push(objStream);
       const mockedClient: Mock = MinioClient as any;
       // In Vitest, auto-mocked class instances get their own mock methods.
       // Set up prototype mock so new instances inherit it.
@@ -233,6 +268,7 @@ describe('workflow-helper', () => {
         'workflow-name-system-container-impl-abc',
         '2024-07-09',
       );
+      streams.push(stream as any);
 
       expect(mockedGetArgoWorkflow).toBeCalledWith('workflow-name');
 
@@ -255,6 +291,8 @@ describe('workflow-helper', () => {
         'bucket',
         'prefix/workflow-name/workflow-name-system-container-impl-abc/main.log',
       );
+
+      stream.destroy();
     });
   });
 });

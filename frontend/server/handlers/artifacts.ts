@@ -21,7 +21,7 @@ import {
 } from '../utils.js';
 import { createMinioClient, getObjectStream } from '../minio-helper.js';
 import * as serverInfo from '../helpers/server-info.js';
-import { Handler, Request, Response } from 'express';
+import { Handler, Request, Response, NextFunction } from 'express';
 import { Storage } from '@google-cloud/storage';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
@@ -32,6 +32,11 @@ import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { StorageOptions } from '@google-cloud/storage';
 import { CredentialBody } from 'google-auth-library';
+import { AuthorizeFn } from '../helpers/auth.js';
+import {
+  AuthorizeRequestResources,
+  AuthorizeRequestVerb,
+} from '../src/generated/apis/auth/index.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -74,6 +79,96 @@ export interface GCSProviderInfo {
 }
 
 /**
+ * Returns an authorization middleware for artifact endpoints.
+ * This middleware handles 3 modes:
+ *
+ * 1. Standalone KFP deployment without Kubeflow platform (single-tenant):
+ *    No namespace parameter, no Subject Access Review, 100% insecure.
+ *
+ * 2. Default multi-tenant deployment of KFP within Kubeflow platform:
+ *    Namespace parameter provided, validate format and check RBAC (the user
+ *    is authenticated to access the artifact from the specific namespace
+ *    folder on the object storage via Subject Access Review) and access
+ *    SeaweedFS/storage directly.
+ *
+ * 3. Artifact PROXY MODE (overhead, disabled by default):
+ *    Namespace parameter provided, validate format and check RBAC, adds
+ *    significant overhead to each namespace, decreases scalability and is
+ *    prone to many CVEs in the artifact proxy deployment.
+ *
+ * Security: This addresses the vulnerability where the namespace parameter
+ * could be manipulated to access artifacts from other namespaces.
+ * See https://github.com/kubeflow/pipelines/issues/9889
+ *
+ * @param authorizeFn The authorization function to validate permissions
+ * @param authEnabled Whether authorization is enabled
+ * @param kubeflowUserIdHeader The header name containing the user identity
+ */
+export function getArtifactsAuthMiddleware(
+  authorizeFn: AuthorizeFn,
+  authEnabled: boolean,
+  kubeflowUserIdHeader: string,
+): Handler {
+  return async (request: Request, response: Response, next: NextFunction) => {
+    if (!authEnabled) {
+      return next();
+    }
+
+    const userId = request.headers[kubeflowUserIdHeader];
+    if (!userId) {
+      console.warn(
+        `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
+      );
+      response.status(401).send('Authentication required for artifact access');
+      return;
+    }
+
+    const namespace = request.query.namespace as string | undefined;
+
+    if (!namespace) {
+      console.warn(
+        `[SECURITY] Missing namespace parameter. ` +
+          `User: ${userId}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Namespace parameter is required when authentication is enabled');
+      return;
+    }
+
+    if (!isAllowedResourceName(namespace)) {
+      console.warn(
+        `[SECURITY] Invalid namespace format. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}`,
+      );
+      response.status(400).send('Invalid namespace format');
+      return;
+    }
+
+    const authError = await authorizeFn(
+      {
+        verb: AuthorizeRequestVerb.GET,
+        resources: AuthorizeRequestResources.VIEWERS,
+        namespace: namespace,
+      },
+      request,
+    );
+
+    if (authError) {
+      console.warn(
+        `[SECURITY] Unauthorized cross-namespace access attempt. ` +
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
+          `Reason: ${authError.message}`,
+      );
+      response.status(403).send(authError.message);
+      return;
+    }
+
+    next();
+  };
+}
+
+/**
  * Returns an artifact handler which retrieve an artifact from the corresponding
  * backend (i.e. gcs, minio, s3, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
@@ -98,33 +193,40 @@ export function getArtifactsHandler({
   options: UIConfigs;
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
-  return async (req, res) => {
-    const source = (useParameter ? req.params.source : req.query.source) as string | undefined;
-    const bucket = (useParameter ? req.params.bucket : req.query.bucket) as string | undefined;
-    const key = (useParameter ? req.params[0] : req.query.key) as string | undefined;
+  return async (request, response) => {
+    const source = (useParameter ? request.params.source : request.query.source) as
+      | string
+      | undefined;
+    const bucket = (useParameter ? request.params.bucket : request.query.bucket) as
+      | string
+      | undefined;
+    const key = (useParameter ? request.params[0] : request.query.key) as string | undefined;
     const {
       peek = 0,
       providerInfo = '',
-      namespace = options.server.serverNamespace,
-    } = req.query as Partial<ArtifactsQueryStrings>;
+      // Security: Do NOT provide a default namespace - authorization middleware
+      // will validate and require namespace when auth is enabled.
+      // This prevents unauthorized cross-namespace access (Issue #9889).
+      namespace,
+    } = request.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
-      res.status(500).send('Storage source is missing from artifact request');
+      response.status(500).send('Storage source is missing from artifact request');
       return;
     }
     if (!bucket) {
-      res.status(500).send('Storage bucket is missing from artifact request');
+      response.status(500).send('Storage bucket is missing from artifact request');
       return;
     }
     if (!isAllowedResourceName(bucket)) {
-      res.status(500).send('Invalid bucket name');
+      response.status(500).send('Invalid bucket name');
       return;
     }
     if (!key) {
-      res.status(500).send('Storage key is missing from artifact request');
+      response.status(500).send('Storage key is missing from artifact request');
       return;
     }
     if (key.length > 1024) {
-      res.status(500).send('Object key too long');
+      response.status(500).send('Object key too long');
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
@@ -132,13 +234,20 @@ export function getArtifactsHandler({
     let client: MinioClient;
     switch (source) {
       case 'gcs':
-        await getGCSArtifactHandler({ bucket, key }, peek, providerInfo, namespace)(req, res);
+        await getGCSArtifactHandler(
+          { bucket, key },
+          peek,
+          providerInfo,
+          namespace,
+        )(request, response);
         break;
       case 'minio':
         try {
           client = await createMinioClient(minio, 'minio', providerInfo, namespace);
-        } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
+        } catch (error) {
+          response
+            .status(500)
+            .send(`Failed to initialize Minio Client for Minio Provider: ${error}`);
           return;
         }
         await getMinioArtifactHandler(
@@ -149,13 +258,13 @@ export function getArtifactsHandler({
             tryExtract,
           },
           peek,
-        )(req, res);
+        )(request, response);
         break;
       case 's3':
         try {
           client = await createMinioClient(aws, 's3', providerInfo, namespace);
-        } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
+        } catch (error) {
+          response.status(500).send(`Failed to initialize S3 Client for S3 Provider: ${error}`);
           return;
         }
         await getMinioArtifactHandler(
@@ -165,7 +274,7 @@ export function getArtifactsHandler({
             key,
           },
           peek,
-        )(req, res);
+        )(request, response);
         break;
       case 'http':
       case 'https':
@@ -174,7 +283,7 @@ export function getArtifactsHandler({
           getHttpUrl(source, http.baseUrl || '', bucket, key),
           http.auth,
           peek,
-        )(req, res);
+        )(request, response);
         break;
       case 'volume':
         await getVolumeArtifactsHandler(
@@ -183,10 +292,10 @@ export function getArtifactsHandler({
             key,
           },
           peek,
-        )(req, res);
+        )(request, response);
         break;
       default:
-        res.status(500).send('Unknown storage source');
+        response.status(500).send('Unknown storage source');
         return;
     }
   };
@@ -215,13 +324,14 @@ function getHttpArtifactsHandler(
   peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
-    const headers = {};
+    const headers: Record<string, string> = {};
 
     // add authorization header to fetch request if key is non-empty
     if (auth.key.length > 0) {
       // inject original request's value if exists, otherwise default to provided default value
-      headers[auth.key] =
+      const headerValue =
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
+      headers[auth.key] = Array.isArray(headerValue) ? headerValue[0] : headerValue;
     }
     if (!isAllowedDomain(url, allowedDomain)) {
       res.status(500).send(`Domain not allowed.`);

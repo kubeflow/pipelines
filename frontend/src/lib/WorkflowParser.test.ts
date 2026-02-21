@@ -1197,7 +1197,7 @@ describe('WorkflowParser', () => {
   describe('parseStoragePath', () => {
     it('throws for unsupported protocol', () => {
       expect(() => WorkflowParser.parseStoragePath('unsupported://path')).toThrowError(
-        'Unsupported storage path: unsupported://path',
+        'Unable to retrieve storage path from artifact URI: unsupported://path',
       );
     });
 
