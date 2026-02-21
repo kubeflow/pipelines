@@ -2312,9 +2312,9 @@ func Test_extendPodSpecPatch_SecurityContext_CombinedWithOtherFeatures(t *testin
 
 func Test_extendPodSpecPatch_SecurityContext_AdminSetPreserved(t *testing.T) {
 	adminUID := int64(1000)
-	adminGID := int64(1000)
+	adminGID := int64(0)
 	userUID := int64(65534)
-	userGID := int64(0)
+	userGID := int64(100)
 
 	// Fresh pod spec — matches production flow from initPodSpecPatch.
 	got := &k8score.PodSpec{Containers: []k8score.Container{
@@ -2343,7 +2343,7 @@ func Test_extendPodSpecPatch_SecurityContext_AdminSetPreserved(t *testing.T) {
 	assert.NotNil(t, got)
 	// Admin-set values are preserved; user-specified values are ignored.
 	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsUser)
-	assert.Equal(t, int64(1000), *got.Containers[0].SecurityContext.RunAsGroup)
+	assert.Equal(t, int64(0), *got.Containers[0].SecurityContext.RunAsGroup)
 	// Capabilities always dropped.
 	assert.Equal(t, &k8score.Capabilities{Drop: []k8score.Capability{"ALL"}}, got.Containers[0].SecurityContext.Capabilities)
 }
