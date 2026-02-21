@@ -18,7 +18,7 @@ import * as React from 'react';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CloseIcon from '@material-ui/icons/Close';
-import Resizable from 're-resizable';
+import { Resizable } from 're-resizable';
 import Slide from '@material-ui/core/Slide';
 import { color, commonCss, zIndex } from '../Css';
 import { stylesheet } from 'typestyle';
