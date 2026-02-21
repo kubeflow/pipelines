@@ -13,6 +13,22 @@ rules:
   - list
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - kfp-argo-workflow-semaphores
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
   - argoproj.io
   resources:
   - workflows

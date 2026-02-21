@@ -18,6 +18,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,11 +40,15 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
+	applyv1 "k8s.io/client-go/applyconfigurations/core/v1"
+	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
@@ -842,6 +847,10 @@ type WorkflowClient struct {
 }
 
 func (wc *WorkflowClient) Execution(namespace string) ExecutionInterface {
+	return wc.ExecutionWithConfigMapClient(namespace, nil)
+}
+
+func (wc *WorkflowClient) ExecutionWithConfigMapClient(namespace string, configMapClient v1.ConfigMapInterface) ExecutionInterface {
 	var informer v1alpha1.WorkflowInformer
 	if namespace == "" {
 		informer = argoinformer.NewSharedInformerFactory(wc.client, time.Second*30).
@@ -854,6 +863,7 @@ func (wc *WorkflowClient) Execution(namespace string) ExecutionInterface {
 	return &WorkflowInterface{
 		workflowInterface: wc.client.ArgoprojV1alpha1().Workflows(namespace),
 		informer:          informer,
+		configMapClient:   configMapClient,
 	}
 }
 
@@ -865,9 +875,64 @@ func (wc *WorkflowClient) Compare(old, new interface{}) bool {
 	return newWorkflow.ResourceVersion != oldWorkflow.ResourceVersion
 }
 
+func (wc *WorkflowClient) OnDeletePipelineVersion(pipelineVersionID string, namespaces []string) {
+	if pipelineVersionID == "" || len(namespaces) == 0 {
+		return
+	}
+	// Clean up ConfigMap entries asynchronously to avoid blocking
+	go func() {
+		restConfig, err := GetKubernetesConfig()
+		if err != nil {
+			glog.Warningf("Failed to get Kubernetes config for ConfigMap cleanup: %v", err)
+			return
+		}
+		clientset, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			glog.Warningf("Failed to create Kubernetes clientset for ConfigMap cleanup: %v", err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		for _, namespace := range namespaces {
+			if err := deletePipelineParallelismConfigMapEntry(ctx, clientset.CoreV1().ConfigMaps(namespace), namespace, pipelineVersionID); err != nil {
+				glog.Warningf("Failed to delete pipeline parallelism ConfigMap entry: %v", err)
+			}
+		}
+	}()
+}
+
+func deletePipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.ConfigMapInterface, namespace, key string) error {
+	if key == "" {
+		return fmt.Errorf("attempted to delete ConfigMap entry with empty key in namespace %s", namespace)
+	}
+	if ctx.Err() != nil {
+		return fmt.Errorf("context canceled while deleting pipeline parallelism ConfigMap entry for key %s in namespace %s: %w", key, namespace, ctx.Err())
+	}
+	// Use JSON merge patch to remove the key from ConfigMap.
+	patch := map[string]interface{}{
+		"data": map[string]interface{}{
+			key: nil,
+		},
+	}
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return fmt.Errorf("failed to marshal patch for deleting ConfigMap entry (key %s, namespace %s): %w", key, namespace, err)
+	}
+	_, err = configMaps.Patch(ctx, PipelineParallelismConfigMapName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+	if apierrors.IsNotFound(err) {
+		// ConfigMap doesn't exist, nothing to clean up
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to delete pipeline parallelism ConfigMap entry (key %s, namespace %s): %w", key, namespace, err)
+	}
+	return nil
+}
+
 type WorkflowInterface struct {
 	workflowInterface argoclientwf.WorkflowInterface
 	informer          v1alpha1.WorkflowInformer
+	configMapClient   v1.ConfigMapInterface
 }
 
 func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpec, opts metav1.CreateOptions) (ExecutionSpec, error) {
@@ -876,11 +941,72 @@ func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpe
 		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
 	}
 
+	if wfi.configMapClient != nil {
+		if err := wfi.configureWorkflowParallelism(ctx, workflow); err != nil {
+			return nil, err
+		}
+	}
+
 	revWorkflow, err := wfi.workflowInterface.Create(ctx, workflow.Workflow, opts)
 	if err != nil {
 		return nil, err
 	}
 	return &Workflow{Workflow: revWorkflow}, nil
+}
+
+// EnsurePipelineParallelismConfigMap ensures the ConfigMap entry tracking max_active_runs is present.
+// It parses the pipeline version annotations and upserts the corresponding semaphore counter.
+func EnsurePipelineParallelismConfigMap(ctx context.Context, configMaps v1.ConfigMapInterface, namespace string, annotations map[string]string) error {
+	if configMaps == nil || annotations == nil {
+		return nil
+	}
+
+	pipelineVersionID := annotations[AnnotationKeyPipelineVersionID]
+	maxActiveRunsStr := annotations[AnnotationKeyMaxActiveRuns]
+	if pipelineVersionID == "" || maxActiveRunsStr == "" {
+		return nil
+	}
+
+	maxActiveRuns, err := strconv.Atoi(maxActiveRunsStr)
+	if err != nil {
+		return fmt.Errorf("invalid max_active_runs annotation value: %w", err)
+	}
+
+	return applyPipelineParallelismConfigMapEntry(ctx, configMaps, namespace, pipelineVersionID, maxActiveRuns)
+}
+
+func applyPipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.ConfigMapInterface, namespace, pipelineVersionID string, maxActiveRuns int) error {
+	if namespace == "" {
+		return fmt.Errorf("workflow namespace is required for ConfigMap operations")
+	}
+	if pipelineVersionID == "" {
+		return fmt.Errorf("pipeline version ID is required for ConfigMap operations")
+	}
+	if maxActiveRuns <= 0 {
+		return fmt.Errorf("max_active_runs must be greater than 0, got %d", maxActiveRuns)
+	}
+
+	value := strconv.Itoa(maxActiveRuns)
+	configMapApply := applyv1.ConfigMap(PipelineParallelismConfigMapName, namespace).
+		WithData(map[string]string{pipelineVersionID: value})
+
+	// Use server-side apply which automatically handles both create and update.
+	// It will create the ConfigMap if it doesn't exist (NotFound) or update it if the value changed.
+	_, err := configMaps.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
+	if err != nil {
+		return fmt.Errorf("failed to apply pipeline parallelism ConfigMap entry: %w", err)
+	}
+	return nil
+}
+
+func (wfi *WorkflowInterface) configureWorkflowParallelism(ctx context.Context, workflow *Workflow) error {
+	if workflow.Workflow == nil {
+		return fmt.Errorf("workflow cannot be nil")
+	}
+	if workflow.Annotations == nil {
+		return nil
+	}
+	return EnsurePipelineParallelismConfigMap(ctx, wfi.configMapClient, workflow.Namespace, workflow.Annotations)
 }
 
 func (wfi *WorkflowInterface) Update(ctx context.Context, execution ExecutionSpec, opts metav1.UpdateOptions) (ExecutionSpec, error) {

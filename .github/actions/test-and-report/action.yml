@@ -78,6 +78,24 @@ runs:
         sleep 5
       continue-on-error: true
 
+    - name: Ensure KFP API server is reachable
+      if: (!cancelled())
+      shell: bash
+      run: |
+        if [ -n "${KFP_PORT_FORWARD_PID:-}" ]; then
+          echo "KFP API port-forward already active (PID ${KFP_PORT_FORWARD_PID}); skipping readiness setup."
+          exit 0
+        fi
+        TLS_ENABLED=${{ inputs.tls_enabled }}
+        if [ -z "$TLS_ENABLED" ]; then
+          TLS_ENABLED='false'
+        fi
+        CA_CERT_PATH=${{ inputs.ca_cert_path }}
+        if [ -z "$CA_CERT_PATH" ]; then
+          CA_CERT_PATH=''
+        fi
+        ./.github/resources/scripts/ensure-kfp-api.sh "${{ inputs.default_namespace }}" "ml-pipeline" 8888 "$TLS_ENABLED" "$CA_CERT_PATH"
+
     - name: Run Tests
       id: run-tests
       shell: bash
@@ -179,6 +197,15 @@ runs:
         )
       shell: bash
       run: exit 1
+
+    - name: Stop KFP API port-forward
+      if: always()
+      shell: bash
+      run: |
+        if [[ -n "${KFP_PORT_FORWARD_PID:-}" ]]; then
+          echo "Stopping KFP API port-forward (PID ${KFP_PORT_FORWARD_PID})..."
+          kill "${KFP_PORT_FORWARD_PID}" || true
+        fi
 
     - name: Mark Workflow failure if test step failed
       if: steps.run-tests.outcome != 'success' && !cancelled()

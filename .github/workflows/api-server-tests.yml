@@ -106,6 +106,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          skip_metadata_envoy: 'false'
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -202,6 +203,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          skip_metadata_envoy: 'false'
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -250,6 +252,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          skip_metadata_envoy: 'false'
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

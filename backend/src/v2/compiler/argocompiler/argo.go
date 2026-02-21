@@ -48,6 +48,8 @@ type Options struct {
 	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 	MLPipelineTLSEnabled bool
+	// optional, pipeline version ID used for ConfigMap parallelism configuration
+	PipelineVersionID string
 }
 
 const (
@@ -148,6 +150,33 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Entrypoint:           tmplEntrypoint,
 			VolumeClaimTemplates: volumeClaimTemplates,
 		},
+	}
+
+	if hasPipelineConfig {
+		pipelineConfig := kubernetesSpec.GetPipelineConfig()
+		if pipelineConfig.MaxActiveRuns != nil {
+			value := pipelineConfig.GetMaxActiveRuns()
+			if value <= 0 {
+				return nil, fmt.Errorf("maxActiveRuns must be greater than 0, got %d", value)
+			}
+			if opts == nil || opts.PipelineVersionID == "" {
+				return nil, fmt.Errorf("maxActiveRuns requires a pipeline version ID to enforce concurrency limits")
+			}
+			if wf.Spec.Synchronization == nil {
+				wf.Spec.Synchronization = &wfapi.Synchronization{}
+			}
+			wf.Spec.Synchronization.Semaphores = append(
+				wf.Spec.Synchronization.Semaphores,
+				&wfapi.SemaphoreRef{
+					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+						LocalObjectReference: k8score.LocalObjectReference{
+							Name: util.PipelineParallelismConfigMapName,
+						},
+						Key: opts.PipelineVersionID,
+					},
+				},
+			)
+		}
 	}
 
 	// Set security defaults at the workflow level as a baseline for all pods.

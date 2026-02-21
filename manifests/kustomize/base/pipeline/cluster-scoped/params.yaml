@@ -1,0 +1,7 @@
+# Allow Kustomize vars to substitute namespaces for service accounts referenced
+# by cluster-scoped bindings.
+varReference:
+- kind: ClusterRoleBinding
+  path: subjects/namespace
+
+

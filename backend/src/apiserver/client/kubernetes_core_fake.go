@@ -21,11 +21,13 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/client-go/kubernetes"
+	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type FakeKuberneteCoreClient struct {
 	podClientFake *FakePodClient
+	coreClient    v1.CoreV1Interface
 }
 
 func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
@@ -35,25 +37,42 @@ func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
 }
 
+func (c *FakeKuberneteCoreClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
+	return c.coreClient.ConfigMaps(namespace)
+}
+
 func (c *FakeKuberneteCoreClient) GetClientSet() kubernetes.Interface {
 	// Return nil for fake implementation - tests that need this should use a mock
 	return nil
 }
 
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
-	return &FakeKuberneteCoreClient{&FakePodClient{}}
+	clientset := kubernetesfake.NewClientset()
+	return &FakeKuberneteCoreClient{
+		podClientFake: &FakePodClient{},
+		coreClient:    clientset.CoreV1(),
+	}
 }
 
 type FakeKubernetesCoreClientWithBadPodClient struct {
 	podClientFake *FakeBadPodClient
+	coreClient    v1.CoreV1Interface
 }
 
 func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWithBadPodClient {
-	return &FakeKubernetesCoreClientWithBadPodClient{&FakeBadPodClient{}}
+	clientset := kubernetesfake.NewClientset()
+	return &FakeKubernetesCoreClientWithBadPodClient{
+		podClientFake: &FakeBadPodClient{},
+		coreClient:    clientset.CoreV1(),
+	}
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
+}
+
+func (c *FakeKubernetesCoreClientWithBadPodClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
+	return c.coreClient.ConfigMaps(namespace)
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) GetClientSet() kubernetes.Interface {

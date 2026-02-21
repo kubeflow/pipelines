@@ -29,11 +29,13 @@ import (
 	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type FakeWorkflowClient struct {
 	workflows       map[string]*v1alpha1.Workflow
 	lastGeneratedId int
+	configMapClient corev1client.ConfigMapInterface
 }
 
 func NewWorkflowClientFake() *FakeWorkflowClient {
@@ -53,6 +55,14 @@ func (c *FakeWorkflowClient) Create(ctx context.Context, execSpec util.Execution
 		workflow.Name = workflow.GenerateName + strconv.Itoa(c.lastGeneratedId)
 		workflow.GenerateName = ""
 	}
+
+	// Handle ConfigMap creation for pipeline parallelism if annotations are present
+	if c.configMapClient != nil && workflow.Workflow != nil {
+		if err := util.EnsurePipelineParallelismConfigMap(ctx, c.configMapClient, workflow.Namespace, workflow.Annotations); err != nil {
+			return nil, err
+		}
+	}
+
 	c.workflows[workflow.Name] = workflow.Workflow
 	return workflow, nil
 }

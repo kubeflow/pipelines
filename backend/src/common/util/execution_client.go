@@ -26,6 +26,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -34,7 +35,11 @@ type ExecutionSpecList []ExecutionSpec
 // ExecutionClient is used to get a ExecutionInterface in specific namespace scope
 type ExecutionClient interface {
 	Execution(namespace string) ExecutionInterface
+	ExecutionWithConfigMapClient(namespace string, configMapClient corev1client.ConfigMapInterface) ExecutionInterface
 	Compare(old, new interface{}) bool
+	// OnDeletePipelineVersion is called when a pipeline version is deleted to perform engine-specific cleanup.
+	// namespaces is the list of namespaces where runs of this pipeline version exist.
+	OnDeletePipelineVersion(pipelineVersionID string, namespaces []string)
 }
 
 // Mini version of ExecutionSpec informer

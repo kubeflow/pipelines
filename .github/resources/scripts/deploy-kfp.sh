@@ -72,6 +72,10 @@ while [ "$#" -gt 0 ]; do
       POD_TO_POD_TLS_ENABLED=true
       shift
       ;;
+    --skip-metadata-envoy)
+      SKIP_METADATA_ENVOY=true
+      shift
+      ;;
   esac
 done
 
@@ -170,6 +174,13 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
   exit 1
+fi
+
+if [ "${SKIP_METADATA_ENVOY}" == "true" ]; then
+  echo "Skipping metadata-envoy; removing deployment/service/configmap before readiness checks..."
+  kubectl -n kubeflow delete deployment/metadata-envoy-deployment --ignore-not-found
+  kubectl -n kubeflow delete service/metadata-envoy-service --ignore-not-found
+  kubectl -n kubeflow delete configmap/metadata-envoy-configmap --ignore-not-found
 fi
 
 # Check if all pods are running - (10 minutes)

@@ -152,6 +152,8 @@ from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_if_placehold
     pipeline_none
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_loops import \
     my_pipeline as loops_pipeline
+from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_max_active_runs import \
+    pipeline_with_max_active_runs
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_metrics_outputs import \
     my_pipeline as metrics_outputs_pipeline
 from test_data.sdk_compiled_pipelines.valid.essential.pipeline_with_nested_conditions import \
@@ -320,6 +322,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='outputs_pipeline.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_outputs.yaml'
+            ),
+            TestData(
+                pipeline_name='pipeline-with-max-active-runs',
+                pipeline_func=pipeline_with_max_active_runs,
+                pipline_func_args=None,
+                compiled_file_name='pipeline_with_max_active_runs.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/pipeline_with_max_active_runs.yaml'
             ),
             TestData(
                 pipeline_name='collected-param-pipeline',

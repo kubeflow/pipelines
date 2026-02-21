@@ -42,6 +42,10 @@ inputs:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
     default: 'false'
+  skip_metadata_envoy:
+    description: "Skip deploying metadata-envoy (no image required)."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -62,6 +66,10 @@ runs:
       run: |
         APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy"  )
         for app in "${APPS[@]}"; do
+          if [[ "${{ inputs.skip_metadata_envoy }}" == "true" && "${app}" == "metadata-envoy" ]]; then
+            echo "[deploy] skip_metadata_envoy=true; not loading metadata-envoy image"
+            continue
+          fi
           docker image load -i ${{ inputs.image_path }}/$app/$app.tar
           docker tag ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }} localhost:5000/$app:${{ inputs.image_tag }}
           docker push localhost:5000/$app:${{ inputs.image_tag }}
@@ -109,6 +117,10 @@ runs:
         if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
           ARGS="${ARGS} --tls-enabled"
         fi
+        if [ "${{ inputs.skip_metadata_envoy }}" = "true" ]; then
+          echo "Skipping metadata-envoy deployment"
+          ARGS="${ARGS} --skip-metadata-envoy"
+        fi
         echo "ARGS=$ARGS" >> "$GITHUB_OUTPUT"
 
     - name: Deploy KFP
@@ -120,8 +132,17 @@ runs:
         timeout_minutes: 15
         command: ./.github/resources/scripts/deploy-kfp.sh ${{ steps.configure.outputs.ARGS }}
 
-    - name: Forward API port
-      id: forward-api-port
+    - name: Ensure KFP API is reachable
+      id: ensure-kfp-api
       shell: bash
       if: ${{ steps.deploy-kfp.outcome == 'success' && inputs.forward_port == 'true'}}
-      run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+      run: |
+        TLS_ENABLED="${{ inputs.pod_to_pod_tls_enabled }}"
+        if [ "$TLS_ENABLED" = "true" ] && [ -z "${CA_CERT_PATH:-}" ]; then
+          if kubectl get secret kfp-api-tls-cert -n kubeflow >/dev/null 2>&1; then
+            kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/kfp-ca.crt
+            echo "CA_CERT_PATH=/tmp/kfp-ca.crt" >> "$GITHUB_ENV"
+          fi
+        fi
+        CA_CERT="${CA_CERT_PATH:-}"
+        ./.github/resources/scripts/ensure-kfp-api.sh "kubeflow" "ml-pipeline" 8888 "$TLS_ENABLED" "$CA_CERT"
