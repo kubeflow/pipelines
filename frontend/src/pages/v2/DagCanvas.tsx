@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import React, { MouseEvent as ReactMouseEvent } from 'react';
 import ReactFlow, {
   Background,
@@ -29,6 +28,10 @@ import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
 import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
+
+// Maximum number of elements before skipping drag updates to prevent crash
+// Issue #12131: parallel_for with 100+ nodes causes infinite re-render
+const MAX_SAFE_ELEMENTS = 200;
 
 export interface DagCanvasProps {
   elements: Elements<FlowElementDataBase>;
@@ -75,6 +78,15 @@ export default function DagCanvas({
             edgeTypes={{}}
             onElementClick={onElementClick}
             onNodeDragStop={(event, node) => {
+              // Skip state update for large DAGs to prevent React re-render crash
+              if (elements.length > MAX_SAFE_ELEMENTS) {
+                console.warn(
+                  'DagCanvas: Skipping drag update for large DAG (>' +
+                    MAX_SAFE_ELEMENTS +
+                    ' elements) to prevent crash',
+                );
+                return;
+              }
               setFlowElements(
                 elements.map(value => {
                   if (value.id === node.id) {
