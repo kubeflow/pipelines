@@ -429,10 +429,11 @@ class PipelineTask:
         else:
             if isinstance(limit, int):
                 limit = str(limit)
-            if isinstance(limit, str) and re.match(r'^0$|^1$|^2$|^4$|^8$|^16$',
+            if isinstance(limit, str) and re.match(r'^[0-9]+$',
                                                    limit) is None:
                 raise ValueError(
-                    f'{"limit"!r} must be one of 0, 1, 2, 4, 8, 16.')
+                    f'Invalid accelerator limit {limit!r}.'
+                    ' Must be a non-negative integer.')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
