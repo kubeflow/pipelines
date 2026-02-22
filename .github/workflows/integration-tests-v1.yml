@@ -96,7 +96,7 @@ jobs:
           exit 1
 
       - name: Collect test results
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: kfp-initialization-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
