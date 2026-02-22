@@ -15,9 +15,9 @@
  */
 
 import * as React from 'react';
+import { render } from '@testing-library/react';
 import { Column, Row } from './CustomTable';
 import TestUtils from '../TestUtils';
-import { shallow } from 'enzyme';
 import { CustomTableRow } from './CustomTableRow';
 
 describe('CustomTable', () => {
@@ -44,17 +44,17 @@ describe('CustomTable', () => {
 
   it('renders some rows using a custom renderer', async () => {
     columns[0].customRenderer = () => (<span>this is custom output</span>) as any;
-    const tree = shallow(<CustomTableRow {...props} row={row} columns={columns} />);
+    const { asFragment } = render(<CustomTableRow {...props} row={row} columns={columns} />);
     await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
     columns[0].customRenderer = undefined;
   });
 
   it('displays warning icon with tooltip if row has error', async () => {
     row.error = 'dummy error';
-    const tree = shallow(<CustomTableRow {...props} row={row} columns={columns} />);
+    const { asFragment } = render(<CustomTableRow {...props} row={row} columns={columns} />);
     await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
     row.error = undefined;
   });
 });

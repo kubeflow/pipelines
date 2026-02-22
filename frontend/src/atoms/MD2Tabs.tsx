@@ -69,8 +69,8 @@ const css = stylesheet({
 class MD2Tabs extends React.Component<MD2TabsProps, any> {
   private _rootRef = React.createRef<any>();
   private _indicatorRef = React.createRef<any>();
-  private _tabRefs = this.props.tabs.map(t => React.createRef<HTMLSpanElement>());
-  private _timeoutHandle = 0;
+  private _tabRefs = this.props.tabs.map(_tab => React.createRef<HTMLSpanElement>());
+  private _timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
   public render(): JSX.Element {
     const selected = this._getSelectedIndex();
@@ -113,7 +113,9 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
   }
 
   public componentWillUnmount(): void {
-    clearTimeout(this._timeoutHandle);
+    if (this._timeoutHandle) {
+      clearTimeout(this._timeoutHandle);
+    }
   }
 
   private _getSelectedIndex(): number {

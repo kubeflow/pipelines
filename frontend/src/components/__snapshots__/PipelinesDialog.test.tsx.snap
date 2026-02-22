@@ -1,50 +1,56 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`PipelinesDialog it renders correctly in multi user mode 1`] = `
-Object {
+exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
+{
   "asFragment": [Function],
   "baseElement": <body
-    style="overflow: hidden; padding-right: 0px;"
+    style="padding-right: 0px; overflow: hidden;"
   >
     <div
       aria-hidden="true"
     />
     <div
-      class="MuiModal-root-15 MuiDialog-root-1"
-      role="dialog"
+      class="MuiDialog-root"
+      role="presentation"
+      style="position: fixed; z-index: 1300; right: 0px; bottom: 0px; top: 0px; left: 0px;"
     >
       <div
         aria-hidden="true"
-        class="MuiBackdrop-root-17"
-        style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
+        class="MuiBackdrop-root"
+        style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
       />
       <div
-        class="MuiDialog-container-4 MuiDialog-scrollPaper-2"
-        role="document"
-        style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
+        data-test="sentinelStart"
+        tabindex="0"
+      />
+      <div
+        class="MuiDialog-container MuiDialog-scrollPaper"
+        role="none presentation"
+        style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
         tabindex="-1"
       >
         <div
-          class="MuiPaper-root-19 MuiPaper-elevation24-45 MuiPaper-rounded-20 MuiDialog-paper-5 MuiDialog-paperScrollPaper-6 MuiDialog-paperWidthSm-9"
+          class="MuiPaper-root MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm MuiPaper-elevation24 MuiPaper-rounded"
           id="pipelineSelectorDialog"
+          role="dialog"
         >
           <div
-            class="MuiDialogContent-root-46"
+            class="MuiDialogContent-root"
           >
             <div
-              class="root topLevelToolbar"
+              class="root_f1vld0bw topLevelToolbar_faeji1w"
             >
               <div
                 style="min-width: 100px;"
               >
                 <div
-                  class="breadcrumbs flex"
+                  class="breadcrumbs_farqb1 flex_f16jawj4"
                 />
                 <div
-                  class="flex"
+                  class="flex_f16jawj4"
                 >
                   <span
-                    class="pageName ellipsis"
+                    class="pageName_fe4yf9p ellipsis_f15ay66x"
                     data-testid="page-title"
                   >
                     Choose a pipeline
@@ -52,136 +58,132 @@ Object {
                 </div>
               </div>
               <div
-                class="actions"
+                class="actions_ffoeey"
               />
             </div>
             <div
-              class="page"
+              class="page_f1flacxk f1h5lfj6"
             >
               <div
-                class="tabs"
+                class="tabs_ff8rz57"
               >
                 <div
-                  class="indicator"
+                  class="indicator_fp4eggn"
+                  style="left: -5px; width: 5px; display: block;"
                 />
                 <span
                   style="display: inline-block; min-width: 20px; width: 20px;"
                 />
                 <button
-                  class="MuiButtonBase-root-81 MuiButton-root-55 MuiButton-text-57 MuiButton-flat-60 button active"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
                   tabindex="0"
                   title="Only people who have access to this namespace will be able to view and use these pipelines."
                   type="button"
                 >
                   <span
-                    class="MuiButton-label-56"
+                    class="MuiButton-label"
                   >
                     <span>
                       Private
                     </span>
                   </span>
                   <span
-                    class="MuiTouchRipple-root-187"
+                    class="MuiTouchRipple-root"
                   />
                 </button>
                 <button
-                  class="MuiButtonBase-root-81 MuiButton-root-55 MuiButton-text-57 MuiButton-flat-60 button"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
                   tabindex="0"
                   title="Everyone in your organization will be able to view and use these pipelines."
                   type="button"
                 >
                   <span
-                    class="MuiButton-label-56"
+                    class="MuiButton-label"
                   >
                     <span>
                       Shared
                     </span>
                   </span>
                   <span
-                    class="MuiTouchRipple-root-187"
+                    class="MuiTouchRipple-root"
                   />
                 </button>
               </div>
               <div
-                class="pageOverflowHidden"
+                class="pageOverflowHidden_f15djeb2"
               >
                 <div>
                   <div
-                    class="MuiFormControl-root-84 filterBox"
+                    class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
                     spellcheck="false"
                     style="height: 48px; max-width: 100%; width: 100%;"
                   >
                     <label
-                      class="MuiFormLabel-root-99 MuiInputLabel-root-88 noMargin MuiInputLabel-formControl-93 MuiInputLabel-animated-96 MuiInputLabel-shrink-95 MuiInputLabel-outlined-98"
+                      class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
                       data-shrink="true"
                       for="tableFilterBox"
+                      id="tableFilterBox-label"
                     >
                       Filter pipelines
                     </label>
                     <div
-                      class="MuiInputBase-root-119 MuiOutlinedInput-root-106 noLeftPadding MuiInputBase-formControl-120 MuiInputBase-adornedStart-123 MuiOutlinedInput-adornedStart-109"
+                      class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
                     >
-                      <fieldset
-                        aria-hidden="true"
-                        class="MuiPrivateNotchedOutline-root-136 MuiOutlinedInput-notchedOutline-113 filterBorderRadius"
-                        style="padding-left: 8px;"
-                      >
-                        <legend
-                          class="MuiPrivateNotchedOutline-legend-137"
-                          style="width: 0px;"
-                        >
-                          <span>
-                            ​
-                          </span>
-                        </legend>
-                      </fieldset>
                       <div
-                        class="MuiInputAdornment-root-138 MuiInputAdornment-positionEnd-141"
+                        class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
                       >
                         <svg
                           aria-hidden="true"
-                          class="MuiSvgIcon-root-143"
+                          class="MuiSvgIcon-root"
                           focusable="false"
-                          role="presentation"
                           style="color: rgb(128, 134, 139); padding-right: 16px;"
                           viewBox="0 0 24 24"
                         >
                           <path
                             d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
                           />
-                          <path
-                            d="M0 0h24v24H0z"
-                            fill="none"
-                          />
                         </svg>
                       </div>
                       <input
                         aria-invalid="false"
-                        class="MuiInputBase-input-129 MuiOutlinedInput-input-114 MuiInputBase-inputAdornedStart-134 MuiOutlinedInput-inputAdornedStart-117"
+                        class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
                         id="tableFilterBox"
                         type="text"
                         value=""
                       />
+                      <fieldset
+                        aria-hidden="true"
+                        class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                      >
+                        <legend
+                          class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                        >
+                          <span>
+                            Filter pipelines
+                          </span>
+                        </legend>
+                      </fieldset>
                     </div>
                   </div>
                 </div>
                 <div
-                  class="header"
+                  class="header_f15jqnss"
                 >
                   <div
-                    class="columnName cell selectionToggle"
+                    class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
                   >
                     <span
                       style="display: inline-block; min-width: 42px; width: 42px;"
                     />
                   </div>
                   <div
-                    class="columnName"
+                    class="columnName_f1kdqshe"
                     style="width: 25%;"
                     title="Pipeline name"
                   >
                     <span
-                      class="MuiButtonBase-root-81 MuiTableSortLabel-root-152 ellipsis"
+                      aria-disabled="false"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
                       role="button"
                       tabindex="0"
                       title="Sort"
@@ -189,9 +191,8 @@ Object {
                       Pipeline name
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-143 MuiTableSortLabel-icon-154 MuiTableSortLabel-iconDirectionDesc-155"
+                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
@@ -201,37 +202,28 @@ Object {
                     </span>
                   </div>
                   <div
-                    class="columnName"
+                    class="columnName_f1kdqshe"
                     style="width: 50%;"
                     title="Description"
                   >
                     <span
-                      class="MuiButtonBase-root-81 MuiTableSortLabel-root-152 ellipsis"
+                      aria-disabled="false"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
                       role="button"
                       tabindex="0"
                       title="Cannot sort by this column"
                     >
                       Description
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root-143 MuiTableSortLabel-icon-154 MuiTableSortLabel-iconDirectionDesc-155"
-                        focusable="false"
-                        role="presentation"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                        />
-                      </svg>
                     </span>
                   </div>
                   <div
-                    class="columnName"
+                    class="columnName_f1kdqshe"
                     style="width: 25%;"
                     title="Uploaded on"
                   >
                     <span
-                      class="MuiButtonBase-root-81 MuiTableSortLabel-root-152 MuiTableSortLabel-active-153 ellipsis"
+                      aria-disabled="false"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
                       role="button"
                       tabindex="0"
                       title="Sort"
@@ -239,9 +231,8 @@ Object {
                       Uploaded on
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-143 MuiTableSortLabel-icon-154 MuiTableSortLabel-iconDirectionDesc-155"
+                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
@@ -252,53 +243,67 @@ Object {
                   </div>
                 </div>
                 <div
-                  class="scrollContainer"
+                  class="scrollContainer_fea2b5v"
                   style="min-height: 60px;"
                 >
                   <div
-                    class="expandableContainer"
+                    class="expandableContainer_f1l0zr01"
                   >
                     <div
                       aria-checked="false"
-                      class="tableRow row"
+                      class="tableRow row_f12b5y4d"
                       data-row-id="run-pipeline-id"
                       data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >
                       <div
-                        class="cell selectionToggle"
+                        class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          class="MuiButtonBase-root-81 MuiIconButton-root-179 MuiPrivateSwitchBase-root-209 MuiRadio-root-204 MuiRadio-colorPrimary-207"
+                          aria-disabled="false"
+                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
                         >
                           <span
-                            class="MuiIconButton-label-184"
+                            class="MuiIconButton-label"
                           >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root-143"
-                              focusable="false"
-                              role="presentation"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
                             <input
-                              class="MuiPrivateSwitchBase-input-212"
+                              class="PrivateSwitchBase-input-8"
                               type="radio"
                               value=""
                             />
+                            <div
+                              class="PrivateRadioButtonIcon-root-9"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                                />
+                              </svg>
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-10"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                                />
+                              </svg>
+                            </div>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-187"
+                            class="MuiTouchRipple-root"
                           />
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         <span
@@ -309,11 +314,11 @@ Object {
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 50%;"
                       />
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         -
@@ -321,49 +326,63 @@ Object {
                     </div>
                   </div>
                   <div
-                    class="expandableContainer"
+                    class="expandableContainer_f1l0zr01"
                   >
                     <div
                       aria-checked="false"
-                      class="tableRow row"
+                      class="tableRow row_f12b5y4d"
                       data-row-id="run-pipeline-id"
                       data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >
                       <div
-                        class="cell selectionToggle"
+                        class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          class="MuiButtonBase-root-81 MuiIconButton-root-179 MuiPrivateSwitchBase-root-209 MuiRadio-root-204 MuiRadio-colorPrimary-207"
+                          aria-disabled="false"
+                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
                         >
                           <span
-                            class="MuiIconButton-label-184"
+                            class="MuiIconButton-label"
                           >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root-143"
-                              focusable="false"
-                              role="presentation"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
                             <input
-                              class="MuiPrivateSwitchBase-input-212"
+                              class="PrivateSwitchBase-input-8"
                               type="radio"
                               value=""
                             />
+                            <div
+                              class="PrivateRadioButtonIcon-root-9"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                                />
+                              </svg>
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-10"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                                />
+                              </svg>
+                            </div>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-187"
+                            class="MuiTouchRipple-root"
                           />
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         <span
@@ -374,11 +393,11 @@ Object {
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 50%;"
                       />
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         -
@@ -387,97 +406,83 @@ Object {
                   </div>
                 </div>
                 <div
-                  class="footer"
+                  class="footer_f1fl9hjk"
                 >
                   <span
-                    class=""
+                    class="fzbgmju"
                   >
                     Rows per page:
                   </span>
                   <div
-                    class="MuiFormControl-root-84 verticalAlignInitial rowsPerPage"
+                    class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
                   >
                     <div
-                      class="MuiInputBase-root-119 MuiInput-root-164 MuiInputBase-formControl-120 MuiInput-formControl-165"
+                      class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
                     >
                       <div
-                        class="MuiSelect-root-157"
+                        aria-haspopup="listbox"
+                        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+                        role="button"
+                        tabindex="0"
                       >
-                        <div
-                          aria-haspopup="true"
-                          aria-pressed="false"
-                          class="MuiSelect-select-158 MuiSelect-selectMenu-161 MuiInputBase-input-129 MuiInput-input-172"
-                          role="button"
-                          tabindex="0"
-                        >
-                          10
-                        </div>
-                        <input
-                          type="hidden"
-                          value="10"
-                        />
-                        <svg
-                          aria-hidden="true"
-                          class="MuiSvgIcon-root-143 MuiSelect-icon-163"
-                          focusable="false"
-                          role="presentation"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M7 10l5 5 5-5z"
-                          />
-                        </svg>
+                        10
                       </div>
+                      <input
+                        aria-hidden="true"
+                        class="MuiSelect-nativeInput"
+                        tabindex="-1"
+                        value="10"
+                      />
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSelect-icon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M7 10l5 5 5-5z"
+                        />
+                      </svg>
                     </div>
                   </div>
                   <button
-                    class="MuiButtonBase-root-81 MuiButtonBase-disabled-82 MuiIconButton-root-179 MuiIconButton-disabled-183"
+                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
                     <span
-                      class="MuiIconButton-label-184"
+                      class="MuiIconButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-143"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                   </button>
                   <button
-                    class="MuiButtonBase-root-81 MuiButtonBase-disabled-82 MuiIconButton-root-179 MuiIconButton-disabled-183"
+                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
                     <span
-                      class="MuiIconButton-label-184"
+                      class="MuiIconButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-143"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                        />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
                         />
                       </svg>
                     </span>
@@ -487,32 +492,32 @@ Object {
             </div>
           </div>
           <div
-            class="MuiDialogActions-root-185"
+            class="MuiDialogActions-root MuiDialogActions-spacing"
           >
             <button
-              class="MuiButtonBase-root-81 MuiButton-root-55 MuiButton-text-57 MuiButton-textSecondary-59 MuiButton-flat-60 MuiButton-flatSecondary-62 MuiDialogActions-action-186"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="cancelPipelineSelectionBtn"
               tabindex="0"
               type="button"
             >
               <span
-                class="MuiButton-label-56"
+                class="MuiButton-label"
               >
                 Cancel
               </span>
               <span
-                class="MuiTouchRipple-root-187"
+                class="MuiTouchRipple-root"
               />
             </button>
             <button
-              class="MuiButtonBase-root-81 MuiButtonBase-disabled-82 MuiButton-root-55 MuiButton-text-57 MuiButton-textSecondary-59 MuiButton-flat-60 MuiButton-flatSecondary-62 MuiButton-disabled-75 MuiDialogActions-action-186"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="usePipelineBtn"
               tabindex="-1"
               type="button"
             >
               <span
-                class="MuiButton-label-56"
+                class="MuiButton-label"
               >
                 Use this pipeline
               </span>
@@ -520,6 +525,10 @@ Object {
           </div>
         </div>
       </div>
+      <div
+        data-test="sentinelEnd"
+        tabindex="0"
+      />
     </div>
   </body>,
   "container": <div
@@ -579,8 +588,8 @@ Object {
 }
 `;
 
-exports[`PipelinesDialog it renders correctly in single user mode 1`] = `
-Object {
+exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
+{
   "asFragment": [Function],
   "baseElement": <body
     style="padding-right: 0px; overflow: hidden;"
@@ -589,41 +598,47 @@ Object {
       aria-hidden="true"
     />
     <div
-      class="MuiModal-root-227 MuiDialog-root-213"
-      role="dialog"
+      class="MuiDialog-root"
+      role="presentation"
+      style="position: fixed; z-index: 1300; right: 0px; bottom: 0px; top: 0px; left: 0px;"
     >
       <div
         aria-hidden="true"
-        class="MuiBackdrop-root-229"
-        style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
+        class="MuiBackdrop-root"
+        style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
       />
       <div
-        class="MuiDialog-container-216 MuiDialog-scrollPaper-214"
-        role="document"
-        style="opacity: 1; webkit-transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
+        data-test="sentinelStart"
+        tabindex="0"
+      />
+      <div
+        class="MuiDialog-container MuiDialog-scrollPaper"
+        role="none presentation"
+        style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
         tabindex="-1"
       >
         <div
-          class="MuiPaper-root-231 MuiPaper-elevation24-257 MuiPaper-rounded-232 MuiDialog-paper-217 MuiDialog-paperScrollPaper-218 MuiDialog-paperWidthSm-221"
+          class="MuiPaper-root MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm MuiPaper-elevation24 MuiPaper-rounded"
           id="pipelineSelectorDialog"
+          role="dialog"
         >
           <div
-            class="MuiDialogContent-root-258"
+            class="MuiDialogContent-root"
           >
             <div
-              class="root topLevelToolbar"
+              class="root_f1vld0bw topLevelToolbar_faeji1w"
             >
               <div
                 style="min-width: 100px;"
               >
                 <div
-                  class="breadcrumbs flex"
+                  class="breadcrumbs_farqb1 flex_f16jawj4"
                 />
                 <div
-                  class="flex"
+                  class="flex_f16jawj4"
                 >
                   <span
-                    class="pageName ellipsis"
+                    class="pageName_fe4yf9p ellipsis_f15ay66x"
                     data-testid="page-title"
                   >
                     Choose a pipeline
@@ -631,92 +646,87 @@ Object {
                 </div>
               </div>
               <div
-                class="actions"
+                class="actions_ffoeey"
               />
             </div>
             <div
-              class="page"
+              class="page_f1flacxk f1h5lfj6"
             >
               <div
-                class="pageOverflowHidden"
+                class="pageOverflowHidden_f15djeb2"
               >
                 <div>
                   <div
-                    class="MuiFormControl-root-259 filterBox"
+                    class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
                     spellcheck="false"
                     style="height: 48px; max-width: 100%; width: 100%;"
                   >
                     <label
-                      class="MuiFormLabel-root-274 MuiInputLabel-root-263 noMargin MuiInputLabel-formControl-268 MuiInputLabel-animated-271 MuiInputLabel-shrink-270 MuiInputLabel-outlined-273"
+                      class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
                       data-shrink="true"
                       for="tableFilterBox"
+                      id="tableFilterBox-label"
                     >
                       Filter pipelines
                     </label>
                     <div
-                      class="MuiInputBase-root-294 MuiOutlinedInput-root-281 noLeftPadding MuiInputBase-formControl-295 MuiInputBase-adornedStart-298 MuiOutlinedInput-adornedStart-284"
+                      class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
                     >
-                      <fieldset
-                        aria-hidden="true"
-                        class="MuiPrivateNotchedOutline-root-311 MuiOutlinedInput-notchedOutline-288 filterBorderRadius"
-                        style="padding-left: 8px;"
-                      >
-                        <legend
-                          class="MuiPrivateNotchedOutline-legend-312"
-                          style="width: 0px;"
-                        >
-                          <span>
-                            ​
-                          </span>
-                        </legend>
-                      </fieldset>
                       <div
-                        class="MuiInputAdornment-root-313 MuiInputAdornment-positionEnd-316"
+                        class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
                       >
                         <svg
                           aria-hidden="true"
-                          class="MuiSvgIcon-root-318"
+                          class="MuiSvgIcon-root"
                           focusable="false"
-                          role="presentation"
                           style="color: rgb(128, 134, 139); padding-right: 16px;"
                           viewBox="0 0 24 24"
                         >
                           <path
                             d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
                           />
-                          <path
-                            d="M0 0h24v24H0z"
-                            fill="none"
-                          />
                         </svg>
                       </div>
                       <input
                         aria-invalid="false"
-                        class="MuiInputBase-input-304 MuiOutlinedInput-input-289 MuiInputBase-inputAdornedStart-309 MuiOutlinedInput-inputAdornedStart-292"
+                        class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
                         id="tableFilterBox"
                         type="text"
                         value=""
                       />
+                      <fieldset
+                        aria-hidden="true"
+                        class="PrivateNotchedOutline-root-12 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                      >
+                        <legend
+                          class="PrivateNotchedOutline-legendLabelled-14 PrivateNotchedOutline-legendNotched-15"
+                        >
+                          <span>
+                            Filter pipelines
+                          </span>
+                        </legend>
+                      </fieldset>
                     </div>
                   </div>
                 </div>
                 <div
-                  class="header"
+                  class="header_f15jqnss"
                 >
                   <div
-                    class="columnName cell selectionToggle"
+                    class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
                   >
                     <span
                       style="display: inline-block; min-width: 42px; width: 42px;"
                     />
                   </div>
                   <div
-                    class="columnName"
+                    class="columnName_f1kdqshe"
                     style="width: 25%;"
                     title="Pipeline name"
                   >
                     <span
-                      class="MuiButtonBase-root-340 MuiTableSortLabel-root-335 ellipsis"
+                      aria-disabled="false"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
                       role="button"
                       tabindex="0"
                       title="Sort"
@@ -724,9 +734,8 @@ Object {
                       Pipeline name
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-318 MuiTableSortLabel-icon-337 MuiTableSortLabel-iconDirectionDesc-338"
+                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
@@ -736,37 +745,28 @@ Object {
                     </span>
                   </div>
                   <div
-                    class="columnName"
+                    class="columnName_f1kdqshe"
                     style="width: 50%;"
                     title="Description"
                   >
                     <span
-                      class="MuiButtonBase-root-340 MuiTableSortLabel-root-335 ellipsis"
+                      aria-disabled="false"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
                       role="button"
                       tabindex="0"
                       title="Cannot sort by this column"
                     >
                       Description
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root-318 MuiTableSortLabel-icon-337 MuiTableSortLabel-iconDirectionDesc-338"
-                        focusable="false"
-                        role="presentation"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                        />
-                      </svg>
                     </span>
                   </div>
                   <div
-                    class="columnName"
+                    class="columnName_f1kdqshe"
                     style="width: 25%;"
                     title="Uploaded on"
                   >
                     <span
-                      class="MuiButtonBase-root-340 MuiTableSortLabel-root-335 MuiTableSortLabel-active-336 ellipsis"
+                      aria-disabled="false"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
                       role="button"
                       tabindex="0"
                       title="Sort"
@@ -774,9 +774,8 @@ Object {
                       Uploaded on
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-318 MuiTableSortLabel-icon-337 MuiTableSortLabel-iconDirectionDesc-338"
+                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
@@ -787,53 +786,67 @@ Object {
                   </div>
                 </div>
                 <div
-                  class="scrollContainer"
+                  class="scrollContainer_fea2b5v"
                   style="min-height: 60px;"
                 >
                   <div
-                    class="expandableContainer"
+                    class="expandableContainer_f1l0zr01"
                   >
                     <div
                       aria-checked="false"
-                      class="tableRow row"
+                      class="tableRow row_f12b5y4d"
                       data-row-id="run-pipeline-id"
                       data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >
                       <div
-                        class="cell selectionToggle"
+                        class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          class="MuiButtonBase-root-340 MuiIconButton-root-365 MuiPrivateSwitchBase-root-421 MuiRadio-root-416 MuiRadio-colorPrimary-419"
+                          aria-disabled="false"
+                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-16 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
                         >
                           <span
-                            class="MuiIconButton-label-370"
+                            class="MuiIconButton-label"
                           >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root-318"
-                              focusable="false"
-                              role="presentation"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
                             <input
-                              class="MuiPrivateSwitchBase-input-424"
+                              class="PrivateSwitchBase-input-19"
                               type="radio"
                               value=""
                             />
+                            <div
+                              class="PrivateRadioButtonIcon-root-20"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                                />
+                              </svg>
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-21"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                                />
+                              </svg>
+                            </div>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-409"
+                            class="MuiTouchRipple-root"
                           />
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         <span
@@ -844,11 +857,11 @@ Object {
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 50%;"
                       />
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         -
@@ -856,49 +869,63 @@ Object {
                     </div>
                   </div>
                   <div
-                    class="expandableContainer"
+                    class="expandableContainer_f1l0zr01"
                   >
                     <div
                       aria-checked="false"
-                      class="tableRow row"
+                      class="tableRow row_f12b5y4d"
                       data-row-id="run-pipeline-id"
                       data-testid="table-row"
                       role="checkbox"
                       tabindex="-1"
                     >
                       <div
-                        class="cell selectionToggle"
+                        class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          class="MuiButtonBase-root-340 MuiIconButton-root-365 MuiPrivateSwitchBase-root-421 MuiRadio-root-416 MuiRadio-colorPrimary-419"
+                          aria-disabled="false"
+                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-16 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
                         >
                           <span
-                            class="MuiIconButton-label-370"
+                            class="MuiIconButton-label"
                           >
-                            <svg
-                              aria-hidden="true"
-                              class="MuiSvgIcon-root-318"
-                              focusable="false"
-                              role="presentation"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                              />
-                            </svg>
                             <input
-                              class="MuiPrivateSwitchBase-input-424"
+                              class="PrivateSwitchBase-input-19"
                               type="radio"
                               value=""
                             />
+                            <div
+                              class="PrivateRadioButtonIcon-root-20"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                                />
+                              </svg>
+                              <svg
+                                aria-hidden="true"
+                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-21"
+                                focusable="false"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                                />
+                              </svg>
+                            </div>
                           </span>
                           <span
-                            class="MuiTouchRipple-root-409"
+                            class="MuiTouchRipple-root"
                           />
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         <span
@@ -909,11 +936,11 @@ Object {
                         </span>
                       </div>
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 50%;"
                       />
                       <div
-                        class="cell"
+                        class="cell_fy8nr2z"
                         style="width: 25%;"
                       >
                         -
@@ -922,97 +949,83 @@ Object {
                   </div>
                 </div>
                 <div
-                  class="footer"
+                  class="footer_f1fl9hjk"
                 >
                   <span
-                    class=""
+                    class="fzbgmju"
                   >
                     Rows per page:
                   </span>
                   <div
-                    class="MuiFormControl-root-259 verticalAlignInitial rowsPerPage"
+                    class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
                   >
                     <div
-                      class="MuiInputBase-root-294 MuiInput-root-350 MuiInputBase-formControl-295 MuiInput-formControl-351"
+                      class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
                     >
                       <div
-                        class="MuiSelect-root-343"
+                        aria-haspopup="listbox"
+                        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+                        role="button"
+                        tabindex="0"
                       >
-                        <div
-                          aria-haspopup="true"
-                          aria-pressed="false"
-                          class="MuiSelect-select-344 MuiSelect-selectMenu-347 MuiInputBase-input-304 MuiInput-input-358"
-                          role="button"
-                          tabindex="0"
-                        >
-                          10
-                        </div>
-                        <input
-                          type="hidden"
-                          value="10"
-                        />
-                        <svg
-                          aria-hidden="true"
-                          class="MuiSvgIcon-root-318 MuiSelect-icon-349"
-                          focusable="false"
-                          role="presentation"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M7 10l5 5 5-5z"
-                          />
-                        </svg>
+                        10
                       </div>
+                      <input
+                        aria-hidden="true"
+                        class="MuiSelect-nativeInput"
+                        tabindex="-1"
+                        value="10"
+                      />
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSelect-icon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M7 10l5 5 5-5z"
+                        />
+                      </svg>
                     </div>
                   </div>
                   <button
-                    class="MuiButtonBase-root-340 MuiButtonBase-disabled-341 MuiIconButton-root-365 MuiIconButton-disabled-369"
+                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
                     <span
-                      class="MuiIconButton-label-370"
+                      class="MuiIconButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-318"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
                         />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
-                        />
                       </svg>
                     </span>
                   </button>
                   <button
-                    class="MuiButtonBase-root-340 MuiButtonBase-disabled-341 MuiIconButton-root-365 MuiIconButton-disabled-369"
+                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
                     <span
-                      class="MuiIconButton-label-370"
+                      class="MuiIconButton-label"
                     >
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-318"
+                        class="MuiSvgIcon-root"
                         focusable="false"
-                        role="presentation"
                         viewBox="0 0 24 24"
                       >
                         <path
                           d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                        />
-                        <path
-                          d="M0 0h24v24H0z"
-                          fill="none"
                         />
                       </svg>
                     </span>
@@ -1022,32 +1035,32 @@ Object {
             </div>
           </div>
           <div
-            class="MuiDialogActions-root-371"
+            class="MuiDialogActions-root MuiDialogActions-spacing"
           >
             <button
-              class="MuiButtonBase-root-340 MuiButton-root-373 MuiButton-text-375 MuiButton-textSecondary-377 MuiButton-flat-378 MuiButton-flatSecondary-380 MuiDialogActions-action-372"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
               id="cancelPipelineSelectionBtn"
               tabindex="0"
               type="button"
             >
               <span
-                class="MuiButton-label-374"
+                class="MuiButton-label"
               >
                 Cancel
               </span>
               <span
-                class="MuiTouchRipple-root-409"
+                class="MuiTouchRipple-root"
               />
             </button>
             <button
-              class="MuiButtonBase-root-340 MuiButtonBase-disabled-341 MuiButton-root-373 MuiButton-text-375 MuiButton-textSecondary-377 MuiButton-flat-378 MuiButton-flatSecondary-380 MuiButton-disabled-393 MuiDialogActions-action-372"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
               disabled=""
               id="usePipelineBtn"
               tabindex="-1"
               type="button"
             >
               <span
-                class="MuiButton-label-374"
+                class="MuiButton-label"
               >
                 Use this pipeline
               </span>
@@ -1055,6 +1068,10 @@ Object {
           </div>
         </div>
       </div>
+      <div
+        data-test="sentinelEnd"
+        tabindex="0"
+      />
     </div>
   </body>,
   "container": <div

@@ -1,7 +1,8 @@
 approvers:
-  - chensun
-  - HumairAK
-reviewers:
+  - hbelmiro
   - mprahl
+  - nsingla
+reviewers:
   - droctothorpe
   - gmfrasca
+  - nsingla

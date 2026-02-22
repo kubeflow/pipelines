@@ -15,34 +15,82 @@
  */
 
 import * as React from 'react';
-import { shallow, mount } from 'enzyme';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { act } from 'react-dom/test-utils';
+import { vi } from 'vitest';
 import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
 import { ApiVisualizationType } from '../../apis/visualization';
 import { diffHTML } from 'src/TestUtils';
+import Select from '@material-ui/core/Select';
+import renderer from 'react-test-renderer';
+
+vi.mock('../Editor', () => ({
+  default: ({ placeholder }: { placeholder?: string }) => (
+    <div data-testid='editor' data-placeholder={placeholder || ''} />
+  ),
+}));
+
+type VisualizationCreatorState = VisualizationCreator['state'];
+
+type VisualizationCreatorRender = ReturnType<typeof render>;
+
+class VisualizationCreatorWrapper {
+  private _instance: VisualizationCreator;
+  private _renderResult: VisualizationCreatorRender;
+
+  public constructor(instance: VisualizationCreator, renderResult: VisualizationCreatorRender) {
+    this._instance = instance;
+    this._renderResult = renderResult;
+  }
+
+  public instance(): VisualizationCreator {
+    return this._instance;
+  }
+
+  public setState(nextState: Partial<VisualizationCreatorState>): void {
+    act(() => {
+      this._instance.setState(nextState);
+    });
+  }
+
+  public renderResult(): VisualizationCreatorRender {
+    return this._renderResult;
+  }
+}
+
+function renderVisualizationCreator(
+  configs: VisualizationCreatorConfig[],
+): VisualizationCreatorWrapper {
+  const ref = React.createRef<VisualizationCreator>();
+  const renderResult = render(<VisualizationCreator ref={ref} configs={configs} />);
+  if (!ref.current) {
+    throw new Error('VisualizationCreator instance not available');
+  }
+  return new VisualizationCreatorWrapper(ref.current, renderResult);
+}
 
 describe('VisualizationCreator', () => {
   it('does not render component when no config is provided', () => {
-    const tree = shallow(<VisualizationCreator configs={[]} />);
-    expect(tree).toMatchSnapshot();
+    const { container } = render(<VisualizationCreator configs={[]} />);
+    expect(container.firstChild).toBeNull();
   });
 
   it('renders component when empty config is provided', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<VisualizationCreator configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders component when isBusy is not provided', () => {
     const config: VisualizationCreatorConfig = {
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<VisualizationCreator configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders component when onGenerate is not provided', () => {
@@ -50,93 +98,74 @@ describe('VisualizationCreator', () => {
       isBusy: false,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<VisualizationCreator configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders component when all parameters in config are provided', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<VisualizationCreator configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('does not render an Editor component if a visualization type is not specified', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    expect(tree).toMatchSnapshot();
+    render(<VisualizationCreator configs={[config]} />);
+    expect(screen.queryByTestId('editor')).toBeNull();
   });
 
   it('renders an Editor component if a visualization type is specified', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
-      // source by default is set to ''
-      selectedType: ApiVisualizationType.ROCCURVE,
-    });
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({ selectedType: ApiVisualizationType.ROCCURVE });
+    expect(screen.getAllByTestId('editor').length).toBe(1);
+    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
 
   it('renders two Editor components if the CUSTOM visualization type is specified', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
-      // source by default is set to ''
-      selectedType: ApiVisualizationType.CUSTOM,
-    });
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({ selectedType: ApiVisualizationType.CUSTOM });
+    expect(screen.getAllByTestId('editor').length).toBe(2);
+    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
 
   it('has a disabled BusyButton if selectedType is an undefined', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
-      source: 'gs://ml-pipeline/data.csv',
-    });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({ source: 'gs://ml-pipeline/data.csv' });
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 
   it('has a disabled BusyButton if source is an empty string', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
-      // source by default is set to ''
-      selectedType: ApiVisualizationType.ROCCURVE,
-    });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({ selectedType: ApiVisualizationType.ROCCURVE });
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 
   it('has a disabled BusyButton if onGenerate is not provided as a prop', () => {
@@ -144,95 +173,74 @@ describe('VisualizationCreator', () => {
       isBusy: false,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 
   it('has a disabled BusyButton if isBusy is true', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: true,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 
   it('has an enabled BusyButton if onGenerate is provided and source and selectedType are set', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(false);
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).not.toBeDisabled();
   });
 
   it('calls onGenerate when BusyButton is clicked', () => {
-    const onGenerate = jest.fn();
+    const onGenerate = vi.fn();
     const config: VisualizationCreatorConfig = {
       isBusy: false,
       onGenerate,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({
       arguments: '{}',
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    tree
-      .find('BusyButton')
-      .at(0)
-      .simulate('click');
-    expect(onGenerate).toBeCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Visualization' }));
+    expect(onGenerate).toHaveBeenCalled();
   });
 
   it('passes state as parameters to onGenerate when BusyButton is clicked', () => {
-    const onGenerate = jest.fn();
+    const onGenerate = vi.fn();
     const config: VisualizationCreatorConfig = {
       isBusy: false,
       onGenerate,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({
       arguments: '{}',
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    tree
-      .find('BusyButton')
-      .at(0)
-      .simulate('click');
-    expect(onGenerate).toBeCalledWith(
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Visualization' }));
+    expect(onGenerate).toHaveBeenCalledWith(
       '{}',
       'gs://ml-pipeline/data.csv',
       ApiVisualizationType.ROCCURVE,
@@ -243,14 +251,12 @@ describe('VisualizationCreator', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({
       arguments: JSON.stringify({ is_generated: 'True' }),
-      // selectedType is required to be set so that the argument editor
-      // component is visible.
       selectedType: ApiVisualizationType.ROCCURVE,
     });
-    expect(tree).toMatchSnapshot();
+    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
 
   it('renders a provided source', () => {
@@ -258,27 +264,20 @@ describe('VisualizationCreator', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = mount(<VisualizationCreator configs={[config]} />);
-    tree.setState({
-      source,
-    });
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({ source });
     expect(
-      tree
-        .find('input')
-        .at(1)
-        .prop('value'),
-    ).toBe(source);
+      screen.getByPlaceholderText('File path or path pattern of data within GCS.'),
+    ).toHaveValue(source);
   });
 
   it('renders the selected visualization type', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    tree.setState({
-      selectedType: ApiVisualizationType.ROCCURVE,
-    });
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({ selectedType: ApiVisualizationType.ROCCURVE });
+    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
 
   it('renders the custom type when it is allowed', () => {
@@ -286,8 +285,8 @@ describe('VisualizationCreator', () => {
       allowCustomVisualizations: true,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<VisualizationCreator configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('disables all select and input fields when busy', () => {
@@ -295,38 +294,29 @@ describe('VisualizationCreator', () => {
       isBusy: true,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    // toMatchSnapshot is used rather than three individual checks for the
-    // disabled prop due to an issue where the Input components are not
-    // selectable by tree.find().
-    expect(tree).toMatchSnapshot();
+    const tree = renderer.create(<VisualizationCreator configs={[config]} />);
+    const select = tree.root.findByType(Select);
+    expect(select.props.disabled).toBe(true);
+    render(<VisualizationCreator configs={[config]} />);
+    expect(
+      screen.getByPlaceholderText('File path or path pattern of data within GCS.'),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 
   it('has an argument placeholder for every visualization type', () => {
-    // Taken from VisualizationCreator.tsx, update this if updated within
-    // VisualizationCreator.tsx.
     const types = Object.keys(ApiVisualizationType)
       .map((key: string) => key.replace('_', ''))
       .filter((key: string, i: number, arr: string[]) => arr.indexOf(key) === i);
     const config: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
-    // Iterate through all selectable types to ensure a placeholder is set
-    // for the argument editor for each type.
+    const wrapper = renderVisualizationCreator([config]);
     for (const type of types) {
-      tree.setState({
-        // source by default is set to ''
-        selectedType: type,
-      });
-      expect(
-        tree
-          .find('Editor')
-          .at(0)
-          .prop('placeholder'),
-      ).not.toBeNull();
+      const placeholder = (wrapper.instance() as any).getArgumentPlaceholderForType(type);
+      expect(placeholder).not.toBeNull();
     }
   });
 
@@ -337,7 +327,7 @@ describe('VisualizationCreator', () => {
   it('can be configured as collapsed initially and clicks to open', () => {
     const baseConfig: VisualizationCreatorConfig = {
       isBusy: false,
-      onGenerate: jest.fn(),
+      onGenerate: vi.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
       collapsedInitially: false,
     };
@@ -355,28 +345,27 @@ describe('VisualizationCreator', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <button
-          class="MuiButtonBase-root-114 MuiButton-root-88 MuiButton-text-90 MuiButton-flat-93"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
           tabindex="0"
           type="button"
         >
           <span
-            class="MuiButton-label-89"
+            class="MuiButton-label"
           >
             create visualizations manually
           </span>
           <span
-            class="MuiTouchRipple-root-117"
+            class="MuiTouchRipple-root"
           />
         </button>
       </div>
     `);
     const button = screen.getByText('create visualizations manually');
     fireEvent.click(button);
-    // expanding a visualization creator is equivalent to rendering a non-collapsed visualization creator
     expect(diffHTML({ base: baseContainer.innerHTML, update: container.innerHTML }))
       .toMatchInlineSnapshot(`
-      Snapshot Diff:
-      Compared values have no visual difference.
-    `);
+        "Snapshot Diff:
+        Compared values have no visual difference."
+      `);
   });
 });

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import 'brace';
-import 'brace/ext/language_tools';
-import 'brace/mode/yaml';
-import 'brace/theme/github';
+import 'ace-builds/src-noconflict/ace';
+import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/mode-yaml';
+import 'ace-builds/src-noconflict/theme-github';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';

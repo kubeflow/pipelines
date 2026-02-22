@@ -35,7 +35,7 @@ import Buttons from '../lib/Buttons';
 import CompareUtils from '../lib/CompareUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { URLParser } from '../lib/URLParser';
-import { logger } from '../lib/Utils';
+import { errorToMessage, logger } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import RunList from './RunList';
@@ -87,7 +87,7 @@ class CompareV1 extends Page<{}, CompareState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .expandSections(() => this.setState({ collapseSections: {} }))
+        .expandSections(() => this.setStateSafe({ collapseSections: {} }))
         .collapseSections(this._collapseAllSections.bind(this))
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
@@ -236,7 +236,7 @@ class CompareV1 extends Page<{}, CompareState> {
           workflowObjects.push(JSON.parse(run.pipeline_runtime!.workflow_manifest || '{}'));
         } catch (err) {
           failingRuns.push(id);
-          lastError = err;
+          lastError = err instanceof Error ? err : new Error(await errorToMessage(err));
         }
       }),
     );
@@ -249,7 +249,7 @@ class CompareV1 extends Page<{}, CompareState> {
       return;
     } else if (
       runs.length > 0 &&
-      runs.every(runDetail => runDetail.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
+      runs.every(runDetail => 'pipeline_manifest' in (runDetail.run?.pipeline_spec ?? {}))
     ) {
       this.props.updateBanner({
         additionalInfo:
@@ -303,7 +303,7 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 
   protected _selectionChanged(selectedIds: string[]): void {
-    this.setState({ selectedIds });
+    this.setStateSafe({ selectedIds });
     this._loadParameters(selectedIds);
     this._loadMetrics(selectedIds);
   }
@@ -318,7 +318,7 @@ class CompareV1 extends Page<{}, CompareState> {
       const sectionName = componentMap[t].prototype.getDisplayName();
       collapseSections[sectionName] = true;
     });
-    this.setState({ collapseSections });
+    this.setStateSafe({ collapseSections });
   }
 
   private _loadParameters(selectedIds: string[]): void {
@@ -330,7 +330,7 @@ class CompareV1 extends Page<{}, CompareState> {
 
     const paramsCompareProps = CompareUtils.getParamsCompareProps(filteredRuns, filteredWorkflows);
 
-    this.setState({ paramsCompareProps });
+    this.setStateSafe({ paramsCompareProps });
   }
 
   private _loadMetrics(selectedIds: string[]): void {
@@ -341,11 +341,11 @@ class CompareV1 extends Page<{}, CompareState> {
 
     const metricsCompareProps = CompareUtils.multiRunMetricsCompareProps(filteredRuns);
 
-    this.setState({ metricsCompareProps });
+    this.setStateSafe({ metricsCompareProps });
   }
 
   private _collapseSectionsUpdate(collapseSections: { [key: string]: boolean }): void {
-    this.setState({ collapseSections });
+    this.setStateSafe({ collapseSections });
   }
 }
 

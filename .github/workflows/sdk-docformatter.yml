@@ -23,6 +23,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: 3.9
+          cache: 'pip'
 
       - name: Run docformatter tests
         run: ./test/presubmit-docformatter-sdk.sh

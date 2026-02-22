@@ -32,11 +32,16 @@ import { errorToMessage } from 'src/lib/Utils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
+  getArtifactName,
   getArtifactTypeName,
   getArtifactTypes,
+  getLinkedArtifactsByExecution,
+  getStoreSessionInfoFromArtifact,
+  filterEventWithOutputArtifact,
   KfpExecutionProperties,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
+import WorkflowParser from 'src/lib/WorkflowParser';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from 'src/components/ArtifactPreview';
@@ -47,7 +52,7 @@ import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
-import InputOutputTab, {
+import RuntimeInputOutputTab, {
   getArtifactParamList,
   ParamList,
 } from 'src/components/tabs/InputOutputTab';
@@ -152,12 +157,12 @@ function TaskNodeDetail({
   namespace,
 }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>(
-    [execution],
+    ['execution_logs', { executionId: execution?.getId(), namespace }],
     async () => {
       if (!execution) {
         throw new Error('No execution is found.');
       }
-      return await getLogsInfo(execution, runId);
+      return await getLogsInfo(execution, runId, namespace);
     },
     { enabled: !!execution },
   );
@@ -180,7 +185,7 @@ function TaskNodeDetail({
         {selectedTab === 0 &&
           (() => {
             if (execution) {
-              return <InputOutputTab execution={execution} namespace={namespace} />;
+              return <RuntimeInputOutputTab execution={execution} namespace={namespace} />;
             }
             return NODE_STATE_UNAVAILABLE;
           })()}
@@ -297,7 +302,11 @@ function getNodeVolumeMounts(
   return volumeMounts;
 }
 
-async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<string, string>> {
+async function getLogsInfo(
+  execution: Execution,
+  runId?: string,
+  namespace?: string,
+): Promise<Map<string, string>> {
   const logsInfo = new Map<string, string>();
   let podName = '';
   let podNameSpace = '';
@@ -325,6 +334,34 @@ async function getLogsInfo(execution: Execution, runId?: string): Promise<Map<st
     logsDetails = await Apis.getPodLogs(runId!, podName, podNameSpace, createdAt);
     logsInfo.set(LOGS_DETAILS, logsDetails);
   } catch (err) {
+    // Primary method failed, try to get logs from executor-logs artifact in MLMD
+    console.log('Pod logs retrieval failed, attempting to fetch executor-logs artifact from MLMD');
+    try {
+      const linkedArtifacts = await getLinkedArtifactsByExecution(execution);
+      const outputArtifacts = filterEventWithOutputArtifact(linkedArtifacts);
+      const executorLogsArtifact = outputArtifacts.find(
+        artifact => getArtifactName(artifact) === 'executor-logs',
+      );
+
+      if (executorLogsArtifact) {
+        const uri = executorLogsArtifact.artifact.getUri();
+        const storagePath = WorkflowParser.parseStoragePath(uri);
+        const providerInfo = getStoreSessionInfoFromArtifact(executorLogsArtifact);
+        const artifactNamespace = namespace || podNameSpace;
+
+        logsDetails = await Apis.readFile({
+          path: storagePath,
+          providerInfo: providerInfo,
+          namespace: artifactNamespace,
+        });
+        logsInfo.set(LOGS_DETAILS, logsDetails);
+        return logsInfo;
+      }
+    } catch (artifactErr) {
+      console.error('Failed to retrieve executor-logs artifact:', artifactErr);
+    }
+
+    // Both methods failed
     let errMsg = await errorToMessage(err);
     logsBannerMessage = 'Failed to retrieve pod logs.';
     logsInfo.set(LOGS_BANNER_MESSAGE, logsBannerMessage);
@@ -500,7 +537,10 @@ function SubDAGNodeDetail({
             (() => {
               if (execution) {
                 return (
-                  <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
+                  <RuntimeInputOutputTab
+                    execution={execution}
+                    namespace={namespace}
+                  ></RuntimeInputOutputTab>
                 );
               }
               return NODE_STATE_UNAVAILABLE;

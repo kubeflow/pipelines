@@ -9,32 +9,28 @@ jobs:
   check_ci_status:
     runs-on: ubuntu-latest
     permissions:
-      checks: read  
-      pull-requests: write        
+      checks: read
     steps:
       - name: Check out the repository
         uses: actions/checkout@v5
 
       - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
         id: label_check
-        run: |          
-          LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels --jq '.labels[].name')          
-          if echo "$LABELS" | grep -q 'needs-ok-to-test'; then
+        run: |
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
             echo "Label 'needs-ok-to-test' found. Skipping the workflow."
             exit 0
-          fi                    
-          if echo "$LABELS" | grep -q 'ok-to-test'; then
+          fi
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" == "true" ]]; then
             echo "Label 'ok-to-test' found. Continuing the workflow."
           else
             echo "Label 'ok-to-test' not found. Skipping the workflow."
             exit 0
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if all CI checks passed
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
-        with:                                 
+        with:
           delay: '5'
           retries: '10'
           polling_interval: '5'

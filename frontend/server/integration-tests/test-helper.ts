@@ -1,6 +1,10 @@
+import { vi, beforeAll, beforeEach } from 'vitest';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as os from 'os';
 import * as fs from 'fs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function commonSetup(
   options: { commitHash?: string; tagName?: string; showLog?: boolean } = {},
@@ -30,14 +34,14 @@ export function commonSetup(
   });
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
+    vi.resetAllMocks();
+    vi.restoreAllMocks();
   });
 
   if (!options.showLog) {
     beforeEach(() => {
-      jest.spyOn(global.console, 'info').mockImplementation();
-      jest.spyOn(global.console, 'log').mockImplementation();
+      vi.spyOn(global.console, 'info').mockImplementation(() => {});
+      vi.spyOn(global.console, 'log').mockImplementation(() => {});
     });
   }
 

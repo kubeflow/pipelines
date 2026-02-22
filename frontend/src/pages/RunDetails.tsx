@@ -20,7 +20,7 @@ import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
-import InputOutputTab from 'src/components/tabs/InputOutputTab';
+import RunInputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
@@ -42,7 +42,7 @@ import Separator from 'src/atoms/Separator';
 import Banner, { Mode } from 'src/components/Banner';
 import CompareTable from 'src/components/CompareTable';
 import DetailsTable from 'src/components/DetailsTable';
-import Graph from 'src/components/Graph';
+import RunGraph from 'src/components/Graph';
 import LogViewer from 'src/components/LogViewer';
 import MinioArtifactPreview from 'src/components/MinioArtifactPreview';
 import PlotCard from 'src/components/PlotCard';
@@ -307,7 +307,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                 <div className={classes(commonCss.page, css.graphPane)}>
                   {graphToShow && (
                     <div className={commonCss.page}>
-                      <Graph
+                      <RunGraph
                         graph={graphToShow}
                         selectedNodeId={selectedNodeId}
                         onClick={id => this._selectNode(id)}
@@ -320,7 +320,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                         disabled={!this.state.reducedGraph}
                         checked={showReducedGraph}
                         onChange={_ => {
-                          this.setState({ showReducedGraph: !this.state.showReducedGraph });
+                          this.setStateSafe({ showReducedGraph: !this.state.showReducedGraph });
                         }}
                       />
 
@@ -422,7 +422,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 {sidepanelSelectedTab === SidePanelTab.INPUT_OUTPUT &&
                                   isV2Pipeline(workflow) &&
                                   selectedExecution && (
-                                    <InputOutputTab
+                                    <RunInputOutputTab
                                       execution={selectedExecution}
                                       namespace={namespace}
                                     />
@@ -457,7 +457,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                             key={selectedExecution.getId()}
                                             id={selectedExecution.getId()}
                                             onError={
-                                              ((msg: string, ...args: any[]) => {
+                                              ((msg: string, ..._args: any[]) => {
                                                 // TODO: show a proper error banner and retry button
                                                 console.warn(msg);
                                               }) as any
@@ -722,6 +722,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   };
 
   public componentWillUnmount(): void {
+    super.componentWillUnmount();
     this._stopAutoRefresh();
     window.removeEventListener('focus', this.onFocusHandler);
     window.removeEventListener('blur', this.onBlurHandler);
@@ -747,7 +748,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     try {
       const allowCustomVisualizations = await Apis.areCustomVisualizationsAllowed();
-      this.setState({ allowCustomVisualizations });
+      this.setStateSafe({ allowCustomVisualizations });
     } catch (err) {
       this.showPageError('Error: Unable to enable custom visualizations.', err);
     }
@@ -911,7 +912,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         }
       }
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, error);
       logger.error('Error loading run:', runId, err);
     }
 
@@ -1116,7 +1118,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         return;
       }
     }
-    this.setState({ isGeneratingVisualization: true });
+    this.setStateSafe({ isGeneratingVisualization: true });
     const visualizationData: ApiVisualization = {
       arguments: visualizationArguments,
       source,
@@ -1130,14 +1132,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         nodeId,
       };
       generatedVisualizations.push(generatedVisualization);
-      this.setState({ generatedVisualizations });
+      this.setStateSafe({ generatedVisualizations });
     } catch (err) {
       this.showPageError(
         'Unable to generate visualization, an unexpected error was encountered.',
         err,
       );
     } finally {
-      this.setState({ isGeneratingVisualization: false });
+      this.setStateSafe({ isGeneratingVisualization: false });
     }
   }
 }

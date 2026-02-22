@@ -1,1024 +1,1571 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
-<div
-  className="page"
->
+exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
+<DocumentFragment>
   <div
-    className="page"
+    class="page_f1flacxk ft7h3sp"
   >
     <div
-      className="cardRow"
+      class="page_f1flacxk"
     >
-      <WithStyles(Paper)
-        className="card recurringRunsCard cardActive"
-        elevation={0}
-        id="recurringRunsCard"
+      <div
+        class="cardRow_ff0uehn"
       >
-        <div>
+        <div
+          class="MuiPaper-root card_f5jobr4 recurringRunsCard_folh6x0 cardActive_fk7v9nw MuiPaper-elevation0 MuiPaper-rounded"
+          id="recurringRunsCard"
+        >
+          <div>
+            <div
+              class="cardTitle_fhfhxfi"
+            >
+              <span>
+                Recurring run configs
+              </span>
+              <button
+                class="MuiButtonBase-root MuiButton-root MuiButton-text cardBtn_fvbhv23"
+                id="manageExperimentRecurringRunsBtn"
+                tabindex="0"
+                type="button"
+              >
+                <span
+                  class="MuiButton-label"
+                >
+                  Manage
+                </span>
+              </button>
+            </div>
+            <div
+              class="cardContent_fscn48d recurringRunsActive_f1ek4ghs"
+            >
+              1 active
+            </div>
+          </div>
+        </div>
+        <div
+          class="MuiPaper-root card_f5jobr4 runStatsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          id="experimentDescriptionCard"
+        >
           <div
-            className="cardTitle"
+            class="cardTitle_fhfhxfi"
           >
             <span>
-              Recurring run configs
+              Experiment description
             </span>
-            <WithStyles(Button)
-              className="cardBtn"
-              disableRipple={true}
-              id="manageExperimentRecurringRunsBtn"
-              onClick={[Function]}
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text popOutIcon_fr5sfkk popOutButton"
+              id="expandExperimentDescriptionBtn"
+              tabindex="0"
+              type="button"
             >
-              Manage
-            </WithStyles(Button)>
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root"
+                  focusable="false"
+                  style="font-size: 18px;"
+                  title="Read more"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
           </div>
           <div
-            className="cardContent recurringRunsActive"
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
           >
-            1 active
+            mock experiment description
           </div>
         </div>
-      </WithStyles(Paper)>
-      <WithStyles(Paper)
-        className="card runStatsCard"
-        elevation={0}
-        id="experimentDescriptionCard"
+      </div>
+      <div
+        class="root_f1vld0bw"
       >
         <div
-          className="cardTitle"
+          style="min-width: 100px;"
         >
-          <span>
-            Experiment description
-          </span>
-          <WithStyles(Button)
-            className="popOutIcon popOutButton"
-            id="expandExperimentDescriptionBtn"
-            onClick={[Function]}
+          <div
+            class="breadcrumbs_farqb1 flex_f16jawj4"
+          />
+          <div
+            class="flex_f16jawj4"
           >
-            <WithStyles(Tooltip)
-              title="Read more"
+            <span
+              class="pageName_fe4yf9p ellipsis_f15ay66x"
+              data-testid="page-title"
             >
-              <pure(LaunchIcon)
-                style={
-                  Object {
-                    "fontSize": 18,
-                  }
-                }
-              />
-            </WithStyles(Tooltip)>
-          </WithStyles(Button)>
+              Runs
+            </span>
+          </div>
         </div>
         <div
-          key="0"
-          style={
-            Object {
-              "overflow": "hidden",
-              "textOverflow": "ellipsis",
-              "whiteSpace": "nowrap",
-            }
-          }
+          class="actions_ffoeey"
         >
-          mock experiment description
+          <div
+            class=""
+            style="min-width: 130px;"
+            title="Create a new run"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+              id="createNewRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root icon_f1ojihnt"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                </svg>
+                <span>
+                  Create run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 195px;"
+            title="Create a new recurring run"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textPrimary"
+              id="createNewRecurringRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root icon_f1ojihnt"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                </svg>
+                <span>
+                  Create recurring run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 125px;"
+            title="Select multiple runs to compare"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="compareBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Compare runs
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 100px;"
+            title="Select a run to clone"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="cloneBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Clone run
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            title="Select at least one resource to archive"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="archiveBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Archive
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
-      </WithStyles(Paper)>
-    </div>
-    <Toolbar
-      actions={
-        Object {
-          "archive": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive selected run(s)",
-          },
-          "cloneRun": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          "compare": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          "newRecurringRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          "newRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRunBtn",
-            "outlined": true,
-            "primary": true,
-            "style": Object {
-              "minWidth": 130,
-            },
-            "title": "Create run",
-            "tooltip": "Create a new run",
-          },
-        }
-      }
-      breadcrumbs={Array []}
-      pageTitle="Runs"
-      topLevelToolbar={false}
-    />
-    <RunListsRouter
-      experimentIdMask="some-mock-experiment-id"
-      hideExperimentColumn={true}
-      history={
-        Object {
-          "push": [MockFunction],
-        }
-      }
-      location={Object {}}
-      match={
-        Object {
-          "params": Object {
-            "eid": "some-mock-experiment-id",
-          },
-        }
-      }
-      onError={[Function]}
-      onSelectionChange={[Function]}
-      onTabSwitch={[Function]}
-      refreshCount={1}
-      selectedIds={Array []}
-      storageState="AVAILABLE"
-      toolbarProps={
-        Object {
-          "actions": Object {
-            "refresh": Object {
-              "action": [Function],
-              "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
-            },
-          },
-          "breadcrumbs": Array [
-            Object {
-              "displayName": "Experiments",
-              "href": "/experiments",
-            },
-          ],
-          "pageTitle": "some-mock-experiment-id",
-        }
-      }
-      updateBanner={[MockFunction]}
-      updateDialog={[MockFunction]}
-      updateSnackbar={[MockFunction]}
-      updateToolbar={[MockFunction]}
-    />
-    <WithStyles(Dialog)
-      classes={
-        Object {
-          "paper": "recurringRunsDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <RecurringRunsManager
-          experimentId="some-mock-experiment-id"
-          history={
-            Object {
-              "push": [MockFunction],
-            }
-          }
-          location={Object {}}
-          match={
-            Object {
-              "params": Object {
-                "eid": "some-mock-experiment-id",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {
-                "refresh": Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
-                },
-              },
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "some-mock-experiment-id",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="closeExperimentRecurringRunManagerBtn"
-          onClick={[Function]}
+      </div>
+      <div
+        class="page_f1flacxk f1h5lfj6"
+      >
+        <div
+          class="tabs_ff8rz57"
         >
-          Close
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
+          <div
+            class="indicator_fp4eggn"
+            style="left: -5px; width: 5px; display: block;"
+          />
+          <span
+            style="display: inline-block; min-width: 20px; width: 20px;"
+          />
+          <button
+            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label"
+            >
+              <span>
+                Active
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+          <button
+            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label"
+            >
+              <span>
+                Archived
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
+        <div>
+          <div
+            class="pageOverflowHidden_f15djeb2"
+          >
+            <div>
+              <div
+                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                spellcheck="false"
+                style="height: 48px; max-width: 100%; width: 100%;"
+              >
+                <label
+                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                  data-shrink="true"
+                  for="tableFilterBox"
+                  id="tableFilterBox-label"
+                >
+                  Filter runs
+                </label>
+                <div
+                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                >
+                  <div
+                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root"
+                      focusable="false"
+                      style="color: rgb(128, 134, 139); padding-right: 16px;"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    aria-invalid="false"
+                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                    id="tableFilterBox"
+                    type="text"
+                    value=""
+                  />
+                  <fieldset
+                    aria-hidden="true"
+                    class="PrivateNotchedOutline-root-73 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                  >
+                    <legend
+                      class="PrivateNotchedOutline-legendLabelled-75 PrivateNotchedOutline-legendNotched-76"
+                    >
+                      <span>
+                        Filter runs
+                      </span>
+                    </legend>
+                  </fieldset>
+                </div>
+              </div>
+            </div>
+            <div
+              class="header_f15jqnss"
+            >
+              <div
+                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+              >
+                <span
+                  aria-disabled="false"
+                  class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-77 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                >
+                  <span
+                    class="MuiIconButton-label"
+                  >
+                    <input
+                      class="PrivateSwitchBase-input-80"
+                      data-indeterminate="false"
+                      type="checkbox"
+                      value=""
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                  </span>
+                  <span
+                    class="MuiTouchRipple-root"
+                  />
+                </span>
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 30%;"
+                title="Run name"
+              >
+                Run name
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Status"
+              >
+                Status
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Duration"
+              >
+                Duration
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Pipeline Version"
+              >
+                Pipeline Version
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Recurring Run"
+              >
+                Recurring Run
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Start time"
+              >
+                Start time
+              </div>
+            </div>
+            <div
+              class="scrollContainer_fea2b5v"
+              style="min-height: 60px;"
+            >
+              <div
+                class="emptyMessage_f1v5g0b7"
+              >
+                No available runs found for this experiment.
+              </div>
+            </div>
+            <div
+              class="footer_f1fl9hjk"
+            >
+              <span
+                class="fzbgmju"
+              >
+                Rows per page:
+              </span>
+              <div
+                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+              >
+                <div
+                  class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                >
+                  <div
+                    aria-haspopup="listbox"
+                    class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+                    role="button"
+                    tabindex="0"
+                  >
+                    10
+                  </div>
+                  <input
+                    aria-hidden="true"
+                    class="MuiSelect-nativeInput"
+                    tabindex="-1"
+                    value="10"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSelect-icon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M7 10l5 5 5-5z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <button
+                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                    />
+                  </svg>
+                </span>
+              </button>
+              <button
+                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`ExperimentDetails removes all description text after second newline and replaces with an ellipsis 1`] = `
-<div
-  className="page"
->
+exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] = `
+<DocumentFragment>
   <div
-    className="page"
+    class="page_f1flacxk ft7h3sp"
   >
     <div
-      className="cardRow"
+      class="page_f1flacxk"
     >
-      <WithStyles(Paper)
-        className="card recurringRunsCard"
-        elevation={0}
-        id="recurringRunsCard"
+      <div
+        class="cardRow_ff0uehn"
       >
-        <div>
+        <div
+          class="MuiPaper-root card_f5jobr4 recurringRunsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          id="recurringRunsCard"
+        >
+          <div>
+            <div
+              class="cardTitle_fhfhxfi"
+            >
+              <span>
+                Recurring run configs
+              </span>
+              <button
+                class="MuiButtonBase-root MuiButton-root MuiButton-text cardBtn_fvbhv23"
+                id="manageExperimentRecurringRunsBtn"
+                tabindex="0"
+                type="button"
+              >
+                <span
+                  class="MuiButton-label"
+                >
+                  Manage
+                </span>
+              </button>
+            </div>
+            <div
+              class="cardContent_fscn48d"
+            >
+              0 active
+            </div>
+          </div>
+        </div>
+        <div
+          class="MuiPaper-root card_f5jobr4 runStatsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          id="experimentDescriptionCard"
+        >
           <div
-            className="cardTitle"
+            class="cardTitle_fhfhxfi"
           >
             <span>
-              Recurring run configs
+              Experiment description
             </span>
-            <WithStyles(Button)
-              className="cardBtn"
-              disableRipple={true}
-              id="manageExperimentRecurringRunsBtn"
-              onClick={[Function]}
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text popOutIcon_fr5sfkk popOutButton"
+              id="expandExperimentDescriptionBtn"
+              tabindex="0"
+              type="button"
             >
-              Manage
-            </WithStyles(Button)>
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root"
+                  focusable="false"
+                  style="font-size: 18px;"
+                  title="Read more"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
           </div>
           <div
-            className="cardContent"
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
           >
-            0 active
+            mock experiment description
           </div>
         </div>
-      </WithStyles(Paper)>
-      <WithStyles(Paper)
-        className="card runStatsCard"
-        elevation={0}
-        id="experimentDescriptionCard"
+      </div>
+      <div
+        class="root_f1vld0bw"
       >
         <div
-          className="cardTitle"
+          style="min-width: 100px;"
         >
-          <span>
-            Experiment description
-          </span>
-          <WithStyles(Button)
-            className="popOutIcon popOutButton"
-            id="expandExperimentDescriptionBtn"
-            onClick={[Function]}
+          <div
+            class="breadcrumbs_farqb1 flex_f16jawj4"
+          />
+          <div
+            class="flex_f16jawj4"
           >
-            <WithStyles(Tooltip)
-              title="Read more"
+            <span
+              class="pageName_fe4yf9p ellipsis_f15ay66x"
+              data-testid="page-title"
             >
-              <pure(LaunchIcon)
-                style={
-                  Object {
-                    "fontSize": 18,
-                  }
-                }
+              Runs
+            </span>
+          </div>
+        </div>
+        <div
+          class="actions_ffoeey"
+        >
+          <div
+            class=""
+            style="min-width: 130px;"
+            title="Create a new run"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+              id="createNewRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root icon_f1ojihnt"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                </svg>
+                <span>
+                  Create run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
               />
-            </WithStyles(Tooltip)>
-          </WithStyles(Button)>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 195px;"
+            title="Create a new recurring run"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textPrimary"
+              id="createNewRecurringRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root icon_f1ojihnt"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                </svg>
+                <span>
+                  Create recurring run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 125px;"
+            title="Select multiple runs to compare"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="compareBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Compare runs
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 100px;"
+            title="Select a run to clone"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="cloneBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Clone run
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            title="Select at least one resource to archive"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="archiveBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Archive
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
+      </div>
+      <div
+        class="page_f1flacxk f1h5lfj6"
+      >
         <div
-          key="0"
-          style={
-            Object {
-              "overflow": "hidden",
-              "textOverflow": "ellipsis",
-              "whiteSpace": "nowrap",
-            }
-          }
+          class="tabs_ff8rz57"
         >
-          Line 1
+          <div
+            class="indicator_fp4eggn"
+            style="left: -5px; width: 5px; display: block;"
+          />
+          <span
+            style="display: inline-block; min-width: 20px; width: 20px;"
+          />
+          <button
+            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label"
+            >
+              <span>
+                Active
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+          <button
+            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label"
+            >
+              <span>
+                Archived
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
         </div>
-        <div
-          key="1"
-          style={
-            Object {
-              "overflow": "hidden",
-              "textOverflow": "ellipsis",
-              "whiteSpace": "nowrap",
-            }
-          }
-        >
-          Line 2
+        <div>
+          <div
+            class="pageOverflowHidden_f15djeb2"
+          >
+            <div>
+              <div
+                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                spellcheck="false"
+                style="height: 48px; max-width: 100%; width: 100%;"
+              >
+                <label
+                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                  data-shrink="true"
+                  for="tableFilterBox"
+                  id="tableFilterBox-label"
+                >
+                  Filter runs
+                </label>
+                <div
+                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                >
+                  <div
+                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root"
+                      focusable="false"
+                      style="color: rgb(128, 134, 139); padding-right: 16px;"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    aria-invalid="false"
+                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                    id="tableFilterBox"
+                    type="text"
+                    value=""
+                  />
+                  <fieldset
+                    aria-hidden="true"
+                    class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                  >
+                    <legend
+                      class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                    >
+                      <span>
+                        Filter runs
+                      </span>
+                    </legend>
+                  </fieldset>
+                </div>
+              </div>
+            </div>
+            <div
+              class="header_f15jqnss"
+            >
+              <div
+                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+              >
+                <span
+                  aria-disabled="false"
+                  class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                >
+                  <span
+                    class="MuiIconButton-label"
+                  >
+                    <input
+                      class="PrivateSwitchBase-input-8"
+                      data-indeterminate="false"
+                      type="checkbox"
+                      value=""
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                  </span>
+                  <span
+                    class="MuiTouchRipple-root"
+                  />
+                </span>
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 30%;"
+                title="Run name"
+              >
+                Run name
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Status"
+              >
+                Status
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Duration"
+              >
+                Duration
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Pipeline Version"
+              >
+                Pipeline Version
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Recurring Run"
+              >
+                Recurring Run
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Start time"
+              >
+                Start time
+              </div>
+            </div>
+            <div
+              class="scrollContainer_fea2b5v"
+              style="min-height: 60px;"
+            >
+              <div
+                class="emptyMessage_f1v5g0b7"
+              >
+                No available runs found for this experiment.
+              </div>
+            </div>
+            <div
+              class="footer_f1fl9hjk"
+            >
+              <span
+                class="fzbgmju"
+              >
+                Rows per page:
+              </span>
+              <div
+                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+              >
+                <div
+                  class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                >
+                  <div
+                    aria-haspopup="listbox"
+                    class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+                    role="button"
+                    tabindex="0"
+                  >
+                    10
+                  </div>
+                  <input
+                    aria-hidden="true"
+                    class="MuiSelect-nativeInput"
+                    tabindex="-1"
+                    value="10"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSelect-icon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M7 10l5 5 5-5z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <button
+                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                    />
+                  </svg>
+                </span>
+              </button>
+              <button
+                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
-        ...
-      </WithStyles(Paper)>
+      </div>
     </div>
-    <Toolbar
-      actions={
-        Object {
-          "archive": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive selected run(s)",
-          },
-          "cloneRun": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          "compare": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          "newRecurringRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          "newRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRunBtn",
-            "outlined": true,
-            "primary": true,
-            "style": Object {
-              "minWidth": 130,
-            },
-            "title": "Create run",
-            "tooltip": "Create a new run",
-          },
-        }
-      }
-      breadcrumbs={Array []}
-      pageTitle="Runs"
-      topLevelToolbar={false}
-    />
-    <RunListsRouter
-      experimentIdMask="some-mock-experiment-id"
-      hideExperimentColumn={true}
-      history={
-        Object {
-          "push": [MockFunction],
-        }
-      }
-      location={Object {}}
-      match={
-        Object {
-          "params": Object {
-            "eid": "some-mock-experiment-id",
-          },
-        }
-      }
-      onError={[Function]}
-      onSelectionChange={[Function]}
-      onTabSwitch={[Function]}
-      refreshCount={1}
-      selectedIds={Array []}
-      storageState="AVAILABLE"
-      toolbarProps={
-        Object {
-          "actions": Object {
-            "refresh": Object {
-              "action": [Function],
-              "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
-            },
-          },
-          "breadcrumbs": Array [
-            Object {
-              "displayName": "Experiments",
-              "href": "/experiments",
-            },
-          ],
-          "pageTitle": "some-mock-experiment-id",
-        }
-      }
-      updateBanner={[MockFunction]}
-      updateDialog={[MockFunction]}
-      updateSnackbar={[MockFunction]}
-      updateToolbar={[MockFunction]}
-    />
-    <WithStyles(Dialog)
-      classes={
-        Object {
-          "paper": "recurringRunsDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <RecurringRunsManager
-          experimentId="some-mock-experiment-id"
-          history={
-            Object {
-              "push": [MockFunction],
-            }
-          }
-          location={Object {}}
-          match={
-            Object {
-              "params": Object {
-                "eid": "some-mock-experiment-id",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {
-                "refresh": Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
-                },
-              },
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "some-mock-experiment-id",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="closeExperimentRecurringRunManagerBtn"
-          onClick={[Function]}
-        >
-          Close
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
-<div
-  className="page"
->
+exports[`ExperimentDetails > uses an empty string if the experiment has no description 1`] = `
+<DocumentFragment>
   <div
-    className="page"
+    class="page_f1flacxk ft7h3sp"
   >
     <div
-      className="cardRow"
+      class="page_f1flacxk"
     >
-      <WithStyles(Paper)
-        className="card recurringRunsCard"
-        elevation={0}
-        id="recurringRunsCard"
+      <div
+        class="cardRow_ff0uehn"
       >
-        <div>
+        <div
+          class="MuiPaper-root card_f5jobr4 recurringRunsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          id="recurringRunsCard"
+        >
+          <div>
+            <div
+              class="cardTitle_fhfhxfi"
+            >
+              <span>
+                Recurring run configs
+              </span>
+              <button
+                class="MuiButtonBase-root MuiButton-root MuiButton-text cardBtn_fvbhv23"
+                id="manageExperimentRecurringRunsBtn"
+                tabindex="0"
+                type="button"
+              >
+                <span
+                  class="MuiButton-label"
+                >
+                  Manage
+                </span>
+              </button>
+            </div>
+            <div
+              class="cardContent_fscn48d"
+            >
+              0 active
+            </div>
+          </div>
+        </div>
+        <div
+          class="MuiPaper-root card_f5jobr4 runStatsCard_folh6x0 MuiPaper-elevation0 MuiPaper-rounded"
+          id="experimentDescriptionCard"
+        >
           <div
-            className="cardTitle"
+            class="cardTitle_fhfhxfi"
           >
             <span>
-              Recurring run configs
+              Experiment description
             </span>
-            <WithStyles(Button)
-              className="cardBtn"
-              disableRipple={true}
-              id="manageExperimentRecurringRunsBtn"
-              onClick={[Function]}
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text popOutIcon_fr5sfkk popOutButton"
+              id="expandExperimentDescriptionBtn"
+              tabindex="0"
+              type="button"
             >
-              Manage
-            </WithStyles(Button)>
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root"
+                  focusable="false"
+                  style="font-size: 18px;"
+                  title="Read more"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
           </div>
           <div
-            className="cardContent"
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+          />
+        </div>
+      </div>
+      <div
+        class="root_f1vld0bw"
+      >
+        <div
+          style="min-width: 100px;"
+        >
+          <div
+            class="breadcrumbs_farqb1 flex_f16jawj4"
+          />
+          <div
+            class="flex_f16jawj4"
           >
-            0 active
+            <span
+              class="pageName_fe4yf9p ellipsis_f15ay66x"
+              data-testid="page-title"
+            >
+              Runs
+            </span>
           </div>
         </div>
-      </WithStyles(Paper)>
-      <WithStyles(Paper)
-        className="card runStatsCard"
-        elevation={0}
-        id="experimentDescriptionCard"
-      >
         <div
-          className="cardTitle"
+          class="actions_ffoeey"
         >
-          <span>
-            Experiment description
-          </span>
-          <WithStyles(Button)
-            className="popOutIcon popOutButton"
-            id="expandExperimentDescriptionBtn"
-            onClick={[Function]}
+          <div
+            class=""
+            style="min-width: 130px;"
+            title="Create a new run"
           >
-            <WithStyles(Tooltip)
-              title="Read more"
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+              id="createNewRunBtn"
+              tabindex="0"
+              type="button"
             >
-              <pure(LaunchIcon)
-                style={
-                  Object {
-                    "fontSize": 18,
-                  }
-                }
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root icon_f1ojihnt"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                </svg>
+                <span>
+                  Create run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
               />
-            </WithStyles(Tooltip)>
-          </WithStyles(Button)>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 195px;"
+            title="Create a new recurring run"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textPrimary"
+              id="createNewRecurringRunBtn"
+              tabindex="0"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root icon_f1ojihnt"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                </svg>
+                <span>
+                  Create recurring run
+                </span>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 125px;"
+            title="Select multiple runs to compare"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="compareBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Compare runs
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            style="min-width: 100px;"
+            title="Select a run to clone"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="cloneBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Clone run
+                </span>
+              </span>
+            </button>
+          </div>
+          <div
+            class=""
+            title="Select at least one resource to archive"
+          >
+            <button
+              class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 MuiButton-textSecondary Mui-disabled Mui-disabled"
+              disabled=""
+              id="archiveBtn"
+              tabindex="-1"
+              type="button"
+            >
+              <span
+                class="MuiButton-label"
+              >
+                <span>
+                  Archive
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
-        <div
-          key="0"
-          style={
-            Object {
-              "overflow": "hidden",
-              "textOverflow": "ellipsis",
-              "whiteSpace": "nowrap",
-            }
-          }
-        >
-          mock experiment description
-        </div>
-      </WithStyles(Paper)>
-    </div>
-    <Toolbar
-      actions={
-        Object {
-          "archive": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive selected run(s)",
-          },
-          "cloneRun": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          "compare": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          "newRecurringRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          "newRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRunBtn",
-            "outlined": true,
-            "primary": true,
-            "style": Object {
-              "minWidth": 130,
-            },
-            "title": "Create run",
-            "tooltip": "Create a new run",
-          },
-        }
-      }
-      breadcrumbs={Array []}
-      pageTitle="Runs"
-      topLevelToolbar={false}
-    />
-    <RunListsRouter
-      experimentIdMask="some-mock-experiment-id"
-      hideExperimentColumn={true}
-      history={
-        Object {
-          "push": [MockFunction],
-        }
-      }
-      location={Object {}}
-      match={
-        Object {
-          "params": Object {
-            "eid": "some-mock-experiment-id",
-          },
-        }
-      }
-      onError={[Function]}
-      onSelectionChange={[Function]}
-      onTabSwitch={[Function]}
-      refreshCount={1}
-      selectedIds={Array []}
-      storageState="AVAILABLE"
-      toolbarProps={
-        Object {
-          "actions": Object {
-            "refresh": Object {
-              "action": [Function],
-              "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
-            },
-          },
-          "breadcrumbs": Array [
-            Object {
-              "displayName": "Experiments",
-              "href": "/experiments",
-            },
-          ],
-          "pageTitle": "some-mock-experiment-id",
-        }
-      }
-      updateBanner={[MockFunction]}
-      updateDialog={[MockFunction]}
-      updateSnackbar={[MockFunction]}
-      updateToolbar={[MockFunction]}
-    />
-    <WithStyles(Dialog)
-      classes={
-        Object {
-          "paper": "recurringRunsDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <RecurringRunsManager
-          experimentId="some-mock-experiment-id"
-          history={
-            Object {
-              "push": [MockFunction],
-            }
-          }
-          location={Object {}}
-          match={
-            Object {
-              "params": Object {
-                "eid": "some-mock-experiment-id",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {
-                "refresh": Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
-                },
-              },
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "some-mock-experiment-id",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="closeExperimentRecurringRunManagerBtn"
-          onClick={[Function]}
-        >
-          Close
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
-  </div>
-</div>
-`;
-
-exports[`ExperimentDetails uses an empty string if the experiment has no description 1`] = `
-<div
-  className="page"
->
-  <div
-    className="page"
-  >
-    <div
-      className="cardRow"
-    >
-      <WithStyles(Paper)
-        className="card recurringRunsCard"
-        elevation={0}
-        id="recurringRunsCard"
+      </div>
+      <div
+        class="page_f1flacxk f1h5lfj6"
       >
+        <div
+          class="tabs_ff8rz57"
+        >
+          <div
+            class="indicator_fp4eggn"
+            style="left: -5px; width: 5px; display: block;"
+          />
+          <span
+            style="display: inline-block; min-width: 20px; width: 20px;"
+          />
+          <button
+            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label"
+            >
+              <span>
+                Active
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+          <button
+            class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+            tabindex="0"
+            title=""
+            type="button"
+          >
+            <span
+              class="MuiButton-label"
+            >
+              <span>
+                Archived
+              </span>
+            </span>
+            <span
+              class="MuiTouchRipple-root"
+            />
+          </button>
+        </div>
         <div>
           <div
-            className="cardTitle"
+            class="pageOverflowHidden_f15djeb2"
           >
-            <span>
-              Recurring run configs
-            </span>
-            <WithStyles(Button)
-              className="cardBtn"
-              disableRipple={true}
-              id="manageExperimentRecurringRunsBtn"
-              onClick={[Function]}
+            <div>
+              <div
+                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                spellcheck="false"
+                style="height: 48px; max-width: 100%; width: 100%;"
+              >
+                <label
+                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                  data-shrink="true"
+                  for="tableFilterBox"
+                  id="tableFilterBox-label"
+                >
+                  Filter runs
+                </label>
+                <div
+                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                >
+                  <div
+                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root"
+                      focusable="false"
+                      style="color: rgb(128, 134, 139); padding-right: 16px;"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    aria-invalid="false"
+                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                    id="tableFilterBox"
+                    type="text"
+                    value=""
+                  />
+                  <fieldset
+                    aria-hidden="true"
+                    class="PrivateNotchedOutline-root-25 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                  >
+                    <legend
+                      class="PrivateNotchedOutline-legendLabelled-27 PrivateNotchedOutline-legendNotched-28"
+                    >
+                      <span>
+                        Filter runs
+                      </span>
+                    </legend>
+                  </fieldset>
+                </div>
+              </div>
+            </div>
+            <div
+              class="header_f15jqnss"
             >
-              Manage
-            </WithStyles(Button)>
-          </div>
-          <div
-            className="cardContent"
-          >
-            0 active
+              <div
+                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+              >
+                <span
+                  aria-disabled="false"
+                  class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-29 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                >
+                  <span
+                    class="MuiIconButton-label"
+                  >
+                    <input
+                      class="PrivateSwitchBase-input-32"
+                      data-indeterminate="false"
+                      type="checkbox"
+                      value=""
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                  </span>
+                  <span
+                    class="MuiTouchRipple-root"
+                  />
+                </span>
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 30%;"
+                title="Run name"
+              >
+                Run name
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Status"
+              >
+                Status
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Duration"
+              >
+                Duration
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Pipeline Version"
+              >
+                Pipeline Version
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 10%;"
+                title="Recurring Run"
+              >
+                Recurring Run
+              </div>
+              <div
+                class="columnName_f1kdqshe"
+                style="width: 20%;"
+                title="Start time"
+              >
+                Start time
+              </div>
+            </div>
+            <div
+              class="scrollContainer_fea2b5v"
+              style="min-height: 60px;"
+            >
+              <div
+                class="emptyMessage_f1v5g0b7"
+              >
+                No available runs found for this experiment.
+              </div>
+            </div>
+            <div
+              class="footer_f1fl9hjk"
+            >
+              <span
+                class="fzbgmju"
+              >
+                Rows per page:
+              </span>
+              <div
+                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+              >
+                <div
+                  class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                >
+                  <div
+                    aria-haspopup="listbox"
+                    class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+                    role="button"
+                    tabindex="0"
+                  >
+                    10
+                  </div>
+                  <input
+                    aria-hidden="true"
+                    class="MuiSelect-nativeInput"
+                    tabindex="-1"
+                    value="10"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSelect-icon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M7 10l5 5 5-5z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <button
+                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                    />
+                  </svg>
+                </span>
+              </button>
+              <button
+                class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                disabled=""
+                tabindex="-1"
+                type="button"
+              >
+                <span
+                  class="MuiIconButton-label"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
           </div>
         </div>
-      </WithStyles(Paper)>
-      <WithStyles(Paper)
-        className="card runStatsCard"
-        elevation={0}
-        id="experimentDescriptionCard"
-      >
-        <div
-          className="cardTitle"
-        >
-          <span>
-            Experiment description
-          </span>
-          <WithStyles(Button)
-            className="popOutIcon popOutButton"
-            id="expandExperimentDescriptionBtn"
-            onClick={[Function]}
-          >
-            <WithStyles(Tooltip)
-              title="Read more"
-            >
-              <pure(LaunchIcon)
-                style={
-                  Object {
-                    "fontSize": 18,
-                  }
-                }
-              />
-            </WithStyles(Tooltip)>
-          </WithStyles(Button)>
-        </div>
-        <div
-          key="0"
-          style={
-            Object {
-              "overflow": "hidden",
-              "textOverflow": "ellipsis",
-              "whiteSpace": "nowrap",
-            }
-          }
-        />
-      </WithStyles(Paper)>
+      </div>
     </div>
-    <Toolbar
-      actions={
-        Object {
-          "archive": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive selected run(s)",
-          },
-          "cloneRun": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          "compare": Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          "newRecurringRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          "newRun": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRunBtn",
-            "outlined": true,
-            "primary": true,
-            "style": Object {
-              "minWidth": 130,
-            },
-            "title": "Create run",
-            "tooltip": "Create a new run",
-          },
-        }
-      }
-      breadcrumbs={Array []}
-      pageTitle="Runs"
-      topLevelToolbar={false}
-    />
-    <RunListsRouter
-      experimentIdMask="some-mock-experiment-id"
-      hideExperimentColumn={true}
-      history={
-        Object {
-          "push": [MockFunction],
-        }
-      }
-      location={Object {}}
-      match={
-        Object {
-          "params": Object {
-            "eid": "some-mock-experiment-id",
-          },
-        }
-      }
-      onError={[Function]}
-      onSelectionChange={[Function]}
-      onTabSwitch={[Function]}
-      refreshCount={1}
-      selectedIds={Array []}
-      storageState="AVAILABLE"
-      toolbarProps={
-        Object {
-          "actions": Object {
-            "refresh": Object {
-              "action": [Function],
-              "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
-            },
-          },
-          "breadcrumbs": Array [
-            Object {
-              "displayName": "Experiments",
-              "href": "/experiments",
-            },
-          ],
-          "pageTitle": "some-mock-experiment-id",
-        }
-      }
-      updateBanner={[MockFunction]}
-      updateDialog={[MockFunction]}
-      updateSnackbar={[MockFunction]}
-      updateToolbar={[MockFunction]}
-    />
-    <WithStyles(Dialog)
-      classes={
-        Object {
-          "paper": "recurringRunsDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <RecurringRunsManager
-          experimentId="some-mock-experiment-id"
-          history={
-            Object {
-              "push": [MockFunction],
-            }
-          }
-          location={Object {}}
-          match={
-            Object {
-              "params": Object {
-                "eid": "some-mock-experiment-id",
-              },
-            }
-          }
-          toolbarProps={
-            Object {
-              "actions": Object {
-                "refresh": Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
-                },
-              },
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "some-mock-experiment-id",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="closeExperimentRecurringRunManagerBtn"
-          onClick={[Function]}
-        >
-          Close
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
   </div>
-</div>
+</DocumentFragment>
 `;

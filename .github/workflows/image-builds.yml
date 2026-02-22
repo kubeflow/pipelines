@@ -1,0 +1,117 @@
+name: Build Images
+on:
+  workflow_call:
+    outputs:
+      IMAGE_PATH:
+        description: 'A description of my output'
+        value: ${{ jobs.image-build.outputs.image_path }}
+      IMAGE_TAG:
+        description: 'A description of my output'
+        value: ${{ jobs.image-build.outputs.image_tag }}
+      IMAGE_REGISTRY:
+        description: 'A description of my output'
+        value: ${{ jobs.image-build.outputs.registry }}
+
+env:
+  IMAGE_TAG: "latest"
+  REGISTRY: "kind-registry:5000"
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_SHA: ${{ github.sha }}
+
+jobs:
+  image-build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_path: ${{ steps.configure.outputs.artifact_path }}
+      image_tag: ${{ steps.configure.outputs.image_tag }}
+      registry: ${{ steps.configure.outputs.registry }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - image: apiserver
+            dockerfile: backend/Dockerfile
+            context: .
+          - image: persistenceagent
+            dockerfile: backend/Dockerfile.persistenceagent
+            context: .
+          - image: scheduledworkflow
+            dockerfile: backend/Dockerfile.scheduledworkflow
+            context: .
+          - image: launcher
+            dockerfile: backend/Dockerfile.launcher
+            context: .
+          - image: driver
+            dockerfile: backend/Dockerfile.driver
+            context: .
+          - image: frontend
+            dockerfile: frontend/Dockerfile
+            context: .
+          - image: metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+            context: .
+          - image: viewer-crd-controller
+            dockerfile: backend/Dockerfile.viewercontroller
+            context: .
+          - image: visualization-server
+            dockerfile: backend/Dockerfile.visualization
+            context: .
+          - image: cache-deployer
+            dockerfile: backend/src/cache/deployer/Dockerfile
+            context: .
+          - image: cache-server
+            dockerfile: backend/Dockerfile.cacheserver
+            context: .
+          - image: metadata-envoy
+            dockerfile: third_party/metadata_envoy/Dockerfile
+            context: .
+    env:
+      ARTIFACT_NAME: "${{ matrix.image }}"
+      ARTIFACTS_PATH: "images_${{ github.run_id }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Create Artifacts Path Directory
+        id: configure
+        run: |
+          mkdir -p ${{ env.ARTIFACTS_PATH }}
+          {
+            echo "artifact_path=${{ env.ARTIFACTS_PATH }}"
+            echo "image_tag=${{ env.IMAGE_TAG }}"
+            echo "registry=${{ env.REGISTRY }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        id: setup-buildx
+
+      - name: Build and save Docker image
+        uses: docker/build-push-action@v5
+        if: ${{ steps.setup-buildx.outcome == 'success' }}
+        id: save-image
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+
+      - name: Rebuild Images in case of failure
+        uses: docker/build-push-action@v5
+        if: ${{ steps.save-image.outcome != 'success' && steps.setup-buildx.outcome == 'success' }}
+        id: rebuild
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+          retention-days: 1

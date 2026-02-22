@@ -1,144 +1,193 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Banner defaults to error mode 1`] = `
-<div
-  className="flex banner mode"
->
+exports[`Banner > defaults to error mode 1`] = `
+<DocumentFragment>
   <div
-    className="message"
+    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
   >
-    <pure(ErrorIcon)
-      className="icon"
-    />
-    Some message
-  </div>
-  <div
-    className="flex"
-  />
-</div>
-`;
-
-exports[`Banner shows "Details" button and has dialog when there is additional info 1`] = `
-<div
-  className="flex banner mode"
->
-  <div
-    className="message"
-  >
-    <pure(ErrorIcon)
-      className="icon"
-    />
-    Some message
-  </div>
-  <div
-    className="flex"
-  >
-    <WithStyles(Button)
-      className="button detailsButton"
-      onClick={[Function]}
+    <div
+      class="message_fddsvlq"
     >
-      Details
-    </WithStyles(Button)>
-  </div>
-  <WithStyles(Dialog)
-    onClose={[Function]}
-    open={false}
-  >
-    <WithStyles(DialogTitle)>
-      An error occurred
-    </WithStyles(DialogTitle)>
-    <WithStyles(DialogContent)
-      className="prewrap"
-    >
-      More info
-    </WithStyles(DialogContent)>
-    <WithStyles(DialogActions)>
-      <WithStyles(Button)
-        id="dismissDialogBtn"
-        onClick={[Function]}
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root icon_f1jqzauf"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        Dismiss
-      </WithStyles(Button)>
-    </WithStyles(DialogActions)>
-  </WithStyles(Dialog)>
-</div>
+        <path
+          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+        />
+      </svg>
+      Some message
+    </div>
+    <div
+      class="flex_f16jawj4"
+    />
+  </div>
+</DocumentFragment>
 `;
 
-exports[`Banner shows "Refresh" button when passed a refresh function 1`] = `
-<div
-  className="flex banner mode"
->
+exports[`Banner > shows "Details" button and has dialog when there is additional info 1`] = `
+<DocumentFragment>
   <div
-    className="message"
+    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
   >
-    <pure(ErrorIcon)
-      className="icon"
-    />
-    Some message
-  </div>
-  <div
-    className="flex"
-  >
-    <WithStyles(Button)
-      className="button refreshButton"
-      onClick={[Function]}
+    <div
+      class="message_fddsvlq"
     >
-      Refresh
-    </WithStyles(Button)>
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root icon_f1jqzauf"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+        />
+      </svg>
+      Some message
+    </div>
+    <div
+      class="flex_f16jawj4"
+    >
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b detailsButton_fgq2mjo"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-label"
+        >
+          Details
+        </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
+      </button>
+    </div>
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`Banner uses error mode when instructed 1`] = `
-<div
-  className="flex banner mode"
->
+exports[`Banner > shows "Refresh" button when passed a refresh function 1`] = `
+<DocumentFragment>
   <div
-    className="message"
+    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
   >
-    <pure(ErrorIcon)
-      className="icon"
-    />
-    Some message
+    <div
+      class="message_fddsvlq"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root icon_f1jqzauf"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+        />
+      </svg>
+      Some message
+    </div>
+    <div
+      class="flex_f16jawj4"
+    >
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b refreshButton_fgq2mjo"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-label"
+        >
+          Refresh
+        </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
+      </button>
+    </div>
   </div>
-  <div
-    className="flex"
-  />
-</div>
+</DocumentFragment>
 `;
 
-exports[`Banner uses info mode when instructed 1`] = `
-<div
-  className="flex banner mode"
->
+exports[`Banner > uses error mode when instructed 1`] = `
+<DocumentFragment>
   <div
-    className="message"
+    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
   >
-    <pure(InfoIcon)
-      className="icon"
+    <div
+      class="message_fddsvlq"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root icon_f1jqzauf"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+        />
+      </svg>
+      Some message
+    </div>
+    <div
+      class="flex_f16jawj4"
     />
-    Some message
   </div>
-  <div
-    className="flex"
-  />
-</div>
+</DocumentFragment>
 `;
 
-exports[`Banner uses warning mode when instructed 1`] = `
-<div
-  className="flex banner mode"
->
+exports[`Banner > uses info mode when instructed 1`] = `
+<DocumentFragment>
   <div
-    className="message"
+    class="flex_f16jawj4 banner_forn49x mode_f77nw2b"
   >
-    <pure(WarningIcon)
-      className="icon"
+    <div
+      class="message_fddsvlq"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root icon_f1jqzauf"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+        />
+      </svg>
+      Some message
+    </div>
+    <div
+      class="flex_f16jawj4"
     />
-    Some message
   </div>
+</DocumentFragment>
+`;
+
+exports[`Banner > uses warning mode when instructed 1`] = `
+<DocumentFragment>
   <div
-    className="flex"
-  />
-</div>
+    class="flex_f16jawj4 banner_forn49x mode_fdjkr5s"
+  >
+    <div
+      class="message_fddsvlq"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root icon_f1jqzauf"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"
+        />
+      </svg>
+      Some message
+    </div>
+    <div
+      class="flex_f16jawj4"
+    />
+  </div>
+</DocumentFragment>
 `;

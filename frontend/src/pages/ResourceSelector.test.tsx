@@ -15,32 +15,22 @@
  */
 
 import * as React from 'react';
-import ResourceSelector, { ResourceSelectorProps, BaseResource } from './ResourceSelector';
+import { render, screen, waitFor } from '@testing-library/react';
+import { range } from 'lodash';
+import ResourceSelector, { BaseResource, ResourceSelectorProps } from './ResourceSelector';
 import TestUtils from '../TestUtils';
-import { ListRequest } from '../lib/Apis';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
-import { Row } from '../components/CustomTable';
-
-class TestResourceSelector extends ResourceSelector {
-  public async _load(request: ListRequest): Promise<string> {
-    return super._load(request);
-  }
-
-  public _selectionChanged(selectedIds: string[]): void {
-    return super._selectionChanged(selectedIds);
-  }
-
-  public _resourcesToRow(resources: BaseResource[]): Row[] {
-    return super._resourcesToRow(resources);
-  }
-}
+import { CommonTestWrapper } from '../TestWrapper';
+import { NameWithTooltip } from '../components/CustomTableNameColumn';
+import { logger } from '../lib/Utils';
+import { vi } from 'vitest';
 
 describe('ResourceSelector', () => {
-  let tree: ReactWrapper | ShallowWrapper;
+  let renderResult: ReturnType<typeof render> | null = null;
+  let resourceSelectorRef: React.RefObject<ResourceSelector> | null = null;
 
-  const updateDialogSpy = jest.fn();
-  const selectionChangedCbSpy = jest.fn();
-  const listResourceSpy = jest.fn();
+  const updateDialogSpy = vi.fn();
+  const selectionChangedCbSpy = vi.fn();
+  const listResourceSpy = vi.fn();
   const RESOURCES: BaseResource[] = [
     {
       created_at: new Date(2018, 1, 2, 3, 4, 5),
@@ -57,7 +47,7 @@ describe('ResourceSelector', () => {
   ];
 
   const selectorColumns = [
-    { label: 'Resource name', flex: 1, sortKey: 'name' },
+    { label: 'Resource name', flex: 1, sortKey: 'name', customRenderer: NameWithTooltip },
     { label: 'Description', flex: 1.5 },
     { label: 'Uploaded on', flex: 1, sortKey: 'created_at' },
   ];
@@ -81,6 +71,35 @@ describe('ResourceSelector', () => {
     };
   }
 
+  function getResourceSelectorState(): ResourceSelector['state'] | undefined {
+    return resourceSelectorRef?.current?.state;
+  }
+
+  function getRowById(id: string): HTMLElement {
+    const rows = screen.getAllByTestId('table-row');
+    const row = rows.find(element => element.getAttribute('data-row-id') === id);
+    if (!row) {
+      throw new Error(`Row not found: ${id}`);
+    }
+    return row;
+  }
+
+  async function renderResourceSelector(
+    customProps?: Partial<ResourceSelectorProps>,
+  ): Promise<void> {
+    resourceSelectorRef = React.createRef<ResourceSelector>();
+    const props = { ...generateProps(), ...customProps } as ResourceSelectorProps;
+    renderResult = render(
+      <CommonTestWrapper>
+        <ResourceSelector ref={resourceSelectorRef} {...props} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(listResourceSpy).toHaveBeenCalled();
+    });
+    await TestUtils.flushPromises();
+  }
+
   beforeEach(() => {
     listResourceSpy.mockReset();
     listResourceSpy.mockImplementation(() => ({
@@ -91,24 +110,25 @@ describe('ResourceSelector', () => {
     selectionChangedCbSpy.mockReset();
   });
 
-  afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    await tree.unmount();
+  afterEach(() => {
+    if (renderResult) {
+      renderResult.unmount();
+      renderResult = null;
+    }
+    resourceSelectorRef = null;
+    vi.restoreAllMocks();
   });
 
   it('displays resource selector', async () => {
-    tree = shallow(<TestResourceSelector {...generateProps()} />);
-    await (tree.instance() as TestResourceSelector)._load({});
+    await renderResourceSelector();
 
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
-    expect(listResourceSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined);
-    expect(tree.state('resources')).toEqual(RESOURCES);
-    expect(tree).toMatchSnapshot();
+    expect(listResourceSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(getResourceSelectorState()).toHaveProperty('resources', RESOURCES);
+    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('converts resources into a table rows', async () => {
-    const props = generateProps();
     const resources: BaseResource[] = [
       {
         created_at: new Date(2018, 1, 2, 3, 4, 5),
@@ -118,12 +138,10 @@ describe('ResourceSelector', () => {
       },
     ];
     listResourceSpy.mockImplementationOnce(() => ({ resources, nextPageToken: '' }));
-    props.listApi = listResourceSpy as any;
 
-    tree = shallow(<TestResourceSelector {...props} />);
-    await (tree.instance() as TestResourceSelector)._load({});
+    await renderResourceSelector();
 
-    expect(tree.state('rows')).toEqual([
+    expect(getResourceSelectorState()).toHaveProperty('rows', [
       {
         id: 'an-id',
         otherFields: [
@@ -136,11 +154,10 @@ describe('ResourceSelector', () => {
   });
 
   it('shows error dialog if listing fails', async () => {
-    TestUtils.makeErrorResponseOnce(listResourceSpy, 'woops!');
-    jest.spyOn(console, 'error').mockImplementation();
+    TestUtils.makeErrorResponseOnce(listResourceSpy as any, 'woops!');
+    vi.spyOn(console, 'error').mockImplementation(() => null);
 
-    tree = shallow(<TestResourceSelector {...generateProps()} />);
-    await (tree.instance() as TestResourceSelector)._load({});
+    await renderResourceSelector();
 
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
@@ -149,34 +166,34 @@ describe('ResourceSelector', () => {
         title: 'Error retrieving resources',
       }),
     );
-    expect(tree.state('resources')).toEqual([]);
+    expect(getResourceSelectorState()).toHaveProperty('resources', []);
   });
 
   it('calls selection callback when a resource is selected', async () => {
-    tree = shallow(<TestResourceSelector {...generateProps()} />);
-    await (tree.instance() as TestResourceSelector)._load({});
+    await renderResourceSelector();
 
-    expect(tree.state('selectedIds')).toEqual([]);
-    (tree.instance() as TestResourceSelector)._selectionChanged([RESOURCES[1].id!]);
-    expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1].id!);
-    expect(tree.state('selectedIds')).toEqual([RESOURCES[1].id]);
+    expect(getResourceSelectorState()).toHaveProperty('selectedIds', []);
+
+    const row = getRowById(RESOURCES[1].id!);
+    row.click();
+
+    await waitFor(() => {
+      expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1].id!);
+      expect(getResourceSelectorState()).toHaveProperty('selectedIds', [RESOURCES[1].id]);
+    });
   });
 
   it('logs error if more than one resource is selected', async () => {
-    tree = shallow(<TestResourceSelector {...generateProps()} />);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    await (tree.instance() as TestResourceSelector)._load({});
+    await renderResourceSelector();
+    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => null);
 
-    expect(tree.state('selectedIds')).toEqual([]);
+    expect(getResourceSelectorState()).toHaveProperty('selectedIds', []);
 
-    (tree.instance() as TestResourceSelector)._selectionChanged([
-      RESOURCES[0].id!,
-      RESOURCES[1].id!,
-    ]);
+    (resourceSelectorRef?.current as any)._selectionChanged([RESOURCES[0].id!, RESOURCES[1].id!]);
 
     expect(selectionChangedCbSpy).not.toHaveBeenCalled();
-    expect(tree.state('selectedIds')).toEqual([]);
-    expect(consoleSpy).toHaveBeenLastCalledWith('2 resources were selected somehow', [
+    expect(getResourceSelectorState()).toHaveProperty('selectedIds', []);
+    expect(loggerSpy).toHaveBeenLastCalledWith('2 resources were selected somehow', [
       RESOURCES[0].id,
       RESOURCES[1].id,
     ]);

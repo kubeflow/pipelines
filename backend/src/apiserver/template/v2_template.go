@@ -484,6 +484,11 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			default:
 				return util.NewInvalidInputError("input parameter %s requires type unknown", name)
 			}
+
+			// Validate against literal constraints if specified using shared helper
+			if err := util.ValidateLiteralParameter(name, input, param.GetLiterals()); err != nil {
+				return util.NewInvalidInputError("%s", err.Error())
+			}
 		}
 	}
 

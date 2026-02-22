@@ -15,21 +15,33 @@
  */
 
 import * as React from 'react';
+import { act, render } from '@testing-library/react';
+import { vi } from 'vitest';
 import { ArchivedExperiments } from './ArchivedExperiments';
-import TestUtils from '../TestUtils';
+import TestUtils from 'src/TestUtils';
 import { PageProps } from './Page';
-import { ApiExperimentStorageState } from '../apis/experiment';
-import { V2beta1ExperimentStorageState } from '../apisv2beta1/experiment';
-import { ShallowWrapper, shallow } from 'enzyme';
-import { ButtonKeys } from '../lib/Buttons';
+import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+import { ButtonKeys } from 'src/lib/Buttons';
 
-describe('ArchivedExperiemnts', () => {
-  const updateBannerSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  let tree: ShallowWrapper;
+const refreshSpy = vi.fn();
+let lastExperimentListProps: any = null;
+
+vi.mock('src/components/ExperimentList', () => ({
+  default: React.forwardRef((props: any, ref) => {
+    lastExperimentListProps = props;
+    React.useImperativeHandle(ref, () => ({ refresh: refreshSpy }));
+    return <div data-testid='experiment-list' />;
+  }),
+}));
+
+describe('ArchivedExperiments', () => {
+  let updateBannerSpy: ReturnType<typeof vi.fn>;
+  let updateToolbarSpy: ReturnType<typeof vi.fn>;
+  let updateDialogSpy: ReturnType<typeof vi.fn>;
+  let updateSnackbarSpy: ReturnType<typeof vi.fn>;
+  let historyPushSpy: ReturnType<typeof vi.fn>;
+  let renderResult: ReturnType<typeof render> | null = null;
+  let archivedExperimentsRef: React.RefObject<ArchivedExperiments> | null = null;
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
@@ -44,34 +56,59 @@ describe('ArchivedExperiemnts', () => {
     );
   }
 
+  function renderArchivedExperiments(propsPatch: Partial<PageProps & { namespace?: string }> = {}) {
+    archivedExperimentsRef = React.createRef<ArchivedExperiments>();
+    const props = { ...generateProps(), ...propsPatch } as PageProps;
+    renderResult = render(<ArchivedExperiments ref={archivedExperimentsRef} {...props} />);
+  }
+
+  function getToolbarAction(key: string) {
+    if (!archivedExperimentsRef?.current) {
+      throw new Error(`ArchivedExperiments instance not available for ${key}`);
+    }
+    return archivedExperimentsRef.current.getInitialToolbarState().actions[key];
+  }
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    updateBannerSpy = vi.fn();
+    updateToolbarSpy = vi.fn();
+    updateDialogSpy = vi.fn();
+    updateSnackbarSpy = vi.fn();
+    historyPushSpy = vi.fn();
+    refreshSpy.mockClear();
+    lastExperimentListProps = null;
   });
 
-  afterEach(() => tree.unmount());
+  afterEach(() => {
+    renderResult?.unmount();
+    renderResult = null;
+    archivedExperimentsRef = null;
+  });
 
   it('renders archived experiments', () => {
-    tree = shallow(<ArchivedExperiments {...generateProps()} />);
-    expect(tree).toMatchSnapshot();
+    renderArchivedExperiments();
+    expect(lastExperimentListProps).toBeTruthy();
+    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('removes error banner on unmount', () => {
-    tree = shallow(<ArchivedExperiments {...generateProps()} />);
-    tree.unmount();
+    renderArchivedExperiments();
+    renderResult!.unmount();
     expect(updateBannerSpy).toHaveBeenCalledWith({});
   });
 
   it('refreshes the experiment list when refresh button is clicked', async () => {
-    tree = shallow(<ArchivedExperiments {...generateProps()} />);
-    const spy = jest.fn();
-    (tree.instance() as any)._experimentlistRef = { current: { refresh: spy } };
-    await TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.REFRESH).action();
-    expect(spy).toHaveBeenLastCalledWith();
+    renderArchivedExperiments();
+    const refreshAction = getToolbarAction(ButtonKeys.REFRESH);
+    await act(async () => {
+      await refreshAction.action();
+    });
+    expect(refreshSpy).toHaveBeenCalled();
   });
 
   it('shows a list of archived experiments', () => {
-    tree = shallow(<ArchivedExperiments {...generateProps()} />);
-    expect(tree.find('ExperimentList').prop('storageState')).toBe(
+    renderArchivedExperiments();
+    expect(lastExperimentListProps.storageState).toBe(
       V2beta1ExperimentStorageState.ARCHIVED.toString(),
     );
   });

@@ -15,13 +15,12 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
-import CompareTable from './CompareTable';
 import { render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
+import CompareTable from './CompareTable';
+import { logger } from 'src/lib/Utils';
 
-// tslint:disable-next-line:no-console
-const consoleErrorBackup = console.error;
-let consoleSpy: jest.Mock;
+let loggerSpy: ReturnType<typeof vi.spyOn>;
 
 const rows = [
   ['1', '2', '3'],
@@ -32,34 +31,40 @@ const xLabels = ['col1', 'col2', 'col3'];
 const yLabels = ['row1', 'row2', 'row3'];
 
 describe('CompareTable', () => {
-  beforeAll(() => {
-    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
+  beforeEach(() => {
+    loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
   });
 
-  afterAll(() => {
-    // tslint:disable-next-line:no-console
-    console.error = consoleErrorBackup;
+  afterEach(() => {
+    loggerSpy.mockRestore();
   });
 
   it('renders no data', () => {
-    const tree = shallow(<CompareTable rows={[]} xLabels={[]} yLabels={[]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<CompareTable rows={[]} xLabels={[]} yLabels={[]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('logs error if ylabels and rows have different lengths', () => {
-    shallow(<CompareTable rows={[rows[0], rows[1]]} xLabels={xLabels} yLabels={yLabels} />);
-    expect(consoleSpy).toHaveBeenCalledWith(
+    render(<CompareTable rows={[rows[0], rows[1]]} xLabels={xLabels} yLabels={yLabels} />);
+    expect(loggerSpy).toHaveBeenCalledWith(
       'Number of rows (2) should match the number of Y labels (3).',
     );
   });
 
   it('renders one row with three columns', () => {
-    const tree = shallow(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 });
 
 describe('CompareTable xParentLabels', () => {
+  beforeEach(() => {
+    loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    loggerSpy.mockRestore();
+  });
   const xParentLabels = [
     { colSpan: 2, label: 'parent1' },
     { colSpan: 1, label: 'parent2' },
@@ -75,6 +80,9 @@ describe('CompareTable xParentLabels', () => {
       />,
     );
 
+    expect(loggerSpy).toHaveBeenCalledWith(
+      'Number of columns with data (3) should match the aggregated length of parent columns (2).',
+    );
     expect(screen.queryByText(xParentLabels[0].label)).toBeNull();
   });
 

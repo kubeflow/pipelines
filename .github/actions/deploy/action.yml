@@ -31,10 +31,6 @@ inputs:
     description: "Enables artifact proxy"
     required: false
     default: 'false'
-  storage_backend:
-    description: "Storage backend to use (minio or seaweedfs)"
-    required: false
-    default: 'seaweedfs'
   argo_version:
     required: false
     description: "Argo version to use for the cluster"
@@ -59,7 +55,7 @@ runs:
     - name: Download Docker Images
       uses: actions/download-artifact@v6
       with:
-        path: "images_${{ github.sha }}"
+        path: "images_${{ github.run_id }}"
 
     - name: Load Docker Images
       shell: bash
@@ -67,10 +63,12 @@ runs:
         APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend" "metadata-writer" "viewer-crd-controller" "visualization-server" "cache-deployer" "cache-server" "metadata-envoy"  )
         for app in "${APPS[@]}"; do
           docker image load -i ${{ inputs.image_path }}/$app/$app.tar
-          docker push ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
+          docker tag ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }} localhost:5000/$app:${{ inputs.image_tag }}
+          docker push localhost:5000/$app:${{ inputs.image_tag }}
           rm ${{ inputs.image_path }}/$app/$app.tar
           docker image rm ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
-        done  
+          docker image rm localhost:5000/$app:${{ inputs.image_tag }}
+        done
 
     - name: Configure Args
       shell: bash
@@ -103,15 +101,11 @@ runs:
           ARGS="${ARGS} --artifact-proxy"
         fi
 
-        if [ "${{ inputs.storage_backend }}" != "seaweedfs" ] && [ -n "${{ inputs.storage_backend }}" ]; then
-          echo "Deploying with artifact storage ${{ inputs.storage_backend }}"
-          ARGS="${ARGS} --storage ${{ inputs.storage_backend }}"
-        fi
-
         if [ -n "${{ inputs.argo_version }}" ]; then
           echo "Deploying with argo version ${{ inputs.argo_version }}"
           ARGS="${ARGS} --argo-version ${{ inputs.argo_version }}"
         fi
+
         if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
           ARGS="${ARGS} --tls-enabled"
         fi

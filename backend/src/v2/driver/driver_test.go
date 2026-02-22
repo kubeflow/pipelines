@@ -523,6 +523,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	assert.Len(t, podSpec.InitContainers, 1)
 	assert.Equal(t, podSpec.InitContainers[0].Name, "oci-prepull-0")
 	assert.Equal(t, podSpec.InitContainers[0].Image, "registry.domain.local/my-model:latest")
+	// Modelcar init container should have security context matching the main container
+	assert.NotNil(t, podSpec.InitContainers[0].SecurityContext)
+	assert.False(t, *podSpec.InitContainers[0].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, podSpec.InitContainers[0].SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, podSpec.InitContainers[0].SecurityContext.SeccompProfile.Type)
 
 	assert.Len(t, podSpec.Volumes, 1)
 	assert.Equal(t, podSpec.Volumes[0].Name, "oci-0")
@@ -540,6 +545,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].Name, "oci-0")
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].MountPath, "/oci/registry.domain.local_my-model:latest")
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local_my-model:latest")
+	// Modelcar sidecar should have security context matching the main container
+	assert.NotNil(t, podSpec.Containers[1].SecurityContext)
+	assert.False(t, *podSpec.Containers[1].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, podSpec.Containers[1].SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, podSpec.Containers[1].SecurityContext.SeccompProfile.Type)
 
 	assert.Empty(t, taskConfig.Resources.Limits)
 	assert.Empty(t, taskConfig.Resources.Requests)

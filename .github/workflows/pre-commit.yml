@@ -18,11 +18,11 @@ jobs:
       - name: Fetch base branch
         run: git fetch origin ${{ github.base_ref || github.ref_name }}
       - uses: actions/setup-python@v6
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.3
           args: --new --new-from-merge-base=origin/${{ github.base_ref || github.ref_name }}

@@ -14,24 +14,21 @@
  * limitations under the License.
  */
 
-import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
-import { MemoryRouter, RouterProps } from 'react-router';
-import { Apis } from '../lib/Apis';
-import { LocalStorage } from '../lib/LocalStorage';
+import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act } from 'react-dom/test-utils';
+import { MemoryRouter } from 'react-router';
+import { createMemoryHistory } from 'history';
+import { vi } from 'vitest';
+import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from './Router';
 import { css, SideNav } from './SideNav';
 import { GkeMetadata } from '../lib/GkeMetadata';
-import { createMemoryHistory } from 'history';
-import TestUtils from '../TestUtils';
 
 const wideWidth = 1000;
 const narrowWidth = 200;
-const isCollapsed = (tree: ShallowWrapper<any>) =>
-  tree.find('WithStyles(IconButton)').hasClass(css.collapsedChevron);
-const routerProps: RouterProps = { history: {} as any };
+
 const defaultProps = {
-  ...routerProps,
   gkeMetadata: {},
   buildInfo: {
     apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
@@ -43,791 +40,247 @@ const defaultProps = {
   },
 };
 
-describe('SideNav', () => {
-  let tree: ReactWrapper | ShallowWrapper;
+function isCollapsed(container: HTMLElement): boolean {
+  const root = container.querySelector('#sideNav');
+  return !!root && root.classList.contains(css.collapsedRoot);
+}
 
-  const consoleErrorSpy = jest.spyOn(console, 'error');
-  const checkHubSpy = jest.spyOn(Apis, 'isJupyterHubAvailable');
-  const localStorageHasKeySpy = jest.spyOn(LocalStorage, 'hasKey');
-  const localStorageIsCollapsedSpy = jest.spyOn(LocalStorage, 'isNavbarCollapsed');
+function renderSideNav(
+  page: RoutePage,
+  overrides: Partial<React.ComponentProps<typeof SideNav>> = {},
+) {
+  const history = createMemoryHistory();
+  const ref = React.createRef<SideNav>();
+  const props = {
+    ...defaultProps,
+    ...overrides,
+    history,
+    page,
+  } as React.ComponentProps<typeof SideNav>;
+  const renderResult = render(
+    <MemoryRouter>
+      <SideNav ref={ref} {...props} />
+    </MemoryRouter>,
+  );
+  if (!ref.current) {
+    throw new Error('SideNav instance not available');
+  }
+  return { renderResult, instance: ref.current };
+}
+
+describe('SideNav', () => {
+  let localStorageHasKeySpy: ReturnType<typeof vi.spyOn>;
+  let localStorageIsCollapsedSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    consoleErrorSpy.mockImplementation(() => null);
-    checkHubSpy.mockImplementation(() => ({ ok: true }));
-    localStorageHasKeySpy.mockImplementation(() => false);
-    localStorageIsCollapsedSpy.mockImplementation(() => false);
-  });
-
-  afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    await tree.unmount();
-    jest.resetAllMocks();
+    localStorage.clear();
+    localStorageHasKeySpy = vi.spyOn(LocalStorage, 'hasKey').mockImplementation(() => false);
+    localStorageIsCollapsedSpy = vi
+      .spyOn(LocalStorage, 'isNavbarCollapsed')
+      .mockImplementation(() => false);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     (window as any).innerWidth = wideWidth;
   });
 
-  it('renders expanded state', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+    (window as any).innerWidth = wideWidth;
+  });
+
+  it('renders expanded state', async () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+    const { renderResult } = renderSideNav(RoutePage.PIPELINES);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders collapsed state', () => {
+  it('renders collapsed state', async () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+    const { renderResult } = renderSideNav(RoutePage.PIPELINES);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders Pipelines as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders Pipelines as active page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.PIPELINES);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders Pipelines as active when on PipelineDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders Pipelines as active when on PipelineDetails page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.PIPELINE_DETAILS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.EXPERIMENTS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active when on ExperimentDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active when on ExperimentDetails page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.EXPERIMENT_DETAILS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active page when on NewExperiment page', () => {
-    tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active page when on NewExperiment page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.NEW_EXPERIMENT);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active page when on Compare page', () => {
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active page when on Compare page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active page when on AllRuns page', () => {
-    tree = shallow(<SideNav page={RoutePage.RUNS} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active page when on AllRuns page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.RUNS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active page when on RunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active page when on RunDetails page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.RUN_DETAILS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active page when on RecurringRunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active page when on RecurringRunDetails page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.RECURRING_RUN_DETAILS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders experiments as active page when on NewRun page', () => {
-    tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...defaultProps} />);
-    expect(tree).toMatchSnapshot();
+  it('renders experiments as active page when on NewRun page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.NEW_RUN);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders recurring runs as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.RECURRING_RUNS} {...defaultProps} />);
-    expect(tree).toMatchInlineSnapshot(`
-      <div
-        className="root flexColumn noShrink"
-        id="sideNav"
-      >
-        <div
-          style={
-            Object {
-              "flexGrow": 1,
-            }
-          }
-        >
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Pipeline List"
-          >
-            <Link
-              className="unstyled"
-              id="pipelinesBtn"
-              replace={false}
-              to="/pipelines"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <div
-                    className="alignItems"
-                  >
-                    <PipelinesIcon
-                      color="#9aa0a6"
-                    />
-                  </div>
-                  <span
-                    className="label"
-                  >
-                    Pipelines
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Experiment List"
-          >
-            <Link
-              className="unstyled"
-              id="experimentsBtn"
-              replace={false}
-              to="/experiments"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <div
-                    className="alignItems"
-                  >
-                    <ExperimentsIcon
-                      color="#9aa0a6"
-                    />
-                  </div>
-                  <span
-                    className="label"
-                  >
-                    Experiments
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Runs List"
-          >
-            <Link
-              className="unstyled"
-              id="runsBtn"
-              replace={false}
-              to="/runs"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(DirectionsRunIcon) />
-                  <span
-                    className="label"
-                  >
-                    Runs
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Recurring Runs List"
-          >
-            <Link
-              className="unstyled"
-              id="recurringRunsBtn"
-              replace={false}
-              to="/recurringruns"
-            >
-              <WithStyles(Button)
-                className="button active"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(AlarmIcon) />
-                  <span
-                    className="label"
-                  >
-                    Recurring Runs
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Artifacts List"
-          >
-            <Link
-              className="unstyled"
-              id="artifactsBtn"
-              replace={false}
-              to="/artifacts"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(BubbleChartIcon) />
-                  <span
-                    className="label"
-                  >
-                    Artifacts
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Executions List"
-          >
-            <Link
-              className="unstyled"
-              id="executionsBtn"
-              replace={false}
-              to="/executions"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(PlayArrowIcon) />
-                  <span
-                    className="label"
-                  >
-                    Executions
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <hr
-            className="separator"
-          />
-          <ExternalUri
-            collapsed={false}
-            icon={[Function]}
-            title="Documentation"
-            to="https://www.kubeflow.org/docs/pipelines/"
-          />
-          <ExternalUri
-            collapsed={false}
-            icon={[Function]}
-            title="Github Repo"
-            to="https://github.com/kubeflow/pipelines"
-          />
-          <hr
-            className="separator"
-          />
-          <WithStyles(IconButton)
-            className="chevron"
-            onClick={[Function]}
-          >
-            <pure(ChevronLeftIcon) />
-          </WithStyles(IconButton)>
-        </div>
-        <div
-          className="infoVisible"
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            placement="top-start"
-            title="Build date: 10/23/2018, Commit hash: 0a7b9e3"
-          >
-            <div
-              className="envMetadata"
-            >
-              <span>
-                Version: 
-              </span>
-              <a
-                className="link unstyled"
-                href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
-                rel="noopener"
-                target="_blank"
-              >
-                1.0.0
-              </a>
-            </div>
-          </WithStyles(Tooltip)>
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            placement="top-start"
-            title="Report an Issue"
-          >
-            <div
-              className="envMetadata"
-            >
-              <a
-                className="link unstyled"
-                href="https://github.com/kubeflow/pipelines/issues/new/choose"
-                rel="noopener"
-                target="_blank"
-              >
-                Report an Issue
-              </a>
-            </div>
-          </WithStyles(Tooltip)>
-        </div>
-      </div>
-    `);
+  it('renders recurring runs as active page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.RECURRING_RUNS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('renders jobs as active page when on JobDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
-    expect(tree).toMatchInlineSnapshot(`
-      <div
-        className="root flexColumn noShrink"
-        id="sideNav"
-      >
-        <div
-          style={
-            Object {
-              "flexGrow": 1,
-            }
-          }
-        >
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Pipeline List"
-          >
-            <Link
-              className="unstyled"
-              id="pipelinesBtn"
-              replace={false}
-              to="/pipelines"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <div
-                    className="alignItems"
-                  >
-                    <PipelinesIcon
-                      color="#9aa0a6"
-                    />
-                  </div>
-                  <span
-                    className="label"
-                  >
-                    Pipelines
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Experiment List"
-          >
-            <Link
-              className="unstyled"
-              id="experimentsBtn"
-              replace={false}
-              to="/experiments"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <div
-                    className="alignItems"
-                  >
-                    <ExperimentsIcon
-                      color="#9aa0a6"
-                    />
-                  </div>
-                  <span
-                    className="label"
-                  >
-                    Experiments
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Runs List"
-          >
-            <Link
-              className="unstyled"
-              id="runsBtn"
-              replace={false}
-              to="/runs"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(DirectionsRunIcon) />
-                  <span
-                    className="label"
-                  >
-                    Runs
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Recurring Runs List"
-          >
-            <Link
-              className="unstyled"
-              id="recurringRunsBtn"
-              replace={false}
-              to="/recurringruns"
-            >
-              <WithStyles(Button)
-                className="button active"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(AlarmIcon) />
-                  <span
-                    className="label"
-                  >
-                    Recurring Runs
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Artifacts List"
-          >
-            <Link
-              className="unstyled"
-              id="artifactsBtn"
-              replace={false}
-              to="/artifacts"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(BubbleChartIcon) />
-                  <span
-                    className="label"
-                  >
-                    Artifacts
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <div
-            className="indicator indicatorHidden"
-          />
-          <WithStyles(Tooltip)
-            disableFocusListener={true}
-            disableHoverListener={true}
-            disableTouchListener={true}
-            enterDelay={300}
-            placement="right-start"
-            title="Executions List"
-          >
-            <Link
-              className="unstyled"
-              id="executionsBtn"
-              replace={false}
-              to="/executions"
-            >
-              <WithStyles(Button)
-                className="button"
-              >
-                <div
-                  className="flex flex-row flex-shrink-0"
-                >
-                  <pure(PlayArrowIcon) />
-                  <span
-                    className="label"
-                  >
-                    Executions
-                  </span>
-                </div>
-              </WithStyles(Button)>
-            </Link>
-          </WithStyles(Tooltip)>
-          <hr
-            className="separator"
-          />
-          <ExternalUri
-            collapsed={false}
-            icon={[Function]}
-            title="Documentation"
-            to="https://www.kubeflow.org/docs/pipelines/"
-          />
-          <ExternalUri
-            collapsed={false}
-            icon={[Function]}
-            title="Github Repo"
-            to="https://github.com/kubeflow/pipelines"
-          />
-          <hr
-            className="separator"
-          />
-          <WithStyles(IconButton)
-            className="chevron"
-            onClick={[Function]}
-          >
-            <pure(ChevronLeftIcon) />
-          </WithStyles(IconButton)>
-        </div>
-        <div
-          className="infoVisible"
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            placement="top-start"
-            title="Build date: 10/23/2018, Commit hash: 0a7b9e3"
-          >
-            <div
-              className="envMetadata"
-            >
-              <span>
-                Version: 
-              </span>
-              <a
-                className="link unstyled"
-                href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
-                rel="noopener"
-                target="_blank"
-              >
-                1.0.0
-              </a>
-            </div>
-          </WithStyles(Tooltip)>
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            placement="top-start"
-            title="Report an Issue"
-          >
-            <div
-              className="envMetadata"
-            >
-              <a
-                className="link unstyled"
-                href="https://github.com/kubeflow/pipelines/issues/new/choose"
-                rel="noopener"
-                target="_blank"
-              >
-                Report an Issue
-              </a>
-            </div>
-          </WithStyles(Tooltip)>
-        </div>
-      </div>
-    `);
+  it('renders jobs as active page when on JobDetails page', async () => {
+    const { renderResult } = renderSideNav(RoutePage.RECURRING_RUN_DETAILS);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
   it('show jupyterhub link if accessible', () => {
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    tree.setState({ jupyterHubAvailable: true });
-    expect(tree).toMatchSnapshot();
+    const { renderResult, instance } = renderSideNav(RoutePage.COMPARE);
+    act(() => {
+      instance.setState({ jupyterHubAvailable: true });
+    });
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('collapses if collapse state is true localStorage', () => {
+  it('collapses if collapse state is true localStorage', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => true);
     localStorageHasKeySpy.mockImplementationOnce(() => true);
-
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(true);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
   });
 
-  it('expands if collapse state is false in localStorage', () => {
+  it('expands if collapse state is false in localStorage', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => true);
-
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(false);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
   });
 
-  it('collapses if no collapse state in localStorage, and window is too narrow', () => {
+  it('collapses if no collapse state in localStorage, and window is too narrow', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => false);
-
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(true);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
   });
 
-  it('expands if no collapse state in localStorage, and window is wide', () => {
+  it('expands if no collapse state in localStorage, and window is wide', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => false);
-
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(false);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
   });
 
-  it('collapses if no collapse state in localStorage, and window goes from wide to narrow', () => {
+  it('collapses if no collapse state in localStorage, and window goes from wide to narrow', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => false);
-
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(false);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
 
-    (window as any).innerWidth = narrowWidth;
-    const resizeEvent = new Event('resize');
-    window.dispatchEvent(resizeEvent);
-    expect(isCollapsed(tree)).toBe(true);
+    act(() => {
+      (window as any).innerWidth = narrowWidth;
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
   });
 
-  it('expands if no collapse state in localStorage, and window goes from narrow to wide', () => {
+  it('expands if no collapse state in localStorage, and window goes from narrow to wide', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => false);
-
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(true);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
 
-    (window as any).innerWidth = wideWidth;
-    const resizeEvent = new Event('resize');
-    window.dispatchEvent(resizeEvent);
-    expect(isCollapsed(tree)).toBe(false);
+    act(() => {
+      (window as any).innerWidth = wideWidth;
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
   });
 
-  it('saves state in localStorage if chevron is clicked', () => {
+  it('saves state in localStorage if chevron is clicked', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => false);
-    const spy = jest.spyOn(LocalStorage, 'saveNavbarCollapsed');
+    const spy = vi.spyOn(LocalStorage, 'saveNavbarCollapsed');
 
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(true);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
 
-    tree.find('WithStyles(IconButton)').simulate('click');
+    const chevron = renderResult.container.querySelector(`.${css.chevron}`);
+    if (!chevron) {
+      throw new Error('Chevron button not found');
+    }
+    fireEvent.click(chevron);
     expect(spy).toHaveBeenCalledWith(false);
   });
 
-  it('does not collapse if collapse state is saved in localStorage, and window resizes', () => {
+  it('does not collapse if collapse state is saved in localStorage, and window resizes', async () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
-    expect(isCollapsed(tree)).toBe(false);
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
 
-    (window as any).innerWidth = narrowWidth;
-    const resizeEvent = new Event('resize');
-    window.dispatchEvent(resizeEvent);
-    expect(isCollapsed(tree)).toBe(false);
+    act(() => {
+      (window as any).innerWidth = narrowWidth;
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
   });
 
-  it('populates the display build information using the default props', async () => {
-    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
-    const instance = tree.find(SideNav).instance() as any;
-
-    expect(tree).toMatchSnapshot();
+  it('populates the display build information using the default props', () => {
+    const { instance, renderResult } = renderSideNav(RoutePage.PIPELINES);
+    expect(renderResult.asFragment()).toMatchSnapshot();
 
     const buildInfo = defaultProps.buildInfo;
-    expect(instance._getBuildInfo()).toEqual({
+    expect((instance as any)._getBuildInfo()).toEqual({
       tagName: buildInfo.apiServerTagName,
       commitHash: buildInfo.apiServerCommitHash.substring(0, 7),
       commitUrl:
@@ -836,7 +289,7 @@ describe('SideNav', () => {
     });
   });
 
-  it('display the correct GKE metadata', async () => {
+  it('display the correct GKE metadata', () => {
     const clusterName = 'some-cluster-name';
     const projectId = 'some-project-id';
     const gkeMetadata: GkeMetadata = { clusterName, projectId };
@@ -847,27 +300,23 @@ describe('SideNav', () => {
       buildInfo: {},
     };
 
-    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
-
-    expect(tree).toMatchSnapshot();
+    const { renderResult } = renderSideNav(RoutePage.PIPELINES, newProps);
+    expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
-  it('displays the frontend tag name if the api server hash is not returned', async () => {
+  it('displays the frontend tag name if the api server hash is not returned', () => {
     const newProps = {
       ...defaultProps,
       buildInfo: {
         apiServerReady: true,
-        // No apiServerCommitHash or apiServerTagName
         buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
         frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
         frontendTagName: '1.0.0',
       },
     };
 
-    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
-    const instance = tree.find(SideNav).instance() as any;
-
-    expect(instance._getBuildInfo()).toEqual(
+    const { instance } = renderSideNav(RoutePage.PIPELINES, newProps);
+    expect((instance as any)._getBuildInfo()).toEqual(
       expect.objectContaining({
         commitHash: newProps.buildInfo.frontendCommitHash.substring(0, 7),
         tagName: newProps.buildInfo.frontendTagName,
@@ -875,21 +324,18 @@ describe('SideNav', () => {
     );
   });
 
-  it('uses the frontend commit hash for the link URL if the api server hash is not returned', async () => {
+  it('uses the frontend commit hash for the link URL if the api server hash is not returned', () => {
     const newProps = {
       ...defaultProps,
       buildInfo: {
         apiServerReady: true,
-        // No apiServerCommitHash
         buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
         frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
       },
     };
 
-    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
-    const instance = tree.find(SideNav).instance() as any;
-
-    expect(instance._getBuildInfo()).toEqual(
+    const { instance } = renderSideNav(RoutePage.PIPELINES, newProps);
+    expect((instance as any)._getBuildInfo()).toEqual(
       expect.objectContaining({
         commitUrl:
           'https://www.github.com/kubeflow/pipelines/commit/' +
@@ -898,21 +344,17 @@ describe('SideNav', () => {
     );
   });
 
-  it("displays 'unknown' if the frontend and api server tag names/commit hashes are not returned", async () => {
+  it("displays 'unknown' if the frontend and api server tag names/commit hashes are not returned", () => {
     const newProps = {
       ...defaultProps,
       buildInfo: {
         apiServerReady: true,
-        // No apiServerCommitHash
         buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-        // No frontendCommitHash
       },
     };
 
-    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
-    const instance = tree.find(SideNav).instance() as any;
-
-    expect(instance._getBuildInfo()).toEqual(
+    const { instance } = renderSideNav(RoutePage.PIPELINES, newProps);
+    expect((instance as any)._getBuildInfo()).toEqual(
       expect.objectContaining({
         commitHash: 'unknown',
         tagName: 'unknown',
@@ -920,44 +362,48 @@ describe('SideNav', () => {
     );
   });
 
-  it('links to the github repo root if the frontend and api server commit hashes are not returned', async () => {
+  it('links to the github repo root if the frontend and api server commit hashes are not returned', () => {
     const newProps = {
       ...defaultProps,
       buildInfo: {
         apiServerReady: true,
-        // No apiServerCommitHash
         buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-        // No frontendCommitHash
       },
     };
 
-    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
-    const instance = tree.find(SideNav).instance() as any;
-    expect(instance._getBuildInfo()).toEqual(
+    const { instance } = renderSideNav(RoutePage.PIPELINES, newProps);
+    expect((instance as any)._getBuildInfo()).toEqual(
       expect.objectContaining({
         commitUrl: 'https://www.github.com/kubeflow/pipelines',
       }),
     );
   });
 
-  it("displays 'unknown' if the date is not returned", async () => {
+  it("displays 'unknown' if the date is not returned", () => {
     const newProps = {
       ...defaultProps,
       buildInfo: {
         apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
         apiServerReady: true,
-        // No buildDate
         frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
       },
     };
 
-    tree = TestUtils.mountWithRouter(<SideNav page={RoutePage.PIPELINES} {...newProps} />);
-    const instance = tree.find(SideNav).instance() as any;
-
-    expect(instance._getBuildInfo()).toEqual(
+    const { instance } = renderSideNav(RoutePage.PIPELINES, newProps);
+    expect((instance as any)._getBuildInfo()).toEqual(
       expect.objectContaining({
         date: 'unknown',
       }),
     );
+  });
+
+  it('auto-collapses on first load when localStorage key is missing and window is narrow', async () => {
+    localStorageHasKeySpy.mockRestore();
+    localStorageIsCollapsedSpy.mockRestore();
+    localStorage.removeItem(LocalStorageKey.navbarCollapsed);
+    (window as any).innerWidth = narrowWidth;
+
+    const { renderResult } = renderSideNav(RoutePage.COMPARE);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(true));
   });
 });

@@ -16,6 +16,7 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
+import { MockInstance } from 'vitest';
 import { Api } from 'src/mlmd/library';
 import {
   Artifact,
@@ -34,13 +35,13 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 testBestPractices();
 
 describe('ArtifactListSwitcher', () => {
-  let getArtifactsSpy: jest.Mock<{}>;
-  let getArtifactTypesSpy: jest.Mock<{}>;
+  let getArtifactsSpy: MockInstance;
+  let getArtifactTypesSpy: MockInstance;
   const getArtifactsRequest = new GetArtifactsRequest();
 
   beforeEach(() => {
-    getArtifactsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
-    getArtifactTypesSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
+    getArtifactsSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifacts');
+    getArtifactTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
 
     getArtifactTypesSpy.mockImplementation(() => {
       const artifactType = new ArtifactType();

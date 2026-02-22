@@ -196,7 +196,9 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
       }
       this.setState({ validationError: '' });
     } catch (err) {
-      this.setState({ validationError: err.message });
+      this.setState({
+        validationError: err instanceof Error ? err.message : 'Experiment name is required',
+      });
     }
   }
 }

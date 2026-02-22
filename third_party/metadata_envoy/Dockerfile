@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM envoyproxy/envoy:v1.33.14
+FROM envoyproxy/envoy:v1.37.0
 
 RUN apt-get update -y && \
   apt-get install --no-install-recommends -y -q gettext openssl

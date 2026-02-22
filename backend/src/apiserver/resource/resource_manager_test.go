@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -2769,7 +2770,40 @@ func TestEnableJob_DbFailure(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	assert.Nil(t, err)
+
+	_, err = manager.GetJob(job.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
+}
+
+func TestDeleteJob_WithForegroundPolicy(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_FOREGROUND)
+	assert.Nil(t, err)
+
+	_, err = manager.GetJob(job.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
+}
+
+func TestDeleteJob_WithBackgroundPolicy(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_BACKGROUND)
+	assert.Nil(t, err)
+
+	_, err = manager.GetJob(job.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
+}
+
+func TestDeleteJob_WithOrphanPolicy(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -2781,7 +2815,7 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	err := manager.DeleteJob(context.Background(), "1")
+	err := manager.DeleteJob(context.Background(), "1", apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -2791,7 +2825,7 @@ func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check if the scheduled workflow exists")
 }
@@ -2804,7 +2838,7 @@ func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
 
 	// Now deleting job should still succeed when the swf CR is already deleted.
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
@@ -2819,7 +2853,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -3647,7 +3681,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3693,7 +3727,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3739,7 +3773,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3901,7 +3935,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -4071,3 +4105,264 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
+
+// v2SpecWithLiterals is a v2 pipeline spec with literal parameter constraints for testing.
+var v2SpecWithLiterals = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        environment:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--env"
+        - "{{$.inputs.parameters['environment']}}"
+        command:
+        - echo
+        image: python:3.11
+pipelineInfo:
+  name: hello-world-with-literals
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            environment:
+              componentInputParameter: environment
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      environment:
+        parameterType: STRING
+        literals:
+        - "dev"
+        - "staging"
+        - "prod"
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithIntLiterals is a v2 pipeline spec with integer literal parameter constraints for testing.
+var v2SpecWithIntLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        replicas:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-int-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            replicas:
+              componentInputParameter: replicas
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      replicas:
+        parameterType: NUMBER_INTEGER
+        literals:
+        - 1
+        - 3
+        - 5
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithFloatLiterals is a v2 pipeline spec with float literal parameter constraints for testing.
+var v2SpecWithFloatLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        threshold:
+          parameterType: NUMBER_DOUBLE
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-float-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            threshold:
+              componentInputParameter: threshold
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      threshold:
+        parameterType: NUMBER_DOUBLE
+        literals:
+        - 0.1
+        - 0.5
+        - 0.9
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithBoolLiterals is a v2 pipeline spec with boolean literal parameter constraints for testing.
+var v2SpecWithBoolLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        enable_feature:
+          parameterType: BOOLEAN
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-bool-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            enable_feature:
+              componentInputParameter: enable_feature
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      enable_feature:
+        parameterType: BOOLEAN
+        literals:
+        - true
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+func TestCreateRun_LiteralParameterValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		pipelineSpec  string
+		runtimeParams string
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:          "valid input - string literal",
+			pipelineSpec:  v2SpecWithLiterals,
+			runtimeParams: `{"environment":"dev"}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - string literal",
+			pipelineSpec:  v2SpecWithLiterals,
+			runtimeParams: `{"environment":"test"}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
+			runtimeParams: `{"replicas":3}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
+			runtimeParams: `{"replicas":2}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
+			runtimeParams: `{"threshold":0.5}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
+			runtimeParams: `{"threshold":0.3}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
+			runtimeParams: `{"enable_feature":true}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
+			runtimeParams: `{"enable_feature":false}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - nil literals field",
+			pipelineSpec:  v2SpecHelloWorld, // No literals field
+			runtimeParams: `{"text":"any-value-is-fine"}`,
+			expectError:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store, manager, exp := initWithExperiment(t)
+			defer store.Close()
+			apiRun := &model.Run{
+				DisplayName:  "run1",
+				ExperimentId: exp.UUID,
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(tt.pipelineSpec),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: model.LargeText(tt.runtimeParams),
+					},
+				},
+			}
+			_, err := manager.CreateRun(context.Background(), apiRun)
+
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.errorContains != "" {
+					assert.ErrorContains(t, err, tt.errorContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
