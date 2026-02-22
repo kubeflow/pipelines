@@ -9,6 +9,7 @@ spec:
       labels:
         sidecar.istio.io/inject: "false"
     spec:
+      serviceAccountName: pipelines-profile-controller-admin
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -27,7 +28,14 @@ spec:
             type: RuntimeDefault
         # We just need an image with the python botocore library installed
         image: docker.io/alpine/k8s:1.32.3
-        command: ["python", "/hooks/sync.py"]
+        command:
+          - sh
+          - -c
+          - |
+            python3 -m venv /tmp/venv && \
+            . /tmp/venv/bin/activate && \
+            pip install --no-cache-dir kubernetes boto3 && \
+            python /hooks/sync.py
         envFrom:
         - configMapRef:
             name: kubeflow-pipelines-profile-controller-env

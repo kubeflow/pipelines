@@ -2,3 +2,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pipeline-runner
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pipeline-runner.service-account-token
+  annotations:
+    kubernetes.io/service-account.name: pipeline-runner
+type: kubernetes.io/service-account-token

@@ -23,4 +23,6 @@ spec:
   issuerRef:
     kind: Issuer
     name: kfp-api-tls-selfsigned-issuer
-  secretName: kfp-api-tls-cert
+    # Unfortunately, Argo Workflows (for security reasons) can mount certificates
+    # into the agent only from a Secret with a predefined name `argo-workflows-agent-ca-certificates`
+  secretName: argo-workflows-agent-ca-certificates

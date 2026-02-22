@@ -19,15 +19,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"github.com/kubeflow/pipelines/backend/src/v2/config"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
-	k8score "k8s.io/api/core/v1"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -297,7 +294,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 
 			// The following call will return an empty string for tasks without kubernetes-specific annotation.
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
-			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
+			driver, driverOutputs, err := c.containerDriverTask(driverTaskName, containerDriverInputs{
 				component:        componentSpecPlaceholder,
 				task:             taskSpecJson,
 				container:        containerPlaceholder,
@@ -306,6 +303,9 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				kubernetesConfig: kubernetesConfigPlaceholder,
 				taskName:         effectiveTaskName,
 			})
+			if err != nil {
+				return nil, err
+			}
 			if task.GetTriggerPolicy().GetCondition() == "" {
 				driverOutputs.condition = ""
 			}
@@ -547,9 +547,13 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 			Value: wfapi.AnyStringPtr(inputs.taskName),
 		})
 	}
+	dagTemplate, err := c.addDAGDriverTemplate()
+	if err != nil {
+		return nil, nil, err
+	}
 	t := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addDAGDriverTemplate(),
+		Template: dagTemplate,
 		Arguments: wfapi.Arguments{
 			Parameters: params,
 		},
@@ -561,58 +565,56 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 	}, nil
 }
 
-func (c *workflowCompiler) addDAGDriverTemplate() string {
+// Create the Argo Workflow executor plugin template for the dag driver.
+// See https://argo-workflows.readthedocs.io/en/latest/executor_plugins/
+func (c *workflowCompiler) addDAGDriverTemplate() (string, error) {
 	name := "system-dag-driver"
 	_, ok := c.templates[name]
 	if ok {
-		return name
+		return name, nil
 	}
 
-	args := []string{
-		"--type", inputValue(paramDriverType),
-		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-		"--run_id", runID(),
-		"--run_name", runResourceName(),
-		"--run_display_name", c.job.DisplayName,
-		"--dag_execution_id", inputValue(paramParentDagID),
-		"--component", inputValue(paramComponent),
-		"--task", inputValue(paramTask),
-		"--task_name", inputValue(paramTaskName),
-		"--runtime_config", inputValue(paramRuntimeConfig),
-		"--iteration_index", inputValue(paramIterationIndex),
-		"--execution_id_path", outputPath(paramExecutionID),
-		"--iteration_count_path", outputPath(paramIterationCount),
-		"--condition_path", outputPath(paramCondition),
-		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
-		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
-		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
-		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
-		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
-		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
+	args := map[string]interface{}{
+		"type":                       inputValue(paramDriverType),
+		"pipeline_name":              c.spec.GetPipelineInfo().GetName(),
+		"run_id":                     runID(),
+		"run_name":                   runResourceName(),
+		"run_display_name":           c.job.DisplayName,
+		"dag_execution_id":           inputValue(paramParentDagID),
+		"component":                  inputValue(paramComponent),
+		"task":                       inputValue(paramTask),
+		"task_name":                  inputValue(paramTaskName),
+		"runtime_config":             inputValue(paramRuntimeConfig),
+		"iteration_index":            inputValue(paramIterationIndex),
+		"execution_id_path":          outputPath(paramExecutionID),
+		"iteration_count_path":       outputPath(paramIterationCount),
+		"condition_path":             outputPath(paramCondition),
+		"http_proxy":                 proxy.GetConfig().GetHttpProxy(),
+		"https_proxy":                proxy.GetConfig().GetHttpsProxy(),
+		"no_proxy":                   proxy.GetConfig().GetNoProxy(),
+		"ml_pipeline_server_address": config.GetMLPipelineServerConfig().Address,
+		"ml_pipeline_server_port":    config.GetMLPipelineServerConfig().Port,
+		"mlmd_server_address":        config.GetMLPipelineServerConfig().Address,
+		"mlmd_server_port":           config.GetMLPipelineServerConfig().Port,
+		"cache_disabled":             c.cacheDisabled,
+		"ml_pipeline_tls_enabled":    c.mlPipelineTLSEnabled,
+		"metadata_tls_enabled":       common.GetMetadataTLSEnabled(),
 	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if c.mlPipelineTLSEnabled {
-		args = append(args, "--ml_pipeline_tls_enabled")
-	}
-	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
-	}
-
-	setCABundle := false
-	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to DAG driver.
+	// If CABUNDLE_SECRET_NAME add ca_cert_path arg to DAG driver.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
-		setCABundle = true
+		args["ca_cert_path"] = common.CustomCaCertPath
 	}
 
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
+		args["log_level"] = value
 	}
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+		args["publish_logs"] = value
+	}
+
+	dagPlugin, err := driverPlugin(args)
+	if err != nil {
+		return "", err
 	}
 
 	template := &wfapi.Template{
@@ -635,22 +637,12 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
 			},
 		},
-		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
-		},
+		Plugin: dagPlugin,
 	}
 	applySecurityContextToTemplate(template)
-	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
-	if setCABundle {
-		ConfigureCustomCABundle(template)
-	}
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
-	return name
+	return name, nil
 }
 
 func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
