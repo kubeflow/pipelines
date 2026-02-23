@@ -238,8 +238,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    if (this.props.isLoading) {
-      return <div>Currently loading run information</div>;
+    if (isLoading) {
+      return (
+        <div style={{ textAlign: 'center', paddingTop: '40px' }}>
+          <CircularProgress />
+          <div>Currently loading run information.</div>
+        </div>
+      );
     }
 
     const {
