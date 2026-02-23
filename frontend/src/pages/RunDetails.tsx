@@ -141,6 +141,7 @@ interface RunDetailsState {
   mlmdExecutions?: Execution[];
   showReducedGraph?: boolean;
   namespace?: string;
+  isLoading: boolean;
 }
 
 export const css = stylesheet({
@@ -191,6 +192,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     mlmdRunContext: undefined,
     mlmdExecutions: undefined,
     showReducedGraph: false,
+    isLoading: false,
   };
 
   private readonly AUTO_REFRESH_INTERVAL = 5000;
@@ -238,7 +240,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    if (isLoading) {
+    if (this.state.isLoading) {
       return (
         <div style={{ textAlign: 'center', paddingTop: '40px' }}>
           <CircularProgress />
@@ -748,6 +750,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   public async load(): Promise<void> {
+    this.setState({ isLoading: true });
     this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
@@ -928,6 +931,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     // Load all run's outputs
     await this._loadAllOutputs();
+    this.setState({ isLoading: false });
   }
 
   private handleError = async (error: Error) => {
