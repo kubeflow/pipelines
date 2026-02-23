@@ -429,8 +429,11 @@ class PipelineTask:
         else:
             if isinstance(limit, int):
                 limit = str(limit)
-            if isinstance(limit, str) and re.match(r'^[0-9]+$',
-                                                   limit) is None:
+            if not isinstance(limit, str):
+                raise TypeError(
+                    f'Invalid accelerator limit type {type(limit).__name__!r}.'
+                    ' Must be an int, str, or PipelineChannel.')
+            if re.match(r'^(0|[1-9][0-9]*)$', limit) is None:
                 raise ValueError(
                     f'Invalid accelerator limit {limit!r}.'
                     ' Must be a non-negative integer.')
