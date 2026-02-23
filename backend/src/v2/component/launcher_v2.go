@@ -687,12 +687,12 @@ func uploadOutputArtifacts(
 	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(artifacts))
 
 	for name, artifactList := range artifacts {
-		if len(artifactList.Artifacts) == 0 {
+		if artifactList == nil || len(artifactList.Artifacts) == 0 {
 			continue
 		}
 
 		for _, outputArtifact := range artifactList.Artifacts {
-			glog.Infof("outputArtifact in uploadOutputArtifacts call: ", outputArtifact.Name)
+			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
 
 			// Merge executor output artifact info with executor input
 			if executorOutput != nil {
