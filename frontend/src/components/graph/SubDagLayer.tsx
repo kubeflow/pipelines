@@ -32,7 +32,7 @@ interface History {
   layer: string;
   path: string;
 }
-const baseLinkButton: React.CSSProperties = {
+const baseLinkButton = {
   backgroundColor: 'transparent',
   border: 'none',
   cursor: 'pointer',

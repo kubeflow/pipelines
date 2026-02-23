@@ -15,14 +15,14 @@
  */
 
 import * as React from 'react';
-import AllRunsList from './AllRunsList';
+import AllRunsListPage from './AllRunsList';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import ArchivedRuns from './ArchivedRuns';
+import ArchivedRunsPage from './ArchivedRuns';
 
 export enum AllRunsAndArchiveTab {
   RUNS = 0,
@@ -50,9 +50,9 @@ class AllRunsAndArchive extends Page<AllRunsAndArchiveProps, AllRunsAndArchiveSt
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
         />
-        {this.props.view === 0 && <AllRunsList {...this.props} />}
+        {this.props.view === 0 && <AllRunsListPage {...this.props} />}
 
-        {this.props.view === 1 && <ArchivedRuns {...this.props} />}
+        {this.props.view === 1 && <ArchivedRunsPage {...this.props} />}
       </div>
     );
   }

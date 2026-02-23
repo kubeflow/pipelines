@@ -33,23 +33,23 @@ import Page404 from 'src/pages/404';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
 } from 'src/pages/AllExperimentsAndArchive';
-import AllRecurringRunsList from 'src/pages/AllRecurringRunsList';
+import AllRecurringRunsPage from 'src/pages/AllRecurringRunsList';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from 'src/pages/AllRunsAndArchive';
 import ArtifactDetails from 'src/pages/ArtifactDetails';
 import ArtifactListSwitcher from 'src/pages/ArtifactListSwitcher';
 import ExecutionDetails from 'src/pages/ExecutionDetails';
 import ExecutionListSwitcher from 'src/pages/ExecutionListSwitcher';
-import ExperimentDetails from 'src/pages/ExperimentDetails';
+import ExperimentDetailsPage from 'src/pages/ExperimentDetails';
 import { GettingStarted } from 'src/pages/GettingStarted';
-import NewExperiment from 'src/pages/NewExperiment';
-import NewPipelineVersion from 'src/pages/NewPipelineVersion';
+import NewExperimentPage from 'src/pages/NewExperiment';
+import NewPipelineVersionPage from 'src/pages/NewPipelineVersion';
 import NewRunSwitcher from 'src/pages/NewRunSwitcher';
 import PipelineDetails from 'src/pages/PipelineDetails';
 import PrivateAndSharedPipelines, {
   PrivateAndSharedTab,
 } from 'src/pages/PrivateAndSharedPipelines';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
-import SideNav from './SideNav';
+import SideNavigation from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 
@@ -191,9 +191,9 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       path: RoutePage.EXPERIMENTS,
       view: AllExperimentsAndArchiveTab.EXPERIMENTS,
     },
-    { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
-    { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
-    { path: RoutePage.NEW_PIPELINE_VERSION, Component: NewPipelineVersion },
+    { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetailsPage },
+    { path: RoutePage.NEW_EXPERIMENT, Component: NewExperimentPage },
+    { path: RoutePage.NEW_PIPELINE_VERSION, Component: NewPipelineVersionPage },
     { path: RoutePage.NEW_RUN, Component: NewRunSwitcher },
     {
       path: RoutePage.PIPELINES,
@@ -208,7 +208,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
     { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
-    { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsList },
+    { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsPage },
     { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetailsRouter },
     { path: RoutePage.RUN_DETAILS, Component: RunDetailsRouter },
     { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetailsRouter },
@@ -402,7 +402,9 @@ export default Router;
 const SideNavLayout: React.FC<{}> = ({ children }) => (
   <div className={classes(commonCss.page)}>
     <div className={classes(commonCss.flexGrow)}>
-      <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
+      <Route
+        render={({ ...props }) => <SideNavigation page={props.location.pathname} {...props} />}
+      />
       {children}
     </div>
   </div>

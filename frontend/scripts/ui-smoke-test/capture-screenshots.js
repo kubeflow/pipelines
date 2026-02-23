@@ -107,6 +107,12 @@ async function executeActions(page, actions) {
         case 'waitForSelector':
           await page.waitForSelector(action.selector, { timeout });
           break;
+        case 'scrollIntoView':
+          await page.locator(action.selector).first().scrollIntoViewIfNeeded({ timeout });
+          break;
+        case 'moveMouse':
+          await page.mouse.move(action.x || 0, action.y || 0);
+          break;
         case 'waitForTimeout':
           await page.waitForTimeout(action.ms || 500);
           break;
@@ -165,6 +171,23 @@ const PAGES = [
     ],
   },
   { name: 'compare-seeded', path: '/#/compare?runlist={seed.compareRunlist}', waitFor: '#root' },
+  {
+    name: 'compare-seeded-roc',
+    path: '/#/compare?runlist={seed.compareRunlist}',
+    waitFor: '#root',
+    actions: [
+      {
+        type: 'click',
+        selector: '[role="tab"]:has-text("ROC Curve"), button:has-text("ROC Curve")',
+        optional: true,
+      },
+      { type: 'waitForSelector', selector: '.recharts-wrapper, .rv-xy-plot' },
+      { type: 'scrollIntoView', selector: '.recharts-wrapper, .rv-xy-plot' },
+      { type: 'moveMouse', x: 8, y: 8 },
+      { type: 'waitForTimeout', ms: 250 },
+      { type: 'waitForTimeout', ms: 1000, optional: true },
+    ],
+  },
   { name: 'runs-new', path: '/#/runs/new', waitFor: '#choosePipelineBtn' },
   {
     name: 'runs-new-pipeline-dialog',
@@ -188,6 +211,24 @@ const PAGES = [
   },
   { name: 'recurring-runs', path: '/#/recurringruns', waitFor: '[class*="tableRow"]' },
   { name: 'artifacts', path: '/#/artifacts', waitFor: '[class*="tableRow"]' },
+  {
+    name: 'artifact-lineage-from-list',
+    path: '/#/artifacts',
+    waitFor: '[class*="tableRow"]',
+    waitForData: 'a[href*="#/artifacts/"], a[href*="/artifacts/"]',
+    actions: [
+      { type: 'click', selector: 'a[href*="#/artifacts/"], a[href*="/artifacts/"]' },
+      {
+        type: 'waitForSelector',
+        selector: '[role="tab"]:has-text("Lineage Explorer"), button:has-text("Lineage Explorer")',
+      },
+      {
+        type: 'click',
+        selector: '[role="tab"]:has-text("Lineage Explorer"), button:has-text("Lineage Explorer")',
+      },
+      { type: 'waitForTimeout', ms: 1000, optional: true },
+    ],
+  },
   {
     name: 'executions',
     path: '/#/executions',

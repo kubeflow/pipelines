@@ -52,7 +52,7 @@ import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
-import InputOutputTab, {
+import RuntimeInputOutputTab, {
   getArtifactParamList,
   ParamList,
 } from 'src/components/tabs/InputOutputTab';
@@ -185,7 +185,7 @@ function TaskNodeDetail({
         {selectedTab === 0 &&
           (() => {
             if (execution) {
-              return <InputOutputTab execution={execution} namespace={namespace} />;
+              return <RuntimeInputOutputTab execution={execution} namespace={namespace} />;
             }
             return NODE_STATE_UNAVAILABLE;
           })()}
@@ -537,7 +537,10 @@ function SubDAGNodeDetail({
             (() => {
               if (execution) {
                 return (
-                  <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
+                  <RuntimeInputOutputTab
+                    execution={execution}
+                    namespace={namespace}
+                  ></RuntimeInputOutputTab>
                 );
               }
               return NODE_STATE_UNAVAILABLE;

@@ -29,7 +29,7 @@ import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import RunList from 'src/pages/RunList';
-import produce from 'immer';
+import immerProduce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
 
 export interface ExperimentListProps extends RouteComponentProps {
@@ -174,7 +174,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayExperiments = produce(this.state.displayExperiments, draft => {
+    const displayExperiments = immerProduce(this.state.displayExperiments, draft => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
