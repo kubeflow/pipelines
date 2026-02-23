@@ -19,6 +19,10 @@ components that manage pipeline execution and lifecycle:
   run status in the database.
 - **Metadata Writer** – Handles interactions with ML Metadata (MLMD).
 - **Cache Layer** – Manages execution result reuse when caching is enabled.
+-  **Scheduled Workflow Controller** – Manages recurring pipeline runs and cron-based schedules.
+     Located at `backend/src/crd/controller/scheduledworkflow` with its Dockerfile at `backend/Dockerfile.scheduledworkflow`.
+- **Viewer Controller** – Manages viewer instances for visualizing pipeline outputs and results.
+     Located at `backend/src/crd/controller/viewer` with its Dockerfile at `backend/Dockerfile.viewercontroller`.
 
 Understanding these components helps contributors identify where
 new features, debugging logic, or lifecycle changes should be implemented.
