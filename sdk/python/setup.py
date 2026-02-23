@@ -52,7 +52,7 @@ REQUIRES = [
     # Copied from https://github.com/kubeflow/pipelines/blob/4bd3d4b4e99b5af38380ddad9693a2a0bbe4e968/sdk/python/requirements.in#L17
     'kfp-pipeline-spec==0.8.0',
     'fire>=0.7.0,<1',
-    'protobuf==6.31.1,<7.0',
+    'protobuf==6.33.5,<7.0',
     'uritemplate>=3.0.1,<4',
     'urllib3<3.0.0', 
     'pydantic>=1.8.2,<2',

@@ -84,7 +84,7 @@ oauthlib==3.3.1
     # via requests-oauthlib
 proto-plus==1.26.1
     # via google-api-core
-protobuf==6.31.1
+protobuf==6.33.5
     # via
     #   google-api-core
     #   googleapis-common-protos
