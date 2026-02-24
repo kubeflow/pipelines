@@ -374,7 +374,13 @@ function readAllowlist(filePath, targetMajor) {
   if (!fs.existsSync(filePath)) {
     return new Set();
   }
-  const data = readJson(filePath);
+  let data;
+  try {
+    data = readJson(filePath);
+  } catch (error) {
+    console.error(`ERROR: Failed to parse allowlist JSON at ${filePath}: ${error.message}`);
+    process.exit(2);
+  }
   const targetEntries = data?.[String(targetMajor)];
   if (!Array.isArray(targetEntries)) {
     return new Set();
@@ -409,8 +415,22 @@ function main() {
     process.exit(2);
   }
 
-  const packageJson = readJson(packageJsonPath);
-  const lockfile = readJson(lockfilePath);
+  let packageJson;
+  try {
+    packageJson = readJson(packageJsonPath);
+  } catch (error) {
+    console.error(`ERROR: Failed to parse package.json at ${packageJsonPath}: ${error.message}`);
+    process.exit(2);
+  }
+
+  let lockfile;
+  try {
+    lockfile = readJson(lockfilePath);
+  } catch (error) {
+    console.error(`ERROR: Failed to parse lockfile at ${lockfilePath}: ${error.message}`);
+    process.exit(2);
+  }
+
   const allowlist = readAllowlist(allowlistFilePath, args.targetMajor);
   const directDependencies = new Set([
     ...Object.keys(packageJson.dependencies || {}),
