@@ -3,8 +3,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import semver from 'semver';
 
 const REACT_PEER_KEYS = ['react', 'react-dom'];
+const SEMVER_OPTIONS = { loose: true, includePrerelease: true };
 
 function parseArgs(argv) {
   let targetMajor = null;
@@ -64,16 +66,6 @@ Examples:
   `.trim());
 }
 
-function compareVersions(a, b) {
-  if (a.major !== b.major) {
-    return a.major - b.major;
-  }
-  if (a.minor !== b.minor) {
-    return a.minor - b.minor;
-  }
-  return a.patch - b.patch;
-}
-
 function normalizeRange(range) {
   return String(range)
     .replace(/\u00a0/g, ' ')
@@ -82,261 +74,23 @@ function normalizeRange(range) {
     .trim();
 }
 
-function splitDisjuncts(range) {
-  return normalizeRange(range)
-    .split('||')
-    .map(part => part.trim())
-    .filter(Boolean);
-}
-
-function expandHyphenRanges(disjunct) {
-  return disjunct.replace(
-    /(\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)\s*-\s*(\d+(?:\.\d+){0,2}(?:-[0-9A-Za-z.-]+)?)/g,
-    '>=$1 <=$2',
-  );
-}
-
-function parseVersionPattern(raw) {
-  const cleaned = String(raw).trim().replace(/^v/i, '');
-  const parts = cleaned.split('.');
-  const isWildcard = value => value === 'x' || value === 'X' || value === '*';
-
-  const parsed = [];
-  for (const part of parts) {
-    const bare = part.split('-')[0];
-    if (isWildcard(bare)) {
-      parsed.push('x');
-      continue;
-    }
-    if (!/^\d+$/.test(bare)) {
-      return null;
-    }
-    parsed.push(Number(bare));
-  }
-
-  while (parsed.length < 3) {
-    parsed.push('x');
-  }
-  return parsed.slice(0, 3);
-}
-
-function parseExactVersion(raw, missingDefault = 0) {
-  const cleaned = String(raw).trim().replace(/^v/i, '');
-  const parts = cleaned.split('.');
-  if (!parts.length || parts.length > 3) {
-    return null;
-  }
-  const parsed = [];
-  for (const part of parts) {
-    const bare = part.split('-')[0];
-    if (!/^\d+$/.test(bare)) {
-      return null;
-    }
-    parsed.push(Number(bare));
-  }
-  while (parsed.length < 3) {
-    parsed.push(missingDefault);
-  }
-  return { major: parsed[0], minor: parsed[1], patch: parsed[2] };
-}
-
-function nextMajor(version) {
-  return { major: version.major + 1, minor: 0, patch: 0 };
-}
-
-function nextMinor(version) {
-  return { major: version.major, minor: version.minor + 1, patch: 0 };
-}
-
-function nextPatch(version) {
-  return { major: version.major, minor: version.minor, patch: version.patch + 1 };
-}
-
-function comparatorsFromToken(token) {
-  if (token === '*' || token.toLowerCase() === 'x') {
-    return [{ type: 'any' }];
-  }
-
-  const match = token.match(/^(\^|~|>=|<=|>|<|=)?(.+)$/);
-  if (!match) {
-    return null;
-  }
-
-  const op = match[1] ?? '';
-  const versionRaw = match[2].trim();
-  const hasExplicitWildcard = /(^|\.)(x|X|\*)($|\.|-)/.test(versionRaw);
-
-  if (op === '' || op === '=') {
-    const pattern = parseVersionPattern(versionRaw);
-    if (!pattern) {
-      return null;
-    }
-    const [major, minor, patch] = pattern;
-    const hasWildcard = [major, minor, patch].includes('x');
-    if (hasWildcard) {
-      if (major === 'x') {
-        return [{ type: 'any' }];
-      }
-      if (minor === 'x') {
-        const low = { major, minor: 0, patch: 0 };
-        const high = { major: major + 1, minor: 0, patch: 0 };
-        return [
-          { type: 'cmp', op: '>=', version: low },
-          { type: 'cmp', op: '<', version: high },
-        ];
-      }
-      const low = { major, minor, patch: 0 };
-      const high = { major, minor: minor + 1, patch: 0 };
-      return [
-        { type: 'cmp', op: '>=', version: low },
-        { type: 'cmp', op: '<', version: high },
-      ];
-    }
-    const version = { major, minor, patch };
-    return [{ type: 'cmp', op: '=', version }];
-  }
-
-  if (hasExplicitWildcard) {
-    return null;
-  }
-
-  const version = parseExactVersion(versionRaw, 0);
-  if (!version) {
-    return null;
-  }
-
-  if (op === '^') {
-    let upper;
-    if (version.major > 0) {
-      upper = nextMajor(version);
-    } else if (version.minor > 0) {
-      upper = nextMinor(version);
-    } else {
-      upper = nextPatch(version);
-    }
-    return [
-      { type: 'cmp', op: '>=', version },
-      { type: 'cmp', op: '<', version: upper },
-    ];
-  }
-  if (op === '~') {
-    return [
-      { type: 'cmp', op: '>=', version },
-      { type: 'cmp', op: '<', version: nextMinor(version) },
-    ];
-  }
-  return [{ type: 'cmp', op, version }];
-}
-
-function tighterLower(current, candidate) {
-  if (!current) {
-    return candidate;
-  }
-  const cmp = compareVersions(candidate.version, current.version);
-  if (cmp > 0) {
-    return candidate;
-  }
-  if (cmp < 0) {
-    return current;
-  }
-  if (!candidate.inclusive && current.inclusive) {
-    return candidate;
-  }
-  return current;
-}
-
-function tighterUpper(current, candidate) {
-  if (!current) {
-    return candidate;
-  }
-  const cmp = compareVersions(candidate.version, current.version);
-  if (cmp < 0) {
-    return candidate;
-  }
-  if (cmp > 0) {
-    return current;
-  }
-  if (!candidate.inclusive && current.inclusive) {
-    return candidate;
-  }
-  return current;
-}
-
-function intervalHasValues(interval) {
-  if (!interval.lower || !interval.upper) {
-    return true;
-  }
-  const cmp = compareVersions(interval.lower.version, interval.upper.version);
-  if (cmp < 0) {
-    return true;
-  }
-  if (cmp > 0) {
-    return false;
-  }
-  return interval.lower.inclusive && interval.upper.inclusive;
-}
-
-function disjunctSupportsMajor(disjunct, targetMajor) {
-  const expanded = expandHyphenRanges(disjunct);
-  const rawTokens = expanded.split(' ').map(token => token.trim()).filter(Boolean);
-  const tokens = [];
-  for (let i = 0; i < rawTokens.length; i++) {
-    const token = rawTokens[i];
-    if (['>', '>=', '<', '<=', '=', '^', '~'].includes(token) && i + 1 < rawTokens.length) {
-      tokens.push(`${token}${rawTokens[i + 1]}`);
-      i += 1;
-      continue;
-    }
-    tokens.push(token);
-  }
-
-  let interval = {
-    lower: { version: { major: targetMajor, minor: 0, patch: 0 }, inclusive: true },
-    upper: { version: { major: targetMajor + 1, minor: 0, patch: 0 }, inclusive: false },
-  };
-
-  for (const token of tokens) {
-    const comparators = comparatorsFromToken(token);
-    if (!comparators) {
-      return false;
-    }
-    for (const comparator of comparators) {
-      if (comparator.type === 'any') {
-        continue;
-      }
-      const { op, version } = comparator;
-      if (op === '>') {
-        interval.lower = tighterLower(interval.lower, { version, inclusive: false });
-      } else if (op === '>=') {
-        interval.lower = tighterLower(interval.lower, { version, inclusive: true });
-      } else if (op === '<') {
-        interval.upper = tighterUpper(interval.upper, { version, inclusive: false });
-      } else if (op === '<=') {
-        interval.upper = tighterUpper(interval.upper, { version, inclusive: true });
-      } else if (op === '=') {
-        interval.lower = tighterLower(interval.lower, { version, inclusive: true });
-        interval.upper = tighterUpper(interval.upper, { version, inclusive: true });
-      } else {
-        return false;
-      }
-      if (!intervalHasValues(interval)) {
-        return false;
-      }
-    }
-  }
-
-  return intervalHasValues(interval);
+function normalizeSemverRange(range) {
+  return normalizeRange(range).replace(/([<>~^]=?|=)\s+(\d)/g, '$1$2');
 }
 
 function rangeSupportsMajor(range, targetMajor) {
   if (!range || String(range).trim() === '') {
     return true;
   }
-  const disjuncts = splitDisjuncts(range);
-  if (!disjuncts.length) {
+
+  const normalizedRange = normalizeSemverRange(range);
+  const validRange = semver.validRange(normalizedRange, SEMVER_OPTIONS);
+  if (!validRange) {
     return false;
   }
-  return disjuncts.some(disjunct => disjunctSupportsMajor(disjunct, targetMajor));
+
+  const targetMajorRange = `>=${targetMajor}.0.0 <${targetMajor + 1}.0.0`;
+  return semver.intersects(validRange, targetMajorRange, SEMVER_OPTIONS);
 }
 
 function readJson(filePath) {
@@ -385,9 +139,7 @@ function readAllowlist(filePath, targetMajor) {
   if (!Array.isArray(targetEntries)) {
     return new Set();
   }
-  const normalized = targetEntries
-    .map(value => String(value).trim())
-    .filter(Boolean);
+  const normalized = targetEntries.map(value => String(value).trim()).filter(Boolean);
   return new Set(normalized);
 }
 
@@ -512,9 +264,7 @@ function main() {
   if (directUnsupported.length) {
     console.error(`\nDirect dependencies (${directUnsupported.length}):`);
     for (const entry of directUnsupported) {
-      console.error(
-        `- ${entry.packageName}@${entry.version} (${entry.packagePath}) -> ${entry.peerSignature}`,
-      );
+      console.error(`- ${entry.packageName}@${entry.version} (${entry.packagePath}) -> ${entry.peerSignature}`);
     }
   }
 
