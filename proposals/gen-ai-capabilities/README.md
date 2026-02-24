@@ -1,4 +1,4 @@
-#   
+# KEP-XXXXX: Gen-AI Capabilities for Kubeflow Pipelines
 
 <!-- toc -->
 - [Summary](#summary)
@@ -12,12 +12,19 @@
     - [Story 3: Pipeline Optimization Suggestions](#story-3-pipeline-optimization-suggestions)
     - [Story 4: Auto-Generated Documentation](#story-4-auto-generated-documentation)
     - [Story 5: Conversational Pipeline Exploration](#story-5-conversational-pipeline-exploration)
+    - [Story 6: Agent-Driven Multi-Step Operations](#story-6-agent-driven-multi-step-operations)
+    - [Story 7: External Tool Integration via MCP](#story-7-external-tool-integration-via-mcp)
   - [Notes/Constraints/Caveats](#notesconstraintscaveats)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Design Details](#design-details)
   - [Architecture Overview](#architecture-overview)
+  - [Agentic Tool System](#agentic-tool-system)
+    - [Chat Modes](#chat-modes)
+    - [Prompt Rules Engine](#prompt-rules-engine)
+    - [MCP Integration](#mcp-integration)
   - [LLM Integration Layer](#llm-integration-layer)
     - [Provider Abstraction](#provider-abstraction)
+    - [Multi-Model Routing](#multi-model-routing)
     - [Configuration](#configuration)
   - [Backend Changes](#backend-changes)
     - [API Server Extensions](#api-server-extensions)
@@ -27,11 +34,13 @@
     - [Inline AI Features](#inline-ai-features)
   - [SDK Extensions](#sdk-extensions)
   - [Security and Privacy](#security-and-privacy)
+  - [Observability, Metrics, and Audit Logging](#observability-metrics-and-audit-logging)
   - [Test Plan](#test-plan)
     - [Prerequisite testing updates](#prerequisite-testing-updates)
     - [Unit Tests](#unit-tests)
     - [Integration Tests](#integration-tests)
     - [E2E Tests](#e2e-tests)
+    - [Security Tests](#security-tests)
   - [Graduation Criteria](#graduation-criteria)
     - [Alpha](#alpha)
     - [Beta](#beta)
@@ -151,6 +160,20 @@ As a data scientist, I want to ask questions like "Show me all runs from last we
 v2 preprocessing component and had accuracy above 0.9" and receive a filtered view of matching
 runs without needing to manually construct filters in the UI.
 
+#### Story 6: Agent-Driven Multi-Step Operations
+
+As an ML engineer, I want to ask "Rerun the failed preprocessing step with 16Gi memory and notify
+me when it completes" and have the AI break this into sequential tool calls (fetch run → identify
+failed step → create new run with modified resources → set up notification), presenting each
+mutating action for my confirmation before executing it.
+
+#### Story 7: External Tool Integration via MCP
+
+As a platform engineer, I want the AI assistant to query our internal model registry and data
+catalog when answering questions about pipelines, so that it can provide context-aware
+recommendations like "The v3 model in the registry outperforms v2 by 5% — consider updating this
+pipeline's model reference."
+
 ### Notes/Constraints/Caveats
 
 - **LLM availability**: The feature requires network access to an LLM endpoint (cloud API or
@@ -211,6 +234,96 @@ runs without needing to manually construct filters in the UI.
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Agentic Tool System
+
+Rather than implementing fixed RPCs for every predefined use case, the design centers on an
+**agentic chat endpoint** where the LLM accesses a toolkit of KFP operations and composes them
+dynamically. This approach enables flexible tool composition without requiring new backend
+endpoints for each new capability.
+
+The agent maintains a registry of tools:
+
+- **Built-in KFP tools**: List runs, fetch logs, get pipeline specs, compile pipelines, submit
+  runs, create experiments, etc.
+- **MCP external tools**: Tools exposed by external MCP servers (model registries, data catalogs,
+  monitoring systems).
+- **Custom extension tools**: Platform-team-registered tools that the agent can invoke, wrapped
+  with confirmation requirements.
+
+Each tool declares whether it is **read-only** (auto-approved) or **mutating** (requires explicit
+user confirmation before execution). The agent plans a sequence of tool calls, executes read-only
+tools automatically, and pauses for user approval before any state-changing operation.
+
+#### Chat Modes
+
+The assistant supports two interaction modes:
+
+- **Ask mode** (default): Read-only exploration. The agent can invoke read-only tools (list runs,
+  fetch logs, get pipeline specs) but cannot perform any mutating operations. Safe for discovering
+  pipeline information and getting recommendations.
+- **Agent mode**: Full tool access with confirmation gates. The agent can plan and execute
+  multi-step operations that include state-changing actions (submit runs, create experiments,
+  modify pipeline parameters), but every mutating tool call requires explicit user confirmation
+  before execution.
+
+Users select the mode via a toggle in the AI assistant panel. Administrators can restrict which
+modes are available per namespace via the prompt rules engine.
+
+#### Prompt Rules Engine
+
+Administrators inject organization-specific guidelines into system prompts without model
+fine-tuning. Rules are defined as Markdown files with YAML frontmatter and support:
+
+- **Scope matching**: Rules can be scoped to specific namespaces, chat modes, or pipeline name
+  patterns.
+- **Priority ordering**: Rules are applied in priority order, allowing organization-wide defaults
+  with namespace-specific overrides.
+- **Dynamic injection**: Rules are injected into the system prompt at request time, ensuring they
+  are always up-to-date without requiring model redeployment.
+
+Example rule file:
+
+```markdown
+---
+scope:
+  namespaces: ["production", "staging"]
+  modes: ["agent"]
+priority: 100
+---
+# Production Safety Rules
+
+- NEVER suggest deleting or modifying runs in the production namespace without explicit mention of
+  a rollback plan.
+- Always recommend canary deployments for model updates.
+- Flag any pipeline that does not include a model validation step.
+```
+
+Rules are stored in a ConfigMap or mounted volume and referenced via the `aiRulesPath`
+configuration key.
+
+#### MCP Integration
+
+KFP integrates with the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) in two
+directions:
+
+- **KFP as MCP server**: Exposes KFP operations (list pipelines, get run status, fetch logs,
+  compile pipelines) as MCP tools, enabling external AI clients (e.g., Claude Code, Cursor,
+  custom agents) to interact with KFP programmatically.
+- **KFP as MCP client**: Connects to external MCP servers (model registries, data catalogs,
+  monitoring systems) whose tools become available to the AI agent during conversations. This
+  enables cross-system queries like "Which model in the registry has the best F1 score for this
+  dataset?" without building custom integrations.
+
+MCP server endpoints are configured in the `pipeline-install-config` ConfigMap:
+
+```yaml
+aiMCPServers: |
+  - name: model-registry
+    url: http://model-registry.ml-platform:8080/mcp
+  - name: data-catalog
+    url: http://data-catalog.ml-platform:8080/mcp
+```
+
 ### LLM Integration Layer
 
 #### Provider Abstraction
@@ -239,7 +352,20 @@ type Message struct {
     Role    string // "user", "assistant", "system"
     Content string
 }
+
+// ChatChunk represents a single chunk in a streaming response.
+type ChatChunk struct {
+    Content string // Full content accumulated so far
+    Delta   string // Incremental text in this chunk
+    Done    bool   // Whether this is the final chunk
+}
 ```
+
+**Streaming error handling**: When errors occur during streaming, the provider sends a final
+`ChatChunk` with `Done: true` and returns the error from the channel. The caller should select on
+both the chunk channel and a context cancellation to handle timeouts and client disconnects
+gracefully. Provider implementations must close the channel when the stream ends (whether
+successfully or due to error) to prevent goroutine leaks.
 
 Built-in provider implementations:
 
@@ -249,6 +375,31 @@ Built-in provider implementations:
 - **Amazon Bedrock**: Native integration with models available through Bedrock.
 - **Self-hosted**: Generic HTTP/gRPC interface for self-hosted model servers.
 
+#### Multi-Model Routing
+
+The design separates **providers** (service endpoints) from **models** (specific capabilities),
+allowing organizations to route different tasks to different models for cost optimization:
+
+- **Chat models**: Used for complex reasoning, debugging, code generation, and conversational
+  interactions. Typically a larger, more capable model (e.g., GPT-4o, Claude Sonnet, Gemini Pro).
+- **Embedding models**: Used for vector-based pipeline similarity search, enabling features like
+  "find pipelines similar to this one" or semantic search over pipeline descriptions and
+  documentation. Typically a smaller, specialized embedding model (e.g., text-embedding-3-small,
+  Vertex AI text-embedding).
+
+Embedding models are optional. When configured, they enable similarity-based features; when
+omitted, the system falls back to keyword-based search. Embedding models integrate with chat
+models by providing relevant pipeline context retrieved via vector similarity before the chat
+model generates a response (retrieval-augmented generation).
+
+Model assignments are configured separately so organizations can use an expensive model for
+chat (where quality matters most) and a cheaper model for embeddings (where throughput matters):
+
+```yaml
+aiModel: "gpt-4o"                    # Chat model
+aiEmbeddingModel: "text-embedding-3-small"  # Embedding model (optional)
+```
+
 #### Configuration
 
 Configuration via `pipeline-install-config` ConfigMap:
@@ -257,12 +408,20 @@ Configuration via `pipeline-install-config` ConfigMap:
 ## Gen-AI configuration. Feature is disabled when aiProvider is empty (default).
 aiProvider: ""              # "openai", "vertexai", "bedrock", "custom"
 aiEndpoint: ""              # LLM API endpoint URL
-aiModel: ""                 # Model identifier (e.g., "gpt-4o", "gemini-2.0-flash")
-aiMaxTokensPerRequest: "4096"
-aiRateLimitPerMinute: "30"
+aiModel: ""                 # Chat model identifier (e.g., "gpt-4o", "gemini-2.0-flash")
+aiEmbeddingModel: ""        # Embedding model identifier (optional, e.g., "text-embedding-3-small")
+## Integer values stored as strings per ConfigMap convention. Parsed as int32 by the API server.
+## Invalid values (negative, non-numeric) cause the AI service to fail initialization with a
+## descriptive error logged. Omitted keys use the documented defaults.
+aiMaxTokensPerRequest: "4096"   # Range: 1–128000. Default: 4096.
+aiRateLimitPerMinute: "30"      # Range: 1–1000. Default: 30. Per-user rate limit.
 ## Controls what pipeline context is sent to the LLM. Comma-separated.
 ## Options: "logs", "parameters", "metrics", "artifacts", "pipeline-spec"
 aiAllowedContext: "logs,parameters,metrics,pipeline-spec"
+## Path to prompt rules directory (optional). Rules are Markdown files with YAML frontmatter.
+aiRulesPath: ""             # e.g., "/etc/kfp/ai-rules/"
+## MCP server configuration (optional). YAML list of external MCP server endpoints.
+aiMCPServers: ""
 ```
 
 The API key or credentials are stored in a Kubernetes Secret, not the ConfigMap:
@@ -296,21 +455,64 @@ type AIService struct {
 #### Proto Definitions
 
 ```protobuf
+syntax = "proto3";
+
+package kubeflow.pipelines.backend.api.v2beta1;
+
+option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
+
+import "google/api/annotations.proto";
+import "google/protobuf/duration.proto";
+
 service AIService {
   // Generate pipeline code from a natural language description.
-  rpc GeneratePipeline(GeneratePipelineRequest) returns (GeneratePipelineResponse);
+  rpc GeneratePipeline(GeneratePipelineRequest) returns (GeneratePipelineResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/ai/pipelines/generate"
+      body: "*"
+    };
+  }
 
   // Analyze a failed run and suggest fixes.
-  rpc AnalyzeRun(AnalyzeRunRequest) returns (AnalyzeRunResponse);
+  rpc AnalyzeRun(AnalyzeRunRequest) returns (AnalyzeRunResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/ai/runs/{run_id}/analyze"
+    };
+  }
 
   // Suggest optimizations for a pipeline.
-  rpc SuggestOptimizations(SuggestOptimizationsRequest) returns (SuggestOptimizationsResponse);
+  rpc SuggestOptimizations(SuggestOptimizationsRequest) returns (SuggestOptimizationsResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/ai/pipelines/{pipeline_id}/optimize"
+      body: "*"
+    };
+  }
 
   // Generate documentation for a pipeline.
-  rpc GenerateDocumentation(GenerateDocumentationRequest) returns (GenerateDocumentationResponse);
+  rpc GenerateDocumentation(GenerateDocumentationRequest) returns (GenerateDocumentationResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/ai/pipelines/{pipeline_id}/document"
+      body: "*"
+    };
+  }
 
   // Conversational query over pipeline data.
-  rpc Chat(ChatRequest) returns (stream ChatResponse);
+  rpc Chat(ChatRequest) returns (stream ChatResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/ai/chat"
+      body: "*"
+    };
+  }
+}
+
+// Service for AI feature discovery.
+service AIFeatureService {
+  // Returns whether AI features are enabled for the current deployment.
+  rpc GetAIFeatureStatus(GetAIFeatureStatusRequest) returns (GetAIFeatureStatusResponse) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/ai/enabled"
+    };
+  }
 }
 
 message GeneratePipelineRequest {
@@ -374,6 +576,38 @@ message ChatResponse {
   string content = 1;
   bool is_final = 2;
 }
+
+// Feature status messages.
+
+message GetAIFeatureStatusRequest {}
+
+message GetAIFeatureStatusResponse {
+  bool enabled = 1;                     // Whether AI features are enabled
+  repeated string available_modes = 2;  // Available chat modes ("ask", "agent")
+}
+
+// Error modeling.
+//
+// gRPC status codes (e.g., UNAVAILABLE, RESOURCE_EXHAUSTED, PERMISSION_DENIED)
+// are used for coarse-grained error semantics. For richer, client-visible error
+// handling (e.g., rate-limit countdown timers, specific UI messages), services
+// attach the following error detail in google.rpc.Status.details.
+
+enum GenAIErrorCode {
+  GENAI_ERROR_CODE_UNSPECIFIED = 0;
+  GENAI_ERROR_CODE_RATE_LIMIT_EXCEEDED = 1;      // Paired with RESOURCE_EXHAUSTED
+  GENAI_ERROR_CODE_LLM_PROVIDER_UNAVAILABLE = 2;  // Paired with UNAVAILABLE
+  GENAI_ERROR_CODE_INVALID_CONFIGURATION = 3;      // Paired with FAILED_PRECONDITION
+  GENAI_ERROR_CODE_INSUFFICIENT_PERMISSIONS = 4;   // Paired with PERMISSION_DENIED
+  GENAI_ERROR_CODE_CONTEXT_TOO_LARGE = 5;          // Paired with INVALID_ARGUMENT
+}
+
+message GenAIErrorDetail {
+  GenAIErrorCode code = 1;              // Machine-readable error category
+  string message = 2;                   // Human-readable error message for UI display
+  google.protobuf.Duration retry_after = 3;  // When to retry (for rate limiting)
+  string resource = 4;                  // Associated resource (pipeline ID, config field, etc.)
+}
 ```
 
 ### Frontend Changes
@@ -416,6 +650,32 @@ print(code)
 This is a convenience wrapper that calls the API server's `GeneratePipeline` endpoint. It is not
 required — the UI provides the same functionality.
 
+**Authentication and configuration**:
+
+- The `kfp.ai` helpers reuse the same configuration and authentication mechanisms as the standard
+  `kfp.Client` (kubeconfig, in-cluster configuration, environment variables, or explicit
+  host/token settings).
+- No additional initialization beyond installing the `kfp[ai]` extra is required; it relies on
+  the underlying client configuration to locate and authenticate with the API server.
+
+**Feature availability**:
+
+- If the connected API server does not have AI features enabled, calls to `kfp.ai` functions
+  raise a `kfp.client.ApiException` with an appropriate HTTP status (404 or 501). Callers should
+  treat this as a signal that AI-assisted authoring is not available in the current environment.
+
+**Error handling and exceptions**:
+
+- Network and connectivity issues surface as the same connection-related exceptions raised by
+  `kfp.Client`.
+- Authentication and authorization problems (invalid token, insufficient RBAC permissions) result
+  in `ApiException` with HTTP 401/403 status codes.
+- LLM provider errors (quota exceeded, provider unavailability, invalid model configuration) are
+  propagated as `ApiException` with the `GenAIErrorDetail` from the server response, allowing
+  callers to inspect the structured error code and retry-after duration.
+- Callers should wrap invocations in standard try/except blocks and handle these cases according
+  to their application needs (retry, degrade gracefully, or display an informative error).
+
 ### Security and Privacy
 
 - **Opt-in only**: The entire feature is disabled by default. No LLM calls are made unless an
@@ -432,6 +692,48 @@ required — the UI provides the same functionality.
   type, and token count (but not the prompt or response content).
 - **RBAC**: AI endpoints respect existing KFP RBAC. In multi-user mode, users can only query
   pipelines and runs within their authorized namespaces.
+
+### Observability, Metrics, and Audit Logging
+
+To support safe, cost-effective operation in production, the AI integration exposes observability
+signals and audit trails:
+
+**Prometheus metrics** (per provider/model where applicable):
+
+- `kfp_ai_llm_requests_total{provider,model,operation,result}` — Request counters.
+- `kfp_ai_llm_request_duration_seconds_bucket{provider,model,operation}` — Request latency
+  histograms.
+- `kfp_ai_llm_tokens_total{provider,model,operation,kind}` — Token usage counters (kind is
+  `prompt` or `completion`).
+- `kfp_ai_llm_errors_total{provider,model,operation,code}` — Error counters by type, including
+  timeouts, rate limits, and provider errors.
+- `kfp_ai_llm_rate_limit_hits_total{provider,model,operation}` — Rate limiting event counters.
+- `kfp_ai_llm_estimated_cost_usd_total{provider,model,operation}` — Optional cost estimates when
+  token pricing is configured.
+
+**Administrator monitoring**:
+
+- Operators can create Grafana dashboards over these metrics to track usage by provider, model,
+  and operation.
+- Documentation will include example dashboard panels for request volume/latency, token usage and
+  estimated cost, and error rates.
+
+**Audit log contents** (in addition to existing cluster audit logs):
+
+- Timestamp and unique request/correlation ID.
+- Caller identity (user/service account) and originating namespace.
+- Operation type (e.g., `GeneratePipeline`, `AnalyzeRun`, `Chat`).
+- Provider and model identifier.
+- Token counts for prompt and completion.
+- Result status (success/failure) and error category on failure.
+- Estimated cost when available.
+- Prompt and response content are **not** recorded to avoid leaking sensitive data.
+
+**Alerting recommendations**:
+
+- Sustained elevated error rates for a provider/model/operation.
+- Frequent rate-limit hits approaching provider quotas.
+- Sudden spikes in token usage or estimated cost beyond configured thresholds.
 
 ### Test Plan
 
@@ -463,6 +765,22 @@ required — the UI provides the same functionality.
 - Generate a pipeline from natural language, compile it, and verify it produces a valid workflow.
 - Analyze a deliberately failed run and verify the response contains relevant log context.
 
+#### Security Tests
+
+- **Prompt injection resilience**: Craft adversarial prompts (including attempts to exfiltrate
+  secrets, bypass RBAC, or request raw logs) and verify the system refuses unsafe actions and does
+  not leak sensitive data.
+- **Secret redaction edge cases**: Verify that secrets in environment variables, log messages,
+  base64-encoded credentials, and other obfuscated forms are redacted before being sent to the
+  LLM or displayed in responses.
+- **Context filtering validation**: Ensure disallowed context types are never included in LLM
+  request payloads, even under error conditions or unusual query patterns.
+- **Multi-tenant isolation**: In multi-user/multi-namespace setups, attempt to query or reference
+  resources from other namespaces and verify that the AI assistant respects RBAC boundaries and
+  cannot access or describe cross-tenant data.
+- **Session fixation**: Verify that chat session IDs cannot be reused across users or hijacked
+  by concurrent requests.
+
 ### Graduation Criteria
 
 #### Alpha
@@ -477,11 +795,15 @@ required — the UI provides the same functionality.
 #### Beta
 
 - All four provider implementations (OpenAI, Vertex AI, Bedrock, self-hosted).
+- Agent mode with confirmation gates for mutating operations.
+- Prompt rules engine with namespace-scoped and mode-scoped rules.
 - SuggestOptimizations and GenerateDocumentation endpoints.
 - Inline AI features on run/pipeline detail pages.
 - Rate limiting and token budget enforcement.
 - Audit logging for all AI operations.
+- Prometheus metrics for request volume, latency, token usage, and errors.
 - Comprehensive context filtering controls.
+- RBAC enforcement on all AI endpoints in multi-user mode.
 - SDK `kfp[ai]` extension.
 
 #### Stable
@@ -489,6 +811,10 @@ required — the UI provides the same functionality.
 - Proven in production deployments with feedback incorporated.
 - Performance benchmarks for prompt latency and token usage.
 - Hardened prompt injection defenses with adversarial testing.
+- MCP server exposing KFP operations for external AI clients.
+- MCP client consuming external tool servers (model registries, data catalogs).
+- Extension point for platform teams to register custom agent tools.
+- Embedding model support for vector-based pipeline similarity search.
 - Localization support for non-English interactions.
 - Full E2E test coverage in CI.
 
@@ -499,9 +825,10 @@ This proposal has significant frontend impact:
 - **New AI assistant panel**: A new collapsible side panel component accessible from the main
   toolbar. This is the largest frontend addition.
 - **Inline action buttons**: New buttons on run details, pipeline details, and pipeline list pages.
-- **Feature flag gating**: All AI UI elements must be conditionally rendered based on a feature
-  flag endpoint (`/apis/v2beta1/ai/enabled`). When the feature is disabled, there must be zero
-  visual or functional changes to the existing UI.
+- **Feature flag gating**: All AI UI elements must be conditionally rendered based on the
+  `AIFeatureService.GetAIFeatureStatus` endpoint (`GET /apis/v2beta1/ai/enabled`). When the
+  feature is disabled, there must be zero visual or functional changes to the existing UI. The
+  response also indicates available chat modes, allowing the UI to show/hide the mode selector.
 - **Streaming response handling**: The chat interface must handle server-sent events or gRPC
   streaming for real-time LLM response display.
 - **Code rendering**: Generated pipeline code must be displayed with Python syntax highlighting
