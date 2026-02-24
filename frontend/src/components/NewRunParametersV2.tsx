@@ -431,10 +431,13 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     const { id, onChange, param } = this.props;
 
     if (param.literals?.length) {
-      const literalStrings = param.literals.map(String);
+      const getLiteralString = (l: any) =>
+        typeof l === 'object' && l !== null ? JSON.stringify(l) : String(l);
+      const literalStrings = param.literals.map(getLiteralString);
+      const stringValue = getLiteralString(param.value);
       const isValueInLiterals =
-        param.value != null && param.value !== '' && literalStrings.includes(String(param.value));
-      const selectValue = isValueInLiterals ? String(param.value) : '';
+        param.value != null && param.value !== '' && literalStrings.includes(stringValue);
+      const selectValue = isValueInLiterals ? stringValue : '';
 
       return (
         <FormControl variant='outlined' className={classes(commonCss.textField, css.textfield)}>
@@ -445,6 +448,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             value={selectValue}
             onChange={ev => onChange(String(ev.target.value))}
             label={param.key}
+            aria-label={param.key}
             displayEmpty
           >
             {!selectValue && (
