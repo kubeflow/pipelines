@@ -324,15 +324,38 @@ function updateToolBarActions(
   updateToolbar({ actions });
 }
 
+function getActualStartTime(run?: V2beta1Run): Date | undefined {
+  if (run?.state_history) {
+    const runningEntries = run.state_history.filter(
+      s => s.state === V2beta1RuntimeState.RUNNING,
+    );
+    if (runningEntries.length > 0) {
+      return runningEntries[runningEntries.length - 1].update_time;
+    }
+  }
+  return run?.scheduled_at;
+}
+
 function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
-  return [
+  const actualStart = getActualStartTime(run);
+  const scheduledAt = run?.scheduled_at;
+  const startDiffers =
+    actualStart && scheduledAt && formatDateString(actualStart) !== formatDateString(scheduledAt);
+
+  const fields: Array<KeyValue<string>> = [
     ['Run ID', run?.run_id || '-'],
     ['Workflow name', run?.display_name || '-'],
     ['Status', run?.state ? statusProtoMap.get(run?.state) : '-'],
     ['Description', run?.description || ''],
     ['Created at', run?.created_at ? formatDateString(run.created_at) : '-'],
-    ['Started at', formatDateString(run?.scheduled_at)],
+    ['Started at', formatDateString(actualStart)],
     ['Finished at', hasFinishedV2(run?.state) ? formatDateString(run?.finished_at) : '-'],
     ['Duration', hasFinishedV2(run?.state) ? getRunDurationV2(run) : '-'],
   ];
+
+  if (startDiffers) {
+    fields.splice(5, 0, ['Scheduled at', formatDateString(scheduledAt)]);
+  }
+
+  return fields;
 }
