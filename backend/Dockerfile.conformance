@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Dockerfile for building the source code of conformance tests
-FROM golang:1.24-alpine as builder
+FROM golang:1.25.7-alpine as builder
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
