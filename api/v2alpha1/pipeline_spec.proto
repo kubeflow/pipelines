@@ -224,8 +224,9 @@ message ComponentInputsSpec {
     // Should not exceed 1024 characters.
     string description = 5;
 
-    // The list of allowed values for this parameter.
-    // If this list is non-empty, the value must be one of the values in the list.
+    // Optional field. If non-empty, specifies that this parameter accepts
+    // only the values in this list (Literal parameter constraint).
+    // The parameter value must match one of these literal values exactly.
     repeated google.protobuf.Value literals = 6;
   }
   // Name to artifact input.

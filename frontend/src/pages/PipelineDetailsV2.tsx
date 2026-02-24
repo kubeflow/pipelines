@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import React, { MouseEvent as ReactMouseEvent, useState } from 'react';
-import { FlowElement } from 'react-flow-renderer';
+import { Edge, FlowElement, Node } from 'react-flow-renderer';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
@@ -25,7 +25,6 @@ import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
-import { Edge, Node } from 'react-flow-renderer/dist/types';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
 

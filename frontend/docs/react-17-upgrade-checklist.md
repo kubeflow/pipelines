@@ -1,50 +1,89 @@
 # React 17 Upgrade Checklist (Frontend)
 
-Last updated: 2026-02-15
+Last updated: 2026-02-19 13:30 EST
 
-Purpose: capture a minimal, auditable checklist for upgrading the frontend from React 16 to React 17 while keeping risk low and changes shippable.
+Purpose: status tracker for the React 17 frontend upgrade. Completed items stay crossed out; this file tracks the remaining React 17 scope plus post-upgrade cleanup.
 
-## Prerequisites (must be true before upgrading)
-- PR #12754 (Vite/Vitest migration) merged into the target branch.
-- PR #12756 (frontend server ESM + dev workflow) merged into the target branch.
+## Context
 
-If either prerequisite is not true in the target branch, stop and rebase before proceeding.
+- Primary issue: https://github.com/kubeflow/pipelines/issues/11594
+- Related context:
+  - https://github.com/kubeflow/pipelines/issues/10098 (closed; Vite/Vitest migration completed)
+  - https://github.com/kubeflow/pipelines/issues/5118
 
-Current status on 2026-02-15:
-- PR #12754 merged on 2026-02-09.
-- PR #12756 merged on 2026-02-06.
+## Branch Scope
 
-## Baseline Snapshot (fill in before starting)
-- React core: `react`, `react-dom`, `@types/react`, `@types/react-dom`, `react-test-renderer` versions.
-- Build/dev stack: confirm Vite/Vitest scripts are present and `react-scripts` is not used for client builds.
-- Test stack: jest config, `@testing-library/*`, Enzyme + adapter version, jsdom environment.
-- Storybook: version and preset used.
-- Node version: `.nvmrc`.
-- Frontend server build: confirm ESM entrypoint and build output expectations.
+- `react-17-recharts-pr` merged into `master` as PR #12829 on 2026-02-18.
+- `react-17-core-pr` is the remaining stacked branch and contains the final React 17 core/type bump.
 
-Suggested quick checks:
-- `rg -n "react-scripts|vite|vitest" frontend/package.json`
-- `rg -n "enzyme|adapter" frontend/package.json`
-- `rg -n "componentWill|UNSAFE_|findDOMNode" frontend/src`
+## Completed Milestones
 
-## Compatibility Audit (before changing React)
-Dependencies
-- Identify packages with React 16-only peer ranges and plan upgrades/replacements.
-- Specifically review: `enzyme-adapter-react-16`, `@types/enzyme-adapter-react-16`, Storybook React preset, `@material-ui/core` v3, `react-virtualized`, `react-vis`, `react-flow-renderer`, `react-dropzone`, `react-ace`, and `react-query`.
+- [x] ~~PR #12754 (Vite/Vitest migration) merged~~
+- [x] ~~PR #12756 (frontend server ESM + dev workflow) merged~~
+- [x] ~~PR #12793 (MUI v4 baseline) merged~~
+- [x] ~~PR #12829 (`react-vis`/`react-svg-line-chart` -> `recharts` + inline SVG) merged~~
+- [x] ~~CRA/Craco-era tooling removed (`react-scripts`, `@craco/craco`)~~
+- [x] ~~Enzyme and `jest-environment-jsdom-sixteen` removed from frontend deps~~
+- [x] ~~Frontend server tests migrated from Jest to Vitest (`frontend/server/package.json` uses `vitest run`)~~
+- [x] ~~Resolved `recharts` transitive peer mismatch via `overrides.recharts.react-redux=8.1.3`~~
+- [x] ~~Stale Vite planning docs removed (`frontend/docs/vite-migration-plan.md`, `frontend/docs/vite-migration-review.md`)~~
 
-Code patterns
-- Legacy lifecycles: `componentWillMount`, `componentWillReceiveProps`, `componentWillUpdate` and `UNSAFE_` variants.
-- `findDOMNode` usage.
-- Assumptions about SyntheticEvent pooling.
-- Tests relying on `react-dom/test-utils` behaviors.
+## Current Baseline (this branch)
 
-## Verification Commands (baseline and after each slice)
+- React/core versions:
+  - `react@^17.0.2`
+  - `react-dom@^17.0.2`
+  - `react-test-renderer@^17.0.2`
+  - `@types/react@^17.0.0`
+  - `@types/react-dom@^17.0.0`
+  - `@types/react-test-renderer@^17.0.0`
+- Build/test stack:
+  - `vite@^7.3.1`, `vitest@^4.0.17`
+  - `frontend/server` uses Vitest (`vitest run`)
+- React-17 compatibility code updates in this branch:
+  - `frontend/src/components/CustomTable.tsx`
+  - `frontend/src/components/graph/SubDagLayer.tsx`
+
+## Active Plan (remaining to complete React 17)
+
+- [x] ~~Rebase `react-17-core-pr` on latest `master` after PR #12829 merge~~
+- [x] ~~Run final verification on this branch and capture results~~:
+  - `npm run test:ci`
+  - `npm run build`
+
+## Latest Verification Notes (2026-02-18)
+
+- `npm run format:check` passed.
+- `npm run lint` passed.
+- `npm run typecheck` passed.
+- `npm run test:ui:coverage:loop` (`--maxWorkers 4`) had 7 failures that were mostly 5s timeouts under local load.
+- Serial rerun of the same failing suites passed:
+  - `npx vitest run --maxWorkers 1 src/pages/NewExperiment.test.tsx src/pages/ExperimentDetails.test.tsx src/pages/NewRun.test.tsx src/pages/NewRunV2.test.tsx`
+- `npm run test:server:coverage` passed.
+- `npm run build` passed.
+
+## Post-Upgrade Cleanup TODO (non-blocking)
+
+- [ ] Reduce remaining `react-dom/test-utils` usage in UI tests:
+  - `frontend/src/components/UploadPipelineDialog.test.tsx`
+  - `frontend/src/components/SideNav.test.tsx`
+  - `frontend/src/components/viewers/Tensorboard.test.tsx`
+  - `frontend/src/components/viewers/VisualizationCreator.test.tsx`
+  - `frontend/src/mlmd/LineageActionBar.test.tsx`
+- [x] ~~Address remaining legacy lifecycle warning source (`re-resizable` via `SidePanel`)~~
+- [ ] Remove `snapshot-diff` (replace with Vitest-native assertions)
+- [ ] Decide whether to keep `eslint-config-react-app` or migrate to non-CRA ESLint base
+- [ ] Recheck and resolve reproducible `TablePagination` DOM nesting warnings in UI tests
+
+## Verification Commands
+
+- `npm run test:ci`
 - `npm run lint`
 - `npm run test`
 - `npm run build`
-- `npm run test:server:coverage` (only if server changes)
+- `npm run test:server:coverage` (if server code/tests are touched)
 - `npm run format:check` (if formatting touched)
 
 ## Notes
-- Keep each change small and independently shippable.
-- Prefer dependency updates that are React 17-compatible while still running on React 16 until the core bump is done.
+
+- `tasks/todo.md` is retired; use this checklist as the canonical plan.
