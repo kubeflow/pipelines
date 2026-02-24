@@ -41,6 +41,9 @@ const (
 	MLPipelineServiceName                   string = "ML_PIPELINE_SERVICE_NAME"
 	MetadataServiceName                     string = "METADATA_SERVICE_NAME"
 	ClusterDomain                           string = "CLUSTER_DOMAIN"
+	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
+	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
+	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -171,4 +174,16 @@ func GetCaBundleConfigMapName() string {
 
 func GetCompiledPipelineSpecPatch() string {
 	return GetStringConfigWithDefault(CompiledPipelineSpecPatch, "{}")
+}
+
+func GetDefaultSecurityContextRunAsUser() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextRunAsUser, "")
+}
+
+func GetDefaultSecurityContextRunAsGroup() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextRunAsGroup, "")
+}
+
+func GetDefaultSecurityContextRunAsNonRoot() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
 }

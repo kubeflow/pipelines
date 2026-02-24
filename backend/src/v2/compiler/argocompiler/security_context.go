@@ -85,12 +85,34 @@ func applySecurityContextToUserContainers(containers []wfapi.UserContainer) {
 // templates without enforcing runAsNonRoot on the pod or main container, since
 // user-specified images (e.g. python:3.12) may run as root. Init containers
 // (KFP system images like the launcher) still get the full security context.
-func applySecurityContextToExecutorTemplate(template *wfapi.Template) {
+//
+// When defaultRunAsUser, defaultRunAsGroup, or defaultRunAsNonRoot are non-nil,
+// the admin-configured values are applied to the main user container only.
+// These override any SDK-specified values (the driver also enforces this at runtime).
+func applySecurityContextToExecutorTemplate(template *wfapi.Template, defaultRunAsUser, defaultRunAsGroup *int64, defaultRunAsNonRoot *bool) {
 	if template == nil {
 		return
 	}
 	applyPodSeccompProfileOnly(&template.SecurityContext)
 	applyUserContainerSecurityContext(template.Container)
+	// Apply admin defaults to user container only (not init containers or sidecars).
+	if template.Container != nil && (defaultRunAsUser != nil || defaultRunAsGroup != nil || defaultRunAsNonRoot != nil) {
+		if template.Container.SecurityContext == nil {
+			template.Container.SecurityContext = &k8score.SecurityContext{}
+		}
+		if defaultRunAsUser != nil {
+			v := *defaultRunAsUser
+			template.Container.SecurityContext.RunAsUser = &v
+		}
+		if defaultRunAsGroup != nil {
+			v := *defaultRunAsGroup
+			template.Container.SecurityContext.RunAsGroup = &v
+		}
+		if defaultRunAsNonRoot != nil {
+			v := *defaultRunAsNonRoot
+			template.Container.SecurityContext.RunAsNonRoot = &v
+		}
+	}
 	// Init containers use KFP system images (e.g. launcher) that support non-root.
 	applySecurityContextToUserContainers(template.InitContainers)
 	for i := range template.Sidecars {

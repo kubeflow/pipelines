@@ -75,6 +75,20 @@ describe('PagedTable', () => {
     expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
+  it('does not emit DOM nesting warnings when rendering pagination', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error');
+    try {
+      render(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
+
+      const hasDomNestingWarning = consoleErrorSpy.mock.calls.some(args =>
+        args.some(arg => typeof arg === 'string' && arg.includes('validateDOMNesting')),
+      );
+      expect(hasDomNestingWarning).toBe(false);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
   it('returns a user friendly display name', () => {
     expect(PagedTable.prototype.getDisplayName()).toBe('Table');
   });

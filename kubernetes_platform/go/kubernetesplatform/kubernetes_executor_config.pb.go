@@ -1614,7 +1614,10 @@ type SecurityContext struct {
 	RunAsUser *int64 `protobuf:"varint,1,opt,name=run_as_user,json=runAsUser,proto3,oneof" json:"run_as_user,omitempty"`
 	// GID to run the container process as.
 	// Uses the container runtime default if not specified.
-	RunAsGroup    *int64 `protobuf:"varint,2,opt,name=run_as_group,json=runAsGroup,proto3,oneof" json:"run_as_group,omitempty"`
+	RunAsGroup *int64 `protobuf:"varint,2,opt,name=run_as_group,json=runAsGroup,proto3,oneof" json:"run_as_group,omitempty"`
+	// Whether the container must run as a non-root user.
+	// Uses the container runtime default if not specified.
+	RunAsNonRoot  *bool `protobuf:"varint,6,opt,name=run_as_non_root,json=runAsNonRoot,proto3,oneof" json:"run_as_non_root,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1661,6 +1664,13 @@ func (x *SecurityContext) GetRunAsGroup() int64 {
 		return *x.RunAsGroup
 	}
 	return 0
+}
+
+func (x *SecurityContext) GetRunAsNonRoot() bool {
+	if x != nil && x.RunAsNonRoot != nil {
+		return *x.RunAsNonRoot
+	}
+	return false
 }
 
 type EmptyDirMount struct {
@@ -2002,13 +2012,15 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\t\n" +
 	"\a_weightB\a\n" +
-	"\x05_anti\"\x90\x01\n" +
+	"\x05_anti\"\xd0\x01\n" +
 	"\x0fSecurityContext\x12#\n" +
 	"\vrun_as_user\x18\x01 \x01(\x03H\x00R\trunAsUser\x88\x01\x01\x12%\n" +
 	"\frun_as_group\x18\x02 \x01(\x03H\x01R\n" +
-	"runAsGroup\x88\x01\x01B\x0e\n" +
+	"runAsGroup\x88\x01\x01\x12*\n" +
+	"\x0frun_as_non_root\x18\x06 \x01(\bH\x02R\frunAsNonRoot\x88\x01\x01B\x0e\n" +
 	"\f_run_as_userB\x0f\n" +
-	"\r_run_as_groupJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06\"\xaa\x01\n" +
+	"\r_run_as_groupB\x12\n" +
+	"\x10_run_as_non_rootJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06\"\xaa\x01\n" +
 	"\rEmptyDirMount\x12\x1f\n" +
 	"\vvolume_name\x18\x01 \x01(\tR\n" +
 	"volumeName\x12\x1d\n" +
