@@ -200,6 +200,14 @@ message Run {
   // Output. A sequence of run statuses. This field keeps a record
   // of state transitions.
   repeated RuntimeStatus state_history = 17;
+
+  // Optional input. Plugin-specific inputs provided by the user at run creation.
+  // Each key is a plugin name (e.g., "mlflow") and the value is arbitrary JSON config.
+  map<string, google.protobuf.Struct> plugins_input = 19;
+
+  // Output. Plugin-specific outputs populated by backend components.
+  // Each key is a plugin name and the value contains the plugin's output entries and state.
+  map<string, PluginOutput> plugins_output = 20;
 }
 
 // Reference to an existing pipeline version.
@@ -256,6 +264,26 @@ message RuntimeStatus {
   // retried. If the state is a non-final state, the error indicates that a
   // system-error being retried.
   google.rpc.Status error = 3;
+}
+
+// A typed metadata value with an optional rendering hint for the UI.
+message MetadataValue {
+  // Hint for UI rendering of the value.
+  enum ContentType {
+    // Default. No special rendering.
+    UNSPECIFIED = 0;
+    // Render the value as a hyperlink.
+    URL = 1;
+  }
+  google.protobuf.Value value = 1;
+  optional ContentType content_type = 2;
+}
+
+// Output from a single plugin, containing keyed metadata entries and overall state.
+message PluginOutput {
+  map<string, MetadataValue> entries = 1;
+  RuntimeState state = 2;
+  string state_message = 3;
 }
 
 // Runtime details of a run.

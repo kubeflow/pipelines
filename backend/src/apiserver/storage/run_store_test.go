@@ -27,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/util/json"
 )
@@ -36,6 +37,11 @@ const (
 	defaultFakeRunIdTwo   = "123e4567-e89b-12d3-a456-426655440021"
 	defaultFakeRunIdThree = "123e4567-e89b-12d3-a456-426655440023"
 )
+
+func testLargeTextPtr(s string) *model.LargeText {
+	lt := model.LargeText(s)
+	return &lt
+}
 
 type RunMetricSorter []*model.RunMetric
 
@@ -1426,4 +1432,158 @@ func TestRunAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Run{}).APIToModelFieldMap() {
 		assert.Contains(t, runColumns, modelField)
 	}
+}
+
+func TestCreateRunWithPluginsFields(t *testing.T) {
+	const runUUID = "plugins-run-1"
+	db, runStore := initializeRunStore()
+	defer func() { require.NoError(t, db.Close()) }()
+
+	run := &model.Run{
+		UUID:         runUUID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "plugins-run",
+		DisplayName:  "plugins-run",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          100,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"my-exp"}}`),
+			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"entries":{"run_id":{"value":"abc123"}},"state":"SUCCEEDED","stateMessage":"ok"}}`),
+		},
+	}
+	_, err := runStore.CreateRun(run)
+	require.NoError(t, err)
+
+	got, err := runStore.GetRun(runUUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.PluginsInputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"experiment_name":"my-exp"}}`), *got.PluginsInputString)
+	require.NotNil(t, got.PluginsOutputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"entries":{"run_id":{"value":"abc123"}},"state":"SUCCEEDED","stateMessage":"ok"}}`), *got.PluginsOutputString)
+}
+
+func TestCreateRunWithEmptyPluginsFieldsWritesNull(t *testing.T) {
+	const runUUID = "empty-plugins-1"
+	db, runStore := initializeRunStore()
+	defer func() { require.NoError(t, db.Close()) }()
+
+	run := &model.Run{
+		UUID:         runUUID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "empty-plugins-run",
+		DisplayName:  "empty-plugins-run",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          100,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+	_, err := runStore.CreateRun(run)
+	require.NoError(t, err)
+
+	got, err := runStore.GetRun(runUUID)
+	require.NoError(t, err)
+	assert.Nil(t, got.PluginsInputString, "nil plugins_input should round-trip as nil")
+	assert.Nil(t, got.PluginsOutputString, "nil plugins_output should round-trip as nil")
+
+	// Verify at the DB level that the columns are NULL, not empty strings.
+	// The read path only sets the field when sql.NullString.Valid is true,
+	// so a non-zero value here would mean '' was written instead of NULL.
+	var pluginsInput, pluginsOutput sql.NullString
+	row := db.QueryRow("SELECT PluginsInput, PluginsOutput FROM run_details WHERE UUID = ?", runUUID)
+	err = row.Scan(&pluginsInput, &pluginsOutput)
+	require.NoError(t, err)
+	assert.False(t, pluginsInput.Valid, "PluginsInput column should be NULL, not empty string")
+	assert.False(t, pluginsOutput.Valid, "PluginsOutput column should be NULL, not empty string")
+}
+
+func TestUpdateRunPreservesPluginsFields(t *testing.T) {
+	const runUUID = "preserve-plugins-1"
+	db, runStore := initializeRunStore()
+	defer func() { require.NoError(t, db.Close()) }()
+
+	run := &model.Run{
+		UUID:         runUUID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "preserve-run",
+		DisplayName:  "preserve-run",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          100,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"preserved"}}`),
+			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"RUNNING"}}`),
+		},
+	}
+	_, err := runStore.CreateRun(run)
+	require.NoError(t, err)
+
+	run.State = model.RuntimeStateSucceeded
+	run.Conditions = "Succeeded"
+	err = runStore.UpdateRun(run)
+	require.NoError(t, err)
+
+	got, err := runStore.GetRun(runUUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.PluginsInputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"experiment_name":"preserved"}}`), *got.PluginsInputString)
+	require.NotNil(t, got.PluginsOutputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"state":"RUNNING"}}`), *got.PluginsOutputString)
+	assert.Equal(t, model.RuntimeStateSucceeded, got.State)
+}
+
+func TestListRunsReturnsPluginsFields(t *testing.T) {
+	const runName = "list-run"
+	db, runStore := initializeRunStore()
+	defer func() { require.NoError(t, db.Close()) }()
+
+	run := &model.Run{
+		UUID:         "list-plugins-1",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      runName,
+		DisplayName:  runName,
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          200,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"list-exp"}}`),
+			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"RUNNING"}}`),
+		},
+	}
+	_, err := runStore.CreateRun(run)
+	require.NoError(t, err)
+
+	filterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			{
+				Key:   "name",
+				Op:    api.Predicate_EQUALS,
+				Value: &api.Predicate_StringValue{StringValue: runName},
+			},
+		},
+	}
+	newFilter, err := filter.New(filterProto)
+	require.NoError(t, err)
+	opts, err := list.NewOptions(&model.Run{}, 10, "id", newFilter)
+	require.NoError(t, err)
+	runs, _, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	require.NoError(t, err)
+	require.Len(t, runs, 1)
+	require.NotNil(t, runs[0].PluginsInputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"experiment_name":"list-exp"}}`), *runs[0].PluginsInputString)
+	require.NotNil(t, runs[0].PluginsOutputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"state":"RUNNING"}}`), *runs[0].PluginsOutputString)
 }

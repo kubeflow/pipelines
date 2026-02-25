@@ -31,6 +31,7 @@ import (
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -1167,6 +1168,8 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	var state model.RuntimeState
 	var stateHistory []*model.RuntimeStatus
 	var tasks []*model.Task
+	var pluginsInputStr, pluginsOutputStr *string
+	var err error
 	switch r := r.(type) {
 	case *apiv1beta1.Run:
 		return toModelRun(&apiv1beta1.RunDetail{Run: r})
@@ -1246,6 +1249,13 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		} else {
 			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state history")
 		}
+		if pluginsInputStr, err = pluginsInputToJSON(apiRunV2.GetPluginsInput()); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
+		}
+		if pluginsOutputStr, err = pluginsOutputToJSON(apiRunV2.GetPluginsOutput()); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to convert plugins_output to JSON")
+		}
+
 		namespace = ""
 		workflowSpec = ""
 		// TODO(gkcalat): implement runtime details of a run logic based on the apiRunV2.RuDetails().
@@ -1349,6 +1359,8 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			PipelineRuntimeManifest: model.LargeText(runtimePipelineSpec),
 			WorkflowRuntimeManifest: model.LargeText(runtimeWorkflowSpec),
 			TaskDetails:             tasks,
+			PluginsInputString:      stringToLargeText(pluginsInputStr),
+			PluginsOutputString:     stringToLargeText(pluginsOutputStr),
 		},
 	}
 
@@ -1533,7 +1545,24 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		FinishedAt:     timestamppb.New(time.Unix(r.RunDetails.FinishedAtInSec, 0)),
 		RunDetails:     apiRd,
 	}
-	err := util.NewInvalidInputError("Failed to parse the pipeline source")
+	var err error
+	apiRunV2.PluginsInput, err = jsonToPluginsInput(largeTextToString(r.PluginsInputString))
+	if err != nil {
+		return &apiv2beta1.Run{
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_input")),
+		}
+	}
+	apiRunV2.PluginsOutput, err = jsonToPluginsOutput(largeTextToString(r.PluginsOutputString))
+	if err != nil {
+		return &apiv2beta1.Run{
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
+		}
+	}
+	err = util.NewInvalidInputError("Failed to parse the pipeline source")
 	if r.PipelineSpec.PipelineVersionId != "" {
 		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionReference{
 			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
@@ -1858,6 +1887,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	var maxConcur, createTime, updateTime int64
 	var noCatchup, isEnabled bool
 	var trigger *model.Trigger
+	var jobPluginsInputStr *string
 	resRefs := make([]*model.ResourceReference, 0)
 	switch apiJob := j.(type) {
 	case *apiv1beta1.Job:
@@ -1964,6 +1994,11 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		k8sName = jobName
 		specParams = ""
 		workflowSpec = ""
+
+		jobPluginsInputStr, err = pluginsInputToJSON(apiJob.GetPluginsInput())
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
+		}
 	default:
 		return nil, util.NewUnknownApiVersionError("RecurringRun", j)
 	}
@@ -2009,6 +2044,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		Conditions:         status.ToString(),
 		ExperimentId:       experimentId,
 		ResourceReferences: resRefs,
+		PluginsInputString: stringToLargeText(jobPluginsInputStr),
 		Trigger:            *trigger,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipelineId,
@@ -2243,6 +2279,14 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		RuntimeConfig:  runtimeConfig,
 		Namespace:      j.Namespace,
 		ExperimentId:   j.ExperimentId,
+	}
+	var err error
+	apiRecurringRunV2.PluginsInput, err = jsonToPluginsInput(largeTextToString(j.PluginsInputString))
+	if err != nil {
+		return &apiv2beta1.RecurringRun{
+			RecurringRunId: j.UUID,
+			Error:          util.ToRpcStatus(util.Wrap(err, "Failed to convert recurring run's internal representation to its API counterpart: invalid plugins_input")),
+		}
 	}
 
 	if j.PipelineSpec.PipelineId == "" && j.PipelineSpec.PipelineVersionId == "" {
@@ -2495,4 +2539,98 @@ func toApiRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2beta1.RuntimeStatus 
 		statuses = append(statuses, toApiRuntimeStatus(status))
 	}
 	return statuses
+}
+
+func largeTextToString(lt *model.LargeText) *string {
+	if lt == nil {
+		return nil
+	}
+	s := string(*lt)
+	return &s
+}
+
+func stringToLargeText(s *string) *model.LargeText {
+	if s == nil || *s == "" {
+		return nil
+	}
+	lt := model.LargeText(*s)
+	return &lt
+}
+
+func pluginsInputToJSON(pluginsInput map[string]*structpb.Struct) (*string, error) {
+	if len(pluginsInput) == 0 {
+		return nil, nil
+	}
+	raw := make(map[string]json.RawMessage, len(pluginsInput))
+	for k, v := range pluginsInput {
+		b, err := protojson.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("marshal plugins_input[%q]: %w", k, err)
+		}
+		raw[k] = b
+	}
+	out, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("marshal plugins_input map: %w", err)
+	}
+	s := string(out)
+	return &s, nil
+}
+
+func jsonToPluginsInput(jsonStr *string) (map[string]*structpb.Struct, error) {
+	if jsonStr == nil || *jsonStr == "" {
+		return nil, nil
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(*jsonStr), &raw); err != nil {
+		return nil, fmt.Errorf("unmarshal plugins_input: %w", err)
+	}
+	result := make(map[string]*structpb.Struct, len(raw))
+	for k, v := range raw {
+		st := &structpb.Struct{}
+		if err := protojson.Unmarshal(v, st); err != nil {
+			return nil, fmt.Errorf("unmarshal plugins_input[%q]: %w", k, err)
+		}
+		result[k] = st
+	}
+	return result, nil
+}
+
+func pluginsOutputToJSON(pluginsOutput map[string]*apiv2beta1.PluginOutput) (*string, error) {
+	if len(pluginsOutput) == 0 {
+		return nil, nil
+	}
+	raw := make(map[string]json.RawMessage, len(pluginsOutput))
+	for k, v := range pluginsOutput {
+		b, err := protojson.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("marshal plugins_output[%q]: %w", k, err)
+		}
+		raw[k] = b
+	}
+	out, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("marshal plugins_output map: %w", err)
+	}
+	s := string(out)
+	return &s, nil
+}
+
+func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2beta1.PluginOutput, error) {
+	if jsonStr == nil || *jsonStr == "" {
+		return nil, nil
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(*jsonStr), &raw); err != nil {
+		return nil, fmt.Errorf("unmarshal plugins_output: %w", err)
+	}
+	result := make(map[string]*apiv2beta1.PluginOutput, len(raw))
+	for k, v := range raw {
+		po := &apiv2beta1.PluginOutput{}
+		if err := protojson.Unmarshal(v, po); err != nil {
+			return nil, fmt.Errorf("unmarshal plugins_output[%q]: %w", k, err)
+		}
+		result[k] = po
+	}
+	return result, nil
 }

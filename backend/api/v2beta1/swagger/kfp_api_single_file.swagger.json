@@ -2145,6 +2145,13 @@
         "experiment_id": {
           "type": "string",
           "description": "ID of the parent experiment this recurring run belongs to."
+        },
+        "plugins_input": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "Optional input. Plugin inputs to propagate to each triggered run.\nEach triggered run will inherit these values in its plugins_input field."
         }
       }
     },
@@ -2184,6 +2191,15 @@
         }
       },
       "description": "Trigger defines what starts a pipeline run."
+    },
+    "MetadataValueContentType": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "URL"
+      ],
+      "default": "UNSPECIFIED",
+      "description": "Hint for UI rendering of the value.\n\n - UNSPECIFIED: Default. No special rendering.\n - URL: Render the value as a hyperlink."
     },
     "PipelineTaskDetailChildTask": {
       "type": "object",
@@ -2234,6 +2250,16 @@
           "description": "The token to list the next page of runs."
         }
       }
+    },
+    "v2beta1MetadataValue": {
+      "type": "object",
+      "properties": {
+        "value": {},
+        "content_type": {
+          "$ref": "#/definitions/MetadataValueContentType"
+        }
+      },
+      "description": "A typed metadata value with an optional rendering hint for the UI."
     },
     "v2beta1PipelineTaskDetail": {
       "type": "object",
@@ -2351,6 +2377,24 @@
       },
       "description": "Runtime information of a pipeline task executor."
     },
+    "v2beta1PluginOutput": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v2beta1MetadataValue"
+          }
+        },
+        "state": {
+          "$ref": "#/definitions/v2beta1RuntimeState"
+        },
+        "state_message": {
+          "type": "string"
+        }
+      },
+      "description": "Output from a single plugin, containing keyed metadata entries and overall state."
+    },
     "v2beta1Run": {
       "type": "object",
       "properties": {
@@ -2432,6 +2476,20 @@
             "$ref": "#/definitions/v2beta1RuntimeStatus"
           },
           "description": "Output. A sequence of run statuses. This field keeps a record\nof state transitions."
+        },
+        "plugins_input": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "Optional input. Plugin-specific inputs provided by the user at run creation.\nEach key is a plugin name (e.g., \"mlflow\") and the value is arbitrary JSON config."
+        },
+        "plugins_output": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v2beta1PluginOutput"
+          },
+          "description": "Output. Plugin-specific outputs populated by backend components.\nEach key is a plugin name and the value contains the plugin's output entries and state."
         }
       }
     },

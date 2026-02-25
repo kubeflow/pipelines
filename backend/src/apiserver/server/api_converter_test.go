@@ -28,11 +28,25 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const testPluginsExperimentName = "my-exp"
+const testPluginsRecurringExperimentName = "recurring-exp"
+const testPluginsJobName = "test-job"
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func testLargeTextPtr(s string) *model.LargeText {
+	lt := model.LargeText(s)
+	return &lt
+}
 
 func TestToModelExperiment(t *testing.T) {
 	tests := []struct {
@@ -4722,4 +4736,418 @@ func Test_toApiRun(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPluginsInputToJSON(t *testing.T) {
+	t.Run("nil map returns nil", func(t *testing.T) {
+		got, err := pluginsInputToJSON(nil)
+		require.NoError(t, err)
+		assert.Nil(t, got, "nil input should produce nil *string, not empty string")
+	})
+
+	t.Run("empty map returns nil", func(t *testing.T) {
+		got, err := pluginsInputToJSON(map[string]*structpb.Struct{})
+		require.NoError(t, err)
+		assert.Nil(t, got, "empty input should produce nil *string, not empty string")
+	})
+
+	t.Run("single key round-trips", func(t *testing.T) {
+		input := map[string]*structpb.Struct{
+			"mlflow": {Fields: map[string]*structpb.Value{
+				"experiment_name": structpb.NewStringValue(testPluginsExperimentName),
+			}},
+		}
+		got, err := pluginsInputToJSON(input)
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		parsed, err := jsonToPluginsInput(got)
+		require.NoError(t, err)
+		require.Len(t, parsed, 1)
+		require.Contains(t, parsed, "mlflow")
+		assert.Equal(t, input["mlflow"].Fields, parsed["mlflow"].Fields)
+	})
+
+	t.Run("multiple keys round-trip", func(t *testing.T) {
+		input := map[string]*structpb.Struct{
+			"mlflow": {Fields: map[string]*structpb.Value{
+				"experiment_name": structpb.NewStringValue(testPluginsExperimentName),
+			}},
+			"other": {Fields: map[string]*structpb.Value{
+				"key": structpb.NewBoolValue(true),
+			}},
+		}
+		got, err := pluginsInputToJSON(input)
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		parsed, err := jsonToPluginsInput(got)
+		require.NoError(t, err)
+		require.Len(t, parsed, len(input))
+		for k, v := range input {
+			require.Contains(t, parsed, k)
+			assert.Equal(t, v.Fields, parsed[k].Fields)
+		}
+	})
+}
+
+func TestJSONToPluginsInput(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   *string
+		wantNil bool
+		wantErr bool
+	}{
+		{
+			name:    "nil pointer",
+			input:   nil,
+			wantNil: true,
+		},
+		{
+			name:    "empty string",
+			input:   strPtr(""),
+			wantNil: true,
+		},
+		{
+			name:  "valid JSON",
+			input: strPtr(`{"mlflow":{"experiment_name":"` + testPluginsExperimentName + `"}}`),
+		},
+		{
+			name:    "malformed JSON",
+			input:   strPtr(`{not valid`),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := jsonToPluginsInput(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			if tt.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			require.Len(t, got, 1)
+			require.Contains(t, got, "mlflow")
+			assert.Equal(t, testPluginsExperimentName, got["mlflow"].Fields["experiment_name"].GetStringValue())
+		})
+	}
+}
+
+func TestPluginsOutputToJSON(t *testing.T) {
+	t.Run("nil map returns nil", func(t *testing.T) {
+		got, err := pluginsOutputToJSON(nil)
+		require.NoError(t, err)
+		assert.Nil(t, got, "nil input should produce nil *string, not empty string")
+	})
+
+	t.Run("empty map returns nil", func(t *testing.T) {
+		got, err := pluginsOutputToJSON(map[string]*apiv2beta1.PluginOutput{})
+		require.NoError(t, err)
+		assert.Nil(t, got, "empty input should produce nil *string, not empty string")
+	})
+
+	t.Run("with entries and state round-trips", func(t *testing.T) {
+		input := map[string]*apiv2beta1.PluginOutput{
+			"mlflow": {
+				Entries: map[string]*apiv2beta1.MetadataValue{
+					"run_url": {
+						Value:       structpb.NewStringValue("https://mlflow.example.com/runs/abc"),
+						ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+					},
+					"experiment_id": {
+						Value: structpb.NewStringValue("42"),
+					},
+				},
+				State:        apiv2beta1.RuntimeState_SUCCEEDED,
+				StateMessage: "MLflow run created",
+			},
+			"other": {
+				State:        apiv2beta1.RuntimeState_RUNNING,
+				StateMessage: "in progress",
+			},
+		}
+		got, err := pluginsOutputToJSON(input)
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		parsed, err := jsonToPluginsOutput(got)
+		require.NoError(t, err)
+		require.Len(t, parsed, len(input))
+		for k, v := range input {
+			require.Contains(t, parsed, k)
+			assert.Equal(t, v.State, parsed[k].State)
+			assert.Equal(t, v.StateMessage, parsed[k].StateMessage)
+			require.Len(t, parsed[k].Entries, len(v.Entries))
+			for ek, ev := range v.Entries {
+				require.Contains(t, parsed[k].Entries, ek)
+				assert.Equal(t, ev.Value.GetStringValue(), parsed[k].Entries[ek].Value.GetStringValue())
+				assert.Equal(t, ev.ContentType, parsed[k].Entries[ek].ContentType)
+			}
+		}
+	})
+}
+
+func TestJSONToPluginsOutput(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   *string
+		wantNil bool
+		wantErr bool
+	}{
+		{
+			name:    "nil pointer",
+			input:   nil,
+			wantNil: true,
+		},
+		{
+			name:    "empty string",
+			input:   strPtr(""),
+			wantNil: true,
+		},
+		{
+			name:    "malformed JSON",
+			input:   strPtr(`{broken`),
+			wantErr: true,
+		},
+		{
+			name:  "valid JSON with enum fields",
+			input: strPtr(`{"mlflow":{"entries":{"run_url":{"value":"https://mlflow.example.com","contentType":"URL"}},"state":"SUCCEEDED","stateMessage":"ok"}}`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := jsonToPluginsOutput(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			if tt.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			require.Len(t, got, 1)
+			require.Contains(t, got, "mlflow")
+			assert.Equal(t, apiv2beta1.RuntimeState_SUCCEEDED, got["mlflow"].State)
+			assert.Equal(t, "ok", got["mlflow"].StateMessage)
+			require.Len(t, got["mlflow"].Entries, 1)
+			require.Contains(t, got["mlflow"].Entries, "run_url")
+			assert.Equal(t, "https://mlflow.example.com", got["mlflow"].Entries["run_url"].Value.GetStringValue())
+		})
+	}
+}
+
+func TestToModelRunPluginsFields(t *testing.T) {
+	pluginsInput := map[string]*structpb.Struct{
+		"mlflow": {Fields: map[string]*structpb.Value{
+			"experiment_name": structpb.NewStringValue(testPluginsExperimentName),
+		}},
+		"other": {Fields: map[string]*structpb.Value{
+			"key": structpb.NewBoolValue(true),
+		}},
+	}
+	pluginsOutput := map[string]*apiv2beta1.PluginOutput{
+		"mlflow": {
+			Entries: map[string]*apiv2beta1.MetadataValue{
+				"run_id": {Value: structpb.NewStringValue("abc123")},
+			},
+			State:        apiv2beta1.RuntimeState_SUCCEEDED,
+			StateMessage: "ok",
+		},
+		"other": {
+			State:        apiv2beta1.RuntimeState_RUNNING,
+			StateMessage: "in progress",
+		},
+	}
+
+	t.Run("with plugins fields", func(t *testing.T) {
+		run := &apiv2beta1.Run{
+			RunId:       "run1",
+			DisplayName: "test",
+			PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+				PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+					PipelineId: "p1", PipelineVersionId: "pv1",
+				},
+			},
+			PluginsInput:  pluginsInput,
+			PluginsOutput: pluginsOutput,
+		}
+		got, err := toModelRun(run)
+		require.NoError(t, err)
+		require.NotNil(t, got.PluginsInputString)
+		require.NotNil(t, got.PluginsOutputString)
+
+		parsedInput, err := jsonToPluginsInput(largeTextToString(got.PluginsInputString))
+		require.NoError(t, err)
+		assert.Equal(t, testPluginsExperimentName, parsedInput["mlflow"].Fields["experiment_name"].GetStringValue())
+
+		parsedOutput, err := jsonToPluginsOutput(largeTextToString(got.PluginsOutputString))
+		require.NoError(t, err)
+		assert.Equal(t, apiv2beta1.RuntimeState_SUCCEEDED, parsedOutput["mlflow"].State)
+		assert.Equal(t, "abc123", parsedOutput["mlflow"].Entries["run_id"].Value.GetStringValue())
+	})
+
+	t.Run("nil plugins fields", func(t *testing.T) {
+		apiRun := &apiv2beta1.Run{
+			RunId:       "run2",
+			DisplayName: "test-nil",
+			PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+				PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+					PipelineId: "p1", PipelineVersionId: "pv1",
+				},
+			},
+		}
+		got, err := toModelRun(apiRun)
+		require.NoError(t, err)
+		assert.Nil(t, got.PluginsInputString)
+		assert.Nil(t, got.PluginsOutputString)
+	})
+}
+
+func TestToApiRunPluginsFields(t *testing.T) {
+	inputJSON := `{"mlflow":{"experiment_name":"` + testPluginsExperimentName + `"},"other":{"key":true}}`
+	outputJSON := `{"mlflow":{"entries":{"run_id":{"value":"abc123"}},"state":"SUCCEEDED","stateMessage":"ok"},"other":{"state":"RUNNING","stateMessage":"in progress"}}`
+
+	t.Run("with plugins fields", func(t *testing.T) {
+		modelRun := &model.Run{
+			UUID:        "run1",
+			DisplayName: "test",
+			PipelineSpec: model.PipelineSpec{
+				PipelineVersionId: "pv1",
+				PipelineId:        "p1",
+			},
+			RunDetails: model.RunDetails{
+				PluginsInputString:  testLargeTextPtr(inputJSON),
+				PluginsOutputString: testLargeTextPtr(outputJSON),
+			},
+		}
+		got := toApiRun(modelRun)
+		require.Len(t, got.PluginsInput, 2)
+		require.Contains(t, got.PluginsInput, "mlflow")
+		assert.Equal(t, testPluginsExperimentName, got.PluginsInput["mlflow"].Fields["experiment_name"].GetStringValue())
+		require.Contains(t, got.PluginsInput, "other")
+		assert.Equal(t, true, got.PluginsInput["other"].Fields["key"].GetBoolValue())
+
+		require.Len(t, got.PluginsOutput, 2)
+		require.Contains(t, got.PluginsOutput, "mlflow")
+		assert.Equal(t, apiv2beta1.RuntimeState_SUCCEEDED, got.PluginsOutput["mlflow"].State)
+		assert.Equal(t, "abc123", got.PluginsOutput["mlflow"].Entries["run_id"].Value.GetStringValue())
+		require.Contains(t, got.PluginsOutput, "other")
+		assert.Equal(t, apiv2beta1.RuntimeState_RUNNING, got.PluginsOutput["other"].State)
+	})
+
+	t.Run("nil plugins fields", func(t *testing.T) {
+		modelRun := &model.Run{
+			UUID:        "run2",
+			DisplayName: "test-nil",
+			PipelineSpec: model.PipelineSpec{
+				PipelineVersionId: "pv1",
+				PipelineId:        "p1",
+			},
+			RunDetails: model.RunDetails{},
+		}
+		got := toApiRun(modelRun)
+		assert.Nil(t, got.PluginsInput)
+		assert.Nil(t, got.PluginsOutput)
+	})
+}
+
+func TestToModelJobPluginsInput(t *testing.T) {
+	pluginsInput := map[string]*structpb.Struct{
+		"mlflow": {Fields: map[string]*structpb.Value{
+			"experiment_name": structpb.NewStringValue(testPluginsRecurringExperimentName),
+		}},
+		"other": {Fields: map[string]*structpb.Value{
+			"enabled": structpb.NewBoolValue(true),
+		}},
+	}
+
+	t.Run("with plugins_input", func(t *testing.T) {
+		apiJob := &apiv2beta1.RecurringRun{
+			RecurringRunId: "job1",
+			DisplayName:    testPluginsJobName,
+			MaxConcurrency: 1,
+			Mode:           apiv2beta1.RecurringRun_ENABLE,
+			Trigger: &apiv2beta1.Trigger{
+				Trigger: &apiv2beta1.Trigger_PeriodicSchedule{
+					PeriodicSchedule: &apiv2beta1.PeriodicSchedule{IntervalSecond: 60},
+				},
+			},
+			PluginsInput: pluginsInput,
+		}
+		got, err := toModelJob(apiJob)
+		require.NoError(t, err)
+		require.NotNil(t, got.PluginsInputString)
+
+		parsedInput, err := jsonToPluginsInput(largeTextToString(got.PluginsInputString))
+		require.NoError(t, err)
+		require.Len(t, parsedInput, 2)
+		require.Contains(t, parsedInput, "mlflow")
+		assert.Equal(t, testPluginsRecurringExperimentName, parsedInput["mlflow"].Fields["experiment_name"].GetStringValue())
+		require.Contains(t, parsedInput, "other")
+		assert.Equal(t, true, parsedInput["other"].Fields["enabled"].GetBoolValue())
+	})
+
+	t.Run("nil plugins_input", func(t *testing.T) {
+		apiJob := &apiv2beta1.RecurringRun{
+			RecurringRunId: "job2",
+			DisplayName:    "test-job-nil",
+			MaxConcurrency: 1,
+			Mode:           apiv2beta1.RecurringRun_ENABLE,
+			Trigger: &apiv2beta1.Trigger{
+				Trigger: &apiv2beta1.Trigger_PeriodicSchedule{
+					PeriodicSchedule: &apiv2beta1.PeriodicSchedule{IntervalSecond: 60},
+				},
+			},
+		}
+		got, err := toModelJob(apiJob)
+		require.NoError(t, err)
+		assert.Nil(t, got.PluginsInputString)
+	})
+}
+
+func TestToApiRecurringRunPluginsInput(t *testing.T) {
+	inputJSON := `{"mlflow":{"experiment_name":"` + testPluginsRecurringExperimentName + `"},"other":{"enabled":true}}`
+
+	t.Run("with plugins_input", func(t *testing.T) {
+		modelJob := &model.Job{
+			UUID:               "job1",
+			DisplayName:        testPluginsJobName,
+			K8SName:            testPluginsJobName,
+			Enabled:            true,
+			Conditions:         "ENABLED",
+			MaxConcurrency:     1,
+			PluginsInputString: testLargeTextPtr(inputJSON),
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:        "p1",
+				PipelineVersionId: "pv1",
+			},
+		}
+		got := toApiRecurringRun(modelJob)
+		require.Len(t, got.PluginsInput, 2)
+		require.Contains(t, got.PluginsInput, "mlflow")
+		assert.Equal(t, testPluginsRecurringExperimentName, got.PluginsInput["mlflow"].Fields["experiment_name"].GetStringValue())
+		require.Contains(t, got.PluginsInput, "other")
+		assert.Equal(t, true, got.PluginsInput["other"].Fields["enabled"].GetBoolValue())
+	})
+
+	t.Run("empty plugins_input", func(t *testing.T) {
+		modelJob := &model.Job{
+			UUID:           "job2",
+			DisplayName:    "test-job-empty",
+			K8SName:        "test-job-empty",
+			Enabled:        true,
+			Conditions:     "ENABLED",
+			MaxConcurrency: 1,
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:        "p1",
+				PipelineVersionId: "pv1",
+			},
+		}
+		got := toApiRecurringRun(modelJob)
+		assert.Nil(t, got.PluginsInput)
+	})
 }
