@@ -20,7 +20,7 @@ const baseUrl = process.env.KFP_BASE_URL || 'http://localhost:3000';
 
 exports.config = {
   runner: 'local',
-  host: seleniumHost,
+  hostname: seleniumHost,
   port: seleniumPort,
   maxInstances: 1,
   baseUrl,
@@ -38,10 +38,8 @@ exports.config = {
       },
     },
   ],
-  coloredLogs: true,
   connectionRetryCount: 3,
   connectionRetryTimeout: 90000,
-  deprecationWarnings: false,
   framework: 'mocha',
   mochaOpts: {
     ui: 'bdd',
@@ -61,8 +59,7 @@ exports.config = {
       },
     ],
   ],
-  services: debug ? [['selenium-standalone', { drivers: { chrome: 'latest' } }]] : [],
+  services: [],
   specs: ['./helloworld.spec.js'],
-  sync: true,
   waitforTimeout: 10000,
 };
