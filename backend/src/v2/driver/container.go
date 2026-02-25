@@ -131,6 +131,10 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
+	if retryPolicy := opts.Task.GetRetryPolicy(); retryPolicy != nil {
+		maxRetryCount := retryPolicy.GetMaxRetryCount()
+		ecfg.MaxRetryCount = &maxRetryCount
+	}
 
 	if isKubernetesPlatformOp {
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)

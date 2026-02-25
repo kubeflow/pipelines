@@ -26,6 +26,9 @@ const (
 	EnvMetadataHost = "METADATA_GRPC_SERVICE_HOST"
 	EnvMetadataPort = "METADATA_GRPC_SERVICE_PORT"
 
+	// Retry metadata
+	EnvRetryCount = "KFP_RETRY_COUNT"
+
 	// Workspace-related constants
 	WorkspaceVolumeName = "kfp-workspace"
 	WorkspaceMountPath  = "/kfp-workspace"
