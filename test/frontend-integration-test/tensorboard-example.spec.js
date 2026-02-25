@@ -222,14 +222,16 @@ describe('deploy tensorboard example run', () => {
     await $('#tableFilterBox').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
-    await browser.pause(2000);
+
+    const pipelineRowSelector =
+      `//*[@data-testid="table-row"][.//a[normalize-space()="${pipelineName}"]]`;
 
     await browser.waitUntil(
-      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      async () => (await $(pipelineRowSelector).isExisting()),
       waitTimeout,
-      'expected at least one pipeline row after filtering',
+      `expected pipeline row for ${pipelineName} after filtering`,
     );
-    await $('[data-testid="table-row"]').click();
+    await $(pipelineRowSelector).click();
 
     await $('#deleteBtn').click();
     await $('[role="dialog"]').waitForDisplayed({ timeout: waitTimeout });
