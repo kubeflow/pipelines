@@ -403,9 +403,9 @@ describe('deploy helloworld sample run', () => {
     );
     await $(pipelineRowSelector).click();
 
-    await $('#deleteBtn').click();
+    await $('#deletePipelinesAndPipelineVersionsBtn').click();
     await $('[role="dialog"]').waitForDisplayed({ timeout: waitTimeout });
-    await $('button=Delete').click();
+    await $('button=Delete All').click();
     await $('[role="dialog"]').waitForDisplayed({ timeout: waitTimeout, reverse: true });
   });
 });
