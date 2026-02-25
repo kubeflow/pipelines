@@ -18,8 +18,10 @@ import React, { MouseEvent as ReactMouseEvent } from 'react';
 import ReactFlow, {
   Background,
   Controls,
+  Edge,
   Elements,
   MiniMap,
+  Node,
   OnLoadParams,
   ReactFlowProvider,
 } from 'react-flow-renderer';
@@ -27,7 +29,6 @@ import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
 import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
-import { Edge, Node } from 'react-flow-renderer/dist/types';
 
 export interface DagCanvasProps {
   elements: Elements<FlowElementDataBase>;

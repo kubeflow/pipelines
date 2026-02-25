@@ -100,7 +100,7 @@ export class LineageCard extends React.Component<LineageCardProps> {
       },
       executionCardTitle: {
         ...cardTitleBase,
-        borderBottom: `${px(CARD_TITLE_BORDER_BOTTOM_HEIGHT)} solid transparent`,
+        borderBottom: `${px(CARD_TITLE_BORDER_BOTTOM_HEIGHT)} solid var(--grey-700)`,
       },
       target: {
         border: `2px solid ${blue[500]}`,

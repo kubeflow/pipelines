@@ -603,7 +603,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               id='exitNewRunPageBtn'
               onClick={() => {
                 this.props.history.push(
-                  !!this.state.experiment
+                  this.state.experiment
                     ? RoutePage.EXPERIMENT_DETAILS.replace(
                         ':' + RouteParams.experimentId,
                         this.state.experiment.id!,
@@ -1292,12 +1292,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         throw new Error('Run name is required');
       }
 
-      const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);
+      const hasTrigger = trigger && (trigger.cron_schedule || trigger.periodic_schedule);
       if (hasTrigger) {
-        const startDate = !!trigger!.cron_schedule
+        const startDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.start_time
           : trigger!.periodic_schedule!.start_time;
-        const endDate = !!trigger!.cron_schedule
+        const endDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.end_time
           : trigger!.periodic_schedule!.end_time;
         if (startDate && endDate && startDate > endDate) {

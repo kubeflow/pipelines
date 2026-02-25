@@ -19,7 +19,7 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { classes } from 'typestyle';
 import { PageProps } from 'src/pages/Page';
-import ArtifactList from './ArtifactList';
+import ArtifactListView from './ArtifactList';
 
 function ArtifactListSwitcher(props: PageProps) {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -28,9 +28,9 @@ function ArtifactListSwitcher(props: PageProps) {
     <div className={classes(commonCss.page, padding(20, 't'))}>
       <MD2Tabs tabs={['Default', 'Grouped']} selectedTab={selectedTab} onSwitch={setSelectedTab} />
 
-      {selectedTab === 0 && <ArtifactList {...props} isGroupView={false} />}
+      {selectedTab === 0 && <ArtifactListView {...props} isGroupView={false} />}
 
-      {selectedTab === 1 && <ArtifactList {...props} isGroupView={true} />}
+      {selectedTab === 1 && <ArtifactListView {...props} isGroupView={true} />}
     </div>
   );
 }

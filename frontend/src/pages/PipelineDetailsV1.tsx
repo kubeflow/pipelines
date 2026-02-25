@@ -29,7 +29,7 @@ import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { classes, stylesheet } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Description } from '../components/Description';
-import Graph from '../components/Graph';
+import PipelineGraph from '../components/Graph';
 import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
@@ -206,7 +206,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                   </Paper>
                 )}
 
-                <Graph
+                <PipelineGraph
                   graph={graphToShow}
                   selectedNodeId={selectedNodeId}
                   onClick={id => setSelectedNodeId(id)}

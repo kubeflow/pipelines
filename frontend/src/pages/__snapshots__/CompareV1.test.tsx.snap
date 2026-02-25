@@ -2078,505 +2078,212 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
             </div>
             <div>
               <div
-                class="rv-xy-plot"
-                style="width: 400px; height: 260px;"
+                class="recharts-wrapper"
+                height="260"
+                style="position: relative; cursor: default; width: 400px; height: 260px;"
+                width="400"
               >
                 <svg
-                  class="rv-xy-plot__inner"
+                  class="recharts-surface"
                   height="260"
+                  role="application"
+                  style="width: 100%; height: 100%; display: block;"
+                  tabindex="0"
+                  viewBox="0 0 400 260"
                   width="400"
                 >
+                  <title />
+                  <desc />
                   <g
-                    class="rv-xy-plot__grid-lines"
-                    transform="translate(40,10)"
+                    tabindex="-1"
                   >
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="0"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="35.35353535353536"
-                      x2="35.35353535353536"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="70.70707070707071"
-                      x2="70.70707070707071"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="106.06060606060606"
-                      x2="106.06060606060606"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="141.41414141414143"
-                      x2="141.41414141414143"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="176.7676767676768"
-                      x2="176.7676767676768"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="212.12121212121212"
-                      x2="212.12121212121212"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="247.4747474747475"
-                      x2="247.4747474747475"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="282.82828282828285"
-                      x2="282.82828282828285"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="318.1818181818182"
-                      x2="318.1818181818182"
-                      y1="0"
-                      y2="210"
-                    />
-                  </g>
-                  <g
-                    class="rv-xy-plot__grid-lines"
-                    transform="translate(40,10)"
-                  >
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="210"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="167.5757575757576"
-                      y2="167.5757575757576"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="125.15151515151514"
-                      y2="125.15151515151514"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="82.72727272727272"
-                      y2="82.72727272727272"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="40.30303030303028"
-                      y2="40.30303030303028"
-                    />
-                  </g>
-                  <g
-                    class="rv-xy-plot__axis rv-xy-plot__axis--horizontal axis_f8xtz46"
-                    transform="translate(40,220)"
-                  >
-                    <line
-                      class="rv-xy-plot__axis__line"
-                      x1="0"
-                      x2="350"
-                      y1="0"
-                      y2="0"
-                    />
                     <g
-                      class="rv-xy-plot__axis__ticks"
-                      transform="translate(0, 0)"
+                      class="recharts-cartesian-grid"
                     >
                       <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 0)"
+                        class="recharts-cartesian-grid-horizontal"
                       >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="395"
+                          y="5"
+                          y1="5"
+                          y2="5"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.0
-                        </text>
+                        <line
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="395"
+                          y="5"
+                          y1="210"
+                          y2="210"
+                        />
                       </g>
                       <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(35.35353535353536, 0)"
+                        class="recharts-cartesian-grid-vertical"
                       >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="92"
+                          y="5"
+                          y1="5"
+                          y2="210"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.1
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(70.70707070707071, 0)"
-                      >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="395"
+                          x2="395"
+                          y="5"
+                          y1="5"
+                          y2="210"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.2
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(106.06060606060606, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.3
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(141.41414141414143, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.4
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(176.7676767676768, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.5
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(212.12121212121212, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.6
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(247.4747474747475, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.7
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(282.82828282828285, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.8
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(318.1818181818182, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.9
-                        </text>
-                      </g>
-                    </g>
-                    <g
-                      class="rv-xy-plot__axis__title"
-                      transform="translate(0, 0)"
-                    >
-                      <g
-                        style="text-anchor: end;"
-                        transform="translate(344, -6) rotate(0)"
-                      >
-                        <text>
-                          fpr
-                        </text>
                       </g>
                     </g>
                   </g>
                   <g
-                    class="rv-xy-plot__axis rv-xy-plot__axis--vertical axis_f8xtz46"
-                    transform="translate(0,10)"
-                  >
-                    <line
-                      class="rv-xy-plot__axis__line"
-                      x1="40"
-                      x2="40"
-                      y1="0"
-                      y2="210"
-                    />
-                    <g
-                      class="rv-xy-plot__axis__ticks"
-                      transform="translate(40, 0)"
-                    >
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 210)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.0
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 167.5757575757576)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.2
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 125.15151515151514)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.4
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 82.72727272727272)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.6
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 40.30303030303028)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.8
-                        </text>
-                      </g>
-                    </g>
-                    <g
-                      class="rv-xy-plot__axis__title"
-                      transform="translate(40, 0)"
-                    >
-                      <g
-                        style="text-anchor: end;"
-                        transform="translate(16, 6) rotate(-90)"
-                      >
-                        <text>
-                          tpr
-                        </text>
-                      </g>
-                    </g>
-                  </g>
-                  <path
-                    class="rv-xy-plot__series rv-xy-plot__series--line"
-                    d="M0,210L3.535,207.879L7.071,205.758L10.606,203.636L14.141,201.515L17.677,199.394L21.212,197.273L24.747,195.152L28.283,193.03L31.818,190.909L35.354,188.788L38.889,186.667L42.424,184.545L45.96,182.424L49.495,180.303L53.03,178.182L56.566,176.061L60.101,173.939L63.636,171.818L67.172,169.697L70.707,167.576L74.242,165.455L77.778,163.333L81.313,161.212L84.848,159.091L88.384,156.97L91.919,154.848L95.455,152.727L98.99,150.606L102.525,148.485L106.061,146.364L109.596,144.242L113.131,142.121L116.667,140L120.202,137.879L123.737,135.758L127.273,133.636L130.808,131.515L134.343,129.394L137.879,127.273L141.414,125.152L144.949,123.03L148.485,120.909L152.02,118.788L155.556,116.667L159.091,114.545L162.626,112.424L166.162,110.303L169.697,108.182L173.232,106.061L176.768,103.939L180.303,101.818L183.838,99.697L187.374,97.576L190.909,95.455L194.444,93.333L197.98,91.212L201.515,89.091L205.051,86.97L208.586,84.848L212.121,82.727L215.657,80.606L219.192,78.485L222.727,76.364L226.263,74.242L229.798,72.121L233.333,70L236.869,67.879L240.404,65.758L243.939,63.636L247.475,61.515L251.01,59.394L254.545,57.273L258.081,55.152L261.616,53.03L265.152,50.909L268.687,48.788L272.222,46.667L275.758,44.545L279.293,42.424L282.828,40.303L286.364,38.182L289.899,36.061L293.434,33.939L296.97,31.818L300.505,29.697L304.04,27.576L307.576,25.455L311.111,23.333L314.646,21.212L318.182,19.091L321.717,16.97L325.253,14.848L328.788,12.727L332.323,10.606L335.859,8.485L339.394,6.364L342.929,4.242L346.465,2.121L350,0"
-                    style="opacity: 1; stroke-dasharray: 6, 2; stroke-width: 1; stroke: #ddd;"
-                    transform="translate(40,10)"
+                    tabindex="-1"
                   />
-                  <path
-                    class="rv-xy-plot__series rv-xy-plot__series--line"
-                    style="opacity: 1; stroke-width: 2; stroke: #4285f4;"
-                    transform="translate(40,10)"
+                  <defs>
+                    <clippath
+                      id="recharts-id-0"
+                    >
+                      <rect
+                        height="205"
+                        width="303"
+                        x="92"
+                        y="5"
+                      />
+                    </clippath>
+                  </defs>
+                  <g
+                    tabindex="-1"
                   />
-                  <path
-                    class="rv-xy-plot__series rv-xy-plot__series--line"
-                    style="opacity: 1; stroke-width: 2; stroke: #2b9c1e;"
-                    transform="translate(40,10)"
+                  <g
+                    tabindex="-1"
                   />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  >
+                    <g
+                      class="recharts-layer recharts-cartesian-axis recharts-xAxis xAxis"
+                    >
+                      <line
+                        angle="0"
+                        class="recharts-cartesian-axis-line"
+                        fill="none"
+                        height="30"
+                        orientation="bottom"
+                        stroke="#666"
+                        width="303"
+                        x="92"
+                        x1="92"
+                        x2="395"
+                        y="210"
+                        y1="210"
+                        y2="210"
+                      />
+                      <g
+                        class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
+                      />
+                    </g>
+                    <g
+                      class="recharts-layer recharts-cartesian-axis recharts-yAxis yAxis"
+                    >
+                      <line
+                        angle="0"
+                        class="recharts-cartesian-axis-line"
+                        fill="none"
+                        height="205"
+                        orientation="left"
+                        stroke="#666"
+                        width="60"
+                        x="32"
+                        x1="92"
+                        x2="92"
+                        y="5"
+                        y1="5"
+                        y2="210"
+                      />
+                      <g
+                        class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
+                      />
+                    </g>
+                  </g>
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  >
+                    <text
+                      class="recharts-text recharts-label"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="0"
+                      text-anchor="middle"
+                      x="243.5"
+                      y="240"
+                    >
+                      <tspan
+                        dy="0em"
+                        x="243.5"
+                      >
+                        fpr
+                      </tspan>
+                    </text>
+                    <text
+                      class="recharts-text recharts-label"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="14"
+                      text-anchor="start"
+                      transform="rotate(-90, 46, 107.5)"
+                      x="46"
+                      y="107.5"
+                    >
+                      <tspan
+                        dy="0.355em"
+                        x="46"
+                      >
+                        tpr
+                      </tspan>
+                    </text>
+                  </g>
                 </svg>
               </div>
               <div
@@ -2586,45 +2293,27 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   style="flex-grow: 1;"
                 >
                   <div
-                    class="rv-discrete-color-legend horizontal"
+                    class="flex_f16jawj4"
                   >
                     <div
-                      class="rv-discrete-color-legend-item horizontal"
+                      class="legendItem_f91tlfr"
                     >
-                      <svg
-                        class="rv-discrete-color-legend-item__color"
-                        height="2"
-                        width="14"
-                      >
-                        <path
-                          class="rv-discrete-color-legend-item__color__path"
-                          d="M 0, 1 L 14, 1"
-                          style="stroke: #4285f4;"
-                        />
-                      </svg>
                       <span
-                        class="rv-discrete-color-legend-item__title"
-                      >
+                        class="legendSwatch_ftbiuan"
+                        style="background-color: rgb(66, 133, 244);"
+                      />
+                      <span>
                         Series #1
                       </span>
                     </div>
                     <div
-                      class="rv-discrete-color-legend-item horizontal"
+                      class="legendItem_f91tlfr"
                     >
-                      <svg
-                        class="rv-discrete-color-legend-item__color"
-                        height="2"
-                        width="14"
-                      >
-                        <path
-                          class="rv-discrete-color-legend-item__color__path"
-                          d="M 0, 1 L 14, 1"
-                          style="stroke: #2b9c1e;"
-                        />
-                      </svg>
                       <span
-                        class="rv-discrete-color-legend-item__title"
-                      >
+                        class="legendSwatch_ftbiuan"
+                        style="background-color: rgb(43, 156, 30);"
+                      />
+                      <span>
                         Series #2
                       </span>
                     </div>
@@ -2677,500 +2366,212 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
             </div>
             <div>
               <div
-                class="rv-xy-plot"
-                style="width: 400px; height: 260px;"
+                class="recharts-wrapper"
+                height="260"
+                style="position: relative; cursor: default; width: 400px; height: 260px;"
+                width="400"
               >
                 <svg
-                  class="rv-xy-plot__inner"
+                  class="recharts-surface"
                   height="260"
+                  role="application"
+                  style="width: 100%; height: 100%; display: block;"
+                  tabindex="0"
+                  viewBox="0 0 400 260"
                   width="400"
                 >
+                  <title />
+                  <desc />
                   <g
-                    class="rv-xy-plot__grid-lines"
-                    transform="translate(40,10)"
+                    tabindex="-1"
                   >
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="0"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="35.35353535353536"
-                      x2="35.35353535353536"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="70.70707070707071"
-                      x2="70.70707070707071"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="106.06060606060606"
-                      x2="106.06060606060606"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="141.41414141414143"
-                      x2="141.41414141414143"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="176.7676767676768"
-                      x2="176.7676767676768"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="212.12121212121212"
-                      x2="212.12121212121212"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="247.4747474747475"
-                      x2="247.4747474747475"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="282.82828282828285"
-                      x2="282.82828282828285"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="318.1818181818182"
-                      x2="318.1818181818182"
-                      y1="0"
-                      y2="210"
-                    />
-                  </g>
-                  <g
-                    class="rv-xy-plot__grid-lines"
-                    transform="translate(40,10)"
-                  >
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="210"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="167.5757575757576"
-                      y2="167.5757575757576"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="125.15151515151514"
-                      y2="125.15151515151514"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="82.72727272727272"
-                      y2="82.72727272727272"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="40.30303030303028"
-                      y2="40.30303030303028"
-                    />
-                  </g>
-                  <g
-                    class="rv-xy-plot__axis rv-xy-plot__axis--horizontal axis_f8xtz46"
-                    transform="translate(40,220)"
-                  >
-                    <line
-                      class="rv-xy-plot__axis__line"
-                      x1="0"
-                      x2="350"
-                      y1="0"
-                      y2="0"
-                    />
                     <g
-                      class="rv-xy-plot__axis__ticks"
-                      transform="translate(0, 0)"
+                      class="recharts-cartesian-grid"
                     >
                       <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 0)"
+                        class="recharts-cartesian-grid-horizontal"
                       >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="395"
+                          y="5"
+                          y1="5"
+                          y2="5"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.0
-                        </text>
+                        <line
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="395"
+                          y="5"
+                          y1="210"
+                          y2="210"
+                        />
                       </g>
                       <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(35.35353535353536, 0)"
+                        class="recharts-cartesian-grid-vertical"
                       >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="92"
+                          y="5"
+                          y1="5"
+                          y2="210"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.1
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(70.70707070707071, 0)"
-                      >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="395"
+                          x2="395"
+                          y="5"
+                          y1="5"
+                          y2="210"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.2
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(106.06060606060606, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.3
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(141.41414141414143, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.4
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(176.7676767676768, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.5
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(212.12121212121212, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.6
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(247.4747474747475, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.7
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(282.82828282828285, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.8
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(318.1818181818182, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.9
-                        </text>
-                      </g>
-                    </g>
-                    <g
-                      class="rv-xy-plot__axis__title"
-                      transform="translate(0, 0)"
-                    >
-                      <g
-                        style="text-anchor: end;"
-                        transform="translate(344, -6) rotate(0)"
-                      >
-                        <text>
-                          fpr
-                        </text>
                       </g>
                     </g>
                   </g>
                   <g
-                    class="rv-xy-plot__axis rv-xy-plot__axis--vertical axis_f8xtz46"
-                    transform="translate(0,10)"
-                  >
-                    <line
-                      class="rv-xy-plot__axis__line"
-                      x1="40"
-                      x2="40"
-                      y1="0"
-                      y2="210"
-                    />
-                    <g
-                      class="rv-xy-plot__axis__ticks"
-                      transform="translate(40, 0)"
-                    >
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 210)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.0
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 167.5757575757576)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.2
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 125.15151515151514)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.4
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 82.72727272727272)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.6
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 40.30303030303028)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.8
-                        </text>
-                      </g>
-                    </g>
-                    <g
-                      class="rv-xy-plot__axis__title"
-                      transform="translate(40, 0)"
-                    >
-                      <g
-                        style="text-anchor: end;"
-                        transform="translate(16, 6) rotate(-90)"
-                      >
-                        <text>
-                          tpr
-                        </text>
-                      </g>
-                    </g>
-                  </g>
-                  <path
-                    class="rv-xy-plot__series rv-xy-plot__series--line"
-                    d="M0,210L3.535,207.879L7.071,205.758L10.606,203.636L14.141,201.515L17.677,199.394L21.212,197.273L24.747,195.152L28.283,193.03L31.818,190.909L35.354,188.788L38.889,186.667L42.424,184.545L45.96,182.424L49.495,180.303L53.03,178.182L56.566,176.061L60.101,173.939L63.636,171.818L67.172,169.697L70.707,167.576L74.242,165.455L77.778,163.333L81.313,161.212L84.848,159.091L88.384,156.97L91.919,154.848L95.455,152.727L98.99,150.606L102.525,148.485L106.061,146.364L109.596,144.242L113.131,142.121L116.667,140L120.202,137.879L123.737,135.758L127.273,133.636L130.808,131.515L134.343,129.394L137.879,127.273L141.414,125.152L144.949,123.03L148.485,120.909L152.02,118.788L155.556,116.667L159.091,114.545L162.626,112.424L166.162,110.303L169.697,108.182L173.232,106.061L176.768,103.939L180.303,101.818L183.838,99.697L187.374,97.576L190.909,95.455L194.444,93.333L197.98,91.212L201.515,89.091L205.051,86.97L208.586,84.848L212.121,82.727L215.657,80.606L219.192,78.485L222.727,76.364L226.263,74.242L229.798,72.121L233.333,70L236.869,67.879L240.404,65.758L243.939,63.636L247.475,61.515L251.01,59.394L254.545,57.273L258.081,55.152L261.616,53.03L265.152,50.909L268.687,48.788L272.222,46.667L275.758,44.545L279.293,42.424L282.828,40.303L286.364,38.182L289.899,36.061L293.434,33.939L296.97,31.818L300.505,29.697L304.04,27.576L307.576,25.455L311.111,23.333L314.646,21.212L318.182,19.091L321.717,16.97L325.253,14.848L328.788,12.727L332.323,10.606L335.859,8.485L339.394,6.364L342.929,4.242L346.465,2.121L350,0"
-                    style="opacity: 1; stroke-dasharray: 6, 2; stroke-width: 1; stroke: #ddd;"
-                    transform="translate(40,10)"
+                    tabindex="-1"
                   />
-                  <path
-                    class="rv-xy-plot__series rv-xy-plot__series--line"
-                    style="opacity: 1; stroke-width: 2; stroke: #4285f4;"
-                    transform="translate(40,10)"
+                  <defs>
+                    <clippath
+                      id="recharts-id-1"
+                    >
+                      <rect
+                        height="205"
+                        width="303"
+                        x="92"
+                        y="5"
+                      />
+                    </clippath>
+                  </defs>
+                  <g
+                    tabindex="-1"
                   />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  >
+                    <g
+                      class="recharts-layer recharts-cartesian-axis recharts-xAxis xAxis"
+                    >
+                      <line
+                        angle="0"
+                        class="recharts-cartesian-axis-line"
+                        fill="none"
+                        height="30"
+                        orientation="bottom"
+                        stroke="#666"
+                        width="303"
+                        x="92"
+                        x1="92"
+                        x2="395"
+                        y="210"
+                        y1="210"
+                        y2="210"
+                      />
+                      <g
+                        class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
+                      />
+                    </g>
+                    <g
+                      class="recharts-layer recharts-cartesian-axis recharts-yAxis yAxis"
+                    >
+                      <line
+                        angle="0"
+                        class="recharts-cartesian-axis-line"
+                        fill="none"
+                        height="205"
+                        orientation="left"
+                        stroke="#666"
+                        width="60"
+                        x="32"
+                        x1="92"
+                        x2="92"
+                        y="5"
+                        y1="5"
+                        y2="210"
+                      />
+                      <g
+                        class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
+                      />
+                    </g>
+                  </g>
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  >
+                    <text
+                      class="recharts-text recharts-label"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="0"
+                      text-anchor="middle"
+                      x="243.5"
+                      y="240"
+                    >
+                      <tspan
+                        dy="0em"
+                        x="243.5"
+                      >
+                        fpr
+                      </tspan>
+                    </text>
+                    <text
+                      class="recharts-text recharts-label"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="14"
+                      text-anchor="start"
+                      transform="rotate(-90, 46, 107.5)"
+                      x="46"
+                      y="107.5"
+                    >
+                      <tspan
+                        dy="0.355em"
+                        x="46"
+                      >
+                        tpr
+                      </tspan>
+                    </text>
+                  </g>
                 </svg>
               </div>
               <div
@@ -3222,500 +2623,212 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
             </div>
             <div>
               <div
-                class="rv-xy-plot"
-                style="width: 400px; height: 260px;"
+                class="recharts-wrapper"
+                height="260"
+                style="position: relative; cursor: default; width: 400px; height: 260px;"
+                width="400"
               >
                 <svg
-                  class="rv-xy-plot__inner"
+                  class="recharts-surface"
                   height="260"
+                  role="application"
+                  style="width: 100%; height: 100%; display: block;"
+                  tabindex="0"
+                  viewBox="0 0 400 260"
                   width="400"
                 >
+                  <title />
+                  <desc />
                   <g
-                    class="rv-xy-plot__grid-lines"
-                    transform="translate(40,10)"
+                    tabindex="-1"
                   >
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="0"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="35.35353535353536"
-                      x2="35.35353535353536"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="70.70707070707071"
-                      x2="70.70707070707071"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="106.06060606060606"
-                      x2="106.06060606060606"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="141.41414141414143"
-                      x2="141.41414141414143"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="176.7676767676768"
-                      x2="176.7676767676768"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="212.12121212121212"
-                      x2="212.12121212121212"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="247.4747474747475"
-                      x2="247.4747474747475"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="282.82828282828285"
-                      x2="282.82828282828285"
-                      y1="0"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="318.1818181818182"
-                      x2="318.1818181818182"
-                      y1="0"
-                      y2="210"
-                    />
-                  </g>
-                  <g
-                    class="rv-xy-plot__grid-lines"
-                    transform="translate(40,10)"
-                  >
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="210"
-                      y2="210"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="167.5757575757576"
-                      y2="167.5757575757576"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="125.15151515151514"
-                      y2="125.15151515151514"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="82.72727272727272"
-                      y2="82.72727272727272"
-                    />
-                    <line
-                      class="rv-xy-plot__grid-lines__line"
-                      x1="0"
-                      x2="350"
-                      y1="40.30303030303028"
-                      y2="40.30303030303028"
-                    />
-                  </g>
-                  <g
-                    class="rv-xy-plot__axis rv-xy-plot__axis--horizontal axis_f8xtz46"
-                    transform="translate(40,220)"
-                  >
-                    <line
-                      class="rv-xy-plot__axis__line"
-                      x1="0"
-                      x2="350"
-                      y1="0"
-                      y2="0"
-                    />
                     <g
-                      class="rv-xy-plot__axis__ticks"
-                      transform="translate(0, 0)"
+                      class="recharts-cartesian-grid"
                     >
                       <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 0)"
+                        class="recharts-cartesian-grid-horizontal"
                       >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="395"
+                          y="5"
+                          y1="5"
+                          y2="5"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.0
-                        </text>
+                        <line
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="395"
+                          y="5"
+                          y1="210"
+                          y2="210"
+                        />
                       </g>
                       <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(35.35353535353536, 0)"
+                        class="recharts-cartesian-grid-vertical"
                       >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="92"
+                          x2="92"
+                          y="5"
+                          y1="5"
+                          y2="210"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.1
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(70.70707070707071, 0)"
-                      >
                         <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
+                          fill="none"
+                          height="205"
+                          stroke="#ccc"
+                          width="303"
+                          x="92"
+                          x1="395"
+                          x2="395"
+                          y="5"
+                          y1="5"
+                          y2="210"
                         />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.2
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(106.06060606060606, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.3
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(141.41414141414143, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.4
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(176.7676767676768, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.5
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(212.12121212121212, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.6
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(247.4747474747475, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.7
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(282.82828282828285, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.8
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(318.1818181818182, 0)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="0"
-                          x2="0"
-                          y1="-6"
-                          y2="6"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.72em"
-                          text-anchor="middle"
-                          transform="translate(0, 14)"
-                        >
-                          0.9
-                        </text>
-                      </g>
-                    </g>
-                    <g
-                      class="rv-xy-plot__axis__title"
-                      transform="translate(0, 0)"
-                    >
-                      <g
-                        style="text-anchor: end;"
-                        transform="translate(344, -6) rotate(0)"
-                      >
-                        <text>
-                          fpr
-                        </text>
                       </g>
                     </g>
                   </g>
                   <g
-                    class="rv-xy-plot__axis rv-xy-plot__axis--vertical axis_f8xtz46"
-                    transform="translate(0,10)"
-                  >
-                    <line
-                      class="rv-xy-plot__axis__line"
-                      x1="40"
-                      x2="40"
-                      y1="0"
-                      y2="210"
-                    />
-                    <g
-                      class="rv-xy-plot__axis__ticks"
-                      transform="translate(40, 0)"
-                    >
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 210)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.0
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 167.5757575757576)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.2
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 125.15151515151514)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.4
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 82.72727272727272)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.6
-                        </text>
-                      </g>
-                      <g
-                        class="rv-xy-plot__axis__tick"
-                        transform="translate(0, 40.30303030303028)"
-                      >
-                        <line
-                          class="rv-xy-plot__axis__tick__line"
-                          x1="6"
-                          x2="-6"
-                          y1="0"
-                          y2="0"
-                        />
-                        <text
-                          class="rv-xy-plot__axis__tick__text"
-                          dy="0.32em"
-                          text-anchor="end"
-                          transform="translate(-14, 0)"
-                        >
-                          0.8
-                        </text>
-                      </g>
-                    </g>
-                    <g
-                      class="rv-xy-plot__axis__title"
-                      transform="translate(40, 0)"
-                    >
-                      <g
-                        style="text-anchor: end;"
-                        transform="translate(16, 6) rotate(-90)"
-                      >
-                        <text>
-                          tpr
-                        </text>
-                      </g>
-                    </g>
-                  </g>
-                  <path
-                    class="rv-xy-plot__series rv-xy-plot__series--line"
-                    d="M0,210L3.535,207.879L7.071,205.758L10.606,203.636L14.141,201.515L17.677,199.394L21.212,197.273L24.747,195.152L28.283,193.03L31.818,190.909L35.354,188.788L38.889,186.667L42.424,184.545L45.96,182.424L49.495,180.303L53.03,178.182L56.566,176.061L60.101,173.939L63.636,171.818L67.172,169.697L70.707,167.576L74.242,165.455L77.778,163.333L81.313,161.212L84.848,159.091L88.384,156.97L91.919,154.848L95.455,152.727L98.99,150.606L102.525,148.485L106.061,146.364L109.596,144.242L113.131,142.121L116.667,140L120.202,137.879L123.737,135.758L127.273,133.636L130.808,131.515L134.343,129.394L137.879,127.273L141.414,125.152L144.949,123.03L148.485,120.909L152.02,118.788L155.556,116.667L159.091,114.545L162.626,112.424L166.162,110.303L169.697,108.182L173.232,106.061L176.768,103.939L180.303,101.818L183.838,99.697L187.374,97.576L190.909,95.455L194.444,93.333L197.98,91.212L201.515,89.091L205.051,86.97L208.586,84.848L212.121,82.727L215.657,80.606L219.192,78.485L222.727,76.364L226.263,74.242L229.798,72.121L233.333,70L236.869,67.879L240.404,65.758L243.939,63.636L247.475,61.515L251.01,59.394L254.545,57.273L258.081,55.152L261.616,53.03L265.152,50.909L268.687,48.788L272.222,46.667L275.758,44.545L279.293,42.424L282.828,40.303L286.364,38.182L289.899,36.061L293.434,33.939L296.97,31.818L300.505,29.697L304.04,27.576L307.576,25.455L311.111,23.333L314.646,21.212L318.182,19.091L321.717,16.97L325.253,14.848L328.788,12.727L332.323,10.606L335.859,8.485L339.394,6.364L342.929,4.242L346.465,2.121L350,0"
-                    style="opacity: 1; stroke-dasharray: 6, 2; stroke-width: 1; stroke: #ddd;"
-                    transform="translate(40,10)"
+                    tabindex="-1"
                   />
-                  <path
-                    class="rv-xy-plot__series rv-xy-plot__series--line"
-                    style="opacity: 1; stroke-width: 2; stroke: #4285f4;"
-                    transform="translate(40,10)"
+                  <defs>
+                    <clippath
+                      id="recharts-id-2"
+                    >
+                      <rect
+                        height="205"
+                        width="303"
+                        x="92"
+                        y="5"
+                      />
+                    </clippath>
+                  </defs>
+                  <g
+                    tabindex="-1"
                   />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  >
+                    <g
+                      class="recharts-layer recharts-cartesian-axis recharts-xAxis xAxis"
+                    >
+                      <line
+                        angle="0"
+                        class="recharts-cartesian-axis-line"
+                        fill="none"
+                        height="30"
+                        orientation="bottom"
+                        stroke="#666"
+                        width="303"
+                        x="92"
+                        x1="92"
+                        x2="395"
+                        y="210"
+                        y1="210"
+                        y2="210"
+                      />
+                      <g
+                        class="recharts-cartesian-axis-ticks recharts-xAxis-ticks"
+                      />
+                    </g>
+                    <g
+                      class="recharts-layer recharts-cartesian-axis recharts-yAxis yAxis"
+                    >
+                      <line
+                        angle="0"
+                        class="recharts-cartesian-axis-line"
+                        fill="none"
+                        height="205"
+                        orientation="left"
+                        stroke="#666"
+                        width="60"
+                        x="32"
+                        x1="92"
+                        x2="92"
+                        y="5"
+                        y1="5"
+                        y2="210"
+                      />
+                      <g
+                        class="recharts-cartesian-axis-ticks recharts-yAxis-ticks"
+                      />
+                    </g>
+                  </g>
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  />
+                  <g
+                    tabindex="-1"
+                  >
+                    <text
+                      class="recharts-text recharts-label"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="0"
+                      text-anchor="middle"
+                      x="243.5"
+                      y="240"
+                    >
+                      <tspan
+                        dy="0em"
+                        x="243.5"
+                      >
+                        fpr
+                      </tspan>
+                    </text>
+                    <text
+                      class="recharts-text recharts-label"
+                      fill="#202124"
+                      font-size="13"
+                      font-weight="500"
+                      offset="14"
+                      text-anchor="start"
+                      transform="rotate(-90, 46, 107.5)"
+                      x="46"
+                      y="107.5"
+                    >
+                      <tspan
+                        dy="0.355em"
+                        x="46"
+                      >
+                        tpr
+                      </tspan>
+                    </text>
+                  </g>
                 </svg>
               </div>
               <div
