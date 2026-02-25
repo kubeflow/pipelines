@@ -67,14 +67,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Port-forward MinIO service for archived workflow logs
+    - name: Port-forward SeaweedFS service for archived workflow logs
       id: port-forward-minio
       if: (!cancelled())
       shell: bash
       run: |
         NAMESPACE="${{ inputs.default_namespace }}"
-        pkill -f "kubectl port-forward.*minio" || true
-        kubectl port-forward -n "$NAMESPACE" service/minio-service 9000:9000 > /dev/null 2>&1 &
+        pkill -f "kubectl port-forward.*seaweedfs" || true
+        kubectl port-forward -n "$NAMESPACE" service/seaweedfs 9000:9000 > /dev/null 2>&1 &
         sleep 5
       continue-on-error: true
 

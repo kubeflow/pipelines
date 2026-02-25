@@ -90,9 +90,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
-
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
@@ -120,8 +117,6 @@ jobs:
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
-
-
 
       - name: Configure Input Variables
         shell: bash
@@ -193,9 +188,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
-
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
@@ -245,9 +237,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster

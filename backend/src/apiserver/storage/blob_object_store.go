@@ -19,10 +19,16 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net/url"
 	"path"
+	"time"
+
+	minio "github.com/minio/minio-go/v7"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"gocloud.dev/blob"
+	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -117,6 +123,54 @@ func (b *BlobObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, fi
 		return util.NewInternalServerError(err, "Failed to unmarshal file %v: %v", filePath, err.Error())
 	}
 	return nil
+}
+
+// GetSignedUrl generates a signed url for the artifact identified by artifactURI and bucketConfig.
+// The URL expires after expirySeconds. The secret contains the credentials for accessing the object
+// store for this artifact. Signed URLs are built using the "GET" method, and are only intended for
+// Artifact downloads.
+func (b *BlobObjectStore) GetSignedUrl(ctx context.Context, bucketConfig *objectstore.Config, secret *v1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
+	s3Client, err := buildClientFromConfig(bucketConfig, secret)
+	if err != nil {
+		return "", err
+	}
+
+	key, err := objectstore.ArtifactKeyFromURI(artifactURI)
+	if err != nil {
+		return "", err
+	}
+	if queryParams == nil {
+		queryParams = make(url.Values)
+	}
+
+	signedUrl, err := s3Client.Presign(ctx, "GET", bucketConfig.BucketName, key, expirySeconds, queryParams)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to generate signed url")
+	}
+
+	return signedUrl.String(), nil
+}
+
+// GetObjectSize retrieves the size of the object in bytes.
+// Returns zero with no error if the artifact URI does not exist.
+func (b *BlobObjectStore) GetObjectSize(ctx context.Context, bucketConfig *objectstore.Config, secret *v1.Secret, artifactURI string) (int64, error) {
+	s3Client, err := buildClientFromConfig(bucketConfig, secret)
+	if err != nil {
+		return 0, err
+	}
+	key, err := objectstore.ArtifactKeyFromURI(artifactURI)
+	if err != nil {
+		return 0, err
+	}
+	objectInfo, err := s3Client.StatObject(ctx, bucketConfig.BucketName, key, minio.StatObjectOptions{})
+	if err != nil {
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return objectInfo.Size, nil
 }
 
 func NewBlobObjectStore(bucket *blob.Bucket, baseFolder string) *BlobObjectStore {

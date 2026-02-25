@@ -85,6 +85,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         id: setup-buildx
+        with:
+          driver-opts: network=host
 
       - name: Build and save Docker image
         uses: docker/build-push-action@v5
@@ -96,6 +98,7 @@ jobs:
           push: false
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+          network: host
 
       - name: Rebuild Images in case of failure
         uses: docker/build-push-action@v5
@@ -107,6 +110,7 @@ jobs:
           push: false
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+          network: host
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
