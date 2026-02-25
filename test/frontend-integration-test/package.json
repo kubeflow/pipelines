@@ -5,7 +5,7 @@
   "dependencies": {
     "@wdio/cli": "^8.3.2",
     "@wdio/junit-reporter": "^8.3.0",
-    "@wdio/local-runner": "^8.3.3",
+    "@wdio/local-runner": "^9.24.0",
     "@wdio/mocha-framework": "^8.3.0",
     "@wdio/selenium-standalone-service": "^8.3.2",
     "@wdio/spec-reporter": "^8.3.0",
