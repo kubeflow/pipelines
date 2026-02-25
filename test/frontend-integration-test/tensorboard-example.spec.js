@@ -211,4 +211,29 @@ describe('deploy tensorboard example run', () => {
     assert(await $('#topBar').isDisplayed(), 'tensorboard top bar should be visible');
     await browser.back();
   });
+
+  it('deletes the uploaded pipeline', async () => {
+    await $('#pipelinesBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/pipelines');
+    }, waitTimeout);
+
+    await $('#tableFilterBox').waitForDisplayed();
+    await $('#tableFilterBox').click();
+    await clearDefaultInput();
+    await browser.keys(pipelineName);
+    await browser.pause(2000);
+
+    await browser.waitUntil(
+      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      waitTimeout,
+      'expected at least one pipeline row after filtering',
+    );
+    await $('[data-testid="table-row"]').click();
+
+    await $('#deleteBtn').click();
+    await $('[role="dialog"]').waitForDisplayed({ timeout: waitTimeout });
+    await $('button=Delete').click();
+    await $('[role="dialog"]').waitForDisplayed({ timeout: waitTimeout, reverse: true });
+  });
 });
