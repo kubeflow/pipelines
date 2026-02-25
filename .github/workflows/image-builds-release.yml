@@ -41,42 +41,55 @@ jobs:
           - image: kfp-api-server
             dockerfile: backend/Dockerfile
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-frontend
             dockerfile: frontend/Dockerfile
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-persistence-agent
             dockerfile: backend/Dockerfile.persistenceagent
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-scheduled-workflow-controller
             dockerfile: backend/Dockerfile.scheduledworkflow
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-visualization-server
             dockerfile: backend/Dockerfile.visualization
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-cache-deployer
             dockerfile: backend/src/cache/deployer/Dockerfile
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-cache-server
             dockerfile: backend/Dockerfile.cacheserver
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-metadata-writer
             dockerfile: backend/metadata_writer/Dockerfile
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-metadata-envoy
             dockerfile: third_party/metadata_envoy/Dockerfile
             context: .
+            platforms: 'linux/amd64,linux/arm64'
           - image: kfp-inverse-proxy-agent
             dockerfile: proxy/Dockerfile
             context: ./proxy
+            platforms: 'linux/amd64'  # base image is amd64-only
     uses: ./.github/workflows/build-and-push.yml
     with:
       src_branch: ${{ inputs.src_branch }}
@@ -87,4 +100,5 @@ jobs:
       app_to_build: ${{ matrix.image }}
       image_context: ${{ matrix.context }}
       docker_file: ${{ matrix.dockerfile }}
+      platforms: ${{ matrix.platforms }}
       push: ${{ !inputs.dry_run }}
