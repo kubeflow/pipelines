@@ -27,7 +27,8 @@ pushd "$PKG_ROOT/.."
 make clean-python python USE_FIND_LINKS=${USE_FIND_LINKS}
 popd
 
-SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
+# Extract version from __init__.py without importing (to avoid dependency issues)
+SETUPPY_VERSION=$(grep "^__version__" kfp/kubernetes/__init__.py | sed "s/^__version__ = ['\"]//;s/['\"].*//")
 
 if [ -z "$KFP_KUBERNETES_VERSION" ]
 then
