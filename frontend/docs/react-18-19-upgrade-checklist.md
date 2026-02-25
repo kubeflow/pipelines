@@ -3,7 +3,8 @@
 **Tracking Issue**: React 18/19 Frontend Upgrade — Modernize Kubeflow Pipelines UI
 **Repository**: [kubeflow/pipelines](https://github.com/kubeflow/pipelines)
 
-**Strategy**: Deps-first, bump-last. All dependencies are migrated to React 18-compatible versions on the stable React 17 runtime before bumping React. This plan consolidates [jeffspahr's upgrade plan](https://github.com/jeffspahr/jeffspahr-pipelines/blob/e02da33/frontend/docs/react-18-19-upgrade-plan.md) with detailed migration mechanics and quality guardrails contributed by the community.
+**Strategy**: Deps-first, bump-last. All dependencies are migrated to React 18-compatible versions on the stable React 17 runtime before bumping React.
+**Canonical source**: This checklist is the canonical execution plan and supersedes earlier draft planning notes.
 
 **How to contribute**: Each issue below maps to one independently mergeable PR. Issues #3–#6 can be worked on in parallel by different contributors. Pick an unassigned issue, comment to claim it, and open a PR following the [contribution guide](https://github.com/kubeflow/pipelines/blob/master/frontend/CONTRIBUTING.md). Every PR must pass `npm run test:ci` and `npm run build` before merge.
 
@@ -107,7 +108,7 @@ Manually migrate theme files (`src/Css.tsx`, `src/mlmd/Css.tsx`): convert `overr
 ## 7. Modernize JSX runtime and test utilities
 
 **Labels**: `area/frontend`, `priority/p2`, `kind/chore`
-**Depends on**: #5, #6
+**Depends on**: #3, #4, #5, #6
 
 **Description**:
 Switch to modern JSX transform (`react-jsx` in tsconfig). Upgrade `@testing-library/react` from v11 to v14 and `@testing-library/user-event` from v13 to v14. Remove `react-test-renderer` and `@types/react-test-renderer`.
@@ -143,8 +144,13 @@ Capture coverage baseline before and compare after -- coverage must not decrease
 **Description**:
 Upgrade remaining deps with React 17-limited peer ranges: `markdown-to-jsx` v6 to v7, `react-dropzone` v5 to v14, any `re-resizable` residuals, `snapshot-diff` update. Review and update `package.json` `overrides` and `resolutions` entries -- remove stale ones, add new ones as needed. Drive peer gate allowlist to empty.
 
+**Known direct peer-gate blockers to clear in this issue (React 18 target):**
+- `react-textarea-autosize@8.3.3` (`react=^16.8.0 || ^17.0.0`)
+- Note: `react-dom` / `react-test-renderer` major bumps are handled in #9 / #7.
+
 **Acceptance Criteria**:
 - [ ] `npm run check:react-peers` passes with empty allowlist
+- [ ] `npm run check:react-peers:18` direct blockers are reduced to only planned React core bump items
 - [ ] `npm run test:ci && npm run build` pass
 - [ ] Markdown rendering and file upload work identically to pre-migration
 
@@ -205,8 +211,14 @@ Bump `react` and `react-dom` to ^18.3.0. Run `npm run test:ci` and review test o
 **Description**:
 Run `npm run check:react-peers:19` and upgrade any remaining deps that declare peer ranges excluding React 19. Drive the peer gate to green for React 19.
 
+**Known direct peer-gate blockers for React 19 (baseline list):**
+- `react-ace@10.1.0` (peer ranges currently cap at React 18)
+- Any remaining Storybook 6.x packages (`@storybook/*`) that still cap peers at React 18
+- Any remaining React-17/18-only packages left after #3-#11
+
 **Acceptance Criteria**:
 - [ ] `npm run check:react-peers:19` passes
+- [ ] No direct dependencies remain in `check:react-peers:19` output
 - [ ] `npm run test:ci` passes
 
 ---
@@ -254,7 +266,7 @@ Enable `<StrictMode>` in the development and test rendering trees. Identify and 
 **Depends on**: #13 (or included inline in prior PRs)
 
 **Description**:
-Update `AGENTS.md` "Frontend development" section with React 19, MUI v5, @testing-library/react v14, Storybook 7, @tanstack/react-query. Update `frontend/CONTRIBUTING.md` testing FAQ -- remove references to Enzyme, `react-test-renderer`, React 16-specific patterns. Update `frontend/README.md` stack description. Archive or update `frontend/docs/react-17-upgrade-checklist.md`.
+Update `AGENTS.md` "Frontend development" section with React 19, MUI v5, @testing-library/react v14, Storybook 7, @tanstack/react-query. Update `frontend/CONTRIBUTING.md` testing FAQ -- remove references to Enzyme, `react-test-renderer`, React 16-specific patterns. Update `frontend/README.md` stack description. Ensure `frontend/docs/react-17-upgrade-checklist.md` remains removed (or archive/update if it is reintroduced).
 
 **Acceptance Criteria**:
 - [ ] All referenced versions match actual installed versions in `package.json`
