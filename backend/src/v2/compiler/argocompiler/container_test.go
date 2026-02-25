@@ -23,6 +23,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	k8score "k8s.io/api/core/v1"
 )
 
 func TestAddContainerExecutorTemplate(t *testing.T) {
@@ -201,7 +202,8 @@ func TestRetryCountEnvVar(t *testing.T) {
 	})
 
 	t.Run("commonEnvs not mutated by retry env append", func(t *testing.T) {
-		originalLen := len(commonEnvs)
+		snapshot := make([]k8score.EnvVar, len(commonEnvs))
+		copy(snapshot, commonEnvs)
 		c := &workflowCompiler{
 			templates: make(map[string]*wfapi.Template),
 			wf: &wfapi.Workflow{
@@ -223,7 +225,7 @@ func TestRetryCountEnvVar(t *testing.T) {
 		}
 		c.addContainerExecutorTemplate(task, &kubernetesplatform.KubernetesExecutorConfig{})
 
-		assert.Equal(t, originalLen, len(commonEnvs),
+		assert.Equal(t, snapshot, commonEnvs,
 			"commonEnvs package-level variable must not be mutated")
 	})
 }

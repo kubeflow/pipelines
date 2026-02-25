@@ -340,6 +340,8 @@ func (l *LauncherV2) prePublish(ctx context.Context) (execution *metadata.Execut
 		if v, err := strconv.ParseInt(retryStr, 10, 32); err == nil {
 			retryCount := int32(v)
 			ecfg.RetryCount = &retryCount
+		} else {
+			glog.V(2).Infof("failed to parse %s value %q as int32; retry metadata will not be set: %v", EnvRetryCount, retryStr, err)
 		}
 	}
 	return l.clientManager.MetadataClient().PrePublishExecution(ctx, execution, ecfg)

@@ -186,7 +186,7 @@ type ExecutionConfig struct {
 	Image, CachedMLMDExecutionID, FingerPrint string
 	PodName, PodUID, Namespace                string
 	MaxRetryCount                             *int32 // max retry count from retry policy
-	RetryCount                                *int32 // current retry attempt
+	RetryCount                                *int32 // current retry counter (0-based, e.g. 0 on first attempt)
 
 	// DAGExecution custom properties
 	IterationCount *int // Number of iterations for an iterator DAG.
