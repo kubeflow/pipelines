@@ -54,7 +54,18 @@ spec:
           requests:
             cpu: 100m
             memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
       securityContext:
+        runAsNonRoot: true
         fsGroup: 472
         runAsUser: 472
+        seccompProfile:
+          type: RuntimeDefault
 # TODO(jingzhang36): consider adding persistent volume if you would like the created dashboards to persist.

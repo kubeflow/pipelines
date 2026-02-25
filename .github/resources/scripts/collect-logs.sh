@@ -23,9 +23,10 @@ fi
 
 function check_namespace {
     if ! kubectl get namespace "$1" &>/dev/null; then
-        echo "Namespace '$1' does not exist."
-        exit 1
+        echo "Namespace '$1' does not exist. Skipping log collection."
+        return 1
     fi
+    return 0
 }
 
 function display_pod_info {
@@ -61,5 +62,8 @@ function display_pod_info {
     echo "Pod information stored in $OUTPUT_FILE"
 }
 
-check_namespace "$NS"
-display_pod_info "$NS"
+if check_namespace "$NS"; then
+    display_pod_info "$NS"
+else
+    exit 0
+fi

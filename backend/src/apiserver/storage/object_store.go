@@ -15,7 +15,6 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"net/url"
 	"path"
@@ -30,17 +29,17 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
+	"io"
 )
 
-const (
-	multipartDefaultSize = -1
-)
-
-// Interface for object store.
-type ObjectStoreInterface interface {
+// ObjectStore is the interface for object store operations.
+type ObjectStore interface {
 	AddFile(ctx context.Context, template []byte, filePath string) error
 	DeleteFile(ctx context.Context, filePath string) error
 	GetFile(ctx context.Context, filePath string) ([]byte, error)
+	// GetFileReader returns a streaming reader for the file content.
+	// Use this method instead of GetFile for streaming access to large files.
+	GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error)
 	AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string

@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -32,6 +33,17 @@ import (
 )
 
 var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
+
+// setWorkspaceFlag sets the _kfp_workspace metadata flag on the provided
+// runtime artifact when the producing execution is an ImporterWorkspace.
+func setWorkspaceFlag(execution *metadata.Execution, runtimeArtifact *pipelinespec.RuntimeArtifact) {
+	if execution.GetExecution().GetType() == string(metadata.ImporterWorkspaceExecutionTypeName) {
+		if runtimeArtifact.Metadata == nil {
+			runtimeArtifact.Metadata = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		}
+		runtimeArtifact.Metadata.Fields["_kfp_workspace"] = structpb.NewBoolValue(true)
+	}
+}
 
 // resolveUpstreamOutputsConfig is just a config struct used to store the input
 // parameters of the resolveUpstreamParameters and resolveUpstreamArtifacts
@@ -326,6 +338,13 @@ func resolveInputs(
 			return nil, err
 		}
 
+		// Validate against literal constraints if this parameter has them in the component spec
+		if componentParam, ok := opts.Component.GetInputDefinitions().GetParameters()[name]; ok && componentParam != nil {
+			if err := util.ValidateLiteralParameter(name, v, componentParam.GetLiterals()); err != nil {
+				return nil, fmt.Errorf("validating parameter %q: %w", name, err)
+			}
+		}
+
 		inputs.ParameterValues[name] = v
 	}
 
@@ -416,6 +435,10 @@ func resolveInputParameter(
 				v = structpb.NewStringValue(opts.TaskName)
 			case "{{$.pipeline_task_uuid}}":
 				v = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
+			case "{{$.pipeline_job_create_time_utc}}":
+				v = structpb.NewStringValue(opts.PipelineJobCreateTimeUTC)
+			case "{{$.pipeline_job_schedule_time_utc}}":
+				v = structpb.NewStringValue(opts.PipelineJobScheduleTimeUTC)
 			default:
 				v = val
 			}
@@ -763,6 +786,8 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 			if err != nil {
 				cfg.err(err)
 			}
+			// If produced by workspace importer, Set _kfp_workspace=True
+			setWorkspaceFlag(currentTask, runtimeArtifact)
 			// Base case
 			return &pipelinespec.ArtifactList{
 				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
@@ -980,6 +1005,8 @@ func collectContainerOutput(
 		if err != nil {
 			return nil, nil, cfg.err(err)
 		}
+		// If produced by workspace importer, Set _kfp_workspace=True
+		setWorkspaceFlag(currentTask, artifact)
 		glog.V(4).Infof("runtimeArtifact: %v", artifact)
 	} else {
 		_, outputParameters, err := currentTask.GetParameters()

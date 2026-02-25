@@ -24,13 +24,5 @@
   "CacheEnabled": "true",
   "CRON_SCHEDULE_TIMEZONE": "UTC",
   "CACHE_IMAGE": "ghcr.io/containerd/busybox",
-  "CACHE_NODE_RESTRICTIONS": "false",
-  "Workspace": {
-    "VolumeClaimTemplateSpec": {
-      "accessModes": [
-        "ReadWriteOnce"
-      ],
-      "storageClassName": "standard-csi"
-    }
-  }
+  "CACHE_NODE_RESTRICTIONS": "false"
 }

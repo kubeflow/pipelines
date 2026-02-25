@@ -15,20 +15,56 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
+import { render } from '@testing-library/react';
 import ViewerContainer from './ViewerContainer';
 import { PlotType } from './Viewer';
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 
 describe('ViewerContainer', () => {
+  const sampleConfigs: Record<PlotType, any> = {
+    [PlotType.CONFUSION_MATRIX]: {
+      type: PlotType.CONFUSION_MATRIX,
+      data: [[1]],
+      axes: ['x', 'y'],
+      labels: ['label'],
+    },
+    [PlotType.MARKDOWN]: {
+      type: PlotType.MARKDOWN,
+      markdownContent: '# Title',
+    },
+    [PlotType.ROC]: {
+      type: PlotType.ROC,
+      data: [{ x: 0, y: 0, label: '0' }],
+    },
+    [PlotType.TABLE]: {
+      type: PlotType.TABLE,
+      data: [['cell']],
+      labels: ['col'],
+    },
+    [PlotType.TENSORBOARD]: {
+      type: PlotType.TENSORBOARD,
+      url: 'http://test/url',
+      namespace: 'test-ns',
+    },
+    [PlotType.VISUALIZATION_CREATOR]: {
+      type: PlotType.VISUALIZATION_CREATOR,
+    },
+    [PlotType.WEB_APP]: {
+      type: PlotType.WEB_APP,
+      htmlContent: '<div>test</div>',
+    },
+  };
+
   it('does not break on empty configs', () => {
-    const tree = shallow(<ViewerContainer configs={[]} />);
-    expect(tree).toMatchSnapshot();
+    const { container } = render(<ViewerContainer configs={[]} />);
+    expect(container.firstChild).toBeNull();
   });
 
   Object.keys(PlotType).map(type =>
     it('renders a viewer of type ' + type, () => {
-      const tree = shallow(<ViewerContainer configs={[{ type: PlotType[type] }]} />);
-      expect(tree).toMatchSnapshot();
+      const plotType = PlotType[type as keyof typeof PlotType];
+      const { asFragment } = render(<ViewerContainer configs={[sampleConfigs[plotType]]} />);
+      expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
     }),
   );
 });

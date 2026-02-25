@@ -20,7 +20,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -62,7 +64,9 @@ func CheckIfSkipping(stringValue string) {
 	// Skip pipeline if name contains "GH-" (case-insensitive)
 	if strings.Contains(strings.ToLower(stringValue), "_gh-") {
 		issue := strings.Split(strings.ToLower(stringValue), "_gh-")[1]
-		ginkgo.Skip(fmt.Sprintf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue))
+		ginkgo.Skip("Skipping pipeline run")
+		fmt.Printf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue)
+
 	}
 	// Skip pipeline 'pipeline_submit_request' test if TLS is not enabled
 	if !*config.TLSEnabled && strings.Contains(strings.ToLower(stringValue), "pipeline_submit_request") {
@@ -85,6 +89,24 @@ func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
 	if err != nil {
 		return
 	}
+}
+
+// GetWorkflowNameByRunID retrieves the Argo Workflow name for a given pipeline run ID
+// by querying the Kubernetes API using the pipeline/runid label.
+func GetWorkflowNameByRunID(namespace string, runID string) string {
+	cmd := exec.Command("kubectl", "get", "workflows", "-n", namespace,
+		"-l", fmt.Sprintf("pipeline/runid=%s", runID),
+		"-o", "jsonpath={.items[0].metadata.name}")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log("Failed to get workflow for run ID %s: %v, kubectl output: %s", runID, err, strings.TrimSpace(string(output)))
+		return ""
+	}
+	workflowName := strings.TrimSpace(string(output))
+	if workflowName == "" {
+		logger.Log("No workflow found for run ID %s", runID)
+	}
+	return workflowName
 }
 
 // GetNamespace - Get Namespace based on the deployment mode
@@ -176,9 +198,49 @@ func GetTLSConfig(caCertPath string) (*tls.Config, error) {
 		}
 	}
 	return &tls.Config{
-		RootCAs:    caCertPool,
-		MinVersion: tls.VersionTLS13,
+		RootCAs: caCertPool,
 	}, nil
+}
+
+func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
+	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
+
+	pullNumber := os.Getenv("PULL_NUMBER")
+	if pullNumber != "" {
+		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
+	}
+
+	// Verify the URL exists
+	resp, err := http.Head(url)
+	if err != nil {
+		return url, fmt.Errorf("failed to verify URL exists: %s\n"+
+			"Error: %v\n"+
+			"This may indicate network issues or the file doesn't exist at the specified location.\n"+
+			"Repository: %s, Branch/PR: %s, Path: %s",
+			url, err, repoName, getBranchOrPR(pullNumber, branch), path)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			logger.Log("Warning: failed to close response body: %v", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		msg := "URL verification failed with status %d: %s, " +
+			"the file does not exist at the specified location, " +
+			"repository: %s, Branch/PR: %s, Path: %s"
+		return url, fmt.Errorf(msg, resp.StatusCode, url, repoName, getBranchOrPR(pullNumber, branch), path)
+	}
+
+	return url, nil
+}
+
+// getBranchOrPR returns a human-readable string indicating whether we're using a branch or PR
+func getBranchOrPR(pullNumber, branch string) string {
+	if pullNumber != "" {
+		return fmt.Sprintf("PR #%s", pullNumber)
+	}
+	return fmt.Sprintf("branch '%s'", branch)
 }
 
 func ContainsEnvVar(envVarMap map[string]string, vars ...string) bool {

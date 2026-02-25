@@ -1,37 +1,71 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Input accepts height and width as prop overrides 1`] = `
-<TextField
-  className="textField"
-  required={false}
-  select={false}
-  spellCheck={false}
-  style={
-    Object {
-      "height": 123,
-      "maxWidth": 600,
-      "width": 456,
-    }
-  }
-  value="some input value"
-  variant="outlined"
-/>
+exports[`Input > accepts height and width as prop overrides 1`] = `
+<DocumentFragment>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+    spellcheck="false"
+    style="height: 123px; max-width: 600px; width: 456px;"
+  >
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input"
+        type="text"
+        value="some input value"
+      />
+      <fieldset
+        aria-hidden="true"
+        class="PrivateNotchedOutline-root-5 MuiOutlinedInput-notchedOutline"
+        style="padding-left: 8px;"
+      >
+        <legend
+          class="PrivateNotchedOutline-legend-6"
+          style="width: 0.01px;"
+        >
+          <span>
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
-exports[`Input renders with the right styles by default 1`] = `
-<TextField
-  className="textField"
-  required={false}
-  select={false}
-  spellCheck={false}
-  style={
-    Object {
-      "height": 40,
-      "maxWidth": 600,
-      "width": "100%",
-    }
-  }
-  value="some input value"
-  variant="outlined"
-/>
+exports[`Input > renders with the right styles by default 1`] = `
+<DocumentFragment>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input"
+        type="text"
+        value="some input value"
+      />
+      <fieldset
+        aria-hidden="true"
+        class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+        style="padding-left: 8px;"
+      >
+        <legend
+          class="PrivateNotchedOutline-legend-2"
+          style="width: 0.01px;"
+        >
+          <span>
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+</DocumentFragment>
 `;

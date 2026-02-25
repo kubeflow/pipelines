@@ -16,6 +16,7 @@
 import contextlib
 import json
 import os
+import sys
 import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
 import unittest
@@ -100,6 +101,50 @@ class ExecutorTest(parameterized.TestCase):
         self.assertEqual({'parameterValues': {
             'Output': 'Hello, KFP'
         }}, output_metadata)
+
+    def test_builtin_generic_list_parameter(self):
+        if sys.version_info < (3, 9):
+            self.skipTest('Built-in generics require Python >= 3.9')
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "num_list": [1, 2, 3]
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(num_list: list[int]) -> None:
+            self.assertEqual(num_list, [1, 2, 3])
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_builtin_generic_dict_parameter(self):
+        if sys.version_info < (3, 9):
+            self.skipTest('Built-in generics require Python >= 3.9')
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "mapping": {"a": 1, "b": 2}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(mapping: dict[str, int]) -> None:
+            self.assertEqual(mapping, {'a': 1, 'b': 2})
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_input_artifact_custom_type(self):
         executor_input = """\
@@ -645,7 +690,7 @@ class ExecutorTest(parameterized.TestCase):
                             'name':
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
-                                'gs://some-bucket/output'
+                                'gs://some-bucket/output',
                         }]
                     }
                 },
@@ -702,7 +747,7 @@ class ExecutorTest(parameterized.TestCase):
                             'name':
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
-                                'gs://some-bucket/output'
+                                'gs://some-bucket/output',
                         }]
                     }
                 },
@@ -749,6 +794,53 @@ class ExecutorTest(parameterized.TestCase):
             self.assertIsInstance(output_artifact_one, Model)
 
         self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_output_artifact_with_custom_path(self):
+        executor_input = """\
+        {
+          "outputs": {
+            "artifacts": {
+              "output_artifact_one": {
+                "artifacts": [
+                  {
+                    "metadata": {},
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                    "type": {
+                      "schemaTitle": "system.Dataset"
+                    },
+                    "uri": "gs://some-bucket/output_artifact_one"
+                  }
+                ]
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+        custom_path = os.path.join(self._test_dir, 'custom', 'output_artifact')
+
+        def test_func(output_artifact_one: Output[Dataset]):
+            output_artifact_one.custom_path = custom_path
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'output_artifact_one': {
+                        'artifacts': [{
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://some-bucket/output_artifact_one',
+                            'metadata': {},
+                            'custom_path':
+                                custom_path,
+                        }]
+                    }
+                }
+            })
 
     def test_named_tuple_output(self):
         executor_input = """\
@@ -815,7 +907,7 @@ class ExecutorTest(parameterized.TestCase):
                                 'name':
                                     'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                                 'uri':
-                                    'gs://some-bucket/output_dataset'
+                                    'gs://some-bucket/output_dataset',
                             }]
                         }
                     },
@@ -1165,6 +1257,55 @@ class ExecutorTest(parameterized.TestCase):
                 input_artifact.name,
                 'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
             )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
+    def test_list_of_artifact_input(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_datasets": {
+            "artifacts": [
+              {
+                "metadata": {"rows": 10},
+                "name": "datasets/0",
+                "type": {
+                  "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/output/input_dataset_0"
+              },
+              {
+                "metadata": {"rows": 20},
+                "name": "datasets/1",
+                "type": {
+                  "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/output/input_dataset_1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_datasets: Input[List[Dataset]]):
+            self.assertIsInstance(input_datasets, list)
+            self.assertLen(input_datasets, 2)
+            for index, artifact in enumerate(input_datasets):
+                self.assertIsInstance(artifact, Dataset)
+                self.assertEqual(artifact.name, f'datasets/{index}')
+                self.assertEqual(
+                    artifact.uri,
+                    f'gs://some-bucket/output/input_dataset_{index}')
+                self.assertEqual(artifact.metadata['rows'], (index + 1) * 10)
 
         output_metadata = self.execute_and_load_output_metadata(
             test_func, executor_input)

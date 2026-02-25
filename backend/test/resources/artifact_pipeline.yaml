@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: artifact-streaming-test-v1-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.23, pipelines.kubeflow.org/pipeline_compilation_time: '2025-11-18T20:53:47.214928',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "V1 pipeline that creates
+      a test artifact with simple content", "name": "artifact-streaming-test-v1"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.23}
+spec:
+  entrypoint: artifact-streaming-test-v1
+  templates:
+  - name: artifact-streaming-test-v1
+    dag:
+      tasks:
+      - {name: create-test-artifact, template: create-test-artifact}
+  - name: create-test-artifact
+    container:
+      args: [--test, /tmp/outputs/test/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def create_test_artifact(test_file):
+            """Create a test artifact with simple content"""
+
+            content = "Kubeflow rocks!"
+
+            print(f"Creating test artifact at {test_file}")
+
+            with open(test_file, 'w') as f:
+                f.write(content)
+
+            import os
+            file_size = os.path.getsize(test_file)
+            print(f"Created test file: {file_size} bytes")
+            print(f"Artifact saved at: {test_file}")
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Create test artifact', description='Create a test artifact with simple content')
+        _parser.add_argument("--test", dest="test_file", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = create_test_artifact(**_parsed_args)
+      image: python:3.11
+    outputs:
+      artifacts:
+      - {name: create-test-artifact-test, path: /tmp/outputs/test/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/task_display_name: Create Test Artifact,
+        pipelines.kubeflow.org/component_spec: '{"description": "Create a test artifact
+          with simple content", "implementation": {"container": {"args": ["--test",
+          {"outputPath": "test"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path),
+          exist_ok=True)\n    return file_path\n\ndef create_test_artifact(test_file):\n    \"\"\"Create
+          a test artifact with simple content\"\"\"\n\n    content = \"Kubeflow rocks!\"\n\n    print(f\"Creating
+          test artifact at {test_file}\")\n\n    with open(test_file, ''w'') as f:\n        f.write(content)\n\n    import
+          os\n    file_size = os.path.getsize(test_file)\n    print(f\"Created test
+          file: {file_size} bytes\")\n    print(f\"Artifact saved at: {test_file}\")\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Create test artifact'',
+          description=''Create a test artifact with simple content'')\n_parser.add_argument(\"--test\",
+          dest=\"test_file\", type=_make_parent_dirs_and_return_path, required=True,
+          default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
+          = create_test_artifact(**_parsed_args)\n"], "image": "python:3.11"}}, "name":
+          "Create test artifact", "outputs": [{"name": "test"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.23
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

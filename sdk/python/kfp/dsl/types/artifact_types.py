@@ -18,6 +18,8 @@ import os
 from typing import Dict, List, Optional, Type
 import warnings
 
+from kfp.dsl.constants import WORKSPACE_MOUNT_PATH
+
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
 _S3_LOCAL_MOUNT_PREFIX = '/s3/'
@@ -78,10 +80,12 @@ class Artifact:
                  name: Optional[str] = None,
                  uri: Optional[str] = None,
                  metadata: Optional[Dict] = None) -> None:
-        """Initializes the Artifact with the given name, URI and metadata."""
+        """Initializes the Artifact with the given name, URI, metadata, and
+        blank custom path."""
         self.uri = uri or ''
         self.name = name or ''
         self.metadata = metadata or {}
+        self._custom_path = ''
 
     @property
     def path(self) -> str:
@@ -92,24 +96,52 @@ class Artifact:
         self._set_path(path)
 
     def _get_path(self) -> Optional[str]:
-        if self.uri.startswith(RemotePrefix.GCS.value):
-            return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS.value
-                                                         ):]
-        if self.uri.startswith(RemotePrefix.MINIO.value):
-            return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.MINIO
-                                                            .value):]
-        if self.uri.startswith(RemotePrefix.S3.value):
-            return _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3.value
-                                                        ):]
-        if self.uri.startswith(RemotePrefix.OCI.value):
+        local_path = self.uri
+
+        if self.custom_path:
+            local_path = self._get_custom_path()
+        elif self.uri.startswith(RemotePrefix.GCS.value):
+            local_path = _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS
+                                                                .value):]
+        elif self.uri.startswith(RemotePrefix.MINIO.value):
+            local_path = _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.
+                                                                  MINIO.value):]
+        elif self.uri.startswith(RemotePrefix.S3.value):
+            local_path = _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3
+                                                               .value):]
+        elif self.uri.startswith(RemotePrefix.OCI.value):
             escaped_uri = self.uri[len(RemotePrefix.OCI.value):].replace(
                 '/', '_')
-            return _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
-        # uri == path for local execution
-        return self.uri
+            local_path = _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
+
+        # If the artifact is already present in the pipeline workspace, map to the workspace path.
+        # This is indicated by backend setting metadata['_kfp_workspace'] = True.
+        if self.metadata.get('_kfp_workspace') is True:
+            local_path = os.path.join(WORKSPACE_MOUNT_PATH, '.artifacts',
+                                      local_path.lstrip('/'))
+
+        return local_path
+
+    @property
+    def custom_path(self) -> str:
+        return self._get_custom_path()
+
+    def _get_custom_path(self) -> str:
+        return self._custom_path
 
     def _set_path(self, path: str) -> None:
         self.uri = convert_local_path_to_remote_path(path)
+
+    def _set_custom_path(self, value: str) -> None:
+        self._custom_path = value
+
+    @custom_path.setter
+    def custom_path(self, value: str):
+        self._custom_path = value
+
+    def set_path(self, path: str) -> None:
+        # If user specified a custom path, use it instead of the default path.
+        self._custom_path = path
 
 
 def convert_local_path_to_remote_path(path: str) -> str:
@@ -121,8 +153,8 @@ def convert_local_path_to_remote_path(path: str) -> str:
         return RemotePrefix.S3.value + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
         remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('_', '/')
-        if remote_path.endswith("/models"):
-            remote_path = remote_path[:-len("/models")]
+        if remote_path.endswith('/models'):
+            remote_path = remote_path[:-len('/models')]
 
         return RemotePrefix.OCI.value + remote_path
 
@@ -148,12 +180,16 @@ class Model(Artifact):
 
     @property
     def path(self) -> str:
-        if self.uri.startswith("oci://"):
+        if self.uri.startswith('oci://'):
             # Modelcar container images are expected to have the model files stored in /models
             # https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
-            return self._get_path() + "/models"
+            return self._get_path() + '/models'
 
         return self._get_path()
+
+    @path.setter
+    def path(self, path: str) -> None:
+        self._set_path(path)
 
     @framework.setter
     def framework(self, framework: str) -> None:

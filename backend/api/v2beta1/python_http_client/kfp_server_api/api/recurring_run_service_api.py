@@ -173,6 +173,8 @@ class RecurringRunServiceApi(object):
 
         :param recurring_run_id: The ID of the recurring run to be deleted. (required)
         :type recurring_run_id: str
+        :param propagation_policy: Optional input field. Set the propagation policy when deleting the recurring run.
+        :type propagation_policy: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -201,6 +203,8 @@ class RecurringRunServiceApi(object):
 
         :param recurring_run_id: The ID of the recurring run to be deleted. (required)
         :type recurring_run_id: str
+        :param propagation_policy: Optional input field. Set the propagation policy when deleting the recurring run.
+        :type propagation_policy: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -223,7 +227,8 @@ class RecurringRunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'recurring_run_id'
+            'recurring_run_id',
+            'propagation_policy'
         ]
         all_params.extend(
             [
@@ -254,6 +259,8 @@ class RecurringRunServiceApi(object):
             path_params['recurring_run_id'] = local_var_params['recurring_run_id']  # noqa: E501
 
         query_params = []
+        if 'propagation_policy' in local_var_params and local_var_params['propagation_policy'] is not None:  # noqa: E501
+            query_params.append(('propagation_policy', local_var_params['propagation_policy']))  # noqa: E501
 
         header_params = {}
 
@@ -407,7 +414,7 @@ class RecurringRunServiceApi(object):
             collection_formats=collection_formats)
 
     def recurring_run_service_enable_recurring_run(self, recurring_run_id, **kwargs):  # noqa: E501
-        """Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.  # noqa: E501
+        """Restarts a recurring run that was previously stopped. All runs associated with the recurring run will continue.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -435,7 +442,7 @@ class RecurringRunServiceApi(object):
         return self.recurring_run_service_enable_recurring_run_with_http_info(recurring_run_id, **kwargs)  # noqa: E501
 
     def recurring_run_service_enable_recurring_run_with_http_info(self, recurring_run_id, **kwargs):  # noqa: E501
-        """Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.  # noqa: E501
+        """Restarts a recurring run that was previously stopped. All runs associated with the recurring run will continue.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -651,7 +658,7 @@ class RecurringRunServiceApi(object):
             collection_formats=collection_formats)
 
     def recurring_run_service_list_recurring_runs(self, **kwargs):  # noqa: E501
-        """Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
+        """Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -661,7 +668,7 @@ class RecurringRunServiceApi(object):
 
         :param page_token: A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRecurringRuns call or can be omitted when fetching the first page.
         :type page_token: str
-        :param page_size: The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+        :param page_size: The number of recurring runs to be listed per page. If there are more recurring runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :type page_size: int
         :param sort_by: Can be formatted as \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str
@@ -689,7 +696,7 @@ class RecurringRunServiceApi(object):
         return self.recurring_run_service_list_recurring_runs_with_http_info(**kwargs)  # noqa: E501
 
     def recurring_run_service_list_recurring_runs_with_http_info(self, **kwargs):  # noqa: E501
-        """Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
+        """Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -699,7 +706,7 @@ class RecurringRunServiceApi(object):
 
         :param page_token: A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRecurringRuns call or can be omitted when fetching the first page.
         :type page_token: str
-        :param page_size: The number of recurring runs to be listed per page. If there are more recurring runs  than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+        :param page_size: The number of recurring runs to be listed per page. If there are more recurring runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :type page_size: int
         :param sort_by: Can be formatted as \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default.
         :type sort_by: str

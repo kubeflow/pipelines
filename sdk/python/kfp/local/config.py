@@ -42,8 +42,21 @@ class SubprocessRunner:
 
     Args:
         use_venv: Whether to run the subprocess in a virtual environment. If True, dependencies will be installed in the virtual environment. If False, dependencies will be installed in the current environment. Using a virtual environment is recommended.
+        serialize_pip_installs: Whether to serialize pip installations across parallel tasks to avoid race conditions. Only applies when use_venv=True. Default is True for safety.
+        max_concurrent_pip_installs: Maximum number of concurrent pip installations when serialize_pip_installs=False. Default is 1.
     """
     use_venv: bool = True
+    serialize_pip_installs: bool = True
+    max_concurrent_pip_installs: int = 1
+
+    def __post_init__(self):
+        """Configure the pip install manager when the runner is created."""
+        if self.use_venv:
+            # Lazy import to avoid circular imports
+            from kfp.local.pip_install_manager import pip_install_manager
+            pip_install_manager.configure(
+                serialize_installs=self.serialize_pip_installs,
+                max_concurrent=self.max_concurrent_pip_installs)
 
 
 class DockerRunner:
@@ -143,11 +156,14 @@ class DockerRunner:
         'working_dir',
     }
 
-    def __init__(self, **container_run_args):
+    def __init__(self,
+                 max_concurrent_pip_installs: int = 1,
+                 **container_run_args):
         """Runner constructor, taking any arguments to propagate to
         `containers.run` in the `docker` SDK.
 
         Args:
+            max_concurrent_pip_installs: Maximum number of concurrent pip installations across docker containers. Default is 1.
             **container_run_args: Keyword arguments that comport with `containers.run` in the `docker` SDK, with some exceptions (see below).
 
         `containers.run` arguments are supported with the following exceptions:
@@ -183,6 +199,12 @@ class DockerRunner:
             )
 
         self.container_run_args = container_run_args
+        self.max_concurrent_pip_installs = max_concurrent_pip_installs
+
+        # Configure docker pip install manager
+        # Lazy import to avoid circular imports
+        from kfp.local.pip_install_manager import pip_install_manager
+        pip_install_manager.configure_docker(max_concurrent_pip_installs)
 
 
 class LocalExecutionConfig:

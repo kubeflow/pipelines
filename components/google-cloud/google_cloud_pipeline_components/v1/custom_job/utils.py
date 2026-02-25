@@ -151,6 +151,11 @@ def create_custom_training_job_from_component(
   # load_component_from_text to load the YAML).
   # After adding the appropriate description and the name, the new component
   # is returned.
+  if network and psc_interface_config:
+    raise ValueError(
+        '`network` and `psc_interface_config` field cannot be set at the same'
+        ' time.'
+    )
 
   cj_pipeline_spec = json_format.MessageToDict(
       component.custom_training_job.pipeline_spec
@@ -228,18 +233,25 @@ def create_custom_training_job_from_component(
       'tensorboard': tensorboard,
       'enable_web_access': enable_web_access,
       'network': network,
-      'reserved_ip_ranges': reserved_ip_ranges or [],
+      'reserved_ip_ranges': reserved_ip_ranges,
       'base_output_directory': base_output_directory,
-      'labels': labels or {},
+      'labels': labels,
       'encryption_spec_key_name': encryption_spec_key_name,
       'persistent_resource_id': persistent_resource_id,
-      'psc_interface_config': psc_interface_config or {},
+      'psc_interface_config': psc_interface_config,
   }
 
   for param_name, default_value in custom_job_param_defaults.items():
-    cj_component_spec['inputDefinitions']['parameters'][param_name][
-        'defaultValue'
-    ] = default_value
+    param_definition = cj_component_spec['inputDefinitions']['parameters'][
+        param_name
+    ]
+    if default_value is None:
+      # If the provided value is None, remove the defaultValue key
+      if 'defaultValue' in param_definition:
+        del param_definition['defaultValue']
+    else:
+      # Otherwise, set the defaultValue to the provided value
+      param_definition['defaultValue'] = default_value
 
   # merge parameters from user component into the customjob component
   cj_component_spec['inputDefinitions']['parameters'].update(

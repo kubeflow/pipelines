@@ -1,0 +1,72 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Tensorboard > base component snapshot 1`] = `
+<DocumentFragment>
+  <div>
+    <div>
+      <div
+        class="f104cl0n"
+      >
+        <div
+          class="MuiFormControl-root formControl_f59g3c5"
+        >
+          <label
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+            data-shrink="true"
+            for="viewer-tb-image-select"
+          >
+            TF Image
+          </label>
+          <div
+            class="MuiInputBase-root MuiInput-root MuiInput-underline select_fczmju MuiInputBase-formControl MuiInput-formControl"
+          >
+            <div
+              aria-haspopup="listbox"
+              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+              role="button"
+              tabindex="0"
+            >
+              TensorFlow 2.2.2
+            </div>
+            <input
+              aria-hidden="true"
+              class="MuiSelect-nativeInput"
+              id="viewer-tb-image-select"
+              tabindex="-1"
+              value="tensorflow/tensorflow:2.2.2"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSelect-icon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M7 10l5 5 5-5z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <span>
+              Start Tensorboard
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;

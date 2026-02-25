@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "2.14.6"
+__version__ = "2.15.2"
 
 # import apis into sdk package
 from kfp_server_api.api.artifact_service_api import ArtifactServiceApi
@@ -53,6 +53,7 @@ from kfp_server_api.models.v2beta1_artifact import V2beta1Artifact
 from kfp_server_api.models.v2beta1_artifact_list import V2beta1ArtifactList
 from kfp_server_api.models.v2beta1_create_pipeline_and_version_request import V2beta1CreatePipelineAndVersionRequest
 from kfp_server_api.models.v2beta1_cron_schedule import V2beta1CronSchedule
+from kfp_server_api.models.v2beta1_delete_propagation_policy import V2beta1DeletePropagationPolicy
 from kfp_server_api.models.v2beta1_experiment import V2beta1Experiment
 from kfp_server_api.models.v2beta1_experiment_storage_state import V2beta1ExperimentStorageState
 from kfp_server_api.models.v2beta1_filter import V2beta1Filter
@@ -71,7 +72,6 @@ from kfp_server_api.models.v2beta1_pipeline_version import V2beta1PipelineVersio
 from kfp_server_api.models.v2beta1_pipeline_version_reference import V2beta1PipelineVersionReference
 from kfp_server_api.models.v2beta1_predicate import V2beta1Predicate
 from kfp_server_api.models.v2beta1_predicate_operation import V2beta1PredicateOperation
-from kfp_server_api.models.v2beta1_read_artifact_response import V2beta1ReadArtifactResponse
 from kfp_server_api.models.v2beta1_recurring_run import V2beta1RecurringRun
 from kfp_server_api.models.v2beta1_recurring_run_status import V2beta1RecurringRunStatus
 from kfp_server_api.models.v2beta1_run import V2beta1Run

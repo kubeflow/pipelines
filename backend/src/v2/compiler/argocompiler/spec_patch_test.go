@@ -199,6 +199,12 @@ func TestApplyWorkflowSpecPatch_ComplexPatch(t *testing.T) {
 	compiler := &workflowCompiler{
 		wf: wf,
 	}
+	// Match the actual compiler behavior: only SeccompProfile at workflow level
+	wf.Spec.SecurityContext = &corev1.PodSecurityContext{
+		SeccompProfile: &corev1.SeccompProfile{
+			Type: corev1.SeccompProfileTypeRuntimeDefault,
+		},
+	}
 
 	complexPatch := `{
 		"serviceAccountName": "complex-sa",
@@ -243,6 +249,8 @@ func TestApplyWorkflowSpecPatch_ComplexPatch(t *testing.T) {
 	assert.Equal(t, int64(1000), *wf.Spec.SecurityContext.RunAsUser)
 	assert.Equal(t, int64(1000), *wf.Spec.SecurityContext.RunAsGroup)
 	assert.Equal(t, int64(1000), *wf.Spec.SecurityContext.FSGroup)
+	assert.NotNil(t, wf.Spec.SecurityContext.SeccompProfile)
+	assert.Equal(t, corev1.SeccompProfileTypeRuntimeDefault, wf.Spec.SecurityContext.SeccompProfile.Type)
 	assert.Equal(t, false, *wf.Spec.HostNetwork)
 	assert.Equal(t, corev1.DNSClusterFirst, *wf.Spec.DNSPolicy)
 }

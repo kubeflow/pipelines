@@ -39,7 +39,11 @@ on:
   pull_request:
     paths:
       - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/actions/test-and-report/**'
+      - '.github/actions/junit-summary/**'
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
@@ -50,29 +54,33 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+concurrency:
+  group: api-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   api-test-standalone:
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0" ]
+        k8s_version: [ "v1.34.0" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.6.10"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.5.15"
-          - k8s_version: "v1.31.0"
+            argo_version: "v3.5.14"
+          - k8s_version: "v1.34.0"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
@@ -111,7 +119,8 @@ jobs:
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
-          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
+
 
 
       - name: Configure Input Variables
@@ -132,10 +141,13 @@ jobs:
           if [ -z "${PROXY:-}" ]; then
             PROXY=false
           fi
-          
-          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
+
 
 
       - name: Run Tests
@@ -155,27 +167,20 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
-
 
   api-test-k8s-native:
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0", "v1.29.2" ]
+        k8s_version: [ "v1.34.0", "v1.29.2" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "kubernetes" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "true"
             # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
             pipeline_store: "database"
@@ -205,7 +210,6 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
-          proxy: ${{ matrix.proxy }}
           argo_version: ${{ matrix.argo_version }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
@@ -218,7 +222,6 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
-          proxy: ${{ matrix.proxy }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
@@ -226,11 +229,6 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}"
 
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
 
 
   api-test-multi-user:
@@ -238,7 +236,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0"]
+        k8s_version: [ "v1.34.0"]
         cache_enabled: [ "true", "false" ]
         multi_user: [ "true" ]
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
@@ -285,9 +283,3 @@ jobs:
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}
           report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
-
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"

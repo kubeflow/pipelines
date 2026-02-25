@@ -1131,114 +1131,6 @@ func (x *ReportRunMetricsResponse) GetResults() []*ReportRunMetricsResponse_Repo
 	return nil
 }
 
-type ReadArtifactRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The ID of the run.
-	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// The ID of the running node.
-	NodeId string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	// The name of the artifact.
-	ArtifactName  string `protobuf:"bytes,3,opt,name=artifact_name,json=artifactName,proto3" json:"artifact_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReadArtifactRequest) Reset() {
-	*x = ReadArtifactRequest{}
-	mi := &file_backend_api_v1beta1_run_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReadArtifactRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReadArtifactRequest) ProtoMessage() {}
-
-func (x *ReadArtifactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v1beta1_run_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReadArtifactRequest.ProtoReflect.Descriptor instead.
-func (*ReadArtifactRequest) Descriptor() ([]byte, []int) {
-	return file_backend_api_v1beta1_run_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *ReadArtifactRequest) GetRunId() string {
-	if x != nil {
-		return x.RunId
-	}
-	return ""
-}
-
-func (x *ReadArtifactRequest) GetNodeId() string {
-	if x != nil {
-		return x.NodeId
-	}
-	return ""
-}
-
-func (x *ReadArtifactRequest) GetArtifactName() string {
-	if x != nil {
-		return x.ArtifactName
-	}
-	return ""
-}
-
-type ReadArtifactResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The bytes of the artifact content.
-	Data          []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReadArtifactResponse) Reset() {
-	*x = ReadArtifactResponse{}
-	mi := &file_backend_api_v1beta1_run_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReadArtifactResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReadArtifactResponse) ProtoMessage() {}
-
-func (x *ReadArtifactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v1beta1_run_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReadArtifactResponse.ProtoReflect.Descriptor instead.
-func (*ReadArtifactResponse) Descriptor() ([]byte, []int) {
-	return file_backend_api_v1beta1_run_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *ReadArtifactResponse) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
 type ReportRunMetricsResponse_ReportRunMetricResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Output. The name of the metric.
@@ -1255,7 +1147,7 @@ type ReportRunMetricsResponse_ReportRunMetricResult struct {
 
 func (x *ReportRunMetricsResponse_ReportRunMetricResult) Reset() {
 	*x = ReportRunMetricsResponse_ReportRunMetricResult{}
-	mi := &file_backend_api_v1beta1_run_proto_msgTypes[17]
+	mi := &file_backend_api_v1beta1_run_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1267,7 +1159,7 @@ func (x *ReportRunMetricsResponse_ReportRunMetricResult) String() string {
 func (*ReportRunMetricsResponse_ReportRunMetricResult) ProtoMessage() {}
 
 func (x *ReportRunMetricsResponse_ReportRunMetricResult) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v1beta1_run_proto_msgTypes[17]
+	mi := &file_backend_api_v1beta1_run_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1396,13 +1288,7 @@ const file_backend_api_v1beta1_run_proto_rawDesc = "" +
 	"\x02OK\x10\x01\x12\x14\n" +
 	"\x10INVALID_ARGUMENT\x10\x02\x12\x17\n" +
 	"\x13DUPLICATE_REPORTING\x10\x03\x12\x12\n" +
-	"\x0eINTERNAL_ERROR\x10\x04\"j\n" +
-	"\x13ReadArtifactRequest\x12\x15\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12#\n" +
-	"\rartifact_name\x18\x03 \x01(\tR\fartifactName\"*\n" +
-	"\x14ReadArtifactResponse\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data2\xc6\b\n" +
+	"\x0eINTERNAL_ERROR\x10\x042\xaa\a\n" +
 	"\n" +
 	"RunService\x12U\n" +
 	"\vCreateRunV1\x12\x15.api.CreateRunRequest\x1a\x0e.api.RunDetail\"\x1f\x82\xd3\xe4\x93\x02\x19:\x03run\"\x12/apis/v1beta1/runs\x12S\n" +
@@ -1412,8 +1298,7 @@ const file_backend_api_v1beta1_run_proto_rawDesc = "" +
 	"\fArchiveRunV1\x12\x16.api.ArchiveRunRequest\x1a\x16.google.protobuf.Empty\"'\x82\xd3\xe4\x93\x02!\"\x1f/apis/v1beta1/runs/{id}:archive\x12m\n" +
 	"\x0eUnarchiveRunV1\x12\x18.api.UnarchiveRunRequest\x1a\x16.google.protobuf.Empty\")\x82\xd3\xe4\x93\x02#\"!/apis/v1beta1/runs/{id}:unarchive\x12]\n" +
 	"\vDeleteRunV1\x12\x15.api.DeleteRunRequest\x1a\x16.google.protobuf.Empty\"\x1f\x82\xd3\xe4\x93\x02\x19*\x17/apis/v1beta1/runs/{id}\x12\x87\x01\n" +
-	"\x12ReportRunMetricsV1\x12\x1c.api.ReportRunMetricsRequest\x1a\x1d.api.ReportRunMetricsResponse\"4\x82\xd3\xe4\x93\x02.:\x01*\")/apis/v1beta1/runs/{run_id}:reportMetrics\x12\x99\x01\n" +
-	"\x0eReadArtifactV1\x12\x18.api.ReadArtifactRequest\x1a\x19.api.ReadArtifactResponse\"R\x82\xd3\xe4\x93\x02L\x12J/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read\x12q\n" +
+	"\x12ReportRunMetricsV1\x12\x1c.api.ReportRunMetricsRequest\x1a\x1d.api.ReportRunMetricsResponse\"4\x82\xd3\xe4\x93\x02.:\x01*\")/apis/v1beta1/runs/{run_id}:reportMetrics\x12q\n" +
 	"\x0eTerminateRunV1\x12\x18.api.TerminateRunRequest\x1a\x16.google.protobuf.Empty\"-\x82\xd3\xe4\x93\x02'\"%/apis/v1beta1/runs/{run_id}/terminate\x12e\n" +
 	"\n" +
 	"RetryRunV1\x12\x14.api.RetryRunRequest\x1a\x16.google.protobuf.Empty\")\x82\xd3\xe4\x93\x02#\"!/apis/v1beta1/runs/{run_id}/retryB\x91\x01\x92AQ*\x02\x01\x02R\x1c\n" +
@@ -1438,7 +1323,7 @@ func file_backend_api_v1beta1_run_proto_rawDescGZIP() []byte {
 }
 
 var file_backend_api_v1beta1_run_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_backend_api_v1beta1_run_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_backend_api_v1beta1_run_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_backend_api_v1beta1_run_proto_goTypes = []any{
 	(Run_StorageState)(0), // 0: api.Run.StorageState
 	(RunMetric_Format)(0), // 1: api.RunMetric.Format
@@ -1458,31 +1343,29 @@ var file_backend_api_v1beta1_run_proto_goTypes = []any{
 	(*RunMetric)(nil),                                          // 15: api.RunMetric
 	(*ReportRunMetricsRequest)(nil),                            // 16: api.ReportRunMetricsRequest
 	(*ReportRunMetricsResponse)(nil),                           // 17: api.ReportRunMetricsResponse
-	(*ReadArtifactRequest)(nil),                                // 18: api.ReadArtifactRequest
-	(*ReadArtifactResponse)(nil),                               // 19: api.ReadArtifactResponse
-	(*ReportRunMetricsResponse_ReportRunMetricResult)(nil),     // 20: api.ReportRunMetricsResponse.ReportRunMetricResult
-	(*ResourceKey)(nil),                                        // 21: api.ResourceKey
-	(*PipelineSpec)(nil),                                       // 22: api.PipelineSpec
-	(*ResourceReference)(nil),                                  // 23: api.ResourceReference
-	(*timestamppb.Timestamp)(nil),                              // 24: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                                      // 25: google.protobuf.Empty
+	(*ReportRunMetricsResponse_ReportRunMetricResult)(nil),     // 18: api.ReportRunMetricsResponse.ReportRunMetricResult
+	(*ResourceKey)(nil),                                        // 19: api.ResourceKey
+	(*PipelineSpec)(nil),                                       // 20: api.PipelineSpec
+	(*ResourceReference)(nil),                                  // 21: api.ResourceReference
+	(*timestamppb.Timestamp)(nil),                              // 22: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                                      // 23: google.protobuf.Empty
 }
 var file_backend_api_v1beta1_run_proto_depIdxs = []int32{
 	12, // 0: api.CreateRunRequest.run:type_name -> api.Run
-	21, // 1: api.ListRunsRequest.resource_reference_key:type_name -> api.ResourceKey
+	19, // 1: api.ListRunsRequest.resource_reference_key:type_name -> api.ResourceKey
 	12, // 2: api.ListRunsResponse.runs:type_name -> api.Run
 	0,  // 3: api.Run.storage_state:type_name -> api.Run.StorageState
-	22, // 4: api.Run.pipeline_spec:type_name -> api.PipelineSpec
-	23, // 5: api.Run.resource_references:type_name -> api.ResourceReference
-	24, // 6: api.Run.created_at:type_name -> google.protobuf.Timestamp
-	24, // 7: api.Run.scheduled_at:type_name -> google.protobuf.Timestamp
-	24, // 8: api.Run.finished_at:type_name -> google.protobuf.Timestamp
+	20, // 4: api.Run.pipeline_spec:type_name -> api.PipelineSpec
+	21, // 5: api.Run.resource_references:type_name -> api.ResourceReference
+	22, // 6: api.Run.created_at:type_name -> google.protobuf.Timestamp
+	22, // 7: api.Run.scheduled_at:type_name -> google.protobuf.Timestamp
+	22, // 8: api.Run.finished_at:type_name -> google.protobuf.Timestamp
 	15, // 9: api.Run.metrics:type_name -> api.RunMetric
 	12, // 10: api.RunDetail.run:type_name -> api.Run
 	13, // 11: api.RunDetail.pipeline_runtime:type_name -> api.PipelineRuntime
 	1,  // 12: api.RunMetric.format:type_name -> api.RunMetric.Format
 	15, // 13: api.ReportRunMetricsRequest.metrics:type_name -> api.RunMetric
-	20, // 14: api.ReportRunMetricsResponse.results:type_name -> api.ReportRunMetricsResponse.ReportRunMetricResult
+	18, // 14: api.ReportRunMetricsResponse.results:type_name -> api.ReportRunMetricsResponse.ReportRunMetricResult
 	2,  // 15: api.ReportRunMetricsResponse.ReportRunMetricResult.status:type_name -> api.ReportRunMetricsResponse.ReportRunMetricResult.Status
 	3,  // 16: api.RunService.CreateRunV1:input_type -> api.CreateRunRequest
 	4,  // 17: api.RunService.GetRunV1:input_type -> api.GetRunRequest
@@ -1491,21 +1374,19 @@ var file_backend_api_v1beta1_run_proto_depIdxs = []int32{
 	10, // 20: api.RunService.UnarchiveRunV1:input_type -> api.UnarchiveRunRequest
 	11, // 21: api.RunService.DeleteRunV1:input_type -> api.DeleteRunRequest
 	16, // 22: api.RunService.ReportRunMetricsV1:input_type -> api.ReportRunMetricsRequest
-	18, // 23: api.RunService.ReadArtifactV1:input_type -> api.ReadArtifactRequest
-	6,  // 24: api.RunService.TerminateRunV1:input_type -> api.TerminateRunRequest
-	7,  // 25: api.RunService.RetryRunV1:input_type -> api.RetryRunRequest
-	14, // 26: api.RunService.CreateRunV1:output_type -> api.RunDetail
-	14, // 27: api.RunService.GetRunV1:output_type -> api.RunDetail
-	8,  // 28: api.RunService.ListRunsV1:output_type -> api.ListRunsResponse
-	25, // 29: api.RunService.ArchiveRunV1:output_type -> google.protobuf.Empty
-	25, // 30: api.RunService.UnarchiveRunV1:output_type -> google.protobuf.Empty
-	25, // 31: api.RunService.DeleteRunV1:output_type -> google.protobuf.Empty
-	17, // 32: api.RunService.ReportRunMetricsV1:output_type -> api.ReportRunMetricsResponse
-	19, // 33: api.RunService.ReadArtifactV1:output_type -> api.ReadArtifactResponse
-	25, // 34: api.RunService.TerminateRunV1:output_type -> google.protobuf.Empty
-	25, // 35: api.RunService.RetryRunV1:output_type -> google.protobuf.Empty
-	26, // [26:36] is the sub-list for method output_type
-	16, // [16:26] is the sub-list for method input_type
+	6,  // 23: api.RunService.TerminateRunV1:input_type -> api.TerminateRunRequest
+	7,  // 24: api.RunService.RetryRunV1:input_type -> api.RetryRunRequest
+	14, // 25: api.RunService.CreateRunV1:output_type -> api.RunDetail
+	14, // 26: api.RunService.GetRunV1:output_type -> api.RunDetail
+	8,  // 27: api.RunService.ListRunsV1:output_type -> api.ListRunsResponse
+	23, // 28: api.RunService.ArchiveRunV1:output_type -> google.protobuf.Empty
+	23, // 29: api.RunService.UnarchiveRunV1:output_type -> google.protobuf.Empty
+	23, // 30: api.RunService.DeleteRunV1:output_type -> google.protobuf.Empty
+	17, // 31: api.RunService.ReportRunMetricsV1:output_type -> api.ReportRunMetricsResponse
+	23, // 32: api.RunService.TerminateRunV1:output_type -> google.protobuf.Empty
+	23, // 33: api.RunService.RetryRunV1:output_type -> google.protobuf.Empty
+	25, // [25:34] is the sub-list for method output_type
+	16, // [16:25] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
 	16, // [16:16] is the sub-list for extension extendee
 	0,  // [0:16] is the sub-list for field type_name
@@ -1527,7 +1408,7 @@ func file_backend_api_v1beta1_run_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backend_api_v1beta1_run_proto_rawDesc), len(file_backend_api_v1beta1_run_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   18,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

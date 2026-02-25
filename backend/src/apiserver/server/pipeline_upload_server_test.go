@@ -47,24 +47,24 @@ const (
 func TestUploadPipeline(t *testing.T) {
 	// TODO(v2): when we add a field to distinguish between v1 and v2 template, verify it's in the response
 	tt := []struct {
-		name        string
-		spec        []byte
+		name       string
+		spec       []byte
 		apiVersion string
 	}{{
-		name:        "upload argo workflow YAML",
-		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		name:       "upload argo workflow YAML",
+		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
 		apiVersion: "v1beta1",
 	}, {
-		name:        "upload argo workflow YAML",
-		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		name:       "upload argo workflow YAML",
+		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
 		apiVersion: "v2beta1",
 	}, {
-		name:        "upload pipeline v2 job in proto yaml",
-		spec:        []byte(v2SpecHelloWorld),
+		name:       "upload pipeline v2 job in proto yaml",
+		spec:       []byte(v2SpecHelloWorld),
 		apiVersion: "v1beta1",
 	}, {
-		name:        "upload pipeline v2 job in proto yaml",
-		spec:        []byte(v2SpecHelloWorld),
+		name:       "upload pipeline v2 job in proto yaml",
+		spec:       []byte(v2SpecHelloWorld),
 		apiVersion: "v2beta1",
 	}}
 	for _, test := range tt {
@@ -732,7 +732,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-world
 root:
@@ -789,7 +789,7 @@ deploymentSpec:
           _parsed_args = vars(_parser.parse_args())
 
           _outputs = hello_world(**_parsed_args)
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-world
 root:
@@ -830,7 +830,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-world-
 root:
@@ -855,7 +855,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hEllo-world
 root:
@@ -880,7 +880,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: more than  128 characters more than  128 characters more than  128 characters more than  128 characters more than  128 characters
 root:
@@ -905,7 +905,7 @@ deploymentSpec:
   executors:
     exec-hello-world:
       container:
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: hello-worl.d
 root:

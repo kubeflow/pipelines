@@ -8,7 +8,7 @@ resources:
   - cache-service.yaml
 images:
   - name: ghcr.io/kubeflow/kfp-cache-server
-    newTag: 2.14.3
+    newTag: 2.15.0
 labels:
   - includeSelectors: true
     pairs:

@@ -60,7 +60,7 @@ deploymentSpec:
           \ assert content == \"Hello from workspace!\"\n        return content\n\
           \    else:\n        print(f\"File not found at: {file_path}\")\n       \
           \ return \"File not found\"\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-write-to-workspace:
       container:
         args:
@@ -93,7 +93,7 @@ deploymentSpec:
           , \"test_file.txt\")\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n\
           \n    with open(file_path, \"w\") as f:\n        f.write(\"Hello from workspace!\"\
           )\n\n    print(f\"Wrote file to: {file_path}\")\n    return file_path\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   description: A pipeline that demonstrates workspace functionality
   name: pipeline-with-workspace
@@ -146,5 +146,7 @@ platforms:
       workspace:
         kubernetes:
           pvcSpecPatch:
+            accessModes:
+            - ReadWriteOnce
             storageClassName: standard
         size: 1Gi

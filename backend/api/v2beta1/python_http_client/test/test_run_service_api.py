@@ -63,13 +63,6 @@ class TestRunServiceApi(unittest.TestCase):
         """
         pass
 
-    def test_run_service_read_artifact(self):
-        """Test case for run_service_read_artifact
-
-        Finds artifact data in a run.  # noqa: E501
-        """
-        pass
-
     def test_run_service_retry_run(self):
         """Test case for run_service_retry_run
 

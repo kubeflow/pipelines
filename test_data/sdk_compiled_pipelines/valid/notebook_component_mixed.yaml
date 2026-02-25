@@ -193,7 +193,7 @@ deploymentSpec:
           \ == {\"score\": float(len(model_text))}\n\n    for metric_name, metric_value\
           \ in metrics_dict.items():\n        metrics.log_metric(metric_name, metric_value)\n\
           \n"
-        image: python:3.9
+        image: python:3.11
     exec-preprocess:
       container:
         args:
@@ -224,7 +224,7 @@ deploymentSpec:
           \    import re\n\n    cleaned_text = re.sub(r\"\\s+\", \" \", text).strip()\n\
           \    with open(dataset.path, \"w\", encoding=\"utf-8\") as f:\n        f.write(cleaned_text)\n\
           \n"
-        image: python:3.9
+        image: python:3.11
     exec-train-model:
       container:
         args:
@@ -372,7 +372,7 @@ deploymentSpec:
           , model.path)\n\n    with open(model.path, \"r\", encoding=\"utf-8\") as\
           \ f:\n        model_text = f.read()\n\n    assert model_text == cleaned_text.upper()\n\
           \n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: nb-mixed
 root:

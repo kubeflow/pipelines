@@ -83,6 +83,8 @@ export function statusToBgColor(status?: NodePhase, nodeMessage?: string): strin
       return statusBgColors.error;
     case NodePhase.PENDING:
       return statusBgColors.notStarted;
+    case NodePhase.OMITTED:
+      return statusBgColors.notStarted;
     case NodePhase.TERMINATING:
     // fall through
     case NodePhase.RUNNING:

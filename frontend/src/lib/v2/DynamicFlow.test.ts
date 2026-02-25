@@ -23,11 +23,8 @@ import {
   updateFlowElementsState,
 } from './DynamicFlow';
 import { convertFlowElements, getTaskKeyFromNodeKey, NodeTypeNames } from './StaticFlow';
-import fs from 'fs';
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import jsyaml from 'js-yaml';
-
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 describe('DynamicFlow', () => {
   describe('updateFlowElementsState', () => {

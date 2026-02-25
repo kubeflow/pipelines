@@ -116,7 +116,7 @@ def component(
             ...
 
         @dsl.component(
-        base_image='python:3.9',
+        base_image='python:3.11',
         output_component_file='my_function.yaml'
         )
         def my_function_two(input: Input[Mode])):

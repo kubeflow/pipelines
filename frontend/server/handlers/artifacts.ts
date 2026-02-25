@@ -11,28 +11,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import fetch from 'node-fetch';
-import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs';
+import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs.js';
 import { Client as MinioClient } from 'minio';
 import {
   PreviewStream,
   findFileOnPodVolume,
   parseJSONString,
   isAllowedResourceName,
-} from '../utils';
-import { createMinioClient, getObjectStream } from '../minio-helper';
-import * as serverInfo from '../helpers/server-info';
+} from '../utils.js';
+import { createMinioClient, getObjectStream } from '../minio-helper.js';
+import * as serverInfo from '../helpers/server-info.js';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
 
 import * as fs from 'fs';
-import { isAllowedDomain } from './domain-checker';
-import { getK8sSecret } from '../k8s-helper';
-import { StorageOptions } from '@google-cloud/storage/build/src/storage';
-import { CredentialBody } from 'google-auth-library/build/src/auth/credentials';
+import { isAllowedDomain } from './domain-checker.js';
+import { getK8sSecret } from '../k8s-helper.js';
+import { StorageOptions } from '@google-cloud/storage';
+import { CredentialBody } from 'google-auth-library';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -122,6 +121,10 @@ export function getArtifactsHandler({
     }
     if (!key) {
       res.status(500).send('Storage key is missing from artifact request');
+      return;
+    }
+    if (key.length > 1024) {
+      res.status(500).send('Object key too long');
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
@@ -225,8 +228,14 @@ function getHttpArtifactsHandler(
       return;
     }
     const response = await fetch(url, { headers });
-    response.body
-      .on('error', err => res.status(500).send(`Unable to retrieve artifact: ${err}`))
+    if (!response.body) {
+      res.status(500).send('Unable to retrieve artifact: empty response body');
+      return;
+    }
+    const { Readable } = await import('stream');
+    const nodeStream = Readable.fromWeb(response.body as any);
+    nodeStream
+      .on('error', (err: Error) => res.status(500).send(`Unable to retrieve artifact: ${err}`))
       .pipe(new PreviewStream({ peek }))
       .pipe(res);
   };

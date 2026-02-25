@@ -745,7 +745,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       }
       this.setState({ validationError: '' });
     } catch (err) {
-      this.setState({ validationError: err.message });
+      this.setState({
+        validationError:
+          err instanceof Error ? err.message : 'Validation failed for pipeline version.',
+      });
     }
   }
 

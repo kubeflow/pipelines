@@ -15,31 +15,53 @@
  */
 
 import * as React from 'react';
-import * as Utils from 'src/lib/Utils';
-import RecurringRunList, { RecurringRunListProps } from './RecurringRunList';
-import TestUtils from 'src/TestUtils';
+import { act, render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import produce from 'immer';
-import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
-import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
+import * as Utils from 'src/lib/Utils';
+import TestUtils from 'src/TestUtils';
+import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
+import RecurringRunList, { RecurringRunListProps } from './RecurringRunList';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { color } from 'src/Css';
 
-class RecurringRunListTest extends RecurringRunList {
-  public _loadRecurringRuns(request: ListRequest): Promise<string> {
-    return super._loadRecurringRuns(request);
-  }
-}
+let lastCustomTableProps: any = null;
+
+vi.mock('src/components/CustomTable', () => {
+  return {
+    __esModule: true,
+    Column: {},
+    Row: {},
+    CustomRendererProps: {},
+    default: React.forwardRef((props: any, ref) => {
+      lastCustomTableProps = props;
+      React.useImperativeHandle(ref, () => ({
+        reload: async () => {
+          const sortBy = props.initialSortColumn ? `${props.initialSortColumn} desc` : '';
+          return props.reload({
+            pageToken: '',
+            pageSize: 10,
+            sortBy,
+            filter: '',
+          });
+        },
+      }));
+      return <div data-testid='custom-table' />;
+    }),
+  };
+});
 
 describe('RecurringRunList', () => {
-  let tree: ShallowWrapper | ReactWrapper;
+  let renderResult: ReturnType<typeof render> | null = null;
+  let recurringRunListRef: React.RefObject<RecurringRunList> | null = null;
 
-  const onErrorSpy = jest.fn();
-  const listRecurringRunsSpy = jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
-  const getRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
-  const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
-  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
-  // test environments
-  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
+  const onErrorSpy = vi.fn();
+  const listRecurringRunsSpy = vi.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
+  const getRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
+  const listExperimentsSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
+  const formatDateStringSpy = vi.spyOn(Utils, 'formatDateString');
 
   function generateProps(): RecurringRunListProps {
     return {
@@ -49,6 +71,22 @@ describe('RecurringRunList', () => {
       onError: onErrorSpy,
       refreshCount: 1,
     };
+  }
+
+  function renderRecurringRunList(propsPatch: Partial<RecurringRunListProps> = {}): void {
+    recurringRunListRef = React.createRef<RecurringRunList>();
+    const props = { ...generateProps(), ...propsPatch } as RecurringRunListProps;
+    renderResult = render(
+      <MemoryRouter>
+        <RecurringRunList ref={recurringRunListRef} {...props} />
+      </MemoryRouter>,
+    );
+  }
+
+  async function loadRecurringRuns(request: ListRequest = {}): Promise<void> {
+    await act(async () => {
+      await (recurringRunListRef!.current as any)._loadRecurringRuns(request);
+    });
   }
 
   function mockNRecurringRuns(n: number, recurringRunTemplate: Partial<V2beta1RecurringRun>): void {
@@ -63,27 +101,23 @@ describe('RecurringRunList', () => {
 
     listRecurringRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        recurringRuns: range(1, n + 1).map(i => {
-          if (recurringRunTemplate) {
-            return produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, draft => {
-              draft.recurring_run_id = 'testrecurringrun' + i;
-              draft.display_name = 'recurring run with id: testrecurringrun' + i;
-            });
-          }
-          return {
-            recurring_run_id: 'testrecurringrun' + i,
-            display_name: 'recurring run with id: testrecurringrun' + i,
-          } as V2beta1RecurringRun;
-        }),
+        recurringRuns: range(1, n + 1).map(i =>
+          produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, draft => {
+            draft.recurring_run_id = 'testrecurringrun' + i;
+            draft.display_name = 'recurring run with id: testrecurringrun' + i;
+          }),
+        ) as V2beta1RecurringRun[],
       }),
     );
 
-    listExperimentsSpy.mockImplementation(() => ({ display_name: 'some experiment' }));
+    listExperimentsSpy.mockResolvedValue({ experiments: [] });
   }
 
-  function getMountedInstance(): RecurringRunList {
-    tree = TestUtils.mountWithRouter(<RecurringRunList {...generateProps()} />);
-    return tree.instance() as RecurringRunList;
+  function getInstance(): RecurringRunList {
+    if (!recurringRunListRef?.current) {
+      throw new Error('RecurringRunList instance not available');
+    }
+    return recurringRunListRef.current;
   }
 
   beforeEach(() => {
@@ -91,70 +125,32 @@ describe('RecurringRunList', () => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
     onErrorSpy.mockClear();
-    listRecurringRunsSpy.mockClear();
-    getRecurringRunSpy.mockClear();
-    listExperimentsSpy.mockClear();
+    listRecurringRunsSpy.mockReset();
+    getRecurringRunSpy.mockReset();
+    listExperimentsSpy.mockReset();
+    lastCustomTableProps = null;
   });
 
-  afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    if (tree) {
-      await tree.unmount();
-    }
-    jest.resetAllMocks();
+  afterEach(() => {
+    renderResult?.unmount();
+    renderResult = null;
+    recurringRunListRef = null;
+    vi.resetAllMocks();
   });
 
   it('renders the empty experience', () => {
-    expect(shallow(<RecurringRunList {...generateProps()} />)).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={Array []}
-        />
-      </div>
-    `);
+    renderRecurringRunList();
+    expect(lastCustomTableProps.rows).toEqual([]);
+    expect(lastCustomTableProps.emptyMessage).toBe('No available recurring runs found.');
   });
 
   it('loads one recurring run', async () => {
     mockNRecurringRuns(1, {});
     const props = generateProps();
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
-    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
+    expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -163,71 +159,33 @@ describe('RecurringRunList', () => {
       undefined,
     );
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun1",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun1",
-                  undefined,
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    expect(lastCustomTableProps.rows).toEqual([
+      {
+        error: undefined,
+        id: 'testrecurringrun1',
+        otherFields: [
+          'recurring run with id: testrecurringrun1',
+          undefined,
+          undefined,
+          undefined,
+          '-',
+        ],
+      },
+    ]);
   });
 
   it('reloads the recurring run when refresh is called', async () => {
     mockNRecurringRuns(0, {});
-    const props = generateProps();
-    tree = TestUtils.mountWithRouter(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunList).refresh();
-    tree.update();
-    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenCalledTimes(2);
-    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
+    renderRecurringRunList();
+    await loadRecurringRuns({});
+    listRecurringRunsSpy.mockClear();
+
+    await act(async () => {
+      await getInstance().refresh();
+    });
+
+    expect(listRecurringRunsSpy).toHaveBeenCalledTimes(1);
+    expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       '',
       10,
       JobSortKeys.CREATED_AT + ' desc',
@@ -235,124 +193,25 @@ describe('RecurringRunList', () => {
       '',
       undefined,
     );
-    expect(props.onError).not.toHaveBeenCalled();
+    expect(onErrorSpy).not.toHaveBeenCalled();
   });
 
   it('loads multiple recurring runs', async () => {
     mockNRecurringRuns(5, {});
     const props = generateProps();
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun1",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun1",
-                  undefined,
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun2",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun2",
-                  undefined,
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun3",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun3",
-                  undefined,
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun4",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun4",
-                  undefined,
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun5",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun5",
-                  undefined,
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    expect(lastCustomTableProps.rows).toHaveLength(5);
   });
 
   it('calls error callback when loading recurring runs fails', async () => {
-    TestUtils.makeErrorResponseOnce(
-      jest.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns'),
-      'bad stuff happened',
-    );
+    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy as any, 'bad stuff happened');
     const props = generateProps();
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).toHaveBeenLastCalledWith(
       'Error: failed to fetch recurring runs.',
       new Error('bad stuff happened'),
@@ -363,10 +222,11 @@ describe('RecurringRunList', () => {
     mockNRecurringRuns(1, {});
     const props = generateProps();
     props.experimentIdMask = 'experiment1';
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
+    expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -380,10 +240,11 @@ describe('RecurringRunList', () => {
     mockNRecurringRuns(1, {});
     const props = generateProps();
     props.namespaceMask = 'namespace1';
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(Apis.recurringRunServiceApi.listRecurringRuns).toHaveBeenLastCalledWith(
+    expect(listRecurringRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       undefined,
       undefined,
@@ -397,78 +258,24 @@ describe('RecurringRunList', () => {
     mockNRecurringRuns(5, {});
     const props = generateProps();
     props.recurringRunIdListMask = ['recurring run1', 'recurring run2'];
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(Apis.recurringRunServiceApi.listRecurringRuns).not.toHaveBeenCalled();
-    expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledTimes(2);
-    expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledWith('recurring run1');
-    expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledWith('recurring run2');
+    expect(listRecurringRunsSpy).not.toHaveBeenCalled();
+    expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+    expect(getRecurringRunSpy).toHaveBeenCalledWith('recurring run1');
+    expect(getRecurringRunSpy).toHaveBeenCalledWith('recurring run2');
   });
 
   it('shows recurring run status', async () => {
-    mockNRecurringRuns(1, {
-      status: V2beta1RecurringRunStatus.ENABLED,
-    });
+    mockNRecurringRuns(1, { status: V2beta1RecurringRunStatus.ENABLED });
     const props = generateProps();
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun1",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun1",
-                  "ENABLED",
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    expect(lastCustomTableProps.rows[0].otherFields[1]).toBe(V2beta1RecurringRunStatus.ENABLED);
   });
 
   it('shows trigger periodic', async () => {
@@ -476,68 +283,13 @@ describe('RecurringRunList', () => {
       trigger: { periodic_schedule: { interval_second: '3600' } },
     });
     const props = generateProps();
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun1",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun1",
-                  undefined,
-                  Object {
-                    "periodic_schedule": Object {
-                      "interval_second": "3600",
-                    },
-                  },
-                  undefined,
-                  "-",
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    expect(lastCustomTableProps.rows[0].otherFields[2]).toEqual({
+      periodic_schedule: { interval_second: '3600' },
+    });
   });
 
   it('shows trigger cron', async () => {
@@ -545,335 +297,147 @@ describe('RecurringRunList', () => {
       trigger: { cron_schedule: { cron: '0 * * * * ?' } },
     });
     const props = generateProps();
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun1",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun1",
-                  undefined,
-                  Object {
-                    "cron_schedule": Object {
-                      "cron": "0 * * * * ?",
-                    },
-                  },
-                  undefined,
-                  "-",
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    expect(lastCustomTableProps.rows[0].otherFields[2]).toEqual({
+      cron_schedule: { cron: '0 * * * * ?' },
+    });
   });
 
   it('shows experiment name', async () => {
     mockNRecurringRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    listExperimentsSpy.mockImplementationOnce(() => ({
+    listExperimentsSpy.mockResolvedValueOnce({
       experiments: [
         {
           experiment_id: 'test-experiment-id',
           display_name: 'test experiment',
         },
       ],
-    }));
+    });
     const props = generateProps();
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun1",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun1",
-                  undefined,
-                  undefined,
-                  Object {
-                    "displayName": "test experiment",
-                    "id": "test-experiment-id",
-                  },
-                  "-",
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    expect(lastCustomTableProps.rows[0].otherFields[3]).toEqual({
+      displayName: 'test experiment',
+      id: 'test-experiment-id',
+    });
   });
 
   it('hides experiment name if instructed', async () => {
     mockNRecurringRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    listExperimentsSpy.mockImplementationOnce(() => ({ display_name: 'test experiment' }));
+    listExperimentsSpy.mockResolvedValueOnce({
+      experiments: [
+        {
+          experiment_id: 'test-experiment-id',
+          display_name: 'test experiment',
+        },
+      ],
+    });
     const props = generateProps();
     props.hideExperimentColumn = true;
-    tree = shallow(<RecurringRunList {...props} />);
-    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
+    renderRecurringRunList(props);
+    await loadRecurringRuns({});
+
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Recurring Run Name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Trigger",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No available recurring runs found."
-          filterLabel="Filter recurring runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrecurringrun1",
-                "otherFields": Array [
-                  "recurring run with id: testrecurringrun1",
-                  undefined,
-                  undefined,
-                  "-",
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    expect(lastCustomTableProps.columns.map((column: any) => column.label)).not.toContain(
+      'Experiment',
+    );
+    expect(lastCustomTableProps.rows[0].otherFields).toHaveLength(4);
   });
 
   it('renders recurring run trigger in seconds', () => {
-    expect(
-      getMountedInstance()._triggerCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '42' } },
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div>
-        Every 
-        42
-         seconds
-      </div>
-    `);
+    );
+    expect(getByText('Every 42 seconds')).toBeInTheDocument();
   });
 
   it('renders recurring run trigger in minutes', () => {
-    expect(
-      getMountedInstance()._triggerCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '120' } },
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div>
-        Every 
-        2
-         minutes
-      </div>
-    `);
+    );
+    expect(getByText('Every 2 minutes')).toBeInTheDocument();
   });
 
   it('renders recurring run trigger in hours', () => {
-    expect(
-      getMountedInstance()._triggerCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '7200' } },
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div>
-        Every 
-        2
-         hours
-      </div>
-    `);
+    );
+    expect(getByText('Every 2 hours')).toBeInTheDocument();
   });
 
   it('renders recurring run trigger in days', () => {
-    expect(
-      getMountedInstance()._triggerCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._triggerCustomRenderer({
         value: { periodic_schedule: { interval_second: '86400' } },
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div>
-        Every 
-        1
-         days
-      </div>
-    `);
+    );
+    expect(getByText('Every 1 days')).toBeInTheDocument();
   });
 
   it('renders recurring run trigger as cron', () => {
-    expect(
-      getMountedInstance()._triggerCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._triggerCustomRenderer({
         value: { cron_schedule: { cron: '0 * * * * ?' } },
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div>
-        Cron: 
-        0 * * * * ?
-      </div>
-    `);
+    );
+    expect(getByText('Cron: 0 * * * * ?')).toBeInTheDocument();
   });
 
   it('renders status enabled', () => {
-    expect(
-      getMountedInstance()._statusCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._statusCustomRenderer({
         value: 'Enabled',
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div
-        style={
-          Object {
-            "color": "#d50000",
-          }
-        }
-      >
-        Enabled
-      </div>
-    `);
+    );
+    expect(getByText('Enabled')).toHaveStyle({ color: color.errorText });
   });
 
   it('renders status disabled', () => {
-    expect(
-      getMountedInstance()._statusCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._statusCustomRenderer({
         value: 'Disabled',
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div
-        style={
-          Object {
-            "color": "#d50000",
-          }
-        }
-      >
-        Disabled
-      </div>
-    `);
+    );
+    expect(getByText('Disabled')).toHaveStyle({ color: color.errorText });
   });
 
   it('renders status unknown', () => {
-    expect(
-      getMountedInstance()._statusCustomRenderer({
+    renderRecurringRunList();
+    const { getByText } = render(
+      getInstance()._statusCustomRenderer({
         value: 'Unknown Status',
         id: 'recurring run-id',
       }),
-    ).toMatchInlineSnapshot(`
-      <div
-        style={
-          Object {
-            "color": "#d50000",
-          }
-        }
-      >
-        Unknown Status
-      </div>
-    `);
+    );
+    expect(getByText('Unknown Status')).toHaveStyle({ color: color.errorText });
   });
 });

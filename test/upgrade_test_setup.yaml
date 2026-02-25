@@ -18,6 +18,10 @@ metadata:
   generateName: upgrade-test-setup-
 spec:
   entrypoint: integration-test
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   volumes:
   - name: gcp-credentials
     secret:
@@ -85,6 +89,14 @@ spec:
           valueFrom:
             path: /outputs/strict-image-name/file
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{workflow.parameters.image-builder-image}}"
       imagePullPolicy: 'Always'
       command:
@@ -118,6 +130,14 @@ spec:
       - name: test-results-gcs-dir
       - name: initialization-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.initialization-test-image}}"
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",

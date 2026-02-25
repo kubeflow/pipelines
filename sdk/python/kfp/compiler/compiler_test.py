@@ -626,12 +626,11 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 compiler_utils.InvalidTopologyException,
-                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.Condition context unless the downstream is within that context too\. Found task dummy-op which depends on upstream task producer-op within an uncommon dsl\.Condition context\.'
-        ):
+                r'Illegal task dependency .* within a dsl\.If context .*'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
-                with dsl.Condition(val == False):
+                with dsl.If(val == False):
                     producer_task = producer_op()
 
                 dummy_op(msg=producer_task.output)
@@ -640,7 +639,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline(val: bool):
-            with dsl.Condition(val == False):
+            with dsl.If(val == False):
                 producer_task = producer_op()
                 dummy_op(msg=producer_task.output)
 
@@ -700,7 +699,7 @@ inputs:
 - {name: message, type: PipelineTaskFinalStatus}
 implementation:
   container:
-    image: python:3.9
+    image: python:3.11
     command:
     - echo
     - {inputValue: message}
@@ -975,14 +974,14 @@ implementation:
     def test_pipeline_with_parameterized_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.9.17')
+            @dsl.component(base_image='docker.io/python:3.11.17')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline(img: str):
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.9.17"
+                # overwrite base_image="docker.io/python:3.11.17"
                 task.set_container_image(img)
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
@@ -1007,17 +1006,63 @@ implementation:
                 self.assertTrue('base_image' in input_parameters)
                 self.assertTrue('pipelinechannel--img' in input_parameters)
 
+    def test_pipeline_with_parameterized_container_image_inside_parallel_for(
+            self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            @dsl.component(base_image='docker.io/python:3.11.17')
+            def empty_component(idx: int):
+                del idx
+
+            @dsl.pipeline()
+            def simple_pipeline(img: str):
+                with dsl.ParallelFor(items=[1, 2]) as item:
+                    task = empty_component(idx=item)
+                    task.set_container_image(img)
+
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline,
+                package_path=output_yaml,
+                pipeline_parameters={'img': 'someimage'})
+
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+            loop_components = {
+                name: comp
+                for name, comp in pipeline_spec['components'].items()
+                if name.startswith('comp-for-loop')
+            }
+            self.assertTrue(
+                loop_components,
+                'Expected to find at least one ParallelFor component in the pipeline spec'
+            )
+
+            loop_component = next(iter(loop_components.values()))
+            input_parameters = loop_component['inputDefinitions']['parameters']
+            self.assertIn('pipelinechannel--img', input_parameters)
+
+            loop_tasks = loop_component['dag']['tasks']
+            self.assertIn('empty-component', loop_tasks)
+            loop_task_inputs = loop_tasks['empty-component']['inputs'][
+                'parameters']
+            self.assertIn('base_image', loop_task_inputs)
+            self.assertIn('pipelinechannel--img', loop_task_inputs)
+
     def test_pipeline_with_constant_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.9.17')
+            @dsl.component(base_image='docker.io/python:3.11.17')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline():
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.9.17"
+                # overwrite base_image="docker.io/python:3.11.17"
                 task.set_container_image('constant-value')
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
@@ -1504,7 +1549,7 @@ class TestCompileComponent(parameterized.TestCase):
         def hello_world_container() -> dsl.ContainerSpec:
             """Hello world component."""
             return dsl.ContainerSpec(
-                image='python:3.9',
+                image='python:3.11',
                 command=['echo', 'hello world'],
                 args=[],
             )
@@ -1527,7 +1572,7 @@ class TestCompileComponent(parameterized.TestCase):
         @dsl.container_component
         def container_simple_io(text: str, output_path: dsl.OutputPath(str)):
             return dsl.ContainerSpec(
-                image='python:3.9',
+                image='python:3.11',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 
@@ -2574,7 +2619,7 @@ class TestYamlComments(unittest.TestCase):
         def my_container_component(text: str, output_path: OutputPath(str)):
             """component description."""
             return ContainerSpec(
-                image='python:3.9',
+                image='python:3.11',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 
@@ -4334,66 +4379,61 @@ class TestPlatformConfig(unittest.TestCase):
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=output_yaml)
 
+    def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
+            self):
+        """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
 
-class TestPipelineSemaphoreMutex(unittest.TestCase):
+        import os
+        import tempfile
 
-    def test_pipeline_with_semaphore(self):
-        """Test that pipeline config correctly sets the semaphore key."""
-        config = PipelineConfig()
-        config.semaphore_key = 'semaphore'
+        from kfp import compiler
+        from kfp import dsl
 
-        @dsl.pipeline(pipeline_config=config)
+        # No PipelineConfig provided (i.e., no workspace configured)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'dsl\.importer\(download_to_workspace=True\) requires PipelineConfig\(workspace=\.\.\.\) on the pipeline\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                dsl.importer(
+                    artifact_uri='gs://bucket/file.txt',
+                    artifact_class=dsl.Dataset,
+                    download_to_workspace=True,
+                )
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
+            self):
+        """Tests that compilation succeeds with both download_to_workspace and workspace config."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                workspace=dsl.WorkspaceConfig(size='1Gi')))
         def my_pipeline():
-            task = comp()
+            dsl.importer(
+                artifact_uri='gs://bucket/file.txt',
+                artifact_class=dsl.Dataset,
+                download_to_workspace=True,
+            )
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=output_yaml)
-
-            with open(output_yaml, 'r') as f:
-                pipeline_docs = list(yaml.safe_load_all(f))
-
-        platform_spec = None
-        for doc in pipeline_docs:
-            if 'platforms' in doc:
-                platform_spec = doc
-                break
-
-        self.assertIsNotNone(platform_spec,
-                             'No platforms section found in compiled output')
-        kubernetes_spec = platform_spec['platforms']['kubernetes'][
-            'pipelineConfig']
-        self.assertEqual(kubernetes_spec['semaphoreKey'], 'semaphore')
-
-    def test_pipeline_with_mutex(self):
-        """Test that pipeline config correctly sets the mutex name."""
-        config = PipelineConfig()
-        config.mutex_name = 'mutex'
-
-        @dsl.pipeline(pipeline_config=config)
-        def my_pipeline():
-            task = comp()
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
-
-            with open(output_yaml, 'r') as f:
-                pipeline_docs = list(yaml.safe_load_all(f))
-
-        platform_spec = None
-        for doc in pipeline_docs:
-            if 'platforms' in doc:
-                platform_spec = doc
-                break
-
-        self.assertIsNotNone(platform_spec,
-                             'No platforms section found in compiled output')
-        kubernetes_spec = platform_spec['platforms']['kubernetes'][
-            'pipelineConfig']
-        self.assertEqual(kubernetes_spec['mutexName'], 'mutex')
+            # Should not raise an error
+            self.assertTrue(os.path.exists(output_yaml))
 
 
 class ExtractInputOutputDescription(unittest.TestCase):

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as path from 'path';
-import { loadJSON } from './utils';
-import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts';
+import { loadJSON } from './utils.js';
+import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts.js';
 export const BASEPATH = '/pipeline';
 export const apiVersion1 = 'v1beta1';
 export const apiVersion1Prefix = `apis/${apiVersion1}`;
@@ -54,7 +54,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     MINIO_ACCESS_KEY = 'minio',
     MINIO_SECRET_KEY = 'minio123',
     MINIO_PORT = '9000',
-    MINIO_HOST = 'minio-service',
+    MINIO_HOST = 'seaweedfs',
     MINIO_NAMESPACE = 'kubeflow',
     MINIO_SSL = 'false',
     /** minio client use these to retrieve s3 objects/artifacts */
@@ -135,6 +135,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
      */
     KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
     FRONTEND_SERVER_NAMESPACE = 'kubeflow',
+    CLUSTER_DOMAIN = '.svc.cluster.local',
   } = env;
 
   return {
@@ -211,6 +212,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       tensorboard: {
         podTemplateSpec: loadJSON<object>(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH),
         tfImageName: VIEWER_TENSORBOARD_TF_IMAGE_NAME,
+        clusterDomain: CLUSTER_DOMAIN,
       },
     },
     visualizations: {
@@ -256,6 +258,7 @@ export interface PipelineConfigs {
 export interface ViewerTensorboardConfig {
   podTemplateSpec?: object;
   tfImageName: string;
+  clusterDomain: string;
 }
 export interface ViewerConfigs {
   tensorboard: ViewerTensorboardConfig;

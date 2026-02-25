@@ -56,7 +56,10 @@ def read_from_workspace(file_path: str) -> str:
         workspace=dsl.WorkspaceConfig(
             size='1Gi',
             kubernetes=dsl.KubernetesWorkspaceConfig(
-                pvcSpecPatch={'storageClassName': 'standard'}
+                pvcSpecPatch={
+                    'storageClassName': 'standard',
+                    'accessModes': ['ReadWriteOnce'],
+                }
             )
         ),
     ),

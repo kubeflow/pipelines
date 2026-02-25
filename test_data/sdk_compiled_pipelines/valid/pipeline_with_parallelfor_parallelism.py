@@ -79,7 +79,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
         pipeline_package_path)
 
 
-@dsl.pipeline(name='pipeline-with-loops')
+@dsl.pipeline(name='pipeline-with-parallelfor-parallelism')
 def my_pipeline(loop_parameter: List[str]):
 
     # Loop argument is from a pipeline input

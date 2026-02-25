@@ -15,84 +15,168 @@
  */
 
 import * as React from 'react';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { act } from 'react-dom/test-utils';
+import { vi } from 'vitest';
 import UploadPipelineDialog, { ImportMethod } from './UploadPipelineDialog';
 import TestUtils from '../TestUtils';
 
+type UploadPipelineDialogProps = React.ComponentProps<typeof UploadPipelineDialog>;
+
+type UploadPipelineDialogState = UploadPipelineDialog['state'];
+
+type UploadPipelineDialogRender = ReturnType<typeof render>;
+
+class UploadPipelineDialogWrapper {
+  private _instance: UploadPipelineDialog;
+  private _renderResult: UploadPipelineDialogRender;
+
+  public constructor(instance: UploadPipelineDialog, renderResult: UploadPipelineDialogRender) {
+    this._instance = instance;
+    this._renderResult = renderResult;
+  }
+
+  public instance(): UploadPipelineDialog {
+    return this._instance;
+  }
+
+  public state<K extends keyof UploadPipelineDialogState>(
+    key?: K,
+  ): UploadPipelineDialogState | UploadPipelineDialogState[K] {
+    const state = this._instance.state;
+    return key ? state[key] : state;
+  }
+
+  public unmount(): void {
+    this._renderResult.unmount();
+  }
+
+  public renderResult(): UploadPipelineDialogRender {
+    return this._renderResult;
+  }
+}
+
+function renderUploadDialog(props: UploadPipelineDialogProps): UploadPipelineDialogWrapper {
+  const ref = React.createRef<UploadPipelineDialog>();
+  const renderResult = render(<UploadPipelineDialog ref={ref} {...props} />);
+  if (!ref.current) {
+    throw new Error('UploadPipelineDialog instance not available');
+  }
+  return new UploadPipelineDialogWrapper(ref.current, renderResult);
+}
+
 describe('UploadPipelineDialog', () => {
-  let tree: ReactWrapper | ShallowWrapper;
-
-  afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    await tree.unmount();
-  });
-
   it('renders closed', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(
+      <UploadPipelineDialog open={false} onClose={vi.fn().mockResolvedValue(false)} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders open', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(
+      <UploadPipelineDialog open={true} onClose={vi.fn().mockResolvedValue(false)} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders an active dropzone', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.setState({ dropzoneActive: true });
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    act(() => {
+      wrapper.instance().setState({ dropzoneActive: true });
+    });
+    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
+    wrapper.unmount();
   });
 
   it('renders with a selected file to upload', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.setState({ fileToUpload: true });
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    const file = new File(['test'], 'test_upload_file.txt');
+    act(() => {
+      (wrapper.instance() as any)._onDrop([file]);
+    });
+    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
+    wrapper.unmount();
   });
 
   it('renders alternate UI for uploading via URL', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.setState({ importMethod: ImportMethod.URL });
-    expect(tree).toMatchSnapshot();
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    act(() => {
+      wrapper.instance().setState({ importMethod: ImportMethod.URL });
+    });
+    expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
+    wrapper.unmount();
   });
 
-  it('calls close callback with null and empty string when canceled', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.find('#cancelUploadBtn').simulate('click');
+  it('calls close callback with null and empty string when canceled', async () => {
+    const spy = vi.fn().mockResolvedValue(false);
+    render(<UploadPipelineDialog open={true} onClose={spy} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await TestUtils.flushPromises();
     expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, true, '');
   });
 
-  it('calls close callback with null and empty string when dialog is closed', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.find('WithStyles(Dialog)').simulate('close');
+  it('calls close callback with null and empty string when dialog is closed', async () => {
+    const spy = vi.fn().mockResolvedValue(false);
+    const wrapper = renderUploadDialog({ open: true, onClose: spy });
+    act(() => {
+      (wrapper.instance() as any)._uploadDialogClosed(false);
+    });
+    await TestUtils.flushPromises();
     expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, true, '');
+    wrapper.unmount();
   });
 
-  it('calls close callback with file name, file object, and description when confirmed', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
-    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({
-      target: { value: 'test name' },
+  it('calls close callback with file name, file object, and description when confirmed', async () => {
+    const spy = vi.fn().mockResolvedValue(false);
+    const wrapper = renderUploadDialog({ open: true, onClose: spy });
+    (wrapper.instance() as any)._dropzoneRef = { current: { open: () => null } };
+    const file = new File(['test'], 'test file.txt');
+    act(() => {
+      (wrapper.instance() as any)._onDrop([file]);
     });
-    tree.find('#confirmUploadBtn').simulate('click');
-    expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, true, '');
+    act(() => {
+      wrapper.instance().handleChange('uploadPipelineName')({
+        target: { value: 'test name' },
+      });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await TestUtils.flushPromises();
+    expect(spy).toHaveBeenLastCalledWith(
+      true,
+      'test name',
+      expect.any(File),
+      '',
+      ImportMethod.LOCAL,
+      true,
+      '',
+    );
+    wrapper.unmount();
   });
 
-  it('calls close callback with trimmed file url and pipeline name when confirmed', () => {
-    const spy = jest.fn();
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    // Click 'Import by URL'
-    tree.find('#uploadFromUrlBtn').simulate('change');
-    (tree.instance() as UploadPipelineDialog).handleChange('fileUrl')({
-      target: { value: '\n https://www.google.com/test-file.txt ' },
+  it('calls close callback with trimmed file url and pipeline name when confirmed', async () => {
+    const spy = vi.fn().mockResolvedValue(false);
+    const wrapper = renderUploadDialog({ open: true, onClose: spy });
+    fireEvent.click(screen.getByLabelText('Import by URL'));
+    act(() => {
+      wrapper.instance().handleChange('fileUrl')({
+        target: { value: '\n https://www.google.com/test-file.txt ' },
+      });
+      wrapper.instance().handleChange('uploadPipelineName')({
+        target: { value: 'test name' },
+      });
     });
-    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({
-      target: { value: 'test name' },
-    });
-    tree.find('#confirmUploadBtn').simulate('click');
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith(
       true,
       'test name',
@@ -102,104 +186,131 @@ describe('UploadPipelineDialog', () => {
       true,
       '',
     );
+    wrapper.unmount();
   });
 
   it('trims file extension for pipeline name suggestion', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    const file = { name: 'test_upload_file.tar.gz' };
-    tree.find('#dropZone').simulate('drop', [file]);
-    expect(tree.state()).toHaveProperty('dropzoneActive', false);
-    expect(tree.state()).toHaveProperty('uploadPipelineName', 'test_upload_file');
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    const file = new File(['test'], 'test_upload_file.tar.gz');
+    act(() => {
+      (wrapper.instance() as any)._onDrop([file]);
+    });
+    expect(wrapper.state('dropzoneActive')).toBe(false);
+    expect(wrapper.state('uploadPipelineName')).toBe('test_upload_file');
+    wrapper.unmount();
   });
 
   it('sets the import method based on which radio button is toggled', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    // Import method is LOCAL by default
-    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    expect(wrapper.state('importMethod')).toBe(ImportMethod.LOCAL);
 
-    // Click 'Import by URL'
-    tree.find('#uploadFromUrlBtn').simulate('change');
-    expect(tree.state('importMethod')).toBe(ImportMethod.URL);
+    fireEvent.click(screen.getByLabelText('Import by URL'));
+    expect(wrapper.state('importMethod')).toBe(ImportMethod.URL);
 
-    // Click back to default, 'Upload a file'
-    tree.find('#uploadLocalFileBtn').simulate('change');
-    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+    fireEvent.click(screen.getByLabelText('Upload a file'));
+    expect(wrapper.state('importMethod')).toBe(ImportMethod.LOCAL);
+    wrapper.unmount();
   });
 
   it('resets all state if the dialog is closed and the callback returns true', async () => {
-    const spy = jest.fn(() => true);
-
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.setState({
-      busy: true,
-      dropzoneActive: true,
-      file: {},
-      fileName: 'test file name',
-      fileUrl: 'https://some.url.com',
-      importMethod: ImportMethod.URL,
-      uploadPipelineDescription: 'test description',
-      uploadPipelineName: 'test pipeline name',
+    const spy = vi.fn().mockResolvedValue(true);
+    const wrapper = renderUploadDialog({ open: true, onClose: spy });
+    act(() => {
+      wrapper.instance().setState({
+        dropzoneActive: true,
+        file: {} as File,
+        fileName: 'test file name',
+        fileUrl: 'https://some.url.com',
+        importMethod: ImportMethod.URL,
+        uploadPipelineDescription: 'test description',
+        uploadPipelineName: 'test pipeline name',
+      });
     });
 
-    tree.find('#confirmUploadBtn').simulate('click');
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
     await TestUtils.flushPromises();
 
-    expect(tree.state('busy')).toBe(false);
-    expect(tree.state('dropzoneActive')).toBe(false);
-    expect(tree.state('file')).toBeNull();
-    expect(tree.state('fileName')).toBe('');
-    expect(tree.state('fileUrl')).toBe('');
-    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
-    expect(tree.state('uploadPipelineDescription')).toBe('');
-    expect(tree.state('uploadPipelineName')).toBe('');
+    expect(wrapper.state('busy')).toBe(false);
+    expect(wrapper.state('dropzoneActive')).toBe(false);
+    expect(wrapper.state('file')).toBeNull();
+    expect(wrapper.state('fileName')).toBe('');
+    expect(wrapper.state('fileUrl')).toBe('');
+    expect(wrapper.state('importMethod')).toBe(ImportMethod.LOCAL);
+    expect(wrapper.state('uploadPipelineDescription')).toBe('');
+    expect(wrapper.state('uploadPipelineName')).toBe('');
+    wrapper.unmount();
   });
 
   it('does not reset the state if the dialog is closed and the callback returns false', async () => {
-    const spy = jest.fn(() => false);
-
-    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.setState({
-      busy: true,
-      dropzoneActive: true,
-      file: {},
-      fileName: 'test file name',
-      fileUrl: 'https://some.url.com',
-      importMethod: ImportMethod.URL,
-      uploadPipelineDescription: 'test description',
-      uploadPipelineName: 'test pipeline name',
+    const spy = vi.fn().mockResolvedValue(false);
+    const wrapper = renderUploadDialog({ open: true, onClose: spy });
+    act(() => {
+      wrapper.instance().setState({
+        dropzoneActive: true,
+        file: {} as File,
+        fileName: 'test file name',
+        fileUrl: 'https://some.url.com',
+        importMethod: ImportMethod.URL,
+        uploadPipelineDescription: 'test description',
+        uploadPipelineName: 'test pipeline name',
+      });
     });
 
-    tree.find('#confirmUploadBtn').simulate('click');
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
     await TestUtils.flushPromises();
 
-    expect(tree.state('dropzoneActive')).toBe(true);
-    expect(tree.state('file')).toEqual({});
-    expect(tree.state('fileName')).toBe('test file name');
-    expect(tree.state('fileUrl')).toBe('https://some.url.com');
-    expect(tree.state('importMethod')).toBe(ImportMethod.URL);
-    expect(tree.state('uploadPipelineDescription')).toBe('test description');
-    expect(tree.state('uploadPipelineName')).toBe('test pipeline name');
-    // 'busy' is set to false regardless upon the callback returning
-    expect(tree.state('busy')).toBe(false);
+    expect(wrapper.state('dropzoneActive')).toBe(true);
+    expect(wrapper.state('file')).toEqual({});
+    expect(wrapper.state('fileName')).toBe('test file name');
+    expect(wrapper.state('fileUrl')).toBe('https://some.url.com');
+    expect(wrapper.state('importMethod')).toBe(ImportMethod.URL);
+    expect(wrapper.state('uploadPipelineDescription')).toBe('test description');
+    expect(wrapper.state('uploadPipelineName')).toBe('test pipeline name');
+    expect(wrapper.state('busy')).toBe(false);
+    wrapper.unmount();
   });
 
   it('sets an active dropzone on drag', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.find('#dropZone').simulate('dragEnter');
-    expect(tree.state()).toHaveProperty('dropzoneActive', true);
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    act(() => {
+      (wrapper.instance() as any)._onDropzoneDragEnter();
+    });
+    expect(wrapper.state('dropzoneActive')).toBe(true);
+    wrapper.unmount();
   });
 
   it('sets an inactive dropzone on drag leave', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    tree.find('#dropZone').simulate('dragLeave');
-    expect(tree.state()).toHaveProperty('dropzoneActive', false);
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    act(() => {
+      (wrapper.instance() as any)._onDropzoneDragLeave();
+    });
+    expect(wrapper.state('dropzoneActive')).toBe(false);
+    wrapper.unmount();
   });
 
   it('sets a file object on drop', () => {
-    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
-    const file = { name: 'test upload file' };
-    tree.find('#dropZone').simulate('drop', [file]);
-    expect(tree.state()).toHaveProperty('dropzoneActive', false);
-    expect(tree.state()).toHaveProperty('uploadPipelineName', file.name);
+    const wrapper = renderUploadDialog({
+      open: true,
+      onClose: vi.fn().mockResolvedValue(false),
+    });
+    const file = new File(['test'], 'test upload file');
+    act(() => {
+      (wrapper.instance() as any)._onDrop([file]);
+    });
+    expect(wrapper.state('dropzoneActive')).toBe(false);
+    expect(wrapper.state('uploadPipelineName')).toBe(file.name);
+    wrapper.unmount();
   });
 });

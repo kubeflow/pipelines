@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -125,12 +126,18 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	// Determine execution type
+	executionType := metadata.ExecutionType(metadata.ImporterExecutionTypeName)
+	if l.importer.GetDownloadToWorkspace() {
+		executionType = metadata.ExecutionType(metadata.ImporterWorkspaceExecutionTypeName)
+	}
+
 	ecfg := &metadata.ExecutionConfig{
 		TaskName:      l.task.GetTaskInfo().GetName(),
 		PodName:       l.launcherV2Options.PodName,
 		PodUID:        l.launcherV2Options.PodUID,
 		Namespace:     l.launcherV2Options.Namespace,
-		ExecutionType: metadata.ImporterExecutionTypeName,
+		ExecutionType: executionType,
 		ParentDagID:   l.importerLauncherOptions.ParentDagID,
 	}
 	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
@@ -253,15 +260,17 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 	}
 
 	if strings.HasPrefix(artifactUri, "oci://") {
+		// OCI artifacts are not supported when workspace is used
+		if l.importer.GetDownloadToWorkspace() {
+			return nil, fmt.Errorf("importer workspace download does not support OCI registries")
+		}
 		artifactType, err := metadata.SchemaToArtifactType(schema)
 		if err != nil {
 			return nil, fmt.Errorf("converting schema to artifact type failed: %w", err)
 		}
-
 		if *artifactType.Name != "system.Model" {
 			return nil, fmt.Errorf("the %s artifact type does not support OCI registries", *artifactType.Name)
 		}
-
 		return artifact, nil
 	}
 
@@ -283,7 +292,52 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 	}
 	storeSessionInfoStr := string(storeSessionInfoJSON)
 	artifact.CustomProperties["store_session_info"] = metadata.StringValue(storeSessionInfoStr)
+
+	// Download the artifact into the workspace
+	if l.importer.GetDownloadToWorkspace() {
+		bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactUri)
+		if err != nil {
+			return nil, err
+		}
+		localPath, err := LocalWorkspacePathForURI(artifactUri)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get local path for uri %q: %w", artifactUri, err)
+		}
+		blobKey, err := bucketConfig.KeyFromURI(artifactUri)
+		if err != nil {
+			return nil, fmt.Errorf("failed to derive blob key from uri %q while downloading artifact into workspace: %w", artifactUri, err)
+		}
+		bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open bucket for uri %q: %w", artifactUri, err)
+		}
+		defer bucket.Close()
+		glog.Infof("Downloading artifact %q (blob key %q) to workspace path %q", artifactUri, blobKey, localPath)
+		if err := objectstore.DownloadBlob(ctx, bucket, localPath, blobKey); err != nil {
+			return nil, fmt.Errorf("failed to download artifact to workspace: %w", err)
+		}
+	}
 	return artifact, nil
+}
+
+// resolveBucketConfigForURI parses bucket configuration for a given artifact URI and
+// attaches session information from the kfp-launcher ConfigMap when available.
+func (l *ImportLauncher) resolveBucketConfigForURI(ctx context.Context, uri string) (*objectstore.Config, error) {
+	bucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(uri)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse bucket config while resolving uri %q: %w", uri, err)
+	}
+	// Resolve and attach session info from kfp-launcher config for the artifact provider
+	if cfg, err := config.FromConfigMap(ctx, l.k8sClient, l.launcherV2Options.Namespace); err != nil {
+		glog.Warningf("failed to load launcher config while resolving bucket config: %v", err)
+	} else if cfg != nil {
+		if sess, err := cfg.GetStoreSessionInfo(uri); err != nil {
+			glog.Warningf("failed to resolve store session info for %q: %v", uri, err)
+		} else {
+			bucketConfig.SessionInfo = &sess
+		}
+	}
+	return bucketConfig, nil
 }
 
 func (l *ImportLauncher) getOutPutArtifactName() (string, error) {

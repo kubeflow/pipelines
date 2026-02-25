@@ -16,34 +16,31 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import fs from 'fs';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { expectErrors } from 'src/TestUtils';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
 import { RouteParams, RoutePage } from 'src/components/Router';
 import * as features from 'src/features';
-
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 
 describe('RecurringRunDetailsV2FC', () => {
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
-  const historyReplaceSpy = jest.fn();
-  const getRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
-  const deleteRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
-  const enableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
-  const disableRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-  const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+  const updateBannerSpy = vi.fn();
+  const updateDialogSpy = vi.fn();
+  const updateSnackbarSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
+  const historyPushSpy = vi.fn();
+  const historyReplaceSpy = vi.fn();
+  const getRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
+  const deleteRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
+  const enableRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
+  const disableRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'disableRecurringRun');
+  let getExperimentSpy: ReturnType<typeof vi.fn>;
+  const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
 
   let fullTestV2RecurringRun: V2beta1RecurringRun = {};
   let testPipelineVersion: V2beta1PipelineVersion = {};
@@ -96,9 +93,9 @@ describe('RecurringRunDetailsV2FC', () => {
       pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
     };
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // mock both v2_alpha and functional feature keys are enable.
-    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
 
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
     getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);
@@ -106,6 +103,9 @@ describe('RecurringRunDetailsV2FC', () => {
     deleteRecurringRunSpy.mockImplementation();
     enableRecurringRunSpy.mockImplementation();
     disableRecurringRunSpy.mockImplementation();
+    const experimentApi = { getExperiment: vi.fn() };
+    vi.spyOn(Apis, 'experimentServiceApiV2', 'get').mockReturnValue(experimentApi as any);
+    getExperimentSpy = experimentApi.getExperiment;
     getExperimentSpy.mockImplementation();
   });
 
@@ -248,6 +248,7 @@ describe('RecurringRunDetailsV2FC', () => {
   });
 
   it('shows error banner if run cannot be fetched', async () => {
+    const assertErrors = expectErrors();
     TestUtils.makeErrorResponseOnce(getRecurringRunSpy, 'woops!');
     render(
       <CommonTestWrapper>
@@ -265,9 +266,11 @@ describe('RecurringRunDetailsV2FC', () => {
         mode: 'error',
       }),
     );
+    assertErrors();
   });
 
   it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
+    const assertErrors = expectErrors();
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops!');
     render(
@@ -298,6 +301,7 @@ describe('RecurringRunDetailsV2FC', () => {
     screen.getByText('false');
     screen.getByText('param1');
     screen.getByText('value1');
+    assertErrors();
   });
 
   it('shows top bar buttons', async () => {

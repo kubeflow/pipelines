@@ -15,14 +15,15 @@
  */
 
 import * as React from 'react';
-import { mount } from 'enzyme';
+import { render } from '@testing-library/react';
 import HTMLViewer, { HTMLViewerConfig } from './HTMLViewer';
 import { PlotType } from './Viewer';
+import TestUtils from '../../TestUtils';
 
 describe('HTMLViewer', () => {
   it('does not break on empty data', () => {
-    const tree = mount(<HTMLViewer configs={[]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<HTMLViewer configs={[]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   const html = '<html><body><div>Hello World!</div></body></html>';
@@ -32,25 +33,31 @@ describe('HTMLViewer', () => {
   };
 
   it('renders some basic HTML', () => {
-    const tree = mount(<HTMLViewer configs={[config]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<HTMLViewer configs={[config]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a smaller snapshot version', () => {
-    const tree = mount(<HTMLViewer configs={[config]} maxDimension={100} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<HTMLViewer configs={[config]} maxDimension={100} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
-  it('uses srcdoc to insert HTML into the iframe', () => {
-    const tree = mount(<HTMLViewer configs={[config]} />);
-    expect((tree.instance() as any)._iframeRef.current.srcdoc).toEqual(html);
-    expect((tree.instance() as any)._iframeRef.current.src).toEqual('about:blank');
+  it('uses srcdoc to insert HTML into the iframe', async () => {
+    const { container } = render(<HTMLViewer configs={[config]} />);
+    await TestUtils.flushPromises();
+    const iframe = container.querySelector('iframe') as HTMLIFrameElement | null;
+    expect(iframe).not.toBeNull();
+    expect(iframe?.srcdoc).toEqual(html);
+    expect(iframe?.src).toEqual('about:blank');
   });
 
-  it('cannot be accessed from main frame of the other way around (no allow-same-origin)', () => {
-    const tree = mount(<HTMLViewer configs={[config]} />);
-    expect((tree.instance() as any)._iframeRef.current.window).toBeUndefined();
-    expect((tree.instance() as any)._iframeRef.current.document).toBeUndefined();
+  it('cannot be accessed from main frame of the other way around (no allow-same-origin)', async () => {
+    const { container } = render(<HTMLViewer configs={[config]} />);
+    await TestUtils.flushPromises();
+    const iframe = container.querySelector('iframe') as HTMLIFrameElement | null;
+    expect(iframe).not.toBeNull();
+    expect((iframe as any)?.window).toBeUndefined();
+    expect((iframe as any)?.document).toBeUndefined();
   });
 
   it('returns a user friendly display name', () => {

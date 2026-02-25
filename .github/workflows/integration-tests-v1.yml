@@ -11,7 +11,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/api-integration-tests-v1.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -22,23 +24,32 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+concurrency:
+  group: legacy-integration-v1-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   initialization-integration-tests-v1:
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.34.0" ]
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
 
@@ -48,9 +59,6 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
-
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Deploy
         id: deploy
@@ -80,7 +88,7 @@ jobs:
         id: integration-tests
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/integration
-        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }}
+        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true

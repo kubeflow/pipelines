@@ -66,7 +66,7 @@ deploymentSpec:
           \ *\n\ndef build_model_car(model: dsl.Output[dsl.Model]):\n    # Simulate\
           \ pushing the Modelcar to an OCI registry\n    model.uri = \"oci://registry.domain.local/org/repo:v1.0\"\
           \n\n"
-        image: python:3.9
+        image: python:3.11
     exec-get-model-files-list:
       container:
         args:
@@ -106,7 +106,7 @@ deploymentSpec:
           \            \"The model does not have expected files: \"\n            +\
           \ \", \".join(sorted(expected_files.difference(filesInPath)))\n        )\n\
           \n    return \", \".join(sorted(filesInPath))\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-importer:
       importer:
         artifactUri:

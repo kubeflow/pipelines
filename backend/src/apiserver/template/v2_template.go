@@ -108,6 +108,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 		return nil, util.Wrap(err, "Failed to convert runtime config")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
+
+	// Parameter macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] are not formatted here.
+	// They remain unformatted in the ScheduledWorkflow spec and will be formatted by the scheduled workflow controller
 	if err = t.validatePipelineJobInputs(job); err != nil {
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
@@ -126,6 +129,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 			CacheDisabled:        t.templateOptions.CacheDisabled,
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -319,6 +325,37 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		return nil, util.NewInternalServerError(err, "Failed to convert to PipelineJob RuntimeConfig")
 	}
 	job.RuntimeConfig = jobRuntimeConfig
+
+	// Format parameters to expand macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] (V1 forward compatibility).
+	// Uses NewSWFParameterFormatter to support all macros. For standalone runs, [[ScheduledTime]] and [[Index]] remain unformatted
+
+	if job.RuntimeConfig != nil && len(job.RuntimeConfig.GetParameterValues()) > 0 {
+		scheduledEpoch := int64(-1) // disabled by default
+
+		if modelRun.ScheduledAtInSec > 0 {
+			scheduledEpoch = modelRun.ScheduledAtInSec
+		}
+		formatter := util.NewSWFParameterFormatter(
+			options.RunID,
+			scheduledEpoch,
+			options.RunAt,
+			-1,
+		)
+		// Convert structpb.Value to strings, format, convert back
+		paramValues := job.RuntimeConfig.GetParameterValues()
+		stringParams := make(map[string]string)
+		for key, val := range paramValues {
+			if strVal := val.GetStringValue(); strVal != "" {
+				stringParams[key] = strVal
+			}
+		}
+		// Format the string parameters
+		formattedParams := formatter.FormatWorkflowParameters(stringParams)
+		// Convert formatted strings back to structpb.Value
+		for key, formattedVal := range formattedParams {
+			paramValues[key] = structpb.NewStringValue(formattedVal)
+		}
+	}
 	if err = t.validatePipelineJobInputs(job); err != nil {
 		return nil, util.Wrap(err, "invalid pipeline job inputs")
 	}
@@ -336,6 +373,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			CacheDisabled:        t.templateOptions.CacheDisabled,
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -452,6 +492,11 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 					"invalid for root component", name)
 			default:
 				return util.NewInvalidInputError("input parameter %s requires type unknown", name)
+			}
+
+			// Validate against literal constraints if specified using shared helper
+			if err := util.ValidateLiteralParameter(name, input, param.GetLiterals()); err != nil {
+				return util.NewInvalidInputError("%s", err.Error())
 			}
 		}
 	}

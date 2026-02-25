@@ -223,6 +223,11 @@ message ComponentInputsSpec {
     // The description for this input parameter of the component.
     // Should not exceed 1024 characters.
     string description = 5;
+
+    // Optional field. If non-empty, specifies that this parameter accepts
+    // only the values in this list (Literal parameter constraint).
+    // The parameter value must match one of these literal values exactly.
+    repeated google.protobuf.Value literals = 6;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;
@@ -868,11 +873,14 @@ message PipelineDeploymentConfig {
     map<string, ValueOrRuntimeParameter> custom_properties = 4
         [deprecated = true];
 
+    // Whether or not import an artifact regardless it has been imported before.
+    bool reimport = 5;
+
     // Properties of the Artifact.
     google.protobuf.Struct metadata = 6;
 
-    // Whether or not import an artifact regardless it has been imported before.
-    bool reimport = 5;
+    // If true, download artifact into the pipeline workspace.
+    bool download_to_workspace = 7;
   }
 
   // ResolverSpec resolves artifacts from historical metadata and returns them
@@ -967,6 +975,9 @@ message RuntimeArtifact {
 
   // Properties of the Artifact.
   google.protobuf.Struct metadata = 6;
+
+  // Custom path for output artifact.
+  optional string custom_path = 7;
 }
 
 // Message that represents a list of artifacts.
@@ -1163,17 +1174,11 @@ message KubernetesWorkspaceConfig {
 
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 message PipelineConfig {
-  // Name of the semaphore key to control pipeline concurrency
-  string semaphore_key = 1;
-
-  // Name of the mutex to ensure mutual exclusion
-  string mutex_name = 2;
-
   // Time to live configuration after the pipeline run is completed for
   // ephemeral resources created by the pipeline run.
-  int32 resource_ttl = 3;
+  int32 resource_ttl = 1;
 
   // Configuration for a shared storage workspace that persists for the duration of the pipeline run.
   // The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
-  optional WorkspaceConfig workspace = 4;
+  optional WorkspaceConfig workspace = 2;
 }

@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"google.golang.org/grpc/credentials"
 
 	"github.com/fsnotify/fsnotify"
@@ -99,7 +100,7 @@ func initCerts() (*tls.Config, error) {
 		return nil, err
 	}
 	tlsCfg := &tls.Config{
-		ServerName:   common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc.cluster.local",
+		ServerName:   common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Certificates: []tls.Certificate{serverCert},
 	}
 	glog.Info("TLS cert key/pair loaded.")
@@ -206,6 +207,9 @@ func main() {
 			CacheDisabled:        !common.GetBoolConfigWithDefault("CacheEnabled", true),
 			DefaultWorkspace:     pvcSpec,
 			MLPipelineTLSEnabled: tlsCfg != nil,
+			DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
+			DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
+			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -248,18 +252,32 @@ func grpcCustomMatcher(key string) (string, bool) {
 
 func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Config) {
 	var s *grpc.Server
+
+	grpc_prometheus.EnableHandlingTimeHistogram(
+		grpc_prometheus.WithHistogramBuckets([]float64{
+			0.005, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 15, 30, 60, 120, 300, // 5 ms -> 5 min
+		}),
+	)
+
 	if tlsCfg != nil {
 		glog.Info("Starting RPC server (TLS enabled)")
 		tlsCredentials := credentials.NewTLS(tlsCfg)
 		s = grpc.NewServer(
 			grpc.Creds(tlsCredentials),
-			grpc.UnaryInterceptor(apiServerInterceptor),
+			grpc.ChainUnaryInterceptor(
+				grpc_prometheus.UnaryServerInterceptor,
+				apiServerInterceptor,
+			),
 			grpc.MaxRecvMsgSize(math.MaxInt32),
 		)
 	} else {
 		glog.Info("Starting RPC server")
-		s = grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
+		s = grpc.NewServer(grpc.ChainUnaryInterceptor(
+			grpc_prometheus.UnaryServerInterceptor,
+			apiServerInterceptor,
+		), grpc.MaxRecvMsgSize(math.MaxInt32))
 	}
+
 	listener, err := net.Listen("tcp", *rpcPortFlag)
 	if err != nil {
 		glog.Fatalf("Failed to start RPC server: %v", err)
@@ -373,6 +391,11 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	// log streaming is provided via HTTP.
 	runLogServer := server.NewRunLogServer(resourceManager)
 	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLogV1)
+
+	// Artifact reading endpoints (implemented with streaming for memory efficiency)
+	runArtifactServer := server.NewRunArtifactServer(resourceManager)
+	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifactV1).Methods(http.MethodGet)
+	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifact).Methods(http.MethodGet)
 
 	topMux.PathPrefix("/apis/").Handler(runtimeMux)
 
@@ -497,6 +520,41 @@ func initConfig() {
 	})
 
 	proxy.InitializeConfigWithEnv()
+}
+
+// parseOptionalInt64 parses a string to *int64. Returns nil if the string is empty
+// or consists only of whitespace. Negative values are rejected since they are
+// invalid for Kubernetes security context fields like runAsUser/runAsGroup.
+func parseOptionalInt64(s string) *int64 {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	v, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil {
+		glog.Errorf("Failed to parse %q as int64: %v", s, err)
+		return nil
+	}
+	if v < 0 {
+		glog.Errorf("Invalid value %d: negative values are not allowed", v)
+		return nil
+	}
+	return &v
+}
+
+// parseOptionalBool parses a string to *bool. Returns nil if the string is empty
+// or consists only of whitespace. Accepts "true" and "false" (case-insensitive).
+func parseOptionalBool(s string) *bool {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	v, err := strconv.ParseBool(trimmed)
+	if err != nil {
+		glog.Errorf("Failed to parse %q as bool: %v", s, err)
+		return nil
+	}
+	return &v
 }
 
 // getPVCSpec retrieves the default workspace PersistentVolumeClaimSpec from the config.

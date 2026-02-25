@@ -48,6 +48,15 @@ type Options struct {
 	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 	MLPipelineTLSEnabled bool
+	// Optional: admin-configured default runAsUser for customer containers.
+	// Nil means not set (feature disabled).
+	DefaultRunAsUser *int64
+	// Optional: admin-configured default runAsGroup for customer containers.
+	// Nil means not set (feature disabled).
+	DefaultRunAsGroup *int64
+	// Optional: admin-configured default runAsNonRoot for customer containers.
+	// Nil means not set (feature disabled).
+	DefaultRunAsNonRoot *bool
 }
 
 const (
@@ -150,9 +159,20 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 	}
 
+	// Set security defaults at the workflow level as a baseline for all pods.
+	// Argo Workflows is designed to run rootless:
+	// https://argo-workflows.readthedocs.io/en/latest/workflow-pod-security-context/
+	// Per-template security context is also applied for defense-in-depth.
+	runAsNonRoot := true
+	wf.Spec.SecurityContext = &k8score.PodSecurityContext{
+		RunAsNonRoot: &runAsNonRoot,
+		SeccompProfile: &k8score.SeccompProfile{
+			Type: k8score.SeccompProfileTypeRuntimeDefault,
+		},
+	}
 	runAsUser := GetPipelineRunAsUser()
 	if runAsUser != nil {
-		wf.Spec.SecurityContext = &k8score.PodSecurityContext{RunAsUser: runAsUser}
+		wf.Spec.SecurityContext.RunAsUser = runAsUser
 	}
 
 	c := &workflowCompiler{
@@ -171,6 +191,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.cacheDisabled = opts.CacheDisabled
 		c.defaultWorkspace = opts.DefaultWorkspace
 		c.mlPipelineTLSEnabled = opts.MLPipelineTLSEnabled
+		c.defaultRunAsUser = opts.DefaultRunAsUser
+		c.defaultRunAsGroup = opts.DefaultRunAsGroup
+		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -217,6 +240,9 @@ type workflowCompiler struct {
 	cacheDisabled        bool
 	defaultWorkspace     *k8score.PersistentVolumeClaimSpec
 	mlPipelineTLSEnabled bool
+	defaultRunAsUser     *int64
+	defaultRunAsGroup    *int64
+	defaultRunAsNonRoot  *bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -540,6 +566,17 @@ func GetWorkspacePVC(
 			}
 			pvcSpec = *util.PatchPVCSpec(&pvcSpec, userPatch)
 		}
+	}
+
+	// Access modes define the read/write semantics for the underlying volume and
+	// gate whether multiple pods can mount it concurrently. It is required when creating the
+	// underlying PVC for the workspace.
+	if len(pvcSpec.AccessModes) == 0 {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify accessModes")
+	}
+
+	if pvcSpec.StorageClassName == nil || *pvcSpec.StorageClassName == "" {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify storageClassName")
 	}
 
 	quantity, err := k8sres.ParseQuantity(sizeStr)

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import React from 'react';
@@ -30,13 +30,14 @@ describe('RunListsRouter', () => {
   let historyPushSpy: any;
   let runStorageState = V2beta1RunStorageState.AVAILABLE;
 
-  const onSelectionChangeMock = jest.fn();
-  const listRunsSpy = jest.spyOn(Apis.runServiceApiV2, 'listRuns');
-  const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
-  const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
+  const onSelectionChangeMock = vi.fn();
+  const listRunsSpy = vi.spyOn(Apis.runServiceApiV2, 'listRuns');
+  const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
+  const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+  const getExperimentSpy = vi.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const listExperimentsSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
+  const formatDateStringSpy = vi.spyOn(Utils, 'formatDateString');
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => null);
 
   const MOCK_EXPERIMENT = newMockExperiment();
   const archiveRunDisplayName = 'run with id: achiverunid';
@@ -52,7 +53,7 @@ describe('RunListsRouter', () => {
 
   function generateProps(): RunListsRouterProps {
     const runListsRouterProps: RunListsRouterProps = {
-      onTabSwitch: jest.fn((newTab: number) => {
+      onTabSwitch: vi.fn((newTab: number) => {
         // this.refresh();
         if (newTab === 1) {
           runStorageState = V2beta1RunStorageState.ARCHIVED;
@@ -122,16 +123,17 @@ describe('RunListsRouter', () => {
     });
     getPipelineSpy.mockImplementation(() => ({ name: 'some pipeline' }));
     getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
+    listExperimentsSpy.mockResolvedValue({ experiments: [] });
     formatDateStringSpy.mockImplementation((date?: Date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
-  it('shows Active and Archive tabs', () => {
+  it('shows Active and Archive tabs', async () => {
     render(
       <BrowserRouter>
         <RunListsRouter {...generateProps()} />
@@ -140,5 +142,6 @@ describe('RunListsRouter', () => {
 
     screen.getByText('Active');
     screen.getByText('Archived');
+    await waitFor(() => screen.getByText(activeRunDisplayName));
   });
 });
