@@ -185,6 +185,8 @@ type ExecutionConfig struct {
 	// ContainerExecution custom properties
 	Image, CachedMLMDExecutionID, FingerPrint string
 	PodName, PodUID, Namespace                string
+	MaxRetryCount                             *int32 // max retry count from retry policy
+	RetryCount                                *int32 // current retry counter (0-based, e.g. 0 on first attempt)
 
 	// DAGExecution custom properties
 	IterationCount *int // Number of iterations for an iterator DAG.
@@ -582,6 +584,8 @@ const (
 	keyIterationIndex        = "iteration_index"
 	keyIterationCount        = "iteration_count"
 	keyTotalDagTasks         = "total_dag_tasks"
+	keyMaxRetryCount         = "max_retry_count"
+	keyRetryCount            = "retry_count"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -632,6 +636,9 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		}
 		if config.FingerPrint != "" {
 			e.CustomProperties[keyCacheFingerPrint] = StringValue(config.FingerPrint)
+		}
+		if config.MaxRetryCount != nil {
+			e.CustomProperties[keyMaxRetryCount] = intValue(int64(*config.MaxRetryCount))
 		}
 	}
 	if config.InputParameters != nil {
@@ -731,6 +738,9 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 	e.CustomProperties[keyPodName] = StringValue(config.PodName)
 	e.CustomProperties[keyPodUID] = StringValue(config.PodUID)
 	e.CustomProperties[keyNamespace] = StringValue(config.Namespace)
+	if config.RetryCount != nil {
+		e.CustomProperties[keyRetryCount] = intValue(int64(*config.RetryCount))
+	}
 	e.LastKnownState = pb.Execution_RUNNING.Enum()
 
 	_, err := c.svc.PutExecution(ctx, &pb.PutExecutionRequest{

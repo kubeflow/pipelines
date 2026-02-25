@@ -168,6 +168,8 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      - name: KFP_RETRY_COUNT
+        value: '{{retries}}'
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap

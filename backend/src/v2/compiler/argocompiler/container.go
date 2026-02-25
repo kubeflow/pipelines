@@ -561,6 +561,13 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			Env:     commonEnvs,
 		},
 	}
+	// If retry policy is set, append KFP_RETRY_COUNT env var and add retryStrategy
+	if taskRetrySpec != nil {
+		executor.Container.Env = append(append([]k8score.EnvVar{}, executor.Container.Env...), k8score.EnvVar{
+			Name:  component.EnvRetryCount,
+			Value: "{{retries}}",
+		})
+	}
 	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add the custom CA bundle to the executor.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		ConfigureCustomCABundle(executor)

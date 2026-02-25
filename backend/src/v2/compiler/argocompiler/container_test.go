@@ -18,10 +18,12 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	k8score "k8s.io/api/core/v1"
 )
 
 func TestAddContainerExecutorTemplate(t *testing.T) {
@@ -136,4 +138,94 @@ func Test_extendPodMetadata(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.podMetadata)
 		})
 	}
+}
+
+func TestRetryCountEnvVar(t *testing.T) {
+	t.Run("KFP_RETRY_COUNT env var present when retry configured", func(t *testing.T) {
+		c := &workflowCompiler{
+			templates: make(map[string]*wfapi.Template),
+			wf: &wfapi.Workflow{
+				Spec: wfapi.WorkflowSpec{
+					Templates: []wfapi.Template{},
+				},
+			},
+			spec: &pipelinespec.PipelineSpec{
+				Components: map[string]*pipelinespec.ComponentSpec{
+					"comp-test": {},
+				},
+			},
+		}
+		task := &pipelinespec.PipelineTaskSpec{
+			ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test"},
+			RetryPolicy: &pipelinespec.PipelineTaskSpec_RetryPolicy{
+				MaxRetryCount: 3,
+			},
+		}
+		c.addContainerExecutorTemplate(task, &kubernetesplatform.KubernetesExecutorConfig{})
+
+		implTemplate := c.templates["retry-system-container-impl"]
+		assert.NotNil(t, implTemplate)
+
+		var found bool
+		for _, env := range implTemplate.Container.Env {
+			if env.Name == component.EnvRetryCount {
+				assert.Equal(t, "{{retries}}", env.Value)
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "KFP_RETRY_COUNT env var should be present when retry is configured")
+	})
+
+	t.Run("KFP_RETRY_COUNT env var absent when no retry", func(t *testing.T) {
+		c := &workflowCompiler{
+			templates: make(map[string]*wfapi.Template),
+			wf: &wfapi.Workflow{
+				Spec: wfapi.WorkflowSpec{
+					Templates: []wfapi.Template{},
+				},
+			},
+			spec: &pipelinespec.PipelineSpec{},
+		}
+		task := &pipelinespec.PipelineTaskSpec{
+			ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test"},
+		}
+		c.addContainerExecutorTemplate(task, &kubernetesplatform.KubernetesExecutorConfig{})
+
+		implTemplate := c.templates["system-container-impl"]
+		assert.NotNil(t, implTemplate)
+
+		for _, env := range implTemplate.Container.Env {
+			assert.NotEqual(t, component.EnvRetryCount, env.Name,
+				"KFP_RETRY_COUNT env var should not be present when no retry is configured")
+		}
+	})
+
+	t.Run("commonEnvs not mutated by retry env append", func(t *testing.T) {
+		snapshot := make([]k8score.EnvVar, len(commonEnvs))
+		copy(snapshot, commonEnvs)
+		c := &workflowCompiler{
+			templates: make(map[string]*wfapi.Template),
+			wf: &wfapi.Workflow{
+				Spec: wfapi.WorkflowSpec{
+					Templates: []wfapi.Template{},
+				},
+			},
+			spec: &pipelinespec.PipelineSpec{
+				Components: map[string]*pipelinespec.ComponentSpec{
+					"comp-test": {},
+				},
+			},
+		}
+		task := &pipelinespec.PipelineTaskSpec{
+			ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test"},
+			RetryPolicy: &pipelinespec.PipelineTaskSpec_RetryPolicy{
+				MaxRetryCount: 3,
+			},
+		}
+		c.addContainerExecutorTemplate(task, &kubernetesplatform.KubernetesExecutorConfig{})
+
+		assert.Equal(t, snapshot, commonEnvs,
+			"commonEnvs package-level variable must not be mutated")
+	})
 }
