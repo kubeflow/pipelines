@@ -8,6 +8,23 @@
 
 ## Bug fixes and other changes
 
+# 2.16.0
+
+## Features
+
+- **sdk** add support for dsl.condition and dsl.parallelFor to docker runner ([#12511](https://github.com/kubeflow/pipelines/pull/12511))
+- **sdk** add runAsUser/runAsGroup security context to KFP SDK ([#12832](https://github.com/kubeflow/pipelines/pull/12832))
+
+## Bug fixes and other changes
+
+- **sdk** align sdk versions in reqs ([#12489](https://github.com/kubeflow/pipelines/pull/12489))
+- **sdk** fix set_container_image within ParallelFor. Fixes #12413 ([#12414](https://github.com/kubeflow/pipelines/pull/12414))
+- **sdk** Set custom_path in executor output only when used ([#12514](https://github.com/kubeflow/pipelines/pull/12514))
+- **sdk** Added missing `path` property setter to `kfp.dsl.types.artifact_types.Model` class. Fixes  #11728 ([#12551](https://github.com/kubeflow/pipelines/pull/12551))
+- **sdk** add type inference for CLI run parameters. Fixes #11607 ([#12767](https://github.com/kubeflow/pipelines/pull/12767))
+- **sdk** Replace deprecated dsl.Condition with dsl.If in compiler tests ([#12679](https://github.com/kubeflow/pipelines/pull/12679))
+- **sdk** Add deprecation notice to `add_node_selector_constraint` docstring ([#12741](https://github.com/kubeflow/pipelines/pull/12741))
+
 # 2.15.2
 
 ## Bug fixes and other changes
