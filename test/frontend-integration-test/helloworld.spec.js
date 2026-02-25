@@ -382,15 +382,28 @@ describe('deploy helloworld sample run', () => {
     );
   });
 
-  //TODO: enable this after we change the pipeline to a unique name such that deleting this
-  // pipeline will not jeopardize the concurrent basic e2e tests.
-  // it('deletes the uploaded pipeline', async () => {
-  //   await $('#pipelinesBtn').click();
-  //
-  //   await $('.tableRow').waitForDisplayed({timeout: waitTimeout});
-  //   await $('.tableRow').click();
-  //   await $('#deleteBtn').click();
-  //   await $('.dialogButton').click();
-  //   await $('.dialog').waitForDisplayed({timeout: waitTimeout, reverse:true});
-  // });
+  it('deletes the uploaded pipeline', async () => {
+    await $('#pipelinesBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/pipelines');
+    }, waitTimeout);
+
+    await $('#tableFilterBox').waitForDisplayed();
+    await $('#tableFilterBox').click();
+    await clearDefaultInput();
+    await browser.keys(pipelineName);
+    await browser.pause(2000);
+
+    await browser.waitUntil(
+      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      waitTimeout,
+      'expected at least one pipeline row after filtering',
+    );
+    await $('[data-testid="table-row"]').click();
+
+    await $('#deleteBtn').click();
+    await $('[role="dialog"]').waitForDisplayed({ timeout: waitTimeout });
+    await $('button=Delete').click();
+    await $('[role="dialog"]').waitForDisplayed({ timeout: waitTimeout, reverse: true });
+  });
 });
