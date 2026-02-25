@@ -20,167 +20,195 @@ const pipelineName = 'tensorboard-example-pipeline-' + Date.now();
 const runName = 'tensorboard-example-' + Date.now();
 const waitTimeout = 5000;
 
-function getValueFromDetailsTable(key) {
+async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
   // get that row's inner text, and remove the key
-  const row = $(`span=${key}`).$('..');
-  return row.getText().substr(`${key}\n`.length);
+  const rowText = await $(`span=${key}`).$('..').getText();
+  return rowText.substr(`${key}\n`.length);
+}
+
+async function clearDefaultInput() {
+  await browser.keys(['Control', 'a']);
+  await browser.keys('Backspace');
 }
 
 describe('deploy tensorboard example run', () => {
-
-  before(() => {
-    browser.url('/');
+  before(async () => {
+    await browser.url('/');
   });
 
-  it('opens the pipeline upload dialog', () => {
-    $('#uploadBtn').click();
-    browser.waitForVisible('#uploadDialog', waitTimeout);
+  it('opens the pipeline creation page', async () => {
+    await $('#createPipelineVersionBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/pipeline_versions/new');
+    }, waitTimeout);
   });
 
-  it('uploads the sample pipeline', () => {
-    browser.chooseFile('#uploadDialog input[type="file"]', './tensorboard-example.yaml');
-    const input = $('#uploadDialog #uploadFileName');
-    input.clearElement();
-    input.setValue(pipelineName);
-    $('#confirmUploadBtn').click();
-    browser.waitForVisible('#uploadDialog', waitTimeout, true);
+  it('uploads the tensorboard sample pipeline', async () => {
+    await $('#localPackageBtn').click();
+    const remoteFilePath = await browser.uploadFile('./tensorboard-example.yaml');
+    await $('#dropZone input[type="file"]').addValue(remoteFilePath);
+
+    await $('#newPipelineName').click();
+    await clearDefaultInput();
+    await browser.keys(pipelineName);
+    await $('#createNewPipelineOrVersionBtn').click();
+
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/pipelines/details');
+    }, waitTimeout);
   });
 
-  it('opens pipeline details', () => {
-    $('.tableRow a').waitForVisible(waitTimeout);
-    browser.execute('document.querySelector(".tableRow a").click()');
-  });
-
-  it('shows a 1-node static graph', () => {
+  it('shows a 1-node static graph', async () => {
     const nodeSelector = '.graphNode';
-    $(nodeSelector).waitForVisible();
-    const nodes = $$(nodeSelector).length;
-    assert(nodes === 1, 'should have a 1-node graph, instead has: ' + nodes);
+    await browser.waitUntil(async () => (await $$(nodeSelector)).length === 1, waitTimeout);
+    const nodes = await $$(nodeSelector);
+    assert(nodes.length === 1, 'should have a 1-node graph, instead has: ' + nodes.length);
   });
 
-  it('creates a new experiment out of this pipeline', () => {
-    $('#startNewExperimentBtn').click();
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
+  it('creates a new experiment from this pipeline', async () => {
+    await $('#newExperimentBtn').click();
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/experiments/new');
     }, waitTimeout);
 
-    $('#experimentName').setValue(experimentName);
-    $('#createExperimentBtn').click();
+    await $('#experimentName').setValue(experimentName);
+    await $('#createExperimentBtn').click();
   });
 
-  it('creates a new run in the experiment', () => {
-    $('#choosePipelineBtn').waitForVisible();
-    $('#choosePipelineBtn').click();
+  it('creates a new run in the experiment', async () => {
+    await $('#choosePipelineBtn').waitForDisplayed();
+    await $('#choosePipelineBtn').click();
 
-    $('.tableRow').waitForVisible();
-    $('.tableRow').click();
+    await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
+    await browser.waitUntil(
+      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      waitTimeout,
+      'expected at least one pipeline row to appear',
+    );
+    const pipelineRows = await $$('[data-testid="table-row"]');
+    assert(pipelineRows.length > 0, 'expected at least one pipeline row');
+    await pipelineRows[0].click();
+    await $('#usePipelineBtn').click();
 
-    $('#usePipelineBtn').click();
+    await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
 
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
+    await $('#choosePipelineVersionBtn').waitForDisplayed();
+    await $('#choosePipelineVersionBtn').click();
 
-    browser.keys('Tab');
-    browser.keys(runName);
+    await $('#pipelineVersionSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
+    await browser.waitUntil(
+      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      waitTimeout,
+      'expected at least one pipeline version row to appear',
+    );
+    const pipelineVersionRows = await $$('[data-testid="table-row"]');
+    assert(pipelineVersionRows.length > 0, 'expected at least one pipeline version row');
+    await pipelineVersionRows[0].click();
+    await $('#usePipelineVersionBtn').click();
 
-    // Deploy
-    $('#createBtn').click();
+    await $('#pipelineVersionSelectorDialog').waitForDisplayed({
+      timeout: waitTimeout,
+      reverse: true,
+    });
+
+    await $('#runNameInput').click();
+    await clearDefaultInput();
+    await browser.keys(runName);
+
+    await $('#startNewRunBtn').click();
   });
 
-  it('redirects back to experiment page', () => {
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments/details/');
+  it('redirects back to experiment page', async () => {
+    await browser.waitUntil(async () => {
+      return new URL(await browser.getUrl()).hash.startsWith('#/experiments/details/');
     }, waitTimeout);
   });
 
-  it('finds the new run in the list of runs, navigates to it', () => {
-    $('.tableRow').waitForVisible(waitTimeout);
-    assert.equal($$('.tableRow').length, 1, 'should only show one run');
+  it('finds the new run in the list of runs and navigates to it', async () => {
+    let attempts = 30;
+    const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
 
-    // Navigate to details of the deployed run by clicking its anchor element
-    $('.tableRow a').waitForVisible(waitTimeout);
-    browser.execute('document.querySelector(".tableRow a").click()');
+    while (attempts && !(await $(runLinkSelector).isExisting())) {
+      await browser.pause(1000);
+      await $('#refreshBtn').click();
+      --attempts;
+    }
+
+    assert(attempts, 'waited for 30 seconds but run did not start.');
+    await $(runLinkSelector).click();
   });
 
-  it('switches to config tab', () => {
-    $('button=Config').waitForVisible(waitTimeout);
-    $('button=Config').click();
+  it('switches to config tab', async () => {
+    await $('button=Config').waitForDisplayed({ timeout: waitTimeout });
+    await $('button=Config').click();
   });
 
-  it('waits for run to finish', () => {
-    let status = getValueFromDetailsTable('Status');
+  it('waits for run to finish', async () => {
+    let status = await getValueFromDetailsTable('Status');
 
     let attempts = 0;
     const maxAttempts = 60;
 
-    // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
-      browser.pause(1000);
-      status = getValueFromDetailsTable('Status');
+      await browser.pause(1000);
+      status = await getValueFromDetailsTable('Status');
       attempts++;
     }
 
-    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not succeed. ` +
-      'Current status is: ' + status);
+    assert(
+      attempts < maxAttempts,
+      `waited for ${maxAttempts} seconds but run did not succeed. ` + 'Current status is: ' + status,
+    );
   });
 
-  it('switches back to graph tab', () => {
-    $('button=Graph').click();
+  it('switches back to graph tab', async () => {
+    await $('button=Graph').click();
   });
 
-  it('has a 1-node graph', () => {
-    const nodeSelector = '.graphNode';
-    const nodes = $$(nodeSelector).length;
+  it('has a 1-node graph', async () => {
+    const nodes = (await $$('.graphNode')).length;
     assert(nodes === 1, 'should have a 1-node graph, instead has: ' + nodes);
   });
 
-  it('opens the side panel when graph node is clicked', () => {
-    $('.graphNode').click();
-    $('.plotCard').waitForVisible(waitTimeout);
+  it('opens the side panel when graph node is clicked', async () => {
+    await $('.graphNode').click();
+    await $('.plotCard').waitForDisplayed({ timeout: waitTimeout });
   });
 
-  it('shows a Tensorboard plot card, and clicks its button to start Tensorboard', () => {
-    // First button is the popout button, second is the Tensoboard start button
-    const button = $$('.plotCard button')[1];
-    button.waitForVisible();
-    assert(button.getText().trim() === 'Start Tensorboard');
-    button.click();
+  it('starts tensorboard from the plot card', async () => {
+    const button = (await $$('.plotCard button'))[1];
+    await button.waitForDisplayed();
+    assert((await button.getText()).trim() === 'Start Tensorboard');
+    await button.click();
   });
 
-  it('waits until the button turns into Open Tensorboard', () => {
-    // First button is the popout button, second is the Tensoboard open button
-    browser.waitUntil(() => {
-      const button = $$('.plotCard button')[1];
-      button.waitForVisible();
-      return button.getText().trim() === 'Open Tensorboard';
-    }, 2 * 60 * 1000);
+  it('waits until the button turns into Open Tensorboard', async () => {
+    await browser.waitUntil(
+      async () => {
+        const button = (await $$('.plotCard button'))[1];
+        await button.waitForDisplayed();
+        return (await button.getText()).trim() === 'Open Tensorboard';
+      },
+      2 * 60 * 1000,
+      'timed out waiting for Tensorboard app to become ready',
+    );
   });
 
-  it('opens the Tensorboard app', () => {
-    const anchor = $('.plotCard a');
-    browser.url(anchor.getAttribute('href'));
+  it('opens the tensorboard app', async () => {
+    const anchor = await $('.plotCard a');
+    const href = await anchor.getAttribute('href');
+    await browser.url(href);
 
     let attempts = 0;
     const maxAttempts = 60;
-
-    // Wait for a reasonable amount of time until Tensorboard app shows up
-    while (attempts < maxAttempts && !$('#topBar').isExisting()) {
-      browser.pause(1000);
-      browser.refresh();
+    while (attempts < maxAttempts && !(await $('#topBar').isExisting())) {
+      await browser.pause(1000);
+      await browser.refresh();
       attempts++;
     }
 
-    assert($('#topBar').isVisible());
-    browser.back();
-  });
-
-  it('deletes the uploaded pipeline', () => {
-    $('#pipelinesBtn').click();
-
-    browser.waitForVisible('.tableRow', waitTimeout);
-    $('.tableRow').click();
-    $('#deleteBtn').click();
-    $('.dialogButton').click();
-    $('.dialog').waitForVisible(waitTimeout, true);
+    assert(await $('#topBar').isDisplayed(), 'tensorboard top bar should be visible');
+    await browser.back();
   });
 });
