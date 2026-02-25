@@ -161,7 +161,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          buildkitd-flags: --debug
+          driver: docker-container
 
       - name: Check if image tag already exists
         id: check_tag
@@ -206,8 +206,6 @@ jobs:
           push: ${{ inputs.push }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           build-args: |
             COMMIT_SHA=${{ steps.get_commit.outputs.sha }}
             COMMIT_HASH=${{ steps.get_commit.outputs.sha }}
