@@ -197,5 +197,5 @@ func GetDefaultSecurityContextRunAsNonRoot() string {
 }
 
 func GetObjectSizeLimit() int64 {
-	return GetInt64ConfigWithDefault(ObjectStoreFileSizeLimit, 104857600)
+	return GetInt64ConfigWithDefault(ObjectStoreFileSizeLimit, 104857600) // Default limit is 100MB
 }
