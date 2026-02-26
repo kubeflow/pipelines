@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"google.golang.org/protobuf/types/known/structpb"
@@ -85,6 +86,31 @@ func (t *V2Spec) PlatformSpec() *pipelinespec.PlatformSpec {
 	return t.platformSpec
 }
 
+// MaxActiveRuns returns the configured max_active_runs from the Kubernetes platform spec.
+// The second return value indicates whether the field was explicitly set.
+func (t *V2Spec) MaxActiveRuns() (int32, bool, error) {
+	if t.platformSpec == nil {
+		return 0, false, nil
+	}
+	kubernetesSpec, ok := t.platformSpec.Platforms["kubernetes"]
+	if !ok || kubernetesSpec == nil {
+		return 0, false, nil
+	}
+	pipelineConfig := kubernetesSpec.GetPipelineConfig()
+	if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
+		return 0, false, nil
+	}
+	value := pipelineConfig.GetMaxActiveRuns()
+	if value == 0 {
+		// Zero means no concurrency limit.
+		return 0, false, nil
+	}
+	if value < 0 {
+		return 0, false, fmt.Errorf("max_active_runs must be >= 0, got %d", value)
+	}
+	return value, true, nil
+}
+
 // Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
@@ -130,6 +156,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 		}
+		if modelJob.PipelineVersionId != "" {
+			opts.PipelineVersionID = modelJob.PipelineVersionId
+		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
@@ -151,6 +180,20 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+
+	maxActiveRuns, hasMaxActiveRuns, err := t.MaxActiveRuns()
+	if err != nil {
+		return nil, util.Wrap(err, "failed to extract max_active_runs")
+	}
+	if hasMaxActiveRuns {
+		if executionSpec.ExecutionObjectMeta().Annotations == nil {
+			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
+		}
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
+		if modelJob.PipelineVersionId != "" {
+			executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = modelJob.PipelineVersionId
+		}
+	}
 	parameters, err := StringMapToCRDParameters(string(modelJob.RuntimeConfig.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
@@ -373,6 +416,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
 			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
+			PipelineVersionID:    modelRun.PipelineVersionId,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
