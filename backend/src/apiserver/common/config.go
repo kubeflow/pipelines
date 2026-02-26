@@ -44,6 +44,7 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	ObjectStoreFileSizeLimit                string = "OBJECT_STORE_FILE_SIZE_LIMIT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -92,6 +93,13 @@ func GetFloat64ConfigWithDefault(configName string, value float64) float64 {
 		return value
 	}
 	return viper.GetFloat64(configName)
+}
+
+func GetInt64ConfigWithDefault(configName string, value int64) int64 {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetInt64(configName)
 }
 
 func GetIntConfigWithDefault(configName string, value int) int {
@@ -186,4 +194,8 @@ func GetDefaultSecurityContextRunAsGroup() string {
 
 func GetDefaultSecurityContextRunAsNonRoot() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
+}
+
+func GetObjectSizeLimit() int64 {
+	return GetInt64ConfigWithDefault(ObjectStoreFileSizeLimit, 104857600)
 }

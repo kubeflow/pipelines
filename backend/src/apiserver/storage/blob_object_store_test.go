@@ -372,3 +372,41 @@ func TestBlobObjectStore_Streaming_Large_File(t *testing.T) {
 
 	t.Log("All assertions passed: file was streamed in chunks without loading into memory")
 }
+
+// TestBlobObjectStore_GetFile_SizeLimit validates that GetFile rejects files
+// that exceed the maximum size limit.
+func TestBlobObjectStore_GetFile_SizeLimit(t *testing.T) {
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	store := NewBlobObjectStore(bucket, "pipelines")
+	ctx := context.Background()
+
+	// Create a file larger than the 100MB limit
+	// Use 101MB to exceed the limit
+	largeFileSize := 101 * 1024 * 1024
+	content := make([]byte, largeFileSize)
+
+	// Fill with minimal pattern for performance
+	for i := range content {
+		content[i] = byte(i % 256)
+	}
+
+	err := store.AddFile(ctx, content, "test/oversized.bin")
+	require.NoError(t, err, "Should be able to add large file")
+
+	// GetFile should reject the oversized file
+	_, err = store.GetFile(ctx, "test/oversized.bin")
+	require.Error(t, err, "GetFile should reject oversized files")
+	require.Contains(t, err.Error(), "exceeds maximum size limit", "Error should mention size limit")
+
+	// GetFileReader should still work for streaming access
+	reader, err := store.GetFileReader(ctx, "test/oversized.bin")
+	require.NoError(t, err, "GetFileReader should work for large files")
+	require.NotNil(t, reader, "Reader should not be nil")
+	reader.Close()
+
+	// Cleanup
+	err = store.DeleteFile(ctx, "test/oversized.bin")
+	require.NoError(t, err, "Should be able to delete the test file")
+}

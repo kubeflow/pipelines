@@ -18,9 +18,11 @@ package storage
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"path"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
 	"sigs.k8s.io/yaml"
@@ -71,10 +73,19 @@ func (b *BlobObjectStore) GetFile(ctx context.Context, filePath string) ([]byte,
 	}
 	defer reader.Close()
 
+	// Limit file size to prevent memory exhaustion
+	maxFileSize := common.GetObjectSizeLimit()
+	limitedReader := &io.LimitedReader{R: reader, N: maxFileSize + 1}
+
 	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(reader)
+	_, err = buf.ReadFrom(limitedReader)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to read file %v", filePath)
+	}
+
+	// Check if file exceeded size limit
+	if limitedReader.N == 0 {
+		return nil, util.NewInternalServerError(errors.New("file size limit exceeded"), "File %v exceeds maximum size limit of %d bytes", filePath, maxFileSize)
 	}
 
 	return buf.Bytes(), nil
