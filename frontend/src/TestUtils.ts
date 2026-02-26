@@ -18,10 +18,8 @@
 // Because this is test utils.
 
 import 'src/build/tailwind.output.css';
-import { format } from 'prettier';
 import { QueryClient } from 'react-query';
 import { match } from 'react-router';
-import snapshotDiff from 'snapshot-diff';
 import { beforeEach, expect, MockInstance } from 'vitest';
 import { ToolbarActionConfig } from './components/Toolbar';
 import { Feature } from './features';
@@ -119,51 +117,6 @@ export default class TestUtils {
     const lastCall = updateToolbarSpy.mock.calls[lastCallIdx][0];
     return lastCall.actions[buttonKey];
   }
-}
-
-/**
- * Generate diff text for two HTML strings.
- * Recommend providing base and update annotations to clarify context in the diff directly.
- */
-export function diffHTML({
-  base,
-  update,
-  baseAnnotation,
-  updateAnnotation,
-}: {
-  base: string;
-  baseAnnotation?: string;
-  update: string;
-  updateAnnotation?: string;
-}) {
-  return diff({
-    base: formatHTML(base),
-    update: formatHTML(update),
-    baseAnnotation,
-    updateAnnotation,
-  });
-}
-
-export function diff({
-  base,
-  update,
-  baseAnnotation,
-  updateAnnotation,
-}: {
-  base: string;
-  baseAnnotation?: string;
-  update: string;
-  updateAnnotation?: string;
-}) {
-  return snapshotDiff(base, update, {
-    stablePatchmarks: true, // Avoid line numbers in diff, so that diffs are stable against irrelevant changes
-    aAnnotation: baseAnnotation,
-    bAnnotation: updateAnnotation,
-  });
-}
-
-export function formatHTML(html: string): string {
-  return format(html, { parser: 'html' });
 }
 
 function getTestApi() {
