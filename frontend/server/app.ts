@@ -172,45 +172,49 @@ function createUIServer(options: UIConfigs) {
   );
 
   /** Artifact */
-  // Apply authorization middleware to all artifact routes when auth is enabled
-  registerHandler(app.get, '/artifacts/*', artifactsAuthMiddleware);
+  // Authorization middleware is inlined into each artifact route to prevent
+  // accidental auth bypass from handler reordering.
+  // Security fix for https://github.com/kubeflow/pipelines/issues/9889
 
-  registerHandler(
-    app.get,
-    '/artifacts/*',
-    getArtifactsProxyHandler({
-      enabled: options.artifacts.proxy.enabled,
-      allowedDomain: options.artifacts.allowedDomain,
-      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
-    }),
-  );
+  // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
+  app.get('/artifacts/*', artifactsAuthMiddleware, getArtifactsProxyHandler({
+    enabled: options.artifacts.proxy.enabled,
+    allowedDomain: options.artifacts.allowedDomain,
+    namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+  }));
+  app.get(`${basePath}/artifacts/*`, artifactsAuthMiddleware, getArtifactsProxyHandler({
+    enabled: options.artifacts.proxy.enabled,
+    allowedDomain: options.artifacts.allowedDomain,
+    namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+  }));
+
   // /artifacts/get endpoint tries to extract the artifact to return pure text content
-  registerHandler(
-    app.get,
-    '/artifacts/get',
-    getArtifactsHandler({
-      artifactsConfigs: options.artifacts,
-      useParameter: false,
-      tryExtract: true,
-      options: options,
-    }),
-  );
-  // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
-  registerHandler(
-    app.get,
-    // The last * represents object key. Key could contain special characters like '/',
-    // so we cannot use `:key` as the placeholder.
-    // It is important to include the original object's key at the end of the url, because
-    // browser automatically determines file extension by the url. A wrong extension may affect
-    // whether the file can be opened by the correct application by default.
-    '/artifacts/:source/:bucket/*',
-    getArtifactsHandler({
-      artifactsConfigs: options.artifacts,
-      useParameter: true,
-      tryExtract: false,
-      options: options,
-    }),
-  );
+  app.get('/artifacts/get', artifactsAuthMiddleware, getArtifactsHandler({
+    artifactsConfigs: options.artifacts,
+    useParameter: false,
+    tryExtract: true,
+    options: options,
+  }));
+  app.get(`${basePath}/artifacts/get`, artifactsAuthMiddleware, getArtifactsHandler({
+    artifactsConfigs: options.artifacts,
+    useParameter: false,
+    tryExtract: true,
+    options: options,
+  }));
+
+  // /artifacts/:source/:bucket/* endpoint downloads the artifact as is
+  app.get('/artifacts/:source/:bucket/*', artifactsAuthMiddleware, getArtifactsHandler({
+    artifactsConfigs: options.artifacts,
+    useParameter: true,
+    tryExtract: false,
+    options: options,
+  }));
+  app.get(`${basePath}/artifacts/:source/:bucket/*`, artifactsAuthMiddleware, getArtifactsHandler({
+    artifactsConfigs: options.artifacts,
+    useParameter: true,
+    tryExtract: false,
+    options: options,
+  }));
 
   /** Tensorboard viewer */
   const {

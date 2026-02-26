@@ -45,7 +45,7 @@ describe('/artifacts authorization', () => {
 
   beforeEach(() => {
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function() {
+    mockedMinioClient.mockImplementation(function () {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -194,10 +194,15 @@ describe('/artifacts authorization', () => {
     });
 
     it('rejects unauthorized cross-namespace access', async () => {
-      // Mock fetch to reject (simulates auth service denial)
-      mockedFetch.mockRejectedValue({
+      // Mock fetch to resolve with 403 (HTTP errors resolve, not reject).
+      // The Swagger client checks response.status and throws the response
+      // object when status is not 2xx. parseError then extracts the message.
+      mockedFetch.mockResolvedValue({
+        ok: false,
         status: 403,
         statusText: 'Forbidden',
+        url: '/apis/v1beta1/auth',
+        json: () => Promise.resolve({ error: 'User is not authorized to GET VIEWERS in namespace other-namespace', details: {} }),
         text: () => Promise.resolve('User is not authorized'),
       });
 
@@ -270,7 +275,7 @@ describe('/artifacts authorization', () => {
     let consoleSpy: MockInstance;
 
     beforeEach(() => {
-      consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
     });
 
     afterEach(() => {
@@ -278,9 +283,13 @@ describe('/artifacts authorization', () => {
     });
 
     it('logs unauthorized access attempts with user info', async () => {
-      mockedFetch.mockRejectedValue({
+      // Mock fetch to resolve with 403 — same pattern as auth rejection test
+      mockedFetch.mockResolvedValue({
+        ok: false,
         status: 403,
         statusText: 'Forbidden',
+        url: '/apis/v1beta1/auth',
+        json: () => Promise.resolve({ error: 'User is not authorized to GET VIEWERS in namespace unauthorized-ns', details: {} }),
         text: () => Promise.resolve('User is not authorized'),
       });
 

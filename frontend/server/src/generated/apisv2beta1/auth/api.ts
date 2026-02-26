@@ -29,22 +29,12 @@ export const COLLECTION_FORMATS = {
 };
 
 /**
- * Fetch API Response interface
- * @export
- * @interface FetchResponse
- */
-export interface FetchResponse {
-  status: number;
-  json(): Promise<any>;
-}
-
-/**
  *
  * @export
  * @interface FetchAPI
  */
 export interface FetchAPI {
-  (url: string, init?: any): Promise<FetchResponse>;
+  (url: string, init?: any): Promise<Response>;
 }
 
 /**
@@ -162,7 +152,7 @@ export interface ProtobufAny {
  * AuthServiceApi - fetch parameter creator
  * @export
  */
-export const AuthServiceApiFetchParamCreator = function(configuration?: Configuration) {
+export const AuthServiceApiFetchParamCreator = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -227,7 +217,7 @@ export const AuthServiceApiFetchParamCreator = function(configuration?: Configur
  * AuthServiceApi - functional programming interface
  * @export
  */
-export const AuthServiceApiFp = function(configuration?: Configuration) {
+export const AuthServiceApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -266,7 +256,7 @@ export const AuthServiceApiFp = function(configuration?: Configuration) {
  * AuthServiceApi - factory interface
  * @export
  */
-export const AuthServiceApiFactory = function(
+export const AuthServiceApiFactory = function (
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,

@@ -193,14 +193,10 @@ export function getArtifactsHandler({
   options: UIConfigs;
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
-  return async (request, response) => {
-    const source = (useParameter ? request.params.source : request.query.source) as
-      | string
-      | undefined;
-    const bucket = (useParameter ? request.params.bucket : request.query.bucket) as
-      | string
-      | undefined;
-    const key = (useParameter ? request.params[0] : request.query.key) as string | undefined;
+  return async (req, res) => {
+    const source = (useParameter ? req.params.source : req.query.source) as string | undefined;
+    const bucket = (useParameter ? req.params.bucket : req.query.bucket) as string | undefined;
+    const key = (useParameter ? req.params[0] : req.query.key) as string | undefined;
     const {
       peek = 0,
       providerInfo = '',
@@ -208,25 +204,25 @@ export function getArtifactsHandler({
       // will validate and require namespace when auth is enabled.
       // This prevents unauthorized cross-namespace access (Issue #9889).
       namespace,
-    } = request.query as Partial<ArtifactsQueryStrings>;
+    } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
-      response.status(500).send('Storage source is missing from artifact request');
+      res.status(500).send('Storage source is missing from artifact request');
       return;
     }
     if (!bucket) {
-      response.status(500).send('Storage bucket is missing from artifact request');
+      res.status(500).send('Storage bucket is missing from artifact request');
       return;
     }
     if (!isAllowedResourceName(bucket)) {
-      response.status(500).send('Invalid bucket name');
+      res.status(500).send('Invalid bucket name');
       return;
     }
     if (!key) {
-      response.status(500).send('Storage key is missing from artifact request');
+      res.status(500).send('Storage key is missing from artifact request');
       return;
     }
     if (key.length > 1024) {
-      response.status(500).send('Object key too long');
+      res.status(500).send('Object key too long');
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
@@ -234,20 +230,13 @@ export function getArtifactsHandler({
     let client: MinioClient;
     switch (source) {
       case 'gcs':
-        await getGCSArtifactHandler(
-          { bucket, key },
-          peek,
-          providerInfo,
-          namespace,
-        )(request, response);
+        await getGCSArtifactHandler({ bucket, key }, peek, providerInfo, namespace)(req, res);
         break;
       case 'minio':
         try {
           client = await createMinioClient(minio, 'minio', providerInfo, namespace);
-        } catch (error) {
-          response
-            .status(500)
-            .send(`Failed to initialize Minio Client for Minio Provider: ${error}`);
+        } catch (e) {
+          res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
           return;
         }
         await getMinioArtifactHandler(
@@ -258,13 +247,13 @@ export function getArtifactsHandler({
             tryExtract,
           },
           peek,
-        )(request, response);
+        )(req, res);
         break;
       case 's3':
         try {
           client = await createMinioClient(aws, 's3', providerInfo, namespace);
-        } catch (error) {
-          response.status(500).send(`Failed to initialize S3 Client for S3 Provider: ${error}`);
+        } catch (e) {
+          res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;
         }
         await getMinioArtifactHandler(
@@ -274,7 +263,7 @@ export function getArtifactsHandler({
             key,
           },
           peek,
-        )(request, response);
+        )(req, res);
         break;
       case 'http':
       case 'https':
@@ -283,7 +272,7 @@ export function getArtifactsHandler({
           getHttpUrl(source, http.baseUrl || '', bucket, key),
           http.auth,
           peek,
-        )(request, response);
+        )(req, res);
         break;
       case 'volume':
         await getVolumeArtifactsHandler(
@@ -292,10 +281,10 @@ export function getArtifactsHandler({
             key,
           },
           peek,
-        )(request, response);
+        )(req, res);
         break;
       default:
-        response.status(500).send('Unknown storage source');
+        res.status(500).send('Unknown storage source');
         return;
     }
   };
