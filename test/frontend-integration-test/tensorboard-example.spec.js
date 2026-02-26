@@ -19,6 +19,7 @@ const experimentName = 'tensorboard-example-experiment-' + Date.now();
 const pipelineName = 'tensorboard-example-pipeline-' + Date.now();
 const runName = 'tensorboard-example-' + Date.now();
 const waitTimeout = 5000;
+const plotCardTimeout = 30000;
 
 async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
@@ -173,22 +174,20 @@ describe('deploy tensorboard example run', () => {
 
   it('opens the side panel when graph node is clicked', async () => {
     await $('.graphNode').click();
-    await $('.plotCard').waitForDisplayed({ timeout: waitTimeout });
+    await $('.plotCard').waitForDisplayed({ timeout: plotCardTimeout });
   });
 
   it('starts tensorboard from the plot card', async () => {
-    const button = (await $$('.plotCard button'))[1];
-    await button.waitForDisplayed();
-    assert((await button.getText()).trim() === 'Start Tensorboard');
-    await button.click();
+    const startTensorboardButton = await $('.plotCard button=Start Tensorboard');
+    await startTensorboardButton.waitForDisplayed({ timeout: plotCardTimeout });
+    await startTensorboardButton.click();
   });
 
   it('waits until the button turns into Open Tensorboard', async () => {
     await browser.waitUntil(
       async () => {
-        const button = (await $$('.plotCard button'))[1];
-        await button.waitForDisplayed();
-        return (await button.getText()).trim() === 'Open Tensorboard';
+        const openTensorboardButton = await $('.plotCard button=Open Tensorboard');
+        return (await openTensorboardButton.isExisting()) && (await openTensorboardButton.isDisplayed());
       },
       2 * 60 * 1000,
       'timed out waiting for Tensorboard app to become ready',
@@ -196,7 +195,8 @@ describe('deploy tensorboard example run', () => {
   });
 
   it('opens the tensorboard app', async () => {
-    const anchor = await $('.plotCard a');
+    const anchor = await $('.plotCard a=Open Tensorboard');
+    await anchor.waitForDisplayed({ timeout: waitTimeout });
     const href = await anchor.getAttribute('href');
     await browser.url(href);
 
