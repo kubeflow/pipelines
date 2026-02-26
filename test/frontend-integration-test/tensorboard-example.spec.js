@@ -186,8 +186,7 @@ describe('deploy tensorboard example run', () => {
   it('waits until the button turns into Open Tensorboard', async () => {
     await browser.waitUntil(
       async () => {
-        const openTensorboardButton = await $('.plotCard button=Open Tensorboard');
-        return (await openTensorboardButton.isExisting()) && (await openTensorboardButton.isDisplayed());
+        return await $('.plotCard button=Open Tensorboard').isDisplayed();
       },
       2 * 60 * 1000,
       'timed out waiting for Tensorboard app to become ready',
