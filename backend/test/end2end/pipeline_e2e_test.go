@@ -722,14 +722,6 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			latestVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
 			Expect(latestVersion.PipelineVersionID).NotTo(BeEmpty(), "Expected latest pipeline version to have an ID")
 
-			// Clamp to a reasonable positive range to keep the test stable.
-			effectiveLimit := int64(limit)
-			if effectiveLimit < 1 {
-				effectiveLimit = 1
-			} else if effectiveLimit > 10 {
-				effectiveLimit = 10
-			}
-
 			createParams := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{
 				RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 					DisplayName:  fmt.Sprintf("recurring-id-%s", randomName),
@@ -737,7 +729,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 					PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
 						PipelineID: uploadedPipeline.PipelineID,
 					},
-					MaxConcurrency: effectiveLimit,
+					MaxConcurrency: int64(limit),
 					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 					Trigger: &recurring_run_model.V2beta1Trigger{
 						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
@@ -779,20 +771,12 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			Expect(err).NotTo(HaveOccurred(), "Failed to marshal pipeline spec")
 			Expect(protojson.Unmarshal(specBytes, pipelineSpec)).To(Succeed(), "Failed to unmarshal pipeline spec")
 
-			// Clamp to a reasonable positive range to keep the test stable.
-			effectiveLimit := int64(limit)
-			if effectiveLimit < 1 {
-				effectiveLimit = 1
-			} else if effectiveLimit > 10 {
-				effectiveLimit = 10
-			}
-
 			createParams := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{
 				RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 					DisplayName:    fmt.Sprintf("recurring-spec-%s", randomName),
 					ExperimentID:   *experimentID,
 					PipelineSpec:   pipelineSpec,
-					MaxConcurrency: effectiveLimit,
+					MaxConcurrency: int64(limit),
 					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 					Trigger: &recurring_run_model.V2beta1Trigger{
 						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
