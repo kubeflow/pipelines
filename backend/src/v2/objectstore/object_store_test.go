@@ -17,12 +17,15 @@ package objectstore
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gocloud.dev/blob"
+	"gocloud.dev/blob/memblob"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -235,20 +238,18 @@ func TestSanitizeDownloadPath(t *testing.T) {
 			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
 		},
 		{
-			name:     "Key equals blobDir resolves to target directory",
+			name:     "Single file artifact where key equals blobDir",
 			localDir: "/tmp/outputs",
 			blobDir:  "artifacts/step",
 			objKey:   "artifacts/step",
-			wantErr:  true,
-			errMsg:   "resolves to target directory itself",
+			wantPath: filepath.Clean("/tmp/outputs"),
 		},
 		{
 			name:     "Key equals blobDir with trailing slash",
 			localDir: "/tmp/outputs",
 			blobDir:  "artifacts/step",
 			objKey:   "artifacts/step/",
-			wantErr:  true,
-			errMsg:   "resolves to target directory itself",
+			wantPath: filepath.Clean("/tmp/outputs"),
 		},
 		{
 			name:     "Key with trailing slash",
@@ -327,6 +328,90 @@ func TestSanitizeDownloadPath(t *testing.T) {
 			assert.Equal(t, tt.wantPath, got)
 		})
 	}
+}
+
+func writeBlobToMemBucket(ctx context.Context, t *testing.T, bucket *blob.Bucket, key, content string) {
+	t.Helper()
+	w, err := bucket.NewWriter(ctx, key, nil)
+	require.NoError(t, err)
+	_, err = w.Write([]byte(content))
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+}
+
+func TestDownloadBlobSingleFile(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "path/to/file.txt", "single file content")
+
+	localDir := t.TempDir()
+	targetPath := filepath.Join(localDir, "file.txt")
+
+	err := DownloadBlob(ctx, bucket, targetPath, "path/to/file.txt")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(targetPath)
+	require.NoError(t, err)
+	assert.Equal(t, "single file content", string(content))
+}
+
+func TestDownloadBlobDirectory(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/file1.txt", "content1")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/sub/file2.txt", "content2")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.NoError(t, err)
+
+	content1, err := os.ReadFile(filepath.Join(localDir, "file1.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "content1", string(content1))
+
+	content2, err := os.ReadFile(filepath.Join(localDir, "sub", "file2.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "content2", string(content2))
+}
+
+func TestDownloadBlobSkipsSiblingKeys(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/file.txt", "wanted")
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step2/file.txt", "sibling")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(localDir, "file.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "wanted", string(content))
+
+	_, err = os.Stat(filepath.Join(localDir, "../step2/file.txt"))
+	assert.True(t, os.IsNotExist(err), "sibling key should not have been downloaded")
+}
+
+func TestDownloadBlobRejectsTraversalKey(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/../../etc/passwd", "malicious")
+
+	localDir := t.TempDir()
+
+	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "path traversal detected")
 }
 
 func TestIsBlobKeyUnderPrefix(t *testing.T) {
