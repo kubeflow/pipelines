@@ -179,6 +179,8 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			if err := downloadFile(ctx, bucket, obj.Key, localPath); err != nil {
 				return err
 			}
+		} else {
+			glog.V(4).Infof("DownloadBlob: skipping blob key %q not under expected prefix %q", obj.Key, blobDir)
 		}
 	}
 	return nil
