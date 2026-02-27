@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import CustomTable, { Column, ExpandState, Row } from './CustomTable';
 import TestUtils from '../TestUtils';
@@ -113,6 +113,14 @@ function getHeaderCheckbox(container: HTMLElement): HTMLInputElement {
     throw new Error('Header checkbox not found.');
   }
   return checkbox;
+}
+
+function getRowsPerPageCombobox(): HTMLElement {
+  const footer = screen.getByText('Rows per page:').closest('div');
+  if (!footer) {
+    throw new Error('Unable to locate table footer containing the rows-per-page selector');
+  }
+  return within(footer).getByRole('combobox');
 }
 
 describe('CustomTable', () => {
@@ -552,7 +560,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.mouseDown(getRowsPerPageCombobox());
     fireEvent.click(await screen.findByText('20'));
     await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({
@@ -570,7 +578,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.mouseDown(getRowsPerPageCombobox());
     fireEvent.click(await screen.findByText('20'));
     await reloadResult;
     expect(spy).toHaveBeenLastCalledWith({
