@@ -82,14 +82,14 @@ describe('deploy tensorboard example run', () => {
     await $('#choosePipelineBtn').click();
 
     await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
+    const pipelineRowSelector =
+      `//*[@id="pipelineSelectorDialog"]//*[@data-testid="table-row"][.//a[normalize-space()="${pipelineName}"]]`;
     await browser.waitUntil(
-      async () => (await $$('[data-testid="table-row"]')).length > 0,
+      async () => (await $(pipelineRowSelector).isExisting()),
       waitTimeout,
-      'expected at least one pipeline row to appear',
+      `expected pipeline row for ${pipelineName} to appear`,
     );
-    const pipelineRows = await $$('[data-testid="table-row"]');
-    assert(pipelineRows.length > 0, 'expected at least one pipeline row');
-    await pipelineRows[0].click();
+    await $(pipelineRowSelector).click();
     await $('#usePipelineBtn').click();
 
     await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout, reverse: true });
@@ -178,7 +178,8 @@ describe('deploy tensorboard example run', () => {
   });
 
   it('starts tensorboard from the plot card', async () => {
-    const startTensorboardButton = await $('.plotCard button=Start Tensorboard');
+    const plotCard = await $('.plotCard');
+    const startTensorboardButton = await plotCard.$('button=Start Tensorboard');
     await startTensorboardButton.waitForDisplayed({ timeout: plotCardTimeout });
     await startTensorboardButton.click();
   });
@@ -186,7 +187,9 @@ describe('deploy tensorboard example run', () => {
   it('waits until the button turns into Open Tensorboard', async () => {
     await browser.waitUntil(
       async () => {
-        return await $('.plotCard button=Open Tensorboard').isDisplayed();
+        const plotCard = await $('.plotCard');
+        const openTensorboardButton = await plotCard.$('button=Open Tensorboard');
+        return await openTensorboardButton.isDisplayed();
       },
       2 * 60 * 1000,
       'timed out waiting for Tensorboard app to become ready',
@@ -194,7 +197,8 @@ describe('deploy tensorboard example run', () => {
   });
 
   it('opens the tensorboard app', async () => {
-    const anchor = await $('.plotCard a=Open Tensorboard');
+    const plotCard = await $('.plotCard');
+    const anchor = await plotCard.$('a=Open Tensorboard');
     await anchor.waitForDisplayed({ timeout: waitTimeout });
     const href = await anchor.getAttribute('href');
     await browser.url(href);
