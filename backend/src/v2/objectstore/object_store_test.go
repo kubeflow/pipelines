@@ -334,9 +334,10 @@ func writeBlobToMemBucket(ctx context.Context, t *testing.T, bucket *blob.Bucket
 	t.Helper()
 	w, err := bucket.NewWriter(ctx, key, nil)
 	require.NoError(t, err)
-	_, err = w.Write([]byte(content))
-	require.NoError(t, err)
-	require.NoError(t, w.Close())
+	_, writeErr := w.Write([]byte(content))
+	closeErr := w.Close()
+	require.NoError(t, writeErr)
+	require.NoError(t, closeErr)
 }
 
 func TestDownloadBlobSingleFile(t *testing.T) {
