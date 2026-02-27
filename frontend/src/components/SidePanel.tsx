@@ -74,6 +74,7 @@ class SidePanel extends React.Component<SidePanelProps> {
     const { isBusy, isOpen, onClose, title, defaultWidth } = this.props;
     return (
       <Slide in={isOpen} direction='left'>
+        {/* Wrapper div is required for MUI v5 Slide: Slide expects a single DOM element child that can receive a ref. */}
         <div>
           <Resizable
             className={css.sidepane}

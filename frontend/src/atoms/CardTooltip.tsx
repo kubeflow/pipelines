@@ -27,6 +27,8 @@ export const CardTooltip: React.FC<CardTooltipProps> = props => {
           <CardContent>{props.helpText}</CardContent>
         </Card>
       }
+      // v4 used `interactive={true}`; the v5 equivalent is `disableInteractive={false}`.
+      disableInteractive={false}
       leaveDelay={400}
       placement='top'
     >
