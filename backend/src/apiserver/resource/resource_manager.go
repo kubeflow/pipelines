@@ -173,24 +173,16 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 }
 
 // extractMaxActiveRuns extracts max_active_runs from the template's platform spec.
-// It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> maxActiveRuns
-func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
+// Returns nil when the field is not set or the template is not V2.
+func extractMaxActiveRuns(tmpl template.Template) (*int32, error) {
 	if tmpl == nil || !tmpl.IsV2() {
-		return 0, nil
+		return nil, nil
 	}
-	// Type assertion: cast to V2Spec to access PlatformSpec()
 	v2Spec, ok := tmpl.(*template.V2Spec)
 	if !ok || v2Spec == nil {
-		return 0, fmt.Errorf("expected V2 template to be *template.V2Spec")
+		return nil, fmt.Errorf("expected V2 template to be *template.V2Spec")
 	}
-	value, okValue, err := v2Spec.MaxActiveRuns()
-	if err != nil {
-		return 0, err
-	}
-	if !okValue {
-		return 0, nil
-	}
-	return value, nil
+	return v2Spec.MaxActiveRuns()
 }
 
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
@@ -609,14 +601,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if err != nil {
 		return nil, util.Wrap(err, "failed to extract max_active_runs")
 	}
-	if maxActiveRuns > 0 && run.PipelineVersionId != "" {
-		// Store pipeline version ID and max_active_runs in workflow annotations for WorkflowInterface.Create() to upsert ConfigMap.
+	if maxActiveRuns != nil && run.PipelineVersionId != "" {
 		if executionSpec.ExecutionObjectMeta().Annotations == nil {
 			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
 		}
 		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = run.PipelineVersionId
-		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
-
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(*maxActiveRuns))
 	}
 
 	// assign OwnerReference to scheduledworkflow

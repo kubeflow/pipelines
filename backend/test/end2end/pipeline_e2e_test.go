@@ -109,14 +109,14 @@ func MaxActiveRuns(pipelineFilePath string) (int32, error) {
 	if spec == nil {
 		return 0, fmt.Errorf("pipeline spec %q missing platform configuration", pipelineFilePath)
 	}
-	value, okValue, err := spec.MaxActiveRuns()
+	value, err := spec.MaxActiveRuns()
 	if err != nil {
 		return 0, err
 	}
-	if !okValue {
+	if value == nil {
 		return 0, fmt.Errorf("pipeline spec %q does not specify max_active_runs", pipelineFilePath)
 	}
-	return value, nil
+	return *value, nil
 }
 
 func kubectlGetWorkflowField(namespace, workflowName, jsonPath string) string {
