@@ -388,7 +388,8 @@ func TestDownloadBlobSkipsSiblingKeys(t *testing.T) {
 	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step/file.txt", "wanted")
 	writeBlobToMemBucket(ctx, t, bucket, "artifacts/step2/file.txt", "sibling")
 
-	localDir := t.TempDir()
+	parentDir := t.TempDir()
+	localDir := filepath.Join(parentDir, "step")
 
 	err := DownloadBlob(ctx, bucket, localDir, "artifacts/step")
 	require.NoError(t, err)
@@ -397,7 +398,7 @@ func TestDownloadBlobSkipsSiblingKeys(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "wanted", string(content))
 
-	_, err = os.Stat(filepath.Join(localDir, "../step2/file.txt"))
+	_, err = os.Stat(filepath.Join(parentDir, "step2", "file.txt"))
 	assert.True(t, os.IsNotExist(err), "sibling key should not have been downloaded")
 }
 
