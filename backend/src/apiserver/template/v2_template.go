@@ -87,28 +87,24 @@ func (t *V2Spec) PlatformSpec() *pipelinespec.PlatformSpec {
 }
 
 // MaxActiveRuns returns the configured max_active_runs from the Kubernetes platform spec.
-// The second return value indicates whether the field was explicitly set.
-func (t *V2Spec) MaxActiveRuns() (int32, bool, error) {
+// Returns nil when the field is not set in the proto.
+func (t *V2Spec) MaxActiveRuns() (*int32, error) {
 	if t.platformSpec == nil {
-		return 0, false, nil
+		return nil, nil
 	}
 	kubernetesSpec, ok := t.platformSpec.Platforms["kubernetes"]
 	if !ok || kubernetesSpec == nil {
-		return 0, false, nil
+		return nil, nil
 	}
 	pipelineConfig := kubernetesSpec.GetPipelineConfig()
 	if pipelineConfig == nil || pipelineConfig.MaxActiveRuns == nil {
-		return 0, false, nil
+		return nil, nil
 	}
 	value := pipelineConfig.GetMaxActiveRuns()
-	if value == 0 {
-		// Zero means no concurrency limit.
-		return 0, false, nil
-	}
 	if value < 0 {
-		return 0, false, fmt.Errorf("max_active_runs must be >= 0, got %d", value)
+		return nil, fmt.Errorf("max_active_runs must be >= 0, got %d", value)
 	}
-	return value, true, nil
+	return &value, nil
 }
 
 // Converts modelJob to ScheduledWorkflow.
@@ -181,15 +177,15 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 
-	maxActiveRuns, hasMaxActiveRuns, err := t.MaxActiveRuns()
+	maxActiveRuns, err := t.MaxActiveRuns()
 	if err != nil {
 		return nil, util.Wrap(err, "failed to extract max_active_runs")
 	}
-	if hasMaxActiveRuns {
+	if maxActiveRuns != nil {
 		if executionSpec.ExecutionObjectMeta().Annotations == nil {
 			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
 		}
-		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(*maxActiveRuns))
 		if modelJob.PipelineVersionId != "" {
 			executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = modelJob.PipelineVersionId
 		}

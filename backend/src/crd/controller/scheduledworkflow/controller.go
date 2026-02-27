@@ -769,16 +769,19 @@ func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workf
 		return 0, fmt.Errorf("unexpected template type for pipeline version %q", pipelineVersionID)
 	}
 
-	value, okValue, err := v2Spec.MaxActiveRuns()
+	value, err := v2Spec.MaxActiveRuns()
 	if err != nil {
 		return 0, fmt.Errorf("failed to extract max_active_runs for version %q: %w", pipelineVersionID, err)
 	}
-	if !okValue || value <= 0 {
-		return 0, fmt.Errorf("pipeline version %q does not specify max_active_runs", pipelineVersionID)
+	if value == nil {
+		return 0, nil
+	}
+	if *value <= 0 {
+		return 0, fmt.Errorf("pipeline version %q has invalid max_active_runs: %d", pipelineVersionID, *value)
 	}
 
 	annotatePipelineVersion(pipelineVersionID)
-	return value, nil
+	return *value, nil
 }
 
 func (c *Controller) updateStatus(

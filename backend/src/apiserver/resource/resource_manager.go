@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"time"
 
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 
 	"github.com/cenkalti/backoff"
@@ -85,6 +86,13 @@ var (
 		Help:    "Recurring Run Report Delay",
 		Buckets: prometheus.ExponentialBuckets(0.5, 2, 10), // 0.5s -> 4min
 	})
+
+	// Map API enum values to Kubernetes DeletionPropagation values
+	propagationPolicyMap = map[apiv2beta1.DeletePropagationPolicy]v1.DeletionPropagation{
+		apiv2beta1.DeletePropagationPolicy_FOREGROUND: v1.DeletePropagationForeground,
+		apiv2beta1.DeletePropagationPolicy_BACKGROUND: v1.DeletePropagationBackground,
+		apiv2beta1.DeletePropagationPolicy_ORPHAN:     v1.DeletePropagationOrphan,
+	}
 )
 
 type ClientManagerInterface interface {
@@ -165,24 +173,16 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 }
 
 // extractMaxActiveRuns extracts max_active_runs from the template's platform spec.
-// It navigates: template -> platformSpec -> platforms["kubernetes"] -> pipelineConfig -> maxActiveRuns
-func extractMaxActiveRuns(tmpl template.Template) (int32, error) {
+// Returns nil when the field is not set or the template is not V2.
+func extractMaxActiveRuns(tmpl template.Template) (*int32, error) {
 	if tmpl == nil || !tmpl.IsV2() {
-		return 0, nil
+		return nil, nil
 	}
-	// Type assertion: cast to V2Spec to access PlatformSpec()
 	v2Spec, ok := tmpl.(*template.V2Spec)
 	if !ok || v2Spec == nil {
-		return 0, fmt.Errorf("expected V2 template to be *template.V2Spec")
+		return nil, fmt.Errorf("expected V2 template to be *template.V2Spec")
 	}
-	value, okValue, err := v2Spec.MaxActiveRuns()
-	if err != nil {
-		return 0, err
-	}
-	if !okValue {
-		return 0, nil
-	}
-	return value, nil
+	return v2Spec.MaxActiveRuns()
 }
 
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
@@ -601,14 +601,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if err != nil {
 		return nil, util.Wrap(err, "failed to extract max_active_runs")
 	}
-	if maxActiveRuns > 0 && run.PipelineVersionId != "" {
-		// Store pipeline version ID and max_active_runs in workflow annotations for WorkflowInterface.Create() to upsert ConfigMap.
+	if maxActiveRuns != nil && run.PipelineVersionId != "" {
 		if executionSpec.ExecutionObjectMeta().Annotations == nil {
 			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
 		}
 		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = run.PipelineVersionId
-		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(maxActiveRuns))
-
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(*maxActiveRuns))
 	}
 
 	// assign OwnerReference to scheduledworkflow
@@ -1301,7 +1299,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 }
 
 // Deletes a recurring run with given id.
-func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string) error {
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy apiv2beta1.DeletePropagationPolicy) error {
 	job, err := r.GetJob(jobID)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)
@@ -1311,7 +1309,13 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string) error {
 	if k8sNamespace == "" {
 		k8sNamespace = common.GetPodNamespace()
 	}
-	err = r.getScheduledWorkflowClient(k8sNamespace).Delete(ctx, job.K8SName, &v1.DeleteOptions{})
+
+	deleteOptions := &v1.DeleteOptions{}
+	if policy, exists := propagationPolicyMap[propagationPolicy]; exists {
+		deleteOptions.PropagationPolicy = &policy
+	}
+
+	err = r.getScheduledWorkflowClient(k8sNamespace).Delete(ctx, job.K8SName, deleteOptions)
 	if err != nil {
 		if !util.IsNotFound(err) {
 			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists", jobID)
