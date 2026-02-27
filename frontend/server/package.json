@@ -47,7 +47,13 @@
     "json-schema": "0.4.0",
     "jsonpath-plus": "10.3.0",
     "date-and-time": "0.14.2",
-    "form-data@>=2.0.0 <2.5.4": "2.5.4"
+    "form-data@>=2.0.0 <2.5.4": "2.5.4",
+    "@aws-sdk/xml-builder": {
+      "fast-xml-parser": "5.3.6"
+    },
+    "minio": {
+      "fast-xml-parser": "4.5.4"
+    }
   },
   "scripts": {
     "build": "tsc --project .",
