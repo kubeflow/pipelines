@@ -24,7 +24,7 @@ def create_test_artifact(test_file: OutputPath()):
 # Create component from function
 create_artifact_op = create_component_from_func(
     create_test_artifact,
-    base_image='python:3.11',
+    base_image='python:3.11-slim',
     packages_to_install=[]
 )
 
