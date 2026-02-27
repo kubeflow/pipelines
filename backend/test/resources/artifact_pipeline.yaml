@@ -50,7 +50,7 @@ spec:
         _parsed_args = vars(_parser.parse_args())
 
         _outputs = create_test_artifact(**_parsed_args)
-      image: python:3.11
+      image: python:3.11-slim
     outputs:
       artifacts:
       - {name: create-test-artifact-test, path: /tmp/outputs/test/data}
@@ -70,7 +70,7 @@ spec:
           description=''Create a test artifact with simple content'')\n_parser.add_argument(\"--test\",
           dest=\"test_file\", type=_make_parent_dirs_and_return_path, required=True,
           default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
-          = create_test_artifact(**_parsed_args)\n"], "image": "python:3.11"}}, "name":
+          = create_test_artifact(**_parsed_args)\n"], "image": "python:3.11-slim"}}, "name":
           "Create test artifact", "outputs": [{"name": "test"}]}', pipelines.kubeflow.org/component_ref: '{}'}
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.23

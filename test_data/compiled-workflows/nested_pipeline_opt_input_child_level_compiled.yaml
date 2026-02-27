@@ -20,7 +20,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_a_bool(componentInputBool: bool = None):\n    if componentInputBool
         != True:\n        raise ValueError(f\"componentInputBool should be True but
-        is {componentInputBool}\")\n\n"],"image":"python:3.11"}'
+        is {componentInputBool}\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-1b21465d9fecfb690a65b5d22e0ec7540a7652fb013f3386f36e8255dd2ab5ca
       value: '{"executorLabel":"exec-component-a-int","inputDefinitions":{"parameters":{"componentInputInt":{"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
     - name: implementations-1b21465d9fecfb690a65b5d22e0ec7540a7652fb013f3386f36e8255dd2ab5ca
@@ -34,7 +34,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_a_int(componentInputInt: int = None):\n    if componentInputInt
-        != 1:\n        raise ValueError(f\"componentInputInt should be 1 but is {componentInputInt}\")\n\n"],"image":"python:3.11"}'
+        != 1:\n        raise ValueError(f\"componentInputInt should be 1 but is {componentInputInt}\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-e793c84d1e31d803ca345dd2c0bf915dd5e8c356537d91a002e90837789e73be
       value: '{"executorLabel":"exec-component-a-str","inputDefinitions":{"parameters":{"componentInputStr":{"isOptional":true,"parameterType":"STRING"}}}}'
     - name: implementations-e793c84d1e31d803ca345dd2c0bf915dd5e8c356537d91a002e90837789e73be
@@ -49,7 +49,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_a_str(componentInputStr: str = None):\n    if componentInputStr
         != ''Input - pipeline'':\n        raise ValueError(f\"componentInputStr should
-        be ''Input - pipeline'' but is {componentInputStr}\")\n\n"],"image":"python:3.11"}'
+        be ''Input - pipeline'' but is {componentInputStr}\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-847405d2298b3810654100892c836106fe0397c48f59c14f51827ef975efcd95
       value: '{"executorLabel":"exec-component-b-bool","inputDefinitions":{"parameters":{"componentInputBool":{"isOptional":true,"parameterType":"BOOLEAN"}}}}'
     - name: implementations-847405d2298b3810654100892c836106fe0397c48f59c14f51827ef975efcd95
@@ -64,7 +64,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_b_bool(componentInputBool: bool = None):\n    if componentInputBool
         != False:\n        raise ValueError(f\"componentInputBool should be False
-        but is {componentInputBool}\")\n\n"],"image":"python:3.11"}'
+        but is {componentInputBool}\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-fcf5d3023cec6f80952cd3ce9a483536e84ac6ae5f853a7178b710495776f2a5
       value: '{"executorLabel":"exec-component-b-int","inputDefinitions":{"parameters":{"componentInputInt":{"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
     - name: implementations-fcf5d3023cec6f80952cd3ce9a483536e84ac6ae5f853a7178b710495776f2a5
@@ -78,7 +78,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_b_int(componentInputInt: int = None):\n    if componentInputInt
-        != 0:\n        raise ValueError(f\"componentInputInt should be 0 but is {componentInputInt}\")\n\n"],"image":"python:3.11"}'
+        != 0:\n        raise ValueError(f\"componentInputInt should be 0 but is {componentInputInt}\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-319fe909f6b49ecb503c73c273e622302238293692577f00c9d93d0071fef705
       value: '{"executorLabel":"exec-component-b-str","inputDefinitions":{"parameters":{"componentInputStr":{"isOptional":true,"parameterType":"STRING"}}}}'
     - name: implementations-319fe909f6b49ecb503c73c273e622302238293692577f00c9d93d0071fef705
@@ -93,7 +93,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_b_str(componentInputStr: str = None):\n    if componentInputStr
         != ''Input 2 - nested pipeline'':\n        raise ValueError(f\"componentInputStr
-        should be ''Input 2 - nested pipeline'' but is {componentInputStr}\")\n\n"],"image":"python:3.11"}'
+        should be ''Input 2 - nested pipeline'' but is {componentInputStr}\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-nested-pipeline
       value: '{"dag":{"tasks":{"component-a-bool":{"cachingOptions":{},"componentRef":{"name":"comp-component-a-bool"},"inputs":{"parameters":{"componentInputBool":{"componentInputParameter":"nestedInputBool1"}}},"taskInfo":{"name":"component-a-bool"}},"component-a-int":{"cachingOptions":{},"componentRef":{"name":"comp-component-a-int"},"inputs":{"parameters":{"componentInputInt":{"componentInputParameter":"nestedInputInt1"}}},"taskInfo":{"name":"component-a-int"}},"component-a-str":{"cachingOptions":{},"componentRef":{"name":"comp-component-a-str"},"inputs":{"parameters":{"componentInputStr":{"componentInputParameter":"nestedInputStr1"}}},"taskInfo":{"name":"component-a-str"}},"component-b-bool":{"cachingOptions":{},"componentRef":{"name":"comp-component-b-bool"},"inputs":{"parameters":{"componentInputBool":{"componentInputParameter":"nestedInputBool2"}}},"taskInfo":{"name":"component-b-bool"}},"component-b-int":{"cachingOptions":{},"componentRef":{"name":"comp-component-b-int"},"inputs":{"parameters":{"componentInputInt":{"componentInputParameter":"nestedInputInt2"}}},"taskInfo":{"name":"component-b-int"}},"component-b-str":{"cachingOptions":{},"componentRef":{"name":"comp-component-b-str"},"inputs":{"parameters":{"componentInputStr":{"componentInputParameter":"nestedInputStr2"}}},"taskInfo":{"name":"component-b-str"}}}},"inputDefinitions":{"parameters":{"nestedInputBool1":{"defaultValue":false,"isOptional":true,"parameterType":"BOOLEAN"},"nestedInputBool2":{"defaultValue":false,"isOptional":true,"parameterType":"BOOLEAN"},"nestedInputInt1":{"defaultValue":0,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"nestedInputInt2":{"defaultValue":0,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"nestedInputStr1":{"defaultValue":"Input
         1 - nested pipeline","isOptional":true,"parameterType":"STRING"},"nestedInputStr2":{"defaultValue":"Input

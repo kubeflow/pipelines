@@ -57,7 +57,7 @@ deploymentSpec:
           \ but should be '/tmp/out_dataset'.\")\n    if out_dataset.custom_path !=\
           \ '/tmp/out_dataset':\n        raise ValueError(f\"File uri is {out_dataset.custom_path}\
           \ but should be '/tmp/out_dataset'.\")\n\n"
-        image: python:3.11
+        image: python:3.11-slim
     exec-validate-input-artifact:
       container:
         args:
@@ -90,7 +90,7 @@ deploymentSpec:
           \ in f:\n            if line != 'Hello, World!':\n                raise\
           \ ValueError(f\"File content is {line} but should be 'Hello, World!'.\"\
           )\n    return True\n\n"
-        image: python:3.11
+        image: python:3.11-slim
 pipelineInfo:
   description: pipeline with artifact with custom path
   name: pipeline-with-custom-path-artifact

@@ -20,7 +20,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        log_message(message: str) -\u003e None:\n    print(message)\n\n"],"image":"python:3.11"}'
+        log_message(message: str) -\u003e None:\n    print(message)\n\n"],"image":"python:3.11-slim"}'
     - name: components-root
       value: '{"dag":{"tasks":{"log-message":{"cachingOptions":{},"componentRef":{"name":"comp-log-message"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"baseline
         task"}}}},"taskInfo":{"name":"log-message"}}}},"inputDefinitions":{"parameters":{"optional_affinity":{"isOptional":true,"parameterType":"STRUCT"},"optional_config_map_name":{"isOptional":true,"parameterType":"STRING"},"optional_image_pull_secret_name":{"isOptional":true,"parameterType":"STRING"},"optional_secret_name":{"isOptional":true,"parameterType":"STRING"},"optional_selector":{"isOptional":true,"parameterType":"STRUCT"},"optional_tolerations":{"isOptional":true,"parameterType":"LIST"}}}}'

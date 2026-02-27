@@ -20,7 +20,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        consumer() -\u003e None:\n    with open(''/data/file.txt'', ''r'') as f:\n        print(f.read())\n\n"],"image":"python:3.11"}'
+        consumer() -\u003e None:\n    with open(''/data/file.txt'', ''r'') as f:\n        print(f.read())\n\n"],"image":"python:3.11-slim"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"componentInputParameter":"pvc_name","mountPath":"/data","pvcNameParameter":{"componentInputParameter":"pvc_name"}}]}'
     - name: components-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2
@@ -36,7 +36,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         producer() -\u003e str:\n    with open(''/data/file.txt'', ''w'') as f:\n        f.write(''hello'')\n    with
-        open(''/data/file.txt'', ''r'') as f:\n        return f.read()\n\n"],"image":"python:3.11"}'
+        open(''/data/file.txt'', ''r'') as f:\n        return f.read()\n\n"],"image":"python:3.11-slim"}'
     - name: components-root
       value: '{"dag":{"tasks":{"consumer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["producer"],"taskInfo":{"name":"consumer"}},"producer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"taskInfo":{"name":"producer"}}}},"inputDefinitions":{"parameters":{"pvc_name":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

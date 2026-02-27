@@ -21,7 +21,7 @@ spec:
         add(in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]):\n    nums
         = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
         f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
-        ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.11"}'
+        ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.11-slim"}'
     - name: components-f4f4561b18f8a84ad84a3caf869976153405421ba33d00f4e21888cf11602cb1
       value: '{"executorLabel":"exec-add-container","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-f4f4561b18f8a84ad84a3caf869976153405421ba33d00f4e21888cf11602cb1
@@ -45,7 +45,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         double(num: int, out_dataset: Output[Dataset]):\n    with open(out_dataset.path,
-        ''w'') as f:\n        f.write(str(2 * num))\n\n"],"image":"python:3.11"}'
+        ''w'') as f:\n        f.write(str(2 * num))\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--double-out_dataset":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"double"}]}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--double-out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
     - name: components-root

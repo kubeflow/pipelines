@@ -46,7 +46,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         html_visualization(html_artifact: Output[HTML]):\n    html_content = ''\u003c!DOCTYPE
         html\u003e\u003chtml\u003e\u003cbody\u003e\u003ch1\u003eHello world\u003c/h1\u003e\u003c/body\u003e\u003c/html\u003e''\n    with
-        open(html_artifact.path, ''w'') as f:\n        f.write(html_content)\n\n"],"image":"python:3.11"}'
+        open(html_artifact.path, ''w'') as f:\n        f.write(html_content)\n\n"],"image":"python:3.11-slim"}'
     - name: components-bc39e66a757a311925530cb3cd83e853de7b0e184293aef072b5b7373bb54737
       value: '{"executorLabel":"exec-iris-sgdclassifier","inputDefinitions":{"parameters":{"test_samples_fraction":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-bc39e66a757a311925530cb3cd83e853de7b0e184293aef072b5b7373bb54737
@@ -84,7 +84,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         markdown_visualization(markdown_artifact: Output[Markdown]):\n    markdown_content
         = ''## Hello world \\n\\n Markdown content''\n    with open(markdown_artifact.path,
-        ''w'') as f:\n        f.write(markdown_content)\n\n"],"image":"python:3.11"}'
+        ''w'') as f:\n        f.write(markdown_content)\n\n"],"image":"python:3.11-slim"}'
     - name: components-604e27807fd7ae86d7bc5f843ad162238727d4c7b293d7bd4f12829300b5f6f6
       value: '{"executorLabel":"exec-wine-classification","outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-604e27807fd7ae86d7bc5f843ad162238727d4c7b293d7bd4f12829300b5f6f6

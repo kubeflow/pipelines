@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         create_file(file: Output[Artifact], content: str):\n    with open(file.path,
-        ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.11"}'
+        ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.11-slim"}'
     - name: components-f59c851c3c0a1e03b3e2065384eb3c4665ce5f234998fed18cb6afb34ce005a7
       value: '{"executorLabel":"exec-read-file","inputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-f59c851c3c0a1e03b3e2065384eb3c4665ce5f234998fed18cb6afb34ce005a7
@@ -33,7 +33,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         read_file(file: Input[Artifact]) -\u003e str:\n    with open(file.path, ''r'')
-        as f:\n        print(f.read())\n    return file.path\n\n"],"image":"python:3.11"}'
+        as f:\n        print(f.read())\n    return file.path\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-for-loop-1
       value: '{"dag":{"tasks":{"create-file":{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-input-Output-loop-item"}}},"taskInfo":{"name":"same
         display name"}},"read-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"same
@@ -51,7 +51,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_input(input: list):\n    for item in input:\n        print(f''Input
-        item: {item}'')\n\n"],"image":"python:3.11"}'
+        item: {item}'')\n\n"],"image":"python:3.11-slim"}'
     - name: components-fc5dd8cf7a18cc02226309bb936fb376a98741769b2faba10d1bfc9960de8802
       value: '{"executorLabel":"exec-split-input","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
     - name: implementations-fc5dd8cf7a18cc02226309bb936fb376a98741769b2faba10d1bfc9960de8802
@@ -64,7 +64,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        split_input(input: str) -\u003e list:\n    return input.split('','')\n\n"],"image":"python:3.11"}'
+        split_input(input: str) -\u003e list:\n    return input.split('','')\n\n"],"image":"python:3.11-slim"}'
     - name: components-root
       value: '{"dag":{"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-input"],"inputs":{"parameters":{"pipelinechannel--split-input-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-input-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-input-Output"}},"taskInfo":{"name":"for-loop-1"}},"print-input":{"cachingOptions":{},"componentRef":{"name":"comp-print-input"},"dependentTasks":["split-input"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"taskInfo":{"name":"same
         display name"}},"split-input":{"cachingOptions":{},"componentRef":{"name":"comp-split-input"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"component1,component2,component3"}}}},"taskInfo":{"name":"same

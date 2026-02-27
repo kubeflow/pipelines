@@ -55,7 +55,7 @@ deploymentSpec:
           \ Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\"\
           )\n    if response.status_code != 200:\n        raise Exception(f\"Failed\
           \ to request {url}: {response.status_code}\")\n\n"
-        image: python:3.11
+        image: python:3.11-slim
     exec-submit-request-2:
       container:
         args:
@@ -95,7 +95,7 @@ deploymentSpec:
           \ Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\"\
           )\n    if response.status_code != 200:\n        raise Exception(f\"Failed\
           \ to request {url}: {response.status_code}\")\n\n"
-        image: python:3.11
+        image: python:3.11-slim
 pipelineInfo:
   description: A pipeline that requests both in-cluster & external URLs.
   name: pipeline-with-external-request

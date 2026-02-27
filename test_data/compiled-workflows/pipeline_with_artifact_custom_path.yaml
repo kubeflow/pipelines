@@ -23,7 +23,7 @@ spec:
         out_dataset.path != ''/tmp/out_dataset'':\n        raise ValueError(f\"File
         path is {out_dataset.path} but should be ''/tmp/out_dataset''.\")\n    if
         out_dataset.custom_path != ''/tmp/out_dataset'':\n        raise ValueError(f\"File
-        uri is {out_dataset.custom_path} but should be ''/tmp/out_dataset''.\")\n\n"],"image":"python:3.11"}'
+        uri is {out_dataset.custom_path} but should be ''/tmp/out_dataset''.\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-0641839dce68d0225ee497406363513592d841c856891f7313f5368a99e8a50d
       value: '{"executorLabel":"exec-validate-input-artifact","inputDefinitions":{"artifacts":{"in_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
     - name: implementations-0641839dce68d0225ee497406363513592d841c856891f7313f5368a99e8a50d
@@ -40,7 +40,7 @@ spec:
         in_dataset is None:\n        raise ValueError(\"Input artifact is None.\")\n    with
         open(in_dataset.path, ''r'') as f:\n        for line in f:\n            if
         line != ''Hello, World!'':\n                raise ValueError(f\"File content
-        is {line} but should be ''Hello, World!''.\")\n    return True\n\n"],"image":"python:3.11"}'
+        is {line} but should be ''Hello, World!''.\")\n    return True\n\n"],"image":"python:3.11-slim"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-output-artifact":{"cachingOptions":{},"componentRef":{"name":"comp-component-output-artifact"},"taskInfo":{"name":"component-output-artifact"}},"validate-input-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-validate-input-artifact"},"dependentTasks":["component-output-artifact"],"inputs":{"artifacts":{"in_dataset":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"component-output-artifact"}}}},"taskInfo":{"name":"validate-input-artifact"}}}}}'
   entrypoint: entrypoint

@@ -29,7 +29,7 @@ spec:
         = requests.get(url, verify=True, timeout=5)\n        print(response.status_code)\n    except
         Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\")\n    if
         response.status_code != 200:\n        raise Exception(f\"Failed to request
-        {url}: {response.status_code}\")\n\n"],"image":"python:3.11"}'
+        {url}: {response.status_code}\")\n\n"],"image":"python:3.11-slim"}'
     - name: components-root
       value: '{"dag":{"tasks":{"submit-request":{"cachingOptions":{},"componentRef":{"name":"comp-submit-request"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"httpbin.org/get"}}}},"taskInfo":{"name":"submit-request"}},"submit-request-2":{"cachingOptions":{},"componentRef":{"name":"comp-submit-request-2"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"ml-pipeline:8888/apis/v2beta1/healthz"}}}},"taskInfo":{"name":"submit-request-2"}}}}}'
   entrypoint: entrypoint

@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        add_numbers(first: int, second: int) -\u003e int:\n    return first + second\n\n"],"image":"python:3.11"}'
+        add_numbers(first: int, second: int) -\u003e int:\n    return first + second\n\n"],"image":"python:3.11-slim"}'
     - name: components-22305325c661206b4123f78ea46d0c5195ad2ec0f2cb1c12e7d3796adfea3272
       value: '{"executorLabel":"exec-concat-message","inputDefinitions":{"parameters":{"first":{"parameterType":"STRING"},"second":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-22305325c661206b4123f78ea46d0c5195ad2ec0f2cb1c12e7d3796adfea3272
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        concat_message(first: str, second: str) -\u003e str:\n    return first + second\n\n"],"image":"python:3.11"}'
+        concat_message(first: str, second: str) -\u003e str:\n    return first + second\n\n"],"image":"python:3.11-slim"}'
     - name: components-8a22c1e65c445da5e19295ad1c0852d6baa362cde8d17969d80f385ffb3f744b
       value: '{"executorLabel":"exec-output-artifact","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"},"number":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-8a22c1e65c445da5e19295ad1c0852d6baa362cde8d17969d80f385ffb3f744b
@@ -45,7 +45,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         output_artifact(number: int, message: str) -\u003e Dataset:\n    result =
-        [message for _ in range(number)]\n    return ''\\n''.join(result)\n\n"],"image":"python:3.11"}'
+        [message for _ in range(number)]\n    return ''\\n''.join(result)\n\n"],"image":"python:3.11-slim"}'
     - name: components-8b7c37a05dbc36da22206bd274fccfa32b8ca2751e413c2d48e41d700d278796
       value: '{"executorLabel":"exec-output-named-tuple","inputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.Metrics","schemaVersion":"0.0.1"}},"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}},"parameters":{"scalar":{"parameterType":"STRING"}}}}'
     - name: implementations-8b7c37a05dbc36da22206bd274fccfa32b8ca2751e413c2d48e41d700d278796
@@ -65,7 +65,7 @@ spec:
         ''PERCENTAGE'',\n        }]\n    })\n\n    with open(artifact.path) as f:\n        artifact_contents
         = f.read()\n    model = ''Model contents: '' + artifact_contents\n\n    from
         collections import namedtuple\n    output = namedtuple(''Outputs'', [''scalar'',
-        ''metrics'', ''model''])\n    return output(scalar, metrics, model)\n\n"],"image":"python:3.11"}'
+        ''metrics'', ''model''])\n    return output(scalar, metrics, model)\n\n"],"image":"python:3.11-slim"}'
     - name: components-root
       value: '{"dag":{"tasks":{"add-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_number"},"second":{"componentInputParameter":"second_number"}}},"taskInfo":{"name":"add-numbers"}},"concat-message":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-concat-message"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_message"},"second":{"componentInputParameter":"second_message"}}},"taskInfo":{"name":"concat-message"}},"output-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-artifact"},"dependentTasks":["add-numbers","concat-message"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"concat-message"}},"number":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers"}}}},"taskInfo":{"name":"output-artifact"}},"output-named-tuple":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-named-tuple"},"dependentTasks":["output-artifact"],"inputs":{"artifacts":{"artifact":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"output-artifact"}}}},"taskInfo":{"name":"output-named-tuple"}}}},"inputDefinitions":{"parameters":{"first_message":{"parameterType":"STRING"},"first_number":{"parameterType":"NUMBER_INTEGER"},"second_message":{"parameterType":"STRING"},"second_number":{"parameterType":"NUMBER_INTEGER"}}}}'
   entrypoint: entrypoint

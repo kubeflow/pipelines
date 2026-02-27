@@ -20,7 +20,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         crust_comp(\n    ds1: dsl.Dataset,\n    ds2: dsl.Dataset,\n):\n    with open(ds1.path,
         ''r'') as f:\n        print(''ds1: '', f.read())\n    with open(ds2.path,
-        ''r'') as f:\n        print(''ds2: '', f.read())\n\n"],"image":"python:3.11"}'
+        ''r'') as f:\n        print(''ds2: '', f.read())\n\n"],"image":"python:3.11-slim"}'
     - name: components-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
       value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
@@ -35,7 +35,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         core_comp(ds1: dsl.Output[dsl.Dataset], ds2: dsl.Output[dsl.Dataset]):\n    with
         open(ds1.path, ''w'') as f:\n        f.write(''foo'')\n    with open(ds2.path,
-        ''w'') as f:\n        f.write(''bar'')\n\n"],"image":"python:3.11"}'
+        ''w'') as f:\n        f.write(''bar'')\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-core
       value: '{"dag":{"outputs":{"artifacts":{"ds1":{"artifactSelectors":[{"outputArtifactKey":"ds1","producerSubtask":"core-comp"}]},"ds2":{"artifactSelectors":[{"outputArtifactKey":"ds2","producerSubtask":"core-comp"}]}}},"tasks":{"core-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}}},"outputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: components-comp-mantle

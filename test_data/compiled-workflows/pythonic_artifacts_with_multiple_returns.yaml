@@ -20,7 +20,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         make_dataset() -\u003e Artifact:\n    artifact = Artifact(uri=dsl.get_uri(''dataset''))\n    with
         open(artifact.path, ''w'') as f:\n        f.write(''Hello, world'')\n    return
-        artifact\n\n"],"image":"python:3.11"}'
+        artifact\n\n"],"image":"python:3.11-slim"}'
     - name: components-a1cab77dea9e6edee97745b998070da20716dcf0eee94102ec9bfac02152a267
       value: '{"executorLabel":"exec-dataset-splitter","inputDefinitions":{"artifacts":{"in_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"dataset2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-a1cab77dea9e6edee97745b998070da20716dcf0eee94102ec9bfac02152a267
@@ -41,7 +41,7 @@ spec:
         = Dataset(\n        uri=dsl.get_uri(suffix=''dataset2''),\n        metadata={''original_data'':
         in_dataset.name},\n    )\n    with open(dataset2.path, ''w'') as f:\n        f.write(out_data2)\n\n    outputs
         = NamedTuple(\n        ''outputs'',\n        dataset1=Dataset,\n        dataset2=Dataset,\n    )\n    return
-        outputs(dataset1=dataset1, dataset2=dataset2)\n\n"],"image":"python:3.11"}'
+        outputs(dataset1=dataset1, dataset2=dataset2)\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-splitter-pipeline
       value: '{"dag":{"outputs":{"artifacts":{"dataset1":{"artifactSelectors":[{"outputArtifactKey":"dataset1","producerSubtask":"dataset-splitter"}]},"dataset2":{"artifactSelectors":[{"outputArtifactKey":"dataset1","producerSubtask":"dataset-splitter"}]}}},"tasks":{"dataset-splitter":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-dataset-splitter"},"inputs":{"artifacts":{"in_dataset":{"componentInputArtifact":"in_dataset"}}},"taskInfo":{"name":"dataset-splitter"}}}},"inputDefinitions":{"artifacts":{"in_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"dataset2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: components-root

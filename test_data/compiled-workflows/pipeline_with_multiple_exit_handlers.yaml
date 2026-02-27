@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.11"}'
+        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.11-slim"}'
     - name: components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
       value: '{"executorLabel":"exec-print-op-2","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
     - name: implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.11"}'
+        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-exit-handler-1
       value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
         failed."}}}},"taskInfo":{"name":"fail-op"}},"print-op-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--message":{"parameterType":"STRING"}}}}'

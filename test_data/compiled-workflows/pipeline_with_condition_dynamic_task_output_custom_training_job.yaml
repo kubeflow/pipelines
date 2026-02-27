@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.11"}'
+        accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.11-slim"}'
     - name: components-f9a25b0b0eb8f4240e030d4007d8ba04dd922f7ac266816c8751d15ad42c5236
       value: '{"executorLabel":"exec-accelerator-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-f9a25b0b0eb8f4240e030d4007d8ba04dd922f7ac266816c8751d15ad42c5236
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.11"}'
+        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.11-slim"}'
     - name: components-20246c97a11cfe4c823ed6719ceb5c3f1d11943e4553ba99a2121c27711478b5
       value: '{"executorLabel":"exec-custom-training-job","inputDefinitions":{"parameters":{"base_output_directory":{"defaultValue":"","description":"The
         Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob.
@@ -120,7 +120,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         flip_biased_coin_op() -\u003e str:\n    \"\"\"Flip a coin and output heads.\"\"\"\n    return
-        ''heads''\n\n"],"image":"python:3.11"}'
+        ''heads''\n\n"],"image":"python:3.11-slim"}'
     - name: components-a8764ade5a7c2d0a4863791e694b80370ee266ca37f2aa429d49e94e203e1715
       value: '{"executorLabel":"exec-machine-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-a8764ade5a7c2d0a4863791e694b80370ee266ca37f2aa429d49e94e203e1715
@@ -133,7 +133,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        machine_type() -\u003e str:\n    return ''n1-standard-4''\n\n"],"image":"python:3.11"}'
+        machine_type() -\u003e str:\n    return ''n1-standard-4''\n\n"],"image":"python:3.11-slim"}'
     - name: components-root
       value: '{"dag":{"tasks":{"accelerator-count":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["accelerator-count","accelerator-type","flip-biased-coin-op","machine-type"],"inputs":{"parameters":{"pipelinechannel--accelerator-count-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-count"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--encryption_spec_key_name":{"componentInputParameter":"encryption_spec_key_name"},"pipelinechannel--flip-biased-coin-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-biased-coin-op"}},"pipelinechannel--location":{"componentInputParameter":"location"},"pipelinechannel--machine-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"machine-type"}},"pipelinechannel--project":{"componentInputParameter":"project"}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-biased-coin-op-Output'']
         == ''heads''"}},"flip-biased-coin-op":{"cachingOptions":{},"componentRef":{"name":"comp-flip-biased-coin-op"},"taskInfo":{"name":"flip-biased-coin-op"}},"machine-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}}},"inputDefinitions":{"parameters":{"encryption_spec_key_name":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"location":{"parameterType":"STRING"},"project":{"parameterType":"STRING"}}}}'
