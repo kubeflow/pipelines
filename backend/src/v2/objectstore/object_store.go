@@ -150,6 +150,10 @@ func sanitizeDownloadPath(localDir, blobDir, objKey string) (string, error) {
 	return localPath, nil
 }
 
+func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
+	return objKey == blobDir || strings.HasPrefix(objKey, blobDir+"/")
+}
+
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
 	for {
@@ -166,7 +170,7 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			// Object stores list all files with the same prefix,
 			// there is no need to recursively list each folder.
 			continue
-		} else {
+		} else if isBlobKeyUnderPrefix(obj.Key, blobDir) {
 			localPath, err := sanitizeDownloadPath(localDir, blobDir, obj.Key)
 			if err != nil {
 				return err

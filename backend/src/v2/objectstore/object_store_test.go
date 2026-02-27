@@ -203,7 +203,7 @@ func Test_bucketConfig_KeyFromURI(t *testing.T) {
 	}
 }
 
-func Test_sanitizeDownloadPath(t *testing.T) {
+func TestSanitizeDownloadPath(t *testing.T) {
 	tests := []struct {
 		name     string
 		localDir string
@@ -316,6 +316,71 @@ func Test_sanitizeDownloadPath(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantPath, got)
+		})
+	}
+}
+
+func TestIsBlobKeyUnderPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		objKey  string
+		blobDir string
+		want    bool
+	}{
+		{
+			name:    "Exact match",
+			objKey:  "artifacts/step",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Child key",
+			objKey:  "artifacts/step/file.txt",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Nested child",
+			objKey:  "artifacts/step/sub/file.txt",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "Sibling with shared string prefix",
+			objKey:  "artifacts/step2/file.txt",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+		{
+			name:    "Completely unrelated key",
+			objKey:  "other/path",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+		{
+			name:    "blobDir with trailing slash",
+			objKey:  "artifacts/step/file.txt",
+			blobDir: "artifacts/step/",
+			want:    false,
+		},
+		{
+			name:    "objKey equals blobDir plus slash",
+			objKey:  "artifacts/step/",
+			blobDir: "artifacts/step",
+			want:    true,
+		},
+		{
+			name:    "objKey is parent of blobDir",
+			objKey:  "artifacts",
+			blobDir: "artifacts/step",
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isBlobKeyUnderPrefix(tt.objKey, tt.blobDir)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
