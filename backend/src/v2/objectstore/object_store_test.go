@@ -239,7 +239,7 @@ func TestSanitizeDownloadPath(t *testing.T) {
 			localDir: "/tmp/outputs",
 			blobDir:  "artifacts/step",
 			objKey:   "artifacts/step",
-			wantPath: "/tmp/outputs",
+			wantPath: filepath.Clean("/tmp/outputs"),
 		},
 		{
 			name:     "Key with trailing slash",
