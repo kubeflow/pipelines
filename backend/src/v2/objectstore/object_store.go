@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -124,6 +125,31 @@ func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 	return nil
 }
 
+func sanitizeDownloadPath(localDir, blobDir, objKey string) (string, error) {
+	if slices.Contains(strings.Split(objKey, "/"), "..") {
+		return "", fmt.Errorf("path traversal detected: blob key %q contains '..' component", objKey)
+	}
+
+	relativePath, err := filepath.Rel(blobDir, objKey)
+	if err != nil {
+		return "", fmt.Errorf("unexpected object key %q when listing %q: %w", objKey, blobDir, err)
+	}
+	localPath := filepath.Join(localDir, relativePath)
+
+	absLocal, err := filepath.Abs(localPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve absolute path for %q: %w", localPath, err)
+	}
+	absDir, err := filepath.Abs(localDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve absolute path for %q: %w", localDir, err)
+	}
+	if absLocal != absDir && !strings.HasPrefix(absLocal, absDir+string(os.PathSeparator)) {
+		return "", fmt.Errorf("path traversal detected: blob key %q resolves to %q which is outside target directory %q", objKey, absLocal, absDir)
+	}
+	return localPath, nil
+}
+
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
 	for {
@@ -141,11 +167,11 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			// there is no need to recursively list each folder.
 			continue
 		} else {
-			relativePath, err := filepath.Rel(blobDir, obj.Key)
+			localPath, err := sanitizeDownloadPath(localDir, blobDir, obj.Key)
 			if err != nil {
-				return fmt.Errorf("unexpected object key %q when listing %q: %w", obj.Key, blobDir, err)
+				return err
 			}
-			if err := downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath)); err != nil {
+			if err := downloadFile(ctx, bucket, obj.Key, localPath); err != nil {
 				return err
 			}
 		}

@@ -17,10 +17,12 @@ package objectstore
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -197,6 +199,123 @@ func Test_bucketConfig_KeyFromURI(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("bucketConfig.keyFromURI() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func Test_sanitizeDownloadPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		localDir string
+		blobDir  string
+		objKey   string
+		wantPath string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "Simple child file",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
+		},
+		{
+			name:     "Nested child file",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/sub/file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "sub", "file.txt"),
+		},
+		{
+			name:     "Current-dir segment is benign",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/./file.txt",
+			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
+		},
+		{
+			name:     "Key equals blobDir produces relativePath dot",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step",
+			wantPath: "/tmp/outputs",
+		},
+		{
+			name:     "Key with trailing slash",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/subdir/",
+			wantPath: filepath.Join("/tmp/outputs", "subdir"),
+		},
+		{
+			name:     "Dotdot in bounds still rejected",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/sub/../file.txt",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Traversal via dotdot in key middle",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/../../etc/passwd",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Traversal via dotdot at start of key",
+			localDir: "/tmp/outputs",
+			blobDir:  "safe",
+			objKey:   "../../../etc/shadow",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Single dotdot just barely escapes",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/../secret",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Multiple dotdot through deep nesting",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/a/b/../../../etc/passwd",
+			wantErr:  true,
+			errMsg:   "contains '..' component",
+		},
+		{
+			name:     "Prefix match but not path boundary",
+			localDir: "/tmp/outputs",
+			blobDir:  "art",
+			objKey:   "artifacts/file.txt",
+			wantErr:  true,
+			errMsg:   "path traversal detected",
+		},
+		{
+			name:     "Completely unrelated key",
+			localDir: "/tmp/outputs",
+			blobDir:  "expected/path",
+			objKey:   "totally/different/path",
+			wantErr:  true,
+			errMsg:   "path traversal detected",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := sanitizeDownloadPath(tt.localDir, tt.blobDir, tt.objKey)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantPath, got)
 		})
 	}
 }
