@@ -361,6 +361,12 @@ func TestIsBlobKeyUnderPrefix(t *testing.T) {
 			name:    "blobDir with trailing slash",
 			objKey:  "artifacts/step/file.txt",
 			blobDir: "artifacts/step/",
+			want:    true,
+		},
+		{
+			name:    "Sibling with trailing slash on blobDir",
+			objKey:  "artifacts/step2/file.txt",
+			blobDir: "artifacts/step/",
 			want:    false,
 		},
 		{

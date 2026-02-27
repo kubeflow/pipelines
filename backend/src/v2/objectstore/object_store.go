@@ -151,6 +151,7 @@ func sanitizeDownloadPath(localDir, blobDir, objKey string) (string, error) {
 }
 
 func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
+	blobDir = strings.TrimRight(blobDir, "/")
 	return objKey == blobDir || strings.HasPrefix(objKey, blobDir+"/")
 }
 
