@@ -15,13 +15,11 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
 import { ApiVisualizationType } from '../../apis/visualization';
-import { diffHTML } from 'src/TestUtils';
 import Select from '@material-ui/core/Select';
 import renderer from 'react-test-renderer';
 
@@ -362,10 +360,6 @@ describe('VisualizationCreator', () => {
     `);
     const button = screen.getByText('create visualizations manually');
     fireEvent.click(button);
-    expect(diffHTML({ base: baseContainer.innerHTML, update: container.innerHTML }))
-      .toMatchInlineSnapshot(`
-        "Snapshot Diff:
-        Compared values have no visual difference."
-      `);
+    expect(container.innerHTML).toEqual(baseContainer.innerHTML);
   });
 });

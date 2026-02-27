@@ -301,7 +301,7 @@ tzdata==2025.2
     # via pandas
 uritemplate==3.0.1
     # via google-api-python-client
-urllib3==2.5.0
+urllib3==2.6.3
     # via requests
 wcwidth==0.2.13
     # via prompt-toolkit

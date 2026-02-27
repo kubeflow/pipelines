@@ -6,9 +6,6 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
     class="page_f1flacxk f9qqjqd kfp-start-page"
   >
     <div>
-      <p>
-        &lt;br/&gt;
-      </p>
       <h2
         id="build-your-own-pipeline-with"
       >
@@ -27,9 +24,6 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
           </a>
         </li>
       </ul>
-      <p>
-        &lt;br/&gt;
-      </p>
       <h2
         id="demonstrations-and-tutorials"
       >
