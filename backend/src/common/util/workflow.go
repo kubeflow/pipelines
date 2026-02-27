@@ -998,8 +998,9 @@ func applyPipelineParallelismConfigMapEntry(ctx context.Context, configMaps v1.C
 		WithData(map[string]string{pipelineVersionID: value})
 
 	// Use server-side apply which automatically handles both create and update.
-	// It will create the ConfigMap if it doesn't exist (NotFound) or update it if the value changed.
-	_, err := configMaps.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kubeflow-pipelines", Force: false})
+	// Each pipeline version uses its own FieldManager so concurrent applies for
+	// different versions don't clobber each other's keys in the shared ConfigMap.
+	_, err := configMaps.Apply(ctx, configMapApply, metav1.ApplyOptions{FieldManager: "kfp-parallelism-" + pipelineVersionID, Force: true})
 	if err != nil {
 		return fmt.Errorf("failed to apply pipeline parallelism ConfigMap entry: %w", err)
 	}
