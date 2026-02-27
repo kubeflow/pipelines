@@ -1025,5 +1025,83 @@ class TestFstringContainerComponent(
         self.assertEqual(task.output, 'foo-bar-baz')
 
 
+class TestExitHandler(testing_utilities.LocalRunnerEnvironmentTestCase):
+    """Tests for dsl.ExitHandler support in local execution."""
+
+    def test_exit_handler_runs_on_success(self):
+        """Exit handler should run after successful pipeline execution."""
+        local.init(runner=local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        @dsl.component
+        def simple_task() -> str:
+            return 'success'
+
+        @dsl.component
+        def exit_task(status: dsl.PipelineTaskFinalStatus) -> str:
+            return f'state:{status.state}'
+
+        @dsl.pipeline
+        def pipeline_with_exit_handler() -> str:
+            exit_op = exit_task()
+            with dsl.ExitHandler(exit_op):
+                simple_task()
+            return exit_op.output
+
+        task = pipeline_with_exit_handler()
+        self.assertEqual(task.output, 'state:SUCCEEDED')
+
+    def test_exit_handler_runs_on_failure(self):
+        """Exit handler should still run even when upstream tasks fail."""
+        local.init(
+            runner=local.SubprocessRunner(),
+            pipeline_root=ROOT_FOR_TESTING,
+            raise_on_error=False)
+
+        @dsl.component
+        def failing_task() -> str:
+            raise ValueError('Intentional failure')
+
+        @dsl.component
+        def exit_task(status: dsl.PipelineTaskFinalStatus) -> str:
+            return f'state:{status.state}'
+
+        @dsl.pipeline
+        def pipeline_with_exit_handler_failure() -> str:
+            exit_op = exit_task()
+            with dsl.ExitHandler(exit_op):
+                failing_task()
+            return exit_op.output
+
+        task = pipeline_with_exit_handler_failure()
+        self.assertEqual(task.output, 'state:FAILED')
+
+    def test_exit_handler_receives_error_message(self):
+        """Exit handler should receive error message from failed task."""
+        local.init(
+            runner=local.SubprocessRunner(),
+            pipeline_root=ROOT_FOR_TESTING,
+            raise_on_error=False)
+
+        @dsl.component
+        def failing_task() -> str:
+            raise ValueError('Custom error message')
+
+        @dsl.component
+        def exit_task_with_error(status: dsl.PipelineTaskFinalStatus) -> str:
+            # Error message should contain 'Custom error message' somewhere
+            has_error = 'Custom error message' in (status.error_message or '')
+            return f'has_error:{has_error}'
+
+        @dsl.pipeline
+        def pipeline_exit_error() -> str:
+            exit_op = exit_task_with_error()
+            with dsl.ExitHandler(exit_op):
+                failing_task()
+            return exit_op.output
+
+        task = pipeline_exit_error()
+        self.assertEqual(task.output, 'has_error:True')
+
+
 if __name__ == '__main__':
     unittest.main()

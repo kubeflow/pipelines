@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Code for locally executing a DAG within a pipeline."""
+import logging
 from typing import Any, Dict, List, Tuple
 
 from kfp.local import config
@@ -21,6 +22,24 @@ from kfp.local import status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 Outputs = Dict[str, Any]
+
+# Trigger strategy enum value for ALL_UPSTREAM_TASKS_COMPLETED
+ALL_UPSTREAM_TASKS_COMPLETED = 2
+
+
+def _is_exit_handler_task(task_spec: pipeline_spec_pb2.PipelineTaskSpec) -> bool:
+    """Check if a task is an exit handler task.
+
+    Exit handler tasks have trigger_policy.strategy == ALL_UPSTREAM_TASKS_COMPLETED,
+    which means they should run regardless of upstream task success/failure.
+
+    Args:
+        task_spec: The task specification.
+
+    Returns:
+        True if the task is an exit handler task.
+    """
+    return task_spec.trigger_policy.strategy == ALL_UPSTREAM_TASKS_COMPLETED
 
 
 def run_dag(
@@ -66,60 +85,138 @@ def run_dag(
     for k, v in dag_arguments_with_defaults.items():
         io_store.put_parent_input(k, v)
 
-    # execute tasks in order
+    # Separate exit handler tasks from regular tasks
     dag_spec = dag_component_spec.dag
-    sorted_tasks = graph_utils.topological_sort_tasks(dag_spec.tasks)
-    while sorted_tasks:
-        task_name = sorted_tasks.pop()
-        task_spec = dag_spec.tasks[task_name]
+    regular_tasks = {}
+    exit_handler_tasks = {}
+
+    for task_name, task_spec in dag_spec.tasks.items():
+        if _is_exit_handler_task(task_spec):
+            exit_handler_tasks[task_name] = task_spec
+        else:
+            regular_tasks[task_name] = task_spec
+
+    # Execute regular tasks in order
+    dag_failure = False
+    failed_task_name = None
+    error_message = None
+
+    if regular_tasks:
+        sorted_tasks = graph_utils.topological_sort_tasks(regular_tasks)
+        while sorted_tasks:
+            task_name = sorted_tasks.pop()
+            task_spec = regular_tasks[task_name]
+            component_name = task_spec.component_ref.name
+            component_spec = components[component_name]
+            implementation = component_spec.WhichOneof('implementation')
+            if implementation == 'dag':
+                # unlikely to exceed default max recursion depth of 1000
+                outputs, task_status = run_dag(
+                    pipeline_resource_name=pipeline_resource_name,
+                    dag_component_spec=component_spec,
+                    components=components,
+                    executors=executors,
+                    dag_arguments=OrchestratorUtils.make_task_arguments(
+                        task_spec.inputs,
+                        io_store,
+                    ),
+                    pipeline_root=pipeline_root,
+                    runner=runner,
+                    unique_pipeline_id=unique_pipeline_id,
+                    fail_stack=fail_stack,
+                )
+            else:
+                # Use consolidated task execution logic from OrchestratorUtils
+                outputs, task_status = OrchestratorUtils.execute_single_task(
+                    task_name=task_name,
+                    task_spec=task_spec,
+                    pipeline_resource_name=pipeline_resource_name,
+                    components=components,
+                    executors=executors,
+                    io_store=io_store,
+                    pipeline_root=pipeline_root,
+                    runner=runner,
+                    unique_pipeline_id=unique_pipeline_id,
+                    fail_stack=fail_stack,
+                )
+
+            # Store task status for exit handler tasks
+            io_store.put_task_status(task_name, task_status)
+
+            if task_status == status.Status.FAILURE:
+                dag_failure = True
+                failed_task_name = task_name
+                error_message = f"Task '{task_name}' failed during execution"
+                io_store.put_task_status(task_name, task_status, error_message)
+                # Don't return immediately if there are exit handler tasks
+                if not exit_handler_tasks:
+                    fail_stack.append(task_name)
+                    return {}, status.Status.FAILURE
+                # Stop executing remaining regular tasks
+                break
+
+            # update IO store on success
+            elif task_status == status.Status.SUCCESS:
+                for key, output in outputs.items():
+                    io_store.put_task_output(
+                        task_name,
+                        key,
+                        output,
+                    )
+            else:
+                raise ValueError(f'Got unknown task status: {task_status.name}')
+
+    # Execute exit handler tasks (they run regardless of success/failure)
+    for task_name, task_spec in exit_handler_tasks.items():
+        logging.info(f'Running exit handler task: {task_name}')
         component_name = task_spec.component_ref.name
         component_spec = components[component_name]
         implementation = component_spec.WhichOneof('implementation')
-        if implementation == 'dag':
-            # unlikely to exceed default max recursion depth of 1000
-            outputs, task_status = run_dag(
-                pipeline_resource_name=pipeline_resource_name,
-                dag_component_spec=component_spec,
-                components=components,
-                executors=executors,
-                dag_arguments=OrchestratorUtils.make_task_arguments(
-                    task_spec.inputs,
-                    io_store,
-                ),
-                pipeline_root=pipeline_root,
-                runner=runner,
-                unique_pipeline_id=unique_pipeline_id,
-                fail_stack=fail_stack,
-            )
-        else:
-            # Use consolidated task execution logic from OrchestratorUtils
-            outputs, task_status = OrchestratorUtils.execute_single_task(
-                task_name=task_name,
-                task_spec=task_spec,
-                pipeline_resource_name=pipeline_resource_name,
-                components=components,
-                executors=executors,
-                io_store=io_store,
-                pipeline_root=pipeline_root,
-                runner=runner,
-                unique_pipeline_id=unique_pipeline_id,
-                fail_stack=fail_stack,
-            )
 
-        if task_status == status.Status.FAILURE:
-            fail_stack.append(task_name)
-            return {}, status.Status.FAILURE
-
-        # update IO store on success
-        elif task_status == status.Status.SUCCESS:
-            for key, output in outputs.items():
-                io_store.put_task_output(
-                    task_name,
-                    key,
-                    output,
+        try:
+            if implementation == 'dag':
+                outputs, task_status = run_dag(
+                    pipeline_resource_name=pipeline_resource_name,
+                    dag_component_spec=component_spec,
+                    components=components,
+                    executors=executors,
+                    dag_arguments=OrchestratorUtils.make_task_arguments(
+                        task_spec.inputs,
+                        io_store,
+                    ),
+                    pipeline_root=pipeline_root,
+                    runner=runner,
+                    unique_pipeline_id=unique_pipeline_id,
+                    fail_stack=fail_stack,
                 )
-        else:
-            raise ValueError(f'Got unknown task status: {task_status.name}')
+            else:
+                outputs, task_status = OrchestratorUtils.execute_single_task(
+                    task_name=task_name,
+                    task_spec=task_spec,
+                    pipeline_resource_name=pipeline_resource_name,
+                    components=components,
+                    executors=executors,
+                    io_store=io_store,
+                    pipeline_root=pipeline_root,
+                    runner=runner,
+                    unique_pipeline_id=unique_pipeline_id,
+                    fail_stack=fail_stack,
+                )
+
+            # Store exit handler task outputs
+            if task_status == status.Status.SUCCESS:
+                for key, output in outputs.items():
+                    io_store.put_task_output(task_name, key, output)
+
+        except Exception as e:
+            logging.error(f'Exit handler task {task_name} failed with exception: {e}')
+            # Exit handler failures don't affect the overall DAG status
+            # (the DAG already failed if regular tasks failed)
+
+    # If a regular task failed, return failure status
+    if dag_failure:
+        fail_stack.append(failed_task_name)
+        return {}, status.Status.FAILURE
 
     dag_outputs = OrchestratorUtils.get_dag_outputs(
         dag_outputs_spec=dag_component_spec.dag.outputs,

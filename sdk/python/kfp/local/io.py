@@ -14,7 +14,9 @@
 """Object for storing task outputs in-memory during local execution."""
 
 import collections
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+from kfp.local import status as status_module
 
 
 class IOStore:
@@ -25,6 +27,8 @@ class IOStore:
                                      Dict[str,
                                           Any]] = collections.defaultdict(dict)
         self._parent_input_data: Dict[str, Any] = {}
+        self._task_status_data: Dict[str, status_module.Status] = {}
+        self._task_error_data: Dict[str, Optional[str]] = {}
 
     def put_parent_input(
         self,
@@ -99,3 +103,50 @@ class IOStore:
             raise ValueError(
                 f"{common_exception_string}, but task '{task_name}' has no output named '{key}'."
             )
+
+    def put_task_status(
+        self,
+        task_name: str,
+        task_status: status_module.Status,
+        error_message: Optional[str] = None,
+    ) -> None:
+        """Persist the status of a task execution.
+
+        Args:
+            task_name: Task name.
+            task_status: The status of the task (SUCCESS or FAILURE).
+            error_message: Optional error message if task failed.
+        """
+        self._task_status_data[task_name] = task_status
+        if error_message:
+            self._task_error_data[task_name] = error_message
+
+    def get_task_status(
+        self,
+        task_name: str,
+    ) -> status_module.Status:
+        """Get the status of a task.
+
+        Args:
+            task_name: Task name.
+
+        Returns:
+            The task status.
+        """
+        if task_name in self._task_status_data:
+            return self._task_status_data[task_name]
+        raise ValueError(f"Task '{task_name}' status not found.")
+
+    def get_task_error(
+        self,
+        task_name: str,
+    ) -> Optional[str]:
+        """Get the error message of a task, if any.
+
+        Args:
+            task_name: Task name.
+
+        Returns:
+            The error message or None.
+        """
+        return self._task_error_data.get(task_name)
