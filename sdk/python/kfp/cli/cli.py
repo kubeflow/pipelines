@@ -53,6 +53,15 @@ def _create_completion(shell: str) -> str:
 def _install_completion(shell: str) -> None:
     completion_statement = _create_completion(shell)
     source_file = os.path.join(os.path.expanduser('~'), *SHELL_FILES[shell])
+
+    os.makedirs(os.path.dirname(source_file), exist_ok=True)
+
+    if os.path.exists(source_file):
+        with open(source_file, 'r') as f:
+            content = f.read()
+        if completion_statement in content:
+            return
+
     with open(source_file, 'a') as f:
         f.write('\n' + completion_statement + '\n')
 

@@ -17,6 +17,10 @@ kind: Workflow
 metadata:
   generateName: integration-test-
 spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
@@ -58,6 +62,14 @@ spec:
           valueFrom:
             path: /outputs/strict-image-name/file
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{workflow.parameters.image-builder-image}}"
       imagePullPolicy: 'Always'
       command:
@@ -86,6 +98,14 @@ spec:
       - name: test-results-gcs-dir
       - name: initialization-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.initialization-test-image}}"
       command:
       - /go/src/github.com/kubeflow/pipelines/test/initialization-test/run_test.sh
@@ -99,6 +119,14 @@ spec:
       - name: test-results-gcs-dir
       - name: initialization-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.initialization-test-image}}"
       command:
       - /go/src/github.com/kubeflow/pipelines/test/initialization-test/run_test.sh
@@ -113,6 +141,14 @@ spec:
       - name: test-results-gcs-dir
       - name: api-integration-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.api-integration-test-image}}"
       command:
       - /go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh
@@ -126,6 +162,14 @@ spec:
       - name: test-results-gcs-dir
       - name: api-integration-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.api-integration-test-image}}"
       command:
       - /go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh
@@ -140,6 +184,14 @@ spec:
       - name: test-results-gcs-dir
       - name: frontend-integration-tests-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.frontend-integration-tests-image}}"
       command:
       - ./run_test.sh
@@ -157,6 +209,14 @@ spec:
       - name: namespace
       - name: test-name
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.sample-tests-image}}"
       command:
       - "python3"
@@ -174,6 +234,14 @@ spec:
       - name: test-results-gcs-dir
       - name: api-integration-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.api-integration-test-image}}"
       command:
       - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"
@@ -188,6 +256,14 @@ spec:
       - name: test-results-gcs-dir
       - name: api-integration-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.api-integration-test-image}}"
       command:
       - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"
@@ -202,6 +278,14 @@ spec:
       - name: test-results-gcs-dir
       - name: api-integration-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.api-integration-test-image}}"
       command:
       - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"
@@ -217,6 +301,14 @@ spec:
       - name: test-results-gcs-dir
       - name: api-integration-test-image
     container:
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       image: "{{inputs.parameters.api-integration-test-image}}"
       command:
       - "/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"

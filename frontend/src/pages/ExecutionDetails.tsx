@@ -43,7 +43,7 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { color, commonCss, padding } from '../Css';
-import { logger, serviceErrorToString } from '../lib/Utils';
+import { errorToMessage, isServiceError, logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageErrorHandler } from './Page';
 
 interface ExecutionDetailsState {
@@ -246,7 +246,24 @@ export class ExecutionDetailsContent extends Component<
         executionType,
       });
     } catch (err) {
-      this.props.onError(serviceErrorToString(err), err, 'error', this.refresh);
+      if (isServiceError(err)) {
+        this.props.onError(
+          serviceErrorToString(err),
+          err instanceof Error ? err : undefined,
+          'error',
+          this.refresh,
+        );
+      } else {
+        const errorMessage = await errorToMessage(err);
+        this.props.onError(
+          errorMessage ? `Error: ${errorMessage}` : 'Error: failed to load execution details.',
+          err instanceof Error
+            ? err
+            : new Error(errorMessage || 'Failed to load execution details.'),
+          'error',
+          this.refresh,
+        );
+      }
     }
   };
 }

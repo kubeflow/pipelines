@@ -1,7 +1,7 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`PrivateSharedSelector it renders correctly 1`] = `
-Object {
+exports[`PrivateSharedSelector > it renders correctly 1`] = `
+{
   "asFragment": [Function],
   "baseElement": <body>
     <div>
@@ -9,81 +9,109 @@ Object {
         Select if the new pipeline will be private or shared.
       </div>
       <div
-        class="flex"
+        class="flex_f16jawj4 f507s4l"
       >
         <label
-          class="MuiFormControlLabel-root-9"
+          class="MuiFormControlLabel-root"
           id="createNewPrivatePipelineBtn"
           title="Only people who have access to this namespace will be able to view and use this pipeline."
         >
           <span
-            class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18 MuiPrivateSwitchBase-checked-21 MuiRadio-checked-16"
+            aria-disabled="false"
+            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-1 MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-checked-2 Mui-checked MuiIconButton-colorPrimary"
           >
             <span
-              class="MuiIconButton-label-29"
+              class="MuiIconButton-label"
             >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root-33"
-                focusable="false"
-                role="presentation"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                />
-              </svg>
               <input
                 checked=""
-                class="MuiPrivateSwitchBase-input-23"
+                class="PrivateSwitchBase-input-4"
                 type="radio"
                 value=""
               />
+              <div
+                class="PrivateRadioButtonIcon-root-5 PrivateRadioButtonIcon-checked-7"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                  />
+                </svg>
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-6"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                  />
+                </svg>
+              </div>
             </span>
             <span
-              class="MuiTouchRipple-root-78"
+              class="MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             Private
           </span>
         </label>
         <label
-          class="MuiFormControlLabel-root-9"
+          class="MuiFormControlLabel-root"
           id="createNewSharedPipelineBtn"
           title="Everyone in your organization will be able to view and use this pipeline."
         >
           <span
-            class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18"
+            aria-disabled="false"
+            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-1 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
           >
             <span
-              class="MuiIconButton-label-29"
+              class="MuiIconButton-label"
             >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root-33"
-                focusable="false"
-                role="presentation"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                />
-              </svg>
               <input
-                class="MuiPrivateSwitchBase-input-23"
+                class="PrivateSwitchBase-input-4"
                 type="radio"
                 value=""
               />
+              <div
+                class="PrivateRadioButtonIcon-root-5"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                  />
+                </svg>
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-6"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                  />
+                </svg>
+              </div>
             </span>
             <span
-              class="MuiTouchRipple-root-78"
+              class="MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             Shared
           </span>
@@ -96,81 +124,109 @@ Object {
       Select if the new pipeline will be private or shared.
     </div>
     <div
-      class="flex"
+      class="flex_f16jawj4 f507s4l"
     >
       <label
-        class="MuiFormControlLabel-root-9"
+        class="MuiFormControlLabel-root"
         id="createNewPrivatePipelineBtn"
         title="Only people who have access to this namespace will be able to view and use this pipeline."
       >
         <span
-          class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18 MuiPrivateSwitchBase-checked-21 MuiRadio-checked-16"
+          aria-disabled="false"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-1 MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-checked-2 Mui-checked MuiIconButton-colorPrimary"
         >
           <span
-            class="MuiIconButton-label-29"
+            class="MuiIconButton-label"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root-33"
-              focusable="false"
-              role="presentation"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-              />
-            </svg>
             <input
               checked=""
-              class="MuiPrivateSwitchBase-input-23"
+              class="PrivateSwitchBase-input-4"
               type="radio"
               value=""
             />
+            <div
+              class="PrivateRadioButtonIcon-root-5 PrivateRadioButtonIcon-checked-7"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-6"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                />
+              </svg>
+            </div>
           </span>
           <span
-            class="MuiTouchRipple-root-78"
+            class="MuiTouchRipple-root"
           />
         </span>
         <span
-          class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+          class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
         >
           Private
         </span>
       </label>
       <label
-        class="MuiFormControlLabel-root-9"
+        class="MuiFormControlLabel-root"
         id="createNewSharedPipelineBtn"
         title="Everyone in your organization will be able to view and use this pipeline."
       >
         <span
-          class="MuiButtonBase-root-30 MuiIconButton-root-24 MuiPrivateSwitchBase-root-20 MuiRadio-root-15 MuiRadio-colorPrimary-18"
+          aria-disabled="false"
+          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-1 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
         >
           <span
-            class="MuiIconButton-label-29"
+            class="MuiIconButton-label"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root-33"
-              focusable="false"
-              role="presentation"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-              />
-            </svg>
             <input
-              class="MuiPrivateSwitchBase-input-23"
+              class="PrivateSwitchBase-input-4"
               type="radio"
               value=""
             />
+            <div
+              class="PrivateRadioButtonIcon-root-5"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                />
+              </svg>
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-6"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                />
+              </svg>
+            </div>
           </span>
           <span
-            class="MuiTouchRipple-root-78"
+            class="MuiTouchRipple-root"
           />
         </span>
         <span
-          class="MuiTypography-root-42 MuiTypography-body1-51 MuiFormControlLabel-label-14"
+          class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
         >
           Shared
         </span>

@@ -1,81 +1,87 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Metric renders a metric and does not log an error when metric is between max and min value 1`] = `
-<div
-  className="metricContainer"
->
+exports[`Metric > renders a metric and does not log an error when metric is between max and min value 1`] = `
+<DocumentFragment>
   <div
-    className="metricFill"
-    data-testid="metric"
-    style={
-      Object {
-        "width": "calc(54%)",
-      }
-    }
+    class="metricContainer_f1tp6wow"
+  >
+    <div
+      class="metricFill_f2owd3j"
+      data-testid="metric"
+      style="width: calc(54%);"
+    >
+      0.540
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Metric > renders a metric and logs an error when metric has value greater than max value 1`] = `
+<DocumentFragment>
+  <div
+    style="padding-left: 6px;"
+  >
+    2.000
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Metric > renders a metric and logs an error when metric has value less than min value 1`] = `
+<DocumentFragment>
+  <div
+    style="padding-left: 6px;"
+  >
+    -0.540
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Metric > renders a metric when metric has max and min value of 0 1`] = `
+<DocumentFragment>
+  <div
+    style="padding-left: 6px;"
   >
     0.540
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`Metric renders a metric and logs an error when metric has value greater than max value 1`] = `
-<div
-  style={
-    Object {
-      "paddingLeft": 6,
-    }
-  }
->
-  2.000
-</div>
-`;
-
-exports[`Metric renders a metric and logs an error when metric has value less than min value 1`] = `
-<div
-  style={
-    Object {
-      "paddingLeft": 6,
-    }
-  }
->
-  -0.540
-</div>
-`;
-
-exports[`Metric renders a metric when metric has max and min value of 0 1`] = `
-<div
-  style={
-    Object {
-      "paddingLeft": 6,
-    }
-  }
->
-  0.540
-</div>
-`;
-
-exports[`Metric renders a metric when metric has value and percentage format 1`] = `
-<div
-  className="metricContainer"
->
+exports[`Metric > renders a metric when metric has value and percentage format 1`] = `
+<DocumentFragment>
   <div
-    className="metricFill"
-    data-testid="metric"
-    style={
-      Object {
-        "width": "calc(54.000%)",
-      }
-    }
+    class="metricContainer_f1tp6wow"
   >
-    54.000%
+    <div
+      class="metricFill_f2owd3j"
+      data-testid="metric"
+      style="width: calc(54%);"
+    >
+      54.000%
+    </div>
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`Metric renders an empty metric when metric has no metadata and raw format 1`] = `<div />`;
+exports[`Metric > renders an empty metric when metric has no metadata and raw format 1`] = `
+<DocumentFragment>
+  <div />
+</DocumentFragment>
+`;
 
-exports[`Metric renders an empty metric when metric has no metadata and unspecified format 1`] = `<div />`;
+exports[`Metric > renders an empty metric when metric has no metadata and unspecified format 1`] = `
+<DocumentFragment>
+  <div />
+</DocumentFragment>
+`;
 
-exports[`Metric renders an empty metric when metric has no value 1`] = `<div />`;
+exports[`Metric > renders an empty metric when metric has no value 1`] = `
+<DocumentFragment>
+  <div />
+</DocumentFragment>
+`;
 
-exports[`Metric renders an empty metric when there is no metric 1`] = `<div />`;
+exports[`Metric > renders an empty metric when there is no metric 1`] = `
+<DocumentFragment>
+  <div />
+</DocumentFragment>
+`;

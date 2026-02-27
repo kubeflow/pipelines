@@ -14,7 +14,7 @@
 import { Handler } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Deployments } from '../configs';
+import { Deployments } from '../configs.js';
 
 const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
 const KUBEFLOW_CLIENT_PLACEHOLDER = '<script id="kubeflow-client-placeholder"></script>';

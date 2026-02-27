@@ -12,29 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import { Application, static as StaticHandler } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-import { UIConfigs } from './configs';
-import { getAddress } from './utils';
-import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+import { UIConfigs } from './configs.js';
+import { getAddress } from './utils.js';
+import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
   getArtifactsHandler,
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
-} from './handlers/artifacts';
-import { getTensorboardHandlers } from './handlers/tensorboard';
-import { getAuthorizeFn } from './helpers/auth';
-import { getPodLogsHandler } from './handlers/pod-logs';
-import { getPodInfoHandlers } from './handlers/pod-info';
-import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
-import { getAllowCustomVisualizationsHandler } from './handlers/vis';
-import { getIndexHTMLHandler } from './handlers/index-html';
+} from './handlers/artifacts.js';
+import { getTensorboardHandlers } from './handlers/tensorboard.js';
+import { getAuthorizeFn } from './helpers/auth.js';
+import { getPodLogsHandler } from './handlers/pod-logs.js';
+import { getPodInfoHandlers } from './handlers/pod-info.js';
+import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata.js';
+import { getAllowCustomVisualizationsHandler } from './handlers/vis.js';
+import { getIndexHTMLHandler } from './handlers/index-html.js';
 
-import proxyMiddleware from './proxy-middleware';
+import proxyMiddleware from './proxy-middleware.js';
 import { Server } from 'http';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
@@ -57,6 +60,7 @@ function getRegisterHandler(app: Application, basePath: string) {
 export class UIServer {
   app: Application;
   httpServer?: Server;
+  private closePromise?: Promise<void>;
 
   constructor(public readonly options: UIConfigs) {
     this.app = createUIServer(options);
@@ -67,10 +71,13 @@ export class UIServer {
    * @param port optionally overwrite the provided port to listen to.
    */
   start(port?: number | string) {
+    if (this.closePromise) {
+      throw new Error('UIServer is closing.');
+    }
     if (this.httpServer) {
       throw new Error('UIServer already started.');
     }
-    port = port || this.options.server.port;
+    port = port ?? this.options.server.port;
     this.httpServer = this.app.listen(port, () => {
       console.log('Server listening at http://localhost:' + port);
     });
@@ -80,11 +87,34 @@ export class UIServer {
   /**
    * Stops the http server.
    */
-  close() {
-    if (this.httpServer) {
-      this.httpServer.close();
+  async close() {
+    if (this.closePromise) {
+      await this.closePromise;
+      return this;
     }
-    this.httpServer = undefined;
+
+    const server = this.httpServer;
+    if (!server) {
+      return this;
+    }
+
+    this.closePromise = new Promise<void>((resolve, reject) => {
+      server.close(err => {
+        const errorCode = (err as NodeJS.ErrnoException | undefined)?.code;
+        if (err && errorCode !== 'ERR_SERVER_NOT_RUNNING') {
+          reject(err);
+          return;
+        }
+        if (this.httpServer === server) {
+          this.httpServer = undefined;
+        }
+        resolve();
+      });
+    }).finally(() => {
+      this.closePromise = undefined;
+    });
+
+    await this.closePromise;
     return this;
   }
 }
@@ -199,7 +229,13 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName, authorizeFn),
+      getPodLogsHandler(
+        options.argo,
+        options.artifacts,
+        options.pod.logContainerName,
+        authorizeFn,
+        options.auth.enabled,
+      ),
     );
   }
 
@@ -225,7 +261,13 @@ function createUIServer(options: UIConfigs) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',
-      getPodLogsHandler(options.argo, options.artifacts, options.pod.logContainerName, authorizeFn),
+      getPodLogsHandler(
+        options.argo,
+        options.artifacts,
+        options.pod.logContainerName,
+        authorizeFn,
+        options.auth.enabled,
+      ),
     );
   }
 

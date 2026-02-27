@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as os from 'os';
-import { loadConfigs } from './configs';
+import { loadConfigs } from './configs.js';
 
 describe('loadConfigs', () => {
   it('should throw error if no static dir provided', () => {
@@ -25,5 +25,19 @@ describe('loadConfigs', () => {
     const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {});
     expect(configs.server.port).toBe(3000);
     expect(configs.server.staticDir).toBe(tmpdir);
+  });
+
+  it('default clusterDomain should be .svc.cluster.local', () => {
+    const tmpdir = os.tmpdir();
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {});
+    expect(configs.viewer.tensorboard.clusterDomain).toBe('.svc.cluster.local');
+  });
+
+  it('clusterDomain should use CLUSTER_DOMAIN env var when set', () => {
+    const tmpdir = os.tmpdir();
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+      CLUSTER_DOMAIN: 'cluster.corp',
+    });
+    expect(configs.viewer.tensorboard.clusterDomain).toBe('cluster.corp');
   });
 });

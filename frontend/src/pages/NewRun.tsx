@@ -263,6 +263,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                     <Button
                       color='secondary'
                       id='choosePipelineBtn'
+                      aria-label='Choose pipeline'
                       onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
@@ -288,6 +289,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                     <Button
                       color='secondary'
                       id='choosePipelineVersionBtn'
+                      aria-label='Choose pipeline version'
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                       disabled={!unconfirmedSelectedPipeline}
@@ -601,7 +603,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               id='exitNewRunPageBtn'
               onClick={() => {
                 this.props.history.push(
-                  !!this.state.experiment
+                  this.state.experiment
                     ? RoutePage.EXPERIMENT_DETAILS.replace(
                         ':' + RouteParams.experimentId,
                         this.state.experiment.id!,
@@ -757,7 +759,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
         });
       } catch (err) {
-        experimentFetchError = err;
+        experimentFetchError = err instanceof Error ? err : new Error(await errorToMessage(err));
       }
 
       if (!experiment) {
@@ -778,7 +780,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             ),
           });
         } catch (err) {
-          const error = experimentFetchError || err;
+          const error =
+            experimentFetchError ||
+            (err instanceof Error ? err : new Error(await errorToMessage(err)));
           await this.showPageError(
             `Error: failed to retrieve associated experiment: ${experimentId}.`,
             error,
@@ -1288,12 +1292,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         throw new Error('Run name is required');
       }
 
-      const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);
+      const hasTrigger = trigger && (trigger.cron_schedule || trigger.periodic_schedule);
       if (hasTrigger) {
-        const startDate = !!trigger!.cron_schedule
+        const startDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.start_time
           : trigger!.periodic_schedule!.start_time;
-        const endDate = !!trigger!.cron_schedule
+        const endDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.end_time
           : trigger!.periodic_schedule!.end_time;
         if (startDate && endDate && startDate > endDate) {
@@ -1309,7 +1313,9 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
       this.setStateSafe({ errorMessage: '' });
     } catch (err) {
-      this.setStateSafe({ errorMessage: err.message });
+      this.setStateSafe({
+        errorMessage: err instanceof Error ? err.message : 'Validation failed for run inputs.',
+      });
     }
   }
 

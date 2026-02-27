@@ -15,6 +15,10 @@ spec:
         component: metadata-envoy
         sidecar.istio.io/inject: "false"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: container
         image: ghcr.io/kubeflow/kfp-metadata-envoy:dummy

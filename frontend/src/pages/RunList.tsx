@@ -85,6 +85,7 @@ interface RunListState {
 }
 
 class RunList extends React.PureComponent<RunListProps, RunListState> {
+  private _isMounted = true;
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -151,7 +152,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         id: r.run.run_id!,
         otherFields: [
           r.run!.display_name,
-          r.run.state || '-',
+          r.run.state,
           getRunDurationV2(r.run),
           r.pipelineVersion,
           r.recurringRun,
@@ -204,6 +205,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     );
   }
 
+  public componentWillUnmount(): void {
+    this._isMounted = false;
+  }
+
   public async refresh(): Promise<void> {
     if (this._tableRef.current) {
       await this._tableRef.current.reload();
@@ -243,7 +248,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const url = props.value.usePlaceholder
       ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') +
         search
-      : !!props.value.versionId
+      : props.value.versionId
       ? RoutePage.PIPELINE_DETAILS.replace(
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
@@ -312,9 +317,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return statusToIcon(props.value);
   };
 
-  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (
-    props: CustomRendererProps<{}>,
-  ) => {
+  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = () => {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
   };
 
@@ -401,11 +404,17 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     await this._setColumns(displayRuns);
 
-    this.setState({
+    this.setStateSafe({
       // metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
+  }
+
+  private setStateSafe(newState: Partial<RunListState>, cb?: () => void): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
   }
 
   private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {

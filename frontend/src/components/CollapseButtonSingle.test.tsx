@@ -19,7 +19,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import CollapseButtonSingle from './CollapseButtonSingle';
 
 describe('CollapseButtonSingle', () => {
-  const collapseSectionUpdateSpy = jest.fn();
+  const collapseSectionUpdateSpy = vi.fn();
 
   it('Collapes an expanded section when clicked', () => {
     render(

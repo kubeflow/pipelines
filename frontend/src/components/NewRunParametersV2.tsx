@@ -489,6 +489,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               maxLines={20}
               mode='json'
               theme='github'
+              editorProps={{ $blockScrolling: Infinity }}
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}

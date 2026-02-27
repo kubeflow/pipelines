@@ -12,28 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { PassThrough } from 'stream';
-import { PreviewStream, findFileOnPodVolume, resolveFilePathOnVolume } from './utils';
+import { PreviewStream, findFileOnPodVolume, resolveFilePathOnVolume } from './utils.js';
 
 describe('utils', () => {
   describe('PreviewStream', () => {
-    it('should stream first 5 bytes', done => {
+    it('should stream first 5 bytes', async () => {
       const peek = 5;
       const input = 'some string that will be truncated.';
       const source = new PassThrough();
       const preview = new PreviewStream({ peek });
-      const dst = source.pipe(preview).on('end', done);
-      source.end(input);
-      dst.once('readable', () => expect(dst.read().toString()).toBe(input.slice(0, peek)));
+      await new Promise<void>(resolve => {
+        const dst = source.pipe(preview).on('end', resolve);
+        source.end(input);
+        dst.once('readable', () => expect(dst.read().toString()).toBe(input.slice(0, peek)));
+      });
     });
 
-    it('should stream everything if peek==0', done => {
+    it('should stream everything if peek==0', async () => {
       const peek = 0;
       const input = 'some string that will be truncated.';
       const source = new PassThrough();
       const preview = new PreviewStream({ peek });
-      const dst = source.pipe(preview).on('end', done);
-      source.end(input);
-      dst.once('readable', () => expect(dst.read().toString()).toBe(input));
+      await new Promise<void>(resolve => {
+        const dst = source.pipe(preview).on('end', resolve);
+        source.end(input);
+        dst.once('readable', () => expect(dst.read().toString()).toBe(input));
+      });
     });
   });
 

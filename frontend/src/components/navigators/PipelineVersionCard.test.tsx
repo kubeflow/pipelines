@@ -129,8 +129,8 @@ describe('PipelineVersionCard', () => {
 
     userEvent.click(screen.getByText('Show Summary'));
 
-    fireEvent.click(getByRole('button', { name: OLD_VERSION_NAME }));
-    fireEvent.click(getByRole('listbox'));
-    getByRole('option', { name: NEW_VERSION_NAME });
+    fireEvent.mouseDown(getByRole('button', { name: OLD_VERSION_NAME }));
+    await screen.findByRole('listbox');
+    screen.getByRole('option', { name: NEW_VERSION_NAME });
   });
 });

@@ -82,9 +82,9 @@ interface LogViewerProps {
 // lines not exceeding maximum overscanRowCount lines off screen are still
 // selectable.
 const overscanOnBothDirections: OverscanIndicesGetter = ({
-  direction, // One of "horizontal" or "vertical"
+  direction: _direction, // One of "horizontal" or "vertical"
   cellCount, // Number of rows or columns in the current axis
-  scrollDirection, // 1 (forwards) or -1 (backwards)
+  scrollDirection: _scrollDirection, // 1 (forwards) or -1 (backwards)
   overscanCellsCount, // Maximum number of cells to over-render in either direction
   startIndex, // Begin of range of visible cells
   stopIndex, // End of range of visible cells

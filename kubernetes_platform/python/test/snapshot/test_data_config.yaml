@@ -23,6 +23,8 @@ test_cases:
     name: my_pipeline
   - module: nodeaffinity
     name: my_pipeline
+  - module: security_context
+    name: my_pipeline
 #  Disabled while https://github.com/kubeflow/pipelines/issues/10918 is failing
 #  - module: secret_as_env
 #    name: my_pipeline
