@@ -174,6 +174,8 @@ describe('deploy tensorboard example run', () => {
 
   it('opens the side panel when graph node is clicked', async () => {
     await $('.graphNode').click();
+    await $('button=Visualizations').waitForDisplayed({ timeout: waitTimeout });
+    await $('button=Visualizations').click();
     await $('.plotCard').waitForDisplayed({ timeout: plotCardTimeout });
   });
 
