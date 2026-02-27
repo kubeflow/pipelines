@@ -10,9 +10,9 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"metadata":{"key":"value"},"typeSchema":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}}'
-    - name: components-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e
+    - name: components-8fca0929a5f89b11250309896d89b47b7a4e86ab3017701f88e3ca68dea7a50f
       value: '{"executorLabel":"exec-model-consumer","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}},"model":{"artifactType":{"schemaTitle":"google.VertexModel","schemaVersion":"0.0.0"}}}}}'
-    - name: implementations-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e
+    - name: implementations-8fca0929a5f89b11250309896d89b47b7a4e86ab3017701f88e3ca68dea7a50f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","model_consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -29,9 +29,9 @@ spec:
         '', model.uri)\n    print(''artifact.metadata: '', model.metadata)\n\n    print(''Dataset'')\n    print(''artifact.type:
         '', type(dataset))\n    print(''artifact.name: '', dataset.name)\n    print(''artifact.uri:
         '', dataset.uri)\n    print(''artifact.metadata: '', dataset.metadata)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94
+    - name: components-c4f7baf4e4b52ab66d55acf17b7754b33c16fdaa1df1dcd9172e4702c661958d
       value: '{"executorLabel":"exec-model-producer","outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"google.VertexModel","schemaVersion":"0.0.0"}}}}}'
-    - name: implementations-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94
+    - name: implementations-c4f7baf4e4b52ab66d55acf17b7754b33c16fdaa1df1dcd9172e4702c661958d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","model_producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -53,6 +53,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -103,6 +107,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: task
@@ -112,6 +124,10 @@ spec:
     metadata: {}
     name: system-importer
     outputs: {}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - container:
       args:
       - --type
@@ -178,6 +194,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -206,6 +230,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -242,6 +270,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -271,6 +306,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -281,6 +324,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -313,11 +359,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e}}'
+            value: '{{workflow.parameters.components-8fca0929a5f89b11250309896d89b47b7a4e86ab3017701f88e3ca68dea7a50f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-consumer"},"dependentTasks":["importer","model-producer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"model-producer"}}}},"taskInfo":{"name":"model-consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e}}'
+            value: '{{workflow.parameters.implementations-8fca0929a5f89b11250309896d89b47b7a4e86ab3017701f88e3ca68dea7a50f}}'
           - name: task-name
             value: model-consumer
           - name: parent-dag-id
@@ -338,11 +384,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94}}'
+            value: '{{workflow.parameters.components-c4f7baf4e4b52ab66d55acf17b7754b33c16fdaa1df1dcd9172e4702c661958d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-producer"},"taskInfo":{"name":"model-producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94}}'
+            value: '{{workflow.parameters.implementations-c4f7baf4e4b52ab66d55acf17b7754b33c16fdaa1df1dcd9172e4702c661958d}}'
           - name: task-name
             value: model-producer
           - name: parent-dag-id
@@ -420,6 +466,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -450,6 +504,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

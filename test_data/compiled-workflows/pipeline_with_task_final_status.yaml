@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-f7d7acf968eee71dd35f342b2defffecd0b666d98ba3f84067666f01761ce844
+    - name: components-fc16229ba67500d2213af7a911a9f31805e25cc93ccf5cd0e44f64452d747109
       value: '{"executorLabel":"exec-fail-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-f7d7acf968eee71dd35f342b2defffecd0b666d98ba3f84067666f01761ce844
+    - name: implementations-fc16229ba67500d2213af7a911a9f31805e25cc93ccf5cd0e44f64452d747109
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","fail_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -19,9 +19,9 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-092cff624d6cd885e152ba4746a8171a94bbfad01e209a7d23d4499a65520f8d
+    - name: components-75897e85025530d7b1ace234b0eadc6ac79b50a040722bfa076b26bd0dd7ea54
       value: '{"executorLabel":"exec-print-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-092cff624d6cd885e152ba4746a8171a94bbfad01e209a7d23d4499a65520f8d
+    - name: implementations-75897e85025530d7b1ace234b0eadc6ac79b50a040722bfa076b26bd0dd7ea54
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -35,9 +35,9 @@ spec:
     - name: components-comp-exit-handler-1
       value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
         failed."}}}},"taskInfo":{"name":"fail-op"}},"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--message":{"parameterType":"STRING"}}}}'
-    - name: components-8c1d358f7eb020b42803091b690668b1d8107ef638cd1bb1ff074c364f18639f
+    - name: components-8172dde9448bc0d29c148363bc05e1b99132340d628c0af020d437bdc8e74e73
       value: '{"executorLabel":"exec-exit-op","inputDefinitions":{"parameters":{"status":{"isOptional":true,"parameterType":"TASK_FINAL_STATUS"},"user_input":{"parameterType":"STRING"}}}}'
-    - name: implementations-8c1d358f7eb020b42803091b690668b1d8107ef638cd1bb1ff074c364f18639f
+    - name: implementations-8172dde9448bc0d29c148363bc05e1b99132340d628c0af020d437bdc8e74e73
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","exit_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -61,6 +61,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -129,6 +133,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -157,6 +169,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -193,6 +209,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -222,6 +245,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -232,6 +263,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -252,12 +286,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f7d7acf968eee71dd35f342b2defffecd0b666d98ba3f84067666f01761ce844}}'
+            value: '{{workflow.parameters.components-fc16229ba67500d2213af7a911a9f31805e25cc93ccf5cd0e44f64452d747109}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
               failed."}}}},"taskInfo":{"name":"fail-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f7d7acf968eee71dd35f342b2defffecd0b666d98ba3f84067666f01761ce844}}'
+            value: '{{workflow.parameters.implementations-fc16229ba67500d2213af7a911a9f31805e25cc93ccf5cd0e44f64452d747109}}'
           - name: task-name
             value: fail-op
           - name: parent-dag-id
@@ -277,11 +311,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-092cff624d6cd885e152ba4746a8171a94bbfad01e209a7d23d4499a65520f8d}}'
+            value: '{{workflow.parameters.components-75897e85025530d7b1ace234b0eadc6ac79b50a040722bfa076b26bd0dd7ea54}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-092cff624d6cd885e152ba4746a8171a94bbfad01e209a7d23d4499a65520f8d}}'
+            value: '{{workflow.parameters.implementations-75897e85025530d7b1ace234b0eadc6ac79b50a040722bfa076b26bd0dd7ea54}}'
           - name: task-name
             value: print-op
           - name: parent-dag-id
@@ -309,11 +343,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8c1d358f7eb020b42803091b690668b1d8107ef638cd1bb1ff074c364f18639f}}'
+            value: '{{workflow.parameters.components-8172dde9448bc0d29c148363bc05e1b99132340d628c0af020d437bdc8e74e73}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-exit-op"},"dependentTasks":["exit-handler-1"],"inputs":{"parameters":{"status":{"taskFinalStatus":{"producerTask":"exit-handler-1"}},"user_input":{"componentInputParameter":"message"}}},"taskInfo":{"name":"exit-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8c1d358f7eb020b42803091b690668b1d8107ef638cd1bb1ff074c364f18639f}}'
+            value: '{{workflow.parameters.implementations-8172dde9448bc0d29c148363bc05e1b99132340d628c0af020d437bdc8e74e73}}'
           - name: task-name
             value: exit-op
           - name: parent-dag-id
@@ -391,6 +425,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -421,6 +463,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-83903e2b86109679dccb14a8d66f84f860b49eb946f971670d98e0dc63e93cf6
+    - name: components-b48099a74f402c05e41257b50b5ba69ceb8579b1538dbba1e96783bab62eab1c
       value: '{"executorLabel":"exec-print-message","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-83903e2b86109679dccb14a8d66f84f860b49eb946f971670d98e0dc63e93cf6
+    - name: implementations-b48099a74f402c05e41257b50b5ba69ceb8579b1538dbba1e96783bab62eab1c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -31,6 +31,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -99,6 +103,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -127,6 +139,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -163,6 +179,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -192,6 +215,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -202,6 +233,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -222,11 +256,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-83903e2b86109679dccb14a8d66f84f860b49eb946f971670d98e0dc63e93cf6}}'
+            value: '{{workflow.parameters.components-b48099a74f402c05e41257b50b5ba69ceb8579b1538dbba1e96783bab62eab1c}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-message"},"inputs":{"parameters":{"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"print-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-83903e2b86109679dccb14a8d66f84f860b49eb946f971670d98e0dc63e93cf6}}'
+            value: '{{workflow.parameters.implementations-b48099a74f402c05e41257b50b5ba69ceb8579b1538dbba1e96783bab62eab1c}}'
           - name: task-name
             value: print-message
           - name: parent-dag-id
@@ -304,6 +338,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -334,6 +376,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

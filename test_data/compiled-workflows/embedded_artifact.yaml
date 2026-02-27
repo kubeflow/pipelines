@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20
+    - name: components-ada768bcc7b9feb279b7eca8c7bf6854f2323b1673fb0c9fb2448a90861f28f7
       value: '{"executorLabel":"exec-read-embedded-artifact-dir"}'
-    - name: implementations-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20
+    - name: implementations-ada768bcc7b9feb279b7eca8c7bf6854f2323b1673fb0c9fb2448a90861f28f7
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_embedded_artifact_dir"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -33,9 +33,9 @@ spec:
         dsl.EmbeddedInput[dsl.Dataset]):\n    import os\n\n    with open(os.path.join(artifact.path,
         \"log.txt\"), \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert
         log == \"Hello, world!\"\n\n"],"image":"python:3.11-slim"}'
-    - name: components-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1
+    - name: components-f3a7312df614deebe713de9c772a3fe49e05e4f32776120eb940c0eb81f54794
       value: '{"executorLabel":"exec-read-embedded-artifact-file"}'
-    - name: implementations-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1
+    - name: implementations-f3a7312df614deebe713de9c772a3fe49e05e4f32776120eb940c0eb81f54794
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_embedded_artifact_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -68,6 +68,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -136,6 +140,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -164,6 +176,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -200,6 +216,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -229,6 +252,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -239,6 +270,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -259,11 +293,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20}}'
+            value: '{{workflow.parameters.components-ada768bcc7b9feb279b7eca8c7bf6854f2323b1673fb0c9fb2448a90861f28f7}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-dir"},"taskInfo":{"name":"read-embedded-artifact-dir"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20}}'
+            value: '{{workflow.parameters.implementations-ada768bcc7b9feb279b7eca8c7bf6854f2323b1673fb0c9fb2448a90861f28f7}}'
           - name: task-name
             value: read-embedded-artifact-dir
           - name: parent-dag-id
@@ -283,11 +317,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1}}'
+            value: '{{workflow.parameters.components-f3a7312df614deebe713de9c772a3fe49e05e4f32776120eb940c0eb81f54794}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-file"},"taskInfo":{"name":"read-embedded-artifact-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1}}'
+            value: '{{workflow.parameters.implementations-f3a7312df614deebe713de9c772a3fe49e05e4f32776120eb940c0eb81f54794}}'
           - name: task-name
             value: read-embedded-artifact-file
           - name: parent-dag-id
@@ -365,6 +399,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -395,6 +437,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c
+    - name: components-25ae0f33b30952fafdfde536b04c6a9bfa61e0eb70c67a42b182a6e69bcbeb00
       value: '{"executorLabel":"exec-take-nap","inputDefinitions":{"parameters":{"naptime_secs":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c
+    - name: implementations-25ae0f33b30952fafdfde536b04c6a9bfa61e0eb70c67a42b182a6e69bcbeb00
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","take_nap"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
         time import sleep  # noqa: PLC0415\n\n    print(f\"Sleeping for {naptime_secs}
         seconds: Zzzzzz ...\")\n    sleep(naptime_secs)\n    return \"I''m awake now.
         Did I snore?\"\n\n"],"image":"python:3.11-slim"}'
-    - name: components-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775
+    - name: components-d1769783f9202bdc9ff19f7eeab93cd9afd7a2c205cd45c85261cf9906f3bb0a
       value: '{"executorLabel":"exec-wake-up","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775
+    - name: implementations-d1769783f9202bdc9ff19f7eeab93cd9afd7a2c205cd45c85261cf9906f3bb0a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","wake_up"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -43,6 +43,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -111,6 +115,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -139,6 +151,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -175,6 +191,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -204,6 +227,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -214,6 +245,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -234,11 +268,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c}}'
+            value: '{{workflow.parameters.components-25ae0f33b30952fafdfde536b04c6a9bfa61e0eb70c67a42b182a6e69bcbeb00}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-take-nap"},"inputs":{"parameters":{"naptime_secs":{"componentInputParameter":"naptime_secs"}}},"taskInfo":{"name":"take-nap"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c}}'
+            value: '{{workflow.parameters.implementations-25ae0f33b30952fafdfde536b04c6a9bfa61e0eb70c67a42b182a6e69bcbeb00}}'
           - name: task-name
             value: take-nap
           - name: parent-dag-id
@@ -258,11 +292,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775}}'
+            value: '{{workflow.parameters.components-d1769783f9202bdc9ff19f7eeab93cd9afd7a2c205cd45c85261cf9906f3bb0a}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-wake-up"},"dependentTasks":["take-nap"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"take-nap"}}}},"taskInfo":{"name":"wake-up"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775}}'
+            value: '{{workflow.parameters.implementations-d1769783f9202bdc9ff19f7eeab93cd9afd7a2c205cd45c85261cf9906f3bb0a}}'
           - name: task-name
             value: wake-up
           - name: parent-dag-id
@@ -341,6 +375,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -371,6 +413,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

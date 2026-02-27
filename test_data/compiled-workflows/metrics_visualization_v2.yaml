@@ -32,9 +32,9 @@ spec:
         random_state=seed)\n    #fit model\n    model.fit(X_train, y_train)\n\n    #accuracy
         on test set\n    result = model.score(X_test, y_test)\n    metrics.log_metric(''accuracy'',
         (result * 100.0))\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
-    - name: components-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9
+    - name: components-dabdd6693a23d99df1c60c49990ffa9437c85c9074631c8baa23c1377513a56d
       value: '{"executorLabel":"exec-html-visualization","outputDefinitions":{"artifacts":{"html_artifact":{"artifactType":{"schemaTitle":"system.HTML","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9
+    - name: implementations-dabdd6693a23d99df1c60c49990ffa9437c85c9074631c8baa23c1377513a56d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","html_visualization"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -70,9 +70,9 @@ spec:
         cv=3)\n    metrics.log_confusion_matrix(\n        [''Setosa'', ''Versicolour'',
         ''Virginica''],\n        confusion_matrix(\n            train_y,\n            predictions).tolist()  #
         .tolist() to convert np array to list.\n    )\n\n"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
-    - name: components-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2
+    - name: components-e375ba24bc2330f93b7099ac1763d486a01d5f0fe7a0993be3ecf3fbce47224d
       value: '{"executorLabel":"exec-markdown-visualization","outputDefinitions":{"artifacts":{"markdown_artifact":{"artifactType":{"schemaTitle":"system.Markdown","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2
+    - name: implementations-e375ba24bc2330f93b7099ac1763d486a01d5f0fe7a0993be3ecf3fbce47224d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","markdown_visualization"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -119,6 +119,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -187,6 +191,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -215,6 +227,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -251,6 +267,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -280,6 +303,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -290,6 +321,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -334,11 +368,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9}}'
+            value: '{{workflow.parameters.components-dabdd6693a23d99df1c60c49990ffa9437c85c9074631c8baa23c1377513a56d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-html-visualization"},"taskInfo":{"name":"html-visualization"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8b96d9f29ceda687348878fbe78abce8bb95aeb11a81acbed6e982c6b5a599b9}}'
+            value: '{{workflow.parameters.implementations-dabdd6693a23d99df1c60c49990ffa9437c85c9074631c8baa23c1377513a56d}}'
           - name: task-name
             value: html-visualization
           - name: parent-dag-id
@@ -382,11 +416,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2}}'
+            value: '{{workflow.parameters.components-e375ba24bc2330f93b7099ac1763d486a01d5f0fe7a0993be3ecf3fbce47224d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-markdown-visualization"},"taskInfo":{"name":"markdown-visualization"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-aa62f3e30a9a264d684236dfb9119aeef8aa73b57394291a20577545a44276c2}}'
+            value: '{{workflow.parameters.implementations-e375ba24bc2330f93b7099ac1763d486a01d5f0fe7a0993be3ecf3fbce47224d}}'
           - name: task-name
             value: markdown-visualization
           - name: parent-dag-id
@@ -488,6 +522,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -518,6 +560,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

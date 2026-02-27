@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2
+    - name: components-3dc642b9cf5e2b6b5617735f144c85329009a1d59ee9bc572f87b7d2363a66d6
       value: '{"executorLabel":"exec-add","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2
+    - name: implementations-3dc642b9cf5e2b6b5617735f144c85329009a1d59ee9bc572f87b7d2363a66d6
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
         = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
         f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
         ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.11-slim"}'
-    - name: components-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0
+    - name: components-a104c9f5d9bf9c3caafb9a27e06da6b6bb966389bd9331025fdf70ffd84263a2
       value: '{"executorLabel":"exec-add-two-ints","inputDefinitions":{"artifacts":{"in_dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"in_dataset2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0
+    - name: implementations-a104c9f5d9bf9c3caafb9a27e06da6b6bb966389bd9331025fdf70ffd84263a2
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_two_ints"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -41,9 +41,9 @@ spec:
         + in_dataset2))\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-add-two-lists-of-datasets
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"add-two-ints"}]}}},"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}},"add-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}},"add-two-ints":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}}},"inputDefinitions":{"artifacts":{"in_datasets1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true},"in_datasets2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: components-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47
+    - name: components-69b3898534230e4bc16f34deb8e00a26eab88a8897aaeacd3bc11b0c4b3fe514
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47
+    - name: implementations-69b3898534230e4bc16f34deb8e00a26eab88a8897aaeacd3bc11b0c4b3fe514
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -72,6 +72,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -140,6 +144,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -168,6 +180,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -204,6 +220,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -233,6 +256,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -243,6 +274,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -263,11 +297,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
+            value: '{{workflow.parameters.components-3dc642b9cf5e2b6b5617735f144c85329009a1d59ee9bc572f87b7d2363a66d6}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
+            value: '{{workflow.parameters.implementations-3dc642b9cf5e2b6b5617735f144c85329009a1d59ee9bc572f87b7d2363a66d6}}'
           - name: task-name
             value: add
           - name: parent-dag-id
@@ -287,11 +321,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
+            value: '{{workflow.parameters.components-3dc642b9cf5e2b6b5617735f144c85329009a1d59ee9bc572f87b7d2363a66d6}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
+            value: '{{workflow.parameters.implementations-3dc642b9cf5e2b6b5617735f144c85329009a1d59ee9bc572f87b7d2363a66d6}}'
           - name: task-name
             value: add-2
           - name: parent-dag-id
@@ -311,11 +345,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0}}'
+            value: '{{workflow.parameters.components-a104c9f5d9bf9c3caafb9a27e06da6b6bb966389bd9331025fdf70ffd84263a2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0}}'
+            value: '{{workflow.parameters.implementations-a104c9f5d9bf9c3caafb9a27e06da6b6bb966389bd9331025fdf70ffd84263a2}}'
           - name: task-name
             value: add-two-ints
           - name: parent-dag-id
@@ -344,11 +378,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
+            value: '{{workflow.parameters.components-69b3898534230e4bc16f34deb8e00a26eab88a8897aaeacd3bc11b0c4b3fe514}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
+            value: '{{workflow.parameters.implementations-69b3898534230e4bc16f34deb8e00a26eab88a8897aaeacd3bc11b0c4b3fe514}}'
           - name: task-name
             value: double-2
           - name: parent-dag-id
@@ -426,6 +460,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -456,6 +498,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -500,6 +546,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -529,6 +577,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -553,11 +603,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
+            value: '{{workflow.parameters.components-69b3898534230e4bc16f34deb8e00a26eab88a8897aaeacd3bc11b0c4b3fe514}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
+            value: '{{workflow.parameters.implementations-69b3898534230e4bc16f34deb8e00a26eab88a8897aaeacd3bc11b0c4b3fe514}}'
           - name: task-name
             value: double
           - name: parent-dag-id
@@ -599,6 +649,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -628,6 +680,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-driver
         template: system-dag-driver
       - arguments:

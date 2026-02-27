@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c33fa3b99654c0449406568c8f79055a726bdfef6f12ef6bdd2fff0e1cc32bd0
+    - name: components-5cbf2fa707df9f951fcdcec8330f04b59bba9ea2a136359647f45cb2e27f160f
       value: '{"executorLabel":"exec-receive-file","inputDefinitions":{"artifacts":{"incomingfile":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"saveartifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-c33fa3b99654c0449406568c8f79055a726bdfef6f12ef6bdd2fff0e1cc32bd0
+    - name: implementations-5cbf2fa707df9f951fcdcec8330f04b59bba9ea2a136359647f45cb2e27f160f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","receive_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -24,9 +24,9 @@ spec:
         open(incomingfile, \"rb\") as f:\n        b = f.read(1)\n        print(\"read
         byte: %s\" % b)\n        f.close()\n\n    print(\"copying in %s to out %s\"
         % (incomingfile, saveartifact))\n    shutil.copyfile(incomingfile, saveartifact)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-21623f5d1d15354c4b58c256e42c5e4fcabb7503930b4a6f4ace6876d023a660
+    - name: components-f47407e9894945d63f8e8b86c1c1789ee1c14f2892fd1bea3cc92a898c3d5d6a
       value: '{"executorLabel":"exec-send-file","inputDefinitions":{"parameters":{"file_size_bytes":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"outgoingfile":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-21623f5d1d15354c4b58c256e42c5e4fcabb7503930b4a6f4ace6876d023a660
+    - name: implementations-f47407e9894945d63f8e8b86c1c1789ee1c14f2892fd1bea3cc92a898c3d5d6a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","send_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -44,9 +44,9 @@ spec:
         os.path.basename(input_file_path))\n\n    print(\"starting creating the file...\")\n    file_path
         = \"/tmp/large_file.txt\"\n    create_large_file(file_path, file_size_bytes)\n    zip_file(file_path,
         outgoingfile)\n    print(f\"saved: {outgoingfile}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-c222529d08b231cbea2debe39f47b0c9f12c39e63429d94017fceeb53226b68c
+    - name: components-db303dadb0ebd38949d2cbb18fb2b2882be4f3b95cf72afc3b220e0816be9040
       value: '{"executorLabel":"exec-test-uploaded-artifact","inputDefinitions":{"artifacts":{"previous_step":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}},"parameters":{"bucket_name":{"parameterType":"STRING"},"file_size_bytes":{"parameterType":"NUMBER_INTEGER"},"mlpipeline_minio_artifact_secret":{"parameterType":"STRING"}}}}'
-    - name: implementations-c222529d08b231cbea2debe39f47b0c9f12c39e63429d94017fceeb53226b68c
+    - name: implementations-db303dadb0ebd38949d2cbb18fb2b2882be4f3b95cf72afc3b220e0816be9040
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","test_uploaded_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -82,6 +82,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -150,6 +154,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -178,6 +190,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -214,6 +230,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -243,6 +266,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -253,6 +284,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -273,11 +307,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c33fa3b99654c0449406568c8f79055a726bdfef6f12ef6bdd2fff0e1cc32bd0}}'
+            value: '{{workflow.parameters.components-5cbf2fa707df9f951fcdcec8330f04b59bba9ea2a136359647f45cb2e27f160f}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-receive-file"},"dependentTasks":["send-file"],"inputs":{"artifacts":{"incomingfile":{"taskOutputArtifact":{"outputArtifactKey":"outgoingfile","producerTask":"send-file"}}}},"taskInfo":{"name":"receive-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c33fa3b99654c0449406568c8f79055a726bdfef6f12ef6bdd2fff0e1cc32bd0}}'
+            value: '{{workflow.parameters.implementations-5cbf2fa707df9f951fcdcec8330f04b59bba9ea2a136359647f45cb2e27f160f}}'
           - name: task-name
             value: receive-file
           - name: parent-dag-id
@@ -298,11 +332,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-21623f5d1d15354c4b58c256e42c5e4fcabb7503930b4a6f4ace6876d023a660}}'
+            value: '{{workflow.parameters.components-f47407e9894945d63f8e8b86c1c1789ee1c14f2892fd1bea3cc92a898c3d5d6a}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-send-file"},"inputs":{"parameters":{"file_size_bytes":{"runtimeValue":{"constant":20971520}}}},"taskInfo":{"name":"send-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-21623f5d1d15354c4b58c256e42c5e4fcabb7503930b4a6f4ace6876d023a660}}'
+            value: '{{workflow.parameters.implementations-f47407e9894945d63f8e8b86c1c1789ee1c14f2892fd1bea3cc92a898c3d5d6a}}'
           - name: task-name
             value: send-file
           - name: parent-dag-id
@@ -322,11 +356,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c222529d08b231cbea2debe39f47b0c9f12c39e63429d94017fceeb53226b68c}}'
+            value: '{{workflow.parameters.components-db303dadb0ebd38949d2cbb18fb2b2882be4f3b95cf72afc3b220e0816be9040}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-test-uploaded-artifact"},"dependentTasks":["receive-file"],"inputs":{"artifacts":{"previous_step":{"taskOutputArtifact":{"outputArtifactKey":"saveartifact","producerTask":"receive-file"}}},"parameters":{"bucket_name":{"componentInputParameter":"bucket_name"},"file_size_bytes":{"runtimeValue":{"constant":20971520}},"mlpipeline_minio_artifact_secret":{"componentInputParameter":"mlpipeline_minio_artifact_secret"}}},"taskInfo":{"name":"test-uploaded-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c222529d08b231cbea2debe39f47b0c9f12c39e63429d94017fceeb53226b68c}}'
+            value: '{{workflow.parameters.implementations-db303dadb0ebd38949d2cbb18fb2b2882be4f3b95cf72afc3b220e0816be9040}}'
           - name: task-name
             value: test-uploaded-artifact
           - name: parent-dag-id
@@ -405,6 +439,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -435,6 +477,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

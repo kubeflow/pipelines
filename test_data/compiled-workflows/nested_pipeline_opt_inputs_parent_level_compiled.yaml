@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-3fb1a1c38ece9fdf50975220e7cfae8f23547ef21522393d7e590333a4dbfd75
+    - name: components-d1f0261fc9451f4aa7caa99fa89b26f256bb7103d259a7052402bb3aa7bc8e6f
       value: '{"executorLabel":"exec-component-nil-bool-default","inputDefinitions":{"parameters":{"componentInput":{"isOptional":true,"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-3fb1a1c38ece9fdf50975220e7cfae8f23547ef21522393d7e590333a4dbfd75
+    - name: implementations-d1f0261fc9451f4aa7caa99fa89b26f256bb7103d259a7052402bb3aa7bc8e6f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_nil_bool_default"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,9 +21,9 @@ spec:
         component_nil_bool_default(componentInput: bool = None):\n    if componentInput
         != True:\n        raise ValueError(f\"componentInput should be True but is
         {componentInput}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-22fb7cbea158fa49c81562ab2996be3fe3b07c161e8979367050d728d411e29c
+    - name: components-5846150e7777c2f3db56a375383ec4956874bd03d51b35a6a6d8f610c40ac911
       value: '{"executorLabel":"exec-component-nil-int-default","inputDefinitions":{"parameters":{"componentInput":{"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-22fb7cbea158fa49c81562ab2996be3fe3b07c161e8979367050d728d411e29c
+    - name: implementations-5846150e7777c2f3db56a375383ec4956874bd03d51b35a6a6d8f610c40ac911
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_nil_int_default"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -35,9 +35,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_nil_int_default(componentInput: int = None):\n    if componentInput
         != 1:\n        raise ValueError(f\"componentInput should be 1 but is {componentInput}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-af9421038bc7cb5eeb32efd4d2a0c050a4d7988646bac55e6aaaa06cabc9304d
+    - name: components-b8ae48fc8939abc91bd04501d42430e96a4f2aab5896f873311388fdb189e223
       value: '{"executorLabel":"exec-component-nil-str-default","inputDefinitions":{"parameters":{"componentInput":{"isOptional":true,"parameterType":"STRING"}}}}'
-    - name: implementations-af9421038bc7cb5eeb32efd4d2a0c050a4d7988646bac55e6aaaa06cabc9304d
+    - name: implementations-b8ae48fc8939abc91bd04501d42430e96a4f2aab5896f873311388fdb189e223
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_nil_str_default"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -53,9 +53,9 @@ spec:
     - name: components-comp-nested-pipeline-nil-defaults
       value: '{"dag":{"tasks":{"component-nil-bool-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-bool-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputBool"}}},"taskInfo":{"name":"component-nil-bool-default"}},"component-nil-int-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-int-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputInt"}}},"taskInfo":{"name":"component-nil-int-default"}},"component-nil-str-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-str-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputStr"}}},"taskInfo":{"name":"component-nil-str-default"}}}},"inputDefinitions":{"parameters":{"nestedInputBool":{"isOptional":true,"parameterType":"BOOLEAN"},"nestedInputInt":{"isOptional":true,"parameterType":"NUMBER_INTEGER"},"nestedInputStr":{"defaultValue":"Input
         - nested pipeline","isOptional":true,"parameterType":"STRING"}}}}'
-    - name: components-0471bffb66a33e2f351040cca3cec0486ec93f968cc8eae19f63a7c81e9f5916
+    - name: components-4ca76622f09913008ec231995ede2144f0e3f02ffcca4b751aa0365fc22134bf
       value: '{"executorLabel":"exec-component-bool-default","inputDefinitions":{"parameters":{"componentInput":{"defaultValue":false,"isOptional":true,"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-0471bffb66a33e2f351040cca3cec0486ec93f968cc8eae19f63a7c81e9f5916
+    - name: implementations-4ca76622f09913008ec231995ede2144f0e3f02ffcca4b751aa0365fc22134bf
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_bool_default"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -68,9 +68,9 @@ spec:
         component_bool_default(componentInput: bool = False):\n    if componentInput
         != True:\n        raise ValueError(f\"componentInput should be True but is
         {componentInput}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-0f1bb762821e1923f608b9b5c75f9fb3e4a628508c2343e9cc383eff2bc0ae3e
+    - name: components-58890d0d401b71c52e29fd8bc5cb844e1ae3a8e6acd2fce79fc7c5b4575723f5
       value: '{"executorLabel":"exec-component-int-default","inputDefinitions":{"parameters":{"componentInput":{"defaultValue":0,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-0f1bb762821e1923f608b9b5c75f9fb3e4a628508c2343e9cc383eff2bc0ae3e
+    - name: implementations-58890d0d401b71c52e29fd8bc5cb844e1ae3a8e6acd2fce79fc7c5b4575723f5
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_int_default"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -82,10 +82,10 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_int_default(componentInput: int = 0):\n    if componentInput !=
         1:\n        raise ValueError(f\"componentInput should be 1 but is {componentInput}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-fb41f663306ed858f33b40f076339dd4af802def6164ef138a8c278c8dd2647e
+    - name: components-e858f9ead753c0273994fc1f7b162fb8791bb28429b0405c0ef3cd2615686006
       value: '{"executorLabel":"exec-component-str-default","inputDefinitions":{"parameters":{"componentInput":{"defaultValue":"Input
         - component","isOptional":true,"parameterType":"STRING"}}}}'
-    - name: implementations-fb41f663306ed858f33b40f076339dd4af802def6164ef138a8c278c8dd2647e
+    - name: implementations-e858f9ead753c0273994fc1f7b162fb8791bb28429b0405c0ef3cd2615686006
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_str_default"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -110,6 +110,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -178,6 +182,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -206,6 +218,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -242,6 +258,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -271,6 +294,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -281,6 +312,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -301,11 +335,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-3fb1a1c38ece9fdf50975220e7cfae8f23547ef21522393d7e590333a4dbfd75}}'
+            value: '{{workflow.parameters.components-d1f0261fc9451f4aa7caa99fa89b26f256bb7103d259a7052402bb3aa7bc8e6f}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-bool-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputBool"}}},"taskInfo":{"name":"component-nil-bool-default"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-3fb1a1c38ece9fdf50975220e7cfae8f23547ef21522393d7e590333a4dbfd75}}'
+            value: '{{workflow.parameters.implementations-d1f0261fc9451f4aa7caa99fa89b26f256bb7103d259a7052402bb3aa7bc8e6f}}'
           - name: task-name
             value: component-nil-bool-default
           - name: parent-dag-id
@@ -325,11 +359,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-22fb7cbea158fa49c81562ab2996be3fe3b07c161e8979367050d728d411e29c}}'
+            value: '{{workflow.parameters.components-5846150e7777c2f3db56a375383ec4956874bd03d51b35a6a6d8f610c40ac911}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-int-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputInt"}}},"taskInfo":{"name":"component-nil-int-default"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-22fb7cbea158fa49c81562ab2996be3fe3b07c161e8979367050d728d411e29c}}'
+            value: '{{workflow.parameters.implementations-5846150e7777c2f3db56a375383ec4956874bd03d51b35a6a6d8f610c40ac911}}'
           - name: task-name
             value: component-nil-int-default
           - name: parent-dag-id
@@ -349,11 +383,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-af9421038bc7cb5eeb32efd4d2a0c050a4d7988646bac55e6aaaa06cabc9304d}}'
+            value: '{{workflow.parameters.components-b8ae48fc8939abc91bd04501d42430e96a4f2aab5896f873311388fdb189e223}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-str-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputStr"}}},"taskInfo":{"name":"component-nil-str-default"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-af9421038bc7cb5eeb32efd4d2a0c050a4d7988646bac55e6aaaa06cabc9304d}}'
+            value: '{{workflow.parameters.implementations-b8ae48fc8939abc91bd04501d42430e96a4f2aab5896f873311388fdb189e223}}'
           - name: task-name
             value: component-nil-str-default
           - name: parent-dag-id
@@ -381,11 +415,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0471bffb66a33e2f351040cca3cec0486ec93f968cc8eae19f63a7c81e9f5916}}'
+            value: '{{workflow.parameters.components-4ca76622f09913008ec231995ede2144f0e3f02ffcca4b751aa0365fc22134bf}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-bool-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputBool"}}},"taskInfo":{"name":"component-bool-default"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0471bffb66a33e2f351040cca3cec0486ec93f968cc8eae19f63a7c81e9f5916}}'
+            value: '{{workflow.parameters.implementations-4ca76622f09913008ec231995ede2144f0e3f02ffcca4b751aa0365fc22134bf}}'
           - name: task-name
             value: component-bool-default
           - name: parent-dag-id
@@ -405,11 +439,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0f1bb762821e1923f608b9b5c75f9fb3e4a628508c2343e9cc383eff2bc0ae3e}}'
+            value: '{{workflow.parameters.components-58890d0d401b71c52e29fd8bc5cb844e1ae3a8e6acd2fce79fc7c5b4575723f5}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-int-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputInt"}}},"taskInfo":{"name":"component-int-default"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0f1bb762821e1923f608b9b5c75f9fb3e4a628508c2343e9cc383eff2bc0ae3e}}'
+            value: '{{workflow.parameters.implementations-58890d0d401b71c52e29fd8bc5cb844e1ae3a8e6acd2fce79fc7c5b4575723f5}}'
           - name: task-name
             value: component-int-default
           - name: parent-dag-id
@@ -429,11 +463,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fb41f663306ed858f33b40f076339dd4af802def6164ef138a8c278c8dd2647e}}'
+            value: '{{workflow.parameters.components-e858f9ead753c0273994fc1f7b162fb8791bb28429b0405c0ef3cd2615686006}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-str-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputStr"}}},"taskInfo":{"name":"component-str-default"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fb41f663306ed858f33b40f076339dd4af802def6164ef138a8c278c8dd2647e}}'
+            value: '{{workflow.parameters.implementations-e858f9ead753c0273994fc1f7b162fb8791bb28429b0405c0ef3cd2615686006}}'
           - name: task-name
             value: component-str-default
           - name: parent-dag-id
@@ -511,6 +545,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -541,6 +583,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

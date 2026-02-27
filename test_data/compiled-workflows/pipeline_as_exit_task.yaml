@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
+    - name: components-d953f8926ac1bb0fff33bbefff2b15f1cbbef0ef76d37e5d444bd72bf677cacb
       value: '{"executorLabel":"exec-print-op-2","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
+    - name: implementations-d953f8926ac1bb0fff33bbefff2b15f1cbbef0ef76d37e5d444bd72bf677cacb
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"notify
         task failure."}}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--get-run-state-Output":{"parameterType":"STRING"}}}}'
-    - name: components-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8
+    - name: components-cdb5db7e7e9ab7970d3b3efa89692c6b0ae591c83f998f88d1759404fab1474e
       value: '{"executorLabel":"exec-get-run-state","inputDefinitions":{"parameters":{"status":{"parameterType":"STRUCT"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8
+    - name: implementations-cdb5db7e7e9ab7970d3b3efa89692c6b0ae591c83f998f88d1759404fab1474e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","get_run_state"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -39,9 +39,9 @@ spec:
     - name: components-comp-conditional-notification
       value: '{"dag":{"tasks":{"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["get-run-state"],"inputs":{"parameters":{"pipelinechannel--get-run-state-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-run-state"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--get-run-state-Output'']
         == ''FAILED''"}},"get-run-state":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-run-state"},"inputs":{"parameters":{"status":{"componentInputParameter":"status"}}},"taskInfo":{"name":"get-run-state"}}}},"inputDefinitions":{"parameters":{"status":{"isOptional":true,"parameterType":"TASK_FINAL_STATUS"}}}}'
-    - name: components-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8
+    - name: components-518cc172bb9f821359b55f10b73b748aff39befdc45b65c7b739ad408fcf71b4
       value: '{"executorLabel":"exec-fail-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8
+    - name: implementations-518cc172bb9f821359b55f10b73b748aff39befdc45b65c7b739ad408fcf71b4
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","fail_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -64,6 +64,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -132,6 +136,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -160,6 +172,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -196,6 +212,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -225,6 +248,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -235,6 +266,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -255,12 +289,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
+            value: '{{workflow.parameters.components-d953f8926ac1bb0fff33bbefff2b15f1cbbef0ef76d37e5d444bd72bf677cacb}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"notify
               task failure."}}}},"taskInfo":{"name":"print-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
+            value: '{{workflow.parameters.implementations-d953f8926ac1bb0fff33bbefff2b15f1cbbef0ef76d37e5d444bd72bf677cacb}}'
           - name: task-name
             value: print-op
           - name: parent-dag-id
@@ -338,6 +372,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -368,6 +410,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -397,11 +443,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8}}'
+            value: '{{workflow.parameters.components-cdb5db7e7e9ab7970d3b3efa89692c6b0ae591c83f998f88d1759404fab1474e}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-run-state"},"inputs":{"parameters":{"status":{"componentInputParameter":"status"}}},"taskInfo":{"name":"get-run-state"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8}}'
+            value: '{{workflow.parameters.implementations-cdb5db7e7e9ab7970d3b3efa89692c6b0ae591c83f998f88d1759404fab1474e}}'
           - name: task-name
             value: get-run-state
           - name: parent-dag-id
@@ -429,12 +475,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8}}'
+            value: '{{workflow.parameters.components-518cc172bb9f821359b55f10b73b748aff39befdc45b65c7b739ad408fcf71b4}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
               failed."}}}},"taskInfo":{"name":"fail-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8}}'
+            value: '{{workflow.parameters.implementations-518cc172bb9f821359b55f10b73b748aff39befdc45b65c7b739ad408fcf71b4}}'
           - name: task-name
             value: fail-op
           - name: parent-dag-id
@@ -454,11 +500,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
+            value: '{{workflow.parameters.components-d953f8926ac1bb0fff33bbefff2b15f1cbbef0ef76d37e5d444bd72bf677cacb}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
+            value: '{{workflow.parameters.implementations-d953f8926ac1bb0fff33bbefff2b15f1cbbef0ef76d37e5d444bd72bf677cacb}}'
           - name: task-name
             value: print-op
           - name: parent-dag-id

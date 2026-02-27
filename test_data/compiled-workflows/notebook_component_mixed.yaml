@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24
+    - name: components-379d267e634e2b54176786531b394037962f369d512b72b1dc05f0592e91eec6
       value: '{"executorLabel":"exec-evaluate-model","inputDefinitions":{"artifacts":{"model_text":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.Metrics","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24
+    - name: implementations-379d267e634e2b54176786531b394037962f369d512b72b1dc05f0592e91eec6
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","evaluate_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -120,9 +120,9 @@ spec:
         = json.load(f)\n\n    assert metrics_dict == {\"score\": float(len(model_text))}\n\n    for
         metric_name, metric_value in metrics_dict.items():\n        metrics.log_metric(metric_name,
         metric_value)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c
+    - name: components-d6d71d7aa941c706dd6e53d76030d8acb5e45ea57025510289f1ada7a3c28a3a
       value: '{"executorLabel":"exec-preprocess","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c
+    - name: implementations-d6d71d7aa941c706dd6e53d76030d8acb5e45ea57025510289f1ada7a3c28a3a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","preprocess"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -135,9 +135,9 @@ spec:
         preprocess(text: str, dataset: dsl.Output[dsl.Dataset]):\n    import re\n\n    cleaned_text
         = re.sub(r\"\\s+\", \" \", text).strip()\n    with open(dataset.path, \"w\",
         encoding=\"utf-8\") as f:\n        f.write(cleaned_text)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1
+    - name: components-e6cdd728b42d06ff1be4964a8191405fddc6ccc0f5827a718d755038e1f9e1ca
       value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"cleaned_text":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1
+    - name: implementations-e6cdd728b42d06ff1be4964a8191405fddc6ccc0f5827a718d755038e1f9e1ca
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","train_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -256,6 +256,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -324,6 +328,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -352,6 +364,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -388,6 +404,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -417,6 +440,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -427,6 +458,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -447,11 +481,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24}}'
+            value: '{{workflow.parameters.components-379d267e634e2b54176786531b394037962f369d512b72b1dc05f0592e91eec6}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-evaluate-model"},"dependentTasks":["train-model"],"inputs":{"artifacts":{"model_text":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"train-model"}}}},"taskInfo":{"name":"evaluate-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24}}'
+            value: '{{workflow.parameters.implementations-379d267e634e2b54176786531b394037962f369d512b72b1dc05f0592e91eec6}}'
           - name: task-name
             value: evaluate-model
           - name: parent-dag-id
@@ -472,11 +506,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c}}'
+            value: '{{workflow.parameters.components-d6d71d7aa941c706dd6e53d76030d8acb5e45ea57025510289f1ada7a3c28a3a}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"preprocess"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c}}'
+            value: '{{workflow.parameters.implementations-d6d71d7aa941c706dd6e53d76030d8acb5e45ea57025510289f1ada7a3c28a3a}}'
           - name: task-name
             value: preprocess
           - name: parent-dag-id
@@ -496,11 +530,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1}}'
+            value: '{{workflow.parameters.components-e6cdd728b42d06ff1be4964a8191405fddc6ccc0f5827a718d755038e1f9e1ca}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["preprocess"],"inputs":{"artifacts":{"cleaned_text":{"taskOutputArtifact":{"outputArtifactKey":"dataset","producerTask":"preprocess"}}}},"taskInfo":{"name":"train-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1}}'
+            value: '{{workflow.parameters.implementations-e6cdd728b42d06ff1be4964a8191405fddc6ccc0f5827a718d755038e1f9e1ca}}'
           - name: task-name
             value: train-model
           - name: parent-dag-id
@@ -579,6 +613,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -609,6 +651,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

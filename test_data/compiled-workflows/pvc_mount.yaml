@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-consumer
       value: '{"pvcMount":[{"componentInputParameter":"pvc_name","mountPath":"/data","pvcNameParameter":{"componentInputParameter":"pvc_name"}}]}'
-    - name: components-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31
+    - name: components-3cae723f4397e8c5709a59e7a3ce505bcdc6579508fb37225406027cebaf8bb3
       value: '{"executorLabel":"exec-consumer"}'
-    - name: implementations-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31
+    - name: implementations-3cae723f4397e8c5709a59e7a3ce505bcdc6579508fb37225406027cebaf8bb3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -23,9 +23,9 @@ spec:
         consumer() -\u003e None:\n    with open(''/data/file.txt'', ''r'') as f:\n        print(f.read())\n\n"],"image":"python:3.11-slim"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"componentInputParameter":"pvc_name","mountPath":"/data","pvcNameParameter":{"componentInputParameter":"pvc_name"}}]}'
-    - name: components-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2
+    - name: components-b83b96e332a1c22f79bb19fdd86051059c46e2544428db61a29ee8cdecbca59c
       value: '{"executorLabel":"exec-producer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2
+    - name: implementations-b83b96e332a1c22f79bb19fdd86051059c46e2544428db61a29ee8cdecbca59c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -45,6 +45,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -113,6 +117,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -141,6 +153,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -177,6 +193,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -206,6 +229,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -216,6 +247,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -236,11 +270,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31}}'
+            value: '{{workflow.parameters.components-3cae723f4397e8c5709a59e7a3ce505bcdc6579508fb37225406027cebaf8bb3}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["producer"],"taskInfo":{"name":"consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31}}'
+            value: '{{workflow.parameters.implementations-3cae723f4397e8c5709a59e7a3ce505bcdc6579508fb37225406027cebaf8bb3}}'
           - name: task-name
             value: consumer
           - name: parent-dag-id
@@ -263,11 +297,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2}}'
+            value: '{{workflow.parameters.components-b83b96e332a1c22f79bb19fdd86051059c46e2544428db61a29ee8cdecbca59c}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"taskInfo":{"name":"producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2}}'
+            value: '{{workflow.parameters.implementations-b83b96e332a1c22f79bb19fdd86051059c46e2544428db61a29ee8cdecbca59c}}'
           - name: task-name
             value: producer
           - name: parent-dag-id
@@ -347,6 +381,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -377,6 +419,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

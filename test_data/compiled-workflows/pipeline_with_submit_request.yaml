@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e
+    - name: components-54201b8749114bde471f5303385e5d749c98a543c2076ae073667f4819b81690
       value: '{"executorLabel":"exec-submit-request","inputDefinitions":{"parameters":{"url":{"parameterType":"STRING"}}}}'
-    - name: implementations-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e
+    - name: implementations-54201b8749114bde471f5303385e5d749c98a543c2076ae073667f4819b81690
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","submit_request"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -38,6 +38,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -106,6 +110,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -134,6 +146,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -170,6 +186,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -199,6 +222,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -209,6 +240,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -229,11 +263,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+            value: '{{workflow.parameters.components-54201b8749114bde471f5303385e5d749c98a543c2076ae073667f4819b81690}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-submit-request"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"httpbin.org/get"}}}},"taskInfo":{"name":"submit-request"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+            value: '{{workflow.parameters.implementations-54201b8749114bde471f5303385e5d749c98a543c2076ae073667f4819b81690}}'
           - name: task-name
             value: submit-request
           - name: parent-dag-id
@@ -253,11 +287,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+            value: '{{workflow.parameters.components-54201b8749114bde471f5303385e5d749c98a543c2076ae073667f4819b81690}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-submit-request-2"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"ml-pipeline:8888/apis/v2beta1/healthz"}}}},"taskInfo":{"name":"submit-request-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+            value: '{{workflow.parameters.implementations-54201b8749114bde471f5303385e5d749c98a543c2076ae073667f4819b81690}}'
           - name: task-name
             value: submit-request-2
           - name: parent-dag-id
@@ -335,6 +369,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -365,6 +407,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

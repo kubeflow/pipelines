@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3
+    - name: components-c61ddc557f165f759ebee00e59bf9e1fdc93cf42acdf7fc0beae76bbe2e52921
       value: '{"executorLabel":"exec-echo-state","inputDefinitions":{"parameters":{"status":{"isOptional":true,"parameterType":"TASK_FINAL_STATUS"}}}}'
-    - name: implementations-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3
+    - name: implementations-c61ddc557f165f759ebee00e59bf9e1fdc93cf42acdf7fc0beae76bbe2e52921
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","echo_state"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
         == ''COMPLETE'')\n    assert(''status-state-pipeline'' in status.pipeline_job_resource_name)\n    assert(status.pipeline_task_name
         == ''exit-handler-1'')\n    #TODO: Add assert statements to validate status.error_code
         and status.error_message values once those fields have been implemented.\n\n"],"image":"python:3.11-slim"}'
-    - name: components-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91
+    - name: components-8900232c853dbdaa0c756a26aa83bf879aafec866ff6edff852abe2eaf03c9af
       value: '{"executorLabel":"exec-some-task"}'
-    - name: implementations-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91
+    - name: implementations-8900232c853dbdaa0c756a26aa83bf879aafec866ff6edff852abe2eaf03c9af
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","some_task"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -45,6 +45,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -113,6 +117,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -141,6 +153,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -177,6 +193,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -206,6 +229,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -216,6 +247,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -236,11 +270,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91}}'
+            value: '{{workflow.parameters.components-8900232c853dbdaa0c756a26aa83bf879aafec866ff6edff852abe2eaf03c9af}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-some-task"},"taskInfo":{"name":"some-task"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91}}'
+            value: '{{workflow.parameters.implementations-8900232c853dbdaa0c756a26aa83bf879aafec866ff6edff852abe2eaf03c9af}}'
           - name: task-name
             value: some-task
           - name: parent-dag-id
@@ -268,11 +302,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3}}'
+            value: '{{workflow.parameters.components-c61ddc557f165f759ebee00e59bf9e1fdc93cf42acdf7fc0beae76bbe2e52921}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo-state"},"dependentTasks":["exit-handler-1"],"inputs":{"parameters":{"status":{"taskFinalStatus":{"producerTask":"exit-handler-1"}}}},"taskInfo":{"name":"echo-state"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3}}'
+            value: '{{workflow.parameters.implementations-c61ddc557f165f759ebee00e59bf9e1fdc93cf42acdf7fc0beae76bbe2e52921}}'
           - name: task-name
             value: echo-state
           - name: parent-dag-id
@@ -350,6 +384,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -380,6 +422,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

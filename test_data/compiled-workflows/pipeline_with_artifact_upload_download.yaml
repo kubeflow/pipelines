@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b
+    - name: components-9b050717451ff2baabc5c2abbbab55dd0253cd0581d18ffe38062e6cf1449947
       value: '{"executorLabel":"exec-download-dataset-and-upload-as-artifact","inputDefinitions":{"parameters":{"dataset_name":{"parameterType":"STRING"},"dataset_repo":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"output_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b
+    - name: implementations-9b050717451ff2baabc5c2abbbab55dd0253cd0581d18ffe38062e6cf1449947
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","download_dataset_and_upload_as_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -24,9 +24,9 @@ spec:
         Load data set from hugging face\n    ds = load_dataset(dataset_repo, dataset_name)\n    print(\"Downloaded
         Hugging Face data\")\n    print(f\"Now saving to {output_dataset.path}\")\n    ds.save_to_disk(output_dataset.path)\n    print(f\"Saved
         to {output_dataset.path}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08
+    - name: components-0523238a1092f249dceaab0ab7cb8d1a15b2a8cf0f610239703b1b5b199ae83c
       value: '{"executorLabel":"exec-print-dataset-info","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08
+    - name: implementations-0523238a1092f249dceaab0ab7cb8d1a15b2a8cf0f610239703b1b5b199ae83c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_dataset_info"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -48,6 +48,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -116,6 +120,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -144,6 +156,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -180,6 +196,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -209,6 +232,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -219,6 +250,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -239,11 +273,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b}}'
+            value: '{{workflow.parameters.components-9b050717451ff2baabc5c2abbbab55dd0253cd0581d18ffe38062e6cf1449947}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-download-dataset-and-upload-as-artifact"},"inputs":{"parameters":{"dataset_name":{"componentInputParameter":"dataset_name"},"dataset_repo":{"componentInputParameter":"dataset_repo"}}},"taskInfo":{"name":"download-dataset-and-upload-as-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b}}'
+            value: '{{workflow.parameters.implementations-9b050717451ff2baabc5c2abbbab55dd0253cd0581d18ffe38062e6cf1449947}}'
           - name: task-name
             value: download-dataset-and-upload-as-artifact
           - name: parent-dag-id
@@ -263,11 +297,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08}}'
+            value: '{{workflow.parameters.components-0523238a1092f249dceaab0ab7cb8d1a15b2a8cf0f610239703b1b5b199ae83c}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-dataset-info"},"dependentTasks":["download-dataset-and-upload-as-artifact"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"output_dataset","producerTask":"download-dataset-and-upload-as-artifact"}}}},"taskInfo":{"name":"print-dataset-info"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08}}'
+            value: '{{workflow.parameters.implementations-0523238a1092f249dceaab0ab7cb8d1a15b2a8cf0f610239703b1b5b199ae83c}}'
           - name: task-name
             value: print-dataset-info
           - name: parent-dag-id
@@ -346,6 +380,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -376,6 +418,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

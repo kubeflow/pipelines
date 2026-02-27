@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-e64230eee42e89b7bed44c01e0e5aadf92c2b123bf1ae03372c1e07eeadee7ff
+    - name: components-a8d1c0fb951a5c716f3ba288be9c7854c1cb0cfa6302b22ef4ec6ec3f3e4880f
       value: '{"executorLabel":"exec-dataset-joiner","inputDefinitions":{"artifacts":{"dataset_a":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"description":"First
         dataset."},"dataset_b":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"description":"Second
         dataset."}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"description":"The
         concatenated dataset."}},"parameters":{"Output":{"description":"The concatenated
         string.","parameterType":"STRING"}}}}'
-    - name: implementations-e64230eee42e89b7bed44c01e0e5aadf92c2b123bf1ae03372c1e07eeadee7ff
+    - name: implementations-a8d1c0fb951a5c716f3ba288be9c7854c1cb0cfa6302b22ef4ec6ec3f3e4880f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","dataset_joiner"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -42,6 +42,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -110,6 +114,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -138,6 +150,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -174,6 +190,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -203,6 +226,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -213,6 +244,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -233,11 +267,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e64230eee42e89b7bed44c01e0e5aadf92c2b123bf1ae03372c1e07eeadee7ff}}'
+            value: '{{workflow.parameters.components-a8d1c0fb951a5c716f3ba288be9c7854c1cb0cfa6302b22ef4ec6ec3f3e4880f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-dataset-joiner"},"inputs":{"artifacts":{"dataset_a":{"componentInputArtifact":"dataset_a"},"dataset_b":{"componentInputArtifact":"dataset_b"}}},"taskInfo":{"name":"dataset-joiner"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e64230eee42e89b7bed44c01e0e5aadf92c2b123bf1ae03372c1e07eeadee7ff}}'
+            value: '{{workflow.parameters.implementations-a8d1c0fb951a5c716f3ba288be9c7854c1cb0cfa6302b22ef4ec6ec3f3e4880f}}'
           - name: task-name
             value: dataset-joiner
           - name: parent-dag-id
@@ -315,6 +349,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -345,6 +387,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-4f60483a1bee7f772ee3001cf05964083d2f9641615161626b6146636da04fe0
+    - name: components-0885fdb247dcea0766be08bdda1421a897f2e74ea6e059bdf1c6ba3fad0c7a51
       value: '{"executorLabel":"exec-build-model-car","outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-4f60483a1bee7f772ee3001cf05964083d2f9641615161626b6146636da04fe0
+    - name: implementations-0885fdb247dcea0766be08bdda1421a897f2e74ea6e059bdf1c6ba3fad0c7a51
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","build_model_car"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,9 +20,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         build_model_car(model: dsl.Output[dsl.Model]):\n    # Simulate pushing the
         Modelcar to an OCI registry\n    model.uri = \"oci://registry.domain.local/org/repo:v1.0\"\n\n"],"image":"python:3.11-slim"}'
-    - name: components-fc08120adea24f34a0c74fbd8e185e63caa9eca74abf250b23e4ef9c8a3d6878
+    - name: components-e56b01504890fc7ff8a1b5e113a9104333b099ac837b6bbe3362732d156c8d52
       value: '{"executorLabel":"exec-get-model-files-list","inputDefinitions":{"artifacts":{"input_model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-fc08120adea24f34a0c74fbd8e185e63caa9eca74abf250b23e4ef9c8a3d6878
+    - name: implementations-e56b01504890fc7ff8a1b5e113a9104333b099ac837b6bbe3362732d156c8d52
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","get_model_files_list"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -52,6 +52,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -120,6 +124,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -148,6 +160,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -184,6 +200,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -213,6 +236,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -223,6 +254,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -286,6 +320,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: task
@@ -295,16 +337,20 @@ spec:
     metadata: {}
     name: system-importer
     outputs: {}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-4f60483a1bee7f772ee3001cf05964083d2f9641615161626b6146636da04fe0}}'
+            value: '{{workflow.parameters.components-0885fdb247dcea0766be08bdda1421a897f2e74ea6e059bdf1c6ba3fad0c7a51}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-build-model-car"},"taskInfo":{"name":"build-model-car"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-4f60483a1bee7f772ee3001cf05964083d2f9641615161626b6146636da04fe0}}'
+            value: '{{workflow.parameters.implementations-0885fdb247dcea0766be08bdda1421a897f2e74ea6e059bdf1c6ba3fad0c7a51}}'
           - name: task-name
             value: build-model-car
           - name: parent-dag-id
@@ -324,11 +370,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fc08120adea24f34a0c74fbd8e185e63caa9eca74abf250b23e4ef9c8a3d6878}}'
+            value: '{{workflow.parameters.components-e56b01504890fc7ff8a1b5e113a9104333b099ac837b6bbe3362732d156c8d52}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-get-model-files-list"},"dependentTasks":["importer"],"inputs":{"artifacts":{"input_model":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"get-model-files-list"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fc08120adea24f34a0c74fbd8e185e63caa9eca74abf250b23e4ef9c8a3d6878}}'
+            value: '{{workflow.parameters.implementations-e56b01504890fc7ff8a1b5e113a9104333b099ac837b6bbe3362732d156c8d52}}'
           - name: task-name
             value: get-model-files-list
           - name: parent-dag-id
@@ -419,6 +465,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -449,6 +503,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06
+    - name: components-74ecf26a3cb7bd94ed2a8414b52b339092e3b575cd04ad44e0f52fc97729d127
       value: '{"executorLabel":"exec-crust-comp","inputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06
+    - name: implementations-74ecf26a3cb7bd94ed2a8414b52b339092e3b575cd04ad44e0f52fc97729d127
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","crust_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,9 +21,9 @@ spec:
         crust_comp(\n    ds1: dsl.Dataset,\n    ds2: dsl.Dataset,\n):\n    with open(ds1.path,
         ''r'') as f:\n        print(''ds1: '', f.read())\n    with open(ds2.path,
         ''r'') as f:\n        print(''ds2: '', f.read())\n\n"],"image":"python:3.11-slim"}'
-    - name: components-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
+    - name: components-82b722d6d895fb4ecc2847129510646b325cc62121cfc06ff3a1a5c905c460b3
       value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
+    - name: implementations-82b722d6d895fb4ecc2847129510646b325cc62121cfc06ff3a1a5c905c460b3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -48,6 +48,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -116,6 +120,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -144,6 +156,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -180,6 +196,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -209,6 +232,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -219,6 +250,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -239,11 +273,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca}}'
+            value: '{{workflow.parameters.components-82b722d6d895fb4ecc2847129510646b325cc62121cfc06ff3a1a5c905c460b3}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca}}'
+            value: '{{workflow.parameters.implementations-82b722d6d895fb4ecc2847129510646b325cc62121cfc06ff3a1a5c905c460b3}}'
           - name: task-name
             value: core-comp
           - name: parent-dag-id
@@ -321,6 +355,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -351,6 +393,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -385,11 +431,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06}}'
+            value: '{{workflow.parameters.components-74ecf26a3cb7bd94ed2a8414b52b339092e3b575cd04ad44e0f52fc97729d127}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"artifacts":{"ds1":{"taskOutputArtifact":{"outputArtifactKey":"ds1","producerTask":"mantle"}},"ds2":{"taskOutputArtifact":{"outputArtifactKey":"ds2","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06}}'
+            value: '{{workflow.parameters.implementations-74ecf26a3cb7bd94ed2a8414b52b339092e3b575cd04ad44e0f52fc97729d127}}'
           - name: task-name
             value: crust-comp
           - name: parent-dag-id

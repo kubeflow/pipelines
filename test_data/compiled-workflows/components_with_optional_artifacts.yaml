@@ -16,9 +16,9 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-538891c59305f39fa7d0dc686fc88b88affbb35a10fd4ada0fe6e7b5e9136e97
+    - name: components-438f1c329beea0724e160ef0e16f59f1e1f5d3e698dcdb4549bdaca96079aed2
       value: '{"executorLabel":"exec-python-artifact-printer","inputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"},"isOptional":true}}}}'
-    - name: implementations-538891c59305f39fa7d0dc686fc88b88affbb35a10fd4ada0fe6e7b5e9136e97
+    - name: implementations-438f1c329beea0724e160ef0e16f59f1e1f5d3e698dcdb4549bdaca96079aed2
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","python_artifact_printer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -43,6 +43,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -111,6 +115,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -139,6 +151,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -175,6 +191,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -204,6 +227,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -214,6 +245,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -234,11 +268,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-538891c59305f39fa7d0dc686fc88b88affbb35a10fd4ada0fe6e7b5e9136e97}}'
+            value: '{{workflow.parameters.components-438f1c329beea0724e160ef0e16f59f1e1f5d3e698dcdb4549bdaca96079aed2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-538891c59305f39fa7d0dc686fc88b88affbb35a10fd4ada0fe6e7b5e9136e97}}'
+            value: '{{workflow.parameters.implementations-438f1c329beea0724e160ef0e16f59f1e1f5d3e698dcdb4549bdaca96079aed2}}'
           - name: task-name
             value: python-artifact-printer
           - name: parent-dag-id
@@ -266,11 +300,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-538891c59305f39fa7d0dc686fc88b88affbb35a10fd4ada0fe6e7b5e9136e97}}'
+            value: '{{workflow.parameters.components-438f1c329beea0724e160ef0e16f59f1e1f5d3e698dcdb4549bdaca96079aed2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer-2"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-538891c59305f39fa7d0dc686fc88b88affbb35a10fd4ada0fe6e7b5e9136e97}}'
+            value: '{{workflow.parameters.implementations-438f1c329beea0724e160ef0e16f59f1e1f5d3e698dcdb4549bdaca96079aed2}}'
           - name: task-name
             value: python-artifact-printer
           - name: parent-dag-id
@@ -341,6 +375,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: task
@@ -350,6 +392,10 @@ spec:
     metadata: {}
     name: system-importer
     outputs: {}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - container:
       args:
       - --type
@@ -405,6 +451,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -435,6 +489,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

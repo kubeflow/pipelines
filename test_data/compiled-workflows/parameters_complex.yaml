@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-5983895df78feaa3fc4a33110d0aed33ca16915ec107be6f49c07e9c4c738d16
+    - name: components-08f275e309f397c790c5c74d54c95efcd5ec68c8dab947c219fffc63d1b27d6e
       value: '{"executorLabel":"exec-add-two-numbers","inputDefinitions":{"parameters":{"x":{"parameterType":"LIST"},"y":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-5983895df78feaa3fc4a33110d0aed33ca16915ec107be6f49c07e9c4c738d16
+    - name: implementations-08f275e309f397c790c5c74d54c95efcd5ec68c8dab947c219fffc63d1b27d6e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_two_numbers"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,9 +20,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         add_two_numbers(x: List[int], y: List[int]) -\u003e int:\n    return sum(x)
         + sum(y)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3
+    - name: components-bb1cecec5a81ff018cca6d52debe82c41b8951a0cc77bfcb29fa0d2681930075
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3
+    - name: implementations-bb1cecec5a81ff018cca6d52debe82c41b8951a0cc77bfcb29fa0d2681930075
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -35,9 +35,9 @@ spec:
         double(num: int) -\u003e int:\n    return 2 * num\n\n"],"image":"python:3.11-slim"}'
     - name: components-comp-for-loop-4
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--double-2-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"double-2"}}}},"tasks":{"double-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"pipelinechannel--double-2-Output":{"parameterType":"LIST"}}}}'
-    - name: components-8f8f327236d0dee95a8f9e3066a3489084583a3ea55cfbc385dc232fa4205cc3
+    - name: components-c452cbfee7478bebb6e88e953671a9d10d7d4e9c617e4ba8641946380a24220b
       value: '{"executorLabel":"exec-simple-add","inputDefinitions":{"parameters":{"nums":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-8f8f327236d0dee95a8f9e3066a3489084583a3ea55cfbc385dc232fa4205cc3
+    - name: implementations-c452cbfee7478bebb6e88e953671a9d10d7d4e9c617e4ba8641946380a24220b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","simple_add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -51,9 +51,9 @@ spec:
     - name: components-comp-for-loop-2
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--double-2-Output":{"valueFromParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerSubtask":"for-loop-4"}},"pipelinechannel--double-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"double"}}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[4,
         5, 6]"}},"taskInfo":{"name":"for-loop-4"}},"simple-add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-simple-add"},"dependentTasks":["for-loop-4"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerTask":"for-loop-4"}}}},"taskInfo":{"name":"simple-add"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"pipelinechannel--double-2-Output":{"parameterType":"LIST"},"pipelinechannel--double-Output":{"parameterType":"LIST"}}}}'
-    - name: components-85ab7701a46287a3152375690acb08e729df2da42b3ddf49938ef1f9be7e8fb4
+    - name: components-8bb236083deedb1f9e243bc2078783a50bea3ce56c6c3395e2775ad858912787
       value: '{"executorLabel":"exec-nested-add-2","inputDefinitions":{"parameters":{"nums":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-85ab7701a46287a3152375690acb08e729df2da42b3ddf49938ef1f9be7e8fb4
+    - name: implementations-8bb236083deedb1f9e243bc2078783a50bea3ce56c6c3395e2775ad858912787
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","nested_add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -77,6 +77,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -145,6 +149,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -173,6 +185,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -209,6 +225,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -238,6 +261,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -248,6 +279,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -268,11 +302,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3}}'
+            value: '{{workflow.parameters.components-bb1cecec5a81ff018cca6d52debe82c41b8951a0cc77bfcb29fa0d2681930075}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3}}'
+            value: '{{workflow.parameters.implementations-bb1cecec5a81ff018cca6d52debe82c41b8951a0cc77bfcb29fa0d2681930075}}'
           - name: task-name
             value: double-2
           - name: parent-dag-id
@@ -350,6 +384,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -380,6 +422,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -393,6 +439,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[4,
               5, 6]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -422,6 +470,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[4,
               5, 6]"}},"taskInfo":{"name":"for-loop-4"}}'
+          - name: task-name
+            value: for-loop-4
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -446,11 +496,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3}}'
+            value: '{{workflow.parameters.components-bb1cecec5a81ff018cca6d52debe82c41b8951a0cc77bfcb29fa0d2681930075}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3}}'
+            value: '{{workflow.parameters.implementations-bb1cecec5a81ff018cca6d52debe82c41b8951a0cc77bfcb29fa0d2681930075}}'
           - name: task-name
             value: double
           - name: parent-dag-id
@@ -476,11 +526,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8f8f327236d0dee95a8f9e3066a3489084583a3ea55cfbc385dc232fa4205cc3}}'
+            value: '{{workflow.parameters.components-c452cbfee7478bebb6e88e953671a9d10d7d4e9c617e4ba8641946380a24220b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-simple-add"},"dependentTasks":["for-loop-4"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerTask":"for-loop-4"}}}},"taskInfo":{"name":"simple-add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8f8f327236d0dee95a8f9e3066a3489084583a3ea55cfbc385dc232fa4205cc3}}'
+            value: '{{workflow.parameters.implementations-c452cbfee7478bebb6e88e953671a9d10d7d4e9c617e4ba8641946380a24220b}}'
           - name: task-name
             value: simple-add
           - name: parent-dag-id
@@ -509,11 +559,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-85ab7701a46287a3152375690acb08e729df2da42b3ddf49938ef1f9be7e8fb4}}'
+            value: '{{workflow.parameters.components-8bb236083deedb1f9e243bc2078783a50bea3ce56c6c3395e2775ad858912787}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-add-2"},"inputs":{"parameters":{"nums":{"componentInputParameter":"pipelinechannel--for-loop-2-pipelinechannel--double-2-Output"}}},"taskInfo":{"name":"nested-add-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-85ab7701a46287a3152375690acb08e729df2da42b3ddf49938ef1f9be7e8fb4}}'
+            value: '{{workflow.parameters.implementations-8bb236083deedb1f9e243bc2078783a50bea3ce56c6c3395e2775ad858912787}}'
           - name: task-name
             value: nested-add-2
           - name: parent-dag-id
@@ -533,11 +583,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8f8f327236d0dee95a8f9e3066a3489084583a3ea55cfbc385dc232fa4205cc3}}'
+            value: '{{workflow.parameters.components-c452cbfee7478bebb6e88e953671a9d10d7d4e9c617e4ba8641946380a24220b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-simple-add-2"},"inputs":{"parameters":{"nums":{"componentInputParameter":"pipelinechannel--for-loop-2-pipelinechannel--double-Output"}}},"taskInfo":{"name":"simple-add-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8f8f327236d0dee95a8f9e3066a3489084583a3ea55cfbc385dc232fa4205cc3}}'
+            value: '{{workflow.parameters.implementations-c452cbfee7478bebb6e88e953671a9d10d7d4e9c617e4ba8641946380a24220b}}'
           - name: task-name
             value: simple-add-2
           - name: parent-dag-id
@@ -573,6 +623,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -602,6 +654,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -634,6 +688,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-6"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"pipelinechannel--for-loop-2-pipelinechannel--double-2-Output":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerTask":"for-loop-2"}},"pipelinechannel--for-loop-2-pipelinechannel--double-Output":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-5","items":{"raw":"[0,
               0, 0]"}},"taskInfo":{"name":"for-loop-6"}}'
+          - name: task-name
+            value: for-loop-6
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -663,6 +719,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-6"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"pipelinechannel--for-loop-2-pipelinechannel--double-2-Output":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerTask":"for-loop-2"}},"pipelinechannel--for-loop-2-pipelinechannel--double-Output":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-5","items":{"raw":"[0,
               0, 0]"}},"taskInfo":{"name":"for-loop-6"}}'
+          - name: task-name
+            value: for-loop-6
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -687,11 +745,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5983895df78feaa3fc4a33110d0aed33ca16915ec107be6f49c07e9c4c738d16}}'
+            value: '{{workflow.parameters.components-08f275e309f397c790c5c74d54c95efcd5ec68c8dab947c219fffc63d1b27d6e}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-numbers"},"dependentTasks":["for-loop-6"],"inputs":{"parameters":{"x":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--simple-add-2-Output","producerTask":"for-loop-6"}},"y":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--nested-add-2-Output","producerTask":"for-loop-6"}}}},"taskInfo":{"name":"add-two-numbers"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5983895df78feaa3fc4a33110d0aed33ca16915ec107be6f49c07e9c4c738d16}}'
+            value: '{{workflow.parameters.implementations-08f275e309f397c790c5c74d54c95efcd5ec68c8dab947c219fffc63d1b27d6e}}'
           - name: task-name
             value: add-two-numbers
           - name: parent-dag-id
@@ -725,11 +783,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-85ab7701a46287a3152375690acb08e729df2da42b3ddf49938ef1f9be7e8fb4}}'
+            value: '{{workflow.parameters.components-8bb236083deedb1f9e243bc2078783a50bea3ce56c6c3395e2775ad858912787}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-add"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"nested-add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-85ab7701a46287a3152375690acb08e729df2da42b3ddf49938ef1f9be7e8fb4}}'
+            value: '{{workflow.parameters.implementations-8bb236083deedb1f9e243bc2078783a50bea3ce56c6c3395e2775ad858912787}}'
           - name: task-name
             value: nested-add
           - name: parent-dag-id

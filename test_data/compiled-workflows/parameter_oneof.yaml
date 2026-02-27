@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-e25bc8f7f685ab080a6b49947d416eb8ca7a6937fa27801a940c2bdca54fc786
+    - name: components-d151671945cd9ff4948c8ee51052aaf4fca1a9d681ac0541a47cb2edb64381c3
       value: '{"executorLabel":"exec-crust-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}}}'
-    - name: implementations-e25bc8f7f685ab080a6b49947d416eb8ca7a6937fa27801a940c2bdca54fc786
+    - name: implementations-d151671945cd9ff4948c8ee51052aaf4fca1a9d681ac0541a47cb2edb64381c3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","crust_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -19,9 +19,9 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         crust_comp(input: str):\n    print(''input :'', input)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-f8f8a77c7beb5b190f9fb182fe0e0dd40b3a7381615f2c349f0d398819f532c3
+    - name: components-626fda90207e09ca0fd5750192984b3f0e2105f37fd6c2cb76f89305adaa8310
       value: '{"executorLabel":"exec-core-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-f8f8a77c7beb5b190f9fb182fe0e0dd40b3a7381615f2c349f0d398819f532c3
+    - name: implementations-626fda90207e09ca0fd5750192984b3f0e2105f37fd6c2cb76f89305adaa8310
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -36,9 +36,9 @@ spec:
     - name: components-comp-condition-2
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--core-comp-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"core-comp"}}}},"tasks":{"core-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
         heads!"}}}},"taskInfo":{"name":"core-comp"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--core-comp-Output":{"parameterType":"STRING"}}}}'
-    - name: components-c2e197395954c8d0af830daca22f180b3ccec8198dd5795ab265dec857a88316
+    - name: components-526a085ca36acb02c96eac1b2fc830fa854a76b67edf833464e4b425e6d2fbec
       value: '{"executorLabel":"exec-core-output-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"output_key":{"parameterType":"STRING"}}}}'
-    - name: implementations-c2e197395954c8d0af830daca22f180b3ccec8198dd5795ab265dec857a88316
+    - name: implementations-526a085ca36acb02c96eac1b2fc830fa854a76b67edf833464e4b425e6d2fbec
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_output_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -57,9 +57,9 @@ spec:
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--core-comp-Output","producerSubtask":"condition-2"},{"outputParameterKey":"pipelinechannel--core-output-comp-output_key","producerSubtask":"condition-3"}]}}}},"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
         == ''heads''"}},"condition-3":{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
         == ''heads'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"parameterType":"STRING"}}}}'
-    - name: components-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa
+    - name: components-2531a8d58ceb1be3db901eaa8e539345a0bedfdf4f25903a4f82f084da4fdc3a
       value: '{"executorLabel":"exec-flip-coin","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa
+    - name: implementations-2531a8d58ceb1be3db901eaa8e539345a0bedfdf4f25903a4f82f084da4fdc3a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_coin"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -83,6 +83,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -151,6 +155,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -179,6 +191,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -215,6 +231,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -244,6 +267,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -254,6 +285,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -274,12 +308,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f8f8a77c7beb5b190f9fb182fe0e0dd40b3a7381615f2c349f0d398819f532c3}}'
+            value: '{{workflow.parameters.components-626fda90207e09ca0fd5750192984b3f0e2105f37fd6c2cb76f89305adaa8310}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
               heads!"}}}},"taskInfo":{"name":"core-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f8f8a77c7beb5b190f9fb182fe0e0dd40b3a7381615f2c349f0d398819f532c3}}'
+            value: '{{workflow.parameters.implementations-626fda90207e09ca0fd5750192984b3f0e2105f37fd6c2cb76f89305adaa8310}}'
           - name: task-name
             value: core-comp
           - name: parent-dag-id
@@ -307,12 +341,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c2e197395954c8d0af830daca22f180b3ccec8198dd5795ab265dec857a88316}}'
+            value: '{{workflow.parameters.components-526a085ca36acb02c96eac1b2fc830fa854a76b67edf833464e4b425e6d2fbec}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-output-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
               tails!"}}}},"taskInfo":{"name":"core-output-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c2e197395954c8d0af830daca22f180b3ccec8198dd5795ab265dec857a88316}}'
+            value: '{{workflow.parameters.implementations-526a085ca36acb02c96eac1b2fc830fa854a76b67edf833464e4b425e6d2fbec}}'
           - name: task-name
             value: core-output-comp
           - name: parent-dag-id
@@ -390,6 +424,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -420,6 +462,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -501,11 +547,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa}}'
+            value: '{{workflow.parameters.components-2531a8d58ceb1be3db901eaa8e539345a0bedfdf4f25903a4f82f084da4fdc3a}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b7bc282093d4c682a88eee9264eed07197d2e4dc5276c37ed07b353ff7e961aa}}'
+            value: '{{workflow.parameters.implementations-2531a8d58ceb1be3db901eaa8e539345a0bedfdf4f25903a4f82f084da4fdc3a}}'
           - name: task-name
             value: flip-coin
           - name: parent-dag-id
@@ -562,11 +608,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e25bc8f7f685ab080a6b49947d416eb8ca7a6937fa27801a940c2bdca54fc786}}'
+            value: '{{workflow.parameters.components-d151671945cd9ff4948c8ee51052aaf4fca1a9d681ac0541a47cb2edb64381c3}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e25bc8f7f685ab080a6b49947d416eb8ca7a6937fa27801a940c2bdca54fc786}}'
+            value: '{{workflow.parameters.implementations-d151671945cd9ff4948c8ee51052aaf4fca1a9d681ac0541a47cb2edb64381c3}}'
           - name: task-name
             value: crust-comp
           - name: parent-dag-id

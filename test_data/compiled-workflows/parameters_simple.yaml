@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad
+    - name: components-0c780dfb3dbad437412b85df43cade2a3bbc8b9ba724e49aef7e5bc86c2cf0de
       value: '{"executorLabel":"exec-add","inputDefinitions":{"parameters":{"nums":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad
+    - name: implementations-0c780dfb3dbad437412b85df43cade2a3bbc8b9ba724e49aef7e5bc86c2cf0de
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -24,9 +24,9 @@ spec:
     - name: implementations-8bcf31b4cf23a7983bd03c19572bd597bc45d28e75853f331f473d2a615331ff
       value: '{"args":["\n            set -ex\n            mkdir -p $(dirname {{$.outputs.parameters[''sum''].output_file}})\n            echo
         {{$.inputs.parameters[''nums'']}} | jq ''add'' \u003e {{$.outputs.parameters[''sum''].output_file}}\n            "],"command":["sh","-c"],"image":"jetbrainsinfra/jq"}'
-    - name: components-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765
+    - name: components-ae1ce04973a5b04ef07d77ddbd92bd368017c945a1f71050f810101b94ea804e
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765
+    - name: implementations-ae1ce04973a5b04ef07d77ddbd92bd368017c945a1f71050f810101b94ea804e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -48,6 +48,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -116,6 +120,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -144,6 +156,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -180,6 +196,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -209,6 +232,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -219,6 +250,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -239,11 +273,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765}}'
+            value: '{{workflow.parameters.components-ae1ce04973a5b04ef07d77ddbd92bd368017c945a1f71050f810101b94ea804e}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765}}'
+            value: '{{workflow.parameters.implementations-ae1ce04973a5b04ef07d77ddbd92bd368017c945a1f71050f810101b94ea804e}}'
           - name: task-name
             value: double
           - name: parent-dag-id
@@ -321,6 +355,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -351,6 +393,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -364,6 +410,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -393,6 +441,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
               2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -417,11 +467,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad}}'
+            value: '{{workflow.parameters.components-0c780dfb3dbad437412b85df43cade2a3bbc8b9ba724e49aef7e5bc86c2cf0de}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad}}'
+            value: '{{workflow.parameters.implementations-0c780dfb3dbad437412b85df43cade2a3bbc8b9ba724e49aef7e5bc86c2cf0de}}'
           - name: task-name
             value: add
           - name: parent-dag-id

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-956a4df3df7821bd162b60a2f11597dd559a4e81a38785fd56b371efd87866fd
+    - name: components-871378eda18a79b2c6353e7783dab06b570fbb6a532ec0f8632c6ceac7ab4b1b
       value: '{"executorLabel":"exec-validate-no-pod-metadata","inputDefinitions":{"parameters":{"annotation_path":{"parameterType":"STRING"},"label_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-956a4df3df7821bd162b60a2f11597dd559a4e81a38785fd56b371efd87866fd
+    - name: implementations-871378eda18a79b2c6353e7783dab06b570fbb6a532ec0f8632c6ceac7ab4b1b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_no_pod_metadata"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -26,9 +26,9 @@ spec:
         is supposed to be None.\"\n        )\n    return True\n\n"],"image":"python:3.11-slim"}'
     - name: kubernetes-comp-validate-pod-metadata
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation'']","name":"POD_TASK_ANNOTATION"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"}],"podMetadata":{"annotations":{"task-annotation":"annotation"},"labels":{"task-label-1":"label-1","task-label-2":"label-2"}}}'
-    - name: components-cd38bde356a74d91cad1348796c85ff9458f4566b1459197343eb989d7cb9ff2
+    - name: components-e04c29469ebf366573eb9957f010d1d182a6fde4fa67eef46867687fc5e42cef
       value: '{"executorLabel":"exec-validate-pod-metadata","inputDefinitions":{"parameters":{"annotation_exp_val_1":{"isOptional":true,"parameterType":"STRING"},"annotation_exp_val_2":{"isOptional":true,"parameterType":"STRING"},"annotation_path_1":{"isOptional":true,"parameterType":"STRING"},"annotation_path_2":{"isOptional":true,"parameterType":"STRING"},"label_exp_val_1":{"isOptional":true,"parameterType":"STRING"},"label_exp_val_2":{"isOptional":true,"parameterType":"STRING"},"label_path_1":{"isOptional":true,"parameterType":"STRING"},"label_path_2":{"isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-cd38bde356a74d91cad1348796c85ff9458f4566b1459197343eb989d7cb9ff2
+    - name: implementations-e04c29469ebf366573eb9957f010d1d182a6fde4fa67eef46867687fc5e42cef
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_pod_metadata"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -71,6 +71,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -139,6 +143,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -167,6 +179,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -203,6 +219,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -232,6 +255,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -242,6 +273,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -311,6 +345,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -340,6 +381,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -361,6 +410,9 @@ spec:
     name: metadata-1-2-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -424,6 +476,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -453,6 +512,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -470,6 +537,9 @@ spec:
     name: metadata-2-0-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -490,11 +560,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-956a4df3df7821bd162b60a2f11597dd559a4e81a38785fd56b371efd87866fd}}'
+            value: '{{workflow.parameters.components-871378eda18a79b2c6353e7783dab06b570fbb6a532ec0f8632c6ceac7ab4b1b}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-no-pod-metadata"},"inputs":{"parameters":{"annotation_path":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION"}},"label_path":{"runtimeValue":{"constant":"POD_TASK_LABEL"}}}},"taskInfo":{"name":"validate-no-pod-metadata"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-956a4df3df7821bd162b60a2f11597dd559a4e81a38785fd56b371efd87866fd}}'
+            value: '{{workflow.parameters.implementations-871378eda18a79b2c6353e7783dab06b570fbb6a532ec0f8632c6ceac7ab4b1b}}'
           - name: task-name
             value: validate-no-pod-metadata
           - name: parent-dag-id
@@ -514,11 +584,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cd38bde356a74d91cad1348796c85ff9458f4566b1459197343eb989d7cb9ff2}}'
+            value: '{{workflow.parameters.components-e04c29469ebf366573eb9957f010d1d182a6fde4fa67eef46867687fc5e42cef}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}}}},"taskInfo":{"name":"validate-pod-metadata"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cd38bde356a74d91cad1348796c85ff9458f4566b1459197343eb989d7cb9ff2}}'
+            value: '{{workflow.parameters.implementations-e04c29469ebf366573eb9957f010d1d182a6fde4fa67eef46867687fc5e42cef}}'
           - name: task-name
             value: validate-pod-metadata
           - name: parent-dag-id
@@ -552,11 +622,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cd38bde356a74d91cad1348796c85ff9458f4566b1459197343eb989d7cb9ff2}}'
+            value: '{{workflow.parameters.components-e04c29469ebf366573eb9957f010d1d182a6fde4fa67eef46867687fc5e42cef}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-2"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}}}},"taskInfo":{"name":"validate-pod-metadata-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cd38bde356a74d91cad1348796c85ff9458f4566b1459197343eb989d7cb9ff2}}'
+            value: '{{workflow.parameters.implementations-e04c29469ebf366573eb9957f010d1d182a6fde4fa67eef46867687fc5e42cef}}'
           - name: task-name
             value: validate-pod-metadata-2
           - name: parent-dag-id
@@ -644,6 +714,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -674,6 +752,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

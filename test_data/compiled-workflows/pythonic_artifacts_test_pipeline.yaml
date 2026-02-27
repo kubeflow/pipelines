@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc
+    - name: components-7ec5057bf8f137571050e8bea505d2ac0432ed19258ad4ef21bc1006122c1189
       value: '{"executorLabel":"exec-gen-data","outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc
+    - name: implementations-7ec5057bf8f137571050e8bea505d2ac0432ed19258ad4ef21bc1006122c1189
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","gen_data"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,9 +21,9 @@ spec:
         gen_data() -\u003e Dataset:\n    dataset = Dataset(uri=dsl.get_uri())\n    with
         open(dataset.path, \"w\") as f:\n        f.write(\"some data\")\n\n    dataset.metadata[\"length\"]
         = len(\"some data\")\n    return dataset\n\n"],"image":"python:3.11-slim"}'
-    - name: components-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5
+    - name: components-5adf94abfaab373af4c571c93ba852a0710357887aa803fa5b6ea21ca0313eee
       value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5
+    - name: implementations-5adf94abfaab373af4c571c93ba852a0710357887aa803fa5b6ea21ca0313eee
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","train_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -46,6 +46,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -114,6 +118,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -142,6 +154,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -178,6 +194,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -207,6 +230,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -217,6 +248,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -237,11 +271,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc}}'
+            value: '{{workflow.parameters.components-7ec5057bf8f137571050e8bea505d2ac0432ed19258ad4ef21bc1006122c1189}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-gen-data"},"taskInfo":{"name":"gen-data"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc}}'
+            value: '{{workflow.parameters.implementations-7ec5057bf8f137571050e8bea505d2ac0432ed19258ad4ef21bc1006122c1189}}'
           - name: task-name
             value: gen-data
           - name: parent-dag-id
@@ -261,11 +295,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5}}'
+            value: '{{workflow.parameters.components-5adf94abfaab373af4c571c93ba852a0710357887aa803fa5b6ea21ca0313eee}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["gen-data"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"gen-data"}}}},"taskInfo":{"name":"train-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5}}'
+            value: '{{workflow.parameters.implementations-5adf94abfaab373af4c571c93ba852a0710357887aa803fa5b6ea21ca0313eee}}'
           - name: task-name
             value: train-model
           - name: parent-dag-id
@@ -344,6 +378,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -374,6 +416,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

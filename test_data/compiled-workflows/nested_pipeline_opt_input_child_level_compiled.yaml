@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-67acbf0e9a3f6bfa27bfaf8979e8f91a80b1de04a3c0dffff6d475e5d8c8a2fc
+    - name: components-0a9eaf23b071bee456dd0cea8fed22b3c107c43f102cc7b3583db4520a8c513c
       value: '{"executorLabel":"exec-component-a-bool","inputDefinitions":{"parameters":{"componentInputBool":{"isOptional":true,"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-67acbf0e9a3f6bfa27bfaf8979e8f91a80b1de04a3c0dffff6d475e5d8c8a2fc
+    - name: implementations-0a9eaf23b071bee456dd0cea8fed22b3c107c43f102cc7b3583db4520a8c513c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_a_bool"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,9 +21,9 @@ spec:
         component_a_bool(componentInputBool: bool = None):\n    if componentInputBool
         != True:\n        raise ValueError(f\"componentInputBool should be True but
         is {componentInputBool}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-1b21465d9fecfb690a65b5d22e0ec7540a7652fb013f3386f36e8255dd2ab5ca
+    - name: components-ee36fec69a1d2ededeb15fcfc93632c09c4140fc5b86c655537fd7e080be390b
       value: '{"executorLabel":"exec-component-a-int","inputDefinitions":{"parameters":{"componentInputInt":{"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-1b21465d9fecfb690a65b5d22e0ec7540a7652fb013f3386f36e8255dd2ab5ca
+    - name: implementations-ee36fec69a1d2ededeb15fcfc93632c09c4140fc5b86c655537fd7e080be390b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_a_int"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -35,9 +35,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_a_int(componentInputInt: int = None):\n    if componentInputInt
         != 1:\n        raise ValueError(f\"componentInputInt should be 1 but is {componentInputInt}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-e793c84d1e31d803ca345dd2c0bf915dd5e8c356537d91a002e90837789e73be
+    - name: components-d7c24a2b4c7fae0adb1486ae928e9eeb17573b049111eea4f59a92dcbd814038
       value: '{"executorLabel":"exec-component-a-str","inputDefinitions":{"parameters":{"componentInputStr":{"isOptional":true,"parameterType":"STRING"}}}}'
-    - name: implementations-e793c84d1e31d803ca345dd2c0bf915dd5e8c356537d91a002e90837789e73be
+    - name: implementations-d7c24a2b4c7fae0adb1486ae928e9eeb17573b049111eea4f59a92dcbd814038
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_a_str"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -50,9 +50,9 @@ spec:
         component_a_str(componentInputStr: str = None):\n    if componentInputStr
         != ''Input - pipeline'':\n        raise ValueError(f\"componentInputStr should
         be ''Input - pipeline'' but is {componentInputStr}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-847405d2298b3810654100892c836106fe0397c48f59c14f51827ef975efcd95
+    - name: components-d3afc8e025b7e84601d942942c8dc298471007f6a762d0e138b946161ab6de93
       value: '{"executorLabel":"exec-component-b-bool","inputDefinitions":{"parameters":{"componentInputBool":{"isOptional":true,"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-847405d2298b3810654100892c836106fe0397c48f59c14f51827ef975efcd95
+    - name: implementations-d3afc8e025b7e84601d942942c8dc298471007f6a762d0e138b946161ab6de93
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_b_bool"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -65,9 +65,9 @@ spec:
         component_b_bool(componentInputBool: bool = None):\n    if componentInputBool
         != False:\n        raise ValueError(f\"componentInputBool should be False
         but is {componentInputBool}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-fcf5d3023cec6f80952cd3ce9a483536e84ac6ae5f853a7178b710495776f2a5
+    - name: components-4d93170c92950a99265d4637f71606bbfe799be2e8a3de9c5752eddf94fdb291
       value: '{"executorLabel":"exec-component-b-int","inputDefinitions":{"parameters":{"componentInputInt":{"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-fcf5d3023cec6f80952cd3ce9a483536e84ac6ae5f853a7178b710495776f2a5
+    - name: implementations-4d93170c92950a99265d4637f71606bbfe799be2e8a3de9c5752eddf94fdb291
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_b_int"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -79,9 +79,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_b_int(componentInputInt: int = None):\n    if componentInputInt
         != 0:\n        raise ValueError(f\"componentInputInt should be 0 but is {componentInputInt}\")\n\n"],"image":"python:3.11-slim"}'
-    - name: components-319fe909f6b49ecb503c73c273e622302238293692577f00c9d93d0071fef705
+    - name: components-6e081366058c8bd9c2dbd514d154e40b316ec3ac89f571ddbc611e56445d9aa1
       value: '{"executorLabel":"exec-component-b-str","inputDefinitions":{"parameters":{"componentInputStr":{"isOptional":true,"parameterType":"STRING"}}}}'
-    - name: implementations-319fe909f6b49ecb503c73c273e622302238293692577f00c9d93d0071fef705
+    - name: implementations-6e081366058c8bd9c2dbd514d154e40b316ec3ac89f571ddbc611e56445d9aa1
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_b_str"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -107,6 +107,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -175,6 +179,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -203,6 +215,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -239,6 +255,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -268,6 +291,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -278,6 +309,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -298,11 +332,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-67acbf0e9a3f6bfa27bfaf8979e8f91a80b1de04a3c0dffff6d475e5d8c8a2fc}}'
+            value: '{{workflow.parameters.components-0a9eaf23b071bee456dd0cea8fed22b3c107c43f102cc7b3583db4520a8c513c}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-a-bool"},"inputs":{"parameters":{"componentInputBool":{"componentInputParameter":"nestedInputBool1"}}},"taskInfo":{"name":"component-a-bool"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-67acbf0e9a3f6bfa27bfaf8979e8f91a80b1de04a3c0dffff6d475e5d8c8a2fc}}'
+            value: '{{workflow.parameters.implementations-0a9eaf23b071bee456dd0cea8fed22b3c107c43f102cc7b3583db4520a8c513c}}'
           - name: task-name
             value: component-a-bool
           - name: parent-dag-id
@@ -322,11 +356,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-1b21465d9fecfb690a65b5d22e0ec7540a7652fb013f3386f36e8255dd2ab5ca}}'
+            value: '{{workflow.parameters.components-ee36fec69a1d2ededeb15fcfc93632c09c4140fc5b86c655537fd7e080be390b}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-a-int"},"inputs":{"parameters":{"componentInputInt":{"componentInputParameter":"nestedInputInt1"}}},"taskInfo":{"name":"component-a-int"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-1b21465d9fecfb690a65b5d22e0ec7540a7652fb013f3386f36e8255dd2ab5ca}}'
+            value: '{{workflow.parameters.implementations-ee36fec69a1d2ededeb15fcfc93632c09c4140fc5b86c655537fd7e080be390b}}'
           - name: task-name
             value: component-a-int
           - name: parent-dag-id
@@ -346,11 +380,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e793c84d1e31d803ca345dd2c0bf915dd5e8c356537d91a002e90837789e73be}}'
+            value: '{{workflow.parameters.components-d7c24a2b4c7fae0adb1486ae928e9eeb17573b049111eea4f59a92dcbd814038}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-a-str"},"inputs":{"parameters":{"componentInputStr":{"componentInputParameter":"nestedInputStr1"}}},"taskInfo":{"name":"component-a-str"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e793c84d1e31d803ca345dd2c0bf915dd5e8c356537d91a002e90837789e73be}}'
+            value: '{{workflow.parameters.implementations-d7c24a2b4c7fae0adb1486ae928e9eeb17573b049111eea4f59a92dcbd814038}}'
           - name: task-name
             value: component-a-str
           - name: parent-dag-id
@@ -370,11 +404,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-847405d2298b3810654100892c836106fe0397c48f59c14f51827ef975efcd95}}'
+            value: '{{workflow.parameters.components-d3afc8e025b7e84601d942942c8dc298471007f6a762d0e138b946161ab6de93}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-b-bool"},"inputs":{"parameters":{"componentInputBool":{"componentInputParameter":"nestedInputBool2"}}},"taskInfo":{"name":"component-b-bool"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-847405d2298b3810654100892c836106fe0397c48f59c14f51827ef975efcd95}}'
+            value: '{{workflow.parameters.implementations-d3afc8e025b7e84601d942942c8dc298471007f6a762d0e138b946161ab6de93}}'
           - name: task-name
             value: component-b-bool
           - name: parent-dag-id
@@ -394,11 +428,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fcf5d3023cec6f80952cd3ce9a483536e84ac6ae5f853a7178b710495776f2a5}}'
+            value: '{{workflow.parameters.components-4d93170c92950a99265d4637f71606bbfe799be2e8a3de9c5752eddf94fdb291}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-b-int"},"inputs":{"parameters":{"componentInputInt":{"componentInputParameter":"nestedInputInt2"}}},"taskInfo":{"name":"component-b-int"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fcf5d3023cec6f80952cd3ce9a483536e84ac6ae5f853a7178b710495776f2a5}}'
+            value: '{{workflow.parameters.implementations-4d93170c92950a99265d4637f71606bbfe799be2e8a3de9c5752eddf94fdb291}}'
           - name: task-name
             value: component-b-int
           - name: parent-dag-id
@@ -418,11 +452,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-319fe909f6b49ecb503c73c273e622302238293692577f00c9d93d0071fef705}}'
+            value: '{{workflow.parameters.components-6e081366058c8bd9c2dbd514d154e40b316ec3ac89f571ddbc611e56445d9aa1}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-component-b-str"},"inputs":{"parameters":{"componentInputStr":{"componentInputParameter":"nestedInputStr2"}}},"taskInfo":{"name":"component-b-str"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-319fe909f6b49ecb503c73c273e622302238293692577f00c9d93d0071fef705}}'
+            value: '{{workflow.parameters.implementations-6e081366058c8bd9c2dbd514d154e40b316ec3ac89f571ddbc611e56445d9aa1}}'
           - name: task-name
             value: component-b-str
           - name: parent-dag-id
@@ -500,6 +534,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -530,6 +572,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

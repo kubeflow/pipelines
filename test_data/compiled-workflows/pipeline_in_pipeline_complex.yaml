@@ -14,9 +14,9 @@ spec:
       value: '{"dag":{"tasks":{"print-op2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op2"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"world"}}}},"taskInfo":{"name":"print-op2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--print-op1-Output":{"parameterType":"STRING"}}}}'
     - name: components-comp-condition-2
       value: '{"dag":{"tasks":{"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"Bye!"}}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--print-op1-Output":{"parameterType":"STRING"}}}}'
-    - name: components-c4774190f368dac0d3d13c5e2481b325cb0256069205b909a0a2385615a61216
+    - name: components-12dc117e9efbddeac7b694359632da2d69c95fdc781f58e48c5304daa730effc
       value: '{"executorLabel":"exec-print-op1-2","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-c4774190f368dac0d3d13c5e2481b325cb0256069205b909a0a2385615a61216
+    - name: implementations-12dc117e9efbddeac7b694359632da2d69c95fdc781f58e48c5304daa730effc
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op1"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -42,6 +42,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -110,6 +114,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -138,6 +150,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -174,6 +190,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -203,6 +226,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -213,6 +244,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -347,6 +381,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -377,6 +419,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -430,11 +476,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c4774190f368dac0d3d13c5e2481b325cb0256069205b909a0a2385615a61216}}'
+            value: '{{workflow.parameters.components-12dc117e9efbddeac7b694359632da2d69c95fdc781f58e48c5304daa730effc}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op1-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"print-op1"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c4774190f368dac0d3d13c5e2481b325cb0256069205b909a0a2385615a61216}}'
+            value: '{{workflow.parameters.implementations-12dc117e9efbddeac7b694359632da2d69c95fdc781f58e48c5304daa730effc}}'
           - name: task-name
             value: print-op1
           - name: parent-dag-id
@@ -499,6 +545,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"Hello\",
               \"world!\"]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -528,6 +576,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"Hello\",
               \"world!\"]"}},"taskInfo":{"name":"for-loop-2"}}'
+          - name: task-name
+            value: for-loop-2
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -558,11 +608,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c4774190f368dac0d3d13c5e2481b325cb0256069205b909a0a2385615a61216}}'
+            value: '{{workflow.parameters.components-12dc117e9efbddeac7b694359632da2d69c95fdc781f58e48c5304daa730effc}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op1"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"print-op1"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c4774190f368dac0d3d13c5e2481b325cb0256069205b909a0a2385615a61216}}'
+            value: '{{workflow.parameters.implementations-12dc117e9efbddeac7b694359632da2d69c95fdc781f58e48c5304daa730effc}}'
           - name: task-name
             value: print-op1
           - name: parent-dag-id

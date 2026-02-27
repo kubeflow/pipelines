@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-8985a8fb7d17ffd865e926bd80a135f8c5e0ff2fcc20f64013705bc6175ad440
+    - name: components-155d71a2a07e5d2ef6e7def13d58ba0e37b24d456877b958c55da9bf57477389
       value: '{"executorLabel":"exec-make-dataset","outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-8985a8fb7d17ffd865e926bd80a135f8c5e0ff2fcc20f64013705bc6175ad440
+    - name: implementations-155d71a2a07e5d2ef6e7def13d58ba0e37b24d456877b958c55da9bf57477389
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","make_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,9 +21,9 @@ spec:
         make_dataset() -\u003e Artifact:\n    artifact = Artifact(uri=dsl.get_uri(''dataset''))\n    with
         open(artifact.path, ''w'') as f:\n        f.write(''Hello, world'')\n    return
         artifact\n\n"],"image":"python:3.11-slim"}'
-    - name: components-a1cab77dea9e6edee97745b998070da20716dcf0eee94102ec9bfac02152a267
+    - name: components-57899e8b4e4655fcdaf19fa061c29760324412af4f84b3bc4036caedc2e41a69
       value: '{"executorLabel":"exec-dataset-splitter","inputDefinitions":{"artifacts":{"in_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"dataset2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-a1cab77dea9e6edee97745b998070da20716dcf0eee94102ec9bfac02152a267
+    - name: implementations-57899e8b4e4655fcdaf19fa061c29760324412af4f84b3bc4036caedc2e41a69
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","dataset_splitter"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -52,6 +52,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -120,6 +124,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -148,6 +160,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -184,6 +200,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -213,6 +236,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -223,6 +254,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -243,11 +277,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a1cab77dea9e6edee97745b998070da20716dcf0eee94102ec9bfac02152a267}}'
+            value: '{{workflow.parameters.components-57899e8b4e4655fcdaf19fa061c29760324412af4f84b3bc4036caedc2e41a69}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-dataset-splitter"},"inputs":{"artifacts":{"in_dataset":{"componentInputArtifact":"in_dataset"}}},"taskInfo":{"name":"dataset-splitter"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a1cab77dea9e6edee97745b998070da20716dcf0eee94102ec9bfac02152a267}}'
+            value: '{{workflow.parameters.implementations-57899e8b4e4655fcdaf19fa061c29760324412af4f84b3bc4036caedc2e41a69}}'
           - name: task-name
             value: dataset-splitter
           - name: parent-dag-id
@@ -325,6 +359,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -355,16 +397,20 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8985a8fb7d17ffd865e926bd80a135f8c5e0ff2fcc20f64013705bc6175ad440}}'
+            value: '{{workflow.parameters.components-155d71a2a07e5d2ef6e7def13d58ba0e37b24d456877b958c55da9bf57477389}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-dataset"},"taskInfo":{"name":"make-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8985a8fb7d17ffd865e926bd80a135f8c5e0ff2fcc20f64013705bc6175ad440}}'
+            value: '{{workflow.parameters.implementations-155d71a2a07e5d2ef6e7def13d58ba0e37b24d456877b958c55da9bf57477389}}'
           - name: task-name
             value: make-dataset
           - name: parent-dag-id

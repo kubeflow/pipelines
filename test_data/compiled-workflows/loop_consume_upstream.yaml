@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-e95f5ecfe88450a38e0fd6e153fc9259d010d9ab920e3fe0dd141bf675c413df
+    - name: components-b412dd3652cbddbe89a5d9d21b6c7bb8d11a315bad02ae786ffad710a8af0c61
       value: '{"executorLabel":"exec-create-file","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-e95f5ecfe88450a38e0fd6e153fc9259d010d9ab920e3fe0dd141bf675c413df
+    - name: implementations-b412dd3652cbddbe89a5d9d21b6c7bb8d11a315bad02ae786ffad710a8af0c61
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,9 +20,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         create_file(file: Output[Artifact], content: str):\n    with open(file.path,
         ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-f59c851c3c0a1e03b3e2065384eb3c4665ce5f234998fed18cb6afb34ce005a7
+    - name: components-987dde8b8672d24f7e0b44cad0047bbb215fde14fb583839ebdfd55da6dbf5f8
       value: '{"executorLabel":"exec-read-file","inputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-f59c851c3c0a1e03b3e2065384eb3c4665ce5f234998fed18cb6afb34ce005a7
+    - name: implementations-987dde8b8672d24f7e0b44cad0047bbb215fde14fb583839ebdfd55da6dbf5f8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -38,9 +38,9 @@ spec:
       value: '{"dag":{"tasks":{"create-file":{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-input-Output-loop-item"}}},"taskInfo":{"name":"same
         display name"}},"read-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"same
         display name"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-input-Output":{"parameterType":"LIST"},"pipelinechannel--split-input-Output-loop-item":{"parameterType":"STRING"}}}}'
-    - name: components-b4e9d76b938751b0b1edf9cce7cc5817c0b9c54d34a1e06c3a226a46cc2c3f1e
+    - name: components-f24c7b3aaa4587a5d76ca93ede582f3e2d4571b86f6b6db68de2618161cd4be3
       value: '{"executorLabel":"exec-print-input","inputDefinitions":{"parameters":{"input":{"parameterType":"LIST"}}}}'
-    - name: implementations-b4e9d76b938751b0b1edf9cce7cc5817c0b9c54d34a1e06c3a226a46cc2c3f1e
+    - name: implementations-f24c7b3aaa4587a5d76ca93ede582f3e2d4571b86f6b6db68de2618161cd4be3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_input"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -52,9 +52,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_input(input: list):\n    for item in input:\n        print(f''Input
         item: {item}'')\n\n"],"image":"python:3.11-slim"}'
-    - name: components-fc5dd8cf7a18cc02226309bb936fb376a98741769b2faba10d1bfc9960de8802
+    - name: components-67748c569b69cf6b1134214c7692b0a2dd0d5258825bd9d6ceb0111b8b5cb3e8
       value: '{"executorLabel":"exec-split-input","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-fc5dd8cf7a18cc02226309bb936fb376a98741769b2faba10d1bfc9960de8802
+    - name: implementations-67748c569b69cf6b1134214c7692b0a2dd0d5258825bd9d6ceb0111b8b5cb3e8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","split_input"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -75,6 +75,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -143,6 +147,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -171,6 +183,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -207,6 +223,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -236,6 +259,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -246,6 +277,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -266,12 +300,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e95f5ecfe88450a38e0fd6e153fc9259d010d9ab920e3fe0dd141bf675c413df}}'
+            value: '{{workflow.parameters.components-b412dd3652cbddbe89a5d9d21b6c7bb8d11a315bad02ae786ffad710a8af0c61}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-input-Output-loop-item"}}},"taskInfo":{"name":"same
               display name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e95f5ecfe88450a38e0fd6e153fc9259d010d9ab920e3fe0dd141bf675c413df}}'
+            value: '{{workflow.parameters.implementations-b412dd3652cbddbe89a5d9d21b6c7bb8d11a315bad02ae786ffad710a8af0c61}}'
           - name: task-name
             value: create-file
           - name: parent-dag-id
@@ -291,12 +325,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f59c851c3c0a1e03b3e2065384eb3c4665ce5f234998fed18cb6afb34ce005a7}}'
+            value: '{{workflow.parameters.components-987dde8b8672d24f7e0b44cad0047bbb215fde14fb583839ebdfd55da6dbf5f8}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"same
               display name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f59c851c3c0a1e03b3e2065384eb3c4665ce5f234998fed18cb6afb34ce005a7}}'
+            value: '{{workflow.parameters.implementations-987dde8b8672d24f7e0b44cad0047bbb215fde14fb583839ebdfd55da6dbf5f8}}'
           - name: task-name
             value: read-file
           - name: parent-dag-id
@@ -375,6 +409,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -405,6 +447,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -417,6 +463,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-input"],"inputs":{"parameters":{"pipelinechannel--split-input-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-input-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-input-Output"}},"taskInfo":{"name":"for-loop-1"}}'
+          - name: task-name
+            value: for-loop-1
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -445,6 +493,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-input"],"inputs":{"parameters":{"pipelinechannel--split-input-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-input-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-input-Output"}},"taskInfo":{"name":"for-loop-1"}}'
+          - name: task-name
+            value: for-loop-1
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -476,12 +526,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b4e9d76b938751b0b1edf9cce7cc5817c0b9c54d34a1e06c3a226a46cc2c3f1e}}'
+            value: '{{workflow.parameters.components-f24c7b3aaa4587a5d76ca93ede582f3e2d4571b86f6b6db68de2618161cd4be3}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-input"},"dependentTasks":["split-input"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"taskInfo":{"name":"same
               display name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b4e9d76b938751b0b1edf9cce7cc5817c0b9c54d34a1e06c3a226a46cc2c3f1e}}'
+            value: '{{workflow.parameters.implementations-f24c7b3aaa4587a5d76ca93ede582f3e2d4571b86f6b6db68de2618161cd4be3}}'
           - name: task-name
             value: print-input
           - name: parent-dag-id
@@ -502,12 +552,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fc5dd8cf7a18cc02226309bb936fb376a98741769b2faba10d1bfc9960de8802}}'
+            value: '{{workflow.parameters.components-67748c569b69cf6b1134214c7692b0a2dd0d5258825bd9d6ceb0111b8b5cb3e8}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-input"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"component1,component2,component3"}}}},"taskInfo":{"name":"same
               display name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fc5dd8cf7a18cc02226309bb936fb376a98741769b2faba10d1bfc9960de8802}}'
+            value: '{{workflow.parameters.implementations-67748c569b69cf6b1134214c7692b0a2dd0d5258825bd9d6ceb0111b8b5cb3e8}}'
           - name: task-name
             value: split-input
           - name: parent-dag-id

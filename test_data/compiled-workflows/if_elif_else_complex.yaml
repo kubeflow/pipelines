@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2
+    - name: components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b
       value: '{"executorLabel":"exec-print-and-return","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2
+    - name: implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_and_return"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -45,9 +45,9 @@ spec:
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-5-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--print-and-return-2-Output","producerSubtask":"condition-6"},{"outputParameterKey":"pipelinechannel--print-and-return-3-Output","producerSubtask":"condition-7"}]}}}},"tasks":{"condition-6":{"componentRef":{"name":"comp-condition-6"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-Output"}}},"taskInfo":{"name":"condition-6"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--is-even-or-odd-Output'']
         == ''even''"}},"condition-7":{"componentRef":{"name":"comp-condition-7"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-Output"}}},"taskInfo":{"name":"condition-7"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--is-even-or-odd-Output'']
         == ''even'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--is-even-or-odd-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-5-oneof-1":{"parameterType":"STRING"}}}}'
-    - name: components-9f03385cde2d0dd36c4de829527d6ece0aa8acc96cfc09cd66b2f670fb6c12eb
+    - name: components-90f4c13f6e7a101b53ce19745bd07993516b43c2b7ef1cc82f666cb00283524a
       value: '{"executorLabel":"exec-is-even-or-odd","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-9f03385cde2d0dd36c4de829527d6ece0aa8acc96cfc09cd66b2f670fb6c12eb
+    - name: implementations-90f4c13f6e7a101b53ce19745bd07993516b43c2b7ef1cc82f666cb00283524a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","is_even_or_odd"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -80,9 +80,9 @@ spec:
         \u003c 5000"}},"condition-9":{"componentRef":{"name":"comp-condition-9"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"condition-9"},"triggerPolicy":{"condition":"!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
         \u003c 5000) \u0026\u0026 int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
         \u003e 5000"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--repeat_if_lucky_number":{"parameterType":"BOOLEAN"}}}}'
-    - name: components-037286a2481e6e06b20c68a503b3734f6d588a2e617f51124ada32d3bfbaebc9
+    - name: components-ea2ea47543305b719b918045ab28a9f23ca9786473a05cad6576a10d4553ba16
       value: '{"executorLabel":"exec-int-0-to-9999","outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-037286a2481e6e06b20c68a503b3734f6d588a2e617f51124ada32d3bfbaebc9
+    - name: implementations-ea2ea47543305b719b918045ab28a9f23ca9786473a05cad6576a10d4553ba16
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","int_0_to_9999"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -97,9 +97,9 @@ spec:
     - name: components-comp-for-loop-1
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"int-0-to-9999"}}}},"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"pipelinechannel--add_drumroll"},"pipelinechannel--trials-loop-item":{"componentInputParameter":"pipelinechannel--trials-loop-item"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--add_drumroll'']
         == true"}},"condition-branches-4":{"componentRef":{"name":"comp-condition-branches-4"},"dependentTasks":["int-0-to-9999"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"int-0-to-9999"}},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-branches-4"}},"int-0-to-9999":{"cachingOptions":{},"componentRef":{"name":"comp-int-0-to-9999"},"taskInfo":{"name":"int-0-to-9999"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--add_drumroll":{"parameterType":"BOOLEAN"},"pipelinechannel--repeat_if_lucky_number":{"parameterType":"BOOLEAN"},"pipelinechannel--trials":{"parameterType":"LIST"},"pipelinechannel--trials-loop-item":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"LIST"}}}}'
-    - name: components-7eb3c92dc3692d5ff7c6a3fee6f5d875746948a93fc517922b5ce5d9c8fb8e41
+    - name: components-fc9e57b06b3ca5a186887b6ded1444e88b6730be331dfd99d262e3e910d4ccaf
       value: '{"executorLabel":"exec-print-ints","inputDefinitions":{"parameters":{"ints":{"parameterType":"LIST"}}}}'
-    - name: implementations-7eb3c92dc3692d5ff7c6a3fee6f5d875746948a93fc517922b5ce5d9c8fb8e41
+    - name: implementations-fc9e57b06b3ca5a186887b6ded1444e88b6730be331dfd99d262e3e910d4ccaf
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_ints"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -118,6 +118,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -186,6 +190,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -214,6 +226,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -250,6 +266,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -279,6 +302,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -289,6 +320,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -309,12 +343,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Adding
               drumroll on last trial!"}}}},"taskInfo":{"name":"print-and-return"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return
           - name: parent-dag-id
@@ -392,6 +426,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -422,6 +464,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -458,12 +504,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-9"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Announcing
               again: Got the lucky number 5000! A one in 10,000 chance."}}}},"taskInfo":{"name":"print-and-return-9"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-9
           - name: parent-dag-id
@@ -499,6 +545,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-16"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-15","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-16"}}'
+          - name: task-name
+            value: for-loop-16
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -528,6 +576,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-16"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-15","items":{"raw":"[1,
               2]"}},"taskInfo":{"name":"for-loop-16"}}'
+          - name: task-name
+            value: for-loop-16
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -589,12 +639,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-8"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Announcing:
               Got the lucky number 5000! A one in 10,000 chance."}}}},"taskInfo":{"name":"print-and-return-8"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-8
           - name: parent-dag-id
@@ -622,12 +672,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-2"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
               a low even number!"}}}},"taskInfo":{"name":"print-and-return-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-2
           - name: parent-dag-id
@@ -655,12 +705,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
               a low odd number!"}}}},"taskInfo":{"name":"print-and-return-3"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-3
           - name: parent-dag-id
@@ -764,11 +814,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-9f03385cde2d0dd36c4de829527d6ece0aa8acc96cfc09cd66b2f670fb6c12eb}}'
+            value: '{{workflow.parameters.components-90f4c13f6e7a101b53ce19745bd07993516b43c2b7ef1cc82f666cb00283524a}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-is-even-or-odd"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"is-even-or-odd"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9f03385cde2d0dd36c4de829527d6ece0aa8acc96cfc09cd66b2f670fb6c12eb}}'
+            value: '{{workflow.parameters.implementations-90f4c13f6e7a101b53ce19745bd07993516b43c2b7ef1cc82f666cb00283524a}}'
           - name: task-name
             value: is-even-or-odd
           - name: parent-dag-id
@@ -788,11 +838,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-4"},"dependentTasks":["condition-branches-5"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-5-oneof-1","producerTask":"condition-branches-5"}}}},"taskInfo":{"name":"print-and-return-4"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-4
           - name: parent-dag-id
@@ -821,12 +871,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-5"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
               a high even number!"}}}},"taskInfo":{"name":"print-and-return-5"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-5
           - name: parent-dag-id
@@ -854,12 +904,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-6"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
               a high odd number!"}}}},"taskInfo":{"name":"print-and-return-6"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-6
           - name: parent-dag-id
@@ -963,11 +1013,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-9f03385cde2d0dd36c4de829527d6ece0aa8acc96cfc09cd66b2f670fb6c12eb}}'
+            value: '{{workflow.parameters.components-90f4c13f6e7a101b53ce19745bd07993516b43c2b7ef1cc82f666cb00283524a}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-is-even-or-odd-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"is-even-or-odd-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9f03385cde2d0dd36c4de829527d6ece0aa8acc96cfc09cd66b2f670fb6c12eb}}'
+            value: '{{workflow.parameters.implementations-90f4c13f6e7a101b53ce19745bd07993516b43c2b7ef1cc82f666cb00283524a}}'
           - name: task-name
             value: is-even-or-odd-2
           - name: parent-dag-id
@@ -987,11 +1037,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.components-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-7"},"dependentTasks":["condition-branches-10"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-10-oneof-1","producerTask":"condition-branches-10"}}}},"taskInfo":{"name":"print-and-return-7"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cecb98cac1de5c44c981fe9bc4ca2eaa0b650231b182536eb374f37a191a09d2}}'
+            value: '{{workflow.parameters.implementations-8014576aedc62ba0bc8e377d812000092361b5d56ddcc6f0466819bc2f88942b}}'
           - name: task-name
             value: print-and-return-7
           - name: parent-dag-id
@@ -1144,11 +1194,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-037286a2481e6e06b20c68a503b3734f6d588a2e617f51124ada32d3bfbaebc9}}'
+            value: '{{workflow.parameters.components-ea2ea47543305b719b918045ab28a9f23ca9786473a05cad6576a10d4553ba16}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-int-0-to-9999"},"taskInfo":{"name":"int-0-to-9999"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-037286a2481e6e06b20c68a503b3734f6d588a2e617f51124ada32d3bfbaebc9}}'
+            value: '{{workflow.parameters.implementations-ea2ea47543305b719b918045ab28a9f23ca9786473a05cad6576a10d4553ba16}}'
           - name: task-name
             value: int-0-to-9999
           - name: parent-dag-id
@@ -1183,6 +1233,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"add_drumroll"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"repeat_if_lucky_number"},"pipelinechannel--trials":{"componentInputParameter":"trials"}}},"parameterIterator":{"itemInput":"pipelinechannel--trials-loop-item","items":{"inputParameter":"pipelinechannel--trials"}},"taskInfo":{"name":"for-loop-1"}}'
+          - name: task-name
+            value: for-loop-1
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -1211,6 +1263,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"add_drumroll"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"repeat_if_lucky_number"},"pipelinechannel--trials":{"componentInputParameter":"trials"}}},"parameterIterator":{"itemInput":"pipelinechannel--trials-loop-item","items":{"inputParameter":"pipelinechannel--trials"}},"taskInfo":{"name":"for-loop-1"}}'
+          - name: task-name
+            value: for-loop-1
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -1241,11 +1295,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7eb3c92dc3692d5ff7c6a3fee6f5d875746948a93fc517922b5ce5d9c8fb8e41}}'
+            value: '{{workflow.parameters.components-fc9e57b06b3ca5a186887b6ded1444e88b6730be331dfd99d262e3e910d4ccaf}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-ints"},"dependentTasks":["for-loop-1"],"inputs":{"parameters":{"ints":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--int-0-to-9999-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"print-ints"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7eb3c92dc3692d5ff7c6a3fee6f5d875746948a93fc517922b5ce5d9c8fb8e41}}'
+            value: '{{workflow.parameters.implementations-fc9e57b06b3ca5a186887b6ded1444e88b6730be331dfd99d262e3e910d4ccaf}}'
           - name: task-name
             value: print-ints
           - name: parent-dag-id

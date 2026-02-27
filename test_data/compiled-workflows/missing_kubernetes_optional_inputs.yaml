@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-log-message
       value: '{"configMapAsEnv":[{"configMapNameParameter":{"componentInputParameter":"optional_config_map_name"},"keyToEnv":[{"configMapKey":"setting","envVar":"SETTING"}],"optional":true}],"configMapAsVolume":[{"configMapNameParameter":{"componentInputParameter":"optional_config_map_name"},"mountPath":"/mnt/config","optional":true}],"imagePullSecret":[{"secretNameParameter":{"componentInputParameter":"optional_image_pull_secret_name"}}],"nodeAffinity":[{"nodeAffinityJson":{"componentInputParameter":"optional_affinity"}}],"nodeSelector":{"nodeSelectorJson":{"componentInputParameter":"optional_selector"}},"secretAsEnv":[{"keyToEnv":[{"envVar":"PASSWORD","secretKey":"password"}],"optional":true,"secretNameParameter":{"componentInputParameter":"optional_secret_name"}}],"secretAsVolume":[{"mountPath":"/mnt/secret","optional":true,"secretNameParameter":{"componentInputParameter":"optional_secret_name"}}],"tolerations":[{"tolerationJson":{"componentInputParameter":"optional_tolerations"}}]}'
-    - name: components-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35
+    - name: components-7bc6522544f06abfc466a72863af0027c30b332382de30739b9a00e7a3ce5f5a
       value: '{"executorLabel":"exec-log-message","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35
+    - name: implementations-7bc6522544f06abfc466a72863af0027c30b332382de30739b9a00e7a3ce5f5a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","log_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -30,6 +30,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -98,6 +102,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -126,6 +138,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -162,6 +178,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -191,6 +214,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -201,6 +232,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -221,12 +255,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35}}'
+            value: '{{workflow.parameters.components-7bc6522544f06abfc466a72863af0027c30b332382de30739b9a00e7a3ce5f5a}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-log-message"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"baseline
               task"}}}},"taskInfo":{"name":"log-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-96322856eafd7d43227888c8781b0302ec66e8a5befa15af46a259fdf0571c35}}'
+            value: '{{workflow.parameters.implementations-7bc6522544f06abfc466a72863af0027c30b332382de30739b9a00e7a3ce5f5a}}'
           - name: task-name
             value: log-message
           - name: parent-dag-id
@@ -306,6 +340,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -336,6 +378,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

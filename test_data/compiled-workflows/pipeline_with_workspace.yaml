@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3
+    - name: components-fee6314cdb058dea7e29257556d5540aae884ffa55e879595a0a66823b941413
       value: '{"executorLabel":"exec-read-from-workspace","inputDefinitions":{"parameters":{"file_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3
+    - name: implementations-fee6314cdb058dea7e29257556d5540aae884ffa55e879595a0a66823b941413
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_from_workspace"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -25,9 +25,9 @@ spec:
         {content}\")\n        assert content == \"Hello from workspace!\"\n        return
         content\n    else:\n        print(f\"File not found at: {file_path}\")\n        return
         \"File not found\"\n\n"],"image":"python:3.11-slim"}'
-    - name: components-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081
+    - name: components-2593e40063a9543256780ad997ae2277b95d513b649afdb00fab06d3c520da9c
       value: '{"executorLabel":"exec-write-to-workspace","inputDefinitions":{"parameters":{"workspace_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081
+    - name: implementations-2593e40063a9543256780ad997ae2277b95d513b649afdb00fab06d3c520da9c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","write_to_workspace"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -51,6 +51,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -119,6 +123,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -147,6 +159,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -183,6 +199,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -212,6 +235,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -222,6 +253,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -242,11 +276,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3}}'
+            value: '{{workflow.parameters.components-fee6314cdb058dea7e29257556d5540aae884ffa55e879595a0a66823b941413}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3}}'
+            value: '{{workflow.parameters.implementations-fee6314cdb058dea7e29257556d5540aae884ffa55e879595a0a66823b941413}}'
           - name: task-name
             value: read-from-workspace
           - name: parent-dag-id
@@ -267,11 +301,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081}}'
+            value: '{{workflow.parameters.components-2593e40063a9543256780ad997ae2277b95d513b649afdb00fab06d3c520da9c}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081}}'
+            value: '{{workflow.parameters.implementations-2593e40063a9543256780ad997ae2277b95d513b649afdb00fab06d3c520da9c}}'
           - name: task-name
             value: write-to-workspace
           - name: parent-dag-id
@@ -349,6 +383,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -379,6 +421,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

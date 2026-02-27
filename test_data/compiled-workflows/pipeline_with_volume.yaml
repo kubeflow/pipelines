@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-consumer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede
+    - name: components-69b2d83d50486a4c2fa53a8628f47ab58999fdf54582153f872343e5a6bfb488
       value: '{"executorLabel":"exec-consumer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede
+    - name: implementations-69b2d83d50486a4c2fa53a8628f47ab58999fdf54582153f872343e5a6bfb488
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -52,9 +52,9 @@ spec:
       value: '{"image":"argostub/deletepvc"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9
+    - name: components-293ad5278cd8f51f5a59eb19883407b59b519f667a8964cb3ca86cac7dafae70
       value: '{"executorLabel":"exec-producer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9
+    - name: implementations-293ad5278cd8f51f5a59eb19883407b59b519f667a8964cb3ca86cac7dafae70
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -75,6 +75,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -143,6 +147,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -171,6 +183,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -207,6 +223,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -236,6 +259,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -246,6 +277,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -266,11 +300,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede}}'
+            value: '{{workflow.parameters.components-69b2d83d50486a4c2fa53a8628f47ab58999fdf54582153f872343e5a6bfb488}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede}}'
+            value: '{{workflow.parameters.implementations-69b2d83d50486a4c2fa53a8628f47ab58999fdf54582153f872343e5a6bfb488}}'
           - name: task-name
             value: consumer
           - name: parent-dag-id
@@ -322,11 +356,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9}}'
+            value: '{{workflow.parameters.components-293ad5278cd8f51f5a59eb19883407b59b519f667a8964cb3ca86cac7dafae70}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9}}'
+            value: '{{workflow.parameters.implementations-293ad5278cd8f51f5a59eb19883407b59b519f667a8964cb3ca86cac7dafae70}}'
           - name: task-name
             value: producer
           - name: parent-dag-id
@@ -407,6 +441,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -437,6 +479,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

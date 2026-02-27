@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-46b83eacfc26cd94d4579de62f52c8eb251e7093888e545381b90fcf7e1b26c8
+    - name: components-39e7393a778a207fe53c0b441156813e10804742a86a083ffef0e44687b5e1e9
       value: '{"executorLabel":"exec-create-dataset","outputDefinitions":{"artifacts":{"iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-46b83eacfc26cd94d4579de62f52c8eb251e7093888e545381b90fcf7e1b26c8
+    - name: implementations-39e7393a778a207fe53c0b441156813e10804742a86a083ffef0e44687b5e1e9
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -24,9 +24,9 @@ spec:
         = [\"Sepal_Length\", \"Sepal_Width\", \"Petal_Length\", \"Petal_Width\", \"Labels\"]\n    df
         = pd.read_csv(StringIO(data), names=col_names)\n\n    with open(iris_dataset.path,
         \"w\") as f:\n        df.to_csv(f)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-f666f111ab69031b13ddbe7fb9b938dc0c077c50cf3b7b5472f4d97d36627cb0
+    - name: components-8099646d55fe45c804a51f719036d9130b082e1b7210958f32ee43b0bb5ce704
       value: '{"executorLabel":"exec-normalize-dataset","inputDefinitions":{"artifacts":{"input_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"standard_scaler":{"parameterType":"BOOLEAN"}}},"outputDefinitions":{"artifacts":{"normalized_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-f666f111ab69031b13ddbe7fb9b938dc0c077c50cf3b7b5472f4d97d36627cb0
+    - name: implementations-8099646d55fe45c804a51f719036d9130b082e1b7210958f32ee43b0bb5ce704
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","normalize_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -45,9 +45,9 @@ spec:
         if standard_scaler else MinMaxScaler()\n\n    df = pd.DataFrame(scaler.fit_transform(df))\n    df[\"Labels\"]
         = labels\n    normalized_iris_dataset.metadata[\"state\"] = \"Normalized\"\n    with
         open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\n"],"image":"python:3.11-slim"}'
-    - name: components-0aef93036ec0e04e8c952f416203a009f7b67c1736c73e0a57cf513297ac4add
+    - name: components-96d512ce0570047987c4054aa3d1cf660b98410f8cac450ba218994074d813f4
       value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"normalized_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"n_neighbors":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}},"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-0aef93036ec0e04e8c952f416203a009f7b67c1736c73e0a57cf513297ac4add
+    - name: implementations-96d512ce0570047987c4054aa3d1cf660b98410f8cac450ba218994074d813f4
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","train_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -80,6 +80,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -148,6 +152,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -176,6 +188,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -212,6 +228,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -241,6 +264,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -251,6 +282,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -271,11 +305,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-46b83eacfc26cd94d4579de62f52c8eb251e7093888e545381b90fcf7e1b26c8}}'
+            value: '{{workflow.parameters.components-39e7393a778a207fe53c0b441156813e10804742a86a083ffef0e44687b5e1e9}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"taskInfo":{"name":"create-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-46b83eacfc26cd94d4579de62f52c8eb251e7093888e545381b90fcf7e1b26c8}}'
+            value: '{{workflow.parameters.implementations-39e7393a778a207fe53c0b441156813e10804742a86a083ffef0e44687b5e1e9}}'
           - name: task-name
             value: create-dataset
           - name: parent-dag-id
@@ -295,11 +329,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f666f111ab69031b13ddbe7fb9b938dc0c077c50cf3b7b5472f4d97d36627cb0}}'
+            value: '{{workflow.parameters.components-8099646d55fe45c804a51f719036d9130b082e1b7210958f32ee43b0bb5ce704}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-normalize-dataset"},"dependentTasks":["create-dataset"],"inputs":{"artifacts":{"input_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"iris_dataset","producerTask":"create-dataset"}}},"parameters":{"standard_scaler":{"componentInputParameter":"standard_scaler"}}},"taskInfo":{"name":"normalize-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f666f111ab69031b13ddbe7fb9b938dc0c077c50cf3b7b5472f4d97d36627cb0}}'
+            value: '{{workflow.parameters.implementations-8099646d55fe45c804a51f719036d9130b082e1b7210958f32ee43b0bb5ce704}}'
           - name: task-name
             value: normalize-dataset
           - name: parent-dag-id
@@ -320,11 +354,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0aef93036ec0e04e8c952f416203a009f7b67c1736c73e0a57cf513297ac4add}}'
+            value: '{{workflow.parameters.components-96d512ce0570047987c4054aa3d1cf660b98410f8cac450ba218994074d813f4}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["normalize-dataset"],"inputs":{"artifacts":{"normalized_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"normalized_iris_dataset","producerTask":"normalize-dataset"}}},"parameters":{"n_neighbors":{"componentInputParameter":"neighbors"}}},"taskInfo":{"name":"train-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0aef93036ec0e04e8c952f416203a009f7b67c1736c73e0a57cf513297ac4add}}'
+            value: '{{workflow.parameters.implementations-96d512ce0570047987c4054aa3d1cf660b98410f8cac450ba218994074d813f4}}'
           - name: task-name
             value: train-model
           - name: parent-dag-id
@@ -403,6 +437,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -433,6 +475,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

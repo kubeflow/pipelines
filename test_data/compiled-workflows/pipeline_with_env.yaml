@@ -11,9 +11,9 @@ spec:
     - name: implementations-507ec52d0dba96e88845f3ca614b4262d4b5b44fa204a91cd13cb60c8a78d4fe
       value: '{"command":["sh","-c","set -e -x\necho \"$ENV1\"\necho \"$ENV2\"\necho
         \"$ENV3\"\n"],"env":[{"name":"ENV1","value":"val0"},{"name":"ENV2","value":"val2"},{"name":"ENV3","value":"val3"}],"image":"alpine"}'
-    - name: components-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80
+    - name: components-8c1421c6e815769309b25b57d906328c5c533fb91ffed5a35cedca6e55a9c03b
       value: '{"executorLabel":"exec-print-env-op"}'
-    - name: implementations-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80
+    - name: implementations-8c1421c6e815769309b25b57d906328c5c533fb91ffed5a35cedca6e55a9c03b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_env_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -33,6 +33,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -101,6 +105,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -129,6 +141,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -165,6 +181,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -194,6 +217,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -204,6 +235,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -248,11 +282,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80}}'
+            value: '{{workflow.parameters.components-8c1421c6e815769309b25b57d906328c5c533fb91ffed5a35cedca6e55a9c03b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-env-op"},"taskInfo":{"name":"print-env-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80}}'
+            value: '{{workflow.parameters.implementations-8c1421c6e815769309b25b57d906328c5c533fb91ffed5a35cedca6e55a9c03b}}'
           - name: task-name
             value: print-env-op
           - name: parent-dag-id
@@ -330,6 +364,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -360,6 +402,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

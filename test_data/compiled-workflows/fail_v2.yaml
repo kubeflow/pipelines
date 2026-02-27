@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-29331b5087411692b16ea3f55f802cd64bc8edfcbcf0db7f6592cc1b91685487
+    - name: components-1137457ec4c4f37d536a8f5e300d52a55d192597f32b87477983268d1272e85c
       value: '{"executorLabel":"exec-fail"}'
-    - name: implementations-29331b5087411692b16ea3f55f802cd64bc8edfcbcf0db7f6592cc1b91685487
+    - name: implementations-1137457ec4c4f37d536a8f5e300d52a55d192597f32b87477983268d1272e85c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","fail"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -27,6 +27,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -95,6 +99,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -123,6 +135,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -159,6 +175,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -188,6 +211,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -198,6 +229,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -218,11 +252,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-29331b5087411692b16ea3f55f802cd64bc8edfcbcf0db7f6592cc1b91685487}}'
+            value: '{{workflow.parameters.components-1137457ec4c4f37d536a8f5e300d52a55d192597f32b87477983268d1272e85c}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail"},"taskInfo":{"name":"fail"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-29331b5087411692b16ea3f55f802cd64bc8edfcbcf0db7f6592cc1b91685487}}'
+            value: '{{workflow.parameters.implementations-1137457ec4c4f37d536a8f5e300d52a55d192597f32b87477983268d1272e85c}}'
           - name: task-name
             value: fail
           - name: parent-dag-id
@@ -300,6 +334,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -330,6 +372,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

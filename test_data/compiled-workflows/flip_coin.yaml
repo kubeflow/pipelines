@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582
+    - name: components-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993
       value: '{"executorLabel":"exec-print-msg","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}}}'
-    - name: implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582
+    - name: implementations-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_msg"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -27,9 +27,9 @@ spec:
       value: '{"dag":{"tasks":{"print-msg-2":{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-2"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
         and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}} \u003c=
         5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"},"pipelinechannel--random-num-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: components-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0
+    - name: components-fde261b8e547d8d22b26fa82e07d1b03410952f0a60a68acd4631a7facc6b481
       value: '{"executorLabel":"exec-random-num","inputDefinitions":{"parameters":{"high":{"parameterType":"NUMBER_INTEGER"},"low":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0
+    - name: implementations-fde261b8e547d8d22b26fa82e07d1b03410952f0a60a68acd4631a7facc6b481
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","random_num"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -58,9 +58,9 @@ spec:
       value: '{"dag":{"tasks":{"condition-5":{"componentRef":{"name":"comp-condition-5"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
         \u003e 15"}},"condition-6":{"componentRef":{"name":"comp-condition-6"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-6"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
         \u003c= 15"}},"random-num-2":{"cachingOptions":{},"componentRef":{"name":"comp-random-num-2"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":19}},"low":{"runtimeValue":{"constant":10}}}},"taskInfo":{"name":"random-num-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}}}'
-    - name: components-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd
+    - name: components-41bc3d6d9b6e02426cf3d847f2bc25018dbf8f11326cf59f3cacefec131c5e98
       value: '{"executorLabel":"exec-flip-coin","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd
+    - name: implementations-41bc3d6d9b6e02426cf3d847f2bc25018dbf8f11326cf59f3cacefec131c5e98
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_coin"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -84,6 +84,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -152,6 +156,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -180,6 +192,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -216,6 +232,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -245,6 +268,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -255,6 +286,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -275,13 +309,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.components-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
               and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}}
               \u003e 5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.implementations-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task-name
             value: print-msg
           - name: parent-dag-id
@@ -309,13 +343,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.components-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-2"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
               and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}}
               \u003c= 5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.implementations-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task-name
             value: print-msg-2
           - name: parent-dag-id
@@ -393,6 +427,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -423,6 +465,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -476,11 +522,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
+            value: '{{workflow.parameters.components-fde261b8e547d8d22b26fa82e07d1b03410952f0a60a68acd4631a7facc6b481}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-random-num"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":9}},"low":{"runtimeValue":{"constant":0}}}},"taskInfo":{"name":"random-num"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
+            value: '{{workflow.parameters.implementations-fde261b8e547d8d22b26fa82e07d1b03410952f0a60a68acd4631a7facc6b481}}'
           - name: task-name
             value: random-num
           - name: parent-dag-id
@@ -508,13 +554,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.components-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-3"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
               and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}}
               \u003e 15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-3"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.implementations-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task-name
             value: print-msg-3
           - name: parent-dag-id
@@ -542,13 +588,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.components-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-4"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
               and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}}
               \u003c= 15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-4"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
+            value: '{{workflow.parameters.implementations-cf5e791b97d08540397142e40d85f5e0dcb9d797be3c8f024839cb5a165e9993}}'
           - name: task-name
             value: print-msg-4
           - name: parent-dag-id
@@ -624,11 +670,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
+            value: '{{workflow.parameters.components-fde261b8e547d8d22b26fa82e07d1b03410952f0a60a68acd4631a7facc6b481}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-random-num-2"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":19}},"low":{"runtimeValue":{"constant":10}}}},"taskInfo":{"name":"random-num-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
+            value: '{{workflow.parameters.implementations-fde261b8e547d8d22b26fa82e07d1b03410952f0a60a68acd4631a7facc6b481}}'
           - name: task-name
             value: random-num-2
           - name: parent-dag-id
@@ -704,11 +750,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd}}'
+            value: '{{workflow.parameters.components-41bc3d6d9b6e02426cf3d847f2bc25018dbf8f11326cf59f3cacefec131c5e98}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd}}'
+            value: '{{workflow.parameters.implementations-41bc3d6d9b6e02426cf3d847f2bc25018dbf8f11326cf59f3cacefec131c5e98}}'
           - name: task-name
             value: flip-coin
           - name: parent-dag-id
