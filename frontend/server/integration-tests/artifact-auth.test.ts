@@ -45,7 +45,7 @@ describe('/artifacts authorization', () => {
 
   beforeEach(() => {
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function () {
+    mockedMinioClient.mockImplementation(function() {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -202,7 +202,11 @@ describe('/artifacts authorization', () => {
         status: 403,
         statusText: 'Forbidden',
         url: '/apis/v1beta1/auth',
-        json: () => Promise.resolve({ error: 'User is not authorized to GET VIEWERS in namespace other-namespace', details: {} }),
+        json: () =>
+          Promise.resolve({
+            error: 'User is not authorized to GET VIEWERS in namespace other-namespace',
+            details: {},
+          }),
         text: () => Promise.resolve('User is not authorized'),
       });
 
@@ -275,7 +279,7 @@ describe('/artifacts authorization', () => {
     let consoleSpy: MockInstance;
 
     beforeEach(() => {
-      consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+      consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -289,7 +293,11 @@ describe('/artifacts authorization', () => {
         status: 403,
         statusText: 'Forbidden',
         url: '/apis/v1beta1/auth',
-        json: () => Promise.resolve({ error: 'User is not authorized to GET VIEWERS in namespace unauthorized-ns', details: {} }),
+        json: () =>
+          Promise.resolve({
+            error: 'User is not authorized to GET VIEWERS in namespace unauthorized-ns',
+            details: {},
+          }),
         text: () => Promise.resolve('User is not authorized'),
       });
 

@@ -177,44 +177,68 @@ function createUIServer(options: UIConfigs) {
   // Security fix for https://github.com/kubeflow/pipelines/issues/9889
 
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
-  app.get('/artifacts/*', artifactsAuthMiddleware, getArtifactsProxyHandler({
-    enabled: options.artifacts.proxy.enabled,
-    allowedDomain: options.artifacts.allowedDomain,
-    namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
-  }));
-  app.get(`${basePath}/artifacts/*`, artifactsAuthMiddleware, getArtifactsProxyHandler({
-    enabled: options.artifacts.proxy.enabled,
-    allowedDomain: options.artifacts.allowedDomain,
-    namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
-  }));
+  app.get(
+    '/artifacts/*',
+    artifactsAuthMiddleware,
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      allowedDomain: options.artifacts.allowedDomain,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
+  app.get(
+    `${basePath}/artifacts/*`,
+    artifactsAuthMiddleware,
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      allowedDomain: options.artifacts.allowedDomain,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
 
   // /artifacts/get endpoint tries to extract the artifact to return pure text content
-  app.get('/artifacts/get', artifactsAuthMiddleware, getArtifactsHandler({
-    artifactsConfigs: options.artifacts,
-    useParameter: false,
-    tryExtract: true,
-    options: options,
-  }));
-  app.get(`${basePath}/artifacts/get`, artifactsAuthMiddleware, getArtifactsHandler({
-    artifactsConfigs: options.artifacts,
-    useParameter: false,
-    tryExtract: true,
-    options: options,
-  }));
+  app.get(
+    '/artifacts/get',
+    artifactsAuthMiddleware,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: false,
+      tryExtract: true,
+      options: options,
+    }),
+  );
+  app.get(
+    `${basePath}/artifacts/get`,
+    artifactsAuthMiddleware,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: false,
+      tryExtract: true,
+      options: options,
+    }),
+  );
 
   // /artifacts/:source/:bucket/* endpoint downloads the artifact as is
-  app.get('/artifacts/:source/:bucket/*', artifactsAuthMiddleware, getArtifactsHandler({
-    artifactsConfigs: options.artifacts,
-    useParameter: true,
-    tryExtract: false,
-    options: options,
-  }));
-  app.get(`${basePath}/artifacts/:source/:bucket/*`, artifactsAuthMiddleware, getArtifactsHandler({
-    artifactsConfigs: options.artifacts,
-    useParameter: true,
-    tryExtract: false,
-    options: options,
-  }));
+  app.get(
+    '/artifacts/:source/:bucket/*',
+    artifactsAuthMiddleware,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: true,
+      tryExtract: false,
+      options: options,
+    }),
+  );
+  app.get(
+    `${basePath}/artifacts/:source/:bucket/*`,
+    artifactsAuthMiddleware,
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: true,
+      tryExtract: false,
+      options: options,
+    }),
+  );
 
   /** Tensorboard viewer */
   const {

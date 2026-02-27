@@ -439,8 +439,8 @@ export class Apis {
       '/pipelines/upload_version',
       v1beta1Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
-      `&display_name=${encodeURIComponent(versionDisplayName)}` +
-      (description ? `&description=${encodeURIComponent(description)}` : ''),
+        `&display_name=${encodeURIComponent(versionDisplayName)}` +
+        (description ? `&description=${encodeURIComponent(description)}` : ''),
       {
         body: fd,
         cache: 'no-cache',
@@ -486,8 +486,8 @@ export class Apis {
       '/pipelines/upload_version',
       v2beta1Prefix,
       `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
-      `&display_name=${encodeURIComponent(versionDisplayName)}` +
-      (description ? `&description=${encodeURIComponent(description)}` : ''),
+        `&display_name=${encodeURIComponent(versionDisplayName)}` +
+        (description ? `&description=${encodeURIComponent(description)}` : ''),
       {
         body: fd,
         cache: 'no-cache',
@@ -535,7 +535,7 @@ export class Apis {
     } catch (err) {
       throw new Error(
         `Error parsing response for path: ${path}\n\n` +
-        `Response was: ${responseText}\n\nError was: ${JSON.stringify(err)}`,
+          `Response was: ${responseText}\n\nError was: ${JSON.stringify(err)}`,
       );
     }
   }
