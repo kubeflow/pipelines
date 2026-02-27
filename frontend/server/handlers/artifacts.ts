@@ -114,7 +114,7 @@ export function getArtifactsAuthMiddleware(
       return next();
     }
 
-    const userId = request.headers[kubeflowUserIdHeader];
+    const userId = request.headers[kubeflowUserIdHeader.toLowerCase()];
     if (!userId) {
       console.warn(
         `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
@@ -123,7 +123,10 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const namespace = request.query.namespace as string | undefined;
+    const rawNamespace = request.query.namespace;
+    const namespace = Array.isArray(rawNamespace)
+      ? rawNamespace[0]
+      : (rawNamespace as string | undefined);
 
     if (!namespace) {
       console.warn(

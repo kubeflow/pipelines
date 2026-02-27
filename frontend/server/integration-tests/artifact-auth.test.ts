@@ -26,13 +26,13 @@ import {
 import * as minio from 'minio';
 import { PassThrough } from 'stream';
 import requests from 'supertest';
-import { UIServer } from '../app';
-import { loadConfigs } from '../configs';
-import { commonSetup } from './test-helper';
+import { UIServer } from '../app.js';
+import { loadConfigs } from '../configs.js';
+import { commonSetup } from './test-helper.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
-vi.mock('../k8s-helper');
+vi.mock('../k8s-helper.js');
 
 const mockedFetch = vi.fn();
 vi.stubGlobal('fetch', mockedFetch);

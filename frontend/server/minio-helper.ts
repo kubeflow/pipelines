@@ -54,9 +54,11 @@ export interface Credentials {
  * (defaultConfigs or ProviderInfo), and return a minio client configured
  * respectively.
  *
- * Security: Credentials are injected via environment variables (MINIO_ACCESS_KEY,
- * MINIO_SECRET_KEY) from the deployment spec. The UI does not fetch secrets from
- * the K8s API. See: https://github.com/kubeflow/pipelines/issues/12373
+ * Security: By default, credentials are injected via environment variables
+ * (MINIO_ACCESS_KEY, MINIO_SECRET_KEY) from the deployment spec. When
+ * providerInfo indicates that credentials should not come from the environment
+ * (fromEnv === 'false'), this helper may read namespace-scoped Kubernetes
+ * secrets via getK8sSecret. See: https://github.com/kubeflow/pipelines/issues/12373
  *
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')
