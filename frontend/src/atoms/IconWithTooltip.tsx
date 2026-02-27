@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import Tooltip from '@material-ui/core/Tooltip';
-import { SvgIconProps } from '@material-ui/core/SvgIcon';
+import { SvgIconProps } from '@mui/material/SvgIcon';
+import { Tooltip } from '@mui/material';
 
 interface IconWithTooltipProps {
   Icon: React.ComponentType<SvgIconProps>;

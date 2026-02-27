@@ -552,7 +552,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.mouseDown(screen.getByRole('button', { name: '10' }));
+    fireEvent.mouseDown(screen.getByRole('combobox'));
     fireEvent.click(await screen.findByText('20'));
     await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({
@@ -570,7 +570,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('');
     const spy = vi.fn(() => reloadResult);
     const wrapper = renderTable({ rows: [], columns, reload: spy });
-    fireEvent.mouseDown(screen.getByRole('button', { name: '10' }));
+    fireEvent.mouseDown(screen.getByRole('combobox'));
     fireEvent.click(await screen.findByText('20'));
     await reloadResult;
     expect(spy).toHaveBeenLastCalledWith({
