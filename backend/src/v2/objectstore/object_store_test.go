@@ -235,11 +235,20 @@ func TestSanitizeDownloadPath(t *testing.T) {
 			wantPath: filepath.Join("/tmp/outputs", "file.txt"),
 		},
 		{
-			name:     "Key equals blobDir produces relativePath dot",
+			name:     "Key equals blobDir resolves to target directory",
 			localDir: "/tmp/outputs",
 			blobDir:  "artifacts/step",
 			objKey:   "artifacts/step",
-			wantPath: filepath.Clean("/tmp/outputs"),
+			wantErr:  true,
+			errMsg:   "resolves to target directory itself",
+		},
+		{
+			name:     "Key equals blobDir with trailing slash",
+			localDir: "/tmp/outputs",
+			blobDir:  "artifacts/step",
+			objKey:   "artifacts/step/",
+			wantErr:  true,
+			errMsg:   "resolves to target directory itself",
 		},
 		{
 			name:     "Key with trailing slash",

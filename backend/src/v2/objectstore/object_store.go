@@ -134,6 +134,9 @@ func sanitizeDownloadPath(localDir, blobDir, objKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unexpected object key %q when listing %q: %w", objKey, blobDir, err)
 	}
+	if relativePath == "." {
+		return "", fmt.Errorf("blob key %q resolves to target directory itself; skipping directory marker", objKey)
+	}
 	localPath := filepath.Join(localDir, relativePath)
 
 	absLocal, err := filepath.Abs(localPath)
