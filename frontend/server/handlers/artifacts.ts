@@ -124,9 +124,11 @@ export function getArtifactsAuthMiddleware(
     }
 
     const rawNamespace = request.query.namespace;
-    const namespace = Array.isArray(rawNamespace)
-      ? rawNamespace[0]
-      : (rawNamespace as string | undefined);
+    const namespace: string | undefined = Array.isArray(rawNamespace)
+      ? String(rawNamespace[0])
+      : typeof rawNamespace === 'string'
+      ? rawNamespace
+      : undefined;
 
     if (!namespace) {
       console.warn(
