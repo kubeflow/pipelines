@@ -83,7 +83,7 @@ describe('deploy tensorboard example run', () => {
 
     await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: waitTimeout });
     const pipelineRowSelector =
-      `//*[@id="pipelineSelectorDialog"]//*[@data-testid="table-row"][.//a[normalize-space()="${pipelineName}"]]`;
+      `//*[@id="pipelineSelectorDialog"]//*[@data-testid="table-row"][.//span[normalize-space()="${pipelineName}"]]`;
     await browser.waitUntil(
       async () => (await $(pipelineRowSelector).isExisting()),
       waitTimeout,
