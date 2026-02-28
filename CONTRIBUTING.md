@@ -11,6 +11,8 @@ Please see https://github.com/kubeflow/community/tree/master/dco-signoff-hook#si
 
 ## Contribution Guidelines
 
+For planning and review guardrails, use the [Project Improvement Checklist](./README.md#project-improvement-checklist).
+
 To propose a new feature or a change that alters some existing user experience
 or creates a new user experience, follow these steps:
 

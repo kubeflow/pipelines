@@ -50,6 +50,15 @@ Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/k
 
 Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, read the [developer guide](./developer_guide.md).
 
+### Project Improvement Checklist
+
+Use this checklist when planning or reviewing a change:
+
+* Confirm the change aligns with the current [Roadmap](./ROADMAP.md).
+* Keep [README](./README.md), [How to Contribute](./CONTRIBUTING.md), [Developer Guide](./developer_guide.md), and [Agent Guide](./AGENTS.md) consistent when workflows evolve.
+* Update generated-file instructions whenever generation sources or commands change.
+* Prefer small, test-covered changes with clear rollback paths and low coupling across domains.
+
 ### Optional `just` command runner
 
 For local developer convenience, this repository includes an optional [just](https://github.com/casey/just) command runner at the repo root. It provides short aliases for existing `make` targets and does not replace any CI or release workflows.
