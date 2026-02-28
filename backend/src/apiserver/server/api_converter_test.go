@@ -4849,6 +4849,7 @@ func TestToApiPipelineVersions_SingleVersion(t *testing.T) {
 		{
 			UUID:           "version-1",
 			Name:           "v1",
+			DisplayName:    "v1",
 			CreatedAtInSec: 100,
 			PipelineId:     "pipeline-1",
 		},

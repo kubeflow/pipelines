@@ -44,7 +44,7 @@ func TestCreateTaskV1_NilRequest(t *testing.T) {
 	server := createTaskServer(manager)
 	_, err := server.CreateTaskV1(context.Background(), nil)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "CreatTaskRequest is nil")
+	assert.Contains(t, err.Error(), "Request is nil")
 }
 
 func TestCreateTaskV1_IdSet(t *testing.T) {

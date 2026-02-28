@@ -15,6 +15,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -320,7 +321,7 @@ func TestReportScheduledWorkflowV1_InvalidManifest(t *testing.T) {
 	defer clientManager.Close()
 	reportServer := NewReportServerV1(resourceManager)
 
-	_, err := reportServer.ReportScheduledWorkflowV1(nil, &api.ReportScheduledWorkflowRequest{
+	_, err := reportServer.ReportScheduledWorkflowV1(context.Background(), &api.ReportScheduledWorkflowRequest{
 		ScheduledWorkflow: "INVALID_JSON",
 	})
 	assert.NotNil(t, err)
@@ -339,7 +340,7 @@ func TestReportScheduledWorkflowV1_MissingFields(t *testing.T) {
 			UID:       "1",
 		},
 	})
-	_, err := reportServer.ReportScheduledWorkflowV1(nil, &api.ReportScheduledWorkflowRequest{
+	_, err := reportServer.ReportScheduledWorkflowV1(context.Background(), &api.ReportScheduledWorkflowRequest{
 		ScheduledWorkflow: scheduledWorkflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)
@@ -351,7 +352,7 @@ func TestReportScheduledWorkflow_InvalidManifest(t *testing.T) {
 	defer clientManager.Close()
 	reportServer := NewReportServer(resourceManager)
 
-	_, err := reportServer.ReportScheduledWorkflow(nil, &apiv2.ReportScheduledWorkflowRequest{
+	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &apiv2.ReportScheduledWorkflowRequest{
 		ScheduledWorkflow: "INVALID_JSON",
 	})
 	assert.NotNil(t, err)
