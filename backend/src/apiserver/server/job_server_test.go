@@ -1242,3 +1242,66 @@ func TestDisableRecurringRun(t *testing.T) {
 	_, err = server.DisableRecurringRun(nil, &apiv2beta1.DisableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
 	assert.Nil(t, err)
 }
+
+func TestDeleteJob(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := createJobServerV1(manager)
+	job, err := server.CreateJob(nil, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
+	assert.Nil(t, err)
+
+	_, err = server.DeleteJob(nil, &apiv1beta1.DeleteJobRequest{Id: job.Id})
+	assert.Nil(t, err)
+
+	// Verify the job is gone.
+	_, err = server.GetJob(nil, &apiv1beta1.GetJobRequest{Id: job.Id})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteJob_NotFound(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := createJobServerV1(manager)
+
+	_, err := server.DeleteJob(nil, &apiv1beta1.DeleteJobRequest{Id: "nonexistent-job-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRecurringRun(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := createJobServer(manager)
+
+	apiRecurringRun := &apiv2beta1.RecurringRun{
+		DisplayName:    "recurring_run_1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: timestamppb.New(time.Unix(1, 0)),
+				Cron:      "1 * * * *",
+			}},
+		},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: &structpb.Struct{}},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+			Parameters: map[string]*structpb.Value{
+				"param1": structpb.NewStringValue("world"),
+			},
+		},
+		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	}
+
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	assert.Nil(t, err)
+
+	_, err = server.DeleteRecurringRun(nil, &apiv2beta1.DeleteRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	assert.Nil(t, err)
+
+	// Verify the recurring run is gone.
+	_, err = server.GetRecurringRun(nil, &apiv2beta1.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
