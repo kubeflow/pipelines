@@ -1516,6 +1516,7 @@ func TestRetryRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, err = server.RetryRun(context.Background(), &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+	assert.Nil(t, err)
 }
 
 func TestNewRunServerV1(t *testing.T) {
