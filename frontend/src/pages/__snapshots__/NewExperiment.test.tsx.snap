@@ -1,200 +1,451 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`NewExperiment enables the 'Next' button when an experiment name is entered 1`] = `
-<div
-  className="page"
->
+exports[`NewExperiment > enables the 'Next' button when an experiment name is entered 1`] = `
+<DocumentFragment>
   <div
-    className="scrollContainer"
+    class="page_f1flacxk f9qqjqd"
   >
     <div
-      className="header"
+      class="scrollContainer_fea2b5v f9qqjqd"
     >
-      Experiment details
-    </div>
-    <div
-      className="explanation"
-    >
-      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
-    </div>
-    <Input
-      autoFocus={true}
-      id="experimentName"
-      inputRef={
-        Object {
-          "current": null,
-        }
-      }
-      label="Experiment name"
-      onChange={[Function]}
-      required={true}
-      value="experiment name"
-      variant="outlined"
-    />
-    <Input
-      id="experimentDescription"
-      label="Description"
-      multiline={true}
-      onChange={[Function]}
-      required={false}
-      value=""
-      variant="outlined"
-    />
-    <div
-      className="flex"
-    >
-      <BusyButton
-        busy={false}
-        className="buttonAction"
-        disabled={false}
-        id="createExperimentBtn"
-        onClick={[Function]}
-        title="Next"
-      />
-      <WithStyles(Button)
-        id="cancelNewExperimentBtn"
-        onClick={[Function]}
-      >
-        Cancel
-      </WithStyles(Button)>
       <div
-        className="errorMessage"
-      />
-    </div>
-  </div>
-</div>
-`;
-
-exports[`NewExperiment re-disables the 'Next' button when an experiment name is cleared after having been entered 1`] = `
-<div
-  className="page"
->
-  <div
-    className="scrollContainer"
-  >
-    <div
-      className="header"
-    >
-      Experiment details
-    </div>
-    <div
-      className="explanation"
-    >
-      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
-    </div>
-    <Input
-      autoFocus={true}
-      id="experimentName"
-      inputRef={
-        Object {
-          "current": null,
-        }
-      }
-      label="Experiment name"
-      onChange={[Function]}
-      required={true}
-      value=""
-      variant="outlined"
-    />
-    <Input
-      id="experimentDescription"
-      label="Description"
-      multiline={true}
-      onChange={[Function]}
-      required={false}
-      value=""
-      variant="outlined"
-    />
-    <div
-      className="flex"
-    >
-      <BusyButton
-        busy={false}
-        className="buttonAction"
-        disabled={true}
-        id="createExperimentBtn"
-        onClick={[Function]}
-        title="Next"
-      />
-      <WithStyles(Button)
-        id="cancelNewExperimentBtn"
-        onClick={[Function]}
+        class="header_f189n3y"
       >
-        Cancel
-      </WithStyles(Button)>
+        Experiment details
+      </div>
       <div
-        className="errorMessage"
+        class="explanation_f1vhj4f"
       >
-        Experiment name is required
+        Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+      </div>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        spellcheck="false"
+        style="height: 40px; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-focused Mui-focused Mui-required Mui-required"
+          data-shrink="true"
+          for="experimentName"
+          id="experimentName-label"
+        >
+          Experiment name
+          <span
+            aria-hidden="true"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          >
+             *
+          </span>
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root Mui-focused Mui-focused MuiInputBase-formControl"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input"
+            id="experimentName"
+            required=""
+            type="text"
+            value="experiment name"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-9 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-11 PrivateNotchedOutline-legendNotched-12"
+            >
+              <span>
+                Experiment name *
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        spellcheck="false"
+        style="height: auto; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+          data-shrink="false"
+          for="experimentDescription"
+          id="experimentDescription-label"
+        >
+          Description
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl MuiInputBase-multiline MuiOutlinedInput-multiline"
+        >
+          <textarea
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            id="experimentDescription"
+            rows="1"
+            style="height: 0px; overflow: hidden;"
+          />
+          <textarea
+            aria-hidden="true"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            readonly=""
+            style="visibility: hidden; position: absolute; overflow: hidden; height: 0px; top: 0px; left: 0px; transform: translateZ(0); width: 100%;"
+            tabindex="-1"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-9 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-11"
+            >
+              <span>
+                Description
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary"
+          id="createExperimentBtn"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <span>
+              Next
+            </span>
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
+          id="cancelNewExperimentBtn"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            Cancel
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+        <div
+          class="errorMessage_f1jvcvsh"
+        />
       </div>
     </div>
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`NewExperiment renders the new experiment page 1`] = `
-<div
-  className="page"
->
+exports[`NewExperiment > re-disables the 'Next' button when an experiment name is cleared after having been entered 1`] = `
+<DocumentFragment>
   <div
-    className="scrollContainer"
+    class="page_f1flacxk f9qqjqd"
   >
     <div
-      className="header"
+      class="scrollContainer_fea2b5v f9qqjqd"
     >
-      Experiment details
-    </div>
-    <div
-      className="explanation"
-    >
-      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
-    </div>
-    <Input
-      autoFocus={true}
-      id="experimentName"
-      inputRef={
-        Object {
-          "current": null,
-        }
-      }
-      label="Experiment name"
-      onChange={[Function]}
-      required={true}
-      value=""
-      variant="outlined"
-    />
-    <Input
-      id="experimentDescription"
-      label="Description"
-      multiline={true}
-      onChange={[Function]}
-      required={false}
-      value=""
-      variant="outlined"
-    />
-    <div
-      className="flex"
-    >
-      <BusyButton
-        busy={false}
-        className="buttonAction"
-        disabled={true}
-        id="createExperimentBtn"
-        onClick={[Function]}
-        title="Next"
-      />
-      <WithStyles(Button)
-        id="cancelNewExperimentBtn"
-        onClick={[Function]}
-      >
-        Cancel
-      </WithStyles(Button)>
       <div
-        className="errorMessage"
+        class="header_f189n3y"
       >
-        Experiment name is required
+        Experiment details
+      </div>
+      <div
+        class="explanation_f1vhj4f"
+      >
+        Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+      </div>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        spellcheck="false"
+        style="height: 40px; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-focused Mui-focused Mui-required Mui-required"
+          data-shrink="true"
+          for="experimentName"
+          id="experimentName-label"
+        >
+          Experiment name
+          <span
+            aria-hidden="true"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          >
+             *
+          </span>
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root Mui-focused Mui-focused MuiInputBase-formControl"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input"
+            id="experimentName"
+            required=""
+            type="text"
+            value=""
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-13 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-15 PrivateNotchedOutline-legendNotched-16"
+            >
+              <span>
+                Experiment name *
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        spellcheck="false"
+        style="height: auto; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+          data-shrink="false"
+          for="experimentDescription"
+          id="experimentDescription-label"
+        >
+          Description
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl MuiInputBase-multiline MuiOutlinedInput-multiline"
+        >
+          <textarea
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            id="experimentDescription"
+            rows="1"
+            style="height: 0px; overflow: hidden;"
+          />
+          <textarea
+            aria-hidden="true"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            readonly=""
+            style="visibility: hidden; position: absolute; overflow: hidden; height: 0px; top: 0px; left: 0px; transform: translateZ(0); width: 100%;"
+            tabindex="-1"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-13 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-15"
+            >
+              <span>
+                Description
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary Mui-disabled Mui-disabled"
+          disabled=""
+          id="createExperimentBtn"
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <span>
+              Next
+            </span>
+          </span>
+        </button>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
+          id="cancelNewExperimentBtn"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            Cancel
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+        <div
+          class="errorMessage_f1jvcvsh"
+        >
+          Experiment name is required
+        </div>
       </div>
     </div>
   </div>
-</div>
+</DocumentFragment>
+`;
+
+exports[`NewExperiment > renders the new experiment page 1`] = `
+<DocumentFragment>
+  <div
+    class="page_f1flacxk f9qqjqd"
+  >
+    <div
+      class="scrollContainer_fea2b5v f9qqjqd"
+    >
+      <div
+        class="header_f189n3y"
+      >
+        Experiment details
+      </div>
+      <div
+        class="explanation_f1vhj4f"
+      >
+        Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+      </div>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        spellcheck="false"
+        style="height: 40px; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-focused Mui-focused Mui-required Mui-required"
+          data-shrink="true"
+          for="experimentName"
+          id="experimentName-label"
+        >
+          Experiment name
+          <span
+            aria-hidden="true"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          >
+             *
+          </span>
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root Mui-focused Mui-focused MuiInputBase-formControl"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input"
+            id="experimentName"
+            required=""
+            type="text"
+            value=""
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+            >
+              <span>
+                Experiment name *
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        spellcheck="false"
+        style="height: auto; max-width: 600px; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined"
+          data-shrink="false"
+          for="experimentDescription"
+          id="experimentDescription-label"
+        >
+          Description
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl MuiInputBase-multiline MuiOutlinedInput-multiline"
+        >
+          <textarea
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            id="experimentDescription"
+            rows="1"
+            style="height: 0px; overflow: hidden;"
+          />
+          <textarea
+            aria-hidden="true"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputMultiline MuiOutlinedInput-inputMultiline"
+            readonly=""
+            style="visibility: hidden; position: absolute; overflow: hidden; height: 0px; top: 0px; left: 0px; transform: translateZ(0); width: 100%;"
+            tabindex="-1"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-3"
+            >
+              <span>
+                Description
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <div
+        class="flex_f16jawj4"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text root_f1gmzqw4 buttonAction_f1olq6uy MuiButton-textSecondary Mui-disabled Mui-disabled"
+          disabled=""
+          id="createExperimentBtn"
+          tabindex="-1"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            <span>
+              Next
+            </span>
+          </span>
+        </button>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text"
+          id="cancelNewExperimentBtn"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label"
+          >
+            Cancel
+          </span>
+          <span
+            class="MuiTouchRipple-root"
+          />
+        </button>
+        <div
+          class="errorMessage_f1jvcvsh"
+        >
+          Experiment name is required
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;

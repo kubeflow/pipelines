@@ -13,8 +13,7 @@
  */
 
 import * as url from 'url';
-import * as portableFetch from 'portable-fetch';
-import { Configuration } from './configuration';
+import { Configuration } from './configuration.js';
 
 const BASE_PATH = 'http://localhost'.replace(/\/+$/, '');
 
@@ -59,7 +58,7 @@ export class BaseAPI {
   constructor(
     configuration?: Configuration,
     protected basePath: string = BASE_PATH,
-    protected fetch: FetchAPI = portableFetch,
+    protected fetch: FetchAPI = globalThis.fetch,
   ) {
     if (configuration) {
       this.configuration = configuration;
@@ -240,7 +239,7 @@ export const AuthServiceApiFp = function(configuration?: Configuration) {
         verb,
         options,
       );
-      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+      return (fetch: FetchAPI = globalThis.fetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
             return response.json();

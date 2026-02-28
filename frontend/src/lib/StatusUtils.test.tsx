@@ -59,19 +59,19 @@ describe('StatusUtils', () => {
 
   describe('statusToBgColor', () => {
     it('handles an invalid phase', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
       expect(statusToBgColor('bad phase' as any)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
     });
 
     it("handles an 'Unknown' phase", () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
       expect(statusToBgColor(NodePhase.UNKNOWN)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'Unknown');
     });
 
     it("returns color 'not started' if status is undefined", () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
       expect(statusToBgColor(undefined)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });

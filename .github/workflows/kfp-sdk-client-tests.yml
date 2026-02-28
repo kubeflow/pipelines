@@ -7,7 +7,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/kfp-sdk-client-tests.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
@@ -24,7 +26,7 @@ env:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   sdk-client-tests:
     runs-on: ubuntu-24.04

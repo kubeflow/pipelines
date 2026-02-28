@@ -15,9 +15,8 @@
  */
 
 import React, { DetailedHTMLProps, AnchorHTMLAttributes } from 'react';
-import { stylesheet } from 'typestyle';
+import { classes, stylesheet } from 'typestyle';
 import { color } from '../Css';
-import { classes } from 'typestyle';
 
 const css = stylesheet({
   link: {

@@ -1,0 +1,15 @@
+{
+  "name": "server-integration-test",
+  "version": "1.0.0",
+  "description": "Integration tests for Kubeflow Pipelines frontend server",
+  "private": true,
+  "scripts": {
+    "test": "node k8s-integration-test.js",
+    "test:server": "node server-test.js",
+    "test:k8s": "node k8s-integration-test.js",
+    "test:all": "node server-test.js && node k8s-integration-test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

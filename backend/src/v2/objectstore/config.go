@@ -26,7 +26,7 @@ import (
 
 // The endpoint uses Kubernetes service DNS name with namespace:
 // https://kubernetes.io/docs/concepts/services-networking/service/#dns
-const DefaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
+const DefaultEndpointInMultiUserMode = "seaweedfs.kubeflow:9000"
 
 type Config struct {
 	Scheme      string

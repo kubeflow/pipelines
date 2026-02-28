@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { testBestPractices } from 'src/TestUtils';
+import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
@@ -27,7 +27,8 @@ import { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
-import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { vi } from 'vitest';
 
 const CompareV2 = TEST_ONLY.CompareV2;
 testBestPractices();
@@ -35,7 +36,8 @@ describe('CompareV2', () => {
   const MOCK_RUN_1_ID = 'mock-run-1-id';
   const MOCK_RUN_2_ID = 'mock-run-2-id';
   const MOCK_RUN_3_ID = 'mock-run-3-id';
-  const updateBannerSpy = jest.fn();
+  const updateBannerSpy = vi.fn();
+  const getBodyText = (): string => (document.body.textContent || '').replace(/\s+/g, ' ').trim();
 
   function generateProps(): PageProps {
     const pageProps: PageProps = {
@@ -55,11 +57,23 @@ describe('CompareV2', () => {
 
   let runs: V2beta1Run[] = [];
 
+  beforeEach(() => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id) || newMockRun(id));
+
+    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(new Context());
+    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
+  });
+
   function newMockRun(id?: string, hideName?: boolean): V2beta1Run {
     return {
       run_id: id || 'test-run-id',
       display_name: hideName ? undefined : 'test run ' + id,
       pipeline_spec: { pipeline_manifest: '' },
+      state: V2beta1RuntimeState.SUCCEEDED,
     };
   }
 
@@ -73,12 +87,13 @@ describe('CompareV2', () => {
   function newMockExecution(id: number, displayName?: string): Execution {
     const execution = new Execution();
     execution.setId(id);
-    if (displayName) {
+    const resolvedDisplayName = displayName || `execution-${id}`;
+    if (resolvedDisplayName) {
       const customPropertiesMap: Map<string, Value> = new Map();
       const displayNameValue = new Value();
-      displayNameValue.setStringValue(displayName);
+      displayNameValue.setStringValue(resolvedDisplayName);
       customPropertiesMap.set('display_name', displayNameValue);
-      jest.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+      vi.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
     }
     return execution;
   }
@@ -153,8 +168,42 @@ describe('CompareV2', () => {
       displayNameValue.setStringValue(displayName);
       customPropertiesMap.set('display_name', displayNameValue);
     }
-    jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+    vi.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
     return artifact;
+  }
+
+  function getRunListContainer(): HTMLElement {
+    const filterInput = screen.getByLabelText('Filter runs');
+    return (filterInput.closest('[class*="pageOverflowHidden"]') as HTMLElement) || document.body;
+  }
+
+  function getHeaderCheckbox(): HTMLInputElement {
+    const runListContainer = getRunListContainer();
+    const headerCheckbox = runListContainer.querySelector(
+      '[class*="header"] input[type="checkbox"]',
+    ) as HTMLInputElement | null;
+    if (!headerCheckbox) {
+      throw new Error('Header checkbox not found in run list.');
+    }
+    return headerCheckbox;
+  }
+
+  async function waitForRunCheckboxes(expectedCount: number): Promise<HTMLElement[]> {
+    let runCheckboxes: HTMLElement[] = [];
+    await waitFor(() => {
+      const runListContainer = getRunListContainer();
+      runCheckboxes = Array.from(
+        runListContainer.querySelectorAll('[data-testid="table-row"][aria-checked="true"]'),
+      );
+      expect(runCheckboxes).toHaveLength(expectedCount);
+    });
+    return runCheckboxes;
+  }
+
+  async function waitForRunLabel(id: string): Promise<void> {
+    await waitFor(() => {
+      expect(screen.queryAllByText(`test run ${id}`).length).toBeGreaterThan(1);
+    });
   }
 
   it('Render Compare v2 page', async () => {
@@ -167,7 +216,7 @@ describe('CompareV2', () => {
   });
 
   it('getRun is called with query param IDs', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -183,7 +232,7 @@ describe('CompareV2', () => {
   });
 
   it('Clear banner when getRun and MLMD requests succeed', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -192,26 +241,26 @@ describe('CompareV2', () => {
       newMockContext(MOCK_RUN_2_ID, 2),
       newMockContext(MOCK_RUN_3_ID, 3),
     ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
     const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
 
     const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockResolvedValue(events);
 
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
     render(
@@ -233,7 +282,7 @@ describe('CompareV2', () => {
   });
 
   it('Log warning when artifact with specified ID is not found', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -242,29 +291,29 @@ describe('CompareV2', () => {
       newMockContext(MOCK_RUN_2_ID, 2),
       newMockContext(MOCK_RUN_3_ID, 3),
     ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
     const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
 
     const artifacts = [newMockArtifact(1), newMockArtifact(3)];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockResolvedValue(events);
 
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
-    const warnSpy = jest.spyOn(Utils.logger, 'warn');
+    const warnSpy = vi.spyOn(Utils.logger, 'warn').mockImplementation(() => undefined);
 
     render(
       <CommonTestWrapper>
@@ -281,7 +330,8 @@ describe('CompareV2', () => {
   });
 
   it('Show page error on page when getRun request fails', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const expectError = expectErrors();
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation(_ => {
       throw {
@@ -303,15 +353,15 @@ describe('CompareV2', () => {
         mode: 'error',
       }),
     );
+    expectError();
   });
 
   it('Failed MLMD request creates error banner', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const expectError = expectErrors();
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
-    jest
-      .spyOn(mlmdUtils, 'getKfpV2RunContext')
-      .mockRejectedValue(new Error('Not connected to MLMD'));
+    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockRejectedValue(new Error('Not connected to MLMD'));
 
     render(
       <CommonTestWrapper>
@@ -327,18 +377,20 @@ describe('CompareV2', () => {
         mode: 'error',
       });
     });
+    expectError();
   });
 
   it('Failed getArtifactTypes request creates error banner', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const expectError = expectErrors();
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
-    jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
-    jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockRejectedValue(new Error('Not connected to MLMD'));
+    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
+    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
+    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
+    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockRejectedValue(new Error('Not connected to MLMD'));
 
     render(
       <CommonTestWrapper>
@@ -354,10 +406,11 @@ describe('CompareV2', () => {
         mode: 'error',
       });
     });
+    expectError();
   });
 
   it('Allows individual sections to be collapsed and expanded', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -368,27 +421,36 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    screen.getByText('Filter runs');
+    screen.getByLabelText('Filter runs');
     screen.getByText('There are no Parameters available on the selected runs.');
     screen.getByText('Scalar Metrics');
 
-    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
-    expect(screen.queryByText('Filter runs')).toBeNull();
+    const getSectionToggle = (name: string) =>
+      screen.getByText(name).closest('button') as HTMLButtonElement;
 
-    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
-    screen.getByText('Filter runs');
+    fireEvent.click(getSectionToggle(OVERVIEW_SECTION_NAME));
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Filter runs')).toBeNull();
+    });
 
-    fireEvent.click(screen.getByText(PARAMS_SECTION_NAME));
-    expect(
-      screen.queryByText('There are no Parameters available on the selected runs.'),
-    ).toBeNull();
+    fireEvent.click(getSectionToggle(OVERVIEW_SECTION_NAME));
+    await screen.findByLabelText('Filter runs');
 
-    fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
-    expect(screen.queryByText('Scalar Metrics')).toBeNull();
+    fireEvent.click(getSectionToggle(PARAMS_SECTION_NAME));
+    await waitFor(() => {
+      expect(
+        screen.queryByText('There are no Parameters available on the selected runs.'),
+      ).toBeNull();
+    });
+
+    fireEvent.click(getSectionToggle(METRICS_SECTION_NAME));
+    await waitFor(() => {
+      expect(screen.queryByText('Scalar Metrics')).toBeNull();
+    });
   });
 
   it('All runs are initially selected', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -399,20 +461,31 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    // Four checkboxes: three runs and one table header
-    let runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
-    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(4);
+    await waitForRunCheckboxes(3);
+    const headerCheckbox = getHeaderCheckbox();
+    expect(headerCheckbox).toBeChecked();
 
-    // Uncheck all run checkboxes
-    fireEvent.click(runCheckboxes[0]);
-    runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
-    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
+    // Uncheck all run checkboxes.
+    fireEvent.click(headerCheckbox);
+    await waitForRunCheckboxes(0);
   });
 
   it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const expectError = expectErrors();
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockRejectedValue(new Error('Not connected to MLMD'));
+    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockRejectedValue(
+      new Error('Not connected to MLMD'),
+    );
+    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockRejectedValue(
+      new Error('Not connected to MLMD'),
+    );
+    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockRejectedValue(
+      new Error('Not connected to MLMD'),
+    );
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockRejectedValue(new Error('Not connected to MLMD'));
 
     render(
       <CommonTestWrapper>
@@ -424,35 +497,50 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
     await waitFor(() => {
       screen.getByText('There are no Parameters available on the selected runs.');
-      screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
-
-      fireEvent.click(screen.getByText('Confusion Matrix'));
-      screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
-      expect(
-        screen.queryByText('An error is preventing the Scalar Metrics from being displayed.'),
-      ).toBeNull();
-
-      fireEvent.click(screen.getByText('Confusion Matrix'));
-      screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
-
-      fireEvent.click(screen.getByText('Scalar Metrics'));
-      screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
-      expect(
-        screen.queryByText('An error is preventing the Confusion Matrix from being displayed.'),
-      ).toBeNull();
+      expect(getBodyText()).toContain(
+        'An error is preventing the Scalar Metrics from being displayed.',
+      );
     });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'An error is preventing the Confusion Matrix from being displayed.',
+      );
+      expect(getBodyText()).not.toContain(
+        'An error is preventing the Scalar Metrics from being displayed.',
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'An error is preventing the Confusion Matrix from being displayed.',
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Scalar Metrics' }));
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'An error is preventing the Scalar Metrics from being displayed.',
+      );
+      expect(getBodyText()).not.toContain(
+        'An error is preventing the Confusion Matrix from being displayed.',
+      );
+    });
+    expectError();
   });
 
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
-    jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
-    jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue([]);
+    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(new Context());
+    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
 
     render(
       <CommonTestWrapper>
@@ -462,24 +550,42 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     await waitFor(() => {
-      screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+      expect(getBodyText()).toContain(
+        'There are no Scalar Metrics artifacts available on the selected runs.',
+      );
+    });
 
-      fireEvent.click(screen.getByText('Confusion Matrix'));
-      screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'There are no Confusion Matrix artifacts available on the selected runs.',
+      );
+    });
 
-      fireEvent.click(screen.getByText('HTML'));
-      screen.getByText('There are no HTML artifacts available on the selected runs.');
+    fireEvent.click(screen.getByRole('button', { name: 'HTML' }));
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'There are no HTML artifacts available on the selected runs.',
+      );
+    });
 
-      fireEvent.click(screen.getByText('Markdown'));
-      screen.getByText('There are no Markdown artifacts available on the selected runs.');
+    fireEvent.click(screen.getByRole('button', { name: 'Markdown' }));
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'There are no Markdown artifacts available on the selected runs.',
+      );
+    });
 
-      fireEvent.click(screen.getByText('ROC Curve'));
-      screen.getByText('There are no ROC Curve artifacts available on the selected runs.');
+    fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'There are no ROC Curve artifacts available on the selected runs.',
+      );
     });
   });
 
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -488,14 +594,14 @@ describe('CompareV2', () => {
       newMockContext(MOCK_RUN_2_ID, 200),
       newMockContext(MOCK_RUN_3_ID, 3),
     ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
@@ -505,18 +611,18 @@ describe('CompareV2', () => {
       newMockArtifact(200, true, false, 'artifactName'),
       newMockArtifact(3),
     ];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockResolvedValue(events);
 
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
     // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
-    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    const filterLinkedArtifactsByTypeSpy = vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
         metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
@@ -533,30 +639,37 @@ describe('CompareV2', () => {
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
+    await waitForRunLabel(MOCK_RUN_2_ID);
     fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
     fireEvent.click(screen.getByText(/artifactName/));
-    screen.getByText(/Confusion Matrix: artifactName/);
-    screen.getByText(/200/);
+    await waitFor(() => {
+      screen.getByText(/Confusion Matrix: artifactName/);
+      screen.getByText(/200/);
+    });
 
     // Change the tab and return, ensure that the confusion matrix and selected item are present.
     fireEvent.click(screen.getByText('HTML'));
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText(/Confusion Matrix: artifactName/);
-    screen.getByText(/200/);
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
+    await waitFor(() => {
+      screen.getByText(/Confusion Matrix: artifactName/);
+      screen.getByText(/200/);
+    });
 
     // Collapse and expand Metrics, ensure that the confusion matrix and selected item are present.
     fireEvent.click(screen.getByText('Metrics'));
     fireEvent.click(screen.getByText('Metrics'));
-    screen.getByText(/Confusion Matrix: artifactName/);
-    screen.getByText(/200/);
+    await waitFor(() => {
+      screen.getByText(/Confusion Matrix: artifactName/);
+      screen.getByText(/200/);
+    });
   });
 
   it('Confusion matrix shown on select and removed after run is de-selected', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -565,14 +678,14 @@ describe('CompareV2', () => {
       newMockContext(MOCK_RUN_2_ID, 200),
       newMockContext(MOCK_RUN_3_ID, 3),
     ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
@@ -582,18 +695,18 @@ describe('CompareV2', () => {
       newMockArtifact(200, true, false, 'artifactName'),
       newMockArtifact(3),
     ];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockResolvedValue(events);
 
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
     // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
-    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    const filterLinkedArtifactsByTypeSpy = vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
         metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
@@ -608,27 +721,29 @@ describe('CompareV2', () => {
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
+    await waitForRunLabel(MOCK_RUN_2_ID);
     fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
     fireEvent.click(screen.getByText(/artifactName/));
-    screen.getByText(/Confusion Matrix: artifactName/);
-    screen.getByText(/200/);
+    await waitFor(() => {
+      screen.getByText(/Confusion Matrix: artifactName/);
+      screen.getByText(/200/);
+    });
 
     // De-selecting the relevant run will remove the confusion matrix display.
-    const runCheckboxes = screen
-      .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
-    fireEvent.click(runCheckboxes[1]);
-    screen.getByText(/Confusion Matrix: artifactName/);
-    fireEvent.click(runCheckboxes[2]);
-    expect(screen.queryByText(/Confusion Matrix: artifactName/)).toBeNull();
-  });
+    let runCheckboxes = await waitForRunCheckboxes(3);
+    fireEvent.click(runCheckboxes[0]);
+    await waitFor(() => screen.getByText(/Confusion Matrix: artifactName/));
+    runCheckboxes = await waitForRunCheckboxes(2);
+    fireEvent.click(runCheckboxes[0]);
+    await waitFor(() => expect(screen.queryByText(/Confusion Matrix: artifactName/)).toBeNull());
+  }, 20000);
 
   it('One ROC Curve shown on select, hidden on run de-select', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -637,14 +752,14 @@ describe('CompareV2', () => {
       newMockContext(MOCK_RUN_2_ID, 200),
       newMockContext(MOCK_RUN_3_ID, 3),
     ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
@@ -654,18 +769,18 @@ describe('CompareV2', () => {
       newMockArtifact(200, false, true, 'artifactName'),
       newMockArtifact(3),
     ];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
     const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
     // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
-    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    const filterLinkedArtifactsByTypeSpy = vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
         metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
@@ -678,20 +793,19 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('ROC Curve: artifactName');
+    fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
+    await waitFor(() => screen.getByText('ROC Curve: artifactName'));
 
-    const runCheckboxes = screen
-      .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
-    fireEvent.click(runCheckboxes[1]);
-    screen.getByText('ROC Curve: artifactName');
-    fireEvent.click(runCheckboxes[2]);
-    expect(screen.queryByText('ROC Curve: artifactName')).toBeNull();
+    let runCheckboxes = await waitForRunCheckboxes(3);
+    fireEvent.click(runCheckboxes[0]);
+    await waitFor(() => screen.getByText('ROC Curve: artifactName'));
+    runCheckboxes = await waitForRunCheckboxes(2);
+    fireEvent.click(runCheckboxes[0]);
+    await waitFor(() => expect(screen.queryByText('ROC Curve: artifactName')).toBeNull());
   });
 
   it('Multiple ROC Curves shown on select', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
 
@@ -700,14 +814,14 @@ describe('CompareV2', () => {
       newMockContext(MOCK_RUN_2_ID, 200),
       newMockContext(MOCK_RUN_3_ID, 300),
     ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(300)]];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
@@ -717,7 +831,7 @@ describe('CompareV2', () => {
       newMockArtifact(200, false, true, 'firstArtifactName'),
       newMockArtifact(300, false, true, 'secondArtifactName'),
     ];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
     const events = [
@@ -725,14 +839,14 @@ describe('CompareV2', () => {
       newMockEvent(200, 'firstArtifactName'),
       newMockEvent(300, 'secondArtifactName'),
     ];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
     // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
-    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    const filterLinkedArtifactsByTypeSpy = vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
         metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
@@ -745,8 +859,8 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('ROC Curve: multiple artifacts');
-    screen.getByText('Filter artifacts');
+    fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
+    await screen.findByText('ROC Curve: multiple artifacts');
+    await screen.findByLabelText('Filter artifacts');
   });
 });

@@ -20,7 +20,7 @@ export enum LocalStorageKey {
 
 export class LocalStorage {
   public static hasKey(key: LocalStorageKey): boolean {
-    return localStorage.getItem(key) !== undefined;
+    return localStorage.getItem(key) !== null;
   }
 
   public static isNavbarCollapsed(): boolean {

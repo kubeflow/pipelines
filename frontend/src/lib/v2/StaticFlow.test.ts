@@ -15,11 +15,8 @@
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { testBestPractices } from 'src/TestUtils';
 import { convertFlowElements } from './StaticFlow';
-import fs from 'fs';
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import jsyaml from 'js-yaml';
-
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 testBestPractices();
 describe('StaticFlow', () => {
@@ -29,8 +26,6 @@ describe('StaticFlow', () => {
     const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
 
     const graph = convertFlowElements(pipelineSpec);
-    // If the static flow logic gets update, inspect result with the console log result below.
-    console.log(graph);
     for (let element of graph) {
       const index = [
         'task.preprocess',

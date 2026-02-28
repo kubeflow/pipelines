@@ -23,7 +23,7 @@ import CustomTable, {
   CustomRendererProps,
 } from 'src/components/CustomTable';
 import RunList from './RunList';
-import produce from 'immer';
+import immerProduce from 'immer';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -38,7 +38,7 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from 'src/Css';
-import { logger } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
@@ -150,7 +150,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value} enterDelay={300} placement='top-start'>
+      <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
           data-testid='experiment-name-link'
@@ -208,7 +208,8 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       displayExperiments = response.experiments || [];
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of experiments.', err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError('Error: failed to retrieve list of experiments.', error);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
     }
@@ -261,7 +262,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayExperiments = produce(this.state.displayExperiments, draft => {
+    const displayExperiments = immerProduce(this.state.displayExperiments, draft => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED

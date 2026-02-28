@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import 'jest';
 import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -48,11 +47,11 @@ describe('NewRunParametersV2', () => {
 
     screen.getByText('Run parameters');
     screen.getByText('Specify parameters required by the pipeline');
-    screen.getByText('strParam - string');
+    screen.getByLabelText('strParam - string');
     screen.getByDisplayValue('string value');
-    screen.getByText('boolParam - boolean');
+    screen.getByLabelText('boolParam - boolean');
     screen.getByDisplayValue('true');
-    screen.getByText('intParam - integer');
+    screen.getByLabelText('intParam - integer');
     screen.getByDisplayValue('123');
   });
 
@@ -92,7 +91,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for string type with default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -103,7 +102,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
@@ -119,7 +118,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for string type without default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -129,7 +128,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -145,7 +144,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for boolean type with default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -156,7 +155,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -172,7 +171,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for boolean type without default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -182,7 +181,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -198,7 +197,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for boolean type with invalid input (Uppercase)', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -208,7 +207,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -224,7 +223,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for integer type with default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -235,7 +234,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -251,7 +250,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for integer type without default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -261,7 +260,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -277,7 +276,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for integer type with invalid input (float)', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -287,7 +286,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -303,7 +302,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for double type with default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -314,7 +313,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -330,7 +329,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for double type without default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -340,7 +339,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -356,7 +355,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for LIST type with default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -367,7 +366,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -383,7 +382,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for LIST type without default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -393,7 +392,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -409,7 +408,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for LIST type with invalid input (invalid JSON form)', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -419,7 +418,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -435,7 +434,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for STRUCT type with default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -446,7 +445,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -462,7 +461,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for STRUCT type without default value', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -472,7 +471,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -488,7 +487,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('call convertInput function for STRUCT type with invalid input (invalid JSON form)', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -498,7 +497,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -514,7 +513,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('set input as valid type with valid default integer input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -525,8 +524,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -537,7 +536,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('set input as invalid type with no default integer input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -547,8 +546,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -558,7 +557,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for invalid integer input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -568,8 +567,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -583,7 +582,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for missing integer input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -594,8 +593,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -608,7 +607,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for invalid boolean input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -618,8 +617,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -633,7 +632,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('set input as valid type with valid boolean input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -643,8 +642,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -657,7 +656,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for invalid double input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -667,12 +666,13 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
 
+    const doubleParam = screen.getByLabelText('doubleParam - double');
     fireEvent.change(doubleParam, { target: { value: '123b' } });
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(false);
@@ -681,7 +681,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for invalid list input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -691,8 +691,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -706,7 +706,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for invalid list input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -716,8 +716,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -731,7 +731,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for invalid struct input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -741,8 +741,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -756,7 +756,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('show error message for invalid struct input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -766,8 +766,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -781,7 +781,7 @@ describe('NewRunParametersV2', () => {
   });
 
   it('set input as valid type with valid struct input', () => {
-    const setIsValidInputSpy = jest.fn();
+    const setIsValidInputSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -791,8 +791,8 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
       setIsValidInput: setIsValidInputSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -820,9 +820,9 @@ describe('NewRunParametersV2', () => {
         parameters: { intParam: 123, strParam: 'string_value' },
         pipeline_root: 'gs://dummy_pipeline_root',
       },
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
-      setIsValidInput: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
+      setIsValidInput: vi.fn(),
     };
     render(<NewRunParametersV2 {...props} />);
 
@@ -842,9 +842,9 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: { parameters: { intParam: 123, strParam: 'string_value' } },
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
-      setIsValidInput: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
+      setIsValidInput: vi.fn(),
     };
     render(<NewRunParametersV2 {...props} />);
 
@@ -865,9 +865,9 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: { parameters: { intParam: 123, strParam: 'string_value' } },
-      handlePipelineRootChange: jest.fn(),
-      handleParameterChange: jest.fn(),
-      setIsValidInput: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
+      handleParameterChange: vi.fn(),
+      setIsValidInput: vi.fn(),
     };
     render(<NewRunParametersV2 {...props} />);
 
@@ -896,7 +896,7 @@ describe('NewRunParametersV2', () => {
   // Test for fix: Default parameters not displayed in Compare Runs
   // https://github.com/kubeflow/pipelines/issues/12536
   it('calls handleParameterChange with default values on mount', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'default pipelineRoot',
@@ -923,7 +923,7 @@ describe('NewRunParametersV2', () => {
         },
       },
       clonedRuntimeConfig: {},
-      handlePipelineRootChange: jest.fn(),
+      handlePipelineRootChange: vi.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
     render(<NewRunParametersV2 {...props} />);
@@ -949,7 +949,7 @@ describe('NewRunParametersV2', () => {
 
 describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
   it('SCENARIO 1: User creates run with ALL default parameters (no changes)', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
 
     const props = {
       titleMessage: 'Specify parameters required by the pipeline',
@@ -1001,7 +1001,7 @@ describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
   });
 
   it('SCENARIO 2: User changes ONE parameter, others remain at default', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
 
     const props = {
       titleMessage: 'Test',
@@ -1046,7 +1046,7 @@ describe('Bug Fix: Default Parameters in Compare Runs (#12536)', () => {
   });
 
   it('SCENARIO 3: Falsy default values (0, false, empty list) are included', () => {
-    const handleParameterChangeSpy = jest.fn();
+    const handleParameterChangeSpy = vi.fn();
 
     const props = {
       titleMessage: 'Test falsy defaults',

@@ -1,67 +1,416 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`ResourceSelector displays resource selector 1`] = `
-<Fragment>
-  <Toolbar
-    actions={Object {}}
-    breadcrumbs={Array []}
-    pageTitle="A test selector"
-  />
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "flex": 1,
-          "label": "Resource name",
-          "sortKey": "name",
-        },
-        Object {
-          "flex": 1.5,
-          "label": "Description",
-        },
-        Object {
-          "flex": 1,
-          "label": "Uploaded on",
-          "sortKey": "created_at",
-        },
-      ]
-    }
-    emptyMessage="Test - Sorry, no resources."
-    filterLabel="test filter label"
-    initialSortColumn="created_at"
-    isCalledByV1={false}
-    reload={[Function]}
-    rows={
-      Array [
-        Object {
-          "error": undefined,
-          "id": "some-id-1",
-          "otherFields": Array [
-            Object {
-              "display_name": undefined,
-              "name": "test-1 name",
-            },
-            "test-1 description",
-            "2/2/2018, 3:04:05 AM",
-          ],
-        },
-        Object {
-          "error": undefined,
-          "id": "some-2-id",
-          "otherFields": Array [
-            Object {
-              "display_name": undefined,
-              "name": "test-2 name",
-            },
-            "test-2 description",
-            "11/9/2018, 8:07:06 AM",
-          ],
-        },
-      ]
-    }
-    selectedIds={Array []}
-    updateSelection={[Function]}
-    useRadioButtons={true}
-  />
-</Fragment>
+exports[`ResourceSelector > displays resource selector 1`] = `
+<DocumentFragment>
+  <div
+    class="root_f1vld0bw topLevelToolbar_faeji1w"
+  >
+    <div
+      style="min-width: 100px;"
+    >
+      <div
+        class="breadcrumbs_farqb1 flex_f16jawj4"
+      />
+      <div
+        class="flex_f16jawj4"
+      >
+        <span
+          class="pageName_fe4yf9p ellipsis_f15ay66x"
+          data-testid="page-title"
+        >
+          A test selector
+        </span>
+      </div>
+    </div>
+    <div
+      class="actions_ffoeey"
+    />
+  </div>
+  <div
+    class="pageOverflowHidden_f15djeb2"
+  >
+    <div>
+      <div
+        class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+        spellcheck="false"
+        style="height: 48px; max-width: 100%; width: 100%;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+          data-shrink="true"
+          for="tableFilterBox"
+          id="tableFilterBox-label"
+        >
+          test filter label
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+        >
+          <div
+            class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root"
+              focusable="false"
+              style="color: rgb(128, 134, 139); padding-right: 16px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+              />
+            </svg>
+          </div>
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+            id="tableFilterBox"
+            type="text"
+            value=""
+          />
+          <fieldset
+            aria-hidden="true"
+            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+          >
+            <legend
+              class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+            >
+              <span>
+                test filter label
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+    <div
+      class="header_f15jqnss"
+    >
+      <div
+        class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
+      >
+        <span
+          style="display: inline-block; min-width: 42px; width: 42px;"
+        />
+      </div>
+      <div
+        class="columnName_f1kdqshe"
+        style="width: 28.57142857142857%;"
+        title="Resource name"
+      >
+        <span
+          aria-disabled="false"
+          class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+          role="button"
+          tabindex="0"
+          title="Sort"
+        >
+          Resource name
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+            />
+          </svg>
+        </span>
+      </div>
+      <div
+        class="columnName_f1kdqshe"
+        style="width: 42.857142857142854%;"
+        title="Description"
+      >
+        <span
+          aria-disabled="false"
+          class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+          role="button"
+          tabindex="0"
+          title="Cannot sort by this column"
+        >
+          Description
+        </span>
+      </div>
+      <div
+        class="columnName_f1kdqshe"
+        style="width: 28.57142857142857%;"
+        title="Uploaded on"
+      >
+        <span
+          aria-disabled="false"
+          class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+          role="button"
+          tabindex="0"
+          title="Sort"
+        >
+          Uploaded on
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+            />
+          </svg>
+        </span>
+      </div>
+    </div>
+    <div
+      class="scrollContainer_fea2b5v"
+      style="min-height: 60px;"
+    >
+      <div
+        class="expandableContainer_f1l0zr01"
+      >
+        <div
+          aria-checked="false"
+          class="tableRow row_f12b5y4d"
+          data-row-id="some-id-1"
+          data-testid="table-row"
+          role="checkbox"
+          tabindex="-1"
+        >
+          <div
+            class="cell_fy8nr2z selectionToggle_f1ds3nvo"
+          >
+            <span
+              aria-disabled="false"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
+            >
+              <span
+                class="MuiIconButton-label"
+              >
+                <input
+                  class="PrivateSwitchBase-input-8"
+                  type="radio"
+                  value=""
+                />
+                <div
+                  class="PrivateRadioButtonIcon-root-9"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                    />
+                  </svg>
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-10"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                    />
+                  </svg>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </span>
+          </div>
+          <div
+            class="cell_fy8nr2z"
+            style="width: 28.57142857142857%;"
+          >
+            <span
+              class=""
+              title="Name: test-1 name"
+            >
+              test-1 name
+            </span>
+          </div>
+          <div
+            class="cell_fy8nr2z"
+            style="width: 42.857142857142854%;"
+          >
+            test-1 description
+          </div>
+          <div
+            class="cell_fy8nr2z"
+            style="width: 28.57142857142857%;"
+          >
+            2/2/2018, 3:04:05 AM
+          </div>
+        </div>
+      </div>
+      <div
+        class="expandableContainer_f1l0zr01"
+      >
+        <div
+          aria-checked="false"
+          class="tableRow row_f12b5y4d"
+          data-row-id="some-2-id"
+          data-testid="table-row"
+          role="checkbox"
+          tabindex="-1"
+        >
+          <div
+            class="cell_fy8nr2z selectionToggle_f1ds3nvo"
+          >
+            <span
+              aria-disabled="false"
+              class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
+            >
+              <span
+                class="MuiIconButton-label"
+              >
+                <input
+                  class="PrivateSwitchBase-input-8"
+                  type="radio"
+                  value=""
+                />
+                <div
+                  class="PrivateRadioButtonIcon-root-9"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                    />
+                  </svg>
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-10"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                    />
+                  </svg>
+                </div>
+              </span>
+              <span
+                class="MuiTouchRipple-root"
+              />
+            </span>
+          </div>
+          <div
+            class="cell_fy8nr2z"
+            style="width: 28.57142857142857%;"
+          >
+            <span
+              class=""
+              title="Name: test-2 name"
+            >
+              test-2 name
+            </span>
+          </div>
+          <div
+            class="cell_fy8nr2z"
+            style="width: 42.857142857142854%;"
+          >
+            test-2 description
+          </div>
+          <div
+            class="cell_fy8nr2z"
+            style="width: 28.57142857142857%;"
+          >
+            11/9/2018, 8:07:06 AM
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="footer_f1fl9hjk"
+    >
+      <span
+        class="fzbgmju"
+      >
+        Rows per page:
+      </span>
+      <div
+        class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+      >
+        <div
+          class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+        >
+          <div
+            aria-haspopup="listbox"
+            class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+            role="button"
+            tabindex="0"
+          >
+            10
+          </div>
+          <input
+            aria-hidden="true"
+            class="MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSelect-icon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+      </div>
+      <button
+        class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+        disabled=""
+        tabindex="-1"
+        type="button"
+      >
+        <span
+          class="MuiIconButton-label"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
+        </span>
+      </button>
+      <button
+        class="MuiButtonBase-root MuiIconButton-root"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiIconButton-label"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
+        </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
 `;

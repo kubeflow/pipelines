@@ -85,7 +85,7 @@ func CompareWorkflows(actual *v1alpha1.Workflow, expected *v1alpha1.Workflow) {
 	gomega.Expect(actual.Spec.Priority).To(gomega.Equal(expected.Spec.Priority), "Priority is not same")
 	gomega.Expect(actual.Spec.RetryStrategy).To(gomega.Equal(expected.Spec.RetryStrategy), "RetryStrategy is not same")
 	gomega.Expect(actual.Spec.SchedulerName).To(gomega.Equal(expected.Spec.SchedulerName), "SchedulerName is not same")
-	gomega.Expect(actual.Spec.SecurityContext).To(gomega.Equal(expected.Spec.SecurityContext), "SecurityContext is not same")
+	matchPodSecurityContext(actual.Spec.SecurityContext, expected.Spec.SecurityContext, "WorkflowSpec SecurityContext is not same")
 	gomega.Expect(actual.Spec.Shutdown).To(gomega.Equal(expected.Spec.Shutdown), "Shutdown is not same")
 	gomega.Expect(actual.Spec.ServiceAccountName).To(gomega.Equal(expected.Spec.ServiceAccountName), "ServiceAccountName is not same")
 	gomega.Expect(actual.Spec.Suspend).To(gomega.Equal(expected.Spec.Suspend), "Suspend is not same")
@@ -100,7 +100,7 @@ func CompareWorkflows(actual *v1alpha1.Workflow, expected *v1alpha1.Workflow) {
 		gomega.Expect(actual.Spec.Templates[index].Synchronization).To(gomega.Equal(template.Synchronization), "Synchronization is not same")
 		gomega.Expect(actual.Spec.Templates[index].Volumes).To(gomega.Equal(template.Volumes), "Volumes is not same")
 		gomega.Expect(actual.Spec.Templates[index].Suspend).To(gomega.Equal(template.Suspend), "Suspend is not same")
-		gomega.Expect(actual.Spec.Templates[index].SecurityContext).To(gomega.Equal(template.SecurityContext), "SecurityContext is not same")
+		matchPodSecurityContext(actual.Spec.Templates[index].SecurityContext, template.SecurityContext, "Template SecurityContext is not same")
 		gomega.Expect(actual.Spec.Templates[index].SchedulerName).To(gomega.Equal(template.SchedulerName), "SchedulerName is not same")
 		gomega.Expect(actual.Spec.Templates[index].RetryStrategy).To(gomega.Equal(template.RetryStrategy), "RetryStrategy is not same")
 		gomega.Expect(actual.Spec.Templates[index].Parallelism).To(gomega.Equal(template.Parallelism), "Parallelism is not same")
@@ -163,7 +163,7 @@ func MatchContainer(actual *v1.Container, expected *v1.Container) {
 	if expected != nil {
 		gomega.Expect(actual.Name).To(gomega.Equal(expected.Name), "Container Name is not same")
 		gomega.Expect(actual.Args).To(gomega.ConsistOf(expected.Args), "Container Args is not same")
-		gomega.Expect(actual.SecurityContext).To(gomega.Equal(expected.SecurityContext), "Container SecurityContext is not same")
+		matchContainerSecurityContext(actual.SecurityContext, expected.SecurityContext, "Container SecurityContext is not same")
 		gomega.Expect(actual.Env).To(gomega.Equal(expected.Env), "Container Env is not same")
 		gomega.Expect(actual.EnvFrom).To(gomega.Equal(expected.EnvFrom), "Container EnvFrom is not same")
 		gomega.Expect(actual.Command).To(gomega.Equal(expected.Command), "Container Command is not same")
@@ -197,7 +197,7 @@ func MatchUserContainer(actual *v1alpha1.UserContainer, expected *v1alpha1.UserC
 	if expected != nil {
 		gomega.Expect(actual.Name).To(gomega.Equal(expected.Name), "User Container Name is not same")
 		gomega.Expect(actual.Args).To(gomega.ConsistOf(expected.Args), "User Container Args is not same")
-		gomega.Expect(actual.SecurityContext).To(gomega.Equal(expected.SecurityContext), "User Container SecurityContext is not same")
+		matchContainerSecurityContext(actual.SecurityContext, expected.SecurityContext, "User Container SecurityContext is not same")
 		gomega.Expect(actual.Env).To(gomega.Equal(expected.Env), "User Container Env is not same")
 		gomega.Expect(actual.EnvFrom).To(gomega.Equal(expected.EnvFrom), "User Container EnvFrom is not same")
 		gomega.Expect(actual.Command).To(gomega.Equal(expected.Command), "User Container Command is not same")
@@ -265,4 +265,63 @@ func AreStringsSameWithoutOrder(s1, s2 string) bool {
 
 	// Compare the sorted slices
 	return reflect.DeepEqual(r1, r2)
+}
+
+func matchPodSecurityContext(actual *v1.PodSecurityContext, expected *v1.PodSecurityContext, msg string) {
+	if expected == nil {
+		return
+	}
+	gomega.Expect(actual).NotTo(gomega.BeNil(), msg)
+	if expected.RunAsUser != nil {
+		gomega.Expect(actual.RunAsUser).To(gomega.Equal(expected.RunAsUser), msg)
+	}
+	if expected.RunAsGroup != nil {
+		gomega.Expect(actual.RunAsGroup).To(gomega.Equal(expected.RunAsGroup), msg)
+	}
+	if expected.FSGroup != nil {
+		gomega.Expect(actual.FSGroup).To(gomega.Equal(expected.FSGroup), msg)
+	}
+	if expected.RunAsNonRoot != nil {
+		gomega.Expect(actual.RunAsNonRoot).To(gomega.Equal(expected.RunAsNonRoot), msg)
+	}
+	if expected.SeccompProfile != nil {
+		gomega.Expect(actual.SeccompProfile).NotTo(gomega.BeNil(), msg)
+		gomega.Expect(actual.SeccompProfile.Type).To(gomega.Equal(expected.SeccompProfile.Type), msg)
+		gomega.Expect(actual.SeccompProfile.LocalhostProfile).To(gomega.Equal(expected.SeccompProfile.LocalhostProfile), msg)
+	}
+}
+
+func matchContainerSecurityContext(actual *v1.SecurityContext, expected *v1.SecurityContext, msg string) {
+	if expected == nil {
+		return
+	}
+	gomega.Expect(actual).NotTo(gomega.BeNil(), msg)
+	if expected.AllowPrivilegeEscalation != nil {
+		gomega.Expect(actual.AllowPrivilegeEscalation).To(gomega.Equal(expected.AllowPrivilegeEscalation), msg)
+	}
+	if expected.Privileged != nil {
+		gomega.Expect(actual.Privileged).To(gomega.Equal(expected.Privileged), msg)
+	}
+	if expected.ReadOnlyRootFilesystem != nil {
+		gomega.Expect(actual.ReadOnlyRootFilesystem).To(gomega.Equal(expected.ReadOnlyRootFilesystem), msg)
+	}
+	if expected.RunAsNonRoot != nil {
+		gomega.Expect(actual.RunAsNonRoot).To(gomega.Equal(expected.RunAsNonRoot), msg)
+	}
+	if expected.RunAsUser != nil {
+		gomega.Expect(actual.RunAsUser).To(gomega.Equal(expected.RunAsUser), msg)
+	}
+	if expected.RunAsGroup != nil {
+		gomega.Expect(actual.RunAsGroup).To(gomega.Equal(expected.RunAsGroup), msg)
+	}
+	if expected.Capabilities != nil {
+		gomega.Expect(actual.Capabilities).NotTo(gomega.BeNil(), msg)
+		gomega.Expect(actual.Capabilities.Drop).To(gomega.Equal(expected.Capabilities.Drop), msg)
+		gomega.Expect(actual.Capabilities.Add).To(gomega.Equal(expected.Capabilities.Add), msg)
+	}
+	if expected.SeccompProfile != nil {
+		gomega.Expect(actual.SeccompProfile).NotTo(gomega.BeNil(), msg)
+		gomega.Expect(actual.SeccompProfile.Type).To(gomega.Equal(expected.SeccompProfile.Type), msg)
+		gomega.Expect(actual.SeccompProfile.LocalhostProfile).To(gomega.Equal(expected.SeccompProfile.LocalhostProfile), msg)
+	}
 }

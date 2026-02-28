@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import { render } from '@testing-library/react';
+import { SpyInstance } from 'vitest';
 import PipelinesDialog, { PipelinesDialogProps } from './PipelinesDialog';
 import { PageProps } from '../pages/Page';
 import { Apis, PipelineSortKeys } from '../lib/Apis';
@@ -29,7 +30,7 @@ function generateProps(): PipelinesDialogProps {
     ...generatePageProps(),
     open: true,
     selectorDialog: '',
-    onClose: jest.fn(),
+    onClose: vi.fn(),
     namespace: 'ns',
     pipelineSelectorColumns: [
       {
@@ -50,10 +51,10 @@ function generatePageProps(): PageProps {
     location: '' as any,
     match: {} as any,
     toolbarProps: {} as any,
-    updateBanner: jest.fn(),
-    updateDialog: jest.fn(),
-    updateSnackbar: jest.fn(),
-    updateToolbar: jest.fn(),
+    updateBanner: vi.fn(),
+    updateDialog: vi.fn(),
+    updateSnackbar: vi.fn(),
+    updateToolbar: vi.fn(),
   };
 }
 
@@ -73,11 +74,11 @@ function newMockPipeline(): ApiPipeline {
 }
 
 describe('PipelinesDialog', () => {
-  let listPipelineSpy: jest.SpyInstance<{}>;
+  let listPipelineSpy: SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    listPipelineSpy = jest
+    vi.clearAllMocks();
+    listPipelineSpy = vi
       .spyOn(Apis.pipelineServiceApi, 'listPipelines')
       .mockImplementation((...args) => {
         const response: ApiListPipelinesResponse = {
@@ -89,7 +90,7 @@ describe('PipelinesDialog', () => {
   });
 
   afterEach(async () => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('it renders correctly in multi user mode', async () => {

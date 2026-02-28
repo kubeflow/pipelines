@@ -1,34 +1,20 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`404 renders a 404 page 1`] = `
-<div
-  style={
-    Object {
-      "margin": "100px auto",
-      "textAlign": "center",
-    }
-  }
->
+exports[`404 > renders a 404 page 1`] = `
+<DocumentFragment>
   <div
-    style={
-      Object {
-        "color": "#aaa",
-        "fontSize": 50,
-        "fontWeight": "bold",
-      }
-    }
+    style="margin: 100px auto; text-align: center;"
   >
-    404
+    <div
+      style="color: rgb(170, 170, 170); font-size: 50px; font-weight: bold;"
+    >
+      404
+    </div>
+    <div
+      style="font-size: 16px;"
+    >
+      Page Not Found: some bad page
+    </div>
   </div>
-  <div
-    style={
-      Object {
-        "fontSize": 16,
-      }
-    }
-  >
-    Page Not Found: 
-    some bad page
-  </div>
-</div>
+</DocumentFragment>
 `;

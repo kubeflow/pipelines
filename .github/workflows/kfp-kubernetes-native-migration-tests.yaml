@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/deploy/**"
       - ".github/resources/**"
       - "tools/k8s-native/**"
       - "test/kfp-kubernetes-native-migration-tests/**"
@@ -19,7 +21,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   kfp-kubernetes-native-migration-tests:
     runs-on: ubuntu-24.04

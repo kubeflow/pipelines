@@ -35,7 +35,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/actions/test-and-report/**'
       - '.github/actions/junit-summary/**'
       - '.github/resources/**'
@@ -54,7 +56,7 @@ concurrency:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   api-test-standalone:
     needs: build
