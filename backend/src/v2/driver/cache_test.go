@@ -138,10 +138,10 @@ func Test_getFingerPrint(t *testing.T) {
 					return &cachekey.CacheKey{}, nil
 				},
 				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "sorted-fp", nil
+					return "sorted-fingerprint", nil
 				},
 			},
-			wantFingerPrint: "sorted-fp",
+			wantFingerPrint: "sorted-fingerprint",
 			wantErr:         false,
 		},
 		{
@@ -156,10 +156,10 @@ func Test_getFingerPrint(t *testing.T) {
 			pvcNames:      nil,
 			mockClient: &mockCacheClient{
 				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "empty-fp", nil
+					return "empty-fingerprint", nil
 				},
 			},
-			wantFingerPrint: "empty-fp",
+			wantFingerPrint: "empty-fingerprint",
 			wantErr:         false,
 		},
 		{
@@ -174,6 +174,22 @@ func Test_getFingerPrint(t *testing.T) {
 			mockClient: &mockCacheClient{
 				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
 					return nil, fmt.Errorf("cache key generation failed")
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "GenerateFingerPrint error propagates",
+			opts: Options{
+				Component: &pipelinespec.ComponentSpec{},
+				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image: "test-image:latest",
+				},
+			},
+			executorInput: &pipelinespec.ExecutorInput{},
+			mockClient: &mockCacheClient{
+				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
+					return "", fmt.Errorf("fingerprint generation failed")
 				},
 			},
 			wantErr: true,
@@ -273,16 +289,16 @@ func Test_getFingerPrintsAndID(t *testing.T) {
 			},
 			mockClient: &mockCacheClient{
 				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "fp-123", nil
+					return "fingerprint-123", nil
 				},
 				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
-					assert.Equal(t, "fp-123", fingerPrint)
+					assert.Equal(t, "fingerprint-123", fingerPrint)
 					assert.Equal(t, "pipeline/my-pipeline", pipelineName)
 					assert.Equal(t, "default", namespace)
 					return "cached-exec-456", nil
 				},
 			},
-			wantFingerPrint: "fp-123",
+			wantFingerPrint: "fingerprint-123",
 			wantExecutionID: "cached-exec-456",
 			wantErr:         false,
 		},
@@ -307,13 +323,13 @@ func Test_getFingerPrintsAndID(t *testing.T) {
 			},
 			mockClient: &mockCacheClient{
 				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "fp-789", nil
+					return "fingerprint-789", nil
 				},
 				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
 					return "", nil
 				},
 			},
-			wantFingerPrint: "fp-789",
+			wantFingerPrint: "fingerprint-789",
 			wantExecutionID: "",
 			wantErr:         false,
 		},
@@ -335,6 +351,35 @@ func Test_getFingerPrintsAndID(t *testing.T) {
 			wantFingerPrint: "",
 			wantExecutionID: "",
 			wantErr:         false,
+		},
+		{
+			name: "GetExecutionCache error propagates",
+			execution: &Execution{
+				ExecutorInput: &pipelinespec.ExecutorInput{},
+			},
+			opts: &Options{
+				Component: &pipelinespec.ComponentSpec{},
+				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image: "test-image",
+				},
+				Task: &pipelinespec.PipelineTaskSpec{
+					TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
+					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+						EnableCache: true,
+					},
+				},
+				PipelineName: "my-pipeline",
+				Namespace:    "default",
+			},
+			mockClient: &mockCacheClient{
+				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
+					return "fingerprint-error-test", nil
+				},
+				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
+					return "", fmt.Errorf("cache server unavailable")
+				},
+			},
+			wantErr: true,
 		},
 	}
 
@@ -369,14 +414,14 @@ func Test_createCache(t *testing.T) {
 				Namespace:    "default",
 				RunID:        "run-001",
 			},
-			fingerPrint: "fp-abc",
+			fingerPrint: "fingerprint-abc",
 			mockClient: &mockCacheClient{
 				createExecutionCacheFunc: func(ctx context.Context, task *api.Task) error {
 					assert.Equal(t, "pipeline/my-pipeline", task.PipelineName)
 					assert.Equal(t, "default", task.Namespace)
 					assert.Equal(t, "run-001", task.RunId)
 					assert.Equal(t, "123", task.MlmdExecutionID)
-					assert.Equal(t, "fp-abc", task.Fingerprint)
+					assert.Equal(t, "fingerprint-abc", task.Fingerprint)
 					return nil
 				},
 			},
@@ -390,7 +435,7 @@ func Test_createCache(t *testing.T) {
 				Namespace:    "default",
 				RunID:        "run-001",
 			},
-			fingerPrint: "fp-abc",
+			fingerPrint: "fingerprint-abc",
 			mockClient:  &mockCacheClient{},
 			wantErr:     true,
 		},
@@ -402,7 +447,7 @@ func Test_createCache(t *testing.T) {
 				Namespace:    "default",
 				RunID:        "run-001",
 			},
-			fingerPrint: "fp-def",
+			fingerPrint: "fingerprint-def",
 			mockClient: &mockCacheClient{
 				createExecutionCacheFunc: func(ctx context.Context, task *api.Task) error {
 					return fmt.Errorf("rpc error: connection refused")

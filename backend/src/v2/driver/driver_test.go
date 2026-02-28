@@ -1849,7 +1849,7 @@ func Test_provisionOutputs(t *testing.T) {
 			wantLogsArtifact: true,
 		},
 		{
-			name:          "empty outputs spec",
+			name:          "empty outputs spec produces no artifacts or parameters",
 			pipelineRoot:  "gs://my-bucket/pipeline-root",
 			taskName:      "my-task",
 			outputsSpec:   &pipelinespec.ComponentOutputsSpec{},
@@ -1870,6 +1870,7 @@ func Test_provisionOutputs(t *testing.T) {
 			assert.NotNil(t, outputs)
 			assert.NotNil(t, outputs.Artifacts)
 			assert.NotNil(t, outputs.Parameters)
+			assert.NotEmpty(t, outputs.OutputFile)
 
 			for _, artifactName := range test.wantArtifacts {
 				artifactList, ok := outputs.Artifacts[artifactName]
@@ -1892,6 +1893,13 @@ func Test_provisionOutputs(t *testing.T) {
 			if test.wantLogsArtifact {
 				_, ok := outputs.Artifacts["executor-logs"]
 				assert.True(t, ok, "expected executor-logs artifact when publishOutput is true")
+			}
+
+			if len(test.wantArtifacts) == 0 && !test.wantLogsArtifact {
+				assert.Empty(t, outputs.Artifacts, "expected no artifacts for empty outputs spec")
+			}
+			if len(test.wantParameters) == 0 {
+				assert.Empty(t, outputs.Parameters, "expected no parameters for empty outputs spec")
 			}
 		})
 	}
