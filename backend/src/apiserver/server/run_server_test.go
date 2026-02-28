@@ -1512,10 +1512,10 @@ func TestRetryRun(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 		},
 	}
-	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	run, err := server.CreateRun(context.Background(), &apiv2beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	_, err = server.RetryRun(nil, &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+	_, err = server.RetryRun(context.Background(), &apiv2beta1.RetryRunRequest{RunId: run.RunId})
 }
 
 func TestNewRunServerV1(t *testing.T) {

@@ -55,10 +55,10 @@ func TestCreateArtifactPath(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := CreateArtifactPath(tt.runID, tt.nodeID, tt.artifactName)
-			assert.Equal(t, tt.expected, result)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := CreateArtifactPath(testCase.runID, testCase.nodeID, testCase.artifactName)
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -118,15 +118,15 @@ func TestParseLogLevel(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			level, err := ParseLogLevel(tt.logLevel)
-			if tt.expectError {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			level, err := ParseLogLevel(testCase.logLevel)
+			if testCase.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), "could not translate log level to ZAP levels")
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.expectedLevel, level)
+				assert.Equal(t, testCase.expectedLevel, level)
 			}
 		})
 	}
@@ -202,18 +202,18 @@ func TestPatchPipelineDefaultParameter(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
-			os.Setenv(DefaultBucketNameEnvVar, tt.bucket)
+			os.Setenv(DefaultBucketNameEnvVar, testCase.bucket)
 			defer os.Unsetenv(DefaultBucketNameEnvVar)
-			os.Setenv(ProjectIDEnvVar, tt.project)
+			os.Setenv(ProjectIDEnvVar, testCase.project)
 			defer os.Unsetenv(ProjectIDEnvVar)
 			viper.AutomaticEnv()
 
-			result, err := PatchPipelineDefaultParameter(tt.input)
+			result, err := PatchPipelineDefaultParameter(testCase.input)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -368,10 +368,10 @@ func TestParseResourceIdsFromFullName(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ParseResourceIdsFromFullName(tt.args.p); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ParseResourceIdsFromFullName() = %v, want %v", got, tt.want)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := ParseResourceIdsFromFullName(testCase.args.p); !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("ParseResourceIdsFromFullName() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -433,11 +433,11 @@ func Test_validatePipelineName(t *testing.T) {
 			"pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := ValidatePipelineName(tt.pipelineName); tt.wantErr {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			if err := ValidatePipelineName(testCase.pipelineName); testCase.wantErr {
 				assert.NotNil(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Contains(t, err.Error(), testCase.errMsg)
 			} else {
 				assert.Nil(t, err)
 			}

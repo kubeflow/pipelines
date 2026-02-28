@@ -42,12 +42,12 @@ func TestGetStringConfigWithDefault(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv("TEST_STRING_CONFIG", tt.envValue)
+			if testCase.setEnv {
+				os.Setenv("TEST_STRING_CONFIG", testCase.envValue)
 				defer os.Unsetenv("TEST_STRING_CONFIG")
 				viper.AutomaticEnv()
 			} else {
@@ -55,7 +55,7 @@ func TestGetStringConfigWithDefault(t *testing.T) {
 			}
 
 			result := GetStringConfigWithDefault("TEST_STRING_CONFIG", "my-default")
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -96,20 +96,20 @@ func TestGetBoolConfigWithDefault(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv("TEST_BOOL_CONFIG", tt.envValue)
+			if testCase.setEnv {
+				os.Setenv("TEST_BOOL_CONFIG", testCase.envValue)
 				defer os.Unsetenv("TEST_BOOL_CONFIG")
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv("TEST_BOOL_CONFIG")
 			}
 
-			result := GetBoolConfigWithDefault("TEST_BOOL_CONFIG", tt.defaultValue)
-			assert.Equal(t, tt.expected, result)
+			result := GetBoolConfigWithDefault("TEST_BOOL_CONFIG", testCase.defaultValue)
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -134,12 +134,12 @@ func TestGetFloat64ConfigWithDefault(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv("TEST_FLOAT_CONFIG", tt.envValue)
+			if testCase.setEnv {
+				os.Setenv("TEST_FLOAT_CONFIG", testCase.envValue)
 				defer os.Unsetenv("TEST_FLOAT_CONFIG")
 				viper.AutomaticEnv()
 			} else {
@@ -147,7 +147,7 @@ func TestGetFloat64ConfigWithDefault(t *testing.T) {
 			}
 
 			result := GetFloat64ConfigWithDefault("TEST_FLOAT_CONFIG", 3.14)
-			assert.InDelta(t, tt.expected, result, 0.001)
+			assert.InDelta(t, testCase.expected, result, 0.001)
 		})
 	}
 }
@@ -172,12 +172,12 @@ func TestGetIntConfigWithDefault(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv("TEST_INT_CONFIG", tt.envValue)
+			if testCase.setEnv {
+				os.Setenv("TEST_INT_CONFIG", testCase.envValue)
 				defer os.Unsetenv("TEST_INT_CONFIG")
 				viper.AutomaticEnv()
 			} else {
@@ -185,7 +185,7 @@ func TestGetIntConfigWithDefault(t *testing.T) {
 			}
 
 			result := GetIntConfigWithDefault("TEST_INT_CONFIG", 42)
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -211,11 +211,11 @@ func TestGetMapConfig(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setValue {
+			if testCase.setValue {
 				viper.Set("TEST_MAP_CONFIG", map[string]string{
 					"key1": "value1",
 					"key2": "value2",
@@ -223,7 +223,7 @@ func TestGetMapConfig(t *testing.T) {
 			}
 
 			result := GetMapConfig("TEST_MAP_CONFIG")
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -267,15 +267,15 @@ func TestGetBoolFromStringWithDefault(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := GetBoolFromStringWithDefault(tt.value, tt.defaultValue)
-			assert.Equal(t, tt.expected, result)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := GetBoolFromStringWithDefault(testCase.value, testCase.defaultValue)
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
 
-func TestGetStringConfig(t *testing.T) {
+func TestGetStringConfig_WhenSet(t *testing.T) {
 	viper.Reset()
 	os.Setenv("TEST_REQUIRED_STRING", "hello")
 	defer os.Unsetenv("TEST_REQUIRED_STRING")
@@ -285,7 +285,7 @@ func TestGetStringConfig(t *testing.T) {
 	assert.Equal(t, "hello", result)
 }
 
-func TestGetDurationConfig(t *testing.T) {
+func TestGetDurationConfig_WhenSet(t *testing.T) {
 	viper.Reset()
 	os.Setenv("TEST_DURATION", "5s")
 	defer os.Unsetenv("TEST_DURATION")
@@ -388,11 +388,11 @@ func TestConfigWrapperDefaults(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
-			result := tt.getter()
-			assert.Equal(t, tt.expected, result)
+			result := testCase.getter()
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -528,19 +528,19 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
-			if tt.useViperSet {
-				viper.Set(tt.envKey, tt.envValue)
+			if testCase.useViperSet {
+				viper.Set(testCase.envKey, testCase.envValue)
 			} else {
-				os.Setenv(tt.envKey, tt.envValue)
-				defer os.Unsetenv(tt.envKey)
+				os.Setenv(testCase.envKey, testCase.envValue)
+				defer os.Unsetenv(testCase.envKey)
 				viper.AutomaticEnv()
 			}
 
-			result := tt.getter()
-			assert.Equal(t, tt.expected, result)
+			result := testCase.getter()
+			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -578,13 +578,13 @@ func TestGetClusterDomain(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			// Reset viper for each test
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv(ClusterDomain, tt.envValue)
+			if testCase.setEnv {
+				os.Setenv(ClusterDomain, testCase.envValue)
 				defer os.Unsetenv(ClusterDomain)
 				viper.AutomaticEnv()
 			} else {
@@ -592,7 +592,7 @@ func TestGetClusterDomain(t *testing.T) {
 			}
 
 			result := GetClusterDomain()
-			assert.Equal(t, tt.expectedDomain, result)
+			assert.Equal(t, testCase.expectedDomain, result)
 		})
 	}
 }
@@ -624,12 +624,12 @@ func TestGetMLPipelineServiceName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv(MLPipelineServiceName, tt.envValue)
+			if testCase.setEnv {
+				os.Setenv(MLPipelineServiceName, testCase.envValue)
 				defer os.Unsetenv(MLPipelineServiceName)
 				viper.AutomaticEnv()
 			} else {
@@ -637,7 +637,7 @@ func TestGetMLPipelineServiceName(t *testing.T) {
 			}
 
 			result := GetMLPipelineServiceName()
-			assert.Equal(t, tt.expectedName, result)
+			assert.Equal(t, testCase.expectedName, result)
 		})
 	}
 }
@@ -669,12 +669,12 @@ func TestGetMetadataServiceName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
 
-			if tt.setEnv {
-				os.Setenv(MetadataServiceName, tt.envValue)
+			if testCase.setEnv {
+				os.Setenv(MetadataServiceName, testCase.envValue)
 				defer os.Unsetenv(MetadataServiceName)
 				viper.AutomaticEnv()
 			} else {
@@ -682,7 +682,7 @@ func TestGetMetadataServiceName(t *testing.T) {
 			}
 
 			result := GetMetadataServiceName()
-			assert.Equal(t, tt.expectedName, result)
+			assert.Equal(t, testCase.expectedName, result)
 		})
 	}
 }

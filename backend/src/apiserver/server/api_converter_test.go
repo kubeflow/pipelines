@@ -4900,4 +4900,5 @@ func TestToPipelineSpecRuntimeConfig_WithParams(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, "gs://my-bucket/pipeline-root", result.GcsOutputDirectory)
 	assert.NotNil(t, result.ParameterValues)
+	assert.Equal(t, 2, len(result.ParameterValues))
 }
