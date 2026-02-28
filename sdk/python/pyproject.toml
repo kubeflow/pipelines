@@ -37,7 +37,6 @@ dependencies = [
   "google-cloud-storage>=2.2.1,<4",
   # Pin kfp-pipeline-spec to the exact kfp version to prevent mismatches.
   # Update this version in lockstep with kfp/version.py on each release.
-  # kfp-pipeline-spec package is released.
   "kfp-pipeline-spec==2.15.2",
   # Pin kfp-server-api to the exact kfp version to prevent mismatches.
   # Update this version in lockstep with kfp/version.py on each release.
