@@ -97,7 +97,7 @@ $ docker build -t ml-pipeline-api-server -f backend/Dockerfile .
 Python based visualizations are a new method to visualize results within the
 Kubeflow Pipelines UI. For more information about Python based visualizations
 please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
-To create predefine visualizations please check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/README.md).
+To create predefined visualizations, check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/README.md).
 
 ## Unit test
 
@@ -111,13 +111,19 @@ cd backend/src/ && go test ./...
 
 ### Frontend
 
-TODO: add instruction
+Run frontend unit tests from the `frontend/` directory:
+
+```bash
+cd frontend
+npm ci
+npm run test:ui
+```
 
 ### DSL
 
 ```bash
-pip install ./dsl/ --upgrade && python ./dsl/tests/main.py
-pip install ./dsl-compiler/ --upgrade && python ./dsl-compiler/tests/main.py
+pip install -r sdk/python/requirements-dev.txt
+pytest -v sdk/python/kfp
 ```
 
 ## Integration test & E2E test
@@ -126,9 +132,9 @@ Check [this](https://github.com/kubeflow/pipelines/blob/master/test/README.md) p
 
 ## Troubleshooting
 
-**Q: How to access to the database directly?**
+**Q: How do I access the database directly?**
 
-You can inspect mysql database directly by running:
+You can inspect the MySQL database directly by running:
 
 ```bash
 kubectl run -it --rm --image=docker.io/library/mysql:8.4 --restart=Never mysql-client -- mysql -h mysql
@@ -146,7 +152,7 @@ Access Key:minio
 Secret Key:minio123
 ```
 
-**Q: I see an error of exceeding Github rate limit when deploying the system. What can I do?**
+**Q: I see an error about exceeding the GitHub rate limit when deploying the system. What can I do?**
 
 See [Ksonnet troubleshooting page](https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#github-rate-limiting-errors)
 
