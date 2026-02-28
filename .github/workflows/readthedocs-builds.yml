@@ -22,7 +22,6 @@ jobs:
         uses: ./.github/actions/setup-python
         with:
           python-version: "3.10"
-          extra: docs
 
       - name: Install protobuf dependencies & generate proto files
         uses: ./.github/actions/protobuf
