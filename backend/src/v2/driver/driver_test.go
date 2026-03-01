@@ -1783,6 +1783,7 @@ func Test_provisionOutputs(t *testing.T) {
 		wantArtifacts    []string
 		wantParameters   []string
 		wantLogsArtifact bool
+		wantOutputFile   string
 	}{
 		{
 			name:         "provisions output artifacts with URIs",
@@ -1803,6 +1804,7 @@ func Test_provisionOutputs(t *testing.T) {
 			publishOutput:    "false",
 			wantArtifacts:    []string{"model"},
 			wantLogsArtifact: false,
+			wantOutputFile:   "/gcs/my-bucket/pipeline-root/my-task/salt-123/output_metadata.json",
 		},
 		{
 			name:         "provisions output parameters",
@@ -1871,6 +1873,9 @@ func Test_provisionOutputs(t *testing.T) {
 			assert.NotNil(t, outputs.Artifacts)
 			assert.NotNil(t, outputs.Parameters)
 			assert.NotEmpty(t, outputs.OutputFile)
+			if test.wantOutputFile != "" {
+				assert.Equal(t, test.wantOutputFile, outputs.OutputFile)
+			}
 
 			for _, artifactName := range test.wantArtifacts {
 				artifactList, ok := outputs.Artifacts[artifactName]

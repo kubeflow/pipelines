@@ -242,9 +242,9 @@ func Test_getItems(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			items, err := getItems(test.value)
 			if test.wantErr {
-				assert.NotNil(t, err)
+				assert.Error(t, err)
 			} else {
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				assert.Equal(t, test.wantCount, len(items))
 			}
 		})

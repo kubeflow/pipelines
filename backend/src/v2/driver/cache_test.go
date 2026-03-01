@@ -428,6 +428,20 @@ func Test_createCache(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			// nil execution is handled gracefully by Execution.GetID() returning 0,
+			// which triggers the "execution ID is 0" error path.
+			name:      "nil execution returns error",
+			execution: nil,
+			opts: &Options{
+				PipelineName: "my-pipeline",
+				Namespace:    "default",
+				RunID:        "run-001",
+			},
+			fingerPrint: "fingerprint-nil",
+			mockClient:  &mockCacheClient{},
+			wantErr:     true,
+		},
+		{
 			name:      "error when execution ID is 0",
 			execution: metadata.NewExecution(&pb.Execution{Id: proto.Int64(0)}),
 			opts: &Options{
