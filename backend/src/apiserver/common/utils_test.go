@@ -16,7 +16,9 @@ package common
 
 import (
 	"os"
+	"os/exec"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -146,7 +148,7 @@ func TestFileExists(t *testing.T) {
 		assert.False(t, FileExists("/tmp/non-existent-file-that-does-not-exist-12345"))
 	})
 
-	t.Run("existing directory returns true", func(t *testing.T) {
+	t.Run("existing directory returns true (FileExists checks path existence, not file type)", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "test-dir-exists-*")
 		assert.NoError(t, err)
 		defer os.RemoveAll(tempDir)
@@ -214,6 +216,35 @@ func TestPatchPipelineDefaultParameter(t *testing.T) {
 			assert.Equal(t, testCase.expected, result)
 		})
 	}
+}
+
+// TestPatchPipelineDefaultParameterMissingEnv verifies that PatchPipelineDefaultParameter
+// causes a fatal exit when required env vars (BUCKET_NAME, PROJECT_ID) are not set.
+// GetStringConfig calls glog.Fatalf for missing config, so the error return value of
+// PatchPipelineDefaultParameter is never used — the process exits instead.
+// This test uses the subprocess pattern to verify the fatal behavior.
+func TestPatchPipelineDefaultParameterMissingEnv(t *testing.T) {
+	if os.Getenv("TEST_PATCH_MISSING_ENV") == "1" {
+		viper.Reset()
+		viper.AutomaticEnv()
+		PatchPipelineDefaultParameter("gs://{{kfp-default-bucket}}/data")
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestPatchPipelineDefaultParameterMissingEnv")
+	cmd.Env = append(os.Environ(), "TEST_PATCH_MISSING_ENV=1")
+	// Unset the env vars that PatchPipelineDefaultParameter requires
+	filteredEnv := []string{"TEST_PATCH_MISSING_ENV=1"}
+	for _, env := range os.Environ() {
+		if !strings.HasPrefix(env, "BUCKET_NAME=") && !strings.HasPrefix(env, "PROJECT_ID=") {
+			filteredEnv = append(filteredEnv, env)
+		}
+	}
+	cmd.Env = filteredEnv
+	err := cmd.Run()
+	if exitErr, ok := err.(*exec.ExitError); ok && !exitErr.Success() {
+		return // expected: process exited with non-zero status due to glog.Fatalf
+	}
+	t.Fatalf("expected process to exit with non-zero status when env vars are missing, but got: %v", err)
 }
 
 func TestParseResourceIdsFromFullName(t *testing.T) {

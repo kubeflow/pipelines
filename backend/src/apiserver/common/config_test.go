@@ -14,7 +14,6 @@
 package common
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -52,8 +51,6 @@ func TestGetStringConfigWithDefault(t *testing.T) {
 			if testCase.setEnv {
 				t.Setenv("TEST_STRING_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv("TEST_STRING_CONFIG")
 			}
 
 			result := GetStringConfigWithDefault("TEST_STRING_CONFIG", "my-default")
@@ -105,8 +102,6 @@ func TestGetBoolConfigWithDefault(t *testing.T) {
 			if testCase.setEnv {
 				t.Setenv("TEST_BOOL_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv("TEST_BOOL_CONFIG")
 			}
 
 			result := GetBoolConfigWithDefault("TEST_BOOL_CONFIG", testCase.defaultValue)
@@ -133,6 +128,12 @@ func TestGetFloat64ConfigWithDefault(t *testing.T) {
 			envValue: "2.718",
 			expected: 2.718,
 		},
+		{
+			name:     "returns zero when env var is not a valid float",
+			setEnv:   true,
+			envValue: "not-a-number",
+			expected: 0,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -142,8 +143,6 @@ func TestGetFloat64ConfigWithDefault(t *testing.T) {
 			if testCase.setEnv {
 				t.Setenv("TEST_FLOAT_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv("TEST_FLOAT_CONFIG")
 			}
 
 			result := GetFloat64ConfigWithDefault("TEST_FLOAT_CONFIG", 3.14)
@@ -170,6 +169,12 @@ func TestGetIntConfigWithDefault(t *testing.T) {
 			envValue: "100",
 			expected: 100,
 		},
+		{
+			name:     "returns zero when env var is not a valid int",
+			setEnv:   true,
+			envValue: "not-a-number",
+			expected: 0,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -179,8 +184,6 @@ func TestGetIntConfigWithDefault(t *testing.T) {
 			if testCase.setEnv {
 				t.Setenv("TEST_INT_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv("TEST_INT_CONFIG")
 			}
 
 			result := GetIntConfigWithDefault("TEST_INT_CONFIG", 42)
@@ -582,8 +585,6 @@ func TestGetClusterDomain(t *testing.T) {
 			if testCase.setEnv {
 				t.Setenv(ClusterDomain, testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv(ClusterDomain)
 			}
 
 			result := GetClusterDomain()
@@ -626,8 +627,6 @@ func TestGetMLPipelineServiceName(t *testing.T) {
 			if testCase.setEnv {
 				t.Setenv(MLPipelineServiceName, testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv(MLPipelineServiceName)
 			}
 
 			result := GetMLPipelineServiceName()
@@ -670,8 +669,6 @@ func TestGetMetadataServiceName(t *testing.T) {
 			if testCase.setEnv {
 				t.Setenv(MetadataServiceName, testCase.envValue)
 				viper.AutomaticEnv()
-			} else {
-				os.Unsetenv(MetadataServiceName)
 			}
 
 			result := GetMetadataServiceName()
