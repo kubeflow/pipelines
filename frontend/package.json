@@ -41,7 +41,8 @@
     "react-virtualized": "^9.22.6",
     "runtypes": "^6.3.0",
     "ts-proto": "^1.95.0",
-    "typestyle": "^2.0.4"
+    "typestyle": "^2.0.4",
+    "url": "^0.11.4"
   },
   "scripts": {
     "analyze-bundle": "vite build --mode analyze",
