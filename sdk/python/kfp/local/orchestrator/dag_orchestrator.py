@@ -141,13 +141,13 @@ def run_dag(
                 )
 
             # Store task status for exit handler tasks
-            io_store.put_task_status(task_name, task_status)
-
             if task_status == status.Status.FAILURE:
                 dag_failure = True
                 failed_task_name = task_name
                 error_message = f"Task '{task_name}' failed during execution"
                 io_store.put_task_status(task_name, task_status, error_message)
+            else:
+                io_store.put_task_status(task_name, task_status)
                 # Don't return immediately if there are exit handler tasks
                 if not exit_handler_tasks:
                     fail_stack.append(task_name)

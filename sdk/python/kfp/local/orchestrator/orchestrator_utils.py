@@ -116,8 +116,8 @@ class OrchestratorUtils:
             error_msg = None
         else:  # FAILURE
             state = 'FAILED'
-            # Use a generic error code for failures
-            error_code = 1  # CANCELLED = 1, UNKNOWN = 2, etc. per google.rpc.Code
+            # Use UNKNOWN error code for failures (per google.rpc.Code)
+            error_code = 2  # UNKNOWN = 2
             error_msg = error_message or 'Task failed during local execution'
 
         return tfs.PipelineTaskFinalStatus(
@@ -281,12 +281,18 @@ class OrchestratorUtils:
                         task_status=task_status,
                         error_message=error_message,
                     )
-                except ValueError:
-                    # If task status is not found, the producer task hasn't run yet
-                    # This shouldn't happen in normal flow, but handle gracefully
+                except ValueError as exc:
+                    # If task status is not found, the producer task hasn't run yet or
+                    # its status was not recorded correctly. This should not occur in
+                    # normal operation and likely indicates a bug in the local
+                    # orchestrator logic.
                     raise ValueError(
-                        f"Cannot get final status for producer task '{producer_task}'. "
-                        f"The task may not have completed yet.")
+                        f"Failed to retrieve final status for producer task "
+                        f"'{producer_task}' referenced by a dsl.ExitHandler. "
+                        f"This condition should never occur during normal pipeline "
+                        f"execution and likely indicates a bug in the local "
+                        f"orchestrator's scheduling or state management."
+                    ) from exc
 
             else:
                 raise ValueError(f'Missing input for parameter {input_name}.')

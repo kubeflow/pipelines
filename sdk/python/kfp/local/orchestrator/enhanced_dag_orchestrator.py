@@ -653,7 +653,14 @@ def run_enhanced_dag(
     exit_handler_tasks = []
 
     for task_name, task_spec in dag_spec.tasks.items():
-        # Check for exit handler first (ALL_UPSTREAM_TASKS_COMPLETED strategy without condition)
+        # Check for exit handler first.
+        # NOTE: The enhanced orchestrator deliberately treats only *unconditional*
+        # tasks that use the ALL_UPSTREAM_TASKS_COMPLETED trigger strategy as
+        # exit handlers. Tasks that have a trigger condition are instead
+        # classified as conditional tasks below, even if they also satisfy
+        # _is_exit_handler_task. This is intentionally stricter than the logic in
+        # dag_orchestrator.py, which uses only _is_exit_handler_task(task_spec),
+        # to avoid misclassifying conditional control-flow tasks as exit handlers.
         if _is_exit_handler_task(task_spec) and not task_spec.trigger_policy.condition:
             exit_handler_tasks.append((task_name, task_spec))
         elif task_spec.trigger_policy.condition:
@@ -694,8 +701,6 @@ def run_enhanced_dag(
             )
 
             # Store task status for exit handler tasks
-            io_store.put_task_status(task_name, task_status)
-
             if task_status == status.Status.FAILURE:
                 dag_failure = True
                 failed_task_name = task_name
@@ -706,10 +711,11 @@ def run_enhanced_dag(
                     return {}, status.Status.FAILURE
                 # Stop executing remaining regular tasks
                 break
-
-            # Update IO store on success
-            for key, output in outputs.items():
-                io_store.put_task_output(task_name, key, output)
+            else:
+                io_store.put_task_status(task_name, task_status)
+                # Update IO store on success
+                for key, output in outputs.items():
+                    io_store.put_task_output(task_name, key, output)
 
     # Execute conditional tasks (skip if already failed)
     condition_evaluator = ConditionEvaluator()
@@ -735,8 +741,6 @@ def run_enhanced_dag(
                 )
 
                 # Store task status for exit handler tasks
-                io_store.put_task_status(task_name, task_status)
-
                 if task_status == status.Status.FAILURE:
                     dag_failure = True
                     failed_task_name = task_name
@@ -745,10 +749,11 @@ def run_enhanced_dag(
                     if not exit_handler_tasks:
                         return {}, status.Status.FAILURE
                     break
-
-                # Update IO store on success
-                for key, output in outputs.items():
-                    io_store.put_task_output(task_name, key, output)
+                else:
+                    io_store.put_task_status(task_name, task_status)
+                    # Update IO store on success
+                    for key, output in outputs.items():
+                        io_store.put_task_output(task_name, key, output)
             else:
                 logging.info(
                     f'Skipping conditional task {task_name} (condition evaluated to False)'
