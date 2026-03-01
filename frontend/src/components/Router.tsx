@@ -217,7 +217,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   ];
 
   if (!buildInfo?.apiServerMultiUser) {
-    routes = routes.filter(r => r.path !== RoutePage.PIPELINES_SHARED);
+    routes = routes.filter((r) => r.path !== RoutePage.PIPELINES_SHARED);
   }
 
   return (
@@ -241,7 +241,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
               key={i}
               exact={!route.notExact}
               path={path}
-              render={props => <RoutedPage key={props.location.key} route={route} />}
+              render={(props) => <RoutedPage key={props.location.key} route={route} />}
             />
           );
         })}

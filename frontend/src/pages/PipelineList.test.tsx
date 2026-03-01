@@ -102,7 +102,7 @@ describe('PipelineList', () => {
 
   function getRowById(id: string): HTMLElement {
     const rows = screen.getAllByTestId('table-row');
-    const row = rows.find(element => element.getAttribute('data-row-id') === id);
+    const row = rows.find((element) => element.getAttribute('data-row-id') === id);
     if (!row) {
       throw new Error(`Row not found: ${id}`);
     }
@@ -192,7 +192,7 @@ describe('PipelineList', () => {
 
   async function mountWithNPipelines(n: number, options?: { namespace?: string }) {
     listPipelinesSpy.mockResolvedValue({
-      pipelines: range(n).map(i => ({
+      pipelines: range(n).map((i) => ({
         id: 'test-pipeline-id' + i,
         pipeline_id: 'test-pipeline-id' + i,
         display_name: 'test pipeline name' + i,
@@ -551,7 +551,7 @@ describe('PipelineList', () => {
       'test-pipeline-id1',
       'test-pipeline-id3',
     ]);
-    deletePipelineSpy.mockImplementation(id => {
+    deletePipelineSpy.mockImplementation((id) => {
       if (id.indexOf(3) === -1 && id.indexOf(2) === -1) {
         throw {
           text: () => Promise.resolve('woops, failed!'),

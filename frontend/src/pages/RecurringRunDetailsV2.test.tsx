@@ -96,7 +96,7 @@ describe('RecurringRunDetailsV2', () => {
 
     vi.clearAllMocks();
     vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
     );
 
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
@@ -215,7 +215,7 @@ describe('RecurringRunDetailsV2', () => {
 
   it('shows Experiments -> Experiment name -> run name when there is an experiment', async () => {
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
-    getExperimentSpy.mockImplementation(id => ({
+    getExperimentSpy.mockImplementation((id) => ({
       experiment_id: id,
       display_name: 'test experiment name',
     }));

@@ -145,13 +145,8 @@ interface DropdownSubMenuProps {
 }
 
 function DropdownSubMenu(props: DropdownSubMenuProps) {
-  const {
-    subDropdownActive,
-    setSubDropdownActive,
-    subDropdownIndex,
-    item,
-    deactivateDropdown,
-  } = props;
+  const { subDropdownActive, setSubDropdownActive, subDropdownIndex, item, deactivateDropdown } =
+    props;
 
   if (item.subItems.length === 0 || subDropdownActive !== subDropdownIndex) {
     return <></>;

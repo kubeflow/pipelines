@@ -525,13 +525,13 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             title={'Documentation'}
             to={ExternalLinks.DOCUMENTATION}
             collapsed={collapsed}
-            icon={className => <DescriptionIcon className={className} />}
+            icon={(className) => <DescriptionIcon className={className} />}
           />
           <ExternalUri
             title={'Github Repo'}
             to={ExternalLinks.GITHUB}
             collapsed={collapsed}
-            icon={className => (
+            icon={(className) => (
               <img src={GitHubIcon} className={classes(className, css.iconImage)} alt='Github' />
             )}
           />
@@ -702,7 +702,7 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
   </Tooltip>
 );
 
-const EnhancedSideNav: React.FC<SideNavProps> = props => {
+const EnhancedSideNav: React.FC<SideNavProps> = (props) => {
   const gkeMetadata = React.useContext(GkeMetadataContext);
   const buildInfo = React.useContext(BuildInfoContext);
   return <SideNav {...props} gkeMetadata={gkeMetadata} buildInfo={buildInfo} />;

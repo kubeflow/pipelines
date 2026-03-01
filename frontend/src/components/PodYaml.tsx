@@ -106,7 +106,7 @@ const PodYaml: React.FC<{
           mode='warning'
           additionalInfo={error.additionalInfo}
           // Increases refresh counter, so it will automatically trigger a refetch.
-          refresh={() => setRefresh(refreshes => refreshes + 1)}
+          refresh={() => setRefresh((refreshes) => refreshes + 1)}
         />
       )}
       {!error && yaml && (

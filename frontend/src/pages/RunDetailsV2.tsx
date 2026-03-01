@@ -89,7 +89,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
-  const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
+  const getNodeName = function (element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
       return element.data.label;
     }
@@ -111,7 +111,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     {
       staleTime: QUERY_STALE_TIME,
       refetchInterval: QUERY_REFETCH_INTERNAL,
-      onError: error =>
+      onError: (error) =>
         props.updateBanner({
           message: 'Cannot get MLMD objects from Metadata store.',
           additionalInfo: error.message,
@@ -193,7 +193,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
               onElementClick={onElementSelection}
-              setFlowElements={elems => setFlowElements(elems)}
+              setFlowElements={(elems) => setFlowElements(elems)}
             ></DagCanvas>
 
             {/* Side panel for Execution, Artifact, Sub-DAG. */}
@@ -226,7 +226,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             {!!run.runtime_config?.parameters && (
               <DetailsTable
                 title='Run parameters'
-                fields={Object.entries(run.runtime_config?.parameters).map(param => [
+                fields={Object.entries(run.runtime_config?.parameters).map((param) => [
                   param[0],
                   param[1],
                 ])}
@@ -302,8 +302,8 @@ function updateToolBarActions(
     runMetadata && runMetadata.run_id
       ? [runMetadata.run_id]
       : runIdFromParams
-      ? [runIdFromParams]
-      : [];
+        ? [runIdFromParams]
+        : [];
 
   buttons
     .retryRun(getRunIdList, true, () => retry())

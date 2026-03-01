@@ -54,7 +54,7 @@ export default function DagCanvas({
     onLayersUpdate(newLayers);
   };
 
-  elements.forEach(elem => {
+  elements.forEach((elem) => {
     // For each SubDag node, provide a callback function if expand button is clicked.
     if (elem && elem.type === NodeTypeNames.SUB_DAG && elem.data) {
       elem.data.expand = subDagExpand;
@@ -76,7 +76,7 @@ export default function DagCanvas({
             onElementClick={onElementClick}
             onNodeDragStop={(event, node) => {
               setFlowElements(
-                elements.map(value => {
+                elements.map((value) => {
                   if (value.id === node.id) {
                     return node;
                   }

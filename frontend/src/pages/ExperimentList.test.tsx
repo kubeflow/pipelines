@@ -92,7 +92,7 @@ describe('ExperimentList', () => {
   function mockListNExperiments(n: number = 1, includeDescription: boolean = false) {
     return () =>
       Promise.resolve({
-        experiments: range(n).map(i => ({
+        experiments: range(n).map((i) => ({
           experiment_id: 'test-experiment-id' + i,
           display_name: 'test experiment name' + i,
           description: includeDescription ? 'test experiment description' + i : undefined,
@@ -128,7 +128,7 @@ describe('ExperimentList', () => {
   ): Promise<void> {
     listExperimentsSpy.mockImplementation(mockListNExperiments(n));
     listRunsSpy.mockImplementation(() => ({
-      runs: range(nRuns).map(i => ({
+      runs: range(nRuns).map((i) => ({
         run_id: 'test-run-id' + i,
         display_name: 'test run name' + i,
       })),

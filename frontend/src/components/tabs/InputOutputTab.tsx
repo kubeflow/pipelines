@@ -62,7 +62,11 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   // TODO(jlyaoyuli): Display other information (container, args, image, command)
 
   // Retrieves input and output artifacts from Metadata store.
-  const { isSuccess, error, data: linkedArtifacts } = useQuery<LinkedArtifact[], Error>(
+  const {
+    isSuccess,
+    error,
+    data: linkedArtifacts,
+  } = useQuery<LinkedArtifact[], Error>(
     ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
     () => getLinkedArtifactsByExecution(execution),
     { staleTime: Infinity },
@@ -203,7 +207,7 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
     if (key === name) {
       const param = getMetadataValue(value);
       if (typeof param == 'object') {
-        Object.entries(param.toJavaScript()).forEach(parameter => {
+        Object.entries(param.toJavaScript()).forEach((parameter) => {
           result.push([parameter[0], JSON.stringify(parameter[1])]);
         });
       }

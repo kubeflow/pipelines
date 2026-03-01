@@ -445,7 +445,7 @@ describe('NewRunV2', () => {
 
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -476,7 +476,7 @@ describe('NewRunV2', () => {
       };
 
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -515,7 +515,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -553,7 +553,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);

@@ -83,7 +83,7 @@ describe('ExperimentList', () => {
 
   function mockNExperiments(n: number): void {
     listExperimentsSpy.mockResolvedValue({
-      experiments: range(1, n + 1).map(i => ({
+      experiments: range(1, n + 1).map((i) => ({
         experiment_id: 'testexperiment' + i,
         display_name: 'experiment with id: testexperiment' + i,
       })),

@@ -49,9 +49,8 @@ export interface PipelinesDialogProps extends PageProps {
 const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | null => {
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
-  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] = React.useState<
-    ApiPipeline
-  >();
+  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] =
+    React.useState<ApiPipeline>();
 
   function getPipelinesList(): JSX.Element {
     return (
