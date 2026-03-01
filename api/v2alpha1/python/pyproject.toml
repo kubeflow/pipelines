@@ -9,7 +9,7 @@ authors = [
 ]
 keywords = ["Kubeflow", "Pipelines", "Pipeline Spec"]
 dependencies = [
-  "protobuf>=6.31.1,<7.0",
+  "protobuf>=6.33.5,<7.0",
 ]
 
 [project.urls]

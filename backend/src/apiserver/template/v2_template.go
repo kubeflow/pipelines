@@ -126,6 +126,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			CacheDisabled:        t.templateOptions.CacheDisabled,
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -367,6 +370,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			CacheDisabled:        t.templateOptions.CacheDisabled,
 			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
 			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}

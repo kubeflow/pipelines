@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25.7-alpine AS builder
 
 # Needed musl-dev for github.com/mattn/go-sqlite3
 RUN apk update && apk upgrade && \

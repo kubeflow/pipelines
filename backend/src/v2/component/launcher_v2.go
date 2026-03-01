@@ -142,7 +142,7 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 				continue
 			}
 
-			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(inputArtifact)
 			if err != nil {
 				continue
 			}
@@ -413,7 +413,19 @@ func executeV2(
 		customCAPath,
 	)
 	if err != nil {
-		return nil, nil, err
+		glog.Errorf("Component failed to execute successfully: %v", err)
+
+		outputArtifacts, uploadErr := uploadOutputArtifacts(ctx, executorInput, executorOutput, uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         bucket,
+			metadataClient: metadataClient,
+		}, false)
+
+		if uploadErr != nil {
+			glog.Errorf("Failed to upload log artifact: %v", uploadErr)
+		}
+
+		return executorOutput, outputArtifacts, err
 	}
 	// These are not added in execute(), because execute() is shared between v2 compatible and v2 engine launcher.
 	// In v2 compatible mode, we get output parameter info from runtimeInfo. In v2 engine, we get it from component spec.
@@ -427,7 +439,7 @@ func executeV2(
 		bucketConfig:   bucketConfig,
 		bucket:         bucket,
 		metadataClient: metadataClient,
-	})
+	}, true)
 
 	if err != nil {
 		glog.Errorf("Failed to upload output artifacts: %v", err)
@@ -448,7 +460,7 @@ func executeV2(
 			bucketConfig:   bucketConfig,
 			bucket:         bucket,
 			metadataClient: metadataClient,
-		})
+		}, true)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -519,10 +531,10 @@ func getLogWriter(artifacts map[string]*pipelinespec.ArtifactList) (writer io.Wr
 		return os.Stdout
 	}
 
-	logURI := logsArtifactList.Artifacts[0].Uri
-	logFilePath, err := LocalPathForURI(logURI)
+	logArtifact := logsArtifactList.Artifacts[0]
+	logFilePath, err := retrieveArtifactPath(logArtifact)
 	if err != nil {
-		glog.Errorf("Error converting log artifact URI, %s, to file path.", logURI)
+		glog.Errorf("Error converting log artifact URI, %s, to file path.", logArtifact.Uri)
 		return os.Stdout
 	}
 
@@ -663,20 +675,30 @@ func uploadOutputArtifacts(
 	executorInput *pipelinespec.ExecutorInput,
 	executorOutput *pipelinespec.ExecutorOutput,
 	opts uploadOutputArtifactsOptions,
+	componentSucceeded bool,
 ) ([]*metadata.OutputArtifact, error) {
 	// Register artifacts with MLMD.
-	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(executorInput.GetOutputs().GetArtifacts()))
-	for name, artifactList := range executorInput.GetOutputs().GetArtifacts() {
-		if len(artifactList.Artifacts) == 0 {
+	artifacts := executorInput.GetOutputs().GetArtifacts()
+	if !componentSucceeded {
+		// Only register executor log artifact if component execution failed
+		artifacts = map[string]*pipelinespec.ArtifactList{"executor-logs": artifacts["executor-logs"]}
+	}
+
+	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(artifacts))
+
+	for name, artifactList := range artifacts {
+		if artifactList == nil || len(artifactList.Artifacts) == 0 {
 			continue
 		}
 
 		for _, outputArtifact := range artifactList.Artifacts {
-			glog.Infof("outputArtifact in uploadOutputArtifacts call: ", outputArtifact.Name)
+			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
 
 			// Merge executor output artifact info with executor input
-			if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
-				mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
+			if executorOutput != nil {
+				if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
+					mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
+				}
 			}
 
 			// Upload artifacts from local path to remote storages.
@@ -771,7 +793,7 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 					continue
 				}
 			}
-			localPath, err := LocalPathForURI(inputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(inputArtifact)
 			if err != nil {
 				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
 
@@ -928,7 +950,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 			}
 		}
 
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(inputArtifact)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -947,7 +969,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := LocalPathForURI(outputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(outputArtifact)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -1110,7 +1132,7 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 
 		for _, outputArtifact := range artifactList.Artifacts {
 
-			localPath, err := LocalPathForURI(outputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 			}

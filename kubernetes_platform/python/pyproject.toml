@@ -9,7 +9,7 @@ authors = [
   { name = "The Kubeflow Authors" }
 ]
 dependencies = [
-  "protobuf>=6.31.1,<7.0",
+  "protobuf>=6.33.5,<7.0",
   "kfp==2.15.2",
 ]
 

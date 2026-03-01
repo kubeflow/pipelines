@@ -278,7 +278,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   variant='outlined'
                   inputRef={this._pipelineDisplayNameRef}
                   onChange={this.handleChange('pipelineDisplayName')}
-                  autoFocus={true}
                 />
               )}
               <Input
@@ -289,7 +288,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineDescriptionRef}
                 onChange={this.handleChange('pipelineDescription')}
-                autoFocus={true}
               />
               {/* Choose a local file for package or specify a url for package */}
             </>
@@ -308,7 +306,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
                 onChange={this.handleChange('pipelineName')}
-                autoFocus={true}
                 InputProps={{
                   classes: { disabled: css.nonEditableInput },
                   endAdornment: (
@@ -362,7 +359,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   required={false}
                   onChange={this.handleChange('pipelineVersionDisplayName')}
                   value={pipelineVersionDisplayName}
-                  autoFocus={true}
                   variant='outlined'
                 />
               )}
@@ -373,7 +369,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 label='Pipeline Version Description'
                 variant='outlined'
                 onChange={this.handleChange('pipelineVersionDescription')}
-                autoFocus={true}
               />
             </>
           )}

@@ -43,7 +43,7 @@ dependencies = [
   "kfp-server-api==2.15.2",
   "kubernetes>=8.0.0,<31",
   # protobuf version should be identical to the one in kfp-pipeline-spec
-  "protobuf>=6.31.1,<7.0",
+  "protobuf>=6.33.5,<7.0",
   "PyYAML>=5.3,<7",
   "requests-toolbelt>=0.8.0,<2",
   "tabulate>=0.8.6,<1",
