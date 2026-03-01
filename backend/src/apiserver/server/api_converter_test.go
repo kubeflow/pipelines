@@ -4902,3 +4902,14 @@ func TestToPipelineSpecRuntimeConfig_WithParams(t *testing.T) {
 	assert.NotNil(t, result.ParameterValues)
 	assert.Equal(t, 2, len(result.ParameterValues))
 }
+
+func TestToPipelineSpecRuntimeConfig_InvalidJSON(t *testing.T) {
+	runtimeConfig := &model.RuntimeConfig{
+		Parameters:   model.LargeText("not valid json"),
+		PipelineRoot: "gs://my-bucket/pipeline-root",
+	}
+	result := toPipelineSpecRuntimeConfig(runtimeConfig)
+	// toMapProtoStructParameters returns nil on invalid JSON that also fails
+	// v1 parameter parsing, causing toPipelineSpecRuntimeConfig to return nil.
+	assert.Nil(t, result)
+}

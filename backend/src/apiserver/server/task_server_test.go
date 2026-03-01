@@ -44,7 +44,7 @@ func TestCreateTaskV1_NilRequest(t *testing.T) {
 	server := createTaskServer(manager)
 	_, err := server.CreateTaskV1(context.Background(), nil)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Request is nil")
+	assert.Contains(t, err.Error(), "CreateTaskRequest is nil")
 }
 
 func TestCreateTaskV1_IdSet(t *testing.T) {
@@ -65,84 +65,77 @@ func TestCreateTaskV1_IdSet(t *testing.T) {
 	assert.Contains(t, err.Error(), "Id should not be set")
 }
 
-func TestCreateTaskV1_MissingPipelineName(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := createTaskServer(manager)
-	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
-		Task: &api.Task{
-			RunId:           "run-1",
-			MlmdExecutionID: "exec-1",
-			Fingerprint:     "abc123",
-			CreatedAt:       timestamppb.New(time.Unix(1, 0)),
+func TestCreateTaskV1_MissingRequiredFields(t *testing.T) {
+	createdAt := timestamppb.New(time.Unix(1, 0))
+	tests := []struct {
+		name          string
+		task          *api.Task
+		expectedError string
+	}{
+		{
+			name: "missing PipelineName",
+			task: &api.Task{
+				RunId:           "run-1",
+				MlmdExecutionID: "exec-1",
+				Fingerprint:     "abc123",
+				CreatedAt:       createdAt,
+			},
+			expectedError: "must specify PipelineName",
 		},
-	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "must specify PipelineName")
-}
+		{
+			name: "missing RunId",
+			task: &api.Task{
+				PipelineName:    "pipeline/my-pipeline",
+				MlmdExecutionID: "exec-1",
+				Fingerprint:     "abc123",
+				CreatedAt:       createdAt,
+			},
+			expectedError: "must specify RunID",
+		},
+		{
+			name: "missing MlmdExecutionID",
+			task: &api.Task{
+				PipelineName: "pipeline/my-pipeline",
+				RunId:        "run-1",
+				Fingerprint:  "abc123",
+				CreatedAt:    createdAt,
+			},
+			expectedError: "must specify MlmdExecutionID",
+		},
+		{
+			name: "missing Fingerprint",
+			task: &api.Task{
+				PipelineName:    "pipeline/my-pipeline",
+				RunId:           "run-1",
+				MlmdExecutionID: "exec-1",
+				CreatedAt:       createdAt,
+			},
+			expectedError: "must specify FingerPrint",
+		},
+		{
+			name: "missing CreatedAt",
+			task: &api.Task{
+				PipelineName:    "pipeline/my-pipeline",
+				RunId:           "run-1",
+				MlmdExecutionID: "exec-1",
+				Fingerprint:     "abc123",
+			},
+			expectedError: "must specify CreatedAt",
+		},
+	}
 
-func TestCreateTaskV1_MissingRunId(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := createTaskServer(manager)
-	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
-		Task: &api.Task{
-			PipelineName:    "pipeline/my-pipeline",
-			MlmdExecutionID: "exec-1",
-			Fingerprint:     "abc123",
-			CreatedAt:       timestamppb.New(time.Unix(1, 0)),
-		},
-	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "must specify RunID")
-}
-
-func TestCreateTaskV1_MissingMlmdExecutionID(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := createTaskServer(manager)
-	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
-		Task: &api.Task{
-			PipelineName: "pipeline/my-pipeline",
-			RunId:        "run-1",
-			Fingerprint:  "abc123",
-			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
-		},
-	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "must specify MlmdExecutionID")
-}
-
-func TestCreateTaskV1_MissingFingerprint(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := createTaskServer(manager)
-	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
-		Task: &api.Task{
-			PipelineName:    "pipeline/my-pipeline",
-			RunId:           "run-1",
-			MlmdExecutionID: "exec-1",
-			CreatedAt:       timestamppb.New(time.Unix(1, 0)),
-		},
-	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "must specify FingerPrint")
-}
-
-func TestCreateTaskV1_MissingCreatedAt(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := createTaskServer(manager)
-	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
-		Task: &api.Task{
-			PipelineName:    "pipeline/my-pipeline",
-			RunId:           "run-1",
-			MlmdExecutionID: "exec-1",
-			Fingerprint:     "abc123",
-		},
-	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "must specify CreatedAt")
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			clients, manager, _ := initWithExperiment(t)
+			defer clients.Close()
+			server := createTaskServer(manager)
+			_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
+				Task: testCase.task,
+			})
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), testCase.expectedError)
+		})
+	}
 }
 
 func TestCreateTaskV1_NamespacedPipeline_Invalid(t *testing.T) {

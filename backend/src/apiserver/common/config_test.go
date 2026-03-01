@@ -22,6 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// NOTE: These tests use viper.Reset() which mutates the global viper singleton.
+// Do not add t.Parallel() to these subtests — the shared viper state would race.
+
 func TestGetStringConfigWithDefault(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -47,8 +50,7 @@ func TestGetStringConfigWithDefault(t *testing.T) {
 			viper.Reset()
 
 			if testCase.setEnv {
-				os.Setenv("TEST_STRING_CONFIG", testCase.envValue)
-				defer os.Unsetenv("TEST_STRING_CONFIG")
+				t.Setenv("TEST_STRING_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv("TEST_STRING_CONFIG")
@@ -101,8 +103,7 @@ func TestGetBoolConfigWithDefault(t *testing.T) {
 			viper.Reset()
 
 			if testCase.setEnv {
-				os.Setenv("TEST_BOOL_CONFIG", testCase.envValue)
-				defer os.Unsetenv("TEST_BOOL_CONFIG")
+				t.Setenv("TEST_BOOL_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv("TEST_BOOL_CONFIG")
@@ -139,8 +140,7 @@ func TestGetFloat64ConfigWithDefault(t *testing.T) {
 			viper.Reset()
 
 			if testCase.setEnv {
-				os.Setenv("TEST_FLOAT_CONFIG", testCase.envValue)
-				defer os.Unsetenv("TEST_FLOAT_CONFIG")
+				t.Setenv("TEST_FLOAT_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv("TEST_FLOAT_CONFIG")
@@ -177,8 +177,7 @@ func TestGetIntConfigWithDefault(t *testing.T) {
 			viper.Reset()
 
 			if testCase.setEnv {
-				os.Setenv("TEST_INT_CONFIG", testCase.envValue)
-				defer os.Unsetenv("TEST_INT_CONFIG")
+				t.Setenv("TEST_INT_CONFIG", testCase.envValue)
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv("TEST_INT_CONFIG")
@@ -277,8 +276,7 @@ func TestGetBoolFromStringWithDefault(t *testing.T) {
 
 func TestGetStringConfig_WhenSet(t *testing.T) {
 	viper.Reset()
-	os.Setenv("TEST_REQUIRED_STRING", "hello")
-	defer os.Unsetenv("TEST_REQUIRED_STRING")
+	t.Setenv("TEST_REQUIRED_STRING", "hello")
 	viper.AutomaticEnv()
 
 	result := GetStringConfig("TEST_REQUIRED_STRING")
@@ -287,8 +285,7 @@ func TestGetStringConfig_WhenSet(t *testing.T) {
 
 func TestGetDurationConfig_WhenSet(t *testing.T) {
 	viper.Reset()
-	os.Setenv("TEST_DURATION", "5s")
-	defer os.Unsetenv("TEST_DURATION")
+	t.Setenv("TEST_DURATION", "5s")
 	viper.AutomaticEnv()
 
 	result := GetDurationConfig("TEST_DURATION")
@@ -534,8 +531,7 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			if testCase.useViperSet {
 				viper.Set(testCase.envKey, testCase.envValue)
 			} else {
-				os.Setenv(testCase.envKey, testCase.envValue)
-				defer os.Unsetenv(testCase.envKey)
+				t.Setenv(testCase.envKey, testCase.envValue)
 				viper.AutomaticEnv()
 			}
 
@@ -584,8 +580,7 @@ func TestGetClusterDomain(t *testing.T) {
 			viper.Reset()
 
 			if testCase.setEnv {
-				os.Setenv(ClusterDomain, testCase.envValue)
-				defer os.Unsetenv(ClusterDomain)
+				t.Setenv(ClusterDomain, testCase.envValue)
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv(ClusterDomain)
@@ -629,8 +624,7 @@ func TestGetMLPipelineServiceName(t *testing.T) {
 			viper.Reset()
 
 			if testCase.setEnv {
-				os.Setenv(MLPipelineServiceName, testCase.envValue)
-				defer os.Unsetenv(MLPipelineServiceName)
+				t.Setenv(MLPipelineServiceName, testCase.envValue)
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv(MLPipelineServiceName)
@@ -674,8 +668,7 @@ func TestGetMetadataServiceName(t *testing.T) {
 			viper.Reset()
 
 			if testCase.setEnv {
-				os.Setenv(MetadataServiceName, testCase.envValue)
-				defer os.Unsetenv(MetadataServiceName)
+				t.Setenv(MetadataServiceName, testCase.envValue)
 				viper.AutomaticEnv()
 			} else {
 				os.Unsetenv(MetadataServiceName)

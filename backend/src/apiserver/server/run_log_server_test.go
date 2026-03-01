@@ -55,7 +55,8 @@ func TestReadRunLogV1_MissingRunId(t *testing.T) {
 	defer clients.Close()
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v1beta1/runs/logs", nil)
+	// URL path is irrelevant here — mux.SetURLVars overrides variable extraction.
+	req := httptest.NewRequest("GET", "/test", nil)
 	req = mux.SetURLVars(req, map[string]string{})
 
 	recorder := httptest.NewRecorder()
@@ -70,7 +71,8 @@ func TestReadRunLogV1_MissingNodeId(t *testing.T) {
 	defer clients.Close()
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v1beta1/runs/some-run-id/nodes/logs", nil)
+	// URL path is irrelevant here — mux.SetURLVars overrides variable extraction.
+	req := httptest.NewRequest("GET", "/test", nil)
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey: "some-run-id",
 	})

@@ -159,9 +159,9 @@ func TestCustomMarshaler(t *testing.T) {
 	marshaler := CustomMarshaler()
 
 	assert.NotNil(t, marshaler)
-	assert.True(t, marshaler.UseProtoNames)
-	assert.False(t, marshaler.EmitUnpopulated)
-	assert.False(t, marshaler.DiscardUnknown)
+	assert.True(t, marshaler.MarshalOptions.UseProtoNames)
+	assert.False(t, marshaler.MarshalOptions.EmitUnpopulated)
+	assert.False(t, marshaler.UnmarshalOptions.DiscardUnknown)
 }
 
 func TestPatchPipelineDefaultParameter(t *testing.T) {
@@ -205,10 +205,8 @@ func TestPatchPipelineDefaultParameter(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			viper.Reset()
-			os.Setenv(DefaultBucketNameEnvVar, testCase.bucket)
-			defer os.Unsetenv(DefaultBucketNameEnvVar)
-			os.Setenv(ProjectIDEnvVar, testCase.project)
-			defer os.Unsetenv(ProjectIDEnvVar)
+			t.Setenv(DefaultBucketNameEnvVar, testCase.bucket)
+			t.Setenv(ProjectIDEnvVar, testCase.project)
 			viper.AutomaticEnv()
 
 			result, err := PatchPipelineDefaultParameter(testCase.input)
