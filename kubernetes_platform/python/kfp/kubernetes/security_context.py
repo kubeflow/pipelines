@@ -23,11 +23,12 @@ def set_security_context(
     task: PipelineTask,
     run_as_user: Optional[int] = None,
     run_as_group: Optional[int] = None,
+    run_as_non_root: Optional[bool] = None,
 ) -> PipelineTask:
     """Set the security context for the task's container.
 
-    Sets identity fields (``runAsUser``, ``runAsGroup``) on the container's
-    `securityContext
+    Sets identity fields (``runAsUser``, ``runAsGroup``, ``runAsNonRoot``) on
+    the container's `securityContext
     <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.26/#securitycontext-v1-core>`_.
 
     All capabilities are automatically dropped to comply with Pod Security
@@ -38,21 +39,31 @@ def set_security_context(
         ``drop ALL capabilities``, ``seccompProfile=RuntimeDefault``) are
         enforced separately by the compiler and are not affected by this
         function. If an administrator or the compiler has already set
-        ``runAsUser`` or ``runAsGroup``, the values provided here will be
-        ignored and a warning will be logged by the backend. Admin-set
-        security context values cannot be overridden by the SDK.
+        ``runAsUser``, ``runAsGroup``, or ``runAsNonRoot``, the values
+        provided here will be ignored and a warning will be logged by the
+        backend. Admin-set security context values cannot be overridden by
+        the SDK.
 
     Args:
         task: Pipeline task.
         run_as_user: The UID to run the container process as.
         run_as_group: The GID to run the container process as.
+        run_as_non_root: Whether the container must run as a non-root user.
 
     Returns:
         Task object with an updated security context.
     """
-    if run_as_user is None and run_as_group is None:
+    if run_as_user is None and run_as_group is None and run_as_non_root is None:
         raise ValueError(
             'At least one security context field must be provided.'
+        )
+    if run_as_user is not None and isinstance(run_as_user, bool):
+        raise TypeError(
+            f'Argument for "run_as_user" must be an int, not bool. Got: {run_as_user}.'
+        )
+    if run_as_group is not None and isinstance(run_as_group, bool):
+        raise TypeError(
+            f'Argument for "run_as_group" must be an int, not bool. Got: {run_as_group}.'
         )
     if run_as_user is not None and run_as_user < 0:
         raise ValueError(
@@ -62,6 +73,10 @@ def set_security_context(
         raise ValueError(
             f'Argument for "run_as_group" must be greater than or equal to 0. Got invalid input: {run_as_group}.'
         )
+    if run_as_non_root is not None and not isinstance(run_as_non_root, bool):
+        raise TypeError(
+            f'Argument for "run_as_non_root" must be a bool. Got: {type(run_as_non_root).__name__}.'
+        )
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
@@ -70,6 +85,9 @@ def set_security_context(
 
     if run_as_group is not None:
         msg.security_context.run_as_group = run_as_group
+
+    if run_as_non_root is not None:
+        msg.security_context.run_as_non_root = run_as_non_root
 
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 

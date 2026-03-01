@@ -146,6 +146,18 @@ const PAGES = [
     waitForData: '[role="tab"], .ace_editor',
   },
   {
+    name: 'pipeline-details-seeded-sidepanel',
+    path: '/#/pipelines/details/{seed.pipelineId}',
+    waitFor: '#root',
+    waitForData: '[role="tab"], .ace_editor',
+    actions: [
+      { type: 'click', selector: 'text=flip-coin-op', optional: true },
+      { type: 'click', selector: 'text=print-op', optional: true },
+      { type: 'click', selector: 'text=exit-handler-1', optional: true },
+      { type: 'waitForSelector', selector: '[aria-label="close"]' },
+    ],
+  },
+  {
     name: 'experiments',
     path: '/#/experiments',
     waitFor: '[class*="tableRow"]',
@@ -168,6 +180,23 @@ const PAGES = [
         optional: true,
       },
       { type: 'waitForTimeout', ms: 1000, optional: true },
+    ],
+  },
+  {
+    name: 'run-details-seeded-sidepanel',
+    path: '/#/runs/details/{seed.runId}',
+    waitFor: '#root',
+    actions: [
+      {
+        type: 'click',
+        selector: '[role="tab"]:has-text("Graph"), button:has-text("Graph")',
+        optional: true,
+      },
+      { type: 'click', selector: 'text=flip-coin-op', optional: true },
+      { type: 'click', selector: 'text=print-op', optional: true },
+      { type: 'click', selector: 'text=exit-handler-1', optional: true },
+      { type: 'waitForSelector', selector: '[aria-label="close"]' },
+      { type: 'waitForTimeout', ms: 750, optional: true },
     ],
   },
   { name: 'compare-seeded', path: '/#/compare?runlist={seed.compareRunlist}', waitFor: '#root' },

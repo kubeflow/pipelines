@@ -58,7 +58,26 @@ jobs:
         shell: bash
         id: get-tag
         run: |
-          lastRelease=$(curl -sSL -H "Accept: application/vnd.github+json" "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name)
+          lastRelease=""
+          for attempt in 1 2 3; do
+            lastRelease=$(curl -sSL --fail-with-body --connect-timeout 10 --max-time 60 \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name 2>/dev/null || echo "")
+            if [[ -n "$lastRelease" && "$lastRelease" != "null" ]]; then
+              break
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              echo "Attempt $attempt: Failed to fetch release tag. Retrying in 5s..."
+              sleep 5
+            fi
+          done
+
+          if [[ -z "$lastRelease" || "$lastRelease" == "null" ]]; then
+            echo "::error::Could not fetch latest release tag from GitHub API after 3 attempts."
+            exit 1
+          fi
+
           echo "Fetched last release tag: $lastRelease"
           echo "lastRelease=$lastRelease" >> "$GITHUB_OUTPUT"
 
