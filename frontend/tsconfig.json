@@ -2,6 +2,11 @@
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
+    "paths": {
+      "@storybook/react": ["./node_modules/@storybook/react/dist/index.d.ts"],
+      "@storybook/react-vite": ["./node_modules/@storybook/react-vite/dist/index.d.ts"],
+      "storybook/test": ["./node_modules/storybook/dist/test/index.d.ts"]
+    },
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
