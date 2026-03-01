@@ -214,6 +214,7 @@ class UploadPipelineDialog extends React.Component<
             label='Pipeline name'
             onChange={this.handleChange('uploadPipelineName')}
             required={true}
+            autoFocus={true}
             value={uploadPipelineName}
             variant='outlined'
           />
