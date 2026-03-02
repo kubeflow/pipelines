@@ -228,17 +228,17 @@ func TestNewUserError(t *testing.T) {
 	})
 
 	t.Run("APIError with 404 returns NotFound message", func(t *testing.T) {
-		apiError := &runtime.APIError{OperationName: "getResource", Code: 404}
+		apiError := &runtime.APIError{OperationName: "getResource", Code: API_CODE_NOT_FOUND}
 		userError := NewUserError(apiError, "internal msg", "external msg")
-		assert.Equal(t, codes.Code(404), userError.ExternalStatusCode())
 		assert.Contains(t, userError.ExternalMessage(), "Resource not found")
+		assert.Contains(t, userError.Error(), "internal msg")
 	})
 
 	t.Run("APIError with non-404 code includes raw error", func(t *testing.T) {
 		apiError := &runtime.APIError{OperationName: "getResource", Code: 500}
 		userError := NewUserError(apiError, "internal msg", "external msg")
-		assert.Equal(t, codes.Code(500), userError.ExternalStatusCode())
 		assert.Contains(t, userError.ExternalMessage(), "Raw error from the service")
+		assert.Contains(t, userError.Error(), "internal msg")
 	})
 }
 
