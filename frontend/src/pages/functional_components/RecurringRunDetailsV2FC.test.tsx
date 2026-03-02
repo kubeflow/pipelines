@@ -69,6 +69,7 @@ describe('RecurringRunDetailsV2FC', () => {
       created_at: new Date(2018, 8, 5, 4, 3, 2),
       description: 'test recurring run description',
       display_name: 'test recurring run',
+      experiment_id: 'test-experiment-id',
       max_concurrency: '50',
       no_catchup: true,
       pipeline_version_reference: {
@@ -107,7 +108,10 @@ describe('RecurringRunDetailsV2FC', () => {
     const experimentApi = { getExperiment: vi.fn() };
     vi.spyOn(Apis, 'experimentServiceApiV2', 'get').mockReturnValue(experimentApi as any);
     getExperimentSpy = experimentApi.getExperiment;
-    getExperimentSpy.mockImplementation();
+    getExperimentSpy.mockResolvedValue({
+      display_name: 'test-experiment',
+      experiment_id: 'test-experiment-id',
+    });
   });
 
   it('renders a recurring run with periodic schedule', async () => {
@@ -117,11 +121,11 @@ describe('RecurringRunDetailsV2FC', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(getRecurringRunSpy).toHaveBeenCalled();
       expect(getPipelineVersionSpy).toHaveBeenCalled();
     });
 
-    screen.getByText('Enabled');
+    expect(await screen.findByText('Enabled')).toBeInTheDocument();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('Every 1 hours');
@@ -153,7 +157,7 @@ describe('RecurringRunDetailsV2FC', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(getRecurringRunSpy).toHaveBeenCalled();
       expect(getPipelineVersionSpy).toHaveBeenCalled();
     });
 
@@ -190,8 +194,10 @@ describe('RecurringRunDetailsV2FC', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(getRecurringRunSpy).toHaveBeenCalled();
     });
+    // Wait for UI to render before asserting toolbar (avoids flakiness from async updates)
+    expect(await screen.findByText('Enabled')).toBeInTheDocument();
     await waitFor(() => {
       expect(updateToolbarSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({

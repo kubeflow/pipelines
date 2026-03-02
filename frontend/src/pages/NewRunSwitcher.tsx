@@ -115,7 +115,7 @@ function NewRunSwitcher(props: PageProps) {
     V2beta1PipelineVersion,
     Error
   >({
-    queryKey: ['pipelineVersion', pipelineVersionIdParam],
+    queryKey: ['pipelineVersion', pipelineId, pipelineVersionId],
 
     queryFn: () => {
       if (!(pipelineId && pipelineVersionId)) {
@@ -132,7 +132,7 @@ function NewRunSwitcher(props: PageProps) {
   const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
 
   const { isFetching: v1TemplateStrIsFetching, data: v1Template } = useQuery<string, Error>({
-    queryKey: ['v1PipelineVersionTemplate', pipelineVersionIdParam],
+    queryKey: ['v1PipelineVersionTemplate', pipelineId, pipelineVersionId],
 
     queryFn: async () => {
       if (!(pipelineId && pipelineVersionId)) {
@@ -150,7 +150,7 @@ function NewRunSwitcher(props: PageProps) {
       return v1TemplateResponse.template || '';
     },
 
-    enabled: !!pipelineId || !!pipelineVersionId,
+    enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: Infinity,
     cacheTime: 0,
   });
