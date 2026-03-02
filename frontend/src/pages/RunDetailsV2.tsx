@@ -14,13 +14,11 @@
 
 import * as React from 'react';
 import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
-import { Edge, FlowElement, Node } from 'react-flow-renderer';
 import { useQuery } from 'react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
@@ -37,7 +35,7 @@ import {
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
+import { convertFlowElements, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -75,7 +73,7 @@ interface RunDetailsV2Info {
 export type RunDetailsV2Props = RunDetailsV2Info & RunDetailsProps;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
-  const runId = props.match.params[RouteParams.runId];
+  const runId = (props.match.params as Record<string, string>)[RouteParams.runId];
   const run = props.run;
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
@@ -84,13 +82,18 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [flowElements, setFlowElements] = useState(elements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<FlowElement<FlowElementDataBase> | null>(null);
+  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
-  const getNodeName = function (element: FlowElement<FlowElementDataBase> | null): string {
-    if (element && element.data && element.data.label) {
+  const getNodeName = function(element: PipelineFlowElement | null): string {
+    if (
+      element &&
+      element.data &&
+      'label' in element.data &&
+      typeof element.data.label === 'string'
+    ) {
       return element.data.label;
     }
 
@@ -140,7 +143,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     );
   }
 
-  const onElementSelection = (event: ReactMouseEvent, element: Node | Edge) => {
+  const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
     if (data) {
       setSelectedNodeMlmdInfo(
@@ -165,7 +168,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
-  const [runIdFromParams] = useState(props.match.params[RouteParams.runId]);
+  const [runIdFromParams] = useState(
+    (props.match.params as Record<string, string>)[RouteParams.runId],
+  );
   useEffect(() => {
     if (hasFinishedV2(run.state)) {
       setRunFinished(true);

@@ -16,13 +16,8 @@
 
 import { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  OnLoadParams,
-  ReactFlowProvider,
-} from 'react-flow-renderer';
+import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import 'src/build/tailwind.output.css';
 import SubDagNode from '../../components/graph/SubDagNode';
 
@@ -36,11 +31,11 @@ interface WrappedSubDagNodeProps {
 }
 
 function WrappedSubDagNode({ id, label }: WrappedSubDagNodeProps) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
+  const onInit = (reactFlowInstance: { fitView: () => void }) => {
     reactFlowInstance.fitView();
   };
 
-  const elements = [
+  const nodes = [
     {
       id: id,
       type: 'subDag',
@@ -58,11 +53,12 @@ function WrappedSubDagNode({ id, label }: WrappedSubDagNodeProps) {
       <ReactFlowProvider>
         <ReactFlow
           style={{ background: '#F5F5F5' }}
-          elements={elements}
+          nodes={nodes}
+          edges={[]}
           snapToGrid={true}
           nodeTypes={nodeTypes}
           edgeTypes={{}}
-          onLoad={onLoad}
+          onInit={onInit}
         >
           <MiniMap />
           <Controls />

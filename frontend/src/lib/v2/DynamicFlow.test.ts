@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Node } from 'react-flow-renderer';
+import { Node } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';

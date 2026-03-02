@@ -16,13 +16,8 @@
 
 import { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  OnLoadParams,
-  ReactFlowProvider,
-} from 'react-flow-renderer';
+import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import 'src/build/tailwind.output.css';
 import { color } from 'src/Css';
 import { Artifact } from 'src/third_party/mlmd';
@@ -39,11 +34,11 @@ interface WrappedArtifactNodeProps {
 }
 
 function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
+  const onInit = (reactFlowInstance: { fitView: () => void }) => {
     reactFlowInstance.fitView();
   };
 
-  const elements = [
+  const nodes = [
     {
       id: id,
       type: 'artifact',
@@ -61,11 +56,12 @@ function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
       <ReactFlowProvider>
         <ReactFlow
           style={{ background: '#F5F5F5' }}
-          elements={elements}
+          nodes={nodes}
+          edges={[]}
           snapToGrid={true}
           nodeTypes={nodeTypes}
           edgeTypes={{}}
-          onLoad={onLoad}
+          onInit={onInit}
         >
           <MiniMap />
           <Controls />

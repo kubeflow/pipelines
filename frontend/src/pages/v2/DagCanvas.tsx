@@ -14,28 +14,41 @@
  * limitations under the License.
  */
 
-import React, { MouseEvent as ReactMouseEvent } from 'react';
-import ReactFlow, {
+import React, { MouseEvent as ReactMouseEvent, useCallback, useMemo } from 'react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   Edge,
-  Elements,
   MiniMap,
   Node,
-  OnLoadParams,
-  ReactFlowProvider,
-} from 'react-flow-renderer';
+  applyNodeChanges,
+  NodeChange,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
-import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
+import {
+  getTaskKeyFromNodeKey,
+  NodeTypeNames,
+  NODE_TYPES,
+  PipelineFlowElement,
+} from 'src/lib/v2/StaticFlow';
+
+type PipelineNode = Node<FlowElementDataBase>;
+
+function isNode(el: PipelineFlowElement): el is PipelineNode {
+  return 'position' in el;
+}
 
 export interface DagCanvasProps {
-  elements: Elements<FlowElementDataBase>;
-  setFlowElements: (elements: Elements<any>) => void;
+  elements: PipelineFlowElement[];
+  setFlowElements: (elements: PipelineFlowElement[]) => void;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
-  onElementClick: (event: ReactMouseEvent, element: Node | Edge) => void;
+  onElementClick: (event: ReactMouseEvent, element: PipelineFlowElement) => void;
 }
 
 export default function DagCanvas({
@@ -45,19 +58,25 @@ export default function DagCanvas({
   setFlowElements,
   onElementClick,
 }: DagCanvasProps) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
-    reactFlowInstance.fitView();
-  };
+  const nodes = useMemo(() => elements.filter(isNode), [elements]);
+  const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      const updatedNodes = applyNodeChanges(changes, nodes) as PipelineNode[];
+      setFlowElements([...updatedNodes, ...edges]);
+    },
+    [nodes, edges, setFlowElements],
+  );
 
   const subDagExpand = (nodeKey: string) => {
     const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
     onLayersUpdate(newLayers);
   };
 
-  elements.forEach((elem) => {
-    // For each SubDag node, provide a callback function if expand button is clicked.
-    if (elem && elem.type === NodeTypeNames.SUB_DAG && elem.data) {
-      elem.data.expand = subDagExpand;
+  nodes.forEach(node => {
+    if (node && node.type === NodeTypeNames.SUB_DAG && node.data) {
+      node.data.expand = subDagExpand;
     }
   });
 
@@ -66,24 +85,17 @@ export default function DagCanvas({
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
-          <ReactFlow
+          <ReactFlow<PipelineNode, Edge>
             style={{ background: color.lightGrey }}
-            elements={elements}
+            nodes={nodes}
+            edges={edges}
             snapToGrid={true}
-            onLoad={onLoad}
+            onInit={instance => instance.fitView()}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
-            onElementClick={onElementClick}
-            onNodeDragStop={(event, node) => {
-              setFlowElements(
-                elements.map((value) => {
-                  if (value.id === node.id) {
-                    return node;
-                  }
-                  return value;
-                }),
-              );
-            }}
+            onNodeClick={(event, node) => onElementClick(event, node)}
+            onEdgeClick={(event, edge) => onElementClick(event, edge)}
+            onNodesChange={onNodesChange}
           >
             <MiniMap />
             <Controls />
