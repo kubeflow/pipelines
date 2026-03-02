@@ -16,6 +16,9 @@
 **Assignee**: @jeffspahr
 **Depends on**: Nothing
 
+**Status**:
+Completed via [#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), and [#12872](https://github.com/kubeflow/pipelines/pull/12872).
+
 **Description**:
 Land cleanup PRs ([#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), [#12872](https://github.com/kubeflow/pipelines/pull/12872)) that remove `react-dom/test-utils` imports, `snapshot-diff`, upgrade `re-resizable`, add DOM nesting warning coverage, and remove dead dependencies. Goal: reduce warning/test noise before dependency migrations begin.
 
@@ -26,6 +29,9 @@ Land cleanup PRs ([#12855](https://github.com/kubeflow/pipelines/pull/12855), [#
 **Labels**: `area/frontend`, `priority/p0`, `kind/infra`
 **Assignee**: @jeffspahr
 **Depends on**: #1
+
+**Status**:
+Completed via [#12881](https://github.com/kubeflow/pipelines/pull/12881).
 
 **Description**:
 Add `check-react-peers.mjs` script ([#12881](https://github.com/kubeflow/pipelines/pull/12881)) and wire it into `npm run test:ci`. Introduces `npm run check:react-peers` (target 17), `check:react-peers:18`, and `check:react-peers:19`. The gate enforces that all dependencies declare peer ranges supporting the target React version. An allowlist tracks known exceptions with documented justifications.
