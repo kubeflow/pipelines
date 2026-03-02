@@ -392,5 +392,6 @@ func TestGRPCStatus(t *testing.T) {
 	grpcStatus := userError.GRPCStatus()
 	assert.NotNil(t, grpcStatus)
 	assert.Equal(t, codes.NotFound, grpcStatus.Code())
-	assert.NotEmpty(t, grpcStatus.Details())
+	details := grpcStatus.Details()
+	assert.Greater(t, len(details), 0)
 }

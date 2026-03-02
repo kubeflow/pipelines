@@ -15,6 +15,8 @@
 package util
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +29,18 @@ func TestGetTLSConfigEmptyPath(t *testing.T) {
 }
 
 func TestGetTLSConfigNonexistentPath(t *testing.T) {
-	config, err := GetTLSConfig("/nonexistent/path/to/cert.pem")
+	nonexistentPath := filepath.Join(t.TempDir(), "nonexistent-cert.pem")
+	config, err := GetTLSConfig(nonexistentPath)
 	assert.Nil(t, config)
 	assert.Error(t, err)
+}
+
+func TestGetTLSConfigInvalidPEM(t *testing.T) {
+	invalidPEMFile := filepath.Join(t.TempDir(), "invalid-cert.pem")
+	err := os.WriteFile(invalidPEMFile, []byte("this is not valid PEM content"), 0644)
+	assert.NoError(t, err)
+
+	config, err := GetTLSConfig(invalidPEMFile)
+	assert.Nil(t, config)
+	assert.Nil(t, err)
 }
