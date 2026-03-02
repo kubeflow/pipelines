@@ -23,8 +23,6 @@ import {
   Edge,
   MiniMap,
   Node,
-  applyNodeChanges,
-  NodeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
@@ -49,6 +47,7 @@ export interface DagCanvasProps {
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
   onElementClick: (event: ReactMouseEvent, element: PipelineFlowElement) => void;
+  nodesDraggable?: boolean;
 }
 
 export default function DagCanvas({
@@ -57,16 +56,19 @@ export default function DagCanvas({
   onLayersUpdate,
   setFlowElements,
   onElementClick,
+  nodesDraggable = true,
 }: DagCanvasProps) {
   const nodes = useMemo(() => elements.filter(isNode), [elements]);
   const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
 
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      const updatedNodes = applyNodeChanges(changes, nodes) as PipelineNode[];
-      setFlowElements([...updatedNodes, ...edges]);
+  const onNodeDragStop = useCallback(
+    (_event: ReactMouseEvent, draggedNode: PipelineNode) => {
+      const updatedElements = elements.map(el =>
+        isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
+      );
+      setFlowElements(updatedElements);
     },
-    [nodes, edges, setFlowElements],
+    [elements, setFlowElements],
   );
 
   const subDagExpand = (nodeKey: string) => {
@@ -90,12 +92,13 @@ export default function DagCanvas({
             nodes={nodes}
             edges={edges}
             snapToGrid={true}
+            nodesDraggable={nodesDraggable}
             onInit={instance => instance.fitView()}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
             onNodeClick={(event, node) => onElementClick(event, node)}
             onEdgeClick={(event, edge) => onElementClick(event, edge)}
-            onNodesChange={onNodesChange}
+            onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
           >
             <MiniMap />
             <Controls />

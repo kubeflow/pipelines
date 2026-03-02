@@ -16,8 +16,9 @@ if (!globalThis.DOMMatrixReadOnly) {
 }
 
 // @xyflow/react's d3-drag dependency accesses event.view.document on mousedown,
-// but jsdom leaves event.view null. Suppress the resulting uncaught TypeError so
-// Vitest does not treat it as a test failure.
+// but jsdom leaves event.view null. This must be global (not per-file beforeAll)
+// because Vitest's process-level uncaught-exception monitor fires before scoped
+// window error handlers in parallel worker threads.
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event: ErrorEvent) => {
     if (

@@ -80,6 +80,7 @@ function PipelineDetailsV2({
             elements={pipelineFlowElements}
             onElementClick={(_event, element) => setSelectedNode(element)}
             setFlowElements={() => {}}
+            nodesDraggable={false}
           ></DagCanvas>
           <PipelineVersionCard
             pipeline={pipeline}
