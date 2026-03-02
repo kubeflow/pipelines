@@ -1542,6 +1542,88 @@ func TestUpdateRunPreservesPluginsFields(t *testing.T) {
 	assert.Equal(t, model.RuntimeStateSucceeded, got.State)
 }
 
+func TestUpdateRunPersistsNewPluginsFields(t *testing.T) {
+	const runUUID = "update-new-plugins-1"
+	db, runStore := initializeRunStore()
+	defer func() { require.NoError(t, db.Close()) }()
+
+	run := &model.Run{
+		UUID:         runUUID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "update-plugins-run",
+		DisplayName:  "update-plugins-run",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          100,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"initial"}}`),
+			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"RUNNING"}}`),
+		},
+	}
+	_, err := runStore.CreateRun(run)
+	require.NoError(t, err)
+
+	// Simulate run completion: update state and plugins_output with new data.
+	run.State = model.RuntimeStateSucceeded
+	run.Conditions = "Succeeded"
+	run.PluginsOutputString = testLargeTextPtr(`{"mlflow":{"state":"SUCCEEDED","run_id":"run-123"}}`)
+	err = runStore.UpdateRun(run)
+	require.NoError(t, err)
+
+	got, err := runStore.GetRun(runUUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.PluginsInputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"experiment_name":"initial"}}`), *got.PluginsInputString)
+	require.NotNil(t, got.PluginsOutputString)
+	assert.Equal(t, model.LargeText(`{"mlflow":{"state":"SUCCEEDED","run_id":"run-123"}}`), *got.PluginsOutputString)
+	assert.Equal(t, model.RuntimeStateSucceeded, got.State)
+}
+
+func TestUpdateRunWithNilPluginsFieldsWritesNull(t *testing.T) {
+	const runUUID = "update-nil-plugins-1"
+	db, runStore := initializeRunStore()
+	defer func() { require.NoError(t, db.Close()) }()
+
+	run := &model.Run{
+		UUID:         runUUID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "update-nil-plugins-run",
+		DisplayName:  "update-nil-plugins-run",
+		Namespace:    "n1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          100,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "workflow1",
+			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"to-clear"}}`),
+			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"RUNNING"}}`),
+		},
+	}
+	_, err := runStore.CreateRun(run)
+	require.NoError(t, err)
+
+	got, err := runStore.GetRun(runUUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.PluginsInputString)
+	got.PluginsInputString = nil
+	got.PluginsOutputString = nil
+	got.State = model.RuntimeStateSucceeded
+	got.Conditions = "Succeeded"
+	err = runStore.UpdateRun(got)
+	require.NoError(t, err)
+
+	var pluginsInput, pluginsOutput sql.NullString
+	row := db.QueryRow("SELECT PluginsInput, PluginsOutput FROM run_details WHERE UUID = ?", runUUID)
+	err = row.Scan(&pluginsInput, &pluginsOutput)
+	require.NoError(t, err)
+	assert.False(t, pluginsInput.Valid, "PluginsInput should be NULL after update with nil")
+	assert.False(t, pluginsOutput.Valid, "PluginsOutput should be NULL after update with nil")
+}
+
 func TestListRunsReturnsPluginsFields(t *testing.T) {
 	const runName = "list-run"
 	db, runStore := initializeRunStore()

@@ -587,6 +587,8 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 			"StateHistory":            stateHistoryString,
 			"FinishedAtInSec":         run.FinishedAtInSec,
 			"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
+			"PluginsInput":            largeTextToNullableSQL(run.PluginsInputString),
+			"PluginsOutput":           largeTextToNullableSQL(run.PluginsOutputString),
 		}).
 		Where(sq.Eq{"UUID": run.UUID}).
 		ToSql()
