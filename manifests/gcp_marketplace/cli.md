@@ -108,13 +108,13 @@ export APP_INSTANCE_NAME=kubeflow-pipelines-app
 export NAMESPACE=<namespace>
 ```
 
-Creat the namespace
+Create the namespace
 ```shell
 kubectl create namespace $NAMESPACE
 ```
 
 Follow the [instruction](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/blob/master/docs/tool-prerequisites.md#tool-prerequisites) and install mpdev
-TODO: The official mpdev won't work because it doesn't have permission to deploy CRD. The latest unofficial build will have right permission. Remove following instruction when change is in prod.
+Note: The official `mpdev` image may not have permission to deploy CRDs. Use the temporary image below until upstream permissions are fixed.
 ```
 BIN_FILE="$HOME/bin/mpdev"
 docker run gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:remove-ui-ownerrefs cat /scripts/dev > "$BIN_FILE"
