@@ -17,8 +17,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -34,6 +36,12 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	urlSchemeJavaScript = "javascript:"
+	urlSchemeData       = "data:"
+	urlSchemeVBScript   = "vbscript:"
 )
 
 // Converts API experiment to its internal representation.
@@ -1252,6 +1260,9 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		if pluginsInputStr, err = pluginsInputToJSON(apiRunV2.GetPluginsInput()); err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
 		}
+		if err = validatePluginsOutput(apiRunV2.GetPluginsOutput()); err != nil {
+			return nil, util.NewInvalidInputError("Invalid plugins_output: %v", err)
+		}
 		if pluginsOutputStr, err = pluginsOutputToJSON(apiRunV2.GetPluginsOutput()); err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to convert plugins_output to JSON")
 		}
@@ -1556,6 +1567,13 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 	}
 	apiRunV2.PluginsOutput, err = jsonToPluginsOutput(largeTextToString(r.PluginsOutputString))
 	if err != nil {
+		return &apiv2beta1.Run{
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
+		}
+	}
+	if err = validatePluginsOutput(apiRunV2.PluginsOutput); err != nil {
 		return &apiv2beta1.Run{
 			RunId:        r.UUID,
 			ExperimentId: r.ExperimentId,
@@ -2614,6 +2632,81 @@ func pluginsOutputToJSON(pluginsOutput map[string]*apiv2beta1.PluginOutput) (*st
 	}
 	s := string(out)
 	return &s, nil
+}
+
+func validatePluginsOutput(pluginsOutput map[string]*apiv2beta1.PluginOutput) error {
+	for pluginKey, output := range pluginsOutput {
+		if output == nil {
+			continue
+		}
+		if err := validatePluginOutputEntries(pluginKey, output.Entries); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validatePluginOutputEntries(pluginKey string, entries map[string]*apiv2beta1.MetadataValue) error {
+	for entryKey, metadata := range entries {
+		if metadata == nil || metadata.Value == nil {
+			continue
+		}
+		if metadata.GetContentType() != apiv2beta1.MetadataValue_URL {
+			continue
+		}
+		if err := validateURLMetadataValue(pluginKey, entryKey, metadata); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateURLMetadataValue(pluginKey string, entryKey string, metadata *apiv2beta1.MetadataValue) error {
+	urlValue, err := getURLMetadataString(pluginKey, entryKey, metadata)
+	if err != nil {
+		return err
+	}
+	lowerTrimmed := strings.ToLower(urlValue)
+	if hasDisallowedURLSchemePrefix(lowerTrimmed) {
+		return fmt.Errorf("plugins_output[%q].entries[%q] has disallowed URL scheme", pluginKey, entryKey)
+	}
+	parsed, err := url.Parse(urlValue)
+	if err != nil {
+		return fmt.Errorf("plugins_output[%q].entries[%q] has invalid URL: %w", pluginKey, entryKey, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("plugins_output[%q].entries[%q] has invalid URL: missing scheme or host", pluginKey, entryKey)
+	}
+	if !isAllowedURLScheme(parsed.Scheme) {
+		return fmt.Errorf("plugins_output[%q].entries[%q] URL scheme must be http or https", pluginKey, entryKey)
+	}
+	return nil
+}
+
+func getURLMetadataString(pluginKey string, entryKey string, metadata *apiv2beta1.MetadataValue) (string, error) {
+	stringValue, isStringValue := metadata.Value.Kind.(*structpb.Value_StringValue)
+	if !isStringValue {
+		return "", fmt.Errorf("plugins_output[%q].entries[%q] URL content_type requires string value", pluginKey, entryKey)
+	}
+	return strings.TrimSpace(stringValue.StringValue), nil
+}
+
+func hasDisallowedURLSchemePrefix(urlValueLower string) bool {
+	for _, disallowedScheme := range []string{
+		urlSchemeJavaScript,
+		urlSchemeData,
+		urlSchemeVBScript,
+	} {
+		if strings.HasPrefix(urlValueLower, disallowedScheme) {
+			return true
+		}
+	}
+	return false
+}
+
+func isAllowedURLScheme(urlScheme string) bool {
+	lowerScheme := strings.ToLower(urlScheme)
+	return lowerScheme == "http" || lowerScheme == "https"
 }
 
 func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2beta1.PluginOutput, error) {

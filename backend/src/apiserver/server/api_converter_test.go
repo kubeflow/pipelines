@@ -38,6 +38,7 @@ import (
 const testPluginsExperimentName = "my-exp"
 const testPluginsRecurringExperimentName = "recurring-exp"
 const testPluginsJobName = "test-job"
+const testPluginsUnsafeJavaScriptURL = "javascript:alert(1)"
 
 func strPtr(s string) *string {
 	return &s
@@ -4940,6 +4941,252 @@ func TestJSONToPluginsOutput(t *testing.T) {
 	}
 }
 
+func TestValidatePluginsOutput(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   map[string]*apiv2beta1.PluginOutput
+		wantErr bool
+	}{
+		{
+			name:  "nil map",
+			input: nil,
+		},
+		{
+			name:  "empty map",
+			input: map[string]*apiv2beta1.PluginOutput{},
+		},
+		{
+			name: "valid http URL content type",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue("http://example.com/run/1"),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid https URL content type",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue("https://example.com/run/1"),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "plain string without scheme",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_id": {
+							Value: structpb.NewStringValue("abc123"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "javascript scheme without URL content type is allowed",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value: structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "data scheme without URL content type is allowed",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value: structpb.NewStringValue("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "vbscript scheme without URL content type is allowed",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value: structpb.NewStringValue("vbscript:msgbox(1)"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "url content type with ftp rejected",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue("ftp://example.com/run/1"),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "url content type with malformed URL rejected",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue("http://%"),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "url content type with empty string rejected",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue(""),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "url content type with whitespace-only string rejected",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue("   "),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "url content type with javascript rejected",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "url content type with mixed-case javascript and leading spaces rejected",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue("  JaVaScRiPt:alert(1)"),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "mixed valid and invalid entries",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_id": {
+							Value: structpb.NewStringValue("abc123"),
+						},
+						"run_url": {
+							Value:       structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "url content type with non-string value rejected",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewNumberValue(42),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "nil plugin output is ignored",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": nil,
+			},
+		},
+		{
+			name: "nil metadata entry is ignored",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": nil,
+					},
+				},
+			},
+		},
+		{
+			name: "metadata with nil value is ignored",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:       nil,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePluginsOutput(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestToModelRunPluginsFields(t *testing.T) {
 	pluginsInput := map[string]*structpb.Struct{
 		"mlflow": {Fields: map[string]*structpb.Value{
@@ -5005,6 +5252,31 @@ func TestToModelRunPluginsFields(t *testing.T) {
 		assert.Nil(t, got.PluginsInputString)
 		assert.Nil(t, got.PluginsOutputString)
 	})
+
+	t.Run("invalid plugins output URL scheme returns error", func(t *testing.T) {
+		apiRun := &apiv2beta1.Run{
+			RunId:       "run3",
+			DisplayName: "test-invalid",
+			PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+				PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+					PipelineId: "p1", PipelineVersionId: "pv1",
+				},
+			},
+			PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:       structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
+							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+				},
+			},
+		}
+
+		_, err := toModelRun(apiRun)
+		require.Error(t, err)
+	})
 }
 
 func TestToApiRunPluginsFields(t *testing.T) {
@@ -5051,6 +5323,23 @@ func TestToApiRunPluginsFields(t *testing.T) {
 		}
 		got := toApiRun(modelRun)
 		assert.Nil(t, got.PluginsInput)
+		assert.Nil(t, got.PluginsOutput)
+	})
+
+	t.Run("invalid plugins output URL in storage returns API error", func(t *testing.T) {
+		modelRun := &model.Run{
+			UUID:        "run3",
+			DisplayName: "test-invalid",
+			PipelineSpec: model.PipelineSpec{
+				PipelineVersionId: "pv1",
+				PipelineId:        "p1",
+			},
+			RunDetails: model.RunDetails{
+				PluginsOutputString: testLargeTextPtr(`{"mlflow":{"entries":{"run_url":{"value":"` + testPluginsUnsafeJavaScriptURL + `","contentType":"URL"}}}}`),
+			},
+		}
+		got := toApiRun(modelRun)
+		require.NotNil(t, got.Error)
 		assert.Nil(t, got.PluginsOutput)
 	})
 }
