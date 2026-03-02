@@ -18,8 +18,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import TestUtils, { expectErrors, queryClientTest } from 'src/TestUtils';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
-import TestUtils, { expectErrors } from 'src/TestUtils';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis } from 'src/lib/Apis';
@@ -64,6 +64,7 @@ describe('RecurringRunDetailsV2FC', () => {
   }
 
   beforeEach(() => {
+    queryClientTest.clear();
     fullTestV2RecurringRun = {
       created_at: new Date(2018, 8, 5, 4, 3, 2),
       description: 'test recurring run description',
@@ -152,10 +153,11 @@ describe('RecurringRunDetailsV2FC', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalled();
+      expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
+      expect(getPipelineVersionSpy).toHaveBeenCalled();
     });
 
-    screen.getByText('Enabled');
+    expect(await screen.findByText('Enabled')).toBeInTheDocument();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('* * * 0 0 !');
@@ -188,15 +190,16 @@ describe('RecurringRunDetailsV2FC', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalled();
+      expect(getRecurringRunSpy).toHaveBeenCalledTimes(2);
     });
-
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
-        pageTitle: fullTestV2RecurringRun.display_name,
-      }),
-    );
+    await waitFor(() => {
+      expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
+          pageTitle: fullTestV2RecurringRun.display_name,
+        }),
+      );
+    });
   });
 
   it('loads the recurring run and its experiment if it has one', async () => {
@@ -209,9 +212,10 @@ describe('RecurringRunDetailsV2FC', () => {
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
     });
-
     expect(getRecurringRunSpy).toHaveBeenLastCalledWith(fullTestV2RecurringRun.recurring_run_id);
-    expect(getExperimentSpy).toHaveBeenLastCalledWith('test-experiment-id');
+    await waitFor(() => {
+      expect(getExperimentSpy).toHaveBeenLastCalledWith('test-experiment-id');
+    });
   });
 
   it('shows Experiments -> Experiment name -> run name when there is an experiment', async () => {
@@ -229,27 +233,34 @@ describe('RecurringRunDetailsV2FC', () => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
       expect(getExperimentSpy).toHaveBeenCalled();
     });
-
-    expect(updateToolbarSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        breadcrumbs: [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: 'test experiment name',
-            href: RoutePage.EXPERIMENT_DETAILS.replace(
-              ':' + RouteParams.experimentId,
-              'test-experiment-id',
-            ),
-          },
-        ],
-        pageTitle: fullTestV2RecurringRun.display_name,
-      }),
-    );
+    await waitFor(() => {
+      expect(updateToolbarSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          breadcrumbs: [
+            { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+            {
+              displayName: 'test experiment name',
+              href: RoutePage.EXPERIMENT_DETAILS.replace(
+                ':' + RouteParams.experimentId,
+                'test-experiment-id',
+              ),
+            },
+          ],
+          pageTitle: fullTestV2RecurringRun.display_name,
+        }),
+      );
+    });
   });
 
   it('shows error banner if run cannot be fetched', async () => {
     const assertErrors = expectErrors();
-    TestUtils.makeErrorResponseOnce(getRecurringRunSpy, 'woops!');
+    // Router calls getRecurringRun first; V2FC calls it second. First must succeed so Router
+    // renders V2FC; second must fail so V2FC shows the error banner.
+    getRecurringRunSpy
+      .mockImplementationOnce(() => Promise.resolve(fullTestV2RecurringRun))
+      .mockImplementationOnce(() => {
+        throw { text: () => Promise.resolve('woops!') };
+      });
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />
@@ -258,14 +269,15 @@ describe('RecurringRunDetailsV2FC', () => {
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
     });
-
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        additionalInfo: 'woops!',
-        message: `Error: failed to retrieve recurring run: ${fullTestV2RecurringRun.recurring_run_id}. Click Details for more information.`,
-        mode: 'error',
-      }),
-    );
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'woops!',
+          message: `Error: failed to retrieve recurring run: ${fullTestV2RecurringRun.recurring_run_id}. Click Details for more information.`,
+          mode: 'error',
+        }),
+      );
+    });
     assertErrors();
   });
 
@@ -281,14 +293,15 @@ describe('RecurringRunDetailsV2FC', () => {
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
     });
-
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        additionalInfo: 'woops!',
-        message: `Error: failed to retrieve this recurring run's experiment. Click Details for more information.`,
-        mode: 'warning',
-      }),
-    );
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'woops!',
+          message: `Error: failed to retrieve this recurring run's experiment. Click Details for more information.`,
+          mode: 'warning',
+        }),
+      );
+    });
 
     // "Still loads run" means that the details are still rendered successfully.
     screen.getByText('Enabled');
