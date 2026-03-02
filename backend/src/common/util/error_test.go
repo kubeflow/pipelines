@@ -21,6 +21,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	grpcStatus "google.golang.org/grpc/status"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -35,14 +36,14 @@ func TestIsNotFound(t *testing.T) {
 func TestNewCustomError(t *testing.T) {
 	cause := fmt.Errorf("root cause")
 	customError := NewCustomError(cause, CUSTOM_CODE_TRANSIENT, "something went %s", "wrong")
-	assert.Contains(t, customError.Error(), "CustomError (code: 0)")
+	assert.Contains(t, customError.Error(), fmt.Sprintf("CustomError (code: %d)", CUSTOM_CODE_TRANSIENT))
 	assert.Contains(t, customError.Error(), "something went wrong")
 	assert.Contains(t, customError.Error(), "root cause")
 }
 
 func TestNewCustomErrorf(t *testing.T) {
 	customError := NewCustomErrorf(CUSTOM_CODE_PERMANENT, "item %d not found", 42)
-	assert.Contains(t, customError.Error(), "CustomError (code: 1)")
+	assert.Contains(t, customError.Error(), fmt.Sprintf("CustomError (code: %d)", CUSTOM_CODE_PERMANENT))
 	assert.Contains(t, customError.Error(), "item 42 not found")
 }
 
@@ -359,11 +360,12 @@ func TestToError(t *testing.T) {
 		assert.Nil(t, ToError(nil))
 	})
 
-	t.Run("with status returns error", func(t *testing.T) {
+	t.Run("with status returns error preserving code", func(t *testing.T) {
 		userError := NewNotFoundError(fmt.Errorf("cause"), "not found")
 		rpcStatus := ToRpcStatus(userError)
 		err := ToError(rpcStatus)
 		assert.NotNil(t, err)
+		assert.Equal(t, codes.NotFound, grpcStatus.Code(err))
 	})
 }
 

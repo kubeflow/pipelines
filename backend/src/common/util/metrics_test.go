@@ -21,24 +21,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetMetricValueWithGauge(t *testing.T) {
-	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "test_gauge",
-		Help: "A test gauge",
+func TestGetMetricValue(t *testing.T) {
+	t.Run("gauge", func(t *testing.T) {
+		gauge := prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "test_gauge",
+			Help: "A test gauge",
+		})
+		gauge.Set(42.5)
+
+		value := GetMetricValue(gauge)
+		assert.Equal(t, 42.5, value)
 	})
-	gauge.Set(42.5)
 
-	value := GetMetricValue(gauge)
-	assert.Equal(t, 42.5, value)
-}
+	t.Run("counter", func(t *testing.T) {
+		counter := prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "test_counter",
+			Help: "A test counter",
+		})
+		counter.Add(10)
 
-func TestGetMetricValueWithCounter(t *testing.T) {
-	counter := prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "test_counter",
-		Help: "A test counter",
+		value := GetMetricValue(counter)
+		assert.Equal(t, float64(10), value)
 	})
-	counter.Add(10)
-
-	value := GetMetricValue(counter)
-	assert.Equal(t, float64(10), value)
 }

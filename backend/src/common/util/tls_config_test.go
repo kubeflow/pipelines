@@ -15,9 +15,17 @@
 package util
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,6 +41,34 @@ func TestGetTLSConfigNonexistentPath(t *testing.T) {
 	config, err := GetTLSConfig(nonexistentPath)
 	assert.Nil(t, config)
 	assert.Error(t, err)
+}
+
+func TestGetTLSConfigValidCert(t *testing.T) {
+	// Generate a self-signed certificate
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	assert.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{Organization: []string{"Test"}},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(time.Hour),
+		IsCA:         true,
+		KeyUsage:     x509.KeyUsageCertSign,
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, template, &privateKey.PublicKey, privateKey)
+	assert.NoError(t, err)
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	certFile := filepath.Join(t.TempDir(), "valid-cert.pem")
+	err = os.WriteFile(certFile, certPEM, 0644)
+	assert.NoError(t, err)
+
+	config, err := GetTLSConfig(certFile)
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.NotNil(t, config.RootCAs)
 }
 
 func TestGetTLSConfigInvalidPEM(t *testing.T) {
