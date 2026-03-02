@@ -8,12 +8,12 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -21,36 +21,37 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
             Filter experiments
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-29 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-31 PrivateNotchedOutline-legendNotched-32"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter experiments
@@ -76,16 +77,17 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
           title="Experiment name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Experiment name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -101,11 +103,11 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -131,26 +133,23 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
             >
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -159,9 +158,10 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
               style="width: 33.33333333333333%;"
             >
               <a
+                aria-label="experiment with id: testexperiment1"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/experiments/details/testexperiment1"
-                title="experiment with id: testexperiment1"
               >
                 experiment with id: testexperiment1
               </a>
@@ -188,26 +188,23 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
             >
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -216,9 +213,10 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
               style="width: 33.33333333333333%;"
             >
               <a
+                aria-label="experiment with id: testexperiment2"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/experiments/details/testexperiment2"
-                title="experiment with id: testexperiment2"
               >
                 experiment with id: testexperiment2
               </a>
@@ -245,26 +243,23 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
             >
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -273,9 +268,10 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
               style="width: 33.33333333333333%;"
             >
               <a
+                aria-label="experiment with id: testexperiment3"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/experiments/details/testexperiment3"
-                title="experiment with id: testexperiment3"
               >
                 experiment with id: testexperiment3
               </a>
@@ -302,26 +298,23 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
             >
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -330,9 +323,10 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
               style="width: 33.33333333333333%;"
             >
               <a
+                aria-label="experiment with id: testexperiment4"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/experiments/details/testexperiment4"
-                title="experiment with id: testexperiment4"
               >
                 experiment with id: testexperiment4
               </a>
@@ -359,26 +353,23 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
             >
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -387,9 +378,10 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
               style="width: 33.33333333333333%;"
             >
               <a
+                aria-label="experiment with id: testexperiment5"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/experiments/details/testexperiment5"
-                title="experiment with id: testexperiment5"
               >
                 experiment with id: testexperiment5
               </a>
@@ -410,28 +402,34 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls="mui-35"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby="mui-36"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id="mui-36"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -442,46 +440,40 @@ exports[`ExperimentList > loads multiple experiments 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -497,12 +489,12 @@ exports[`ExperimentList > loads one experiment 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -510,36 +502,37 @@ exports[`ExperimentList > loads one experiment 1`] = `
             Filter experiments
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-21 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-23 PrivateNotchedOutline-legendNotched-24"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter experiments
@@ -565,16 +558,17 @@ exports[`ExperimentList > loads one experiment 1`] = `
           title="Experiment name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Experiment name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -590,11 +584,11 @@ exports[`ExperimentList > loads one experiment 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -620,26 +614,23 @@ exports[`ExperimentList > loads one experiment 1`] = `
             >
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -648,9 +639,10 @@ exports[`ExperimentList > loads one experiment 1`] = `
               style="width: 33.33333333333333%;"
             >
               <a
+                aria-label="experiment with id: testexperiment1"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/experiments/details/testexperiment1"
-                title="experiment with id: testexperiment1"
               >
                 experiment with id: testexperiment1
               </a>
@@ -671,28 +663,34 @@ exports[`ExperimentList > loads one experiment 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls="mui-26"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby="mui-27"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id="mui-27"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -703,46 +701,40 @@ exports[`ExperimentList > loads one experiment 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -758,12 +750,12 @@ exports[`ExperimentList > reloads the experiment when refresh is called 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -771,36 +763,37 @@ exports[`ExperimentList > reloads the experiment when refresh is called 1`] = `
             Filter experiments
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-25 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-27 PrivateNotchedOutline-legendNotched-28"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter experiments
@@ -826,16 +819,17 @@ exports[`ExperimentList > reloads the experiment when refresh is called 1`] = `
           title="Experiment name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Experiment name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -851,11 +845,11 @@ exports[`ExperimentList > reloads the experiment when refresh is called 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -880,28 +874,34 @@ exports[`ExperimentList > reloads the experiment when refresh is called 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls="mui-31"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby="mui-32"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id="mui-32"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -912,46 +912,40 @@ exports[`ExperimentList > reloads the experiment when refresh is called 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -967,12 +961,12 @@ exports[`ExperimentList > renders the empty experience 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -980,36 +974,37 @@ exports[`ExperimentList > renders the empty experience 1`] = `
             Filter experiments
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter experiments
@@ -1035,16 +1030,17 @@ exports[`ExperimentList > renders the empty experience 1`] = `
           title="Experiment name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Experiment name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1060,11 +1056,11 @@ exports[`ExperimentList > renders the empty experience 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -1089,28 +1085,34 @@ exports[`ExperimentList > renders the empty experience 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls="mui-3"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby="mui-4"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id="mui-4"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1121,46 +1123,40 @@ exports[`ExperimentList > renders the empty experience 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -1176,12 +1172,12 @@ exports[`ExperimentList > renders the empty experience in ARCHIVED state 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -1189,36 +1185,37 @@ exports[`ExperimentList > renders the empty experience in ARCHIVED state 1`] = `
             Filter experiments
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-5 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-7 PrivateNotchedOutline-legendNotched-8"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter experiments
@@ -1244,16 +1241,17 @@ exports[`ExperimentList > renders the empty experience in ARCHIVED state 1`] = `
           title="Experiment name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Experiment name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1269,11 +1267,11 @@ exports[`ExperimentList > renders the empty experience in ARCHIVED state 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -1298,28 +1296,34 @@ exports[`ExperimentList > renders the empty experience in ARCHIVED state 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls="mui-7"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby="mui-8"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id="mui-8"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1330,46 +1334,40 @@ exports[`ExperimentList > renders the empty experience in ARCHIVED state 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>

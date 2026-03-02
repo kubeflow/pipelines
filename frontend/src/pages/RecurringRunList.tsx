@@ -22,13 +22,13 @@ import { Link, RouteComponentProps } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, errorToMessage } from 'src/lib/Utils';
-import Tooltip from '@material-ui/core/Tooltip';
 import {
   V2beta1RecurringRun,
   V2beta1RecurringRunStatus,
   V2beta1Trigger,
 } from 'src/apisv2beta1/recurringrun';
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
+import { Tooltip } from '@mui/material';
 
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;

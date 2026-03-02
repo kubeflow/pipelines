@@ -20,8 +20,8 @@ import { vi } from 'vitest';
 import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
 import { ApiVisualizationType } from '../../apis/visualization';
-import Select from '@material-ui/core/Select';
 import renderer from 'react-test-renderer';
+import { Select } from '@mui/material';
 
 vi.mock('../Editor', () => ({
   default: ({ placeholder }: { placeholder?: string }) => (
@@ -329,8 +329,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
       collapsedInitially: false,
     };
-    const { container: baseContainer } = render(<VisualizationCreator configs={[baseConfig]} />);
-    const { container } = render(
+    render(
       <VisualizationCreator
         configs={[
           {
@@ -340,26 +339,11 @@ describe('VisualizationCreator', () => {
         ]}
       />,
     );
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text"
-          tabindex="0"
-          type="button"
-        >
-          <span
-            class="MuiButton-label"
-          >
-            create visualizations manually
-          </span>
-          <span
-            class="MuiTouchRipple-root"
-          />
-        </button>
-      </div>
-    `);
     const button = screen.getByText('create visualizations manually');
     fireEvent.click(button);
-    expect(container.innerHTML).toEqual(baseContainer.innerHTML);
+    expect(screen.queryByText('create visualizations manually')).toBeNull();
+    screen.getByText('Type');
+    screen.getByPlaceholderText('File path or path pattern of data within GCS.');
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 });

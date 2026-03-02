@@ -163,7 +163,7 @@ describe('ArtifactList', () => {
       return Promise.resolve(response);
     });
 
-    const rowsPerPageButton = screen.getByRole('button', { name: '10' });
+    const rowsPerPageButton = screen.getByRole('combobox');
     fireEvent.mouseDown(rowsPerPageButton);
     const newRowsPerPage = await screen.findByRole('option', { name: '20' });
     fireEvent.click(newRowsPerPage);

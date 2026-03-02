@@ -225,7 +225,7 @@ describe('MetricsDropdown', () => {
 
     fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact1'));
 
     const newSelectedArtifacts: SelectedArtifact[] = [
       {
@@ -265,25 +265,25 @@ describe('MetricsDropdown', () => {
     // Choose the first HTML element.
     fireEvent.click(screen.getByText('Choose a first HTML artifact'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact1'));
 
     await waitFor(() => {
       expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith([firstLinkedArtifact], undefined);
     });
 
     // Choose another HTML element.
-    fireEvent.click(screen.getByTitle('run1 > execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('run1 > execution1 > artifact1'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact2'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact2'));
 
     await waitFor(() => {
       expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith([secondLinkedArtifact], undefined);
     });
 
     // Return and re-select the first HTML element.
-    fireEvent.click(screen.getByTitle('run1 > execution1 > artifact2'));
+    fireEvent.click(screen.getByLabelText('run1 > execution1 > artifact2'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact1'));
 
     // File is not re-read if that artifact has already been selected.
     await waitFor(() => {
@@ -310,16 +310,16 @@ describe('MetricsDropdown', () => {
     // Choose the first Markdown element.
     fireEvent.click(screen.getByText('Choose a first Markdown artifact'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact1'));
 
     await waitFor(() => {
       expect(getMarkdownViewerConfigSpy).toHaveBeenLastCalledWith([firstLinkedArtifact], undefined);
     });
 
     // Choose another Markdown element.
-    fireEvent.click(screen.getByTitle('run1 > execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('run1 > execution1 > artifact1'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact2'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact2'));
 
     await waitFor(() => {
       expect(getMarkdownViewerConfigSpy).toHaveBeenLastCalledWith(
@@ -329,9 +329,9 @@ describe('MetricsDropdown', () => {
     });
 
     // Return and re-select the first Markdown element.
-    fireEvent.click(screen.getByTitle('run1 > execution1 > artifact2'));
+    fireEvent.click(screen.getByLabelText('run1 > execution1 > artifact2'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact1'));
 
     // File is not re-read if that artifact has already been selected.
     await waitFor(() => {
@@ -359,7 +359,7 @@ describe('MetricsDropdown', () => {
 
     fireEvent.click(screen.getByText('Choose a first HTML artifact'));
     fireEvent.mouseEnter(screen.getByText('run1'));
-    fireEvent.click(screen.getByTitle('execution1 > artifact1'));
+    fireEvent.click(screen.getByLabelText('execution1 > artifact1'));
 
     screen.getByRole('circularprogress');
     await waitFor(() => {
@@ -403,6 +403,6 @@ describe('MetricsDropdown', () => {
     await TestUtils.flushPromises();
 
     screen.getByText('Choose a first Confusion Matrix artifact');
-    screen.getByTitle('run1 > execution1 > artifact1');
+    screen.getByLabelText('run1 > execution1 > artifact1');
   });
 });

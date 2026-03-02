@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
 import immerProduce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
@@ -35,6 +34,7 @@ import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
+import { Tooltip } from '@mui/material';
 
 interface DisplayPipeline extends V2beta1Pipeline {
   expandState?: ExpandState;

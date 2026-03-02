@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import IconWithTooltip from './IconWithTooltip';
-import TestIcon from '@material-ui/icons/Help';
+import TestIcon from '@mui/icons-material/Help';
 import { create } from 'react-test-renderer';
 
 describe('IconWithTooltip', () => {
