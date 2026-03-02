@@ -203,16 +203,15 @@ If this version of `kfp` depends on new api changes to:
 * `kfp-pipeline-spec`
 * `kfp-server-api`
 
-Then update the lower-bound values for the aforementioned packages in `sdk/python/requirements.in` file. 
+Then update the pinned versions for the aforementioned packages in `sdk/python/pyproject.toml` under `[project] dependencies`.
 
-You can run the following to update the associated `requirements.txt`
+After editing, re-lock the workspace from the repo root:
 
 ```bash
-cd sdk/python
-./pre-release-requirements-update.sh
+uv lock
 ```
 
-Once done you should see a diff in `requirements.txt`. Confirm the changes.
+Confirm the changes in `uv.lock`.
 
 Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
 
@@ -227,13 +226,12 @@ If this version of `kfp-kubernetes` depends on new api changes to:
 * `kfp-pipeline-spec`
 * `kfp`
 
-Then update the lower-bound values in the aforementioned packages in `kubernetes_platform/python/requirements.in` file. 
+Then update the pinned versions for the aforementioned packages in `kubernetes_platform/python/pyproject.toml` under `[project] dependencies`.
 
-You can run the following to update the associated `requirements.txt`
+After editing, re-lock the workspace from the repo root:
 
 ```bash
-cd kubernetes_platform/python
-./pre-release-requirements-update.sh
+uv lock
 ```
 Update the KFP Kubernetes SDK version in `__init__.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11380).
 

@@ -1913,7 +1913,7 @@ requires-dist = [{ name = "protobuf", specifier = ">=6.33.5,<7.0" }]
 
 [[package]]
 name = "kfp-server-api"
-version = "2.15.2"
+version = "2.16.0"
 source = { editable = "backend/api/v2beta1/python_http_client" }
 dependencies = [
     { name = "certifi" },
