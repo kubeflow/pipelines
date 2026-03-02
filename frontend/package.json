@@ -122,7 +122,6 @@
     "@types/lodash": ">=4.14.117",
     "@types/markdown-to-jsx": "^6.9.0",
     "@types/node": "^20.19.28",
-    "@types/prettier": "^3.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
     "@types/react-router": "^5.1.20",
