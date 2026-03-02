@@ -23,7 +23,7 @@ import {
   KubernetesExecutorConfig,
   PvcMount,
 } from 'src/generated/platform_spec/kubernetes_platform';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
@@ -156,16 +156,18 @@ function TaskNodeDetail({
   layers,
   namespace,
 }: TaskNodeDetailProps) {
-  const { data: logsInfo } = useQuery<Map<string, string>, Error>(
-    ['execution_logs', { executionId: execution?.getId(), namespace }],
-    async () => {
+  const { data: logsInfo } = useQuery({
+    queryKey: ['execution_logs', { executionId: execution?.getId(), namespace }],
+
+    queryFn: async () => {
       if (!execution) {
         throw new Error('No execution is found.');
       }
       return await getLogsInfo(execution, runId, namespace);
     },
-    { enabled: !!execution },
-  );
+
+    enabled: !!execution,
+  });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
@@ -377,11 +379,10 @@ interface ArtifactNodeDetailProps {
   namespace: string | undefined;
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
-  const { data } = useQuery<ArtifactType[], Error>(
-    ['artifact_types', { linkedArtifact }],
-    () => getArtifactTypes(),
-    {},
-  );
+  const { data } = useQuery({
+    queryKey: ['artifact_types', { linkedArtifact }],
+    queryFn: () => getArtifactTypes(),
+  });
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (

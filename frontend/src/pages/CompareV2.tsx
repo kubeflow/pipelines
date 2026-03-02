@@ -15,7 +15,7 @@
  */
 
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
@@ -293,13 +293,11 @@ function CompareV2(props: CompareV2Props) {
     error: errorRunDetails,
     data: runs,
     refetch,
-  } = useQuery<V2beta1Run[], Error>(
-    ['v2_run_details', { ids: runIds }],
-    () => Promise.all(runIds.map(async (id) => await Apis.runServiceApiV2.getRun(id))),
-    {
-      staleTime: Infinity,
-    },
-  );
+  } = useQuery<V2beta1Run[], Error>({
+    queryKey: ['v2_run_details', { ids: runIds }],
+    queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApiV2.getRun(id))),
+    staleTime: Infinity,
+  });
 
   // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
   const {
@@ -307,9 +305,10 @@ function CompareV2(props: CompareV2Props) {
     isLoading: isLoadingMlmdPackages,
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
-  } = useQuery<MlmdPackage[], Error>(
-    ['run_artifacts', { runs }],
-    () =>
+  } = useQuery<MlmdPackage[], Error>({
+    queryKey: ['run_artifacts', { runs }],
+
+    queryFn: () =>
       Promise.all(
         runIds.map(async (runId) => {
           // TODO(zijianjoy): MLMD query is limited to 100 artifacts per run.
@@ -325,10 +324,9 @@ function CompareV2(props: CompareV2Props) {
           } as MlmdPackage;
         }),
       ),
-    {
-      staleTime: Infinity,
-    },
-  );
+
+    staleTime: Infinity,
+  });
 
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
   // so we can identify metrics artifact provided by system.
@@ -337,7 +335,9 @@ function CompareV2(props: CompareV2Props) {
     isLoading: isLoadingArtifactTypes,
     isError: isErrorArtifactTypes,
     error: errorArtifactTypes,
-  } = useQuery<ArtifactType[], Error>(['artifact_types', {}], () => getArtifactTypes(), {
+  } = useQuery<ArtifactType[], Error>({
+    queryKey: ['artifact_types', {}],
+    queryFn: () => getArtifactTypes(),
     staleTime: Infinity,
   });
 

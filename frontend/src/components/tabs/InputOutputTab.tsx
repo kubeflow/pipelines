@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
@@ -62,21 +62,16 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   // TODO(jlyaoyuli): Display other information (container, args, image, command)
 
   // Retrieves input and output artifacts from Metadata store.
-  const {
-    isSuccess,
-    error,
-    data: linkedArtifacts,
-  } = useQuery<LinkedArtifact[], Error>(
-    ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
-    () => getLinkedArtifactsByExecution(execution),
-    { staleTime: Infinity },
-  );
+  const { isSuccess, error, data: linkedArtifacts } = useQuery<LinkedArtifact[], Error>({
+    queryKey: ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
+    queryFn: () => getLinkedArtifactsByExecution(execution),
+    staleTime: Infinity,
+  });
 
-  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
-    ['artifact_types', { linkedArtifact: linkedArtifacts }],
-    () => getArtifactTypes(),
-    {},
-  );
+  const { data: artifactTypes } = useQuery<ArtifactType[], Error>({
+    queryKey: ['artifact_types', { linkedArtifact: linkedArtifacts }],
+    queryFn: () => getArtifactTypes(),
+  });
 
   const artifactTypeNames =
     linkedArtifacts && artifactTypes ? getArtifactTypeName(artifactTypes, linkedArtifacts) : [];

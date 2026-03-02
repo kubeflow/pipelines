@@ -15,7 +15,7 @@
 import * as React from 'react';
 import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
 import { Edge, FlowElement, Node } from 'react-flow-renderer';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
@@ -98,9 +98,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   };
 
   // Retrieves MLMD states from the MLMD store.
-  const { isSuccess, data } = useQuery<MlmdPackage, Error>(
-    ['mlmd_package', { id: runId }],
-    async () => {
+  const { isSuccess, data } = useQuery<MlmdPackage, Error>({
+    queryKey: ['mlmd_package', { id: runId }],
+    queryFn: async () => {
       const context = await getKfpV2RunContext(runId);
       const executions = await getExecutionsFromContext(context);
       const artifacts = await getArtifactsFromContext(context);
@@ -108,18 +108,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
       return { executions, artifacts, events };
     },
-    {
-      staleTime: QUERY_STALE_TIME,
-      refetchInterval: QUERY_REFETCH_INTERNAL,
-      onError: (error) =>
-        props.updateBanner({
-          message: 'Cannot get MLMD objects from Metadata store.',
-          additionalInfo: error.message,
-          mode: 'error',
-        }),
-      onSuccess: () => props.updateBanner({}),
-    },
-  );
+    staleTime: QUERY_STALE_TIME,
+    refetchInterval: QUERY_REFETCH_INTERNAL,
+    onError: (error: Error) =>
+      props.updateBanner({
+        message: 'Cannot get MLMD objects from Metadata store.',
+        additionalInfo: error.message,
+        mode: 'error',
+      }),
+    onSuccess: () => props.updateBanner({}),
+  });
 
   const layerChange = (layers: string[]) => {
     setSelectedNode(null);
@@ -151,11 +149,10 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
-  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
-    ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
-    () => getExperiment(experimentId),
-    {},
-  );
+  const { data: experiment } = useQuery({
+    queryKey: ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
+    queryFn: () => getExperiment(experimentId),
+  });
   const namespace = experiment?.namespace;
 
   // Update page title and experiment information.

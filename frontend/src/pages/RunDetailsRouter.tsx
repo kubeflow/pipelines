@@ -16,7 +16,7 @@
 
 import React from 'react';
 import * as JsYaml from 'js-yaml';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -30,15 +30,13 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   let pipelineManifest: string | undefined;
 
   // Retrieves v2 run detail.
-  const {
-    isSuccess: getV2RunSuccess,
-    isFetching: runIsFetching,
-    data: v2Run,
-  } = useQuery<V2beta1Run, Error>(
-    ['v2_run_detail', { id: runId }],
-    () => Apis.runServiceApiV2.getRun(runId),
-    {},
-  );
+  const { isSuccess: getV2RunSuccess, isFetching: runIsFetching, data: v2Run } = useQuery<
+    V2beta1Run,
+    Error
+  >({
+    queryKey: ['v2_run_detail', { id: runId }],
+    queryFn: () => Apis.runServiceApiV2.getRun(runId),
+  });
 
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
     pipelineManifest = JsYaml.safeDump(v2Run.pipeline_spec);
@@ -50,9 +48,10 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } = useQuery<
     string,
     Error
-  >(
-    ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
-    async () => {
+  >({
+    queryKey: ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
+
+    queryFn: async () => {
       if (!pipelineId || !pipelineVersionId) {
         return '';
       }
@@ -63,8 +62,11 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
       const pipelineSpec = pipelineVersion.pipeline_spec;
       return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
     },
-    { enabled: !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
-  );
+
+    enabled: !!pipelineVersionId,
+    staleTime: Infinity,
+    cacheTime: Infinity,
+  });
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 

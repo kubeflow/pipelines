@@ -32,7 +32,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import Banner from 'src/components/Banner';
 import { SelectedArtifact } from 'src/pages/CompareV2';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import {
   metricsTypeToString,
@@ -186,20 +186,16 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showError, setShowError] = useState<boolean>(false);
 
-  const {
-    isLoading,
-    isError,
-    error,
-    data: viewerConfigs,
-  } = useQuery<ViewerConfig[], Error>(
-    [
+  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>({
+    queryKey: [
       'viewerConfig',
       {
         artifact: linkedArtifact?.artifact.getId(),
         namespace,
       },
     ],
-    async () => {
+
+    queryFn: async () => {
       let viewerConfigs: ViewerConfig[] = [];
       if (linkedArtifact) {
         if (metricsTab === MetricsType.HTML) {
@@ -210,8 +206,9 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
       }
       return viewerConfigs;
     },
-    { staleTime: Infinity },
-  );
+
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
     if (isLoading) {
