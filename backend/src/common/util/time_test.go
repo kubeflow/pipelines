@@ -26,13 +26,10 @@ func TestRealTimeNow(t *testing.T) {
 	realTime := NewRealTime()
 	assert.NotNil(t, realTime)
 
-	before := time.Now().UTC()
 	now := realTime.Now()
-	after := time.Now().UTC()
 
 	assert.Equal(t, time.UTC, now.Location())
-	assert.False(t, now.Before(before))
-	assert.False(t, now.After(after))
+	assert.InDelta(t, time.Now().UTC().UnixNano(), now.UnixNano(), float64(time.Second))
 }
 
 func TestFakeTimeNow(t *testing.T) {

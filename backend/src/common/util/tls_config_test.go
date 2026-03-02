@@ -42,5 +42,7 @@ func TestGetTLSConfigInvalidPEM(t *testing.T) {
 
 	config, err := GetTLSConfig(invalidPEMFile)
 	assert.Nil(t, config)
+	// Note: the source returns nil error here even though PEM parsing failed,
+	// because AppendCertsFromPEM returns false but the prior ReadFile err is nil.
 	assert.Nil(t, err)
 }

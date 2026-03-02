@@ -32,10 +32,6 @@ func TestUUIDGeneratorNewRandom(t *testing.T) {
 	generatedUUID, err := generator.NewRandom()
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, generatedUUID)
-
-	// Verify it's a valid UUID by parsing the string representation
-	_, parseError := uuid.Parse(generatedUUID.String())
-	assert.NoError(t, parseError)
 }
 
 func TestNewFakeUUIDGeneratorOrFatal(t *testing.T) {

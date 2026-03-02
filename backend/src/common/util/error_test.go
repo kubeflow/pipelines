@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
@@ -218,11 +219,27 @@ func TestUserErrorMethods(t *testing.T) {
 }
 
 func TestNewUserError(t *testing.T) {
-	cause := fmt.Errorf("some error")
-	userError := NewUserError(cause, "internal msg", "external msg")
-	assert.Equal(t, codes.Internal, userError.ExternalStatusCode())
-	assert.Contains(t, userError.ExternalMessage(), "external msg")
-	assert.Contains(t, userError.Error(), "internal msg")
+	t.Run("regular error returns codes.Internal", func(t *testing.T) {
+		cause := fmt.Errorf("some error")
+		userError := NewUserError(cause, "internal msg", "external msg")
+		assert.Equal(t, codes.Internal, userError.ExternalStatusCode())
+		assert.Contains(t, userError.ExternalMessage(), "external msg")
+		assert.Contains(t, userError.Error(), "internal msg")
+	})
+
+	t.Run("APIError with 404 returns NotFound message", func(t *testing.T) {
+		apiError := &runtime.APIError{OperationName: "getResource", Code: 404}
+		userError := NewUserError(apiError, "internal msg", "external msg")
+		assert.Equal(t, codes.Code(404), userError.ExternalStatusCode())
+		assert.Contains(t, userError.ExternalMessage(), "Resource not found")
+	})
+
+	t.Run("APIError with non-404 code includes raw error", func(t *testing.T) {
+		apiError := &runtime.APIError{OperationName: "getResource", Code: 500}
+		userError := NewUserError(apiError, "internal msg", "external msg")
+		assert.Equal(t, codes.Code(500), userError.ExternalStatusCode())
+		assert.Contains(t, userError.ExternalMessage(), "Raw error from the service")
+	})
 }
 
 func TestNewUserErrorWithSingleMessage(t *testing.T) {
