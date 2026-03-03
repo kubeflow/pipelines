@@ -15,17 +15,23 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	argofake "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/fake"
+	argoinformer "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
+	argolister "github.com/argoproj/argo-workflows/v3/pkg/client/listers/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
 
@@ -198,6 +204,17 @@ func TestWorkflow_ScheduledAtInSecOr0(t *testing.T) {
 	workflow = NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
+		},
+	})
+	assert.Equal(t, int64(0), workflow.ScheduledAtInSecOr0())
+
+	// Invalid epoch value (non-numeric)
+	workflow = NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+			Labels: map[string]string{
+				"scheduledworkflows.kubeflow.org/workflowEpoch": "not-a-number",
+			},
 		},
 	})
 	assert.Equal(t, int64(0), workflow.ScheduledAtInSecOr0())
@@ -2362,4 +2379,251 @@ func TestWorkflow_FindObjectStoreArtifactKeyOrEmpty_NodeNotFound(t *testing.T) {
 		},
 	})
 	assert.Equal(t, "", workflow.FindObjectStoreArtifactKeyOrEmpty("node1", "artifact1"))
+}
+
+// nonWorkflowExecution implements ExecutionSpec via embedding but is not *Workflow.
+// Used to test type assertion failures in WorkflowInterface methods.
+type nonWorkflowExecution struct {
+	ExecutionSpec
+}
+
+func TestWorkflowInterface_Create(t *testing.T) {
+	fakeClient := argofake.NewSimpleClientset()
+	wfi := &WorkflowInterface{
+		workflowInterface: fakeClient.ArgoprojV1alpha1().Workflows("default"),
+	}
+
+	t.Run("success", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+			Spec:       workflowapi.WorkflowSpec{Entrypoint: "main"},
+		})
+		result, err := wfi.Create(context.Background(), workflow, metav1.CreateOptions{})
+		assert.Nil(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "test-wf", result.ExecutionName())
+	})
+
+	t.Run("wrong type returns error", func(t *testing.T) {
+		result, err := wfi.Create(context.Background(), &nonWorkflowExecution{}, metav1.CreateOptions{})
+		assert.NotNil(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "not a valid ExecutionSpec")
+	})
+}
+
+func TestWorkflowInterface_Update(t *testing.T) {
+	existingWorkflow := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+		Spec:       workflowapi.WorkflowSpec{Entrypoint: "main"},
+	}
+	fakeClient := argofake.NewSimpleClientset(existingWorkflow)
+	wfi := &WorkflowInterface{
+		workflowInterface: fakeClient.ArgoprojV1alpha1().Workflows("default"),
+	}
+
+	t.Run("success", func(t *testing.T) {
+		updated := NewWorkflow(&workflowapi.Workflow{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+			Spec:       workflowapi.WorkflowSpec{Entrypoint: "updated-main"},
+		})
+		result, err := wfi.Update(context.Background(), updated, metav1.UpdateOptions{})
+		assert.Nil(t, err)
+		assert.NotNil(t, result)
+	})
+
+	t.Run("wrong type returns error", func(t *testing.T) {
+		result, err := wfi.Update(context.Background(), &nonWorkflowExecution{}, metav1.UpdateOptions{})
+		assert.NotNil(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "not a valid ExecutionSpec")
+	})
+}
+
+func TestWorkflowInterface_Delete(t *testing.T) {
+	existingWorkflow := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+	}
+	fakeClient := argofake.NewSimpleClientset(existingWorkflow)
+	wfi := &WorkflowInterface{
+		workflowInterface: fakeClient.ArgoprojV1alpha1().Workflows("default"),
+	}
+
+	err := wfi.Delete(context.Background(), "test-wf", metav1.DeleteOptions{})
+	assert.Nil(t, err)
+}
+
+func TestWorkflowInterface_DeleteCollection(t *testing.T) {
+	fakeClient := argofake.NewSimpleClientset()
+	wfi := &WorkflowInterface{
+		workflowInterface: fakeClient.ArgoprojV1alpha1().Workflows("default"),
+	}
+
+	err := wfi.DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{})
+	assert.Nil(t, err)
+}
+
+func TestWorkflowInterface_Get(t *testing.T) {
+	existingWorkflow := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+	}
+	fakeClient := argofake.NewSimpleClientset(existingWorkflow)
+	wfi := &WorkflowInterface{
+		workflowInterface: fakeClient.ArgoprojV1alpha1().Workflows("default"),
+	}
+
+	t.Run("success", func(t *testing.T) {
+		result, err := wfi.Get(context.Background(), "test-wf", metav1.GetOptions{})
+		assert.Nil(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "test-wf", result.ExecutionName())
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		result, err := wfi.Get(context.Background(), "nonexistent", metav1.GetOptions{})
+		assert.NotNil(t, err)
+		assert.Nil(t, result)
+	})
+}
+
+func TestWorkflowInterface_List(t *testing.T) {
+	workflow1 := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "wf-1", Namespace: "default"},
+	}
+	workflow2 := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "wf-2", Namespace: "default"},
+	}
+	fakeClient := argofake.NewSimpleClientset(workflow1, workflow2)
+	wfi := &WorkflowInterface{
+		workflowInterface: fakeClient.ArgoprojV1alpha1().Workflows("default"),
+	}
+
+	result, err := wfi.List(context.Background(), metav1.ListOptions{})
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+	assert.Len(t, *result, 2)
+}
+
+func TestWorkflowInterface_Patch(t *testing.T) {
+	existingWorkflow := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+	}
+	fakeClient := argofake.NewSimpleClientset(existingWorkflow)
+	wfi := &WorkflowInterface{
+		workflowInterface: fakeClient.ArgoprojV1alpha1().Workflows("default"),
+	}
+
+	patchData := []byte(`{"metadata":{"labels":{"new-label":"value"}}}`)
+	result, err := wfi.Patch(context.Background(), "test-wf", types.MergePatchType, patchData, metav1.PatchOptions{})
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+}
+
+func TestWorkflowInformer_InformerFactoryStart(t *testing.T) {
+	fakeClient := argofake.NewSimpleClientset()
+	factory := argoinformer.NewSharedInformerFactory(fakeClient, 0)
+	workflowInformer := factory.Argoproj().V1alpha1().Workflows()
+
+	wfi := &WorkflowInformer{
+		informer: workflowInformer,
+		factory:  factory,
+	}
+
+	stopChannel := make(chan struct{})
+	defer close(stopChannel)
+	// Should not panic
+	wfi.InformerFactoryStart(stopChannel)
+}
+
+func TestWorkflowInformer_HasSynced(t *testing.T) {
+	fakeClient := argofake.NewSimpleClientset()
+	factory := argoinformer.NewSharedInformerFactory(fakeClient, 0)
+	workflowInformer := factory.Argoproj().V1alpha1().Workflows()
+
+	wfi := &WorkflowInformer{
+		informer: workflowInformer,
+		factory:  factory,
+	}
+
+	hasSyncedFunc := wfi.HasSynced()
+	assert.NotNil(t, hasSyncedFunc)
+}
+
+func TestWorkflowInformer_AddEventHandler(t *testing.T) {
+	fakeClient := argofake.NewSimpleClientset()
+	factory := argoinformer.NewSharedInformerFactory(fakeClient, 0)
+	workflowInformer := factory.Argoproj().V1alpha1().Workflows()
+
+	wfi := &WorkflowInformer{
+		informer: workflowInformer,
+		factory:  factory,
+	}
+
+	registration, err := wfi.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(obj interface{}) {},
+		UpdateFunc: func(oldObj, newObj interface{}) {},
+		DeleteFunc: func(obj interface{}) {},
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, registration)
+}
+
+// mockWorkflowInformerWithLister implements the WorkflowInformer interface
+// using a pre-populated indexer, avoiding the need for informer cache sync.
+type mockWorkflowInformerWithLister struct {
+	workflowLister argolister.WorkflowLister
+}
+
+func (m *mockWorkflowInformerWithLister) Informer() cache.SharedIndexInformer {
+	return nil
+}
+
+func (m *mockWorkflowInformerWithLister) Lister() argolister.WorkflowLister {
+	return m.workflowLister
+}
+
+func TestWorkflowInformer_Get(t *testing.T) {
+	existingWorkflow := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+	}
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	indexer.Add(existingWorkflow)
+	lister := argolister.NewWorkflowLister(indexer)
+
+	wfi := &WorkflowInformer{
+		informer: &mockWorkflowInformerWithLister{workflowLister: lister},
+	}
+
+	t.Run("success", func(t *testing.T) {
+		result, isNotFound, err := wfi.Get("default", "test-wf")
+		assert.Nil(t, err)
+		assert.False(t, isNotFound)
+		assert.NotNil(t, result)
+		assert.Equal(t, "test-wf", result.ExecutionName())
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		result, isNotFound, err := wfi.Get("default", "nonexistent")
+		assert.NotNil(t, err)
+		assert.True(t, isNotFound)
+		assert.Nil(t, result)
+	})
+}
+
+func TestWorkflowInformer_List(t *testing.T) {
+	existingWorkflow := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "default"},
+	}
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	indexer.Add(existingWorkflow)
+	lister := argolister.NewWorkflowLister(indexer)
+
+	wfi := &WorkflowInformer{
+		informer: &mockWorkflowInformerWithLister{workflowLister: lister},
+	}
+
+	selector := labels.Everything()
+	result, err := wfi.List(&selector)
+	assert.Nil(t, err)
+	assert.Len(t, result, 1)
 }
