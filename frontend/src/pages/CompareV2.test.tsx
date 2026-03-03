@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
-import { ButtonKeys } from 'src/lib/Buttons';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as Utils from 'src/lib/Utils';
@@ -37,7 +37,6 @@ describe('CompareV2', () => {
   const MOCK_RUN_2_ID = 'mock-run-2-id';
   const MOCK_RUN_3_ID = 'mock-run-3-id';
   const updateBannerSpy = vi.fn();
-  const updateToolbarSpy = vi.fn();
   const getBodyText = (): string => (document.body.textContent || '').replace(/\s+/g, ' ').trim();
 
   function generateProps(): PageProps {
@@ -51,7 +50,7 @@ describe('CompareV2', () => {
       updateBanner: updateBannerSpy,
       updateDialog: () => null,
       updateSnackbar: () => null,
-      updateToolbar: updateToolbarSpy,
+      updateToolbar: () => null,
     };
     return pageProps;
   }
@@ -59,7 +58,6 @@ describe('CompareV2', () => {
   let runs: V2beta1Run[] = [];
 
   beforeEach(() => {
-    vi.clearAllMocks();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockImplementation(
       (id: string) => runs.find((r) => r.run_id === id) || newMockRun(id),
@@ -192,18 +190,6 @@ describe('CompareV2', () => {
     return headerCheckbox;
   }
 
-  function getRunRow(id: string): HTMLElement {
-    const runListContainer = getRunListContainer();
-    const runRows = Array.from(
-      runListContainer.querySelectorAll('[data-testid="table-row"]'),
-    ) as HTMLElement[];
-    const runRow = runRows.find((row) => row.textContent?.includes(`test run ${id}`));
-    if (!runRow) {
-      throw new Error(`Run row not found for ${id}`);
-    }
-    return runRow;
-  }
-
   async function waitForRunCheckboxes(expectedCount: number): Promise<HTMLElement[]> {
     let runCheckboxes: HTMLElement[] = [];
     await waitFor(() => {
@@ -231,14 +217,6 @@ describe('CompareV2', () => {
     screen.getByText(OVERVIEW_SECTION_NAME);
   });
 
-  it('does not mark ROC selection initialized before ROC artifacts are available', () => {
-    const initialSelection = TEST_ONLY.createInitialRocCurveSelectionState();
-
-    expect(TEST_ONLY.reconcileRocCurveSelectionState(initialSelection, [], new Set())).toBe(
-      initialSelection,
-    );
-  });
-
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
@@ -258,9 +236,7 @@ describe('CompareV2', () => {
   it('Clear banner when getRun and MLMD requests succeed', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -287,7 +263,7 @@ describe('CompareV2', () => {
     getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
-    getArtifactTypesSpy.mockResolvedValue([]);
+    getArtifactTypesSpy.mockReturnValue([]);
 
     render(
       <CommonTestWrapper>
@@ -296,22 +272,21 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    // Wait for runs to render (indicates all queries resolved) before banner clears
-    await waitForRunCheckboxes(3);
-    await waitFor(
-      () => {
-        expect(updateBannerSpy).toHaveBeenCalledWith({});
-      },
-      { timeout: 10000 },
-    );
+    await waitFor(() => {
+      // Spies are called twice for each artifact as runs change from undefined to a defined value.
+      expect(getContextSpy).toBeCalledTimes(6);
+      expect(getExecutionsSpy).toBeCalledTimes(6);
+      expect(getArtifactsSpy).toBeCalledTimes(6);
+      expect(getEventsSpy).toBeCalledTimes(6);
+      expect(getArtifactTypesSpy).toBeCalledTimes(1);
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    });
   });
 
   it('Log warning when artifact with specified ID is not found', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -338,7 +313,7 @@ describe('CompareV2', () => {
     getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
-    getArtifactTypesSpy.mockResolvedValue([]);
+    getArtifactTypesSpy.mockReturnValue([]);
 
     const warnSpy = vi.spyOn(Utils.logger, 'warn').mockImplementation(() => undefined);
 
@@ -348,16 +323,12 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
-    await waitForRunCheckboxes(3);
 
-    await waitFor(
-      () => {
-        expect(warnSpy).toHaveBeenLastCalledWith(
-          'The artifact with the following ID was not found: 2',
-        );
-      },
-      { timeout: 10000 },
-    );
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenLastCalledWith(
+        'The artifact with the following ID was not found: 2',
+      );
+    });
   });
 
   it('Show page error on page when getRun request fails', async () => {
@@ -391,9 +362,7 @@ describe('CompareV2', () => {
     const expectError = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
     vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockRejectedValue(new Error('Not connected to MLMD'));
 
     render(
@@ -403,16 +372,13 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(
-      () => {
-        expect(updateBannerSpy).toHaveBeenLastCalledWith({
-          additionalInfo: 'Not connected to MLMD',
-          message: 'Cannot get MLMD objects from Metadata store.',
-          mode: 'error',
-        });
-      },
-      { timeout: 10000 },
-    );
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'Not connected to MLMD',
+        message: 'Cannot get MLMD objects from Metadata store.',
+        mode: 'error',
+      });
+    });
     expectError();
   });
 
@@ -420,14 +386,12 @@ describe('CompareV2', () => {
     const expectError = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
-    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(new Context());
-    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
+    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
+    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
+    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
     vi.spyOn(mlmdUtils, 'getArtifactTypes').mockRejectedValue(new Error('Not connected to MLMD'));
 
     render(
@@ -437,16 +401,13 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(
-      () => {
-        expect(updateBannerSpy).toHaveBeenLastCalledWith({
-          additionalInfo: 'Not connected to MLMD',
-          message: 'Cannot get Artifact Types for MLMD.',
-          mode: 'error',
-        });
-      },
-      { timeout: 10000 },
-    );
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'Not connected to MLMD',
+        message: 'Cannot get Artifact Types for MLMD.',
+        mode: 'error',
+      });
+    });
     expectError();
   });
 
@@ -509,93 +470,6 @@ describe('CompareV2', () => {
     // Uncheck all run checkboxes.
     fireEvent.click(headerCheckbox);
     await waitForRunCheckboxes(0);
-  });
-
-  it('updates the selected run count when a single run is toggled', async () => {
-    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
-
-    render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    await waitForRunCheckboxes(3);
-    fireEvent.click(getRunRow(MOCK_RUN_2_ID));
-    await TestUtils.flushPromises();
-
-    await waitForRunCheckboxes(2);
-    expect(getHeaderCheckbox()).not.toBeChecked();
-  });
-
-  it('preserves a manual run selection when the toolbar refresh returns the same run ids', async () => {
-    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => ({ ...runs.find((r) => r.run_id === id)! }));
-
-    render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalled();
-    });
-    await waitForRunCheckboxes(3);
-
-    fireEvent.click(getRunRow(MOCK_RUN_2_ID));
-    await TestUtils.flushPromises();
-    await waitForRunCheckboxes(2);
-    expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'false');
-
-    const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions[ButtonKeys.REFRESH]
-      .action as () => Promise<void>;
-    await act(async () => {
-      await refreshAction();
-    });
-    await TestUtils.flushPromises();
-
-    await waitForRunCheckboxes(2);
-    expect(getRunRow(MOCK_RUN_1_ID)).toHaveAttribute('aria-checked', 'true');
-    expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'false');
-    expect(getRunRow(MOCK_RUN_3_ID)).toHaveAttribute('aria-checked', 'true');
-    expect(getHeaderCheckbox()).not.toBeChecked();
-  });
-
-  it('reinitializes selection to the new runlist after a route change', async () => {
-    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => ({ ...runs.find((r) => r.run_id === id)! }));
-
-    const renderResult = render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    await waitForRunCheckboxes(3);
-    fireEvent.click(getRunRow(MOCK_RUN_2_ID));
-    await TestUtils.flushPromises();
-    await waitForRunCheckboxes(2);
-
-    const nextProps = generateProps();
-    nextProps.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`;
-    renderResult.rerender(
-      <CommonTestWrapper>
-        <CompareV2 {...nextProps} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    await waitForRunCheckboxes(2);
-    expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'true');
-    expect(getRunRow(MOCK_RUN_3_ID)).toHaveAttribute('aria-checked', 'true');
   });
 
   it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
@@ -662,9 +536,7 @@ describe('CompareV2', () => {
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(new Context());
     vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
@@ -677,16 +549,13 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await waitForRunCheckboxes(3);
+    await TestUtils.flushPromises();
 
-    await waitFor(
-      () => {
-        expect(getBodyText()).toContain(
-          'There are no Scalar Metrics artifacts available on the selected runs.',
-        );
-      },
-      { timeout: 10000 },
-    );
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'There are no Scalar Metrics artifacts available on the selected runs.',
+      );
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     await waitFor(() => {
@@ -710,22 +579,17 @@ describe('CompareV2', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
-    await waitFor(
-      () => {
-        expect(getBodyText()).toContain(
-          'There are no ROC Curve artifacts available on the selected runs.',
-        );
-      },
-      { timeout: 10000 },
-    );
+    await waitFor(() => {
+      expect(getBodyText()).toContain(
+        'There are no ROC Curve artifacts available on the selected runs.',
+      );
+    });
   });
 
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -771,16 +635,14 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await waitForRunCheckboxes(3);
+    await TestUtils.flushPromises();
 
     await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(15));
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
-    fireEvent.click(
-      await screen.findByText('Choose a first Confusion Matrix artifact', { timeout: 10000 }),
-    );
+    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
     await waitForRunLabel(MOCK_RUN_2_ID);
@@ -811,9 +673,7 @@ describe('CompareV2', () => {
   it('Confusion matrix shown on select and removed after run is de-selected', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -859,14 +719,12 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await waitForRunCheckboxes(3);
+    await TestUtils.flushPromises();
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
-    fireEvent.click(
-      await screen.findByText('Choose a first Confusion Matrix artifact', { timeout: 10000 }),
-    );
+    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
     await waitForRunLabel(MOCK_RUN_2_ID);
@@ -889,35 +747,43 @@ describe('CompareV2', () => {
   it('One ROC Curve shown on select, hidden on run de-select', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
       newMockContext(MOCK_RUN_2_ID, 200),
       newMockContext(MOCK_RUN_3_ID, 3),
     ];
-    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockImplementation((runID: string) =>
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
-    // Use same pattern as Confusion Matrix test: shared artifacts/events, context-specific executions
+    // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
-    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockImplementation((context: Context) =>
-      Promise.resolve(executions.find((e) => e[0].getId() === context.getId()) ?? []),
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
-    const artifact200 = newMockArtifact(200, false, true, 'artifactName');
-    const artifacts = [newMockArtifact(1), artifact200, newMockArtifact(3)];
-    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockResolvedValue(artifacts);
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(200, false, true, 'artifactName'),
+      newMockArtifact(3),
+    ];
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
     const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
-    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockResolvedValue(events);
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
 
-    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
 
-    vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType').mockImplementation(
+    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    const filterLinkedArtifactsByTypeSpy = vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
         metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
     );
@@ -927,65 +793,39 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await waitForRunCheckboxes(3);
-
-    await waitFor(
-      () => {
-        expect(getBodyText()).toContain('Scalar Metrics');
-      },
-      { timeout: 10000 },
-    );
+    await TestUtils.flushPromises();
 
     fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
+    await waitFor(() => screen.getByText('ROC Curve: artifactName'));
 
-    // ROC Curve tab shows "ROC Curve: artifactName" when run 2 (with ROC artifact) is selected
-    await waitFor(
-      () => {
-        expect(getBodyText()).toMatch(/ROC Curve:.*artifactName/);
-      },
-      { timeout: 10000 },
-    );
-
-    // De-select run 1; ROC curve (from run 2) should still be visible
     let runCheckboxes = await waitForRunCheckboxes(3);
     fireEvent.click(runCheckboxes[0]);
-    await waitFor(
-      () => {
-        expect(getBodyText()).toMatch(/ROC Curve:.*artifactName/);
-      },
-      { timeout: 5000 },
-    );
-    // De-select run 2 (has ROC artifact); ROC curve should disappear
+    await waitFor(() => screen.getByText('ROC Curve: artifactName'));
     runCheckboxes = await waitForRunCheckboxes(2);
     fireEvent.click(runCheckboxes[0]);
-    await waitFor(
-      () => {
-        expect(getBodyText()).not.toMatch(/ROC Curve:.*artifactName/);
-      },
-      { timeout: 5000 },
-    );
+    await waitFor(() => expect(screen.queryByText('ROC Curve: artifactName')).toBeNull());
   }, 20000);
 
   it('Multiple ROC Curves shown on select', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) =>
-      Promise.resolve(runs.find((r) => r.run_id === id)),
-    );
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
       newMockContext(MOCK_RUN_2_ID, 200),
       newMockContext(MOCK_RUN_3_ID, 300),
     ];
-    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockImplementation((runID: string) =>
+    const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
-    // Use same pattern as Confusion Matrix test: shared artifacts/events, context-specific executions
+    // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(300)]];
-    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockImplementation((context: Context) =>
-      Promise.resolve(executions.find((e) => e[0].getId() === context.getId()) ?? []),
+    const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [
@@ -993,18 +833,23 @@ describe('CompareV2', () => {
       newMockArtifact(200, false, true, 'firstArtifactName'),
       newMockArtifact(300, false, true, 'secondArtifactName'),
     ];
-    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockResolvedValue(artifacts);
+    const getArtifactsSpy = vi.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
     const events = [
       newMockEvent(1),
       newMockEvent(200, 'firstArtifactName'),
       newMockEvent(300, 'secondArtifactName'),
     ];
-    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockResolvedValue(events);
+    const getEventsSpy = vi.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
 
-    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
+    const getArtifactTypesSpy = vi.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
 
-    vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType').mockImplementation(
+    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    const filterLinkedArtifactsByTypeSpy = vi.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
         metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
     );
@@ -1014,27 +859,10 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await waitForRunCheckboxes(3);
-
-    await waitFor(
-      () => {
-        expect(getBodyText()).toContain('Scalar Metrics');
-      },
-      { timeout: 10000 },
-    );
+    await TestUtils.flushPromises();
 
     fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
-    // Wait for ROC curve data to load - either "multiple artifacts" (2+ selected) or artifact names
-    await waitFor(
-      () => {
-        const text = getBodyText();
-        expect(
-          text.match(/ROC Curve:.*multiple artifacts/) ||
-            (text.includes('firstArtifactName') && text.includes('secondArtifactName')),
-        ).toBeTruthy();
-      },
-      { timeout: 10000 },
-    );
+    await screen.findByText('ROC Curve: multiple artifacts');
     await screen.findByLabelText('Filter artifacts');
   });
 });

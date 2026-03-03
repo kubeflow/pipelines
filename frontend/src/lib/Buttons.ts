@@ -596,7 +596,7 @@ export default class Buttons {
     selectedIds: string[],
     content: string,
     useCurrentResource: boolean,
-    api: (id: string) => Promise<unknown>,
+    api: (id: string) => Promise<void>,
     callback: (selectedIds: string[], success: boolean) => void,
     actionName: string,
     resourceName: string,
@@ -637,7 +637,7 @@ export default class Buttons {
     actionName: string,
     resourceName: string,
     useCurrentResource: boolean,
-    api: (id: string) => Promise<unknown>,
+    api: (id: string) => Promise<void>,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Promise<void> {
     if (confirmed) {
@@ -992,21 +992,21 @@ export default class Buttons {
     // Delete pipeline versions.
     const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};
     await Promise.all(
+      // TODO: fix the no no return value bug
+      // eslint-disable-next-line array-callback-return
       Object.keys(toBeDeletedVersionIds).map((pipelineId) => {
-        unsuccessfulVersionIds[pipelineId] = [];
-        return Promise.all(
-          toBeDeletedVersionIds[pipelineId].map(async (versionId) => {
-            try {
-              await Apis.pipelineServiceApiV2.deletePipelineVersion(pipelineId, versionId);
-            } catch (err) {
-              unsuccessfulVersionIds[pipelineId].push(versionId);
-              const errorMessage = await errorToMessage(err);
-              errorMessages.push(
-                `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
-              );
-            }
-          }),
-        );
+        toBeDeletedVersionIds[pipelineId].map(async (versionId) => {
+          try {
+            unsuccessfulVersionIds[pipelineId] = [];
+            await Apis.pipelineServiceApiV2.deletePipelineVersion(pipelineId, versionId);
+          } catch (err) {
+            unsuccessfulVersionIds[pipelineId].push(versionId);
+            const errorMessage = await errorToMessage(err);
+            errorMessages.push(
+              `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
+            );
+          }
+        });
       }),
     );
     const selectedVersionIdsCt = this._deepCountDictionary(selectedVersionIds);

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import React from 'react';
+import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
@@ -25,13 +26,12 @@ import {
   filterEventWithOutputArtifact,
   getArtifactName,
   getArtifactTypeName,
+  getArtifactTypes,
   getLinkedArtifactsByExecution,
   getStoreSessionInfoFromArtifact,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { Execution } from 'src/third_party/mlmd';
-import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
-import { queryKeys } from 'src/hooks/queryKeys';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
@@ -66,13 +66,17 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
     isSuccess,
     error,
     data: linkedArtifacts,
-  } = useQuery<LinkedArtifact[], Error>({
-    queryKey: queryKeys.executionArtifact(executionId, execution.getLastKnownState()),
-    queryFn: () => getLinkedArtifactsByExecution(execution),
-    staleTime: Infinity,
-  });
+  } = useQuery<LinkedArtifact[], Error>(
+    ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
+    () => getLinkedArtifactsByExecution(execution),
+    { staleTime: Infinity },
+  );
 
-  const { data: artifactTypes } = useArtifactTypes();
+  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
+    ['artifact_types', { linkedArtifact: linkedArtifacts }],
+    () => getArtifactTypes(),
+    {},
+  );
 
   const artifactTypeNames =
     linkedArtifacts && artifactTypes ? getArtifactTypeName(artifactTypes, linkedArtifacts) : [];
