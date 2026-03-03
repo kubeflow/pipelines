@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
 import ReactFlow, {
   Background,
@@ -66,27 +66,28 @@ function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
   );
 }
 
-export default {
+const meta: Meta<typeof WrappedExecutionNode> = {
   title: 'v2/ExecutionNode',
   component: WrappedExecutionNode,
   argTypes: {
     backgroundColor: { control: 'color' },
   },
-} as ComponentMeta<typeof WrappedExecutionNode>;
-
-const Template: ComponentStory<typeof WrappedExecutionNode> = args => (
-  <WrappedExecutionNode {...args} />
-);
-
-export const Primary = Template.bind({});
-Primary.args = {
-  id: 'id',
-  label: 'This is an ExecutionNode',
-  state: Execution.State.NEW,
 };
 
-export const Secondary = Template.bind({});
-Secondary.args = {
-  id: 'id',
-  label: 'This is an ExecutionNode with long name',
+export default meta;
+type Story = StoryObj<typeof WrappedExecutionNode>;
+
+export const Primary: Story = {
+  args: {
+    id: 'id',
+    label: 'This is an ExecutionNode',
+    state: Execution.State.NEW,
+  },
+};
+
+export const Secondary: Story = {
+  args: {
+    id: 'id',
+    label: 'This is an ExecutionNode with long name',
+  },
 };

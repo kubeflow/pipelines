@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
@@ -40,6 +36,8 @@ import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+
+import { Button, FormControlLabel, InputAdornment, Radio } from '@mui/material';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -278,7 +276,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   variant='outlined'
                   inputRef={this._pipelineDisplayNameRef}
                   onChange={this.handleChange('pipelineDisplayName')}
-                  autoFocus={true}
                 />
               )}
               <Input
@@ -289,7 +286,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineDescriptionRef}
                 onChange={this.handleChange('pipelineDescription')}
-                autoFocus={true}
               />
               {/* Choose a local file for package or specify a url for package */}
             </>
@@ -308,7 +304,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
                 onChange={this.handleChange('pipelineName')}
-                autoFocus={true}
                 InputProps={{
                   classes: { disabled: css.nonEditableInput },
                   endAdornment: (
@@ -362,7 +357,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   required={false}
                   onChange={this.handleChange('pipelineVersionDisplayName')}
                   value={pipelineVersionDisplayName}
-                  autoFocus={true}
                   variant='outlined'
                 />
               )}
@@ -373,7 +367,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 label='Pipeline Version Description'
                 variant='outlined'
                 onChange={this.handleChange('pipelineVersionDescription')}
-                autoFocus={true}
               />
             </>
           )}

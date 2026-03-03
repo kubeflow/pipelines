@@ -30,7 +30,7 @@ import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import RunList from 'src/pages/RunList';
 import immerProduce from 'immer';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;

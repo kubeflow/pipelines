@@ -1,0 +1,73 @@
+name: Create Multi-Arch Manifest
+on:
+  workflow_call:
+    inputs:
+      target_tag:
+        type: string
+        description: 'Target Image Tag'
+        required: true
+      app_to_build:
+        type: string
+        description: 'Provide the app name'
+        required: true
+      set_latest:
+        type: string
+        default: 'true'
+        description: 'Set latest tag'
+        required: false
+
+env:
+  TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_ORG: ${{ github.repository_owner }}
+  APP_NAME: ${{ inputs.app_to_build }}
+  SET_LATEST: ${{ inputs.set_latest }}
+
+jobs:
+  create-manifest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ env.APP_NAME }}-*
+          merge-multiple: true
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create and Push Manifest
+        working-directory: /tmp/digests
+        run: |
+          IMAGE="${IMAGE_REGISTRY}/${IMAGE_ORG}/${APP_NAME}"
+          
+          echo "Building sources from digests..."
+          SOURCES=""
+          for digest in *; do
+            # Only accept filenames that look like a 64-character hexadecimal SHA-256 digest
+            if [[ "$digest" =~ ^[a-fA-F0-9]{64}$ ]]; then
+              SOURCES+="${IMAGE}@sha256:${digest} "
+            else
+              echo "Skipping invalid digest file: ${digest}" >&2
+            fi
+          done
+          
+          echo "Creating manifest for ${IMAGE}:${TARGET_IMAGE_TAG} with sources: ${SOURCES}"
+          docker buildx imagetools create -t "${IMAGE}:${TARGET_IMAGE_TAG}" ${SOURCES}
+          
+          if [ "${SET_LATEST}" == "true" ]; then
+            echo "Creating manifest for ${IMAGE}:latest with sources: ${SOURCES}"
+            docker buildx imagetools create -t "${IMAGE}:latest" ${SOURCES}
+          fi

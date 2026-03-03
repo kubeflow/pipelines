@@ -14,17 +14,7 @@
  * limitations under the License.
  */
 
-import {
-  Button,
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from '@material-ui/core';
+import { Button, Checkbox, FormControlLabel, InputAdornment, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';

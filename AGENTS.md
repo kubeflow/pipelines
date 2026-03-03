@@ -7,8 +7,8 @@
 
 ### Document metadata
 
-- Last updated: 2026-01-20
-- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 16)
+- Last updated: 2026-02-23
+- Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
 
@@ -377,7 +377,7 @@ For full integration testing against a real KFP deployment:
 
 ### Key technologies and architecture
 
-- **React 16** with TypeScript
+- **React 17** with TypeScript
 - **Material-UI v3** for components
 - **React Router v5** for navigation
 - **Dagre** for graph layout visualization
@@ -401,6 +401,9 @@ For full integration testing against a real KFP deployment:
 - `npm run test -u` - Update Vitest snapshots
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript typecheck (`tsc --noEmit`)
+- `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 17 today)
+- `npm run check:react-peers:18` - Preview lockfile React peer compatibility against React 18
+- `npm run check:react-peers:19` - Preview lockfile React peer compatibility against React 19
 - `npm run format` - Format code with Prettier
 - `npm run storybook` - Start Storybook on port 6006
 
@@ -432,7 +435,7 @@ The frontend includes several generated code components:
 - **Server tests**: `npm run test:server:coverage` (Jest)
 - **Coverage**: `npm run test:ui:coverage` (Vitest) + `npm run test:coverage` (Vitest UI + Jest server)
 - **Stability loop**: `npm run test:ui:coverage:loop` (Vitest coverage with capped workers)
-- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + Vitest UI coverage + Jest coverage)
+- **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + lockfile React peer check + Vitest UI coverage + Jest coverage)
 - **Snapshot tests**: Auto-update with `npm test -u` or `npm run test:ui -- -u` (Vitest)
 
 ## CI/CD (GitHub Actions)
@@ -572,6 +575,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Frontend dev server: `cd frontend && npm start`
 - Frontend with cluster: `cd frontend && npm run start:proxy-and-server`
 - Frontend tests: `cd frontend && npm run test:ui` (Vitest) or `npm test` (same as `test:ui`)
+- Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18` / `check:react-peers:19`)
 - Frontend formatting: `cd frontend && npm run format`
 - Generate frontend APIs: `cd frontend && npm run apis`
 

@@ -16,11 +16,10 @@
 
 import * as React from 'react';
 import { classes } from 'typestyle';
-import Radio from '@material-ui/core/Radio';
-import Tooltip from '@material-ui/core/Tooltip';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
 import { commonCss, padding } from '../Css';
 import { PipelineTabsHeaders } from '../pages/PrivateAndSharedPipelines';
+
+import { Radio, Tooltip, FormControlLabel } from '@mui/material';
 
 export interface PrivateSharedSelectorProps {
   onChange: (isPrivate: boolean) => void;
