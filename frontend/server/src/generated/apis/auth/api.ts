@@ -75,10 +75,7 @@ export class BaseAPI {
  */
 export class RequiredError extends Error {
   name: 'RequiredError';
-  constructor(
-    public field: string,
-    msg?: string,
-  ) {
+  constructor(public field: string, msg?: string) {
     super(msg);
   }
 }
@@ -155,7 +152,7 @@ export interface ProtobufAny {
  * AuthServiceApi - fetch parameter creator
  * @export
  */
-export const AuthServiceApiFetchParamCreator = function (configuration?: Configuration) {
+export const AuthServiceApiFetchParamCreator = function(configuration?: Configuration) {
   return {
     /**
      *
@@ -220,7 +217,7 @@ export const AuthServiceApiFetchParamCreator = function (configuration?: Configu
  * AuthServiceApi - functional programming interface
  * @export
  */
-export const AuthServiceApiFp = function (configuration?: Configuration) {
+export const AuthServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
@@ -243,15 +240,13 @@ export const AuthServiceApiFp = function (configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = globalThis.fetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
-          (response) => {
-            if (response.status >= 200 && response.status < 300) {
-              return response.json();
-            } else {
-              throw response;
-            }
-          },
-        );
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
       };
     },
   };
@@ -261,7 +256,7 @@ export const AuthServiceApiFp = function (configuration?: Configuration) {
  * AuthServiceApi - factory interface
  * @export
  */
-export const AuthServiceApiFactory = function (
+export const AuthServiceApiFactory = function(
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,
