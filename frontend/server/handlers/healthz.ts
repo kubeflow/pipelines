@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as fs from 'fs';
-import fetch from 'node-fetch';
 import { Handler } from 'express';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** HealthzStats describes the ml-pipeline ui server state. */
 export interface HealthzStats {
@@ -76,10 +78,10 @@ export function getHealthzHandler(options: {
   return async (_, res) => {
     try {
       const response = await fetch(healthzEndpoint, {
-        timeout: 1000,
+        signal: AbortSignal.timeout(1000),
       });
       healthzStats.apiServerReady = true;
-      const serverStatus = await response.json();
+      const serverStatus = (await response.json()) as Record<string, any>;
       healthzStats.apiServerCommitHash = serverStatus.commit_sha;
       healthzStats.apiServerTagName = serverStatus.tag_name;
       healthzStats.apiServerMultiUser = serverStatus.multi_user;

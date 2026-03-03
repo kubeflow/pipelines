@@ -66,6 +66,7 @@ class TestRunDockerContainer(DockerMockTestCase):
             stdout=True,
             stderr=True,
             volumes={},
+            auto_remove=True,
         )
 
     def test_cwd_volume(self):
@@ -88,7 +89,9 @@ class TestRunDockerContainer(DockerMockTestCase):
             volumes={current_test_dir: {
                 'bind': '/localdir',
                 'mode': 'ro'
-            }})
+            }},
+            auto_remove=True,
+        )
 
 
 class TestDockerTaskHandler(DockerMockTestCase):
@@ -236,6 +239,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
                         'mode': 'rw'
                     }
                 },
+                auto_remove=True,
             )
 
     def test_pipeline_root_relpath(self):
@@ -299,7 +303,7 @@ class TestE2E(DockerMockTestCase,
         kwargs = run_mock.call_args[1]
         self.assertEqual(
             kwargs['image'],
-            'python:3.9',
+            'python:3.11',
         )
         self.assertTrue(
             any('def artifact_maker' in c for c in kwargs['command']))

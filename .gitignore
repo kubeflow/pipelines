@@ -26,6 +26,7 @@ dist
 frontend/test/ui/visual-regression/errorShots
 frontend/test/ui/visual-regression/screenshots/diff
 frontend/test/ui/visual-regression/screenshots/screen
+frontend/.visual/
 
 # sqlite db
 *.db
@@ -34,6 +35,7 @@ frontend/test/ui/visual-regression/screenshots/screen
 .idea/
 .ijwb/
 *.iml
+.obsidian/
 
 # Merge files
 *.orig
@@ -97,6 +99,7 @@ backend/src/crd/kubernetes/bin
 
 **/allure-*
 **/*.html
+!frontend/index.html
 reports/
 logs/
 *.out
@@ -104,3 +107,9 @@ logs/
 
 # Project-local tools
 bin/
+
+# UI Smoke Test working directory
+.ui-smoke-test/
+frontend/scripts/ui-smoke-test/node_modules/
+.npm-cache/
+.npm/

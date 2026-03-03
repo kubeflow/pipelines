@@ -10,9 +10,9 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"metadata":{"key":"value"},"typeSchema":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}}'
-    - name: components-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b
+    - name: components-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e
       value: '{"executorLabel":"exec-model-consumer","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}},"model":{"artifactType":{"schemaTitle":"google.VertexModel","schemaVersion":"0.0.0"}}}}}'
-    - name: implementations-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b
+    - name: implementations-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","model_consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -28,10 +28,10 @@ spec:
         '', type(model))\n    print(''artifact.name: '', model.name)\n    print(''artifact.uri:
         '', model.uri)\n    print(''artifact.metadata: '', model.metadata)\n\n    print(''Dataset'')\n    print(''artifact.type:
         '', type(dataset))\n    print(''artifact.name: '', dataset.name)\n    print(''artifact.uri:
-        '', dataset.uri)\n    print(''artifact.metadata: '', dataset.metadata)\n\n"],"image":"python:3.9"}'
-    - name: components-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200
+        '', dataset.uri)\n    print(''artifact.metadata: '', dataset.metadata)\n\n"],"image":"python:3.11"}'
+    - name: components-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94
       value: '{"executorLabel":"exec-model-producer","outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"google.VertexModel","schemaVersion":"0.0.0"}}}}}'
-    - name: implementations-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200
+    - name: implementations-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","model_producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -44,7 +44,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\nimport
         aiplatform\n\ndef model_producer(model: Output[aiplatform.VertexModel]):\n\n    assert
         isinstance(model, aiplatform.VertexModel), type(model)\n    with open(model.path,
-        ''w'') as f:\n        f.write(''my model'')\n\n"],"image":"python:3.9"}'
+        ''w'') as f:\n        f.write(''my model'')\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer"}},"model-consumer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-consumer"},"dependentTasks":["importer","model-producer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"model-producer"}}}},"taskInfo":{"name":"model-consumer"}},"model-producer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-producer"},"taskInfo":{"name":"model-producer"}}}}}'
   entrypoint: entrypoint
@@ -53,6 +53,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -103,6 +107,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: task
@@ -112,6 +124,10 @@ spec:
     metadata: {}
     name: system-importer
     outputs: {}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - container:
       args:
       - --type
@@ -151,7 +167,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow
+      - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address
@@ -160,6 +176,15 @@ spec:
       - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -169,6 +194,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -197,6 +230,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -233,6 +270,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -262,6 +306,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -272,6 +324,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -304,11 +359,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b}}'
+            value: '{{workflow.parameters.components-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-consumer"},"dependentTasks":["importer","model-producer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"model-producer"}}}},"taskInfo":{"name":"model-consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b}}'
+            value: '{{workflow.parameters.implementations-d95089443b1478c8651b4c7907aff4ad91082dd878a05b164608a7958a55d36e}}'
           - name: task-name
             value: model-consumer
           - name: parent-dag-id
@@ -329,11 +384,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200}}'
+            value: '{{workflow.parameters.components-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-producer"},"taskInfo":{"name":"model-producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200}}'
+            value: '{{workflow.parameters.implementations-e9925d1cd495bcfa47d9908820b0f2cbd7304b8cd8e49bc581e7ec0d2e8b0d94}}'
           - name: task-name
             value: model-producer
           - name: parent-dag-id
@@ -393,7 +448,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow
+      - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address
@@ -411,6 +466,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -441,6 +504,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

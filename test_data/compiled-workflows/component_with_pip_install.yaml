@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602
+    - name: components-76f86a3dc9bc2983c5f9c392d26e715eac83f100d1612e8841cab55696a13ec4
       value: '{"executorLabel":"exec-component-with-pip-install"}'
-    - name: implementations-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602
+    - name: implementations-76f86a3dc9bc2983c5f9c392d26e715eac83f100d1612e8841cab55696a13ec4
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_with_pip_install"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,7 +20,7 @@ spec:
         -d)\n\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
         python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        component_with_pip_install():\n    import yapf\n    print(dir(yapf))\n\n"],"image":"python:3.9"}'
+        component_with_pip_install():\n    import yapf\n    print(dir(yapf))\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-with-pip-install":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-pip-install"},"taskInfo":{"name":"component-with-pip-install"}}}}}'
   entrypoint: entrypoint
@@ -29,6 +29,10 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
     labels:
       pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -70,7 +74,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow
+      - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address
@@ -79,6 +83,15 @@ spec:
       - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -88,6 +101,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -116,6 +137,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:
@@ -152,6 +177,13 @@ spec:
       image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
       name: ""
       resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -181,6 +213,14 @@ spec:
           memory: 128Mi
         requests:
           cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -191,6 +231,9 @@ spec:
     name: system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
@@ -211,11 +254,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602}}'
+            value: '{{workflow.parameters.components-76f86a3dc9bc2983c5f9c392d26e715eac83f100d1612e8841cab55696a13ec4}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-pip-install"},"taskInfo":{"name":"component-with-pip-install"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602}}'
+            value: '{{workflow.parameters.implementations-76f86a3dc9bc2983c5f9c392d26e715eac83f100d1612e8841cab55696a13ec4}}'
           - name: task-name
             value: component-with-pip-install
           - name: parent-dag-id
@@ -275,7 +318,7 @@ spec:
       - --no_proxy
       - ""
       - --ml_pipeline_server_address
-      - ml-pipeline.kubeflow
+      - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
       - --mlmd_server_address
@@ -293,6 +336,14 @@ spec:
         requests:
           cpu: 100m
           memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     inputs:
       parameters:
       - name: component
@@ -323,6 +374,10 @@ spec:
         valueFrom:
           default: "true"
           path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
   - dag:
       tasks:
       - arguments:

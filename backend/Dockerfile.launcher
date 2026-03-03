@@ -66,6 +66,8 @@ COPY --from=builder /bin/launcher-v2 /bin/launcher-v2
 COPY --from=builder /bin/launcher-v2-fips /bin/launcher-v2-fips
 RUN chmod +x /bin/launcher-v2 && chmod +x /bin/launcher-v2-fips
 
+USER 65534
+
 ENTRYPOINT ["/bin/launcher-v2"]
 
 LABEL name="ds-pipelines-launcher" \

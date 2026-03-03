@@ -30,10 +30,8 @@ USE_PROXY=false
 CACHE_DISABLED=false
 ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
-STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
-SEAWEEDFS_INIT_TIMEOUT=300s
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -59,10 +57,6 @@ while [ "$#" -gt 0 ]; do
     --artifact-proxy)
       ARTIFACT_PROXY_ENABLED=true
       shift
-      ;;
-    --storage)
-      STORAGE_BACKEND="$2"
-      shift 2
       ;;
     --argo-version)
       shift
@@ -94,7 +88,7 @@ fi
 if [ -n "${AWF_VERSION}"  ]; then
   echo "NOTE: Argo version ${AWF_VERSION} specified, updating Argo Workflow manifests..."
   echo "${AWF_VERSION}" > third_party/argo/VERSION
-  make -C ./manifests/kustomize/third-party/argo update
+  make -C ./third_party/argo update_manifests
   echo "Manifests updated for Argo version ${AWF_VERSION}."
 fi
 
@@ -139,20 +133,12 @@ fi
 # Manifests will be deployed according to the flag provided
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
-  if $CACHE_DISABLED; then
+  if $CACHE_DISABLED && $USE_PROXY; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+  elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
-  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED && $USE_PROXY; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
-  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
-  elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
-  elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
   elif $POD_TO_POD_TLS_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
   else
@@ -167,12 +153,8 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+  if $ARTIFACT_PROXY_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
-  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   else
@@ -183,7 +165,7 @@ fi
 
 echo "Deploying ${TEST_MANIFESTS}..."
 
-kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
+kubectl kustomize --load-restrictor LoadRestrictionsNone "${TEST_MANIFESTS}" | kubectl apply -f - || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
@@ -196,17 +178,6 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Not all pods running."
   exit 1
-fi
-
-# Ensure SeaweedFS S3 auth is configured before proceeding
-if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
-  wait_for_seaweedfs_init kubeflow "${SEAWEEDFS_INIT_TIMEOUT}" || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]
-  then
-    echo "SeaweedFS init job did not complete successfully."
-    exit 1
-  fi
-  echo "SeaweedFS init job completed successfully."
 fi
 
 if [ "${MULTI_USER}" == "true" ]; then

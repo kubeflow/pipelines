@@ -15,47 +15,51 @@
  */
 
 import * as React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import AllRunsAndArchive, {
   AllRunsAndArchiveProps,
   AllRunsAndArchiveTab,
 } from './AllRunsAndArchive';
-import { shallow } from 'enzyme';
-
-function generateProps(): AllRunsAndArchiveProps {
-  return {
-    history: {} as any,
-    location: '' as any,
-    match: '' as any,
-    toolbarProps: {} as any,
-    updateBanner: () => null,
-    updateDialog: jest.fn(),
-    updateSnackbar: jest.fn(),
-    updateToolbar: () => null,
-    view: AllRunsAndArchiveTab.RUNS,
-  };
-}
 
 describe('RunsAndArchive', () => {
+  function generateProps(): AllRunsAndArchiveProps {
+    return {
+      history: {} as any,
+      location: '' as any,
+      match: '' as any,
+      toolbarProps: {} as any,
+      updateBanner: () => null,
+      updateDialog: vi.fn(),
+      updateSnackbar: vi.fn(),
+      updateToolbar: () => null,
+      view: AllRunsAndArchiveTab.RUNS,
+    };
+  }
+
   it('renders runs page', () => {
-    expect(shallow(<AllRunsAndArchive {...(generateProps() as any)} />)).toMatchSnapshot();
+    const { asFragment } = render(<AllRunsAndArchive {...(generateProps() as any)} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders archive page', () => {
     const props = generateProps();
     props.view = AllRunsAndArchiveTab.ARCHIVE;
-    expect(shallow(<AllRunsAndArchive {...(props as any)} />)).toMatchSnapshot();
+    const { asFragment } = render(<AllRunsAndArchive {...(props as any)} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     const props = generateProps();
     props.history.push = spy;
-    const tree = shallow(<AllRunsAndArchive {...(props as any)} />);
+    const { rerender } = render(<AllRunsAndArchive {...(props as any)} />);
 
-    tree.find('MD2Tabs').simulate('switch', 1);
+    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
     expect(spy).toHaveBeenCalledWith('/archive/runs');
 
-    tree.find('MD2Tabs').simulate('switch', 0);
+    rerender(<AllRunsAndArchive {...(props as any)} view={AllRunsAndArchiveTab.ARCHIVE} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Active' }));
     expect(spy).toHaveBeenCalledWith('/runs');
   });
 });

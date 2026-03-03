@@ -116,12 +116,6 @@ service RunService {
     };
   }
 
-  // Finds a run's artifact data.
-  rpc ReadArtifactV1(ReadArtifactRequest) returns (ReadArtifactResponse) {
-    option (google.api.http) = {
-      get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
-    };
-  }
 
   // Terminates an active run.
   rpc TerminateRunV1(TerminateRunRequest) returns (google.protobuf.Empty) {
@@ -346,16 +340,3 @@ message ReportRunMetricsResponse {
   repeated ReportRunMetricResult results = 1;
 }
 
-message ReadArtifactRequest {
-  // The ID of the run.
-  string run_id = 1;
-  // The ID of the running node.
-  string node_id = 2;
-  // The name of the artifact.
-  string artifact_name = 3;
-}
-
-message ReadArtifactResponse {
-  // The bytes of the artifact content.
-  bytes data = 1;
-}

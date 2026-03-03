@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.24 AS generator
+FROM golang:1.25 AS generator
 ENV GRPC_GATEWAY_VERSION=v2.27.1
 ENV GO_SWAGGER_VERSION=v0.32.3
 ENV GRPC_VERSION=v1.73.0
@@ -77,7 +77,7 @@ RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRP
 
 # Needed for buildling python packages requiring protoc
 RUN apt-get update && apt-get install -y python3-pip
-RUN apt-get -y upgrade python3-pip && pip3 install --upgrade setuptools wheel --break-system-packages
+RUN python3 -m pip install --no-cache-dir --break-system-packages --upgrade --ignore-installed pip setuptools wheel
 
 # WORKAROUND: https://github.com/docker-library/golang/issues/225#issuecomment-403170792
 ENV XDG_CACHE_HOME=/tmp/.cache

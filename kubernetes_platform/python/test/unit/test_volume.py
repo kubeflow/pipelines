@@ -90,6 +90,65 @@ class TestMountPVC:
             }
         }
 
+    def test_mount_with_sub_path(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.mount_pvc(
+                task,
+                pvc_name='pvc-name',
+                mount_path='/data',
+                sub_path='models',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'pvcMount': [{
+                                    'constant': 'pvc-name',
+                                    'pvcNameParameter': {'runtimeValue': {'constant': 'pvc-name'}},
+                                    'mountPath': '/data',
+                                    'subPath': 'models'
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_mount_with_empty_sub_path(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.mount_pvc(
+                task,
+                pvc_name='pvc-name',
+                mount_path='/data',
+                sub_path='',
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'pvcMount': [{
+                                    'constant': 'pvc-name',
+                                    'pvcNameParameter': {'runtimeValue': {'constant': 'pvc-name'}},
+                                    'mountPath': '/data'
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     def test_mount_preserves_secret_as_env(self):
         # checks that mount_pvc respects previously set secrets
         @dsl.pipeline

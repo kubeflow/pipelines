@@ -13,19 +13,62 @@
 # limitations under the License.
 """Code for running a dsl.importer locally."""
 import logging
+import os
+import shutil
 from typing import Any, Dict, Tuple
+from urllib.parse import urlparse
+import uuid
 import warnings
 
 from google.protobuf import json_format
 from kfp import dsl
+from kfp.dsl import constants as dsl_constants
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
+from kfp.local import config
 from kfp.local import logging_utils
 from kfp.local import placeholder_utils
 from kfp.local import status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 Outputs = Dict[str, Any]
+
+
+def _get_workspace_root() -> str:
+    cfg = config.LocalExecutionConfig.instance
+    if cfg is None or not cfg.workspace_root:
+        raise RuntimeError(
+            'Workspace not configured. Initialize with workspace_root parameter:\n'
+            "local.init(runner=local.SubprocessRunner(), workspace_root='/path/to/workspace')"
+        )
+    workspace_root = cfg.workspace_root
+    if not os.path.isabs(workspace_root):
+        workspace_root = os.path.abspath(workspace_root)
+    return workspace_root
+
+
+def _copy_local_artifact_to_workspace(source_path: str, base_dir: str,
+                                      component_name: str) -> str:
+    source_path = os.path.abspath(source_path)
+    if not os.path.exists(source_path):
+        raise FileNotFoundError(source_path)
+
+    destination_dir = os.path.join(base_dir, 'importer', component_name,
+                                   uuid.uuid4().hex)
+    os.makedirs(destination_dir, exist_ok=True)
+
+    if os.path.isdir(source_path):
+        destination_path = os.path.join(
+            destination_dir, os.path.basename(source_path.rstrip(os.sep)))
+        if os.path.exists(destination_path):
+            shutil.rmtree(destination_path)
+        shutil.copytree(source_path, destination_path)
+    else:
+        destination_path = os.path.join(destination_dir,
+                                        os.path.basename(source_path))
+        shutil.copy2(source_path, destination_path)
+
+    return destination_path
 
 
 def run_importer(
@@ -90,13 +133,43 @@ def run_importer(
     )
     ArtifactCls = get_artifact_class_from_schema_title(
         executor_spec.importer.type_schema.schema_title)
-    outputs = {
-        'artifact': ArtifactCls(
-            name='artifact',
-            uri=uri,
-            metadata=metadata,
-        )
-    }
+    artifact = ArtifactCls(
+        name='artifact',
+        uri=uri,
+        metadata=metadata,
+    )
+
+    if executor_spec.importer.download_to_workspace:
+        parsed_uri = urlparse(uri)
+        scheme = parsed_uri.scheme
+        if scheme not in ('', 'file'):
+            warnings.warn(
+                "download_to_workspace only supports local file paths when running locally. Skipping workspace copy for '%s'."
+                % uri)
+        else:
+            source_path = parsed_uri.path if scheme == 'file' else uri
+            try:
+                workspace_root = _get_workspace_root()
+                workspace_artifacts_root = os.path.join(workspace_root,
+                                                        '.artifacts')
+                os.makedirs(workspace_artifacts_root, exist_ok=True)
+                cfg = config.LocalExecutionConfig.instance
+                host_path = _copy_local_artifact_to_workspace(
+                    source_path, workspace_artifacts_root, component_name)
+
+                if isinstance(cfg.runner, config.DockerRunner):
+                    rel_path = os.path.relpath(host_path, workspace_root)
+                    container_path = os.path.join(
+                        dsl_constants.WORKSPACE_MOUNT_PATH, rel_path)
+                    artifact.custom_path = container_path
+                else:
+                    artifact.custom_path = host_path
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    f"download_to_workspace expected a local file at '{source_path}', but it was not found."
+                )
+
+    outputs = {'artifact': artifact}
     with logging_utils.local_logger_context():
         logging.info(
             f'Task {task_name_for_logs} finished with status {logging_utils.format_status(status.Status.SUCCESS)}'

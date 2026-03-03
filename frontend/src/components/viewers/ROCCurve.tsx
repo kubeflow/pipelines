@@ -16,39 +16,55 @@
 
 import * as React from 'react';
 import {
-  Crosshair,
-  DiscreteColorLegend,
-  Highlight,
-  HorizontalGridLines,
-  LineSeries,
-  VerticalGridLines,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceArea,
+  ReferenceLine,
+  Tooltip,
   XAxis,
-  XYPlot,
   YAxis,
-  // @ts-ignore
-} from 'react-vis';
-import 'react-vis/dist/style.css';
+} from 'recharts';
 import Viewer, { ViewerConfig } from './Viewer';
-import { color, fontsize, commonCss } from '../../Css';
+import { color, commonCss, fontsize } from '../../Css';
 import { stylesheet } from 'typestyle';
 
+const axisTickStyle = {
+  fill: color.grey,
+  fontSize: fontsize.small,
+  fontWeight: 400,
+} as const;
+
+const axisLabelStyle = {
+  fill: color.strong,
+  fontSize: fontsize.small + 1,
+  fontWeight: 500,
+} as const;
+
 const css = stylesheet({
-  axis: {
-    fontSize: fontsize.medium,
-    fontWeight: 'bolder',
-  },
   crosshair: {
-    backgroundColor: '#1d2744',
+    backgroundColor: color.tooltipBg,
     borderRadius: 5,
-    boxShadow: '1px 1px 5px #aaa',
+    boxShadow: `1px 1px 5px ${color.tooltipShadow}`,
+    color: color.background,
     padding: 10,
   },
   crosshairLabel: {
+    color: color.background,
     fontWeight: 'bold',
     whiteSpace: 'nowrap',
   },
-  root: {
-    margin: 'auto',
+  legendItem: {
+    alignItems: 'center',
+    display: 'flex',
+    marginRight: 12,
+  },
+  legendSwatch: {
+    borderRadius: 2,
+    display: 'inline-block',
+    height: 10,
+    marginRight: 6,
+    width: 10,
   },
 });
 
@@ -74,6 +90,40 @@ export interface DisplayPoint {
   y: number;
 }
 
+interface TooltipPayloadEntry {
+  payload?: { x?: number | string };
+}
+
+interface TooltipContentProps {
+  active?: boolean;
+  label?: number | string;
+  payload?: ReadonlyArray<TooltipPayloadEntry>;
+}
+
+interface TooltipRow {
+  index: number;
+  label: string;
+}
+
+export const findNearestDisplayPoint = (
+  data: DisplayPoint[],
+  targetX: number,
+): DisplayPoint | null => {
+  if (!data.length) {
+    return null;
+  }
+  let nearestPoint = data[0];
+  let nearestDistance = Math.abs(data[0].x - targetX);
+  for (let i = 1; i < data.length; i++) {
+    const distance = Math.abs(data[i].x - targetX);
+    if (distance < nearestDistance) {
+      nearestPoint = data[i];
+      nearestDistance = distance;
+    }
+  }
+  return nearestPoint;
+};
+
 export interface ROCCurveConfig extends ViewerConfig {
   data: DisplayPoint[];
 }
@@ -87,19 +137,26 @@ interface ROCCurveProps {
 }
 
 interface ROCCurveState {
-  hoveredValues: DisplayPoint[];
   lastDrawLocation: { left: number; right: number } | null;
   highlightIndex: number;
+  refAreaLeft: number | null;
+  refAreaRight: number | null;
 }
 
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
+  private cachedConfigs: ROCCurveConfig[] | null = null;
+  private cachedChartData: Array<Record<string, number | null>> = [];
+  private readonly xTicks = Array.from({ length: 20 }, (_, i) => Number((i * 0.05).toFixed(2)));
+  private readonly yTicks = Array.from({ length: 10 }, (_, i) => Number((i * 0.1).toFixed(1)));
+
   constructor(props: any) {
     super(props);
 
     this.state = {
-      hoveredValues: new Array(this.props.configs.length).fill(''),
       lastDrawLocation: null,
       highlightIndex: -1, // -1 indicates no curve is highlighted
+      refAreaLeft: null,
+      refAreaRight: null,
     };
   }
 
@@ -115,131 +172,249 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const width = this.props.maxDimension || 800;
     const height = width * 0.65;
     const isSmall = width < 600;
-    const datasets = this.props.configs.map(d => d.data);
-    const numLines = datasets.length;
-    const labels = this.props.configs.map((_, i) => `threshold (Series #${i + 1})`);
-    const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
-
-    const { hoveredValues, lastDrawLocation, highlightIndex } = this.state;
+    const configs = this.props.configs;
+    const datasets = configs.map(d => d.data);
+    const labels = configs.map((_, i) => `threshold (Series #${i + 1})`);
+    const { lastDrawLocation, highlightIndex, refAreaLeft, refAreaRight } = this.state;
+    const chartData = this.getChartData(configs, datasets);
+    const xDomain = lastDrawLocation
+      ? ([lastDrawLocation.left, lastDrawLocation.right] as [number, number])
+      : ([0, 1] as [number, number]);
+    const colors = this.props.colors || lineColors;
+    const showLegend = this.props.forceLegend || datasets.length > 1;
 
     return (
       <div>
-        <XYPlot
+        <LineChart
           width={width}
           height={height}
-          animation={!this.props.disableAnimation && !isSmall}
-          classes={{ root: css.root }}
-          onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
-          xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}
-        >
-          <VerticalGridLines />
-          <HorizontalGridLines />
-
-          {/* Draw the axes from the first config in case there are several */}
-          <XAxis title={'fpr'} className={css.axis} />
-          <YAxis title={'tpr'} className={css.axis} />
-
-          {/* Reference line */}
-          <LineSeries
-            color={color.disabledBg}
-            strokeWidth={1}
-            data={baseLineData}
-            strokeStyle='dashed'
-          />
-
-          {/* Lines */}
-          {datasets.map(
-            (data, i) =>
-              highlightIndex !== i && (
-                <LineSeries
-                  key={i}
-                  color={
-                    this.props.colors
-                      ? this.props.colors[i]
-                      : lineColors[i] || lineColors[lineColors.length - 1]
+          data={chartData}
+          margin={{ top: 5, right: 5, bottom: 20, left: 32 }}
+          onMouseDown={
+            !isSmall
+              ? e => {
+                  if (e?.activeLabel == null) {
+                    return;
                   }
-                  strokeWidth={2}
-                  data={data}
-                  onNearestX={(d: any) => this._lineHovered(i, d)}
-                  curve='curveBasis'
-                />
-              ),
-          )}
-
-          {/* Highlighted line, if present */}
-          {highlightIndex >= 0 && (
-            <LineSeries
-              key={highlightIndex}
-              color={
-                this.props.colors
-                  ? this.props.colors[highlightIndex]
-                  : lineColors[highlightIndex] || lineColors[lineColors.length - 1]
-              }
-              strokeWidth={5}
-              data={datasets[highlightIndex]}
-              onNearestX={(d: any) => this._lineHovered(highlightIndex, d)}
-              curve='curveBasis'
+                  this.setState({ refAreaLeft: Number(e.activeLabel), refAreaRight: null });
+                }
+              : undefined
+          }
+          onMouseMove={
+            !isSmall && refAreaLeft != null
+              ? e => {
+                  if (e?.activeLabel == null) {
+                    return;
+                  }
+                  this.setState({ refAreaRight: Number(e.activeLabel) });
+                }
+              : undefined
+          }
+          onMouseUp={
+            !isSmall && refAreaLeft != null
+              ? () => {
+                  if (refAreaRight == null || refAreaLeft === refAreaRight) {
+                    this.setState({ refAreaLeft: null, refAreaRight: null });
+                    return;
+                  }
+                  const left = Math.min(refAreaLeft, refAreaRight);
+                  const right = Math.max(refAreaLeft, refAreaRight);
+                  this.setState({
+                    lastDrawLocation: { left, right },
+                    refAreaLeft: null,
+                    refAreaRight: null,
+                  });
+                }
+              : undefined
+          }
+        >
+          <CartesianGrid />
+          <XAxis
+            type='number'
+            dataKey='x'
+            domain={xDomain}
+            ticks={this.xTicks}
+            interval={0}
+            tickFormatter={(value: number) => value.toFixed(2)}
+            tick={axisTickStyle}
+            label={{
+              value: 'fpr',
+              position: 'insideBottom',
+              offset: 0,
+              ...axisLabelStyle,
+            }}
+          />
+          <YAxis
+            type='number'
+            domain={[0, 1]}
+            ticks={this.yTicks}
+            interval={0}
+            tickFormatter={(value: number) => value.toFixed(1)}
+            tick={axisTickStyle}
+            label={{
+              value: 'tpr',
+              angle: -90,
+              position: 'insideLeft',
+              offset: 14,
+              ...axisLabelStyle,
+            }}
+          />
+          <ReferenceLine
+            segment={[
+              { x: 0, y: 0 },
+              { x: 1, y: 1 },
+            ]}
+            stroke={color.disabledBg}
+            strokeWidth={1}
+            strokeDasharray='4 4'
+          />
+          {datasets.map((_, i) => (
+            <Line
+              key={i}
+              type='basis'
+              dataKey={`y${i}`}
+              stroke={colors[i] || colors[colors.length - 1]}
+              strokeWidth={highlightIndex === i ? 4 : 2}
+              dot={false}
+              isAnimationActive={!this.props.disableAnimation && !isSmall}
+              connectNulls={true}
+            />
+          ))}
+          {!isSmall && refAreaLeft != null && refAreaRight != null && (
+            <ReferenceArea
+              x1={Math.min(refAreaLeft, refAreaRight)}
+              x2={Math.max(refAreaLeft, refAreaRight)}
+              strokeOpacity={0.1}
             />
           )}
-
           {!isSmall && (
-            <Highlight
-              onBrushEnd={(area: any) => this.setState({ lastDrawLocation: area })}
-              enableY={false}
-              onDrag={(area: any) =>
-                this.setState({
-                  lastDrawLocation: {
-                    left: (lastDrawLocation ? lastDrawLocation.left : 0) - (area.right - area.left),
-                    right:
-                      (lastDrawLocation ? lastDrawLocation.right : 0) - (area.right - area.left),
-                  },
-                })
-              }
+            <Tooltip
+              cursor={{ stroke: color.weak }}
+              content={tooltipProps => this.renderTooltipContent(tooltipProps, datasets, labels)}
             />
           )}
-
-          {/* Hover effect to show labels */}
-          {!isSmall && (
-            <Crosshair values={hoveredValues}>
-              <div className={css.crosshair}>
-                {hoveredValues.map((value, i) => (
-                  <div key={i} className={css.crosshairLabel}>{`${labels[i]}: ${value.label}`}</div>
-                ))}
-              </div>
-            </Crosshair>
-          )}
-        </XYPlot>
+        </LineChart>
 
         <div className={commonCss.flex}>
           {/* Legend */}
-          {(this.props.forceLegend || datasets.length > 1) && (
+          {showLegend && (
             <div style={{ flexGrow: 1 }}>
-              <DiscreteColorLegend
-                items={datasets.map((_, i) => ({
-                  color: this.props.colors ? this.props.colors[i] : lineColors[i],
-                  title: 'Series #' + (i + 1),
-                }))}
-                orientation='horizontal'
-                onItemMouseEnter={(_: any, i: number) => {
-                  this.setState({ highlightIndex: i });
-                }}
-                onItemMouseLeave={() => {
-                  this.setState({ highlightIndex: -1 });
-                }}
-              />
+              <div className={commonCss.flex}>
+                {datasets.map((_, i) => (
+                  <div
+                    key={`legend-${i}`}
+                    className={css.legendItem}
+                    onMouseEnter={() => this.setState({ highlightIndex: i })}
+                    onMouseLeave={() => this.setState({ highlightIndex: -1 })}
+                  >
+                    <span
+                      className={css.legendSwatch}
+                      style={{
+                        backgroundColor: colors[i] || colors[colors.length - 1],
+                      }}
+                    />
+                    <span>{`Series #${i + 1}`}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {lastDrawLocation && <span>Click to reset zoom</span>}
+          {lastDrawLocation && (
+            <button
+              type='button'
+              onClick={() => this.setState({ lastDrawLocation: null })}
+              style={{ cursor: 'pointer' }}
+            >
+              Click to reset zoom
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
-  private _lineHovered(lineIdx: number, data: any): void {
-    const hoveredValues = this.state.hoveredValues;
-    hoveredValues[lineIdx] = data;
-    this.setState({ hoveredValues });
+  private buildChartData(datasets: DisplayPoint[][]): Array<Record<string, number | null>> {
+    const pointsBySeries = datasets.map(data => {
+      const map = new Map<number, DisplayPoint>();
+      data.forEach(point => map.set(point.x, point));
+      return map;
+    });
+    const xValues = new Set<number>();
+    pointsBySeries.forEach(map => map.forEach((_value, key) => xValues.add(key)));
+    const sortedX = Array.from(xValues).sort((a, b) => a - b);
+    return sortedX.map(xValue => {
+      const row: Record<string, number | null> = { x: xValue };
+      pointsBySeries.forEach((map, index) => {
+        const point = map.get(xValue);
+        row[`y${index}`] = point ? point.y : null;
+      });
+      return row;
+    });
+  }
+
+  private getChartData(
+    configs: ROCCurveConfig[],
+    datasets: DisplayPoint[][],
+  ): Array<Record<string, number | null>> {
+    if (this.cachedConfigs !== configs) {
+      this.cachedConfigs = configs;
+      this.cachedChartData = this.buildChartData(datasets);
+    }
+    return this.cachedChartData;
+  }
+
+  private resolveHoveredX({ label, payload }: TooltipContentProps): number | null {
+    const labelNumber = typeof label === 'number' ? label : Number(label);
+    if (Number.isFinite(labelNumber)) {
+      return labelNumber;
+    }
+    const payloadPoint = payload?.[0]?.payload;
+    const payloadX = payloadPoint?.x != null ? Number(payloadPoint.x) : NaN;
+    return Number.isFinite(payloadX) ? payloadX : null;
+  }
+
+  private buildTooltipRows(datasets: DisplayPoint[][], hoveredX: number): TooltipRow[] {
+    return datasets
+      .map((dataset, index) => {
+        const nearest = findNearestDisplayPoint(dataset, hoveredX);
+        if (!nearest) {
+          return null;
+        }
+        return { index, label: nearest.label };
+      })
+      .filter((row): row is TooltipRow => !!row);
+  }
+
+  private renderTooltipRows(rows: TooltipRow[], labels: string[]): JSX.Element {
+    return (
+      <div className={css.crosshair}>
+        {rows.map(row => (
+          <div key={row.index} className={css.crosshairLabel}>
+            {`${labels[row.index]}: ${row.label}`}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  private renderTooltipContent(
+    tooltipProps: TooltipContentProps,
+    datasets: DisplayPoint[][],
+    labels: string[],
+  ): React.ReactNode {
+    if (!tooltipProps.active || !tooltipProps.payload?.length) {
+      return null;
+    }
+    const hoveredX = this.resolveHoveredX(tooltipProps);
+    if (hoveredX == null) {
+      return null;
+    }
+    const rows = this.buildTooltipRows(datasets, hoveredX);
+    if (!rows.length) {
+      return null;
+    }
+    return this.renderTooltipRows(rows, labels);
   }
 }
 

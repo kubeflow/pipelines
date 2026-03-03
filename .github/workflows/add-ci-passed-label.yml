@@ -54,8 +54,8 @@ jobs:
         run: |
           pr_number=$(cat ./pr_number)
           event_action=$(cat ./event_action)
-          echo "pr_number=${pr_number}" >> $GITHUB_OUTPUT
-          echo "event_action=${event_action}" >> $GITHUB_OUTPUT
+          echo "pr_number=${pr_number}" >> "$GITHUB_OUTPUT"
+          echo "event_action=${event_action}" >> "$GITHUB_OUTPUT"
           
   reset_ci_passed_label:
     name: Reset 'ci-passed' label on PR Synchronization
@@ -66,7 +66,7 @@ jobs:
         run: |
           if [[ "${{ needs.fetch_data.outputs.event_action }}" == "synchronize" || "${{ needs.fetch_data.outputs.event_action }}" == "reopened" ]]; then
             echo "Resetting 'ci-passed' label as changes were pushed (event: ${{ needs.fetch_data.outputs.event_action }})."
-            gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --remove-label "ci-passed" --repo $GITHUB_REPOSITORY || echo "Label not present"
+            gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --remove-label "ci-passed" --repo "$GITHUB_REPOSITORY" || echo "Label not present"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -79,6 +79,6 @@ jobs:
       - name: Add 'ci-passed' label
         run: |
           echo "Adding 'ci-passed' label to PR #${{ needs.fetch_data.outputs.pr_number }}"
-          gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --add-label "ci-passed" --repo $GITHUB_REPOSITORY
+          gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --add-label "ci-passed" --repo "$GITHUB_REPOSITORY"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

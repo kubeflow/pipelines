@@ -21,10 +21,7 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelineDetailsV2 from './PipelineDetailsV2';
-import fs from 'fs';
-
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 
 testBestPractices();
 describe('PipelineDetailsV2', () => {

@@ -1,0 +1,44 @@
+name: Welcome new contributors
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v3
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+          issue_message: |
+            🎉 **Welcome to the Kubeflow Pipelines repo!** 🎉
+
+            Thanks for opening your first issue! We're happy to have you as part of our community 🚀
+
+            **Next steps:**
+            - Check out the [Contributing Guide](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) for repo-specific guidelines and the [Kubeflow Contributor Guide](https://www.kubeflow.org/docs/about/contributing/) for general community standards
+            - Join our [#kubeflow-pipelines](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) Slack channel
+            - Attend the [Kubeflow Pipelines WG](http://bit.ly/kfp-meeting-notes) meetings
+
+            Feel free to ask questions in the comments.
+
+          pr_message: |
+            🎉 **Welcome to the Kubeflow Pipelines repo!** 🎉
+
+            Thanks for opening your first PR! We're excited to have you onboard 🚀
+
+            **Next steps:**
+            - Check out the [Contributing Guide](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) for repo-specific guidelines and the [Kubeflow Contributor Guide](https://www.kubeflow.org/docs/about/contributing/) for general community standards
+            - Join our [#kubeflow-pipelines](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) Slack channel
+            - Attend the [Kubeflow Pipelines WG](http://bit.ly/kfp-meeting-notes) meetings
+
+            Feel free to ask questions in the comments.

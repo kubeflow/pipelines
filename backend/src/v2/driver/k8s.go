@@ -17,6 +17,7 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -178,22 +179,31 @@ func extendPodSpecPatch(
 	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
 		var nodeSelector map[string]string
+		// skipNodeSelector marks when the node selector input resolved to a null optional
+		// value. In that case we avoid appending an empty selector to the pod spec.
+		skipNodeSelector := false
 		if kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson() != nil {
 			err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
 				kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(), inputParams, &nodeSelector)
 			if err != nil {
-				return fmt.Errorf("failed to resolve node selector: %w", err)
+				if errors.Is(err, ErrResolvedParameterNull) {
+					skipNodeSelector = true
+				} else {
+					return fmt.Errorf("failed to resolve node selector: %w", err)
+				}
 			}
 		} else {
 			nodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
 		}
 
-		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
-			taskConfig.NodeSelector = nodeSelector
-		}
+		if !skipNodeSelector {
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+				taskConfig.NodeSelector = nodeSelector
+			}
 
-		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
-			podSpec.NodeSelector = nodeSelector
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+				podSpec.NodeSelector = nodeSelector
+			}
 		}
 	}
 
@@ -209,6 +219,9 @@ func extendPodSpecPatch(
 					resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
 						toleration.GetTolerationJson(), inputParams)
 					if err != nil {
+						if errors.Is(err, ErrResolvedParameterNull) {
+							continue // Skip applying the patch for this null/optional parameter
+						}
 						return fmt.Errorf("failed to resolve toleration: %w", err)
 					}
 
@@ -278,6 +291,9 @@ func extendPodSpecPatch(
 			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				secretAsVolume.SecretNameParameter, inputParams)
 			if err != nil {
+				if errors.Is(err, ErrResolvedParameterNull) {
+					continue
+				}
 				return fmt.Errorf("failed to resolve secret name: %w", err)
 			}
 			secretName = resolvedSecretName.GetStringValue()
@@ -337,6 +353,9 @@ func extendPodSpecPatch(
 				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 					secretAsEnv.SecretNameParameter, inputParams)
 				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
 					return fmt.Errorf("failed to resolve secret name: %w", err)
 				}
 				secretName = resolvedSecretName.GetStringValue()
@@ -363,12 +382,15 @@ func extendPodSpecPatch(
 	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
 		var configMapName string
 		if configMapAsVolume.ConfigMapNameParameter != nil {
-			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
+			resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				configMapAsVolume.ConfigMapNameParameter, inputParams)
 			if err != nil {
+				if errors.Is(err, ErrResolvedParameterNull) {
+					continue
+				}
 				return fmt.Errorf("failed to resolve configmap name: %w", err)
 			}
-			configMapName = resolvedSecretName.GetStringValue()
+			configMapName = resolvedConfigMapName.GetStringValue()
 		} else if configMapAsVolume.ConfigMapName != "" {
 			configMapName = configMapAsVolume.ConfigMapName
 		} else {
@@ -424,12 +446,15 @@ func extendPodSpecPatch(
 
 			var configMapName string
 			if configMapAsEnv.ConfigMapNameParameter != nil {
-				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
+				resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 					configMapAsEnv.ConfigMapNameParameter, inputParams)
 				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
 					return fmt.Errorf("failed to resolve configmap name: %w", err)
 				}
-				configMapName = resolvedSecretName.GetStringValue()
+				configMapName = resolvedConfigMapName.GetStringValue()
 			} else if configMapAsEnv.ConfigMapName != "" {
 				configMapName = configMapAsEnv.ConfigMapName
 			} else {
@@ -456,6 +481,9 @@ func extendPodSpecPatch(
 			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				imagePullSecret.SecretNameParameter, inputParams)
 			if err != nil {
+				if errors.Is(err, ErrResolvedParameterNull) {
+					continue
+				}
 				return fmt.Errorf("failed to resolve image pull secret name: %w", err)
 			}
 			secretName = resolvedSecretName.GetStringValue()
@@ -588,6 +616,9 @@ func extendPodSpecPatch(
 				err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
 					nodeAffinityTerm.GetNodeAffinityJson(), inputParams, &k8sNodeAffinity)
 				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
 					return fmt.Errorf("failed to resolve node affinity json: %w", err)
 				}
 
@@ -661,6 +692,71 @@ func extendPodSpecPatch(
 
 				podSpec.Affinity.NodeAffinity = k8sNodeAffinity
 			}
+		}
+	}
+
+	// Pre-populate admin-configured defaults into the patch so they:
+	// (a) survive strategic merge onto the compiled template, and
+	// (b) cause the user-value checks below to see them as "already set".
+	if opts.DefaultRunAsUser != nil || opts.DefaultRunAsGroup != nil || opts.DefaultRunAsNonRoot != nil {
+		if podSpec.Containers[0].SecurityContext == nil {
+			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
+		}
+		if opts.DefaultRunAsUser != nil {
+			v := *opts.DefaultRunAsUser
+			podSpec.Containers[0].SecurityContext.RunAsUser = &v
+		}
+		if opts.DefaultRunAsGroup != nil {
+			v := *opts.DefaultRunAsGroup
+			podSpec.Containers[0].SecurityContext.RunAsGroup = &v
+		}
+		if opts.DefaultRunAsNonRoot != nil {
+			v := *opts.DefaultRunAsNonRoot
+			podSpec.Containers[0].SecurityContext.RunAsNonRoot = &v
+		}
+	}
+
+	// Apply container security context (PSS baseline compliant).
+	// User-specified identity fields (runAsUser, runAsGroup) are only applied
+	// when they are not already set by the platform/admin. If the compiler or
+	// an administrator has already configured these fields, the user-specified
+	// values are ignored and a warning is logged.
+	if userSecurityContext := kubernetesExecutorConfig.GetSecurityContext(); userSecurityContext != nil {
+		if podSpec.Containers[0].SecurityContext == nil {
+			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
+		}
+		existingSecurityContext := podSpec.Containers[0].SecurityContext
+		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
+		if userSecurityContext.RunAsUser != nil {
+			if existingSecurityContext.RunAsUser != nil {
+				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
+					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
+			} else {
+				if isCompilerHardened && *userSecurityContext.RunAsUser == 0 {
+					glog.Warningf("Setting runAsUser=0 (root) on a container with hardened security context; consider using a non-root UID")
+				}
+				podSpec.Containers[0].SecurityContext.RunAsUser = userSecurityContext.RunAsUser
+			}
+		}
+		if userSecurityContext.RunAsGroup != nil {
+			if existingSecurityContext.RunAsGroup != nil {
+				glog.Warningf("Ignoring user-specified runAsGroup (%d): security context already set by admin (runAsGroup=%d)",
+					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
+			} else {
+				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
+			}
+		}
+		if userSecurityContext.RunAsNonRoot != nil {
+			if existingSecurityContext.RunAsNonRoot != nil {
+				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
+					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
+			} else {
+				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
+			}
+		}
+		// Always drop all capabilities to comply with PSS baseline.
+		podSpec.Containers[0].SecurityContext.Capabilities = &k8score.Capabilities{
+			Drop: []k8score.Capability{"ALL"},
 		}
 	}
 
@@ -986,6 +1082,7 @@ func makeVolumeMountPatch(
 		volumeMount := k8score.VolumeMount{
 			Name:      pvcName,
 			MountPath: pvcMountPath,
+			SubPath:   pvcMount.GetSubPath(),
 		}
 		volume := k8score.Volume{
 			Name: pvcName,

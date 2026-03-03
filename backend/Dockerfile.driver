@@ -60,6 +60,8 @@ WORKDIR /bin
 COPY --from=builder /bin/driver /bin/driver
 RUN chmod +x /bin/driver
 
+USER 65534
+
 ENTRYPOINT ["/bin/driver"]
 
 LABEL name="ds-pipelines-driver" \

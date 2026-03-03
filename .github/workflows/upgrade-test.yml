@@ -19,7 +19,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/upgrade-test.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
@@ -32,25 +34,27 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0" ]
+        k8s_version: [ "v1.34.0" ]
     name: KFP upgrade tests - K8s ${{ matrix.k8s_version }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
 
@@ -58,9 +62,28 @@ jobs:
         shell: bash
         id: get-tag
         run: |
-          lastRelease=$(curl -sSL -H "Accept: application/vnd.github+json" "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name)
+          lastRelease=""
+          for attempt in 1 2 3; do
+            lastRelease=$(curl -sSL --fail-with-body --connect-timeout 10 --max-time 60 \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name 2>/dev/null || echo "")
+            if [[ -n "$lastRelease" && "$lastRelease" != "null" ]]; then
+              break
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              echo "Attempt $attempt: Failed to fetch release tag. Retrying in 5s..."
+              sleep 5
+            fi
+          done
+
+          if [[ -z "$lastRelease" || "$lastRelease" == "null" ]]; then
+            echo "::error::Could not fetch latest release tag from GitHub API after 3 attempts."
+            exit 1
+          fi
+
           echo "Fetched last release tag: $lastRelease"
-          echo "lastRelease=$lastRelease" >> $GITHUB_OUTPUT
+          echo "lastRelease=$lastRelease" >> "$GITHUB_OUTPUT"
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -96,6 +119,11 @@ jobs:
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
         continue-on-error: true
 
+      - name: Stop port forwarding
+        run: |
+          pkill -f "port-forward"
+        continue-on-error: true
+
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
@@ -104,11 +132,11 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-          forward_port: 'false'
+          forward_port: 'true'
 
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
-        if: ${{ steps.configure.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' }}
         with:
           test_directory: ${{ env.TESTS_DIR }}
           test_label: "UpgradeVerification"

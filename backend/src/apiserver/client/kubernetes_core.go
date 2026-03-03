@@ -6,20 +6,27 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type KubernetesCoreInterface interface {
 	PodClient(namespace string) v1.PodInterface
 	SecretClient(namespace string) v1.SecretInterface
+	GetClientSet() kubernetes.Interface
 }
 
 type KubernetesCore struct {
 	coreV1Client v1.CoreV1Interface
+	clientSet    kubernetes.Interface
 }
 
 func (c *KubernetesCore) PodClient(namespace string) v1.PodInterface {
 	return c.coreV1Client.Pods(namespace)
+}
+
+func (c *KubernetesCore) GetClientSet() kubernetes.Interface {
+	return c.clientSet
 }
 
 func (c *KubernetesCore) SecretClient(namespace string) v1.SecretInterface {
@@ -31,7 +38,10 @@ func createKubernetesCore(clientParams util.ClientParameters) (KubernetesCoreInt
 	if err != nil {
 		return nil, err
 	}
-	return &KubernetesCore{clientSet.CoreV1()}, nil
+	return &KubernetesCore{
+		coreV1Client: clientSet.CoreV1(),
+		clientSet:    clientSet,
+	}, nil
 }
 
 // CreateKubernetesCoreOrFatal creates a new client for the Kubernetes pod.

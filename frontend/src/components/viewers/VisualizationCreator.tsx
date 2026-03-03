@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import 'brace';
+import 'ace-builds/src-noconflict/ace';
 import BusyButton from '../../atoms/BusyButton';
 import FormControl from '@material-ui/core/FormControl';
 import Input from '../../atoms/Input';
@@ -25,10 +25,10 @@ import Select from '@material-ui/core/Select';
 import Editor from '../Editor';
 import Viewer, { ViewerConfig } from './Viewer';
 import { ApiVisualizationType } from '../../apis/visualization';
-import 'brace/ext/language_tools';
-import 'brace/mode/json';
-import 'brace/mode/python';
-import 'brace/theme/github';
+import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/mode-python';
+import 'ace-builds/src-noconflict/theme-github';
 import Button from '@material-ui/core/Button';
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
@@ -106,7 +106,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
         <FormControl style={{ width: '100%' }}>
           <InputLabel htmlFor='visualization-type-selector'>Type</InputLabel>
           <Select
-            value={selectedType}
+            value={selectedType || ''}
             inputProps={{
               id: 'visualization-type-selector',
               name: 'Visualization Type',

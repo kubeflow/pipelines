@@ -51,3 +51,10 @@ var (
 	KubeflowMode  = flag.Bool("kubeflowMode", false, "Runs tests in full Kubeflow mode")
 	UserNamespace = flag.String("userNamespace", "kubeflow-user-example-com", "The namespace that will store the test resources in Kubeflow mode")
 )
+
+var (
+	MinioSecretName    = flag.String("minioSecretName", "mlpipeline-minio-artifact", "Name of the secret containing MinIO credentials")
+	MinioBucket        = flag.String("minioBucket", "mlpipeline", "S3 bucket name for archived workflow logs")
+	MinioEndpoint      = flag.String("minioEndpoint", "localhost:9000", "MinIO endpoint (host:port)")
+	MinioLogsPrefixFmt = flag.String("minioLogsPrefixFmt", "private-artifacts/%s", "Format string for logs prefix (use %s for workflow namespace)")
+)

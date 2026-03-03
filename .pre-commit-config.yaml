@@ -1,3 +1,5 @@
+exclude: ^backend/api/(v1beta1|v2beta1)/python_http_client/
+
 repos:
   # other fast helpful checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -38,7 +40,7 @@ repos:
       - id: isort
         name: isort
         entry: isort --profile google
-  - repo: https://github.com/pre-commit/mirrors-yapf
+  - repo: https://github.com/google/yapf
     rev: "v0.32.0"
     hooks:
       - id: yapf
@@ -55,7 +57,7 @@ repos:
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.1.2
+    rev: v2.10.1
     hooks:
       - id: golangci-lint
         name: golangci-lint
@@ -73,3 +75,8 @@ repos:
         language: golang
         require_serial: true
         pass_filenames: false
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.9
+    hooks:
+      - id: actionlint
+    types: ["yml", "yaml"]

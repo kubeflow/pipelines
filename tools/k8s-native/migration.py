@@ -14,6 +14,7 @@
 
 import argparse
 import requests
+import urllib3
 import yaml
 import os
 from pathlib import Path
@@ -32,6 +33,8 @@ def parse_args():
                         help="KFP pipeline server host (e.g., https://<host>). Defaults to the value of the KFP_SERVER_HOST environment variable.")
     parser.add_argument("--token", default=os.getenv("KFP_BEARER_TOKEN"), help="Bearer token for authentication. Defaults to the value of the KFP_BEARER_TOKEN environment variable.")    
     parser.add_argument("--ca-bundle", default=os.getenv("CA_BUNDLE"), help="Path to custom CA bundle file. Defaults to the value of the CA_BUNDLE environment variable")
+    parser.add_argument("--insecure", "--skip-tls-verify", dest="skip_tls_verify", action="store_true",
+                        help="Skip TLS certificate verification for HTTPS requests (insecure)")
     parser.add_argument('--output', '-o', default=DEFAULT_OUTPUT_DIR, help="Output directory path where pipeline YAMLs will be written(e.g., '/path/to/exported-pipelines')")
     parser.add_argument('--namespace', default=DEFAULT_NAMESPACE, help="Namespace to filter pipelines from")
     parser.add_argument('--batch-size', type=int, default=20,
@@ -194,7 +197,11 @@ def migrate():
     headers = {"Content-Type": "application/json"}
     if args.token:
         headers["Authorization"] = f"Bearer {args.token}"
-    verify = args.ca_bundle if args.ca_bundle else True
+    verify = False if args.skip_tls_verify else (args.ca_bundle if args.ca_bundle else True)
+
+    # Suppress urllib3 warnings when explicitly running with insecure TLS
+    if args.skip_tls_verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     try:
         all_objects = []

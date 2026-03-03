@@ -1,0 +1,50 @@
+[
+  {
+    "name": "pipelines",
+    "path": "/pipelines"
+  },
+  {
+    "name": "pipelines-shared",
+    "path": "/shared/pipelines"
+  },
+  {
+    "name": "experiments",
+    "path": "/experiments"
+  },
+  {
+    "name": "runs",
+    "path": "/runs"
+  },
+  {
+    "name": "recurring-runs",
+    "path": "/recurringruns"
+  },
+  {
+    "name": "artifacts",
+    "path": "/artifacts"
+  },
+  {
+    "name": "executions",
+    "path": "/executions"
+  },
+  {
+    "name": "compare",
+    "path": "/compare"
+  },
+  {
+    "name": "archived-runs",
+    "path": "/archive/runs"
+  },
+  {
+    "name": "archived-experiments",
+    "path": "/archive/experiments"
+  },
+  {
+    "name": "frontend-features",
+    "path": "/frontend_features"
+  },
+  {
+    "name": "getting-started",
+    "path": "/start"
+  }
+]

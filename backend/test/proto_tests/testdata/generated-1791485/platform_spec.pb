@@ -1,7 +1,7 @@
 
-
+x
 
-kubernetes€
+kubernetesj
 ;
 9
 root-executor(
@@ -12,6 +12,4 @@ kubernetes€
 test-image
 kubernetes
 
-projecttest-project"
-test-key
-test-mutex
+projecttest-project"

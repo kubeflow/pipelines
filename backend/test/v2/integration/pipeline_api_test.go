@@ -16,8 +16,6 @@ package integration
 
 import (
 	"crypto/tls"
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -27,6 +25,7 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
 
 	"github.com/golang/glog"
@@ -45,6 +44,7 @@ type PipelineApiTest struct {
 	suite.Suite
 	namespace            string
 	repoName             string
+	branchName           string
 	resourceNamespace    string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient api_server.PipelineUploadInterface
@@ -65,6 +65,7 @@ func (s *PipelineApiTest) SetupTest() {
 	}
 	s.namespace = *config.Namespace
 	s.repoName = *config.REPO_NAME
+	s.branchName = *config.BRANCH_NAME
 
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var tlsCfg *tls.Config
@@ -150,6 +151,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Contains(t, err.Error(), "Failed to upload pipeline")
 
 	/* ---------- Import pipeline YAML by URL ---------- */
+	pipelineURL, err := testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "backend/test/v2/resources/sequential-v2.yaml")
+	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.CreatePipelineAndVersion(&params.PipelineServiceCreatePipelineAndVersionParams{
 		Body: &model.V2beta1CreatePipelineAndVersionRequest{
@@ -160,7 +163,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 			},
 			PipelineVersion: &model.V2beta1PipelineVersion{
 				PackageURL: &model.V2beta1URL{
-					PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
+					PipelineURL: pipelineURL,
 				},
 			},
 		},
@@ -177,7 +180,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "sequential", sequentialPipelineVersions[0].DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipelineVersions[0].Description)
 	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersions[0].PipelineID)
-	assert.Equal(t, "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", string(sequentialPipelineVersions[0].PackageURL.PipelineURL))
+	assert.Equal(t, pipelineURL, sequentialPipelineVersions[0].PackageURL.PipelineURL)
 
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
@@ -187,12 +190,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/backend/test/v2/resources/arguments_parameters.zip", s.repoName)
-
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/backend/test/v2/resources/arguments_parameters.zip", s.repoName, pullNumber)
-	}
-
+	pipelineURL, err = testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "backend/test/v2/resources/arguments_parameters.zip")
+	require.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{
 		Pipeline: &model.V2beta1Pipeline{DisplayName: "arguments_parameters.zip", Name: "arguments-pipeline-zip"},
@@ -214,7 +213,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "argumenturl-v1", argumentUrlPipelineVersion.DisplayName)
 	assert.Equal(t, "1st version of argument url pipeline", argumentUrlPipelineVersion.Description)
 	assert.Equal(t, argumentUrlPipeline.PipelineID, argumentUrlPipelineVersion.PipelineID)
-	assert.Equal(t, pipelineURL, string(argumentUrlPipelineVersion.PackageURL.PipelineURL))
+	assert.Equal(t, pipelineURL, argumentUrlPipelineVersion.PackageURL.PipelineURL)
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})

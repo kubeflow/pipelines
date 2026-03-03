@@ -18,6 +18,10 @@ metadata:
   generateName: sample-test-
 spec:
   entrypoint: sample-test
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
@@ -98,6 +102,14 @@ spec:
     container:
       image: "{{workflow.parameters.image-builder-image}}"
       imagePullPolicy: 'Always'
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       command:
       - /build.sh
       args: [
@@ -131,6 +143,14 @@ spec:
       - name: test-name
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
       command:
       - "python3"
       - "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"

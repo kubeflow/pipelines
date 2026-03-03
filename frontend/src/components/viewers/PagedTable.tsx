@@ -152,8 +152,8 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
           count={data.length}
           rowsPerPage={rowsPerPage}
           page={page}
-          onChangePage={this._handleChangePage}
-          onChangeRowsPerPage={this._handleChangeRowsPerPage}
+          onPageChange={this._handleChangePage}
+          onRowsPerPageChange={this._handleChangeRowsPerPage}
         />
       </div>
     );
@@ -170,12 +170,12 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     this.setState({ order, orderBy });
   };
 
-  private _handleChangePage = (event: any, page: number) => {
+  private _handleChangePage = (_event: any, page: number) => {
     this.setState({ page });
   };
 
-  private _handleChangeRowsPerPage = (event: any) => {
-    this.setState({ rowsPerPage: event.target.value });
+  private _handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ rowsPerPage: Number(event.target.value), page: 0 });
   };
 
   private _isSmall(): boolean {

@@ -10,8 +10,10 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/kfp-sdk-client-tests.yml.yml'
+      - '.github/workflows/kfp-sdk-client-tests.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
@@ -19,30 +21,35 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+concurrency:
+  group: sdk-client-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_BUILD_PKG_VERSION: "1.3.0"
+
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   sdk-client-tests:
     runs-on: ubuntu-24.04
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.34.0" ]
     name: KFP SDK Client Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
-  
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -71,6 +78,12 @@ jobs:
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
 
+      - name: Install build tool
+        shell: bash
+        run: |
+          pip install --upgrade pip
+          pip install build==${{ env.PYTHON_BUILD_PKG_VERSION }}
+
       - name: Install Test dependencies
         run: |
           pip install -r sdk/python/requirements.txt
@@ -78,12 +91,14 @@ jobs:
           pip install pytest
           pip install pytest-cov
 
-      - name: Force install packages from source
+      - name: Build & install kfp-server-api dist
+        id: install-kfp-server-api
+        shell: bash
+        working-directory: backend/api/v2beta1/python_http_client
         run: |
-          pip install -e sdk/python --force-reinstall
-          pip install -e kubernetes_platform/python --force-reinstall
-          pip install -e api/v2alpha1/python --force-reinstall
-          pip install -e backend/api/v2beta1/python_http_client --force-reinstall
+          rm -rf dist/
+          python -m build .
+          pip install dist/*.whl
 
       - name: Run tests
         id: tests

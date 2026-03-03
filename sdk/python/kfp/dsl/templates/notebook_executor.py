@@ -137,14 +137,14 @@ def kfp_run_notebook(**kwargs):
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(
                     "Failed to install 'python3' kernelspec for ipykernel. "
-                    "Ensure ipykernel is available in the environment or include it via packages_to_install. "
-                    f"Error: {e}") from e
+                    'Ensure ipykernel is available in the environment or include it via packages_to_install. '
+                    f'Error: {e}') from e
         else:
             print('[KFP Notebook] Python3 kernel found', flush=True)
     except ImportError as e:
         raise RuntimeError(
             "jupyter_client is not available. Ensure it's installed in the environment or include it via packages_to_install. "
-            f"Error: {e}") from e
+            f'Error: {e}') from e
 
     nb_path = os.path.join(__KFP_EMBEDDED_ASSET_DIR, __KFP_NOTEBOOK_REL_PATH)
 

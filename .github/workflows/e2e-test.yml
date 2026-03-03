@@ -19,7 +19,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
@@ -50,49 +52,49 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: e2e-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.31.0"]
+        k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.1", "v3.6.10", "v3.5.15"]
-        storage: [ "seaweedfs", "minio"]
+        argo_version: [ "v3.7.3", "v3.6.7", "v3.5.14"]
         proxy: [ "false" ]
         test_label: [ "E2ECritical" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "false"
-            argo_version: "v3.5.15"
+            argo_version: "v3.5.14"
             test_label: "E2ECritical"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "false"
             test_label: "E2EEssential"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "false"
             test_label: "E2EFailure"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
       fail-fast: false
-    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -108,7 +110,6 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
-          storage_backend: ${{ matrix.storage }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
@@ -119,7 +120,7 @@ jobs:
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
-          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
       - name: Configure Input Variables
         shell: bash
         id: configure
@@ -133,10 +134,12 @@ jobs:
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
           fi
-          
-          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and upload the sample Modelcar image to Kind
         id: build-sample-modelcar-image
@@ -157,41 +160,30 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_storage=${{ matrix.storage }}"
+          report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
-
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
 
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.31.0"]
+        k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
-        storage: [ "seaweedfs", "minio"]
         multi_user: [ "true" ]
         test_label: [ "E2ECritical" ]
         include:
         - multi_user: "true"
           artifact_proxy: "true"
-          storage: "seaweedfs"
-          k8s_version: "v1.31.0"
+          k8s_version: "v1.34.0"
           cache_enabled: "true"
-          test_label: "E2ECritical" 
+          test_label: "E2ECritical"
       fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }} artifactProxy=${{ matrix.artifact_proxy }}
+    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -207,7 +199,6 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
-          storage_backend: ${{ matrix.storage }}
           artifact_proxy: ${{ matrix.artifact_proxy }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
@@ -226,9 +217,11 @@ jobs:
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
           fi
-          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and upload the sample Modelcar image to Kind
         id: build-sample-modelcar-image
@@ -263,10 +256,4 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
-
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
+          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"

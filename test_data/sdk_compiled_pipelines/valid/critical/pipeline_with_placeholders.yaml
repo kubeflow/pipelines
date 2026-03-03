@@ -53,7 +53,7 @@ deploymentSpec:
           \ == \"print-all-placeholders\"\n    assert job_resource_name.startswith(\"\
           pipeline-with-placeholders-\")\n\n    output = \", \".join(allPlaceholders)\n\
           \    print(output)\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: pipeline-with-placeholders
 root:

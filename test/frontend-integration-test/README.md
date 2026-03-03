@@ -11,7 +11,7 @@ This test gets triggered by the end-to-end testing workflows.
     kubectl port-forward -n kubeflow ${POD} 3000:3000 &
     ```
 
-1. Build the container with the tests:
+1. Build the container with the tests (supports both amd64 and arm64):
 
     ```bash
     docker build . -t kfp-frontend-integration-test:local
@@ -20,7 +20,22 @@ This test gets triggered by the end-to-end testing workflows.
 1. Run the test with enabled networking (**this exposes your local networking stack to the testing container**):
 
     ```bash
-    docker run --net=host kfp-frontend-integration-test:local --remote-run true
+    docker run --net=host kfp-frontend-integration-test:local
+    ```
+
+   If you're on Docker Desktop (macOS/Windows), use `host.docker.internal` instead of host networking:
+
+    ```bash
+    kubectl port-forward --address 0.0.0.0 -n kubeflow ${POD} 3000:3000 &
+    docker run -e KFP_BASE_URL=http://host.docker.internal:3000 \
+      kfp-frontend-integration-test:local
+    ```
+
+   If port 4444 is already in use, override Selenium's port:
+
+    ```bash
+    docker run -e SELENIUM_PORT=4445 -e SE_OPTS="--port 4445" \
+      kfp-frontend-integration-test:local
     ```
 
 1. Once completed, you can kill the background process of port-forwarding:

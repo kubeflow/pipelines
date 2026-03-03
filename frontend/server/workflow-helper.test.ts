@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
 import {
@@ -20,28 +21,28 @@ import {
   getPodLogsStreamFromWorkflow,
   toGetPodLogsStream,
   getKeyFormatFromArtifactRepositories,
-} from './workflow-helper';
-import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper';
+} from './workflow-helper.js';
+import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper.js';
 import { V1ConfigMap, V1ObjectMeta } from '@kubernetes/client-node';
 
-jest.mock('minio');
-jest.mock('./k8s-helper');
+vi.mock('minio');
+vi.mock('./k8s-helper');
 
 describe('workflow-helper', () => {
   const minioConfig = {
     accessKey: 'minio',
-    endPoint: 'minio-service.kubeflow',
+    endPoint: 'seaweedfs.kubeflow',
     secretKey: 'minio123',
   };
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('composePodLogsStreamHandler', () => {
     it('returns the stream from the default handler if there is no errors.', async () => {
       const defaultStream = new PassThrough();
-      const defaultHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.resolve(defaultStream),
       );
       const stream = await composePodLogsStreamHandler(defaultHandler)(
@@ -55,10 +56,10 @@ describe('workflow-helper', () => {
 
     it('returns the stream from the fallback handler if there is any error.', async () => {
       const fallbackStream = new PassThrough();
-      const defaultHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.reject('unknown error'),
       );
-      const fallbackHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const fallbackHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.resolve(fallbackStream),
       );
       const stream = await composePodLogsStreamHandler(defaultHandler, fallbackHandler)(
@@ -72,10 +73,10 @@ describe('workflow-helper', () => {
     });
 
     it('throws error if both handler and fallback fails.', async () => {
-      const defaultHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.reject('unknown error for default'),
       );
-      const fallbackHandler = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const fallbackHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.reject('unknown error for fallback'),
       );
       await expect(
@@ -90,7 +91,7 @@ describe('workflow-helper', () => {
 
   describe('getPodLogsStreamFromK8s', () => {
     it('returns the pod log stream using k8s api.', async () => {
-      const mockedGetPodLogs: jest.Mock = getPodLogs as any;
+      const mockedGetPodLogs: Mock = getPodLogs as any;
       mockedGetPodLogs.mockResolvedValueOnce('pod logs');
 
       const stream = await getPodLogsStreamFromK8s('podName', '', 'namespace');
@@ -105,14 +106,14 @@ describe('workflow-helper', () => {
       objStream.end('some fake logs.');
 
       const client = new MinioClient(minioConfig);
-      const mockedClientGetObject: jest.Mock = client.getObject as any;
+      const mockedClientGetObject: Mock = client.getObject as any;
       mockedClientGetObject.mockResolvedValueOnce(objStream);
       const configs = {
         bucket: 'bucket',
         client,
         key: 'folder/key',
       };
-      const createRequest = jest.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+      const createRequest = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.resolve(configs),
       );
       const stream = await toGetPodLogsStream(createRequest)('podName', '2024-08-13', 'namespace');
@@ -130,7 +131,7 @@ describe('workflow-helper', () => {
           '    key: accesskey\n' +
           '    name: mlpipeline-minio-artifact\n' +
           '  bucket: mlpipeline\n' +
-          '  endpoint: minio-service.kubeflow:9000\n' +
+          '  endpoint: seaweedfs.kubeflow:9000\n' +
           '  insecure: true\n' +
           '  keyFormat: foo\n' +
           '  secretKeySecret:\n' +
@@ -146,7 +147,7 @@ describe('workflow-helper', () => {
         binaryData: {},
       };
 
-      const mockedGetConfigMap: jest.Mock = getConfigMap as any;
+      const mockedGetConfigMap: Mock = getConfigMap as any;
       mockedGetConfigMap.mockResolvedValueOnce([mockedConfigMap, undefined]);
       const res = await getKeyFormatFromArtifactRepositories('');
       expect(mockedGetConfigMap).toBeCalledTimes(1);
@@ -156,7 +157,7 @@ describe('workflow-helper', () => {
 
   describe('createPodLogsMinioRequestConfig', () => {
     it('returns a MinioRequestConfig factory with the provided minioClientOptions, bucket, and prefix.', async () => {
-      const mockedClient: jest.Mock = MinioClient as any;
+      const mockedClient: Mock = MinioClient as any;
       const requestFunc = await createPodLogsMinioRequestConfig(
         minioConfig,
         'bucket',
@@ -190,7 +191,7 @@ describe('workflow-helper', () => {
               s3: {
                 accessKeySecret: { key: 'accessKey', name: 'accessKeyName' },
                 bucket: 'bucket',
-                endpoint: 'minio-service.kubeflow',
+                endpoint: 'seaweedfs.kubeflow',
                 insecure: true,
                 key:
                   'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
@@ -215,16 +216,17 @@ describe('workflow-helper', () => {
         },
       };
 
-      const mockedGetArgoWorkflow: jest.Mock = getArgoWorkflow as any;
+      const mockedGetArgoWorkflow: Mock = getArgoWorkflow as any;
       mockedGetArgoWorkflow.mockResolvedValueOnce(sampleWorkflow);
 
-      const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('someSecret');
 
       const objStream = new PassThrough();
-      const mockedClient: jest.Mock = MinioClient as any;
-      const mockedClientGetObject: jest.Mock = MinioClient.prototype.getObject as any;
-      mockedClientGetObject.mockResolvedValueOnce(objStream);
+      const mockedClient: Mock = MinioClient as any;
+      // In Vitest, auto-mocked class instances get their own mock methods.
+      // Set up prototype mock so new instances inherit it.
+      MinioClient.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
       objStream.end('some fake logs.');
 
       const stream = await getPodLogsStreamFromWorkflow(
@@ -241,13 +243,15 @@ describe('workflow-helper', () => {
       expect(mockedClient).toBeCalledTimes(1);
       expect(mockedClient).toBeCalledWith({
         accessKey: 'someSecret',
-        endPoint: 'minio-service.kubeflow',
+        endPoint: 'seaweedfs.kubeflow',
         port: 80,
         secretKey: 'someSecret',
         useSSL: false,
       });
-      expect(mockedClientGetObject).toBeCalledTimes(1);
-      expect(mockedClientGetObject).toBeCalledWith(
+      // Access the instance created by the constructor to check getObject
+      const clientInstance = mockedClient.mock.results[0].value;
+      expect(clientInstance.getObject).toBeCalledTimes(1);
+      expect(clientInstance.getObject).toBeCalledWith(
         'bucket',
         'prefix/workflow-name/workflow-name-system-container-impl-abc/main.log',
       );

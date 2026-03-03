@@ -87,4 +87,5 @@ const (
 const (
 	DefaultMLPipelineServiceName string = "ml-pipeline"
 	DefaultMetadataServiceName   string = "metadata-grpc-service"
+	DefaultClusterDomain         string = "cluster.local"
 )

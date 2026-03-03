@@ -357,9 +357,13 @@ class ComponentBuilder():
             f'Built and pushed component container {self._target_image}')
 
 
-@click.group()
-def component():
+@click.group(invoke_without_command=True)
+@click.pass_context
+def component(ctx: click.Context):
     """Builds shareable, containerized components."""
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
+        ctx.exit(0)
 
 
 @component.command()

@@ -26,7 +26,7 @@ class TestPythonEOLWarning(unittest.TestCase):
 
         with self.assertWarnsRegex(
                 FutureWarning,
-                r'KFP will drop support for Python 3.9 on Oct 1, 2025. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. See https://devguide.python.org/versions/ for more details.'
+                r'KFP will drop support for Python 3.9 on October 1, 2026. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. See https://devguide.python.org/versions/ for more details.'
         ):
             # simulate first import from kfp
             importlib.reload(mod)

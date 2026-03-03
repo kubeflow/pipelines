@@ -14,135 +14,105 @@
  * limitations under the License.
  */
 
-import { shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
-import { RoutePage } from '../components/Router';
-import { ButtonKeys } from '../lib/Buttons';
+import { render } from '@testing-library/react';
+import { vi } from 'vitest';
+import { RoutePage } from 'src/components/Router';
+import { ButtonKeys } from 'src/lib/Buttons';
 import { AllRecurringRunsList } from './AllRecurringRunsList';
 import { PageProps } from './Page';
+import { ToolbarProps } from 'src/components/Toolbar';
+
+let lastRecurringRunListProps: any = null;
+
+vi.mock('./RecurringRunList', () => ({
+  default: (props: any) => {
+    lastRecurringRunListProps = props;
+    return <div data-testid='recurring-run-list' />;
+  },
+}));
 
 describe('AllRecurringRunsList', () => {
-  const updateBannerSpy = jest.fn();
-  let _toolbarProps: any = { actions: {}, breadcrumbs: [], pageTitle: '' };
-  const updateToolbarSpy = jest.fn(toolbarProps => (_toolbarProps = toolbarProps));
-  const historyPushSpy = jest.fn();
+  let updateBannerSpy: ReturnType<typeof vi.fn>;
+  let updateToolbarSpy: ReturnType<typeof vi.fn>;
+  let updateDialogSpy: ReturnType<typeof vi.fn>;
+  let updateSnackbarSpy: ReturnType<typeof vi.fn>;
+  let historyPushSpy: ReturnType<typeof vi.fn>;
+  let renderResult: ReturnType<typeof render> | null = null;
+  let allRecurringRunsListRef: React.RefObject<AllRecurringRunsList> | null = null;
+  let toolbarProps: ToolbarProps | null = null;
 
-  let tree: ShallowWrapper;
-
-  function generateProps(): PageProps {
-    const props: PageProps = {
+  function baseProps(): PageProps {
+    return {
       history: { push: historyPushSpy } as any,
       location: '' as any,
       match: '' as any,
-      toolbarProps: _toolbarProps,
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
-      updateDialog: jest.fn(),
-      updateSnackbar: jest.fn(),
+      updateDialog: updateDialogSpy,
+      updateSnackbar: updateSnackbarSpy,
       updateToolbar: updateToolbarSpy,
     };
-    _toolbarProps = new AllRecurringRunsList(props).getInitialToolbarState();
-    return Object.assign(props, {
-      toolbarProps: _toolbarProps,
-    });
   }
 
-  function shallowMountComponent(
+  function renderAllRecurringRunsList(
     propsPatch: Partial<PageProps & { namespace?: string }> = {},
-  ): void {
-    tree = shallow(<AllRecurringRunsList {...generateProps()} {...propsPatch} />);
-    // Necessary since the component calls updateToolbar with the toolbar props,
-    // then expects to get them back in props
-    tree.setProps({ toolbarProps: _toolbarProps });
+  ) {
+    allRecurringRunsListRef = React.createRef<AllRecurringRunsList>();
+    const props = { ...baseProps(), ...propsPatch } as PageProps;
+    const { rerender, ...result } = render(
+      <AllRecurringRunsList ref={allRecurringRunsListRef} {...props} />,
+    );
+    if (!allRecurringRunsListRef.current) {
+      throw new Error('AllRecurringRunsList instance not available');
+    }
+    toolbarProps = allRecurringRunsListRef.current.getInitialToolbarState();
+    rerender(
+      <AllRecurringRunsList ref={allRecurringRunsListRef} {...props} toolbarProps={toolbarProps} />,
+    );
     updateToolbarSpy.mockClear();
+    renderResult = result as ReturnType<typeof render>;
   }
 
   beforeEach(() => {
-    updateBannerSpy.mockClear();
-    updateToolbarSpy.mockClear();
-    historyPushSpy.mockClear();
+    updateBannerSpy = vi.fn();
+    updateToolbarSpy = vi.fn();
+    updateDialogSpy = vi.fn();
+    updateSnackbarSpy = vi.fn();
+    historyPushSpy = vi.fn();
+    lastRecurringRunListProps = null;
+    toolbarProps = null;
   });
 
-  afterEach(() => tree.unmount());
+  afterEach(() => {
+    renderResult?.unmount();
+    renderResult = null;
+    allRecurringRunsListRef = null;
+    toolbarProps = null;
+  });
 
   it('renders all recurring runs', () => {
-    shallowMountComponent();
-    expect(tree).toMatchInlineSnapshot(`
-      <div
-        className="page"
-      >
-        <RecurringRunList
-          history={
-            Object {
-              "push": [MockFunction],
-            }
-          }
-          location=""
-          match=""
-          onError={[Function]}
-          onSelectionChange={[Function]}
-          refreshCount={0}
-          selectedIds={Array []}
-          toolbarProps={
-            Object {
-              "actions": Object {
-                "newRecurringRun": Object {
-                  "action": [Function],
-                  "icon": [Function],
-                  "id": "createNewRecurringRunBtn",
-                  "outlined": true,
-                  "primary": true,
-                  "style": Object {
-                    "minWidth": 195,
-                  },
-                  "title": "Create recurring run",
-                  "tooltip": "Create a new recurring run",
-                },
-                "refresh": Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
-                },
-              },
-              "breadcrumbs": Array [],
-              "pageTitle": "Recurring Runs",
-            }
-          }
-          updateBanner={[MockFunction]}
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={[MockFunction]}
-        />
-      </div>
-    `);
+    renderAllRecurringRunsList();
+    expect(lastRecurringRunListProps).toBeTruthy();
+    expect(lastRecurringRunListProps.refreshCount).toBe(0);
+    expect(lastRecurringRunListProps.selectedIds).toEqual([]);
+    expect(renderResult!.asFragment()).toMatchSnapshot();
   });
 
   it('lists all recurring runs in namespace', () => {
-    shallowMountComponent({ namespace: 'test-ns' });
-    expect(tree.find('RecurringRunList').prop('namespaceMask')).toEqual('test-ns');
+    renderAllRecurringRunsList({ namespace: 'test-ns' });
+    expect(lastRecurringRunListProps.namespaceMask).toEqual('test-ns');
   });
 
   it('removes error banner on unmount', () => {
-    shallowMountComponent();
-    tree.unmount();
+    renderAllRecurringRunsList();
+    renderResult!.unmount();
     expect(updateBannerSpy).toHaveBeenCalledWith({});
   });
 
-  // TODO: We want to test that clicking the refresh button in AllRecurringRunsList calls the
-  //  RecurringRunList.refresh method. This is not straightforward because `render` does not
-  //  render the toolbar in this case. RoutedPage is where the page level common elements are
-  //  rendered in KFP UI. However, in tests, we built a util that generates similar page callbacks
-  //  and passes them to the tested component without actually rendering the page common elements.
-  // it('refreshes the recurring run list when refresh button is clicked', async () => {
-  //   const tree = render(<AllRecurringRunsList {...generateProps()} />);
-  //   await TestUtils.flushPromises()
-  //   fireEvent.click(tree.getByText('Refresh'));
-  // });
-
   it('navigates to new run page when new run is clicked', () => {
-    shallowMountComponent();
-
-    _toolbarProps.actions[ButtonKeys.NEW_RECURRING_RUN].action();
+    renderAllRecurringRunsList();
+    toolbarProps!.actions[ButtonKeys.NEW_RECURRING_RUN].action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN + '?experimentId=&recurring=1',
     );

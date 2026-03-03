@@ -22,13 +22,12 @@ import {
 } from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
 import * as features from 'src/features';
-import fs from 'fs';
+import v2LightweightYaml from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import jsyaml from 'js-yaml';
 
-const V2_LW_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const V2_LW_YAML_TEMPLATE_STRING = fs.readFileSync(V2_LW_PIPELINESPEC_PATH, 'utf8');
-const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
-const V2_PVC_YAML_STRING = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
+const V2_LW_YAML_TEMPLATE_STRING = v2LightweightYaml;
+const V2_PVC_YAML_STRING = v2PvcYamlString;
 // The templateStr used in WorkflowUtils is not directly from yaml file.
 // Instead, it is from BE (already been processed).
 const V2_PVC_TEMPLATE_STRING_OBJ = {
@@ -64,16 +63,16 @@ describe('WorkflowUtils', () => {
   });
 
   it('detects v2 template (yaml file without k8s platform spec)', () => {
-    jest
-      .spyOn(features, 'isFeatureEnabled')
-      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+    );
     expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
   });
 
   it('detects v2 template (yaml file with k8s platform spec)', () => {
-    jest
-      .spyOn(features, 'isFeatureEnabled')
-      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+    );
     expect(isTemplateV2(V2_PVC_TEMPLATE_STRING)).toBeTruthy();
   });
 
@@ -143,7 +142,7 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
         "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef preprocess(\n    # An input parameter of type string.\n    message: str,\n    # An input parameter of type dict.\n    input_dict_parameter: Dict[str, int],\n    # An input parameter of type list.\n    input_list_parameter: List[str],\n    # Use Output[T] to get a metadata-rich handle to the output artifact\n    # of type `Dataset`.\n    output_dataset_one: Output[Dataset],\n    # A locally accessible filepath for another output artifact of type\n    # `Dataset`.\n    output_dataset_two_path: OutputPath('Dataset'),\n    # A locally accessible filepath for an output parameter of type string.\n    output_parameter_path: OutputPath(str),\n    # A locally accessible filepath for an output parameter of type bool.\n    output_bool_parameter_path: OutputPath(bool),\n    # A locally accessible filepath for an output parameter of type dict.\n    output_dict_parameter_path: OutputPath(Dict[str, int]),\n    # A locally accessible filepath for an output parameter of type list.\n    output_list_parameter_path: OutputPath(List[str]),\n):\n    \"\"\"Dummy preprocessing step.\"\"\"\n\n    # Use Dataset.path to access a local file path for writing.\n    # One can also use Dataset.uri to access the actual URI file path.\n    with open(output_dataset_one.path, 'w') as f:\n        f.write(message)\n\n    # OutputPath is used to just pass the local file path of the output artifact\n    # to the function.\n    with open(output_dataset_two_path, 'w') as f:\n        f.write(message)\n\n    with open(output_parameter_path, 'w') as f:\n        f.write(message)\n\n    with open(output_bool_parameter_path, 'w') as f:\n        f.write(\n            str(True))  # use either `str()` or `json.dumps()` for bool values.\n\n    import json\n    with open(output_dict_parameter_path, 'w') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with open(output_list_parameter_path, 'w') as f:\n        f.write(json.dumps(input_list_parameter))\n\n",
       ],
       env: [],
-      image: 'python:3.9',
+      image: 'python:3.11',
       lifecycle: undefined,
       resources: undefined,
     });
@@ -174,7 +173,7 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
         "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef producer() -> str:\n    with open('/data/file.txt', 'w') as file:\n        file.write('Hello world')\n    with open('/data/file.txt', 'r') as file:\n        content = file.read()\n    print(content)\n    return content\n\n",
       ],
       env: [],
-      image: 'python:3.9',
+      image: 'python:3.11',
       lifecycle: undefined,
       resources: undefined,
     });

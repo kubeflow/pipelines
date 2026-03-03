@@ -15,9 +15,10 @@
  */
 
 import * as React from 'react';
+import { render } from '@testing-library/react';
+import { vi } from 'vitest';
 import Page404 from './404';
 import { PageProps } from './Page';
-import { shallow } from 'enzyme';
 
 describe('404', () => {
   function generateProps(): PageProps {
@@ -26,14 +27,15 @@ describe('404', () => {
       location: { pathname: 'some bad page' } as any,
       match: {} as any,
       toolbarProps: {} as any,
-      updateBanner: jest.fn(),
-      updateDialog: jest.fn(),
-      updateSnackbar: jest.fn(),
-      updateToolbar: jest.fn(),
+      updateBanner: vi.fn(),
+      updateDialog: vi.fn(),
+      updateSnackbar: vi.fn(),
+      updateToolbar: vi.fn(),
     };
   }
 
   it('renders a 404 page', () => {
-    expect(shallow(<Page404 {...generateProps()} />)).toMatchSnapshot();
+    const { asFragment } = render(<Page404 {...generateProps()} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 });

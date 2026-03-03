@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
@@ -102,6 +103,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 				fakeKubernetesClientset,
 				"false",
 				"",
+				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 			)
 
 			if test.wantErr {
@@ -128,7 +130,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
 				},
 			},
-			[]string{"-c", "test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
+			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			false,
 		},
 		{
@@ -138,8 +140,18 @@ func Test_executeV2_publishLogs(t *testing.T) {
 					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
 				},
 			},
-			[]string{"-c", "test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
+			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			false,
+		},
+		{
+			"sad fail",
+			&pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
+				},
+			},
+			[]string{"-c", "echo testoutput && exit 1"},
+			true,
 		},
 	}
 
@@ -151,7 +163,27 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
-			_, _, err = executeV2(
+			// Add executor-logs artifact to outputs
+			if test.executorInput.Outputs == nil {
+				test.executorInput.Outputs = &pipelinespec.ExecutorInput_Outputs{}
+			}
+			if test.executorInput.Outputs.Artifacts == nil {
+				test.executorInput.Outputs.Artifacts = make(map[string]*pipelinespec.ArtifactList)
+			}
+			// Use a temp directory for CustomPath to avoid writing to filesystem
+			tempDir := t.TempDir()
+			customPath := filepath.Join(tempDir, "executor-logs")
+			test.executorInput.Outputs.Artifacts["executor-logs"] = &pipelinespec.ArtifactList{
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Uri:        "mem://test-bucket/pipeline-root/executor-logs",
+						Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
+						CustomPath: &customPath,
+					},
+				},
+			}
+
+			_, outputArtifacts, err := executeV2(
 				context.Background(),
 				test.executorInput,
 				addNumbersComponent,
@@ -162,17 +194,46 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				fakeMetadataClient,
 				"namespace",
 				fakeKubernetesClientset,
-				"false",
+				"true",
 				"",
+				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 			)
 
 			if test.wantErr {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-
 			}
+
+			outputLog, err := bucket.ReadAll(context.TODO(), "executor-logs")
+			assert.Nil(t, err, "Expected executor-logs to be readable")
+			assert.Equal(t, "testoutput\n", string(outputLog))
+
+			assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
 		})
+	}
+}
+
+func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
+	execIn := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{Uri: "minio://mlpipeline/sample/sample.txt", Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{"_kfp_workspace": structpb.NewBoolValue(true)}}},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	if err != nil {
+		t.Fatalf("getPlaceholders error: %v", err)
+	}
+	actual := ph["{{$.inputs.artifacts['data'].path}}"]
+	expected := filepath.Join(WorkspaceMountPath, ".artifacts", "minio", "mlpipeline", "sample", "sample.txt")
+	if actual != expected {
+		t.Fatalf("placeholder path mismatch: actual=%q expected=%q", actual, expected)
 	}
 }
 
@@ -415,6 +476,39 @@ func Test_NewLauncherV2(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func Test_retrieve_artifact_path(t *testing.T) {
+	customPath := "/var/lib/kubelet/pods/pod-uid/volumes/kubernetes.io~csi/pvc-uuid/mount"
+	tests := []struct {
+		name         string
+		artifact     *pipelinespec.RuntimeArtifact
+		expectedPath string
+	}{
+		{
+			"Artifact with no custom path",
+			&pipelinespec.RuntimeArtifact{
+				Uri: "gs://bucket/path/to/artifact",
+			},
+			"/gcs/bucket/path/to/artifact",
+		},
+		{
+			"Artifact with custom path",
+			&pipelinespec.RuntimeArtifact{
+				Uri:        "gs://bucket/path/to/artifact",
+				CustomPath: &customPath,
+			},
+			customPath,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path, err := retrieveArtifactPath(test.artifact)
+			assert.Nil(t, err)
+			assert.Equal(t, path, test.expectedPath)
 		})
 	}
 }

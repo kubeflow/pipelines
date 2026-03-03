@@ -119,6 +119,11 @@ func toMLMDArtifact(runtimeArtifact *pipelinespec.RuntimeArtifact) (*pb.Artifact
 
 	if runtimeArtifact.Metadata != nil {
 		for k, v := range runtimeArtifact.Metadata.Fields {
+			// _kfp_workspace flag is needed only at runtime for the executor to know
+			//  the correct path to the artifact; do not persist to MLMD
+			if k == "_kfp_workspace" {
+				continue
+			}
 			value, err := StructValueToMLMDValue(v)
 			if err != nil {
 				return nil, errorF(err)

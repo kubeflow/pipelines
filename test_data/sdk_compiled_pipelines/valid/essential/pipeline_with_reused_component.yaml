@@ -69,7 +69,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-add-numbers-2:
       container:
         args:
@@ -97,7 +97,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-add-numbers-3:
       container:
         args:
@@ -125,7 +125,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: pipeline-with-reused-component
 root:

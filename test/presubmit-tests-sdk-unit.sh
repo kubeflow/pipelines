@@ -15,6 +15,7 @@
 
 source_root=$(pwd)
 SETUP_ENV="${SETUP_ENV:-true}"
+JUNIT_XML="${JUNIT_XML:-sdk-unit.xml}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Create a virtual environment and activate it
@@ -38,7 +39,13 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -I api/v2alpha1/python
 fi
 
-pytest -v -s sdk/python/kfp --cov=kfp
+if [[ -z "${PULL_NUMBER}" ]]; then
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
+else
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
+fi
+
+pytest -v -s sdk/python/kfp --cov=kfp --junitxml="${JUNIT_XML}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Deactivate the virtual environment

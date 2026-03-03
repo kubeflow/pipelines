@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '2.14.6'
+__version__ = '2.15.2'
 
 __all__ = [
     'add_ephemeral_volume',
@@ -31,6 +31,7 @@ __all__ = [
     'set_image_pull_policy',
     'use_field_path_as_env',
     'set_image_pull_secrets',
+    'set_security_context',
     'set_timeout',
     'use_config_map_as_env',
     'use_config_map_as_volume',
@@ -50,6 +51,7 @@ from kfp.kubernetes.node_affinity import add_node_affinity
 from kfp.kubernetes.node_affinity import add_node_affinity_json
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
+from kfp.kubernetes.security_context import set_security_context
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume
 from kfp.kubernetes.timeout import set_timeout
