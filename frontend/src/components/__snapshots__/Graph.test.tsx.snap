@@ -10,8 +10,9 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -20,13 +21,15 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -36,8 +39,9 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node2"
         class="label_fmwr5sy"
-        title="node2"
+        data-mui-internal-clone-element="true"
       >
         node2
       </div>
@@ -46,13 +50,15 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -89,8 +95,9 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       style="left: 75px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="flipcoin1"
         class="label_fmwr5sy"
-        title="flipcoin1"
+        data-mui-internal-clone-element="true"
       >
         flipcoin1
       </div>
@@ -99,13 +106,15 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -115,8 +124,9 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       style="left: 45px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="tails1"
         class="label_fmwr5sy"
-        title="tails1"
+        data-mui-internal-clone-element="true"
       >
         tails1
       </div>
@@ -125,13 +135,15 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -141,8 +153,9 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       style="left: 105px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="heads1"
         class="label_fmwr5sy"
-        title="heads1"
+        data-mui-internal-clone-element="true"
       >
         heads1
       </div>
@@ -151,13 +164,15 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -167,8 +182,9 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       style="left: 45px; max-height: 10px; min-height: 10px; top: 125px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="flipcoin2"
         class="label_fmwr5sy"
-        title="flipcoin2"
+        data-mui-internal-clone-element="true"
       >
         flipcoin2
       </div>
@@ -177,13 +193,15 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -193,8 +211,9 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 185px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="heads2"
         class="label_fmwr5sy"
-        title="heads2"
+        data-mui-internal-clone-element="true"
       >
         heads2
       </div>
@@ -203,13 +222,15 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -219,8 +240,9 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       style="left: 85px; max-height: 10px; min-height: 10px; top: 185px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="tails2"
         class="label_fmwr5sy"
-        title="tails2"
+        data-mui-internal-clone-element="true"
       >
         tails2
       </div>
@@ -229,13 +251,15 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -396,8 +420,9 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -406,13 +431,15 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -426,13 +453,15 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -461,8 +490,9 @@ exports[`Graph > renders a graph with a selected node 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -471,13 +501,15 @@ exports[`Graph > renders a graph with a selected node 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -487,8 +519,9 @@ exports[`Graph > renders a graph with a selected node 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node2"
         class="label_fmwr5sy"
-        title="node2"
+        data-mui-internal-clone-element="true"
       >
         node2
       </div>
@@ -497,13 +530,15 @@ exports[`Graph > renders a graph with a selected node 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -540,8 +575,9 @@ exports[`Graph > renders a graph with colored edges 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -550,13 +586,15 @@ exports[`Graph > renders a graph with colored edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -566,8 +604,9 @@ exports[`Graph > renders a graph with colored edges 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node2"
         class="label_fmwr5sy"
-        title="node2"
+        data-mui-internal-clone-element="true"
       >
         node2
       </div>
@@ -576,13 +615,15 @@ exports[`Graph > renders a graph with colored edges 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -619,8 +660,9 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
       style="background-color: red; left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -629,13 +671,15 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -645,8 +689,9 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
       style="background-color: green; left: 65px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node2"
         class="label_fmwr5sy"
-        title="node2"
+        data-mui-internal-clone-element="true"
       >
         node2
       </div>
@@ -655,13 +700,15 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -680,8 +727,9 @@ exports[`Graph > renders a graph with one node 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -690,13 +738,15 @@ exports[`Graph > renders a graph with one node 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -715,8 +765,9 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -725,13 +776,15 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -741,8 +794,9 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node2"
         class="label_fmwr5sy"
-        title="node2"
+        data-mui-internal-clone-element="true"
       >
         node2
       </div>
@@ -751,13 +805,15 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -794,8 +850,9 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
       style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -804,13 +861,15 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -820,8 +879,9 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node2"
         class="label_fmwr5sy"
-        title="node2"
+        data-mui-internal-clone-element="true"
       >
         node2
       </div>
@@ -830,13 +890,15 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -873,8 +935,9 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
       style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node1"
         class="label_fmwr5sy"
-        title="node1"
+        data-mui-internal-clone-element="true"
       >
         node1
       </div>
@@ -883,13 +946,15 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>
@@ -899,8 +964,9 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
       style="left: 65px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
     >
       <div
+        aria-label="node2"
         class="label_fmwr5sy"
-        title="node2"
+        data-mui-internal-clone-element="true"
       >
         node2
       </div>
@@ -909,13 +975,15 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root"
+          aria-label="Test icon tooltip"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-mui-internal-clone-element="true"
+          data-testid="CheckCircleIcon"
           focusable="false"
-          title="Test icon tooltip"
           viewBox="0 0 24 24"
         >
           <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"
           />
         </svg>
       </div>

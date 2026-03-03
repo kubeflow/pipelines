@@ -43,7 +43,7 @@ NOTE: At this time, release.sh is a no-op included only for maintaining consiste
 
 ## Upgrade Argo Workflows
 
-### Upgade All Refrences of Argo Workflows
+### Upgrade All References of Argo Workflows
 
 To upgrade to a new Argo version, including manifests, code dependencies, tests, and documentation:
 
@@ -51,7 +51,7 @@ To upgrade to a new Argo version, including manifests, code dependencies, tests,
 2. Run `make update` to automatically update all references of the Argo Workflows dependency
 3. Test the new configuration with your KFP deployment
 
-** NOTE: this does not include the [GitHub CI workflows](../../.github/), which need to be manually updated as describe above **
+** NOTE: this does not include the [GitHub CI workflows](../../.github/), which need to be manually updated as described above **
 
 ### Update Argo Workflows Manifests
 

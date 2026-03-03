@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
 import ReactFlow, {
   Background,
@@ -73,24 +73,27 @@ function WrappedSubDagNode({ id, label }: WrappedSubDagNodeProps) {
   );
 }
 
-export default {
+const meta: Meta<typeof WrappedSubDagNode> = {
   title: 'v2/SubDagNode',
   component: WrappedSubDagNode,
   argTypes: {
     backgroundColor: { control: 'color' },
   },
-} as ComponentMeta<typeof WrappedSubDagNode>;
-
-const Template: ComponentStory<typeof WrappedSubDagNode> = args => <WrappedSubDagNode {...args} />;
-
-export const Primary = Template.bind({});
-Primary.args = {
-  id: 'id',
-  label: 'This is a SubDagNode',
 };
 
-export const Secondary = Template.bind({});
-Secondary.args = {
-  id: 'id',
-  label: 'This is a SubDagNode with long name',
+export default meta;
+type Story = StoryObj<typeof WrappedSubDagNode>;
+
+export const Primary: Story = {
+  args: {
+    id: 'id',
+    label: 'This is a SubDagNode',
+  },
+};
+
+export const Secondary: Story = {
+  args: {
+    id: 'id',
+    label: 'This is a SubDagNode with long name',
+  },
 };

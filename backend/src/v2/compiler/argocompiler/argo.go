@@ -48,6 +48,15 @@ type Options struct {
 	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 	MLPipelineTLSEnabled bool
+	// Optional: admin-configured default runAsUser for customer containers.
+	// Nil means not set (feature disabled).
+	DefaultRunAsUser *int64
+	// Optional: admin-configured default runAsGroup for customer containers.
+	// Nil means not set (feature disabled).
+	DefaultRunAsGroup *int64
+	// Optional: admin-configured default runAsNonRoot for customer containers.
+	// Nil means not set (feature disabled).
+	DefaultRunAsNonRoot *bool
 }
 
 const (
@@ -182,6 +191,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.cacheDisabled = opts.CacheDisabled
 		c.defaultWorkspace = opts.DefaultWorkspace
 		c.mlPipelineTLSEnabled = opts.MLPipelineTLSEnabled
+		c.defaultRunAsUser = opts.DefaultRunAsUser
+		c.defaultRunAsGroup = opts.DefaultRunAsGroup
+		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -228,6 +240,9 @@ type workflowCompiler struct {
 	cacheDisabled        bool
 	defaultWorkspace     *k8score.PersistentVolumeClaimSpec
 	mlPipelineTLSEnabled bool
+	defaultRunAsUser     *int64
+	defaultRunAsGroup    *int64
+	defaultRunAsNonRoot  *bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

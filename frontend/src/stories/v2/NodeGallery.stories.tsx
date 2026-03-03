@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
 import ReactFlow, {
   Background,
@@ -165,17 +165,17 @@ function WrappedNodeGallery({}) {
   );
 }
 
-export default {
+const meta: Meta<typeof WrappedNodeGallery> = {
   title: 'v2/NodeGallery',
   component: WrappedNodeGallery,
   argTypes: {
     backgroundColor: { control: 'color' },
   },
-} as ComponentMeta<typeof WrappedNodeGallery>;
+};
 
-const Template: ComponentStory<typeof WrappedNodeGallery> = args => (
-  <WrappedNodeGallery {...args} />
-);
+export default meta;
+type Story = StoryObj<typeof WrappedNodeGallery>;
 
-export const Primary = Template.bind({});
-Primary.args = {};
+export const Primary: Story = {
+  args: {},
+};

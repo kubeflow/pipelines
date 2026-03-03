@@ -63,9 +63,9 @@ import {
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
-import CircularProgress from '@material-ui/core/CircularProgress';
 import { lineColors } from 'src/components/viewers/ROCCurve';
 import Hr from 'src/atoms/Hr';
+import { CircularProgress } from '@mui/material';
 
 const css = stylesheet({
   outputsRow: {

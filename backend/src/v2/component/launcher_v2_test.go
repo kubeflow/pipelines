@@ -130,7 +130,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
 				},
 			},
-			[]string{"-c", "test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
+			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			false,
 		},
 		{
@@ -140,8 +140,18 @@ func Test_executeV2_publishLogs(t *testing.T) {
 					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
 				},
 			},
-			[]string{"-c", "test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
+			[]string{"-c", "echo testoutput && test {{$.inputs.parameters['a']}} -eq 5 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
 			false,
+		},
+		{
+			"sad fail",
+			&pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
+				},
+			},
+			[]string{"-c", "echo testoutput && exit 1"},
+			true,
 		},
 	}
 
@@ -153,7 +163,27 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
-			_, _, err = executeV2(
+			// Add executor-logs artifact to outputs
+			if test.executorInput.Outputs == nil {
+				test.executorInput.Outputs = &pipelinespec.ExecutorInput_Outputs{}
+			}
+			if test.executorInput.Outputs.Artifacts == nil {
+				test.executorInput.Outputs.Artifacts = make(map[string]*pipelinespec.ArtifactList)
+			}
+			// Use a temp directory for CustomPath to avoid writing to filesystem
+			tempDir := t.TempDir()
+			customPath := filepath.Join(tempDir, "executor-logs")
+			test.executorInput.Outputs.Artifacts["executor-logs"] = &pipelinespec.ArtifactList{
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Uri:        "mem://test-bucket/pipeline-root/executor-logs",
+						Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
+						CustomPath: &customPath,
+					},
+				},
+			}
+
+			_, outputArtifacts, err := executeV2(
 				context.Background(),
 				test.executorInput,
 				addNumbersComponent,
@@ -164,7 +194,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				fakeMetadataClient,
 				"namespace",
 				fakeKubernetesClientset,
-				"false",
+				"true",
 				"",
 				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 			)
@@ -173,8 +203,13 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-
 			}
+
+			outputLog, err := bucket.ReadAll(context.TODO(), "executor-logs")
+			assert.Nil(t, err, "Expected executor-logs to be readable")
+			assert.Equal(t, "testoutput\n", string(outputLog))
+
+			assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
 		})
 	}
 }

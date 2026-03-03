@@ -12,6 +12,10 @@ on:
         type: string
         description: 'Target Image Tag'
         required: true
+      arch_tag:
+        type: string
+        description: 'Architecture tag suffix e.g. amd64 or arm64'
+        required: true
       overwrite_imgs:
         type: string
         default: 'true'
@@ -39,6 +43,14 @@ on:
         type: string
         description: 'Provide the docker file name'
         required: true
+      platforms:
+        type: string
+        required: true
+        description: e.g, linux/amd64 or linux/arm64
+      runs_on:
+        type: string
+        required: true
+        description: 'Runner label to execute on'
       push:
         type: boolean
         default: false
@@ -55,6 +67,11 @@ on:
         type: string
         default: 'X.Y.Z'
         description: 'Target Image Tag'
+        required: true
+      arch_tag:
+        type: string
+        default: 'amd64'
+        description: 'Architecture tag suffix e.g. amd64 or arm64'
         required: true
       fail_fast:
         type: string
@@ -91,6 +108,15 @@ on:
         default: ''
         description: 'Provide the docker file name'
         required: true
+      platforms:
+        type: string
+        default: ''
+        required: true
+        description: 'Provide the target architecture e.g, linux/amd64, linux/arm64'
+      runs_on:
+        type: string
+        required: true
+        description: 'Runner label to execute on'
       push:
         type: boolean
         default: false
@@ -109,7 +135,7 @@ env:
 jobs:
   build-and-push-images:
     continue-on-error: false
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     permissions:
       contents: read
       packages: write
@@ -132,10 +158,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
       - name: Check if image tag already exists
         id: check_tag
         env:
-          IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}:${{env.TARGET_IMAGE_TAG}}
+          IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}:${{env.TARGET_IMAGE_TAG}}-${{inputs.arch_tag}}
           OVERWRITE: ${{ env.OVERWRITE_IMAGES }}
         run: |
           if docker manifest inspect "${IMAGE}" > /dev/null 2>&1; then
@@ -160,10 +191,6 @@ jobs:
         if: steps.check_tag.outcome == 'success'
         with:
           images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
-          tags: |
-            type=raw,value=${{env.TARGET_IMAGE_TAG}}
-            type=raw,value=latest,enable=${{ env.SET_LATEST == 'true'}}
-            type=sha,enable=${{ env.ADD_SHA_TAG == 'true' }}
 
       # Build the image. If the build succeeds, it pushes the image to GitHub
       # Packages. It uses the context parameter to define the build's context
@@ -173,21 +200,36 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.check_tag.outcome == 'success'
         with:
+          platforms: ${{ inputs.platforms }}
           context: ${{ inputs.image_context }}
           file: ${{ inputs.docker_file }}
           push: ${{ inputs.push }}
-          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
           build-args: |
             COMMIT_SHA=${{ steps.get_commit.outputs.sha }}
             COMMIT_HASH=${{ steps.get_commit.outputs.sha }}
             TAG_NAME=${{ inputs.target_tag }}
 
-      # This step generates an artifact attestation for the image,
-      # which is an unforgeable statement about where and how it was built.
-      # It increases supply chain security for people who consume the
-      # image.
-      # Ref: https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
+      # Export the digest
+      - name: Export digest
+        if: steps.check_tag.outcome == 'success' && inputs.push
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.push.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      # Upload the digest
+      - name: Upload digest
+        if: steps.check_tag.outcome == 'success' && inputs.push
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      # This step generates an artifact attestation for the image
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         if: steps.check_tag.outcome == 'success' && inputs.push

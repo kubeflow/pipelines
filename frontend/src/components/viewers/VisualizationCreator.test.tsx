@@ -15,15 +15,13 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
 import { ApiVisualizationType } from '../../apis/visualization';
-import { diffHTML } from 'src/TestUtils';
-import Select from '@material-ui/core/Select';
 import renderer from 'react-test-renderer';
+import { Select } from '@mui/material';
 
 vi.mock('../Editor', () => ({
   default: ({ placeholder }: { placeholder?: string }) => (
@@ -331,8 +329,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
       collapsedInitially: false,
     };
-    const { container: baseContainer } = render(<VisualizationCreator configs={[baseConfig]} />);
-    const { container } = render(
+    render(
       <VisualizationCreator
         configs={[
           {
@@ -342,30 +339,11 @@ describe('VisualizationCreator', () => {
         ]}
       />,
     );
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text"
-          tabindex="0"
-          type="button"
-        >
-          <span
-            class="MuiButton-label"
-          >
-            create visualizations manually
-          </span>
-          <span
-            class="MuiTouchRipple-root"
-          />
-        </button>
-      </div>
-    `);
     const button = screen.getByText('create visualizations manually');
     fireEvent.click(button);
-    expect(diffHTML({ base: baseContainer.innerHTML, update: container.innerHTML }))
-      .toMatchInlineSnapshot(`
-        "Snapshot Diff:
-        Compared values have no visual difference."
-      `);
+    expect(screen.queryByText('create visualizations manually')).toBeNull();
+    screen.getByText('Type');
+    screen.getByPlaceholderText('File path or path pattern of data within GCS.');
+    expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 });

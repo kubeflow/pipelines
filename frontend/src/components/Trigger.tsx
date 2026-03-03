@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-import Fab from '@material-ui/core/Fab';
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import MenuItem from '@material-ui/core/MenuItem';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
-import { TriggerSchedule } from '../lib/TriggerUtils';
 import { HelpButton } from '../atoms/HelpButton';
 import { ExternalLink } from '../atoms/ExternalLink';
 import Input from '../atoms/Input';
@@ -31,6 +26,7 @@ import {
   buildTrigger,
   dateToPickerFormat,
   PeriodicInterval,
+  TriggerSchedule,
   pickersToDate,
   triggers,
   TriggerType,
@@ -38,6 +34,8 @@ import {
   ParsedTrigger,
 } from '../lib/TriggerUtils';
 import { logger } from 'src/lib/Utils';
+
+import { Fab, Checkbox, FormControlLabel, MenuItem } from '@mui/material';
 
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;

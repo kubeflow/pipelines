@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -59,6 +52,16 @@ import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
 import PipelinesDialog from '../components/PipelinesDialog';
+
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  FormControlLabel,
+  InputAdornment,
+  Radio,
+} from '@mui/material';
 
 interface NewRunState {
   description: string;
@@ -603,7 +606,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               id='exitNewRunPageBtn'
               onClick={() => {
                 this.props.history.push(
-                  !!this.state.experiment
+                  this.state.experiment
                     ? RoutePage.EXPERIMENT_DETAILS.replace(
                         ':' + RouteParams.experimentId,
                         this.state.experiment.id!,
@@ -1292,12 +1295,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         throw new Error('Run name is required');
       }
 
-      const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);
+      const hasTrigger = trigger && (trigger.cron_schedule || trigger.periodic_schedule);
       if (hasTrigger) {
-        const startDate = !!trigger!.cron_schedule
+        const startDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.start_time
           : trigger!.periodic_schedule!.start_time;
-        const endDate = !!trigger!.cron_schedule
+        const endDate = trigger!.cron_schedule
           ? trigger!.cron_schedule!.end_time
           : trigger!.periodic_schedule!.end_time;
         if (startDate && endDate && startDate > endDate) {

@@ -12,37 +12,31 @@ exports[`MD2Tabs > gracefully handles an out of bound selectedTab value 1`] = `
       style="display: inline-block; min-width: 20px; width: 20px;"
     />
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+      aria-label=""
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-mui-internal-clone-element="true"
       tabindex="0"
-      title=""
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          tab1
-        </span>
+      <span>
+        tab1
       </span>
       <span
-        class="MuiTouchRipple-root"
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
       />
     </button>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+      aria-label=""
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-mui-internal-clone-element="true"
       tabindex="0"
-      title=""
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          tab2
-        </span>
+      <span>
+        tab2
       </span>
       <span
-        class="MuiTouchRipple-root"
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
       />
     </button>
   </div>
@@ -61,37 +55,31 @@ exports[`MD2Tabs > renders with the right styles by default 1`] = `
       style="display: inline-block; min-width: 20px; width: 20px;"
     />
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+      aria-label=""
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-mui-internal-clone-element="true"
       tabindex="0"
-      title=""
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          tab1
-        </span>
+      <span>
+        tab1
       </span>
       <span
-        class="MuiTouchRipple-root"
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
       />
     </button>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+      aria-label=""
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-mui-internal-clone-element="true"
       tabindex="0"
-      title=""
       type="button"
     >
-      <span
-        class="MuiButton-label"
-      >
-        <span>
-          tab2
-        </span>
+      <span>
+        tab2
       </span>
       <span
-        class="MuiTouchRipple-root"
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
       />
     </button>
   </div>

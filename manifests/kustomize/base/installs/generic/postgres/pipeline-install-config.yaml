@@ -102,3 +102,10 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/issues/11987
   ARTIFACTS_PROXY_ENABLED: "false"
+  ## Default security context for customer workload containers.
+  ## Leave empty to disable (default). When set, SDK-specified values
+  ## for the corresponding field are ignored.
+  ## Does NOT affect executor, driver, or sidecar containers.
+  defaultSecurityContextRunAsUser: ""
+  defaultSecurityContextRunAsGroup: ""
+  defaultSecurityContextRunAsNonRoot: ""

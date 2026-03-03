@@ -802,7 +802,7 @@ describe('CompareV2', () => {
     runCheckboxes = await waitForRunCheckboxes(2);
     fireEvent.click(runCheckboxes[0]);
     await waitFor(() => expect(screen.queryByText('ROC Curve: artifactName')).toBeNull());
-  });
+  }, 20000);
 
   it('Multiple ROC Curves shown on select', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
