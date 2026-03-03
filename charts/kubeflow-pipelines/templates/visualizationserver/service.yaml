@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline-visualizationserver
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: ml-pipeline-visualizationserver
+spec:
+  type: ClusterIP
+  selector:
+    app: ml-pipeline-visualizationserver
+  ports:
+    - name: http
+      port: 8888
+      protocol: TCP
+      targetPort: 8888

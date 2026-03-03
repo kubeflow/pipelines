@@ -1,0 +1,19 @@
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: ""
+    memory: ""
+  limits:
+    cpu: ""
+    memory: ""
+
+persistence:
+  enabled: false
+  size: ""
+  storageClass: ""

@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: metadata-grpc-server
+  name: metadata-grpc-deployment
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-grpc-server
+  template:
+    metadata:
+      labels:
+        component: metadata-grpc-server
+    spec:
+      containers:
+        - command:
+            - /bin/metadata_store_server
+          args:
+            - --grpc_port=8080
+            - --mysql_config_database=$(MYSQL_DATABASE)
+            - --mysql_config_host=$(MYSQL_HOST)
+            - --mysql_config_port=$(MYSQL_PORT)
+            - --mysql_config_user=$(DBCONFIG_USER)
+            - --mysql_config_password=$(DBCONFIG_PASSWORD)
+            - --enable_database_upgrade=true
+            - --grpc_channel_arguments=grpc.max_metadata_size=16384,grpc.max_receive_message_length=104857600,grpc.max_send_message_length=104857600
+          env:
+            - name: DBCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: mysql-secret
+            - name: DBCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: mysql-secret
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  key: mlmdDb
+                  name: pipeline-install-config
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: dbHost
+                  name: pipeline-install-config
+            - name: MYSQL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: dbPort
+                  name: pipeline-install-config
+          image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+          name: container
+          ports:
+            - containerPort: 8080
+              name: grpc-api
+          livenessProbe:
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            tcpSocket:
+              port: grpc-api
+            timeoutSeconds: 2
+          readinessProbe:
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            tcpSocket:
+              port: grpc-api
+            timeoutSeconds: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: metadata-grpc-server
