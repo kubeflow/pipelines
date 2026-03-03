@@ -73,7 +73,7 @@ const css = stylesheet({
   },
 });
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
@@ -367,8 +367,8 @@ function NewRunV2(props: NewRunV2Props) {
       pipeline_version_reference: useLatestVersion
         ? { pipeline_id: existingPipeline?.pipeline_id }
         : cloneOrigin.isClone
-        ? pipelineVersionRefClone
-        : pipelineVersionRefNew,
+          ? pipelineVersionRefClone
+          : pipelineVersionRefNew,
       runtime_config: {
         pipeline_root: pipelineRoot,
         parameters: runtimeParameters,
@@ -396,7 +396,7 @@ function NewRunV2(props: NewRunV2Props) {
 
     const runCreation = () =>
       newRunMutation.mutate(newRun, {
-        onSuccess: data => {
+        onSuccess: (data) => {
           setIsStartingNewRun(false);
           if (data.run_id) {
             props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
@@ -409,7 +409,7 @@ function NewRunV2(props: NewRunV2Props) {
             open: true,
           });
         },
-        onError: async error => {
+        onError: async (error) => {
           const errorMessage = await errorToMessage(error);
           props.updateDialog({
             buttons: [{ text: 'Dismiss' }],
@@ -422,7 +422,7 @@ function NewRunV2(props: NewRunV2Props) {
 
     const recurringRunCreation = () =>
       newRecurringRunMutation.mutate(newRecurringRun, {
-        onSuccess: data => {
+        onSuccess: (data) => {
           setIsStartingNewRun(false);
           if (data.recurring_run_id) {
             props.history.push(
@@ -440,7 +440,7 @@ function NewRunV2(props: NewRunV2Props) {
             open: true,
           });
         },
-        onError: async error => {
+        onError: async (error) => {
           const errorMessage = await errorToMessage(error);
           props.updateDialog({
             buttons: [{ text: 'Dismiss' }],
@@ -489,7 +489,7 @@ function NewRunV2(props: NewRunV2Props) {
             <PipelineSelector
               {...props}
               pipelineName={pipelineName}
-              handlePipelineChange={async updatedPipeline => {
+              handlePipelineChange={async (updatedPipeline) => {
                 if (updatedPipeline.display_name) {
                   setPipelineName(updatedPipeline.display_name);
                 }
@@ -514,7 +514,7 @@ function NewRunV2(props: NewRunV2Props) {
                 control={
                   <Checkbox
                     checked={useLatestVersion}
-                    onChange={e => {
+                    onChange={(e) => {
                       const isChecked = e.target.checked;
                       setUseLatestVersion(isChecked);
                     }}
@@ -533,7 +533,7 @@ function NewRunV2(props: NewRunV2Props) {
               pipeline={existingPipeline}
               pipelineVersionName={pipelineVersionName}
               useLatestVersion={useLatestVersion}
-              handlePipelineVersionChange={updatedPipelineVersion => {
+              handlePipelineVersionChange={(updatedPipelineVersion) => {
                 if (updatedPipelineVersion.display_name) {
                   setPipelineVersionName(updatedPipelineVersion.display_name);
                 }
@@ -557,7 +557,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
           required={true}
-          onChange={event => setRunName(event.target.value)}
+          onChange={(event) => setRunName(event.target.value)}
           autoFocus={true}
           value={runName}
           variant='outlined'
@@ -565,7 +565,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           label='Description'
           multiline={true}
-          onChange={event => setRunDescription(event.target.value)}
+          onChange={(event) => setRunDescription(event.target.value)}
           required={false}
           value={runDescription}
           variant='outlined'
@@ -579,7 +579,7 @@ function NewRunV2(props: NewRunV2Props) {
           onCancelNewExperiment={() => setOpenNewExperiment(false)}
           toolbarActionMap={createNewExperiment}
           experimentName={experimentName}
-          handleExperimentChange={experiment => {
+          handleExperimentChange={(experiment) => {
             setExperiment(experiment);
             if (experiment.display_name) {
               setExperimentName(experiment.display_name);
@@ -632,7 +632,7 @@ function NewRunV2(props: NewRunV2Props) {
         </div>
         <Input
           value={serviceAccount}
-          onChange={event => setServiceAccount(event.target.value)}
+          onChange={(event) => setServiceAccount(event.target.value)}
           required={false}
           label='Service Account'
           variant='outlined'
@@ -892,7 +892,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
               return {
                 nextPageToken: response.next_page_token || '',
                 resources:
-                  response.pipeline_versions?.map(v => convertPipelineVersionToResource(v)) || [],
+                  response.pipeline_versions?.map((v) => convertPipelineVersionToResource(v)) || [],
               };
             }}
             columns={PIPELINE_VERSION_SELECTOR_COLUMNS}
@@ -1020,16 +1020,16 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
                   );
                   return {
                     nextPageToken: response.next_page_token || '',
-                    resources: response.experiments?.map(e => convertExperimentToResource(e)) || [],
+                    resources:
+                      response.experiments?.map((e) => convertExperimentToResource(e)) || [],
                   };
                 }}
                 columns={EXPERIMENT_SELECTOR_COLUMNS}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
                 selectionChanged={async (selectedExperimentId: string) => {
-                  const selectedExperiment = await Apis.experimentServiceApiV2.getExperiment(
-                    selectedExperimentId,
-                  );
+                  const selectedExperiment =
+                    await Apis.experimentServiceApiV2.getExperiment(selectedExperimentId);
                   setPendingExperiment(selectedExperiment);
                 }}
               />

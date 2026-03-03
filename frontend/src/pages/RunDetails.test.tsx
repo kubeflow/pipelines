@@ -62,14 +62,14 @@ vi.mock('src/components/Graph', () => ({
         <pre data-testid='graph'>
           {graph
             .nodes()
-            .map(v => 'Node ' + v)
+            .map((v) => 'Node ' + v)
             .join('\n  ')}
           {graph
             .edges()
-            .map(e => `Edge ${e.v} to ${e.w}`)
+            .map((e) => `Edge ${e.v} to ${e.w}`)
             .join('\n  ')}
         </pre>
-        {graph.nodes().map(node => (
+        {graph.nodes().map((node) => (
           <button
             type='button'
             key={node}
@@ -170,7 +170,7 @@ describe('RunDetails', () => {
       if (!nodes) {
         return;
       }
-      Object.values(nodes).forEach(node => {
+      Object.values(nodes).forEach((node) => {
         if (node && !node.phase) {
           node.phase = NodePhase.RUNNING;
         }
@@ -181,7 +181,7 @@ describe('RunDetails', () => {
     }
   }
 
-  function getRunDetailsState(): typeof RunDetails['prototype']['state'] | undefined {
+  function getRunDetailsState(): (typeof RunDetails)['prototype']['state'] | undefined {
     return runDetailsRef?.current?.state;
   }
 
@@ -271,7 +271,7 @@ describe('RunDetails', () => {
     );
     isCustomVisualizationsAllowedSpy.mockImplementation(() => Promise.resolve(false));
     getPodLogsSpy.mockImplementation(() => 'test logs');
-    getPodInfoSpy.mockImplementation(() => ({ data: 'some data' } as JSONObject));
+    getPodInfoSpy.mockImplementation(() => ({ data: 'some data' }) as JSONObject);
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
     loaderSpy.mockImplementation(() => Promise.resolve([]));
@@ -753,10 +753,7 @@ describe('RunDetails', () => {
     const execution = new Execution();
     const nodePodName = new Value();
     nodePodName.setStringValue('node1');
-    execution
-      .setId(1)
-      .getCustomPropertiesMap()
-      .set(KfpExecutionProperties.POD_NAME, nodePodName);
+    execution.setId(1).getCustomPropertiesMap().set(KfpExecutionProperties.POD_NAME, nodePodName);
     getRunContextSpy.mockResolvedValue(new Context());
     getExecutionsFromContextSpy.mockResolvedValue([execution]);
 
@@ -1050,7 +1047,7 @@ describe('RunDetails', () => {
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
   });
 
-  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach(unfinishedStatus => {
+  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach((unfinishedStatus) => {
     it(`displays a spinner if graph is not defined and run has status: ${unfinishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -1072,7 +1069,7 @@ describe('RunDetails', () => {
   });
 
   [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
-    finishedStatus => {
+    (finishedStatus) => {
       it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
         const unfinishedRun = {
           pipeline_runtime: {
@@ -1677,18 +1674,18 @@ describe('RunDetails', () => {
         return 0 as any;
       });
       clearIntervalSpy = vi.spyOn(global, 'clearInterval').mockImplementation(() => {});
-      loadSpy = vi
-        .spyOn(RunDetails.prototype, 'load')
-        .mockImplementation(async function(this: RunDetails) {
-          const status = testRun.run!.status as NodePhase;
-          const runFinished = [
-            NodePhase.ERROR,
-            NodePhase.FAILED,
-            NodePhase.SUCCEEDED,
-            NodePhase.SKIPPED,
-          ].includes(status);
-          this.setState({ runFinished });
-        });
+      loadSpy = vi.spyOn(RunDetails.prototype, 'load').mockImplementation(async function (
+        this: RunDetails,
+      ) {
+        const status = testRun.run!.status as NodePhase;
+        const runFinished = [
+          NodePhase.ERROR,
+          NodePhase.FAILED,
+          NodePhase.SUCCEEDED,
+          NodePhase.SKIPPED,
+        ].includes(status);
+        this.setState({ runFinished });
+      });
       testRun.run!.status = NodePhase.PENDING;
     });
     afterEach(() => {
@@ -1724,17 +1721,19 @@ describe('RunDetails', () => {
       await TestUtils.flushPromises();
     }, 10000);
 
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
-      it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
-        testRun.run!.status = status;
-        await renderRunDetails(undefined, { waitForLoad: false });
-        await TestUtils.flushPromises();
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(
+      (status) => {
+        it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
+          testRun.run!.status = status;
+          await renderRunDetails(undefined, { waitForLoad: false });
+          await TestUtils.flushPromises();
 
-        expect(getRunDetailsState()?.runFinished).toBe(true);
-      });
-    });
+          expect(getRunDetailsState()?.runFinished).toBe(true);
+        });
+      },
+    );
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach((status) => {
       it(`leaves 'runFinished' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         await renderRunDetails(undefined, { waitForLoad: false });

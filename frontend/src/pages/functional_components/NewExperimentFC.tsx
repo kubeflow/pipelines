@@ -127,11 +127,11 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     setIsBeingCreated(true);
 
     newExperimentMutation.mutate(newExperiment, {
-      onSuccess: response => {
+      onSuccess: (response) => {
         setExperimentResponse(response);
         setErrMsgFromApi(undefined);
       },
-      onError: async err => {
+      onError: async (err) => {
         setErrMsgFromApi(await errorToMessage(err));
       },
     });
@@ -153,7 +153,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
           id='experimentName'
           label='Experiment name'
           required={true}
-          onChange={event => setExperimentName(event.target.value)}
+          onChange={(event) => setExperimentName(event.target.value)}
           value={experimentName}
           autoFocus={true}
           variant='outlined'
@@ -162,7 +162,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
           id='experimentDescription'
           label='Description'
           multiline={true}
-          onChange={event => setDescription(event.target.value)}
+          onChange={(event) => setDescription(event.target.value)}
           required={false}
           value={description}
           variant='outlined'

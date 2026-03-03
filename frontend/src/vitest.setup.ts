@@ -29,7 +29,7 @@ if (!globalThis.Worker) {
     }
   }
 
-  globalThis.Worker = (MockWorker as unknown) as typeof Worker;
+  globalThis.Worker = MockWorker as unknown as typeof Worker;
 }
 
 const localStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');

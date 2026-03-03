@@ -21,7 +21,7 @@ describe('utils', () => {
       const input = 'some string that will be truncated.';
       const source = new PassThrough();
       const preview = new PreviewStream({ peek });
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         const dst = source.pipe(preview).on('end', resolve);
         source.end(input);
         dst.once('readable', () => expect(dst.read().toString()).toBe(input.slice(0, peek)));
@@ -33,7 +33,7 @@ describe('utils', () => {
       const input = 'some string that will be truncated.';
       const source = new PassThrough();
       const preview = new PreviewStream({ peek });
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         const dst = source.pipe(preview).on('end', resolve);
         source.end(input);
         dst.once('readable', () => expect(dst.read().toString()).toBe(input));

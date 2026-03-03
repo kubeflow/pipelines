@@ -60,7 +60,7 @@ describe('ViewerContainer', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  Object.keys(PlotType).map(type =>
+  Object.keys(PlotType).map((type) =>
     it('renders a viewer of type ' + type, () => {
       const plotType = PlotType[type as keyof typeof PlotType];
       const { asFragment } = render(<ViewerContainer configs={[sampleConfigs[plotType]]} />);

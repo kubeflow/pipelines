@@ -158,7 +158,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                               value={
                                 selectedVersion ? selectedVersion.id : pipeline.default_version!.id!
                               }
-                              onChange={event =>
+                              onChange={(event) =>
                                 handleVersionSelected(event.target.value as string)
                               }
                               inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
@@ -206,7 +206,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                 <PipelineGraph
                   graph={graphToShow}
                   selectedNodeId={selectedNodeId}
-                  onClick={id => setSelectedNodeId(id)}
+                  onClick={(id) => setSelectedNodeId(id)}
                   onError={(message, additionalInfo) => {
                     updateBanner({ message, additionalInfo, mode: 'error' });
                   }}
@@ -215,7 +215,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                 <ReduceGraphSwitch
                   disabled={!reducedGraph}
                   checked={showReducedGraph}
-                  onChange={_ => {
+                  onChange={(_) => {
                     setShowReducedGraph(!showReducedGraph);
                   }}
                 />

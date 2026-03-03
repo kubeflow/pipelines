@@ -71,7 +71,7 @@ describe('ExperimentDetails', () => {
 
   async function mockNRecurringRuns(n: number): Promise<void> {
     listRecurringRunsSpy.mockImplementation(() => ({
-      recurringRuns: range(n).map(i => ({
+      recurringRuns: range(n).map((i) => ({
         display_name: 'test job name' + i,
         recurring_run_id: 'test-recurringrun-id' + i,
         status: V2beta1RecurringRunStatus.ENABLED,
@@ -81,7 +81,7 @@ describe('ExperimentDetails', () => {
 
   async function mockNRuns(n: number): Promise<void> {
     listRunsSpy.mockImplementation(() => ({
-      runs: range(n).map(i => ({ run_id: 'test-run-id' + i, display_name: 'test run name' + i })),
+      runs: range(n).map((i) => ({ run_id: 'test-run-id' + i, display_name: 'test run name' + i })),
     }));
   }
 
@@ -123,7 +123,7 @@ describe('ExperimentDetails', () => {
 
   function expectRunStorageFilter(operation: V2beta1PredicateOperation) {
     const filter = getRunListFilter();
-    const predicate = (filter.predicates || []).find(p => p.key === 'storage_state');
+    const predicate = (filter.predicates || []).find((p) => p.key === 'storage_state');
     expect(predicate).toBeDefined();
     expect(predicate?.operation).toBe(operation);
   }

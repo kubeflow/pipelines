@@ -211,7 +211,7 @@ spec:
 
   it('Show error if not valid v1 template and disabled v2 feature', async () => {
     // v2 feature is turn off.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
     Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
@@ -243,7 +243,7 @@ spec:
 
   it('Show error if v1 template cannot generate graph and disabled v2 feature', async () => {
     // v2 feature is turn off.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
     Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
@@ -276,7 +276,7 @@ spec:
 
   it('Show error if not valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -311,7 +311,7 @@ spec:
 
   it('Show v1 page if valid v1 template and enabled v2 feature flag', async () => {
     // v2 feature is turn on.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -339,7 +339,7 @@ spec:
 
   it('Show v1 page if valid v1 template and disabled v2 feature flag', async () => {
     // v2 feature is turn off.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       return false;
     });
     Apis.pipelineServiceApiV2.getPipelineVersion = vi.fn().mockResolvedValue({
@@ -363,7 +363,7 @@ spec:
 
   it('Show v2 page if valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }

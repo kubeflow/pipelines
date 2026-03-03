@@ -186,7 +186,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (clonedRuntimeConfig && clonedRuntimeConfig.parameters) {
       const clonedRuntimeParametersStr: RuntimeParameters = {};
       // Convert cloned parameter to string type first to avoid error from convertInput
-      Object.entries(clonedRuntimeConfig.parameters).forEach(entry => {
+      Object.entries(clonedRuntimeConfig.parameters).forEach((entry) => {
         clonedRuntimeParametersStr[entry[0]] = convertNonUserInputParamToString(
           specParameters,
           entry[0],
@@ -210,7 +210,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     const runtimeParametersInRealType: RuntimeParameters = {};
     let allParamtersWithDefault = true;
     let errMsg: string[] = [];
-    Object.keys(specParameters).forEach(key => {
+    Object.keys(specParameters).forEach((key) => {
       if (specParameters[key].defaultValue !== undefined) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
         // Convert default value to string type first to avoid error from convertInput
@@ -286,7 +286,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
           variant='outlined'
           label={'pipeline-root'}
           value={customPipelineRoot || ''}
-          onChange={ev => {
+          onChange={(ev) => {
             setCustomPipelineRoot(ev.target.value);
             if (handlePipelineRootChange) {
               handlePipelineRootChange(ev.target.value);
@@ -312,7 +312,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               <div key={k}>
                 <ParamEditor
                   id={k}
-                  onChange={value => {
+                  onChange={(value) => {
                     let allInputsValid: boolean = true;
                     let parametersInRealType: RuntimeParameters = {};
                     const nextUpdatedParameters: RuntimeParameters = {};
@@ -337,7 +337,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     );
                     setErrorMessages(errorMessages);
 
-                    Object.values(errorMessages).forEach(errorMessage => {
+                    Object.values(errorMessages).forEach((errorMessage) => {
                       allInputsValid = allInputsValid && errorMessage === null;
                     });
 
@@ -456,7 +456,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             variant='outlined'
             label={param.key}
             value={param.value || ''}
-            onChange={ev => onChange(ev.target.value || '')}
+            onChange={(ev) => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
             InputProps={{
               classes: { disabled: css.nonEditableInput },
@@ -477,7 +477,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             label={param.key}
             //TODO(zijianjoy): Convert defaultValue to correct type.
             value={param.value || ''}
-            onChange={ev => onChange(ev.target.value || '')}
+            onChange={(ev) => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
           />
         )}
@@ -493,7 +493,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}
-              onChange={text => onChange(text || '')}
+              onChange={(text) => onChange(text || '')}
               value={param.value || ''}
             />
           </div>

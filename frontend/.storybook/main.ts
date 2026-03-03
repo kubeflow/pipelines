@@ -13,7 +13,7 @@ const config: StorybookConfig = {
     options: {},
   },
   staticDirs: ['../public'],
-  viteFinal: async viteConfig => {
+  viteFinal: async (viteConfig) => {
     viteConfig.resolve = viteConfig.resolve || {};
     const srcAliasPath = path.resolve(__dirname, '../src');
     const existingAlias = viteConfig.resolve.alias;

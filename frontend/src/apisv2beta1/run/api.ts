@@ -76,7 +76,10 @@ export class BaseAPI {
  */
 export class RequiredError extends Error {
   name: 'RequiredError';
-  constructor(public field: string, msg?: string) {
+  constructor(
+    public field: string,
+    msg?: string,
+  ) {
     super(msg);
   }
 }
@@ -586,7 +589,7 @@ export interface V2beta1RuntimeStatus {
  * RunServiceApi - fetch parameter creator
  * @export
  */
-export const RunServiceApiFetchParamCreator = function(configuration?: Configuration) {
+export const RunServiceApiFetchParamCreator = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -906,10 +909,11 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
           'Required parameter artifact_name was null or undefined when calling readArtifact.',
         );
       }
-      const localVarPath = `/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read`
-        .replace(`{${'run_id'}}`, encodeURIComponent(String(run_id)))
-        .replace(`{${'node_id'}}`, encodeURIComponent(String(node_id)))
-        .replace(`{${'artifact_name'}}`, encodeURIComponent(String(artifact_name)));
+      const localVarPath =
+        `/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read`
+          .replace(`{${'run_id'}}`, encodeURIComponent(String(run_id)))
+          .replace(`{${'node_id'}}`, encodeURIComponent(String(node_id)))
+          .replace(`{${'artifact_name'}}`, encodeURIComponent(String(artifact_name)));
       const localVarUrlObj = url.parse(localVarPath, true);
       const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
       const localVarHeaderParameter = {} as any;
@@ -1094,7 +1098,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
  * RunServiceApi - functional programming interface
  * @export
  */
-export const RunServiceApiFp = function(configuration?: Configuration) {
+export const RunServiceApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -1112,13 +1116,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1137,13 +1143,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1165,13 +1173,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1193,13 +1203,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1233,13 +1245,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1267,13 +1281,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1289,13 +1305,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1314,13 +1332,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -1339,13 +1359,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
   };
@@ -1355,7 +1377,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
  * RunServiceApi - factory interface
  * @export
  */
-export const RunServiceApiFactory = function(
+export const RunServiceApiFactory = function (
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,
