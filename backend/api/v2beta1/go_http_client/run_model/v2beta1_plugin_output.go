@@ -23,7 +23,7 @@ type V2beta1PluginOutput struct {
 	Entries map[string]V2beta1MetadataValue `json:"entries,omitempty"`
 
 	// state
-	State *V2beta1RuntimeState `json:"state,omitempty"`
+	State *V2beta1PluginState `json:"state,omitempty"`
 
 	// state message
 	StateMessage string `json:"state_message,omitempty"`

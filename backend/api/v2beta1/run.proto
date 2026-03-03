@@ -279,10 +279,28 @@ message MetadataValue {
   optional RenderType render_type = 2;
 }
 
+// Describes the state of a plugin's operations.
+// Unlike RuntimeState (which covers pipeline/task lifecycle including CANCELING,
+// PAUSED, SKIPPED), PluginState only reflects whether the plugin's own work
+// succeeded or failed, independent of the pipeline run outcome.
+enum PluginState {
+  // Default value. The plugin state is unknown or not yet set.
+  PLUGIN_STATE_UNSPECIFIED = 0;
+
+  // Plugin operations are in progress.
+  PLUGIN_RUNNING = 1;
+
+  // Plugin operations completed successfully.
+  PLUGIN_SUCCEEDED = 2;
+
+  // Plugin operations failed.
+  PLUGIN_FAILED = 3;
+}
+
 // Output from a single plugin, containing keyed metadata entries and overall state.
 message PluginOutput {
   map<string, MetadataValue> entries = 1;
-  RuntimeState state = 2;
+  PluginState state = 2;
   string state_message = 3;
 }
 

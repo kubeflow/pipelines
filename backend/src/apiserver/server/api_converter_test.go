@@ -4862,11 +4862,11 @@ func TestPluginsOutputToJSON(t *testing.T) {
 						Value: structpb.NewStringValue("42"),
 					},
 				},
-				State:        apiv2beta1.RuntimeState_SUCCEEDED,
+				State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
 				StateMessage: "MLflow run created",
 			},
 			"other": {
-				State:        apiv2beta1.RuntimeState_RUNNING,
+				State:        apiv2beta1.PluginState_PLUGIN_RUNNING,
 				StateMessage: "in progress",
 			},
 		}
@@ -4914,7 +4914,7 @@ func TestJSONToPluginsOutput(t *testing.T) {
 		},
 		{
 			name:  "valid JSON with enum fields",
-			input: strPtr(`{"mlflow":{"entries":{"run_url":{"value":"https://mlflow.example.com","renderType":"URL"}},"state":"SUCCEEDED","stateMessage":"ok"}}`),
+			input: strPtr(`{"mlflow":{"entries":{"run_url":{"value":"https://mlflow.example.com","renderType":"URL"}},"state":"PLUGIN_SUCCEEDED","stateMessage":"ok"}}`),
 		},
 	}
 	for _, tt := range tests {
@@ -4932,7 +4932,7 @@ func TestJSONToPluginsOutput(t *testing.T) {
 			require.NotNil(t, got)
 			require.Len(t, got, 1)
 			require.Contains(t, got, "mlflow")
-			assert.Equal(t, apiv2beta1.RuntimeState_SUCCEEDED, got["mlflow"].State)
+			assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, got["mlflow"].State)
 			assert.Equal(t, "ok", got["mlflow"].StateMessage)
 			require.Len(t, got["mlflow"].Entries, 1)
 			require.Contains(t, got["mlflow"].Entries, "run_url")
@@ -5201,11 +5201,11 @@ func TestToModelRunPluginsFields(t *testing.T) {
 			Entries: map[string]*apiv2beta1.MetadataValue{
 				"run_id": {Value: structpb.NewStringValue("abc123")},
 			},
-			State:        apiv2beta1.RuntimeState_SUCCEEDED,
+			State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
 			StateMessage: "ok",
 		},
 		"other": {
-			State:        apiv2beta1.RuntimeState_RUNNING,
+			State:        apiv2beta1.PluginState_PLUGIN_RUNNING,
 			StateMessage: "in progress",
 		},
 	}
@@ -5233,7 +5233,7 @@ func TestToModelRunPluginsFields(t *testing.T) {
 
 		parsedOutput, err := jsonToPluginsOutput(largeTextToString(got.PluginsOutputString))
 		require.NoError(t, err)
-		assert.Equal(t, apiv2beta1.RuntimeState_SUCCEEDED, parsedOutput["mlflow"].State)
+		assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, parsedOutput["mlflow"].State)
 		assert.Equal(t, "abc123", parsedOutput["mlflow"].Entries["run_id"].Value.GetStringValue())
 	})
 
@@ -5281,7 +5281,7 @@ func TestToModelRunPluginsFields(t *testing.T) {
 
 func TestToApiRunPluginsFields(t *testing.T) {
 	inputJSON := `{"mlflow":{"experiment_name":"` + testPluginsExperimentName + `"},"other":{"key":true}}`
-	outputJSON := `{"mlflow":{"entries":{"run_id":{"value":"abc123"}},"state":"SUCCEEDED","stateMessage":"ok"},"other":{"state":"RUNNING","stateMessage":"in progress"}}`
+	outputJSON := `{"mlflow":{"entries":{"run_id":{"value":"abc123"}},"state":"PLUGIN_SUCCEEDED","stateMessage":"ok"},"other":{"state":"PLUGIN_RUNNING","stateMessage":"in progress"}}`
 
 	t.Run("with plugins fields", func(t *testing.T) {
 		modelRun := &model.Run{
@@ -5305,10 +5305,10 @@ func TestToApiRunPluginsFields(t *testing.T) {
 
 		require.Len(t, got.PluginsOutput, 2)
 		require.Contains(t, got.PluginsOutput, "mlflow")
-		assert.Equal(t, apiv2beta1.RuntimeState_SUCCEEDED, got.PluginsOutput["mlflow"].State)
+		assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, got.PluginsOutput["mlflow"].State)
 		assert.Equal(t, "abc123", got.PluginsOutput["mlflow"].Entries["run_id"].Value.GetStringValue())
 		require.Contains(t, got.PluginsOutput, "other")
-		assert.Equal(t, apiv2beta1.RuntimeState_RUNNING, got.PluginsOutput["other"].State)
+		assert.Equal(t, apiv2beta1.PluginState_PLUGIN_RUNNING, got.PluginsOutput["other"].State)
 	})
 
 	t.Run("nil plugins fields", func(t *testing.T) {

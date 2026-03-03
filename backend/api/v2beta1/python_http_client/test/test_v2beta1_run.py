@@ -139,7 +139,7 @@ class TestV2beta1Run(unittest.TestCase):
                                 value = kfp_server_api.models.value.value(), 
                                 render_type = 'UNSPECIFIED', )
                             }, 
-                        state = 'RUNTIME_STATE_UNSPECIFIED', 
+                        state = 'PLUGIN_STATE_UNSPECIFIED', 
                         state_message = '0', )
                     }
             )

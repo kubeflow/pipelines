@@ -34,7 +34,7 @@ class V2beta1PluginOutput(object):
     """
     openapi_types = {
         'entries': 'dict(str, V2beta1MetadataValue)',
-        'state': 'V2beta1RuntimeState',
+        'state': 'V2beta1PluginState',
         'state_message': 'str'
     }
 
@@ -89,7 +89,7 @@ class V2beta1PluginOutput(object):
 
 
         :return: The state of this V2beta1PluginOutput.  # noqa: E501
-        :rtype: V2beta1RuntimeState
+        :rtype: V2beta1PluginState
         """
         return self._state
 
@@ -99,7 +99,7 @@ class V2beta1PluginOutput(object):
 
 
         :param state: The state of this V2beta1PluginOutput.  # noqa: E501
-        :type state: V2beta1RuntimeState
+        :type state: V2beta1PluginState
         """
 
         self._state = state

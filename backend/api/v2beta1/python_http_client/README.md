@@ -170,6 +170,7 @@ Class | Method | HTTP request | Description
  - [V2beta1PipelineVersion](docs/V2beta1PipelineVersion.md)
  - [V2beta1PipelineVersionReference](docs/V2beta1PipelineVersionReference.md)
  - [V2beta1PluginOutput](docs/V2beta1PluginOutput.md)
+ - [V2beta1PluginState](docs/V2beta1PluginState.md)
  - [V2beta1Predicate](docs/V2beta1Predicate.md)
  - [V2beta1PredicateOperation](docs/V2beta1PredicateOperation.md)
  - [V2beta1RecurringRun](docs/V2beta1RecurringRun.md)

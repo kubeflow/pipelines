@@ -617,13 +617,24 @@
           }
         },
         "state": {
-          "$ref": "#/definitions/v2beta1RuntimeState"
+          "$ref": "#/definitions/v2beta1PluginState"
         },
         "state_message": {
           "type": "string"
         }
       },
       "description": "Output from a single plugin, containing keyed metadata entries and overall state."
+    },
+    "v2beta1PluginState": {
+      "type": "string",
+      "enum": [
+        "PLUGIN_STATE_UNSPECIFIED",
+        "PLUGIN_RUNNING",
+        "PLUGIN_SUCCEEDED",
+        "PLUGIN_FAILED"
+      ],
+      "default": "PLUGIN_STATE_UNSPECIFIED",
+      "description": "Describes the state of a plugin's operations.\nUnlike RuntimeState (which covers pipeline/task lifecycle including CANCELING,\nPAUSED, SKIPPED), PluginState only reflects whether the plugin's own work\nsucceeded or failed, independent of the pipeline run outcome.\n\n - PLUGIN_STATE_UNSPECIFIED: Default value. The plugin state is unknown or not yet set.\n - PLUGIN_RUNNING: Plugin operations are in progress.\n - PLUGIN_SUCCEEDED: Plugin operations completed successfully.\n - PLUGIN_FAILED: Plugin operations failed."
     },
     "v2beta1Run": {
       "type": "object",
