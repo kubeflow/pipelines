@@ -73,7 +73,7 @@ The following table outlines the proposed changes to the testing process.
 | Feedback Loop | Hard to debug test failures, no test reports and failures do not correspond to any severity | Better logging & code doc, improved reporting for easier debugging  | Easier to debug failures, easily digestible reporting by devs and non-developers as well  |                                                                                                |                                                                                                                                 |                                                                                                                 |
 
 ## Testing Strategy
-Before we get into the test strategy, let's revisit the project architecture as described [here](https://github.com/kubeflow/pipelines/blob/master/docs/sdk/Architecture.md). If we have to describe the workflow in short, it would be that, user interact with KFP  via APIs, data is persisted in DB, and based on the endpoint, we invoke different components, like Argo Workflows which schedules pods, that runs a specific action, persists data in DB
+Before we get into the test strategy, let's revisit the project architecture as described [here](https://github.com/kubeflow/pipelines/blob/master/docs/sdk/Architecture.md). In short, users interact with KFP via APIs, the system persists data in a database, and based on the endpoint it invokes different components such as Argo Workflows, which schedule pods to run specific actions and persist data back to the database.
 
 ### Server API Tests
 Validation output of the service/components that a specific endpoint interacts with provides direct comprehensive functional coverage. To visualize this, please see below:
