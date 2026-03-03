@@ -73,7 +73,7 @@ The following table outlines the proposed changes to the testing process.
 | Feedback Loop | Hard to debug test failures, no test reports and failures do not correspond to any severity | Better logging & code doc, improved reporting for easier debugging  | Easier to debug failures, easily digestible reporting by devs and non-developers as well  |                                                                                                |                                                                                                                                 |                                                                                                                 |
 
 ## Testing Strategy
-Before we get into the test strategy, let's revisit the project architecture as described [here](https://github.com/kubeflow/pipelines/blob/master/docs/sdk/Architecture.md). If we have to describe the workflow in short, it would that, user interact with KFP  via APIs, data is persisted in DB, and based on the endpoint, we invoke different components, like Argo Workflows which schedules pods, that runs a specific action, persists data in DB
+Before we get into the test strategy, let's revisit the project architecture as described [here](https://github.com/kubeflow/pipelines/blob/master/docs/sdk/Architecture.md). If we have to describe the workflow in short, it would be that, user interact with KFP  via APIs, data is persisted in DB, and based on the endpoint, we invoke different components, like Argo Workflows which schedules pods, that runs a specific action, persists data in DB
 
 ### Server API Tests
 Validation output of the service/components that a specific endpoint interacts with provides direct comprehensive functional coverage. To visualize this, please see below:
@@ -95,7 +95,7 @@ Lightweight SDK tests focused on compiled output validation, with opportunities 
 Using Pytest’s parameterized feature, we can define components as parameters to a compile function, whose output is then validated against a known yaml file specified by an expected parameter.
 
 **Pros:**
-* Code reusage - for components
+* Code reuse - for components
 * Targeted testing
 * Easy expansion of tests
 * No need to spin up a KFP server
@@ -120,7 +120,7 @@ Add a proxy to capture all Http calls to the API server, and validate if the req
 
 Do not add a proxy but instead let the API server validate the request and we just validate the response from the API service to confirm if SDK made the right request or not.
 
-**NOTE:** The suggestion here is choose only 1 option, and I personally align towards **Option 2** as it has less overhead from implementation and maintenance pov and this also means that we won’t have to recreate the validation logic in the test code.
+**NOTE:** The suggestion here is to choose only 1 option, and I personally align towards **Option 2** as it has less overhead from implementation and maintenance pov and this also means that we won’t have to recreate the validation logic in the test code.
 
 
 #### Semi Exploratory Tests
@@ -137,7 +137,7 @@ Leveraging existing independent components, and using graphical representation o
 * Developers will have to create connection points between different components
 * Time and cluster resource utilization may be high here, so we will need to limit the number of paths to traverse and time these tests will take
 
-**NOTE**: Sometime components make assumptions about environments. A common example would be expecting environment variables to be present, and those are (today) defined at @pipeline decorator scope. Nested pipelines may be able to help here.
+**NOTE**: Sometimes components make assumptions about environments. A common example would be expecting environment variables to be present, and those are (today) defined at @pipeline decorator scope. Nested pipelines may be able to help here.
 
 #### Full Exploratory Tests
 Using an AI tool, we can compile a pipeline and validate it against the Pipeline Upload API (so basically, leverage Semi Exploratory tests but use an AI tool to generate a YAML):
