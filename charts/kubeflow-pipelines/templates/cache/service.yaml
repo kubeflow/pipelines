@@ -11,3 +11,30 @@ spec:
     targetPort: webhook-api
   selector:
     app: cache-server
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: cache-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-server
+  template:
+    metadata:
+      labels:
+        app: cache-server
+    spec:
+      serviceAccountName: cache-server
+      containers:
+      - name: cache-server
+        image: "{{ .Values.cacheServer.image }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: webhook-api
+          containerPort: 8443
