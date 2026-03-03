@@ -23,12 +23,41 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcStatus "google.golang.org/grpc/status"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
+	k8metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+// mockAPIStatus implements k8errors.APIStatus but is not *k8errors.StatusError,
+// allowing us to test the APIStatus branch in reasonForError.
+type mockAPIStatus struct {
+	status k8metav1.Status
+}
+
+func (m *mockAPIStatus) Status() k8metav1.Status {
+	return m.status
+}
+
+func (m *mockAPIStatus) Error() string {
+	return m.status.Message
+}
 
 func TestIsNotFound(t *testing.T) {
 	assert.Equal(t, true, IsNotFound(k8errors.NewNotFound(schema.GroupResource{}, "NAME")))
 	assert.Equal(t, false, IsNotFound(k8errors.NewAlreadyExists(schema.GroupResource{}, "NAME")))
+
+	// Test with APIStatus interface (not *StatusError) — covers the APIStatus branch in reasonForError
+	apiStatusNotFound := &mockAPIStatus{
+		status: k8metav1.Status{Reason: k8metav1.StatusReasonNotFound},
+	}
+	assert.True(t, IsNotFound(apiStatusNotFound))
+
+	apiStatusOther := &mockAPIStatus{
+		status: k8metav1.Status{Reason: k8metav1.StatusReasonForbidden},
+	}
+	assert.False(t, IsNotFound(apiStatusOther))
+
+	// Test with a regular error (not k8s error) — covers the default branch
+	assert.False(t, IsNotFound(fmt.Errorf("regular error")))
 }
 
 // CustomError tests
@@ -413,4 +442,40 @@ func TestGRPCStatus(t *testing.T) {
 	assert.Equal(t, codes.NotFound, grpcStatus.Code())
 	details := grpcStatus.Details()
 	assert.Greater(t, len(details), 0)
+}
+
+func TestLog(t *testing.T) {
+	// Test Log with Aborted → uses glog.Infof
+	abortedError := NewBadRequestError(fmt.Errorf("bad request"), "aborted request")
+	abortedError.Log() // Verify it doesn't panic
+
+	// Test Log with Internal → uses glog.Infof
+	internalError := NewInternalServerError(fmt.Errorf("internal"), "server error")
+	internalError.Log() // Verify it doesn't panic
+
+	// Test Log with InvalidArgument → uses glog.Infof
+	invalidError := NewInvalidInputError("bad input")
+	invalidError.Log() // Verify it doesn't panic
+
+	// Test Log with NotFound → uses glog.Infof
+	notFoundError := NewNotFoundError(fmt.Errorf("missing"), "not found")
+	notFoundError.Log() // Verify it doesn't panic
+
+	// Test Log with PermissionDenied → uses glog.Errorf (default case)
+	permError := NewPermissionDeniedError(fmt.Errorf("no access"), "permission denied")
+	permError.Log() // Verify it doesn't panic
+
+	// Test Log with Unauthenticated → uses glog.Errorf (default case)
+	unauthError := NewUnauthenticatedError(fmt.Errorf("no token"), "unauthenticated")
+	unauthError.Log() // Verify it doesn't panic
+}
+
+func TestLogError(t *testing.T) {
+	// UserError → calls Log
+	userError := NewNotFoundError(fmt.Errorf("cause"), "not found")
+	LogError(userError) // Just verify it doesn't panic
+
+	// Regular error → logs as InternalError
+	regularError := fmt.Errorf("regular error")
+	LogError(regularError) // Just verify it doesn't panic
 }
