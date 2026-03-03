@@ -119,8 +119,8 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 // pbValueToString converts a structpb.Value to its string representation.
 // This handles all parameter types including STRING, NUMBER_INTEGER, NUMBER_DOUBLE, and BOOLEAN,
 // unlike GetStringValue() which returns an empty string for non-string types.
-// LIST and STRUCT values are serialised as JSON for parity with the launcher's
-// placeholder substitution behaviour.
+// LIST and STRUCT values are serialized as JSON for parity with the launcher's
+// placeholder substitution behavior.
 func pbValueToString(v *structpb.Value) string {
 	switch v.GetKind().(type) {
 	case *structpb.Value_StringValue:
