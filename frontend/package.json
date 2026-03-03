@@ -48,6 +48,7 @@
   },
   "scripts": {
     "analyze-bundle": "vite build --mode analyze",
+    "apis:all": "node scripts/generate_openapi_typescript_fetch.js all",
     "apis": "node scripts/generate_openapi_typescript_fetch.js v1",
     "apis:experiment": "node scripts/generate_openapi_typescript_fetch.js v1:experiment",
     "apis:job": "node scripts/generate_openapi_typescript_fetch.js v1:job",

@@ -230,17 +230,19 @@ guide [here](https://prettier.io/docs/en/ignore.html). (Most likely you don't ne
 If you made any changes to protos (see backend/README), you'll need to
 regenerate the Typescript client library from swagger. The frontend uses
 OpenAPI Generator via Docker (`openapitools/openapi-generator-cli:v7.19.0`).
-Make sure Docker is running, then run `npm run apis` for v1 api or
-`npm run apis:v2beta1` for v2 api.
+Make sure Docker is running, then run `npm run apis` for v1 api,
+`npm run apis:v2beta1` for v2 api, or `npm run apis:all` to regenerate every
+frontend and server surface in one pass.
 
 You can also generate individual surfaces, for example:
 
 ```bash
 npm run apis:run
 npm run apis:v2beta1:run
+# or invoke the generator directly from the repo root:
+node frontend/scripts/generate_openapi_typescript_fetch.js v1:run
 ```
-
-After code generation, you should run `npm run format` to format the output and avoid creating a large PR.
+Code generation formats the generated files automatically.
 
 ## MLMD components
 

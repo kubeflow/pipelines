@@ -20,6 +20,7 @@ const GLOBAL_PROPERTIES = [
   'apiTests=false',
   'modelTests=false',
 ].join(',');
+const PRETTIER_BIN = 'prettier/bin-prettier.js';
 
 const SPEC_TARGETS = {
   'v1:experiment': {
@@ -156,57 +157,66 @@ function removeGeneratorMetadata(outputDir) {
   });
 }
 
-function normalizeV1ApiMethodNames(outputDir) {
-  const apisDir = path.join(outputDir, 'apis');
-  if (!fs.existsSync(apisDir)) {
-    return;
-  }
-
-  const entries = fs.readdirSync(apisDir, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.ts')) {
-      continue;
-    }
-    const filePath = path.join(apisDir, entry.name);
-    const original = fs.readFileSync(filePath, 'utf8');
-    let updated = original;
-
-    updated = updated.replace(/\b([A-Z][A-Za-z0-9_]*)V1Request\b/g, '$1Request');
-    updated = updated.replace(/\b([a-z][A-Za-z0-9_]*)V1Raw\b/g, '$1Raw');
-    updated = updated.replace(/\b([a-z][A-Za-z0-9_]*)V1\b/g, '$1');
-
-    if (updated !== original) {
-      fs.writeFileSync(filePath, updated);
-    }
-  }
+function normalizeV1ApiSymbols(source) {
+  let updated = source;
+  updated = updated.replace(/\b([A-Z][A-Za-z0-9_]*)V1Request\b/g, '$1Request');
+  updated = updated.replace(/\b([a-z][A-Za-z0-9_]*)V1Raw\b/g, '$1Raw');
+  updated = updated.replace(/\b([a-z][A-Za-z0-9_]*)V1(?=\s*\()/g, '$1');
+  return updated;
 }
 
-function normalizeGeneratedTypeScriptForLegacyTooling(outputDir, options = {}) {
+function normalizeNodeCompatibleFetchTypes(source) {
+  let updated = source;
+  updated = updated.replace(/WindowOrWorkerGlobalScope\['fetch'\]/g, 'typeof fetch');
+  updated = updated.replace(/\bRequestCredentials\b/g, "RequestInit['credentials']");
+  // Keep the generated runtime compatible with Node-only type libs.
+  updated = updated.replace(
+    /export type FetchAPI = typeof fetch;/g,
+    'export type FetchAPI = (input: string, init: RequestInit) => Promise<Response>;',
+  );
+  updated = updated.replace(
+    /private fetchApi = async \(url: string, init: RequestInit\) => {/g,
+    'private fetchApi = async (url: string, init: RequestInit): Promise<Response> => {',
+  );
+  return updated;
+}
+
+function normalizePrettier1IncompatibleTypeScript(source) {
+  let updated = source;
+  // This repo is still pinned to Prettier 1.19.1 for format checks, and its
+  // TypeScript parser cannot handle `import type` or `override`.
+  updated = updated.replace(/import\s+type\s+([^;]+;)/g, 'import $1');
+  updated = updated.replace(/\boverride\s+([A-Za-z_$][A-Za-z0-9_$]*\s*:)/g, '$1');
+  return updated;
+}
+
+function normalizeGeneratedTypeScriptSource(source, options = {}) {
+  const { nodeCompatibleFetchTypes = false, renameV1ApiSymbols = false } = options;
+  let updated = normalizePrettier1IncompatibleTypeScript(source);
+  if (renameV1ApiSymbols) {
+    updated = normalizeV1ApiSymbols(updated);
+  }
+  if (nodeCompatibleFetchTypes) {
+    updated = normalizeNodeCompatibleFetchTypes(updated);
+  }
+  return updated;
+}
+
+function normalizeGeneratedTypeScript(outputDir, options = {}) {
   if (!fs.existsSync(outputDir)) {
     return;
   }
 
-  const { nodeCompatibleFetchTypes = false } = options;
+  const { nodeCompatibleFetchTypes = false, renameV1ApiSymbols = false } = options;
   const tsFiles = listTypeScriptFiles(outputDir);
   for (const filePath of tsFiles) {
+    const relativePath = path.relative(outputDir, filePath);
+    const isApiFile = relativePath.split(path.sep)[0] === 'apis';
     const original = fs.readFileSync(filePath, 'utf8');
-    let updated = original;
-
-    updated = updated.replace(/import\s+type\s+([^;]+;)/g, 'import $1');
-    updated = updated.replace(/\boverride\s+([A-Za-z_$][A-Za-z0-9_$]*\s*:)/g, '$1');
-    if (nodeCompatibleFetchTypes) {
-      updated = updated.replace(/WindowOrWorkerGlobalScope\['fetch'\]/g, 'typeof fetch');
-      updated = updated.replace(/\bRequestCredentials\b/g, "RequestInit['credentials']");
-      // Keep the generated runtime compatible with Node-only type libs.
-      updated = updated.replace(
-        /export type FetchAPI = typeof fetch;/g,
-        'export type FetchAPI = (input: string, init: RequestInit) => Promise<Response>;',
-      );
-      updated = updated.replace(
-        /private fetchApi = async \(url: string, init: RequestInit\) => {/g,
-        'private fetchApi = async (url: string, init: RequestInit): Promise<Response> => {',
-      );
-    }
+    const updated = normalizeGeneratedTypeScriptSource(original, {
+      nodeCompatibleFetchTypes,
+      renameV1ApiSymbols: renameV1ApiSymbols && isApiFile,
+    });
 
     if (updated !== original) {
       fs.writeFileSync(filePath, updated);
@@ -238,7 +248,19 @@ function listTypeScriptFiles(rootDir) {
   return files;
 }
 
-function formatGeneratedTypeScript(outputDirs) {
+function resolvePrettierBin(repoRoot) {
+  try {
+    return require.resolve(PRETTIER_BIN, {
+      paths: [path.join(repoRoot, 'frontend')],
+    });
+  } catch (error) {
+    fatal(
+      'Prettier is required for API generation. Run `cd frontend && npm ci` and retry.',
+    );
+  }
+}
+
+function formatGeneratedTypeScript(repoRoot, outputDirs) {
   const typeScriptFiles = [];
   for (const outputDir of outputDirs) {
     typeScriptFiles.push(...listTypeScriptFiles(outputDir));
@@ -246,7 +268,8 @@ function formatGeneratedTypeScript(outputDirs) {
   if (typeScriptFiles.length === 0) {
     return;
   }
-  runCommand('prettier', ['--write', ...typeScriptFiles]);
+  const prettierBin = resolvePrettierBin(repoRoot);
+  runCommand(process.execPath, [prettierBin, '--write', ...typeScriptFiles]);
 }
 
 function generateTarget(repoRoot, targetKey) {
@@ -299,11 +322,9 @@ function generateTarget(repoRoot, targetKey) {
   console.log(`Generating ${targetKey} -> ${target.output}`);
   runCommand('docker', dockerArgs);
   removeGeneratorMetadata(outputPath);
-  if (targetKey.startsWith('v1:')) {
-    normalizeV1ApiMethodNames(outputPath);
-  }
-  normalizeGeneratedTypeScriptForLegacyTooling(outputPath, {
+  normalizeGeneratedTypeScript(outputPath, {
     nodeCompatibleFetchTypes: isServerTarget,
+    renameV1ApiSymbols: targetKey.startsWith('v1:'),
   });
 }
 
@@ -317,8 +338,25 @@ function main() {
   for (const targetKey of targets) {
     generateTarget(repoRoot, targetKey);
   }
-  const outputDirs = [...new Set(targets.map(targetKey => path.join(repoRoot, SPEC_TARGETS[targetKey].output)))];
-  formatGeneratedTypeScript(outputDirs);
+  const outputDirs = [
+    ...new Set(targets.map(targetKey => path.join(repoRoot, SPEC_TARGETS[targetKey].output))),
+  ];
+  formatGeneratedTypeScript(repoRoot, outputDirs);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  formatGeneratedTypeScript,
+  listTypeScriptFiles,
+  main,
+  normalizeGeneratedTypeScript,
+  normalizeGeneratedTypeScriptSource,
+  normalizeNodeCompatibleFetchTypes,
+  normalizePrettier1IncompatibleTypeScript,
+  normalizeV1ApiSymbols,
+  resolvePrettierBin,
+  resolveTargets,
+};

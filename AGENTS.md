@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-02-23
+- Last updated: 2026-03-03
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
@@ -288,7 +288,7 @@ The following files are generated; edit their sources and regenerate:
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
 - Frontend API clients under `frontend/src/apis` and `frontend/src/apisv2beta1`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
-  - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
+  - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
   - Sources: `third_party/ml-metadata/*.proto`
   - Generate: `cd frontend && npm run build:protos`
@@ -414,6 +414,7 @@ The frontend includes several generated code components:
 - **API clients**: Generated from backend Swagger specs
 
   ```bash
+  npm run apis:all    # Generate all frontend + server API clients
   npm run apis        # Generate v1 API clients
   npm run apis:v2beta1 # Generate v2beta1 API clients
   ```
@@ -443,7 +444,7 @@ The frontend includes several generated code components:
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
-- Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis` and `npm run apis:v2beta1` and failing on diff.
+- Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
@@ -503,7 +504,7 @@ KFP frontend supports feature flags for development:
 
 ### Common development tasks
 
-- **Add new API**: Update swagger specs, run `npm run apis`
+- **Add new API**: Update swagger specs, run `npm run apis:all`
 - **Update proto definitions**: Modify protos, run respective build commands
 - **Add new component**: Create in `atoms/` or `components/`, add tests and stories
 - **Debug server**: Use `npm run start:proxy-and-server-inspect`
@@ -578,7 +579,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Frontend tests: `cd frontend && npm run test:ui` (Vitest) or `npm test` (same as `test:ui`)
 - Frontend React peer gate: `cd frontend && npm run check:react-peers` (or `check:react-peers:18` / `check:react-peers:19`)
 - Frontend formatting: `cd frontend && npm run format`
-- Generate frontend APIs: `cd frontend && npm run apis`
+- Generate frontend APIs: `cd frontend && npm run apis:all`
 
 ### Key environment variables
 

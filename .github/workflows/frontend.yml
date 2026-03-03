@@ -38,8 +38,7 @@ jobs:
     - name: Verify generated API clients are up to date
       run: |
         cd ./frontend
-        npm run apis
-        npm run apis:v2beta1
+        npm run apis:all
         git diff --exit-code -- \
           src/apis \
           src/apisv2beta1 \
