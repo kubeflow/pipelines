@@ -17,6 +17,7 @@ const debug = process.env.DEBUG == '1' || process.env.DEBUG == 'true';
 const seleniumHost = process.env.SELENIUM_HOST || '127.0.0.1';
 const seleniumPort = Number(process.env.SELENIUM_PORT || 4444);
 const baseUrl = process.env.KFP_BASE_URL || 'http://localhost:3000';
+const junitOutputDir = process.env.WDIO_JUNIT_OUTPUT_DIR || './';
 
 exports.config = {
   runner: 'local',
@@ -52,7 +53,7 @@ exports.config = {
     [
       'junit',
       {
-        outputDir: './',
+        outputDir: junitOutputDir,
         outputFileFormat: function (options) {
           return 'junit_FrontendIntegrationTestOutput.xml';
         },
