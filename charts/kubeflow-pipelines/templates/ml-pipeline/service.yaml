@@ -6,15 +6,12 @@ metadata:
   labels:
     app: ml-pipeline
 spec:
-  type: ClusterIP
-  selector:
-    app: ml-pipeline
   ports:
     - name: http
       port: 8888
-      protocol: TCP
-      targetPort: 8888
+      targetPort: http
     - name: grpc
       port: 8887
-      protocol: TCP
-      targetPort: 8887
+      targetPort: grpc
+  selector:
+    app: ml-pipeline
