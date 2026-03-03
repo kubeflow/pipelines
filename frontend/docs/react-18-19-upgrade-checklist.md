@@ -6,7 +6,7 @@
 **Strategy**: Deps-first, bump-last. All dependencies are migrated to React 18-compatible versions on the stable React 17 runtime before bumping React.
 **Canonical source**: This checklist is the canonical execution plan and supersedes earlier draft planning notes.
 
-**How to contribute**: Each issue below maps to one independently mergeable PR. Issues #3–#6 ([#12891](https://github.com/kubeflow/pipelines/issues/12891)–[#12894](https://github.com/kubeflow/pipelines/issues/12894)) can be worked on in parallel by different contributors. Pick an unassigned issue, comment to claim it, and open a PR following the [contribution guide](https://github.com/kubeflow/pipelines/blob/master/frontend/CONTRIBUTING.md). Every PR must pass `npm run test:ci` and `npm run build` before merge.
+**How to contribute**: Each issue below maps to one independently mergeable PR. As of March 2, 2026, #1, #2, #3, and #6 are complete. The remaining parallelizable dependency migrations before the React bump are #4 and #5 ([#12892](https://github.com/kubeflow/pipelines/issues/12892) and [#12893](https://github.com/kubeflow/pipelines/issues/12893)), and both already have active PRs: [#12946](https://github.com/kubeflow/pipelines/pull/12946) for #4 and [#12945](https://github.com/kubeflow/pipelines/pull/12945) for #5. Coordinate on those PRs before opening duplicate work. Every PR must pass `npm run test:ci` and `npm run build` before merge.
 
 ---
 
@@ -15,6 +15,9 @@
 **Labels**: `area/frontend`, `priority/p0`, `kind/cleanup`
 **Assignee**: @jeffspahr
 **Depends on**: Nothing
+
+**Status**:
+Completed via [#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), and [#12872](https://github.com/kubeflow/pipelines/pull/12872).
 
 **Description**:
 Land cleanup PRs ([#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), [#12872](https://github.com/kubeflow/pipelines/pull/12872)) that remove `react-dom/test-utils` imports, `snapshot-diff`, upgrade `re-resizable`, add DOM nesting warning coverage, and remove dead dependencies. Goal: reduce warning/test noise before dependency migrations begin.
@@ -27,6 +30,9 @@ Land cleanup PRs ([#12855](https://github.com/kubeflow/pipelines/pull/12855), [#
 **Assignee**: @jeffspahr
 **Depends on**: #1
 
+**Status**:
+Completed via [#12881](https://github.com/kubeflow/pipelines/pull/12881).
+
 **Description**:
 Add `check-react-peers.mjs` script ([#12881](https://github.com/kubeflow/pipelines/pull/12881)) and wire it into `npm run test:ci`. Introduces `npm run check:react-peers` (target 17), `check:react-peers:18`, and `check:react-peers:19`. The gate enforces that all dependencies declare peer ranges supporting the target React version. An allowlist tracks known exceptions with documented justifications.
 
@@ -34,19 +40,22 @@ This CI guardrail ensures no new dependency can silently break React version com
 
 ---
 
-## 3. Upgrade Storybook 6 to 7 ([#12891](https://github.com/kubeflow/pipelines/issues/12891))
+## 3. ~~Upgrade Storybook 6 to 7~~ Completed via Storybook 10 ([#12891](https://github.com/kubeflow/pipelines/issues/12891), [#12940](https://github.com/kubeflow/pipelines/pull/12940))
 
 **Labels**: `area/frontend`, `priority/p1`, `kind/chore`, `good first issue`
 **Depends on**: #2
 
+**Status**:
+Completed by [#12940](https://github.com/kubeflow/pipelines/pull/12940). The original Storybook 7 target was superseded by a direct upgrade from Storybook 6 to Storybook 10 using the Vite builder, which clears the same React-compatibility blockers with fewer intermediate steps.
+
 **Description**:
-Upgrade Storybook from 6.3.x to 7.x while still running on React 17. Replace the Webpack builder with the Vite builder (`@storybook/builder-vite`, `@storybook/react-vite`) to align with the project's existing build tooling. Remove transitive React 17-incompatible deps (`@reach/router`, `create-react-context`). Remove corresponding peer gate allowlist entries. Run automigration (`npx storybook upgrade`), update `.storybook/main.js` and `.storybook/preview.js`, migrate 8 story files to CSF 3 if needed.
+Upgrade Storybook from 6.3.x to a React-17-compatible modern release while staying on the React 17 runtime. Replace the legacy builder setup with the Vite builder (`@storybook/react-vite`), remove transitive React-incompatible deps (`@reach/router`, `create-react-context`), remove the corresponding peer gate allowlist entries, and migrate story config/files as needed.
 
 **Acceptance Criteria**:
-- [ ] `npm run storybook` renders all 8 stories without errors
-- [ ] `npm run build:storybook` succeeds
-- [ ] `npm run test:ci` passes
-- [ ] Peer gate allowlist entries for Storybook removed
+- [x] `npm run storybook` renders the migrated stories without errors
+- [x] `npm run build:storybook` succeeds
+- [x] `npm run test:ci` passes
+- [x] Peer gate allowlist entries for Storybook removed
 
 ---
 
@@ -55,12 +64,15 @@ Upgrade Storybook from 6.3.x to 7.x while still running on React 17. Replace the
 **Labels**: `area/frontend`, `priority/p1`, `kind/chore`
 **Depends on**: #2
 
+**Status**:
+In progress via [#12946](https://github.com/kubeflow/pipelines/pull/12946). Because the repo is still intentionally staged on React 17 before the React 18 bump, this step should use the latest TanStack React Query version compatible with React 17 (currently v4), not v5.
+
 **Description**:
-Replace `react-query` v3 with `@tanstack/react-query` v5. Update all query hooks (`useQuery`, `useMutation`), `QueryClientProvider` setup, cache configuration, and test wrappers to the new API. Remove peer gate allowlist entry for `react-query`.
+Replace `react-query` v3 with `@tanstack/react-query` while staying on the React 17 runtime. Update all query hooks (`useQuery`, `useMutation`), `QueryClientProvider` setup, cache configuration, and test wrappers to the TanStack API. Remove `react-query` as a React 18/19 peer-gate blocker.
 
 **Acceptance Criteria**:
 - [ ] Data fetching, polling, and cache behavior work identically to pre-migration
-- [ ] `npm run check:react-peers` passes without `react-query` in allowlist
+- [ ] `npm run check:react-peers:18` no longer reports `react-query` as a direct blocker
 - [ ] `npm run test:ci` passes
 
 ---
@@ -70,12 +82,15 @@ Replace `react-query` v3 with `@tanstack/react-query` v5. Update all query hooks
 **Labels**: `area/frontend`, `priority/p1`, `kind/chore`
 **Depends on**: #2
 
+**Status**:
+In progress via [#12945](https://github.com/kubeflow/pipelines/pull/12945).
+
 **Description**:
 Replace deprecated `react-flow-renderer` v9 with `@xyflow/react`. Update DAG visualization components, node/edge type definitions, event handlers, and related stories/tests. Remove peer gate allowlist entry.
 
 **Acceptance Criteria**:
 - [ ] Pipeline graph renders correctly with drag, zoom, and pan interactions
-- [ ] `npm run check:react-peers` passes without `react-flow-renderer` in allowlist
+- [ ] `npm run check:react-peers:18` no longer reports `react-flow-renderer` as a direct blocker
 - [ ] `npm run test:ci` passes
 
 ---
@@ -84,6 +99,9 @@ Replace deprecated `react-flow-renderer` v9 with `@xyflow/react`. Update DAG vis
 
 **Labels**: `area/frontend`, `priority/p1`, `kind/chore`
 **Depends on**: #2
+
+**Status**:
+Completed by [#12925](https://github.com/kubeflow/pipelines/pull/12925); issue [#12894](https://github.com/kubeflow/pipelines/issues/12894) was closed on March 2, 2026. Exact pixel parity was intentionally not required; visual smoke comparisons found only minor button/icon rendering differences from MUI v5 internals, and those new visuals were accepted to avoid migration-specific styling hacks.
 
 **Description**:
 Migrate `@material-ui/core` and `@material-ui/icons` to `@mui/material` and `@mui/icons-material` v5 with Emotion (`@emotion/react`, `@emotion/styled`) as the styling engine.
@@ -98,10 +116,10 @@ Manually migrate theme files (`src/Css.tsx`, `src/mlmd/Css.tsx`): convert `overr
 **Impact**: 64 files import `@material-ui/core`, 25 import `@material-ui/icons`, 2 theme files, 1 `withStyles` file.
 
 **Acceptance Criteria**:
-- [ ] Visual parity on all pages (Pipeline List, Run Details, Experiment List, Side Nav)
-- [ ] `npm run test:ci && npm run build` pass
-- [ ] No codemod changes in generated directories
-- [ ] Theme colors, typography, and spacing unchanged
+- [x] ~~Visual parity on all pages (Pipeline List, Run Details, Experiment List, Side Nav)~~ Visual smoke comparison completed on all primary pages; only minor cosmetic MUI v5 rendering deltas were observed and intentionally accepted
+- [x] `npm run test:ci && npm run build` pass
+- [x] No codemod changes in generated directories
+- [x] ~~Theme colors, typography, and spacing unchanged~~ Theme styling is preserved aside from the accepted MUI v5 cosmetic rendering differences
 
 ---
 
@@ -144,9 +162,13 @@ Capture coverage baseline before and compare after -- coverage must not decrease
 **Description**:
 Upgrade remaining deps with React 17-limited peer ranges: `markdown-to-jsx` v6 to v7, `react-dropzone` v5 to v14, any `re-resizable` residuals, `snapshot-diff` update. Review and update `package.json` `overrides` and `resolutions` entries -- remove stale ones, add new ones as needed. Drive peer gate allowlist to empty.
 
-**Known direct peer-gate blockers to clear in this issue (React 18 target):**
-- `react-textarea-autosize@8.3.3` (`react=^16.8.0 || ^17.0.0`)
-- Note: `react-dom` / `react-test-renderer` major bumps are handled in #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897)) / #7 ([#12895](https://github.com/kubeflow/pipelines/issues/12895)).
+**Current peer-gate blockers for React 18 to clear across #4, #5, #7, #8, and #9 (as of March 2, 2026):**
+- `react-dom@17.0.2` (`react=17.0.2`) - handled in #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897))
+- `react-flow-renderer@9.6.5` (`react-dom=16 || 17`, `react=16 || 17`) - handled in #5 ([#12893](https://github.com/kubeflow/pipelines/issues/12893))
+- `react-query@3.16.0` (`react=^16.8.0 || ^17.0.0`) - handled in #4 ([#12892](https://github.com/kubeflow/pipelines/issues/12892))
+- `react-test-renderer@17.0.2` (`react=17.0.2`) - handled in #7 ([#12895](https://github.com/kubeflow/pipelines/issues/12895))
+- `react-textarea-autosize@8.3.3` (`react=^16.8.0 || ^17.0.0`) - handled in #8
+- Current transitive blockers still reported by `npm run check:react-peers:18`: `react-redux@7.2.4`, `use-composed-ref@1.1.0`, `use-isomorphic-layout-effect@1.1.1`, `use-latest@1.2.0`
 
 **Acceptance Criteria**:
 - [ ] `npm run check:react-peers` passes with empty allowlist
@@ -211,10 +233,13 @@ Bump `react` and `react-dom` to ^18.3.0. Run `npm run test:ci` and review test o
 **Description**:
 Run `npm run check:react-peers:19` and upgrade any remaining deps that declare peer ranges excluding React 19. Drive the peer gate to green for React 19.
 
-**Known direct peer-gate blockers for React 19 (baseline list):**
+**Current peer-gate blockers for React 19 (as of March 2, 2026):**
 - `react-ace@10.1.0` (peer ranges currently cap at React 18)
-- Any remaining Storybook 6.x packages (`@storybook/*`) that still cap peers at React 18
-- Any remaining React-17/18-only packages left after #3–#11 ([#12891](https://github.com/kubeflow/pipelines/issues/12891)–[#12899](https://github.com/kubeflow/pipelines/issues/12899))
+- `react-dom@17.0.2` / `react-test-renderer@17.0.2` - handled in #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897)) / #7 ([#12895](https://github.com/kubeflow/pipelines/issues/12895))
+- `react-flow-renderer@9.6.5` - handled in #5 ([#12893](https://github.com/kubeflow/pipelines/issues/12893))
+- `react-query@3.16.0` - handled in #4 ([#12892](https://github.com/kubeflow/pipelines/issues/12892))
+- `react-textarea-autosize@8.3.3` - handled in #8
+- Current transitive blockers still reported by `npm run check:react-peers:19`: `react-redux@7.2.4`, `react-redux@8.1.3`, `react-shallow-renderer@16.15.0`, `use-composed-ref@1.1.0`, `use-isomorphic-layout-effect@1.1.1`, `use-latest@1.2.0`
 
 **Acceptance Criteria**:
 - [ ] `npm run check:react-peers:19` passes

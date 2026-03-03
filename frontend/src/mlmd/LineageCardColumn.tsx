@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import grey from '@material-ui/core/colors/grey';
 import React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { LineageCard } from './LineageCard';
@@ -23,6 +22,7 @@ import { CARD_OFFSET, EdgeCanvas } from './EdgeCanvas';
 import { Artifact } from 'src/third_party/mlmd';
 import { ControlledEdgeCanvas } from './ControlledEdgeCanvas';
 import { CARD_ROW_HEIGHT } from './LineageCss';
+import { grey } from '@mui/material/colors';
 
 export interface CardDetails {
   title: string;

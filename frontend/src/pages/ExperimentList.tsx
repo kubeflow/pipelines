@@ -40,8 +40,8 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from 'src/Css';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
-import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { Tooltip } from '@mui/material';
 
 interface DisplayExperiment extends V2beta1Experiment {
   last5Runs?: V2beta1Run[];

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery } from 'react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
@@ -29,6 +28,7 @@ import { errorToMessage } from 'src/lib/Utils';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { PageProps } from 'src/pages/Page';
 import { classes, stylesheet } from 'typestyle';
+import { Button } from '@mui/material';
 
 const css = stylesheet({
   errorMessage: {

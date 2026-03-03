@@ -127,7 +127,7 @@ spec:
     render(<PipelineDetailsV1 {...generateProps(new graphlib.Graph(), new graphlib.Graph())} />);
 
     expect(screen.getByText('test-pipeline-version'));
-    fireEvent.mouseDown(screen.getByRole('button', { name: 'test-pipeline-version' }));
+    fireEvent.mouseDown(screen.getByRole('combobox'));
     const options = await screen.findAllByRole('option');
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('test-pipeline-version');

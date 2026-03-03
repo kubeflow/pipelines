@@ -15,12 +15,8 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
 import { classes } from 'typestyle';
 import { padding, commonCss } from 'src/Css';
-import DialogContent from '@material-ui/core/DialogContent';
 import ResourceSelector from 'src/pages/ResourceSelector';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
 import { Column } from './CustomTable';
@@ -32,6 +28,8 @@ import Toolbar, { ToolbarActionMap } from 'src/components/Toolbar';
 import { PipelineTabsHeaders, PipelineTabsTooltips } from 'src/pages/PrivateAndSharedPipelines';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { convertPipelineToResource } from 'src/lib/ResourceConverter';
+
+import { Button, Dialog, DialogActions, DialogContent } from '@mui/material';
 
 enum NamespacedAndSharedTab {
   NAMESPACED = 0,

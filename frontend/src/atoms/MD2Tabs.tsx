@@ -15,12 +15,12 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import Tooltip from '@material-ui/core/Tooltip';
 import Separator from './Separator';
 import { color, fontsize } from '../Css';
 import { classes, stylesheet } from 'typestyle';
 import { logger } from '../lib/Utils';
+
+import { Button, Tooltip } from '@mui/material';
 
 interface MD2TabsProps {
   onSwitch?: (tab: number) => void;

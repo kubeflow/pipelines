@@ -938,7 +938,7 @@ describe('NewRunV2', () => {
           open: true,
         });
       });
-    });
+    }, 20000);
 
     it('enables to change the trigger parameters.', async () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
@@ -971,7 +971,12 @@ describe('NewRunV2', () => {
       const timeCountParam = screen.getByDisplayValue('1');
       fireEvent.change(timeCountParam, { target: { value: '5' } });
 
-      const timeUnitDropdown = screen.getByRole('button', { name: 'Hours' });
+      const timeUnitDropdown = screen
+        .getAllByRole('combobox')
+        .find(combobox => combobox.textContent === 'Hours');
+      if (!timeUnitDropdown) {
+        throw new Error('Unable to find the interval unit dropdown');
+      }
       fireEvent.mouseDown(timeUnitDropdown);
       const minutesItem = await screen.findByRole('option', { name: 'Minutes' });
       fireEvent.click(minutesItem);

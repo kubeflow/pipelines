@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
@@ -40,6 +36,8 @@ import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+
+import { Button, FormControlLabel, InputAdornment, Radio } from '@mui/material';
 
 interface NewPipelineVersionState {
   validationError: string;

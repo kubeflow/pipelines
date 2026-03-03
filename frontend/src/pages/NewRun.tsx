@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -59,6 +52,16 @@ import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
 import PipelinesDialog from '../components/PipelinesDialog';
+
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  FormControlLabel,
+  InputAdornment,
+  Radio,
+} from '@mui/material';
 
 interface NewRunState {
   description: string;

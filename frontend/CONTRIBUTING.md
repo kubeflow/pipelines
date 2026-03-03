@@ -96,7 +96,7 @@ deployment running on a remote or local Kubernetes cluster. This dramatically
 improves iteration time, especially since the docker build can take 20+ minutes.
 
 KFP can be deployed in single-user or multi-user mode. Since there's a delta in
-logic between between the two modes, automated tests and manual validation
+logic between the two modes, automated tests and manual validation
 against a single-user cluster can still fail when deployed to a multi-user
 cluster.
 
@@ -118,7 +118,7 @@ make kind-cluster-agnostic
 
 #### Multi-user
 
-1. Install Kubernetes and deploy KFP to it on your your local machine by
+1. Install Kubernetes and deploy KFP to it on your local machine by
    following the [multi-user Kubeflow installation instructions](https://github.com/kubeflow/manifests?tab=readme-ov-file#installation).
 2. Run `cd frontend`.
 3. Run the following code block.
