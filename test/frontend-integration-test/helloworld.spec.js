@@ -22,7 +22,7 @@ const {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
-  waitForTableRows,
+  waitForSelectedPipelineVersion,
 } = require('./test-helpers');
 
 const experimentName = 'helloworld-experiment-' + Date.now();
@@ -71,28 +71,6 @@ async function selectPipelineForRun() {
   await $('#usePipelineBtn').waitForEnabled({ timeout: uiTimeout });
   await $('#usePipelineBtn').click();
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout, reverse: true });
-}
-
-async function selectPipelineVersionForRun() {
-  const pipelineVersionRowsSelector = '#pipelineVersionSelectorDialog [data-testid="table-row"]';
-
-  await $('#choosePipelineVersionBtn').waitForDisplayed({ timeout: uiTimeout });
-  await $('#choosePipelineVersionBtn').click();
-  await $('#pipelineVersionSelectorDialog').waitForDisplayed({ timeout: uiTimeout });
-
-  const pipelineVersionRows = await waitForTableRows(pipelineVersionRowsSelector, {
-    timeout: uiTimeout,
-    timeoutMsg: 'expected at least one pipeline version row to appear',
-  });
-  assert(pipelineVersionRows.length > 0, 'expected at least one pipeline version row');
-  await pipelineVersionRows[0].click();
-
-  await $('#usePipelineVersionBtn').waitForEnabled({ timeout: uiTimeout });
-  await $('#usePipelineVersionBtn').click();
-  await $('#pipelineVersionSelectorDialog').waitForDisplayed({
-    timeout: uiTimeout,
-    reverse: true,
-  });
 }
 
 async function waitForRunLink(runNameToFind, { timeout = runStartTimeout } = {}) {
@@ -153,8 +131,9 @@ describe('deploy helloworld sample run', () => {
 
   it('creates a new run in the experiment', async () => {
     await selectPipelineForRun();
-    await selectPipelineVersionForRun();
+    await waitForSelectedPipelineVersion({ timeout: uiTimeout });
 
+    await $('#runNameInput').waitForDisplayed({ timeout: uiTimeout });
     await $('#runNameInput').click();
     await clearDefaultInput();
     await browser.keys(runName);
@@ -260,8 +239,9 @@ describe('deploy helloworld sample run', () => {
     await $('#createNewRunBtn').click();
 
     await selectPipelineForRun();
-    await selectPipelineVersionForRun();
+    await waitForSelectedPipelineVersion({ timeout: uiTimeout });
 
+    await $('#runNameInput').waitForDisplayed({ timeout: uiTimeout });
     await $('#runNameInput').click();
     await clearDefaultInput();
     await browser.keys(runWithoutExperimentName);

@@ -40,6 +40,20 @@ async function waitForHashPrefix(prefix, { timeout = defaultTimeout } = {}) {
   );
 }
 
+async function waitForSelectedPipelineVersion({ timeout = defaultTimeout } = {}) {
+  await waitForCondition(
+    async () => {
+      const hash = new URL(await browser.getUrl()).hash;
+      const query = hash.split('?')[1] || '';
+      return Boolean(new URLSearchParams(query).get('pipelineVersionId'));
+    },
+    {
+      timeout,
+      timeoutMsg: 'expected pipeline version to be selected after choosing pipeline',
+    },
+  );
+}
+
 async function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
   // get that row's inner text, and remove the key.
@@ -135,5 +149,6 @@ module.exports = {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
+  waitForSelectedPipelineVersion,
   waitForTableRows,
 };
