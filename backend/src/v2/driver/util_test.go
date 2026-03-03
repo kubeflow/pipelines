@@ -19,6 +19,7 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -463,7 +464,7 @@ func Test_resolveContainerArgs(t *testing.T) {
 			if test.wantErr {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, test.expected, actual)
 			}
 		})

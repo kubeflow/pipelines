@@ -24,13 +24,23 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// ifPresentCondition is the named schema for the IfPresent conditional clause
+// embedded in container arguments by the KFP compiler.
+type ifPresentCondition struct {
+	IfPresent struct {
+		InputName string      `json:"InputName"`
+		Then      interface{} `json:"Then"`
+		Else      interface{} `json:"Else"`
+	} `json:"IfPresent"`
+}
+
 // inputPipelineChannelPattern define a regex pattern to match the content within single quotes
 // example input channel looks like "{{$.inputs.parameters['pipelinechannel--val']}}"
 const inputPipelineChannelPattern = `\$.inputs.parameters\['(.+?)'\]`
 
 // fullInputParameterRe matches the complete {{$.inputs.parameters['name']}} placeholder
 // including the surrounding braces, for template substitution in container arguments.
-var fullInputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)'\]\}\}`)
+var fullInputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}}`)
 
 func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
@@ -109,6 +119,8 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 // pbValueToString converts a structpb.Value to its string representation.
 // This handles all parameter types including STRING, NUMBER_INTEGER, NUMBER_DOUBLE, and BOOLEAN,
 // unlike GetStringValue() which returns an empty string for non-string types.
+// LIST and STRUCT values are serialised as JSON for parity with the launcher's
+// placeholder substitution behaviour.
 func pbValueToString(v *structpb.Value) string {
 	switch v.GetKind().(type) {
 	case *structpb.Value_StringValue:
@@ -127,8 +139,29 @@ func pbValueToString(v *structpb.Value) string {
 	case *structpb.Value_NullValue:
 		return ""
 	default:
-		return fmt.Sprintf("%v", v.AsInterface())
+		// LIST and STRUCT: marshal to JSON so the format matches the launcher path.
+		b, err := json.Marshal(v.AsInterface())
+		if err != nil {
+			return fmt.Sprintf("%v", v.AsInterface())
+		}
+		return string(b)
 	}
+}
+
+// resolveSinglePlaceholder resolves a single matched {{$.inputs.parameters['name']}}
+// placeholder to its string value from executorInput. Returns an error if the parameter
+// is not found.
+func resolveSinglePlaceholder(match string, executorInput *pipelinespec.ExecutorInput) (string, error) {
+	submatch := fullInputParameterRe.FindStringSubmatch(match)
+	if len(submatch) < 2 {
+		return "", fmt.Errorf("failed to extract parameter name from: %s", match)
+	}
+	paramName := submatch[1]
+	val, ok := executorInput.GetInputs().GetParameterValues()[paramName]
+	if !ok {
+		return "", fmt.Errorf("parameter %q not found in executor input", paramName)
+	}
+	return pbValueToString(val), nil
 }
 
 // resolveInputParameterPlaceholders performs template substitution on a string,
@@ -144,18 +177,12 @@ func resolveInputParameterPlaceholders(arg string, executorInput *pipelinespec.E
 		if resolveErr != nil {
 			return match
 		}
-		submatch := fullInputParameterRe.FindStringSubmatch(match)
-		if len(submatch) < 2 {
-			resolveErr = fmt.Errorf("failed to extract parameter name from: %s", match)
+		resolved, err := resolveSinglePlaceholder(match, executorInput)
+		if err != nil {
+			resolveErr = err
 			return match
 		}
-		paramName := submatch[1]
-		val, ok := executorInput.GetInputs().GetParameterValues()[paramName]
-		if !ok {
-			resolveErr = fmt.Errorf("parameter %q not found in executor input", paramName)
-			return match
-		}
-		return pbValueToString(val)
+		return resolved
 	})
 	if resolveErr != nil {
 		return "", resolveErr
@@ -168,13 +195,7 @@ func isConditionClause(arg string) bool {
 }
 
 func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
-	var ifPresent struct {
-		IfPresent struct {
-			InputName string      `json:"InputName"`
-			Then      interface{} `json:"Then"`
-			Else      interface{} `json:"Else"`
-		} `json:"IfPresent"`
-	}
+	var ifPresent ifPresentCondition
 	if err := json.Unmarshal([]byte(arg), &ifPresent); err != nil {
 		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
 	}
@@ -235,14 +256,13 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 			continue
 		}
 
-		switch {
-		case isConditionClause(arg):
+		if isConditionClause(arg) {
 			resolved, err := resolveCondition(arg, executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve condition: %w", err)
 			}
 			resolvedArgs = append(resolvedArgs, resolved...)
-		default:
+		} else {
 			resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
