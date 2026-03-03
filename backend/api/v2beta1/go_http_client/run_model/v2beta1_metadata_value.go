@@ -18,8 +18,8 @@ import (
 // swagger:model v2beta1MetadataValue
 type V2beta1MetadataValue struct {
 
-	// content type
-	ContentType *MetadataValueContentType `json:"content_type,omitempty"`
+	// render type
+	RenderType *MetadataValueRenderType `json:"render_type,omitempty"`
 
 	// value
 	Value interface{} `json:"value,omitempty"`
@@ -29,7 +29,7 @@ type V2beta1MetadataValue struct {
 func (m *V2beta1MetadataValue) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateContentType(formats); err != nil {
+	if err := m.validateRenderType(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -39,17 +39,17 @@ func (m *V2beta1MetadataValue) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V2beta1MetadataValue) validateContentType(formats strfmt.Registry) error {
-	if swag.IsZero(m.ContentType) { // not required
+func (m *V2beta1MetadataValue) validateRenderType(formats strfmt.Registry) error {
+	if swag.IsZero(m.RenderType) { // not required
 		return nil
 	}
 
-	if m.ContentType != nil {
-		if err := m.ContentType.Validate(formats); err != nil {
+	if m.RenderType != nil {
+		if err := m.RenderType.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("content_type")
+				return ve.ValidateName("render_type")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("content_type")
+				return ce.ValidateName("render_type")
 			}
 			return err
 		}
@@ -62,7 +62,7 @@ func (m *V2beta1MetadataValue) validateContentType(formats strfmt.Registry) erro
 func (m *V2beta1MetadataValue) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.contextValidateContentType(ctx, formats); err != nil {
+	if err := m.contextValidateRenderType(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -72,19 +72,19 @@ func (m *V2beta1MetadataValue) ContextValidate(ctx context.Context, formats strf
 	return nil
 }
 
-func (m *V2beta1MetadataValue) contextValidateContentType(ctx context.Context, formats strfmt.Registry) error {
+func (m *V2beta1MetadataValue) contextValidateRenderType(ctx context.Context, formats strfmt.Registry) error {
 
-	if m.ContentType != nil {
+	if m.RenderType != nil {
 
-		if swag.IsZero(m.ContentType) { // not required
+		if swag.IsZero(m.RenderType) { // not required
 			return nil
 		}
 
-		if err := m.ContentType.ContextValidate(ctx, formats); err != nil {
+		if err := m.RenderType.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("content_type")
+				return ve.ValidateName("render_type")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("content_type")
+				return ce.ValidateName("render_type")
 			}
 			return err
 		}

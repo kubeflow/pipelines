@@ -173,51 +173,51 @@ func (Run_StorageState) EnumDescriptor() ([]byte, []int) {
 }
 
 // Hint for UI rendering of the value.
-type MetadataValue_ContentType int32
+type MetadataValue_RenderType int32
 
 const (
 	// Default. No special rendering.
-	MetadataValue_UNSPECIFIED MetadataValue_ContentType = 0
+	MetadataValue_UNSPECIFIED MetadataValue_RenderType = 0
 	// Render the value as a hyperlink.
-	MetadataValue_URL MetadataValue_ContentType = 1
+	MetadataValue_URL MetadataValue_RenderType = 1
 )
 
-// Enum value maps for MetadataValue_ContentType.
+// Enum value maps for MetadataValue_RenderType.
 var (
-	MetadataValue_ContentType_name = map[int32]string{
+	MetadataValue_RenderType_name = map[int32]string{
 		0: "UNSPECIFIED",
 		1: "URL",
 	}
-	MetadataValue_ContentType_value = map[string]int32{
+	MetadataValue_RenderType_value = map[string]int32{
 		"UNSPECIFIED": 0,
 		"URL":         1,
 	}
 )
 
-func (x MetadataValue_ContentType) Enum() *MetadataValue_ContentType {
-	p := new(MetadataValue_ContentType)
+func (x MetadataValue_RenderType) Enum() *MetadataValue_RenderType {
+	p := new(MetadataValue_RenderType)
 	*p = x
 	return p
 }
 
-func (x MetadataValue_ContentType) String() string {
+func (x MetadataValue_RenderType) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (MetadataValue_ContentType) Descriptor() protoreflect.EnumDescriptor {
+func (MetadataValue_RenderType) Descriptor() protoreflect.EnumDescriptor {
 	return file_backend_api_v2beta1_run_proto_enumTypes[2].Descriptor()
 }
 
-func (MetadataValue_ContentType) Type() protoreflect.EnumType {
+func (MetadataValue_RenderType) Type() protoreflect.EnumType {
 	return &file_backend_api_v2beta1_run_proto_enumTypes[2]
 }
 
-func (x MetadataValue_ContentType) Number() protoreflect.EnumNumber {
+func (x MetadataValue_RenderType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use MetadataValue_ContentType.Descriptor instead.
-func (MetadataValue_ContentType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use MetadataValue_RenderType.Descriptor instead.
+func (MetadataValue_RenderType) EnumDescriptor() ([]byte, []int) {
 	return file_backend_api_v2beta1_run_proto_rawDescGZIP(), []int{3, 0}
 }
 
@@ -615,9 +615,9 @@ func (x *RuntimeStatus) GetError() *status.Status {
 
 // A typed metadata value with an optional rendering hint for the UI.
 type MetadataValue struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Value         *structpb.Value            `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	ContentType   *MetadataValue_ContentType `protobuf:"varint,2,opt,name=content_type,json=contentType,proto3,enum=kubeflow.pipelines.backend.api.v2beta1.MetadataValue_ContentType,oneof" json:"content_type,omitempty"`
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Value         *structpb.Value           `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	RenderType    *MetadataValue_RenderType `protobuf:"varint,2,opt,name=render_type,json=renderType,proto3,enum=kubeflow.pipelines.backend.api.v2beta1.MetadataValue_RenderType,oneof" json:"render_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -659,9 +659,9 @@ func (x *MetadataValue) GetValue() *structpb.Value {
 	return nil
 }
 
-func (x *MetadataValue) GetContentType() MetadataValue_ContentType {
-	if x != nil && x.ContentType != nil {
-		return *x.ContentType
+func (x *MetadataValue) GetRenderType() MetadataValue_RenderType {
+	if x != nil && x.RenderType != nil {
+		return *x.RenderType
 	}
 	return MetadataValue_UNSPECIFIED
 }
@@ -1798,14 +1798,16 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\vupdate_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTime\x12J\n" +
 	"\x05state\x18\x02 \x01(\x0e24.kubeflow.pipelines.backend.api.v2beta1.RuntimeStateR\x05state\x12(\n" +
-	"\x05error\x18\x03 \x01(\v2\x12.google.rpc.StatusR\x05error\"\xe2\x01\n" +
+	"\x05error\x18\x03 \x01(\v2\x12.google.rpc.StatusR\x05error\"\xdd\x01\n" +
 	"\rMetadataValue\x12,\n" +
-	"\x05value\x18\x01 \x01(\v2\x16.google.protobuf.ValueR\x05value\x12i\n" +
-	"\fcontent_type\x18\x02 \x01(\x0e2A.kubeflow.pipelines.backend.api.v2beta1.MetadataValue.ContentTypeH\x00R\vcontentType\x88\x01\x01\"'\n" +
-	"\vContentType\x12\x0f\n" +
+	"\x05value\x18\x01 \x01(\v2\x16.google.protobuf.ValueR\x05value\x12f\n" +
+	"\vrender_type\x18\x02 \x01(\x0e2@.kubeflow.pipelines.backend.api.v2beta1.MetadataValue.RenderTypeH\x00R\n" +
+	"renderType\x88\x01\x01\"&\n" +
+	"\n" +
+	"RenderType\x12\x0f\n" +
 	"\vUNSPECIFIED\x10\x00\x12\a\n" +
-	"\x03URL\x10\x01B\x0f\n" +
-	"\r_content_type\"\xcf\x02\n" +
+	"\x03URL\x10\x01B\x0e\n" +
+	"\f_render_type\"\xcf\x02\n" +
 	"\fPluginOutput\x12[\n" +
 	"\aentries\x18\x01 \x03(\v2A.kubeflow.pipelines.backend.api.v2beta1.PluginOutput.EntriesEntryR\aentries\x12J\n" +
 	"\x05state\x18\x02 \x01(\x0e24.kubeflow.pipelines.backend.api.v2beta1.RuntimeStateR\x05state\x12#\n" +
@@ -1940,7 +1942,7 @@ var file_backend_api_v2beta1_run_proto_msgTypes = make([]protoimpl.MessageInfo, 
 var file_backend_api_v2beta1_run_proto_goTypes = []any{
 	(RuntimeState)(0),                    // 0: kubeflow.pipelines.backend.api.v2beta1.RuntimeState
 	(Run_StorageState)(0),                // 1: kubeflow.pipelines.backend.api.v2beta1.Run.StorageState
-	(MetadataValue_ContentType)(0),       // 2: kubeflow.pipelines.backend.api.v2beta1.MetadataValue.ContentType
+	(MetadataValue_RenderType)(0),        // 2: kubeflow.pipelines.backend.api.v2beta1.MetadataValue.RenderType
 	(*Run)(nil),                          // 3: kubeflow.pipelines.backend.api.v2beta1.Run
 	(*PipelineVersionReference)(nil),     // 4: kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReference
 	(*RuntimeStatus)(nil),                // 5: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus
@@ -1990,7 +1992,7 @@ var file_backend_api_v2beta1_run_proto_depIdxs = []int32{
 	0,  // 14: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus.state:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeState
 	30, // 15: kubeflow.pipelines.backend.api.v2beta1.RuntimeStatus.error:type_name -> google.rpc.Status
 	31, // 16: kubeflow.pipelines.backend.api.v2beta1.MetadataValue.value:type_name -> google.protobuf.Value
-	2,  // 17: kubeflow.pipelines.backend.api.v2beta1.MetadataValue.content_type:type_name -> kubeflow.pipelines.backend.api.v2beta1.MetadataValue.ContentType
+	2,  // 17: kubeflow.pipelines.backend.api.v2beta1.MetadataValue.render_type:type_name -> kubeflow.pipelines.backend.api.v2beta1.MetadataValue.RenderType
 	23, // 18: kubeflow.pipelines.backend.api.v2beta1.PluginOutput.entries:type_name -> kubeflow.pipelines.backend.api.v2beta1.PluginOutput.EntriesEntry
 	0,  // 19: kubeflow.pipelines.backend.api.v2beta1.PluginOutput.state:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeState
 	9,  // 20: kubeflow.pipelines.backend.api.v2beta1.RunDetails.task_details:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetail

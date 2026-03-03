@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.metadata_value_content_type import MetadataValueContentType  # noqa: E501
+from kfp_server_api.models.metadata_value_render_type import MetadataValueRenderType  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestMetadataValueContentType(unittest.TestCase):
-    """MetadataValueContentType unit test stubs"""
+class TestMetadataValueRenderType(unittest.TestCase):
+    """MetadataValueRenderType unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,20 +29,20 @@ class TestMetadataValueContentType(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test MetadataValueContentType
+        """Test MetadataValueRenderType
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.metadata_value_content_type.MetadataValueContentType()  # noqa: E501
+        # model = kfp_server_api.models.metadata_value_render_type.MetadataValueRenderType()  # noqa: E501
         if include_optional :
-            return MetadataValueContentType(
+            return MetadataValueRenderType(
             )
         else :
-            return MetadataValueContentType(
+            return MetadataValueRenderType(
         )
 
-    def testMetadataValueContentType(self):
-        """Test MetadataValueContentType"""
+    def testMetadataValueRenderType(self):
+        """Test MetadataValueRenderType"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

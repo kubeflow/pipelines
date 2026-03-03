@@ -1,4 +1,4 @@
-# MetadataValueContentType
+# MetadataValueRenderType
 
 Hint for UI rendering of the value.   - UNSPECIFIED: Default. No special rendering.  - URL: Render the value as a hyperlink.
 ## Properties

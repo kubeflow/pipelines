@@ -37,7 +37,7 @@ class TestV2beta1MetadataValue(unittest.TestCase):
         if include_optional :
             return V2beta1MetadataValue(
                 value = kfp_server_api.models.value.value(), 
-                content_type = 'UNSPECIFIED'
+                render_type = 'UNSPECIFIED'
             )
         else :
             return V2beta1MetadataValue(

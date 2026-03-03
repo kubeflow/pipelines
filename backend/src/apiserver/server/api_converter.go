@@ -2651,7 +2651,7 @@ func validatePluginOutputEntries(pluginKey string, entries map[string]*apiv2beta
 		if metadata == nil || metadata.Value == nil {
 			continue
 		}
-		if metadata.GetContentType() != apiv2beta1.MetadataValue_URL {
+		if metadata.GetRenderType() != apiv2beta1.MetadataValue_URL {
 			continue
 		}
 		if err := validateURLMetadataValue(pluginKey, entryKey, metadata); err != nil {
@@ -2686,7 +2686,7 @@ func validateURLMetadataValue(pluginKey string, entryKey string, metadata *apiv2
 func getURLMetadataString(pluginKey string, entryKey string, metadata *apiv2beta1.MetadataValue) (string, error) {
 	stringValue, isStringValue := metadata.Value.Kind.(*structpb.Value_StringValue)
 	if !isStringValue {
-		return "", fmt.Errorf("plugins_output[%q].entries[%q] URL content_type requires string value", pluginKey, entryKey)
+		return "", fmt.Errorf("plugins_output[%q].entries[%q] URL render_type requires string value", pluginKey, entryKey)
 	}
 	return strings.TrimSpace(stringValue.StringValue), nil
 }

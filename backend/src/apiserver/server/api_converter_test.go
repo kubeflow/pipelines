@@ -4855,8 +4855,8 @@ func TestPluginsOutputToJSON(t *testing.T) {
 			"mlflow": {
 				Entries: map[string]*apiv2beta1.MetadataValue{
 					"run_url": {
-						Value:       structpb.NewStringValue("https://mlflow.example.com/runs/abc"),
-						ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+						Value:      structpb.NewStringValue("https://mlflow.example.com/runs/abc"),
+						RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 					},
 					"experiment_id": {
 						Value: structpb.NewStringValue("42"),
@@ -4884,7 +4884,7 @@ func TestPluginsOutputToJSON(t *testing.T) {
 			for ek, ev := range v.Entries {
 				require.Contains(t, parsed[k].Entries, ek)
 				assert.Equal(t, ev.Value.GetStringValue(), parsed[k].Entries[ek].Value.GetStringValue())
-				assert.Equal(t, ev.ContentType, parsed[k].Entries[ek].ContentType)
+				assert.Equal(t, ev.RenderType, parsed[k].Entries[ek].RenderType)
 			}
 		}
 	})
@@ -4914,7 +4914,7 @@ func TestJSONToPluginsOutput(t *testing.T) {
 		},
 		{
 			name:  "valid JSON with enum fields",
-			input: strPtr(`{"mlflow":{"entries":{"run_url":{"value":"https://mlflow.example.com","contentType":"URL"}},"state":"SUCCEEDED","stateMessage":"ok"}}`),
+			input: strPtr(`{"mlflow":{"entries":{"run_url":{"value":"https://mlflow.example.com","renderType":"URL"}},"state":"SUCCEEDED","stateMessage":"ok"}}`),
 		},
 	}
 	for _, tt := range tests {
@@ -4961,8 +4961,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue("http://example.com/run/1"),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue("http://example.com/run/1"),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -4974,8 +4974,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue("https://example.com/run/1"),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue("https://example.com/run/1"),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5035,8 +5035,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue("ftp://example.com/run/1"),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue("ftp://example.com/run/1"),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5049,8 +5049,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue("http://%"),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue("http://%"),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5063,8 +5063,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue(""),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue(""),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5077,8 +5077,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue("   "),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue("   "),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5091,8 +5091,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5105,8 +5105,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue("  JaVaScRiPt:alert(1)"),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue("  JaVaScRiPt:alert(1)"),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5122,8 +5122,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 							Value: structpb.NewStringValue("abc123"),
 						},
 						"run_url": {
-							Value:       structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5136,8 +5136,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewNumberValue(42),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewNumberValue(42),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5166,8 +5166,8 @@ func TestValidatePluginsOutput(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
-							Value:       nil,
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      nil,
 						},
 					},
 				},
@@ -5266,8 +5266,8 @@ func TestToModelRunPluginsFields(t *testing.T) {
 				"mlflow": {
 					Entries: map[string]*apiv2beta1.MetadataValue{
 						"run_url": {
-							Value:       structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
-							ContentType: apiv2beta1.MetadataValue_URL.Enum(),
+							Value:      structpb.NewStringValue(testPluginsUnsafeJavaScriptURL),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
 				},
@@ -5335,7 +5335,7 @@ func TestToApiRunPluginsFields(t *testing.T) {
 				PipelineId:        "p1",
 			},
 			RunDetails: model.RunDetails{
-				PluginsOutputString: testLargeTextPtr(`{"mlflow":{"entries":{"run_url":{"value":"` + testPluginsUnsafeJavaScriptURL + `","contentType":"URL"}}}}`),
+				PluginsOutputString: testLargeTextPtr(`{"mlflow":{"entries":{"run_url":{"value":"` + testPluginsUnsafeJavaScriptURL + `","renderType":"URL"}}}}`),
 			},
 		}
 		got := toApiRun(modelRun)

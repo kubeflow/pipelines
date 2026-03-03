@@ -34,28 +34,28 @@ class V2beta1MetadataValue(object):
     """
     openapi_types = {
         'value': 'object',
-        'content_type': 'MetadataValueContentType'
+        'render_type': 'MetadataValueRenderType'
     }
 
     attribute_map = {
         'value': 'value',
-        'content_type': 'content_type'
+        'render_type': 'render_type'
     }
 
-    def __init__(self, value=None, content_type=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, value=None, render_type=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1MetadataValue - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration
 
         self._value = None
-        self._content_type = None
+        self._render_type = None
         self.discriminator = None
 
         if value is not None:
             self.value = value
-        if content_type is not None:
-            self.content_type = content_type
+        if render_type is not None:
+            self.render_type = render_type
 
     @property
     def value(self):
@@ -79,25 +79,25 @@ class V2beta1MetadataValue(object):
         self._value = value
 
     @property
-    def content_type(self):
-        """Gets the content_type of this V2beta1MetadataValue.  # noqa: E501
+    def render_type(self):
+        """Gets the render_type of this V2beta1MetadataValue.  # noqa: E501
 
 
-        :return: The content_type of this V2beta1MetadataValue.  # noqa: E501
-        :rtype: MetadataValueContentType
+        :return: The render_type of this V2beta1MetadataValue.  # noqa: E501
+        :rtype: MetadataValueRenderType
         """
-        return self._content_type
+        return self._render_type
 
-    @content_type.setter
-    def content_type(self, content_type):
-        """Sets the content_type of this V2beta1MetadataValue.
+    @render_type.setter
+    def render_type(self, render_type):
+        """Sets the render_type of this V2beta1MetadataValue.
 
 
-        :param content_type: The content_type of this V2beta1MetadataValue.  # noqa: E501
-        :type content_type: MetadataValueContentType
+        :param render_type: The render_type of this V2beta1MetadataValue.  # noqa: E501
+        :type render_type: MetadataValueRenderType
         """
 
-        self._content_type = content_type
+        self._render_type = render_type
 
     def to_dict(self):
         """Returns the model properties as a dict"""

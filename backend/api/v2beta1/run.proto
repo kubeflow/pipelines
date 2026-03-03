@@ -269,14 +269,14 @@ message RuntimeStatus {
 // A typed metadata value with an optional rendering hint for the UI.
 message MetadataValue {
   // Hint for UI rendering of the value.
-  enum ContentType {
+  enum RenderType {
     // Default. No special rendering.
     UNSPECIFIED = 0;
     // Render the value as a hyperlink.
     URL = 1;
   }
   google.protobuf.Value value = 1;
-  optional ContentType content_type = 2;
+  optional RenderType render_type = 2;
 }
 
 // Output from a single plugin, containing keyed metadata entries and overall state.

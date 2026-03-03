@@ -141,7 +141,7 @@ Class | Method | HTTP request | Description
  - [AuthorizeRequestResources](docs/AuthorizeRequestResources.md)
  - [AuthorizeRequestVerb](docs/AuthorizeRequestVerb.md)
  - [GooglerpcStatus](docs/GooglerpcStatus.md)
- - [MetadataValueContentType](docs/MetadataValueContentType.md)
+ - [MetadataValueRenderType](docs/MetadataValueRenderType.md)
  - [PipelineTaskDetailChildTask](docs/PipelineTaskDetailChildTask.md)
  - [PredicateIntValues](docs/PredicateIntValues.md)
  - [PredicateLongValues](docs/PredicateLongValues.md)

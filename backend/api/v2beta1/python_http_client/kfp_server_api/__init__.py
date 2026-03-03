@@ -39,7 +39,7 @@ from kfp_server_api.exceptions import ApiException
 from kfp_server_api.models.authorize_request_resources import AuthorizeRequestResources
 from kfp_server_api.models.authorize_request_verb import AuthorizeRequestVerb
 from kfp_server_api.models.googlerpc_status import GooglerpcStatus
-from kfp_server_api.models.metadata_value_content_type import MetadataValueContentType
+from kfp_server_api.models.metadata_value_render_type import MetadataValueRenderType
 from kfp_server_api.models.pipeline_task_detail_child_task import PipelineTaskDetailChildTask
 from kfp_server_api.models.predicate_int_values import PredicateIntValues
 from kfp_server_api.models.predicate_long_values import PredicateLongValues

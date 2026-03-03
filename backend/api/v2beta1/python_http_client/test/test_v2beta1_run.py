@@ -137,7 +137,7 @@ class TestV2beta1Run(unittest.TestCase):
                         entries = {
                             'key' : kfp_server_api.models.v2beta1_metadata_value.v2beta1MetadataValue(
                                 value = kfp_server_api.models.value.value(), 
-                                content_type = 'UNSPECIFIED', )
+                                render_type = 'UNSPECIFIED', )
                             }, 
                         state = 'RUNTIME_STATE_UNSPECIFIED', 
                         state_message = '0', )

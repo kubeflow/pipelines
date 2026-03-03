@@ -366,7 +366,7 @@
     }
   },
   "definitions": {
-    "MetadataValueContentType": {
+    "MetadataValueRenderType": {
       "type": "string",
       "enum": [
         "UNSPECIFIED",
@@ -471,8 +471,8 @@
       "type": "object",
       "properties": {
         "value": {},
-        "content_type": {
-          "$ref": "#/definitions/MetadataValueContentType"
+        "render_type": {
+          "$ref": "#/definitions/MetadataValueRenderType"
         }
       },
       "description": "A typed metadata value with an optional rendering hint for the UI."
