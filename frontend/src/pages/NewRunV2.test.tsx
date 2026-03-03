@@ -973,7 +973,7 @@ describe('NewRunV2', () => {
 
       const timeUnitDropdown = screen
         .getAllByRole('combobox')
-        .find(combobox => combobox.textContent === 'Hours');
+        .find((combobox) => combobox.textContent === 'Hours');
       if (!timeUnitDropdown) {
         throw new Error('Unable to find the interval unit dropdown');
       }
