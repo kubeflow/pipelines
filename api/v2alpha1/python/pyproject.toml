@@ -1,6 +1,6 @@
 [project]
 name = "kfp-pipeline-spec"
-version = "2.15.2"
+version = "2.16.0"
 description = "Kubeflow Pipelines pipeline spec"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.9"

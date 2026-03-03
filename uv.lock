@@ -1902,7 +1902,7 @@ requires-dist = [
 
 [[package]]
 name = "kfp-pipeline-spec"
-version = "2.15.2"
+version = "2.16.0"
 source = { editable = "api/v2alpha1/python" }
 dependencies = [
     { name = "protobuf" },

@@ -37,10 +37,10 @@ dependencies = [
   "google-cloud-storage>=2.2.1,<4",
   # Pin kfp-pipeline-spec to the exact kfp version to prevent mismatches.
   # Update this version in lockstep with kfp/version.py on each release.
-  "kfp-pipeline-spec==2.15.2",
+  "kfp-pipeline-spec==2.16.0",
   # Pin kfp-server-api to the exact kfp version to prevent mismatches.
   # Update this version in lockstep with kfp/version.py on each release.
-  "kfp-server-api==2.15.2",
+  "kfp-server-api==2.16.0",
   "kubernetes>=8.0.0,<31",
   # protobuf version should be identical to the one in kfp-pipeline-spec
   "protobuf>=6.31.1,<7.0",
@@ -54,7 +54,7 @@ dependencies = [
 all = ["kfp[kubernetes,notebooks]", "docker"]
 # Pin kfp-kubernetes to the exact kfp version to prevent mismatches.
 # Update this version in lockstep with kfp/version.py on each release.
-kubernetes = ["kfp-kubernetes==2.15.2"]
+kubernetes = ["kfp-kubernetes==2.16.0"]
 notebooks = ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9"]
 
 [project.scripts]
