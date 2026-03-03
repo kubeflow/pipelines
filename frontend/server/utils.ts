@@ -274,8 +274,28 @@ async function parseKfpApiError(error: any): Promise<ErrorDetails | undefined> {
     return undefined;
   }
 
+  const canClone = typeof response.clone === 'function';
+
+  if (!canClone && typeof response.text === 'function') {
+    try {
+      // Without clone(), read the body once as text so we can recover both JSON
+      // and plain-text error payloads from the same buffer.
+      const text = await response.text();
+      const parsed = parseJSONString<{ error?: string; details?: any }>(text);
+      if (parsed && typeof parsed.error === 'string') {
+        return { message: parsed.error, additionalInfo: parsed.details ?? parsed };
+      }
+      if (text) {
+        return { message: text, additionalInfo: text };
+      }
+      return undefined;
+    } catch (_err) {
+      return undefined;
+    }
+  }
+
   try {
-    const jsonSource = typeof response.clone === 'function' ? response.clone() : response;
+    const jsonSource = canClone ? response.clone() : response;
     const json = await jsonSource.json();
     const { error: message, details } = json;
     if (typeof message === 'string') {
@@ -289,7 +309,7 @@ async function parseKfpApiError(error: any): Promise<ErrorDetails | undefined> {
   }
 
   try {
-    const textSource = typeof response.clone === 'function' ? response.clone() : response;
+    const textSource = canClone ? response.clone() : response;
     const text = await textSource.text();
     const parsed = parseJSONString<{ error?: string; details?: any }>(text);
     if (parsed && typeof parsed.error === 'string') {
