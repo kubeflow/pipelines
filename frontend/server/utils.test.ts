@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { PassThrough } from 'stream';
-import { PreviewStream, findFileOnPodVolume, parseError, resolveFilePathOnVolume } from './utils.js';
+import {
+  PreviewStream,
+  findFileOnPodVolume,
+  parseError,
+  resolveFilePathOnVolume,
+} from './utils.js';
 
 describe('utils', () => {
   describe('PreviewStream', () => {
