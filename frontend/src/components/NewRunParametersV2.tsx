@@ -449,13 +449,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             onChange={ev => onChange(String(ev.target.value))}
             label={param.key}
             aria-label={param.key}
-            displayEmpty
           >
-            {!selectValue && (
-              <MenuItem value='' disabled>
-                Select a value
-              </MenuItem>
-            )}
             {literalStrings.map(literal => (
               <MenuItem key={literal} value={literal}>
                 {literal}
