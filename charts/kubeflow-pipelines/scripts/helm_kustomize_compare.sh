@@ -90,7 +90,3 @@ echo "Running strict parity comparison..."
 python3 "$SCRIPT_DIR/helm_kustomize_compare.py" \
     "$KUSTOMIZE_OUTPUT" \
     "$HELM_OUTPUT"
-
-COMPARISON_RESULT=$?
-
-exit $COMPARISON_RESULT
