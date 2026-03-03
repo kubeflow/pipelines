@@ -1187,8 +1187,8 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     // Should render a regular text field, not a select
     const textInput = screen.getByDisplayValue('hello');
     expect(textInput.tagName).toBe('INPUT');
-    // No <select> element should exist
-    expect(container.querySelector('[role="button"]')).toBeNull();
+    // No <select> (combobox) element should exist
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 
   it('fires handleParameterChange when a dropdown value is selected', () => {
@@ -1293,12 +1293,9 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     // Initially invalid
     expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
 
-    // Open dropdown (use the label text since no value is selected yet)
-    const labels = screen.getAllByText('env - string');
-    // Find the select element trigger - the rendered display div
-    const selectElements = document.querySelectorAll('[role="button"]');
-    expect(selectElements.length).toBeGreaterThan(0);
-    fireEvent.mouseDown(selectElements[0]);
+    // Open dropdown - MUI v5 Select renders with role="combobox"
+    const selectElement = screen.getByRole('combobox');
+    fireEvent.mouseDown(selectElement);
 
     // Select a value
     setIsValidInputSpy.mockClear();
@@ -1330,10 +1327,9 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     // Initially invalid (no default value)
     expect(setIsValidInputSpy).toHaveBeenCalledWith(false);
 
-    // Open dropdown
-    const selectElements = document.querySelectorAll('[role="button"]');
-    expect(selectElements.length).toBeGreaterThan(0);
-    fireEvent.mouseDown(selectElements[0]);
+    // Open dropdown - MUI v5 Select renders with role="combobox"
+    const selectElement = screen.getByRole('combobox');
+    fireEvent.mouseDown(selectElement);
 
     // Select 'true'
     setIsValidInputSpy.mockClear();
