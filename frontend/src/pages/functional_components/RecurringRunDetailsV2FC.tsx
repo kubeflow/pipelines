@@ -52,20 +52,18 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     refetch: refetchRecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
     queryKey: ['recurringRun', recurringRunId],
-
     queryFn: async () => {
       return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
 
     enabled: !!recurringRunId,
     staleTime: 0,
-    cacheTime: 0,
+    cacheTime: 0, // v5: renamed to gcTime
   });
 
   const experimentId = recurringRun?.experiment_id!;
   const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>({
     queryKey: ['experiment', experimentId],
-
     queryFn: async () => {
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },

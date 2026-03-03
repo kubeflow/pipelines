@@ -38,14 +38,12 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     data: v2RecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
     queryKey: ['v2_recurring_run_detail', { id: recurringRunId }],
-
     queryFn: () => {
       if (!recurringRunId) {
         throw new Error('Recurring run ID is missing');
       }
       return Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
-
     enabled: !!recurringRunId,
     staleTime: Infinity,
   });
@@ -62,7 +60,6 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     Error
   >({
     queryKey: ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
-
     queryFn: async () => {
       if (!pipelineId || !pipelineVersionId) {
         return '';
@@ -74,10 +71,9 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
       const pipelineSpec = pipelineVersion.pipeline_spec;
       return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
     },
-
     enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: Infinity,
-    cacheTime: Infinity,
+    cacheTime: Infinity, // v5: renamed to gcTime
   });
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;

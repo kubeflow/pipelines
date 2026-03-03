@@ -50,7 +50,6 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     Error
   >({
     queryKey: ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
-
     queryFn: async () => {
       if (!pipelineId || !pipelineVersionId) {
         return '';
@@ -62,10 +61,9 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
       const pipelineSpec = pipelineVersion.pipeline_spec;
       return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
     },
-
-    enabled: !!pipelineVersionId,
+    enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: Infinity,
-    cacheTime: Infinity,
+    cacheTime: Infinity, // v5: renamed to gcTime
   });
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;

@@ -156,16 +156,14 @@ function TaskNodeDetail({
   layers,
   namespace,
 }: TaskNodeDetailProps) {
-  const { data: logsInfo } = useQuery({
+  const { data: logsInfo } = useQuery<Map<string, string>, Error>({
     queryKey: ['execution_logs', { executionId: execution?.getId(), namespace }],
-
     queryFn: async () => {
       if (!execution) {
         throw new Error('No execution is found.');
       }
       return await getLogsInfo(execution, runId, namespace);
     },
-
     enabled: !!execution,
   });
 
@@ -379,7 +377,7 @@ interface ArtifactNodeDetailProps {
   namespace: string | undefined;
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
-  const { data } = useQuery({
+  const { data } = useQuery<ArtifactType[], Error>({
     queryKey: ['artifact_types', { linkedArtifact }],
     queryFn: () => getArtifactTypes(),
   });

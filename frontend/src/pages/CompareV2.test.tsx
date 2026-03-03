@@ -281,6 +281,8 @@ describe('CompareV2', () => {
       expect(getEventsSpy).toBeCalledTimes(6);
       expect(getArtifactTypesSpy).toBeCalledTimes(1);
     });
+    // Wait for runs to render (indicates all queries resolved) before banner clears
+    await waitForRunCheckboxes(3);
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenCalledWith({});
     });
@@ -552,7 +554,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(3);
 
     await waitFor(() => {
       expect(getBodyText()).toContain(
@@ -645,7 +647,7 @@ describe('CompareV2', () => {
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
-    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
+    fireEvent.click(await screen.findByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
     await waitForRunLabel(MOCK_RUN_2_ID);
@@ -722,12 +724,12 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(3);
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
-    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
+    fireEvent.click(await screen.findByText('Choose a first Confusion Matrix artifact'));
 
     // Get the second element that has run text: first will be the run list.
     await waitForRunLabel(MOCK_RUN_2_ID);
@@ -796,7 +798,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(3);
 
     fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
     await waitFor(() => screen.getByText('ROC Curve: artifactName'));
@@ -862,10 +864,10 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(3);
 
     fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
-    await screen.findByText('ROC Curve: multiple artifacts');
+    await screen.findByText('ROC Curve: multiple artifacts', { timeout: 10000 });
     await screen.findByLabelText('Filter artifacts');
   });
 });

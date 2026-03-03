@@ -307,7 +307,6 @@ function CompareV2(props: CompareV2Props) {
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>({
     queryKey: ['run_artifacts', { runs }],
-
     queryFn: () =>
       Promise.all(
         runIds.map(async (runId) => {
@@ -324,7 +323,6 @@ function CompareV2(props: CompareV2Props) {
           } as MlmdPackage;
         }),
       ),
-
     staleTime: Infinity,
   });
 

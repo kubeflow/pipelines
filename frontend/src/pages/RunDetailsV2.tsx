@@ -75,6 +75,7 @@ interface RunDetailsV2Info {
 export type RunDetailsV2Props = RunDetailsV2Info & RunDetailsProps;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
+  const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
   const run = props.run;
   const pipelineJobStr = props.pipeline_job;
@@ -98,7 +99,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   };
 
   // Retrieves MLMD states from the MLMD store.
-  const { isSuccess, data } = useQuery<MlmdPackage, Error>({
+  const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
     queryKey: ['mlmd_package', { id: runId }],
     queryFn: async () => {
       const context = await getKfpV2RunContext(runId);
@@ -110,14 +111,21 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
     staleTime: QUERY_STALE_TIME,
     refetchInterval: QUERY_REFETCH_INTERNAL,
-    onError: (error: Error) =>
-      props.updateBanner({
+  });
+
+  // Use useEffect instead of deprecated onError/onSuccess (v5 removes them; v4+ recommended pattern).
+  useEffect(() => {
+    if (isError && error) {
+      updateBanner({
         message: 'Cannot get MLMD objects from Metadata store.',
         additionalInfo: error.message,
         mode: 'error',
-      }),
-    onSuccess: () => props.updateBanner({}),
-  });
+      });
+    }
+    if (isSuccess) {
+      updateBanner({});
+    }
+  }, [isError, isSuccess, error, updateBanner]);
 
   const layerChange = (layers: string[]) => {
     setSelectedNode(null);
@@ -149,7 +157,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
-  const { data: experiment } = useQuery({
+  const { data: experiment } = useQuery<V2beta1Experiment, Error>({
     queryKey: ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
     queryFn: () => getExperiment(experimentId),
   });
