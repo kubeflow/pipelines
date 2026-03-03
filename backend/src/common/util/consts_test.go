@@ -22,6 +22,7 @@ import (
 )
 
 func TestMaxParameterBytes_Default(t *testing.T) {
+	t.Setenv(MaxParameterBytesEnvVar, "")
 	defaultMaxParameterBytes := 10000
 	assert.Equal(t, defaultMaxParameterBytes, GetMaxParameterBytes())
 }

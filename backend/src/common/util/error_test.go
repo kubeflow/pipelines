@@ -15,6 +15,7 @@
 package util
 
 import (
+	"flag"
 	"fmt"
 	"testing"
 
@@ -445,6 +446,11 @@ func TestGRPCStatus(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
+	// Suppress glog output since Log() calls glog.Infof/Errorf.
+	previousThreshold := flag.Lookup("stderrthreshold").Value.String()
+	flag.Set("stderrthreshold", "FATAL")
+	defer flag.Set("stderrthreshold", previousThreshold)
+
 	// Test Log with Aborted → uses glog.Infof
 	abortedError := NewBadRequestError(fmt.Errorf("bad request"), "aborted request")
 	abortedError.Log() // Verify it doesn't panic
@@ -471,6 +477,11 @@ func TestLog(t *testing.T) {
 }
 
 func TestLogError(t *testing.T) {
+	// Suppress glog output since LogError() calls glog.Infof/Errorf.
+	previousThreshold := flag.Lookup("stderrthreshold").Value.String()
+	flag.Set("stderrthreshold", "FATAL")
+	defer flag.Set("stderrthreshold", previousThreshold)
+
 	// UserError → calls Log
 	userError := NewNotFoundError(fmt.Errorf("cause"), "not found")
 	LogError(userError) // Just verify it doesn't panic
