@@ -322,16 +322,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           image: this.state.tfImage,
           podTemplateSpec: this._podTemplateSpec(),
         });
-        this.setStateSafe(
-          { busy: false, podAddress, tensorboardReady: false },
-          () => {
-            if (podAddress) {
-              this._checkTensorboardPodStatus();
-            } else {
-              this._checkTensorboardApp();
-            }
-          },
-        );
+        this.setStateSafe({ busy: false, podAddress, tensorboardReady: false }, () => {
+          if (podAddress) {
+            this._checkTensorboardPodStatus();
+          } else {
+            this._checkTensorboardApp();
+          }
+        });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         this.setStateSafe({ busy: false, errorMessage });
