@@ -442,6 +442,7 @@ The frontend includes several generated code components:
 - **Stability loop**: `npm run test:ui:coverage:loop` (Vitest coverage with capped workers)
 - **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + lockfile React peer check + Vitest UI coverage + Jest coverage)
 - **Snapshot tests**: Auto-update with `npm test -u` or `npm run test:ui -- -u` (Vitest)
+- **Frontend integration tests**: See `test/frontend-integration-test/README.md` for the containerized local flow. Supported debug env vars include `DEBUG=1`, `HEADLESS=false`, and `WDIO_SPECS=./tensorboard-example.spec.js`; headful runs expose Selenium's noVNC desktop on port `7900`.
 
 ## CI/CD (GitHub Actions)
 

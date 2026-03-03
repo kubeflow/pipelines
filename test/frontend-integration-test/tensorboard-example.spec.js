@@ -13,8 +13,18 @@
 // limitations under the License.
 
 const assert = require('assert');
-const path = require('path');
-const URL = require('url').URL;
+const {
+  buildTableRowSelector,
+  clearDefaultInput,
+  getValueFromDetailsTable,
+  isSelectorDisplayed,
+  runPhase,
+  saveDebugScreenshot,
+  waitForCondition,
+  waitForGraphNodeCount,
+  waitForHashPrefix,
+  waitForTableRows,
+} = require('./test-helpers');
 
 const experimentName = 'tensorboard-example-experiment-' + Date.now();
 const pipelineName = 'tensorboard-example-pipeline-' + Date.now();
@@ -25,82 +35,18 @@ const runCompletionTimeout = 60000;
 const tensorboardLaunchTimeout = 120000;
 const tensorboardAppTimeout = 180000;
 const tensorboardControlTimeout = 30000;
-const screenshotDir = process.env.FRONTEND_INTEGRATION_SCREENSHOT_DIR || '/tmp';
 
 let pipelineUploaded = false;
 let runDetailsUrl = '';
 let tensorboardStarted = false;
 
-async function waitForCondition(condition, { timeout = uiTimeout, timeoutMsg, interval } = {}) {
-  const waitOptions = { timeout };
-  if (timeoutMsg) {
-    waitOptions.timeoutMsg = timeoutMsg;
-  }
-  if (interval) {
-    waitOptions.interval = interval;
-  }
-  await browser.waitUntil(condition, waitOptions);
-}
-
-async function getValueFromDetailsTable(key) {
-  // Find the span that shows the key, get its parent div (the row), then
-  // get that row's inner text, and remove the key.
-  const rowText = await $(`span=${key}`).$('..').getText();
-  return rowText.substr(`${key}\n`.length);
-}
-
-async function clearDefaultInput() {
-  await browser.keys(['Control', 'a']);
-  await browser.keys('Backspace');
-}
-
-function buildTableRowSelector(containerXPath, rowLabel) {
-  return `${containerXPath}//*[@data-testid="table-row"][.//*[self::a or self::span][normalize-space()="${rowLabel}"]]`;
-}
-
-async function saveDebugScreenshot(name) {
-  const screenshotPath = path.join(screenshotDir, `kfp-${name}-${Date.now()}.png`);
-  await browser.saveScreenshot(screenshotPath);
-  console.log('DEBUG_SCREENSHOT', screenshotPath);
-}
-
-async function isDisplayed(selector) {
-  const element = await $(selector);
-  return (await element.isExisting()) && (await element.isDisplayed());
-}
-
-async function waitForHashPrefix(prefix, timeout = uiTimeout) {
-  await waitForCondition(
-    async () => new URL(await browser.getUrl()).hash.startsWith(prefix),
-    {
-      timeout,
-      timeoutMsg: `expected URL hash to start with ${prefix}`,
-    },
-  );
-}
-
-async function waitForGraphNodeCount(expectedCount, timeout = uiTimeout) {
-  await waitForCondition(
-    async () => (await $$('.graphNode')).length === expectedCount,
-    {
-      timeout,
-      timeoutMsg: `expected ${expectedCount} graph node(s) to be visible`,
-    },
-  );
-  const nodes = await $$('.graphNode');
-  assert(
-    nodes.length === expectedCount,
-    `should have a ${expectedCount}-node graph, instead has: ${nodes.length}`,
-  );
-}
-
 async function waitForTensorboardControls() {
   try {
     await waitForCondition(
       async () =>
-        (await isDisplayed('button=Start Tensorboard')) ||
-        (await isDisplayed('button=Open Tensorboard')) ||
-        (await isDisplayed('button=Stop Tensorboard')),
+        (await isSelectorDisplayed('button=Start Tensorboard')) ||
+        (await isSelectorDisplayed('button=Open Tensorboard')) ||
+        (await isSelectorDisplayed('button=Stop Tensorboard')),
       {
         timeout: tensorboardControlTimeout,
         timeoutMsg: 'timed out waiting for tensorboard controls to load',
@@ -117,10 +63,9 @@ async function selectPipelineForRun() {
   await $('#choosePipelineBtn').click();
 
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout });
-  const pipelineRowSelector = buildTableRowSelector(
-    '//*[@id="pipelineSelectorDialog"]',
-    pipelineName,
-  );
+  const pipelineRowSelector = buildTableRowSelector(pipelineName, {
+    containerXPath: '//*[@id="pipelineSelectorDialog"]',
+  });
 
   try {
     await waitForCondition(
@@ -148,15 +93,10 @@ async function selectPipelineVersionForRun() {
   await $('#choosePipelineVersionBtn').click();
   await $('#pipelineVersionSelectorDialog').waitForDisplayed({ timeout: uiTimeout });
 
-  await waitForCondition(
-    async () => (await $$(pipelineVersionRowsSelector)).length > 0,
-    {
-      timeout: uiTimeout,
-      timeoutMsg: 'expected at least one pipeline version row to appear',
-    },
-  );
-
-  const pipelineVersionRows = await $$(pipelineVersionRowsSelector);
+  const pipelineVersionRows = await waitForTableRows(pipelineVersionRowsSelector, {
+    timeout: uiTimeout,
+    timeoutMsg: 'expected at least one pipeline version row to appear',
+  });
   assert(pipelineVersionRows.length > 0, 'expected at least one pipeline version row');
   await pipelineVersionRows[0].click();
   await $('#usePipelineVersionBtn').waitForEnabled({ timeout: uiTimeout });
@@ -187,7 +127,7 @@ async function openNewRunDetails() {
   );
 
   await $(runLinkSelector).click();
-  await waitForHashPrefix('#/runs/details/', uiTimeout);
+  await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
   runDetailsUrl = await browser.getUrl();
 }
 
@@ -214,7 +154,7 @@ async function waitForRunToSucceed() {
 async function openTensorboardVisualizations() {
   await $('button=Graph').waitForDisplayed({ timeout: uiTimeout });
   await $('button=Graph').click();
-  await waitForGraphNodeCount(1, uiTimeout);
+  await waitForGraphNodeCount(1, { timeout: uiTimeout });
 
   await $('.graphNode').click();
   await $('button=Visualizations').waitForDisplayed({ timeout: uiTimeout });
@@ -225,7 +165,7 @@ async function openTensorboardVisualizations() {
 async function waitForOpenTensorboardButton() {
   try {
     await waitForCondition(
-      async () => await isDisplayed('button=Open Tensorboard'),
+      async () => isSelectorDisplayed('button=Open Tensorboard'),
       {
         timeout: tensorboardLaunchTimeout,
         interval: 2000,
@@ -292,7 +232,7 @@ async function stopTensorboardIfRunning() {
     await dialog.$('button=Stop').click();
 
     await waitForCondition(
-      async () => await isDisplayed('button=Start Tensorboard'),
+      async () => isSelectorDisplayed('button=Start Tensorboard'),
       {
         timeout: tensorboardControlTimeout,
         interval: 1000,
@@ -317,14 +257,14 @@ async function deleteUploadedPipeline() {
   try {
     await $('#pipelinesBtn').waitForDisplayed({ timeout: uiTimeout });
     await $('#pipelinesBtn').click();
-    await waitForHashPrefix('#/pipelines', uiTimeout);
+    await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
 
     await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
     await $('#tableFilterBox').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
 
-    const pipelineRowSelector = buildTableRowSelector('', pipelineName);
+    const pipelineRowSelector = buildTableRowSelector(pipelineName);
     await waitForCondition(
       async () => (await $(pipelineRowSelector).isExisting()),
       {
@@ -362,61 +302,73 @@ describe('deploy tensorboard example run', () => {
   });
 
   it('deploys the tensorboard example and opens tensorboard', async () => {
-    await $('#createPipelineVersionBtn').waitForDisplayed({ timeout: uiTimeout });
-    await $('#createPipelineVersionBtn').click();
-    await waitForHashPrefix('#/pipeline_versions/new', uiTimeout);
+    await runPhase('upload tensorboard pipeline', async () => {
+      await $('#createPipelineVersionBtn').waitForDisplayed({ timeout: uiTimeout });
+      await $('#createPipelineVersionBtn').click();
+      await waitForHashPrefix('#/pipeline_versions/new', { timeout: uiTimeout });
 
-    await $('#localPackageBtn').waitForDisplayed({ timeout: uiTimeout });
-    await $('#localPackageBtn').click();
-    const remoteFilePath = await browser.uploadFile('./tensorboard-example.yaml');
-    await $('#dropZone input[type="file"]').addValue(remoteFilePath);
+      await $('#localPackageBtn').waitForDisplayed({ timeout: uiTimeout });
+      await $('#localPackageBtn').click();
+      const remoteFilePath = await browser.uploadFile('./tensorboard-example.yaml');
+      await $('#dropZone input[type="file"]').addValue(remoteFilePath);
 
-    await $('#newPipelineName').waitForDisplayed({ timeout: uiTimeout });
-    await $('#newPipelineName').click();
-    await clearDefaultInput();
-    await browser.keys(pipelineName);
-    await $('#createNewPipelineOrVersionBtn').click();
+      await $('#newPipelineName').waitForDisplayed({ timeout: uiTimeout });
+      await $('#newPipelineName').click();
+      await clearDefaultInput();
+      await browser.keys(pipelineName);
+      await $('#createNewPipelineOrVersionBtn').click();
 
-    await waitForHashPrefix('#/pipelines/details', uiTimeout);
-    pipelineUploaded = true;
-    await waitForGraphNodeCount(1, uiTimeout);
+      await waitForHashPrefix('#/pipelines/details', { timeout: uiTimeout });
+      pipelineUploaded = true;
+      await waitForGraphNodeCount(1, { timeout: uiTimeout });
+    });
 
-    await $('#newExperimentBtn').waitForDisplayed({ timeout: uiTimeout });
-    await $('#newExperimentBtn').click();
-    await waitForHashPrefix('#/experiments/new', uiTimeout);
+    await runPhase('create experiment', async () => {
+      await $('#newExperimentBtn').waitForDisplayed({ timeout: uiTimeout });
+      await $('#newExperimentBtn').click();
+      await waitForHashPrefix('#/experiments/new', { timeout: uiTimeout });
 
-    await $('#experimentName').waitForDisplayed({ timeout: uiTimeout });
-    await $('#experimentName').setValue(experimentName);
-    await $('#createExperimentBtn').click();
+      await $('#experimentName').waitForDisplayed({ timeout: uiTimeout });
+      await $('#experimentName').setValue(experimentName);
+      await $('#createExperimentBtn').click();
+    });
 
-    await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
-    await selectPipelineForRun();
-    await selectPipelineVersionForRun();
+    await runPhase('create run', async () => {
+      await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
+      await selectPipelineForRun();
+      await selectPipelineVersionForRun();
 
-    await $('#runNameInput').waitForDisplayed({ timeout: uiTimeout });
-    await $('#runNameInput').click();
-    await clearDefaultInput();
-    await browser.keys(runName);
-    await $('#startNewRunBtn').click();
+      await $('#runNameInput').waitForDisplayed({ timeout: uiTimeout });
+      await $('#runNameInput').click();
+      await clearDefaultInput();
+      await browser.keys(runName);
+      await $('#startNewRunBtn').click();
 
-    await waitForHashPrefix('#/experiments/details/', uiTimeout);
-    await openNewRunDetails();
+      await waitForHashPrefix('#/experiments/details/', { timeout: uiTimeout });
+      await openNewRunDetails();
+    });
 
-    await $('button=Config').waitForDisplayed({ timeout: uiTimeout });
-    await $('button=Config').click();
-    await waitForRunToSucceed();
+    await runPhase('wait for run completion', async () => {
+      await $('button=Config').waitForDisplayed({ timeout: uiTimeout });
+      await $('button=Config').click();
+      await waitForRunToSucceed();
+    });
 
-    await openTensorboardVisualizations();
+    await runPhase('start tensorboard', async () => {
+      await openTensorboardVisualizations();
 
-    const startTensorboardButton = await $('button=Start Tensorboard');
-    await startTensorboardButton.waitForDisplayed({ timeout: uiTimeout });
-    await startTensorboardButton.click();
-    tensorboardStarted = true;
+      const startTensorboardButton = await $('button=Start Tensorboard');
+      await startTensorboardButton.waitForDisplayed({ timeout: uiTimeout });
+      await startTensorboardButton.click();
+      tensorboardStarted = true;
 
-    // "Open Tensorboard" means the pod address exists; the app can still be warming up.
-    await waitForOpenTensorboardButton();
-    await openTensorboardApp();
+      // "Open Tensorboard" means the pod address exists; the app can still be warming up.
+      await waitForOpenTensorboardButton();
+    });
 
-    assert(await $('#topBar').isDisplayed(), 'tensorboard top bar should be visible');
+    await runPhase('open tensorboard app', async () => {
+      await openTensorboardApp();
+      assert(await $('#topBar').isDisplayed(), 'tensorboard top bar should be visible');
+    });
   });
 });
