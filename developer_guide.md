@@ -97,7 +97,7 @@ $ docker build -t ml-pipeline-api-server -f backend/Dockerfile .
 Python based visualizations are a new method to visualize results within the
 Kubeflow Pipelines UI. For more information about Python based visualizations
 please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
-To create predefine visualizations please check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/README.md).
+To create predefined visualizations please check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/README.md).
 
 ## Unit test
 

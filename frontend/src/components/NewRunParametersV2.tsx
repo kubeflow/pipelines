@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
+import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@mui/material';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';
@@ -489,6 +489,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               maxLines={20}
               mode='json'
               theme='github'
+              editorProps={{ $blockScrolling: Infinity }}
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}

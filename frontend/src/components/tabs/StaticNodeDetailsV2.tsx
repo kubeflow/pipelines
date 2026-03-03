@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Button } from '@material-ui/core';
+import { Button } from '@mui/material';
 import * as React from 'react';
 import { FlowElement } from 'react-flow-renderer';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
@@ -54,6 +54,9 @@ export function StaticNodeDetailsV2({
   element,
 }: StaticNodeDetailsV2Props) {
   if (!element) {
+    return NODE_INFO_UNKNOWN;
+  }
+  if (!templateString.trim()) {
     return NODE_INFO_UNKNOWN;
   }
   try {

@@ -16,22 +16,26 @@
 
 import * as React from 'react';
 import BusyButton from '../../atoms/BusyButton';
-import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
 import { commonCss, padding, color } from '../../Css';
-import InputLabel from '@material-ui/core/InputLabel';
-import Input from '@material-ui/core/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import ListSubheader from '@material-ui/core/ListSubheader';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
 import { classes, stylesheet } from 'typestyle';
+
+import {
+  Button,
+  InputLabel,
+  Input,
+  MenuItem,
+  ListSubheader,
+  FormControl,
+  Select,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 export const css = stylesheet({
   button: {
@@ -84,6 +88,7 @@ const DEFAULT_TF_IMAGE = 'tensorflow/tensorflow:2.2.2';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;
+  private _isMounted = true;
 
   constructor(props: any) {
     super(props);
@@ -107,6 +112,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public componentDidMount(): void {
+    this._isMounted = true;
     this._checkTensorboardApp();
     this.timerID = setInterval(
       () => this._checkTensorboardPodStatus(),
@@ -115,14 +121,15 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   public componentWillUnmount(): void {
+    this._isMounted = false;
     clearInterval(this.timerID);
   }
 
-  public handleImageSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
+  public handleImageSelect = (e: SelectChangeEvent<string>): void => {
     if (typeof e.target.value !== 'string') {
       throw new Error('Invalid event value type, expected string');
     }
-    this.setState({ tfImage: e.target.value });
+    this.setStateSafe({ tfImage: e.target.value });
   };
 
   public render(): JSX.Element {
@@ -163,7 +170,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 id={'delete'}
                 title={`stop tensorboard and delete its instance`}
                 onClick={this._handleDeleteOpen}
-                color={'default'}
               >
                 Stop Tensorboard
               </Button>
@@ -201,13 +207,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
             </div>
           </div>
         )}
-
         {!this.state.podAddress && (
           <div>
             <div className={padding(30, 'b')}>
-              <FormControl className={css.formControl}>
+              <FormControl variant='standard' className={css.formControl}>
                 <InputLabel htmlFor='viewer-tb-image-select'>TF Image</InputLabel>
                 <Select
+                  variant='standard'
                   className={css.select}
                   value={this.state.tfImage}
                   input={<Input id='viewer-tb-image-select' />}
@@ -247,11 +253,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   }
 
   private _handleDeleteOpen = () => {
-    this.setState({ deleteDialogOpen: true });
+    this.setStateSafe({ deleteDialogOpen: true });
   };
 
   private _handleDeleteClose = () => {
-    this.setState({ deleteDialogOpen: false });
+    this.setStateSafe({ deleteDialogOpen: false });
   };
 
   private _getNamespace(): string {
@@ -279,13 +285,15 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     if (this.state.podAddress && !this.state.tensorboardReady) {
       // Remove protocol prefix bofore ":" from pod address if any.
       Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
-        this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
+        this.setStateSafe(({ tensorboardReady }) => ({
+          tensorboardReady: tensorboardReady || ready,
+        }));
       });
     }
   }
 
   private async _checkTensorboardApp(): Promise<void> {
-    this.setState({ busy: true }, async () => {
+    this.setStateSafe({ busy: true }, async () => {
       try {
         // TODO: parse tfImage here
         const { podAddress, image } = await Apis.getTensorboardApp(
@@ -293,19 +301,20 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           this._getNamespace(),
         );
         if (podAddress) {
-          this.setState({ busy: false, podAddress, tfImage: image });
+          this.setStateSafe({ busy: false, podAddress, tfImage: image });
         } else {
           // No existing pod
-          this.setState({ busy: false });
+          this.setStateSafe({ busy: false });
         }
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        this.setStateSafe({ busy: false, errorMessage });
       }
     });
   }
 
   private _startTensorboard = async () => {
-    this.setState({ busy: true, errorMessage: undefined }, async () => {
+    this.setStateSafe({ busy: true, errorMessage: undefined }, async () => {
       try {
         await Apis.startTensorboardApp({
           logdir: this._buildUrl(),
@@ -313,11 +322,12 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           image: this.state.tfImage,
           podTemplateSpec: this._podTemplateSpec(),
         });
-        this.setState({ busy: false, tensorboardReady: false }, () => {
+        this.setStateSafe({ busy: false, tensorboardReady: false }, () => {
           this._checkTensorboardApp();
         });
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        this.setStateSafe({ busy: false, errorMessage });
       }
     });
   };
@@ -325,20 +335,32 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private _deleteTensorboard = async () => {
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
-    this.setState({ busy: true, errorMessage: undefined }, async () => {
+    this.setStateSafe({ busy: true, errorMessage: undefined }, async () => {
       try {
         await Apis.deleteTensorboardApp(this._buildUrl(), this._getNamespace());
-        this.setState({
+        this.setStateSafe({
           busy: false,
           deleteDialogOpen: false,
           podAddress: '',
           tensorboardReady: false,
         });
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        this.setStateSafe({ busy: false, errorMessage });
       }
     });
   };
+
+  private setStateSafe(
+    newState:
+      | Partial<TensorboardViewerState>
+      | ((prevState: TensorboardViewerState) => Partial<TensorboardViewerState>),
+    cb?: () => void,
+  ): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
+  }
 }
 
 function makeProxyUrl(podAddress: string) {

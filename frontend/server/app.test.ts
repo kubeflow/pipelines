@@ -38,10 +38,54 @@ describe('UIServer apis', () => {
   const commitHash = 'abcdefg';
   const { argv, buildDate, indexHtmlContent } = commonSetup({ tagName, commitHash });
 
-  afterEach(() => {
-    if (app) {
-      app.close();
+  async function waitForListening(server: Server): Promise<void> {
+    if (server.listening) {
+      return;
     }
+    await new Promise<void>((resolve, reject) => {
+      const onListening = (): void => {
+        cleanup();
+        resolve();
+      };
+      const onError = (err: Error): void => {
+        cleanup();
+        reject(err);
+      };
+      const cleanup = (): void => {
+        server.off('listening', onListening);
+        server.off('error', onError);
+      };
+
+      server.on('listening', onListening);
+      server.on('error', onError);
+    });
+  }
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  it('allows restarting on the same port after close resolves', async () => {
+    app = new UIServer(loadConfigs(argv, {}));
+
+    const firstServer = app.start(0);
+    await waitForListening(firstServer);
+    const firstAddress = firstServer.address();
+    if (!firstAddress || typeof firstAddress === 'string') {
+      throw new Error('Expected first server to bind to a TCP port');
+    }
+
+    await app.close();
+
+    const secondServer = app.start(firstAddress.port);
+    await waitForListening(secondServer);
+    const secondAddress = secondServer.address();
+    if (!secondAddress || typeof secondAddress === 'string') {
+      throw new Error('Expected second server to bind to a TCP port');
+    }
+    expect(secondAddress.port).toBe(firstAddress.port);
   });
 
   describe('/', () => {

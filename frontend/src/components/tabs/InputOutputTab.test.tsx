@@ -19,6 +19,7 @@ import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/library';
+import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
@@ -41,13 +42,17 @@ const namespace = 'namespace';
 
 testBestPractices();
 describe('InoutOutputTab', () => {
+  beforeEach(() => {
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
+  });
+
   it('shows execution title', () => {
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
-      .mockReturnValue(new GetArtifactsByIDResponse());
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new GetEventsByExecutionIDsResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID').mockReturnValue(
+      new GetArtifactsByIDResponse(),
+    );
 
     render(
       <CommonTestWrapper>
@@ -58,12 +63,12 @@ describe('InoutOutputTab', () => {
   });
 
   it("doesn't show Input/Output artifacts and parameters if no exists", async () => {
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
-      .mockReturnValue(new GetArtifactsByIDResponse());
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new GetEventsByExecutionIDsResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID').mockReturnValue(
+      new GetArtifactsByIDResponse(),
+    );
 
     render(
       <CommonTestWrapper>
@@ -78,12 +83,12 @@ describe('InoutOutputTab', () => {
   });
 
   it('shows Input parameters with various types', async () => {
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
-      .mockReturnValue(new GetArtifactsByIDResponse());
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new GetEventsByExecutionIDsResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID').mockReturnValue(
+      new GetArtifactsByIDResponse(),
+    );
 
     const execution = buildBasicExecution();
     execution
@@ -117,12 +122,12 @@ describe('InoutOutputTab', () => {
   });
 
   it('shows Output parameters with various types', async () => {
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
-      .mockReturnValue(new GetArtifactsByIDResponse());
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new GetEventsByExecutionIDsResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID').mockReturnValue(
+      new GetArtifactsByIDResponse(),
+    );
 
     const execution = buildBasicExecution();
     execution
@@ -156,17 +161,18 @@ describe('InoutOutputTab', () => {
   });
 
   it('shows Input artifacts', async () => {
-    jest.spyOn(Apis, 'readFile').mockResolvedValue('artifact preview');
+    vi.spyOn(Apis, 'readFile').mockResolvedValue('artifact preview');
     const getEventResponse = new GetEventsByExecutionIDsResponse();
     getEventResponse.getEventsList().push(buildInputEvent());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValueOnce(getEventResponse);
+    vi.spyOn(
+      Api.getInstance().metadataStoreService,
+      'getEventsByExecutionIDs',
+    ).mockResolvedValueOnce(getEventResponse);
     const getArtifactsResponse = new GetArtifactsByIDResponse();
     getArtifactsResponse.getArtifactsList().push(buildArtifact());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
-      .mockReturnValueOnce(getArtifactsResponse);
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID').mockReturnValueOnce(
+      getArtifactsResponse,
+    );
 
     render(
       <CommonTestWrapper>
@@ -179,17 +185,18 @@ describe('InoutOutputTab', () => {
   });
 
   it('shows Output artifacts', async () => {
-    jest.spyOn(Apis, 'readFile').mockResolvedValue('artifact preview');
+    vi.spyOn(Apis, 'readFile').mockResolvedValue('artifact preview');
     const getEventResponse = new GetEventsByExecutionIDsResponse();
     getEventResponse.getEventsList().push(buildOutputEvent());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValueOnce(getEventResponse);
+    vi.spyOn(
+      Api.getInstance().metadataStoreService,
+      'getEventsByExecutionIDs',
+    ).mockResolvedValueOnce(getEventResponse);
     const getArtifactsResponse = new GetArtifactsByIDResponse();
     getArtifactsResponse.getArtifactsList().push(buildArtifact());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
-      .mockReturnValueOnce(getArtifactsResponse);
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID').mockReturnValueOnce(
+      getArtifactsResponse,
+    );
 
     render(
       <CommonTestWrapper>

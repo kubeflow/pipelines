@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import 'brace';
-import 'brace/ext/language_tools';
-import 'brace/mode/json';
-import 'brace/theme/github';
+import 'ace-builds/src-noconflict/ace';
+import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/theme-github';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, commonCss, spacing } from '../Css';
@@ -100,6 +100,7 @@ const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
                     showGutter={true}
                     readOnly={true}
                     value={JSON.stringify(parsedJson, null, 2) || ''}
+                    editorProps={{ $blockScrolling: Infinity }}
                   />
                 </div>
               );

@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import TextField from '@material-ui/core/TextField';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { ApiParameter } from '../apis/pipeline';
 import { color, commonCss, spacing } from '../Css';
 import Editor from './Editor';
+
+import { Button, InputAdornment, TextField } from '@mui/material';
 
 export interface NewRunParametersProps {
   initialParams: ApiParameter[];
@@ -178,6 +177,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               maxLines={20}
               mode='json'
               theme='github'
+              editorProps={{ $blockScrolling: Infinity }}
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}

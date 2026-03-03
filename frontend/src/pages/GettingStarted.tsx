@@ -34,13 +34,11 @@ const DEMO_PIPELINES_ID_MAP = {
 };
 
 const PAGE_CONTENT_MD = ({ control, data }: { control: string; data: string }) => `
-<br/>
 
 ## Build your own pipeline with
 
 * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/v2/)
 
-<br/>
 
 ## Demonstrations and Tutorials
 This section contains demo and tutorial pipelines.
@@ -113,7 +111,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           .catch(() => ''),
       ),
     );
-    this.setState({ links: ids.map(getPipelineLink) });
+    this.setStateSafe({ links: ids.map(getPipelineLink) });
   }
 
   public async refresh() {

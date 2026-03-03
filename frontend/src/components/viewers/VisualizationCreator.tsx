@@ -15,21 +15,18 @@
  */
 
 import * as React from 'react';
-import 'brace';
+import 'ace-builds/src-noconflict/ace';
 import BusyButton from '../../atoms/BusyButton';
-import FormControl from '@material-ui/core/FormControl';
 import Input from '../../atoms/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
 import Editor from '../Editor';
 import Viewer, { ViewerConfig } from './Viewer';
 import { ApiVisualizationType } from '../../apis/visualization';
-import 'brace/ext/language_tools';
-import 'brace/mode/json';
-import 'brace/mode/python';
-import 'brace/theme/github';
-import Button from '@material-ui/core/Button';
+import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/mode-python';
+import 'ace-builds/src-noconflict/theme-github';
+import { FormControl, InputLabel, MenuItem, Select, Button } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
   allowCustomVisualizations?: boolean;
@@ -103,10 +100,11 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
           width: this.props.maxWidth || 600,
         }}
       >
-        <FormControl style={{ width: '100%' }}>
+        <FormControl variant='standard' style={{ width: '100%' }}>
           <InputLabel htmlFor='visualization-type-selector'>Type</InputLabel>
           <Select
-            value={selectedType}
+            variant='standard'
+            value={selectedType || ''}
             inputProps={{
               id: 'visualization-type-selector',
               name: 'Visualization Type',
@@ -115,7 +113,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
               minHeight: 60,
               width: '100%',
             }}
-            onChange={(e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+            onChange={(e: SelectChangeEvent<ApiVisualizationType>) => {
               this.setState({ selectedType: e.target.value as ApiVisualizationType });
             }}
             disabled={isBusy}
@@ -127,7 +125,6 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
             ))}
           </Select>
         </FormControl>
-
         <Input
           label='Source'
           variant={'outlined'}

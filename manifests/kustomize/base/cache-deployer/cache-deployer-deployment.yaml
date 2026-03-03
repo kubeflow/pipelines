@@ -17,6 +17,7 @@ spec:
         app: cache-deployer
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -29,6 +30,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         image: ghcr.io/kubeflow/kfp-cache-deployer:dummy
         imagePullPolicy: Always
         env:

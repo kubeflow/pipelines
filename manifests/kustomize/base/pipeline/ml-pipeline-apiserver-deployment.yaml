@@ -16,6 +16,7 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -37,6 +38,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: CLUSTER_DOMAIN
+              value: "cluster.local"
             - name: OBJECTSTORECONFIG_SECURE
               value: "false"
             - name: OBJECTSTORECONFIG_BUCKETNAME
@@ -45,7 +48,7 @@ spec:
                   name: pipeline-install-config
                   key: bucketName
             - name: OBJECTSTORECONFIG_HOST
-              value: "minio-service.kubeflow"
+              value: "seaweedfs.kubeflow"
             - name: OBJECTSTORECONFIG_PORT
               value: "9000"
             # relic variables
@@ -123,12 +126,30 @@ spec:
                   name: mlpipeline-minio-artifact
                   key: secretkey
             - name: V2_DRIVER_IMAGE
-              value: ghcr.io/kubeflow/kfp-driver:2.15.0
+              value: ghcr.io/kubeflow/kfp-driver:2.16.0
             - name: V2_LAUNCHER_IMAGE
-              value: ghcr.io/kubeflow/kfp-launcher:2.15.0
+              value: ghcr.io/kubeflow/kfp-launcher:2.16.0
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextRunAsUser
+                  optional: true
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextRunAsGroup
+                  optional: true
+            - name: DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultSecurityContextRunAsNonRoot
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
@@ -169,6 +190,8 @@ spec:
             capabilities:
               drop:
                 - ALL
+            seccompProfile:
+              type: RuntimeDefault
           resources:
             requests:
               cpu: 250m

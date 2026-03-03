@@ -179,7 +179,7 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 		Provider: "minio",
 		Params: map[string]string{
 			"region":     "minio",
-			"endpoint":   objectstore.DefaultMinioEndpointInMultiUserMode,
+			"endpoint":   objectstore.DefaultEndpointInMultiUserMode,
 			"disableSSL": strconv.FormatBool(true),
 			"fromEnv":    strconv.FormatBool(false),
 			"maxRetries": strconv.FormatInt(int64(5), 10),
@@ -194,7 +194,7 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 
 func GetMLPipelineServerConfig() *ServerConfig {
 	return &ServerConfig{
-		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc.cluster.local",
+		Address: common.GetMLPipelineServiceName() + "." + common.GetPodNamespace() + ".svc." + common.GetClusterDomain(),
 		Port:    mlPipelineGrpcServicePort,
 	}
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { blue, grey } from '@material-ui/core/colors';
+import { blue, grey } from '@mui/material/colors';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { CSSProperties } from 'typestyle/lib/types';
@@ -100,7 +100,7 @@ export class LineageCard extends React.Component<LineageCardProps> {
       },
       executionCardTitle: {
         ...cardTitleBase,
-        borderBottom: `${px(CARD_TITLE_BORDER_BOTTOM_HEIGHT)} solid transparent`,
+        borderBottom: `${px(CARD_TITLE_BORDER_BOTTOM_HEIGHT)} solid var(--grey-700)`,
       },
       target: {
         border: `2px solid ${blue[500]}`,

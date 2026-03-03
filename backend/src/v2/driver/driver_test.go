@@ -523,6 +523,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	assert.Len(t, podSpec.InitContainers, 1)
 	assert.Equal(t, podSpec.InitContainers[0].Name, "oci-prepull-0")
 	assert.Equal(t, podSpec.InitContainers[0].Image, "registry.domain.local/my-model:latest")
+	// Modelcar init container should have security context matching the main container
+	assert.NotNil(t, podSpec.InitContainers[0].SecurityContext)
+	assert.False(t, *podSpec.InitContainers[0].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, podSpec.InitContainers[0].SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, podSpec.InitContainers[0].SecurityContext.SeccompProfile.Type)
 
 	assert.Len(t, podSpec.Volumes, 1)
 	assert.Equal(t, podSpec.Volumes[0].Name, "oci-0")
@@ -540,6 +545,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].Name, "oci-0")
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].MountPath, "/oci/registry.domain.local_my-model:latest")
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local_my-model:latest")
+	// Modelcar sidecar should have security context matching the main container
+	assert.NotNil(t, podSpec.Containers[1].SecurityContext)
+	assert.False(t, *podSpec.Containers[1].SecurityContext.AllowPrivilegeEscalation)
+	assert.Equal(t, []k8score.Capability{"ALL"}, podSpec.Containers[1].SecurityContext.Capabilities.Drop)
+	assert.Equal(t, k8score.SeccompProfileTypeRuntimeDefault, podSpec.Containers[1].SecurityContext.SeccompProfile.Type)
 
 	assert.Empty(t, taskConfig.Resources.Limits)
 	assert.Empty(t, taskConfig.Resources.Requests)
@@ -1664,4 +1674,238 @@ func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
 	}
 	assert.True(t, foundAddress, "--ml_pipeline_server_address not found in launcher command")
 	assert.True(t, foundPort, "--ml_pipeline_server_port not found in launcher command")
+}
+
+func Test_validateNonRoot(t *testing.T) {
+	tests := []struct {
+		name    string
+		opts    Options
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "missing pipeline name returns error",
+			opts: Options{
+				PipelineName: "",
+			},
+			wantErr: true,
+			errMsg:  "pipeline name is required",
+		},
+		{
+			name: "missing run ID returns error",
+			opts: Options{
+				PipelineName: "pipeline-1",
+				RunID:        "",
+			},
+			wantErr: true,
+			errMsg:  "KFP run ID is required",
+		},
+		{
+			name: "nil component spec returns error",
+			opts: Options{
+				PipelineName: "pipeline-1",
+				RunID:        "run-1",
+				Component:    nil,
+			},
+			wantErr: true,
+			errMsg:  "component spec is required",
+		},
+		{
+			name: "missing task name returns error",
+			opts: Options{
+				PipelineName: "pipeline-1",
+				RunID:        "run-1",
+				Component:    &pipelinespec.ComponentSpec{},
+				Task:         nil,
+			},
+			wantErr: true,
+			errMsg:  "task spec is required",
+		},
+		{
+			name: "runtime config present returns error",
+			opts: Options{
+				PipelineName:   "pipeline-1",
+				RunID:          "run-1",
+				Component:      &pipelinespec.ComponentSpec{},
+				Task:           &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
+				RuntimeConfig:  &pipelinespec.PipelineJob_RuntimeConfig{},
+				DAGExecutionID: 1,
+			},
+			wantErr: true,
+			errMsg:  "runtime config is unnecessary",
+		},
+		{
+			name: "zero DAG execution ID returns error",
+			opts: Options{
+				PipelineName:   "pipeline-1",
+				RunID:          "run-1",
+				Component:      &pipelinespec.ComponentSpec{},
+				Task:           &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
+				DAGExecutionID: 0,
+			},
+			wantErr: true,
+			errMsg:  "DAG execution ID is required",
+		},
+		{
+			name: "valid non-root options pass validation",
+			opts: Options{
+				PipelineName:   "pipeline-1",
+				RunID:          "run-1",
+				Component:      &pipelinespec.ComponentSpec{},
+				Task:           &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
+				DAGExecutionID: 1,
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateNonRoot(test.opts)
+			if test.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), test.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_provisionOutputs(t *testing.T) {
+	tests := []struct {
+		name             string
+		pipelineRoot     string
+		taskName         string
+		outputsSpec      *pipelinespec.ComponentOutputsSpec
+		outputURISalt    string
+		publishOutput    string
+		wantArtifacts    []string
+		wantParameters   []string
+		wantLogsArtifact bool
+		wantOutputFile   string
+	}{
+		{
+			name:         "provisions output artifacts with URIs",
+			pipelineRoot: "gs://my-bucket/pipeline-root",
+			taskName:     "my-task",
+			outputsSpec: &pipelinespec.ComponentOutputsSpec{
+				Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+					"model": {
+						ArtifactType: &pipelinespec.ArtifactTypeSchema{
+							Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+								SchemaTitle: "system.Model",
+							},
+						},
+					},
+				},
+			},
+			outputURISalt:    "salt-123",
+			publishOutput:    "false",
+			wantArtifacts:    []string{"model"},
+			wantLogsArtifact: false,
+			wantOutputFile:   "/gcs/my-bucket/pipeline-root/my-task/salt-123/output_metadata.json",
+		},
+		{
+			name:         "provisions output parameters",
+			pipelineRoot: "gs://my-bucket/pipeline-root",
+			taskName:     "my-task",
+			outputsSpec: &pipelinespec.ComponentOutputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+					"accuracy": {ParameterType: pipelinespec.ParameterType_NUMBER_DOUBLE},
+					"model_id": {ParameterType: pipelinespec.ParameterType_STRING},
+				},
+			},
+			outputURISalt:  "salt-456",
+			publishOutput:  "false",
+			wantParameters: []string{"accuracy", "model_id"},
+		},
+		{
+			name:         "publish logs adds executor-logs artifact",
+			pipelineRoot: "gs://my-bucket/pipeline-root",
+			taskName:     "my-task",
+			outputsSpec: &pipelinespec.ComponentOutputsSpec{
+				Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+					"output": {
+						ArtifactType: &pipelinespec.ArtifactTypeSchema{
+							Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+								SchemaTitle: "system.Artifact",
+							},
+						},
+					},
+				},
+			},
+			outputURISalt:    "salt-789",
+			publishOutput:    "true",
+			wantArtifacts:    []string{"output", "executor-logs"},
+			wantLogsArtifact: true,
+		},
+		{
+			name:             "nil artifacts with publish logs only adds executor-logs",
+			pipelineRoot:     "gs://my-bucket/pipeline-root",
+			taskName:         "my-task",
+			outputsSpec:      &pipelinespec.ComponentOutputsSpec{},
+			outputURISalt:    "salt-000",
+			publishOutput:    "true",
+			wantArtifacts:    []string{"executor-logs"},
+			wantLogsArtifact: true,
+		},
+		{
+			name:          "empty outputs spec produces no artifacts or parameters",
+			pipelineRoot:  "gs://my-bucket/pipeline-root",
+			taskName:      "my-task",
+			outputsSpec:   &pipelinespec.ComponentOutputsSpec{},
+			outputURISalt: "salt-empty",
+			publishOutput: "false",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			outputs := provisionOutputs(
+				test.pipelineRoot,
+				test.taskName,
+				test.outputsSpec,
+				test.outputURISalt,
+				test.publishOutput,
+			)
+			assert.NotNil(t, outputs)
+			assert.NotNil(t, outputs.Artifacts)
+			assert.NotNil(t, outputs.Parameters)
+			assert.NotEmpty(t, outputs.OutputFile)
+			if test.wantOutputFile != "" {
+				assert.Equal(t, test.wantOutputFile, outputs.OutputFile)
+			}
+
+			for _, artifactName := range test.wantArtifacts {
+				artifactList, ok := outputs.Artifacts[artifactName]
+				assert.True(t, ok, "expected artifact %q", artifactName)
+				if ok {
+					assert.Len(t, artifactList.Artifacts, 1)
+					assert.NotEmpty(t, artifactList.Artifacts[0].Uri)
+					assert.Contains(t, artifactList.Artifacts[0].Uri, test.pipelineRoot)
+				}
+			}
+
+			for _, paramName := range test.wantParameters {
+				param, ok := outputs.Parameters[paramName]
+				assert.True(t, ok, "expected parameter %q", paramName)
+				if ok {
+					assert.Equal(t, fmt.Sprintf("/tmp/kfp/outputs/%s", paramName), param.OutputFile)
+				}
+			}
+
+			if test.wantLogsArtifact {
+				_, ok := outputs.Artifacts["executor-logs"]
+				assert.True(t, ok, "expected executor-logs artifact when publishOutput is true")
+			}
+
+			if len(test.wantArtifacts) == 0 && !test.wantLogsArtifact {
+				assert.Empty(t, outputs.Artifacts, "expected no artifacts for empty outputs spec")
+			}
+			if len(test.wantParameters) == 0 {
+				assert.Empty(t, outputs.Parameters, "expected no parameters for empty outputs spec")
+			}
+		})
+	}
 }

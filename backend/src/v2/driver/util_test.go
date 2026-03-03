@@ -102,6 +102,156 @@ func Test_extractInputParameterFromChannel(t *testing.T) {
 	}
 }
 
+func Test_inputParamConstant(t *testing.T) {
+	tests := []struct {
+		name       string
+		inputValue string
+	}{
+		{
+			name:       "simple string value",
+			inputValue: "hello",
+		},
+		{
+			name:       "empty string value",
+			inputValue: "",
+		},
+		{
+			name:       "numeric string value",
+			inputValue: "42",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			paramSpec := inputParamConstant(test.inputValue)
+			assert.NotNil(t, paramSpec)
+			runtimeValue := paramSpec.GetRuntimeValue()
+			assert.NotNil(t, runtimeValue)
+			assert.Equal(t, test.inputValue, runtimeValue.GetConstant().GetStringValue())
+		})
+	}
+}
+
+func Test_inputParamComponent(t *testing.T) {
+	tests := []struct {
+		name       string
+		inputValue string
+	}{
+		{
+			name:       "standard component input parameter",
+			inputValue: "my_param",
+		},
+		{
+			name:       "empty string",
+			inputValue: "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			paramSpec := inputParamComponent(test.inputValue)
+			assert.NotNil(t, paramSpec)
+			assert.Equal(t, test.inputValue, paramSpec.GetComponentInputParameter())
+		})
+	}
+}
+
+func Test_inputParamTaskOutput(t *testing.T) {
+	tests := []struct {
+		name         string
+		producerTask string
+		outputParam  string
+	}{
+		{
+			name:         "standard task output parameter",
+			producerTask: "task-1",
+			outputParam:  "output_key",
+		},
+		{
+			name:         "empty producer task",
+			producerTask: "",
+			outputParam:  "output_key",
+		},
+		{
+			name:         "empty output param",
+			producerTask: "task-1",
+			outputParam:  "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			paramSpec := inputParamTaskOutput(test.producerTask, test.outputParam)
+			assert.NotNil(t, paramSpec)
+			taskOutputSpec := paramSpec.GetTaskOutputParameter()
+			assert.NotNil(t, taskOutputSpec)
+			assert.Equal(t, test.producerTask, taskOutputSpec.GetProducerTask())
+			assert.Equal(t, test.outputParam, taskOutputSpec.GetOutputParameterKey())
+		})
+	}
+}
+
+func Test_getItems(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     *structpb.Value
+		wantCount int
+		wantErr   bool
+	}{
+		{
+			name: "list value returns items directly",
+			value: structpb.NewListValue(&structpb.ListValue{
+				Values: []*structpb.Value{
+					structpb.NewStringValue("a"),
+					structpb.NewStringValue("b"),
+					structpb.NewStringValue("c"),
+				},
+			}),
+			wantCount: 3,
+			wantErr:   false,
+		},
+		{
+			name:      "string value with valid JSON array",
+			value:     structpb.NewStringValue(`["x","y"]`),
+			wantCount: 2,
+			wantErr:   false,
+		},
+		{
+			name:      "string value with empty JSON array",
+			value:     structpb.NewStringValue(`[]`),
+			wantCount: 0,
+			wantErr:   false,
+		},
+		{
+			name:    "string value with invalid JSON",
+			value:   structpb.NewStringValue(`not-json`),
+			wantErr: true,
+		},
+		{
+			name:    "number value returns error",
+			value:   structpb.NewNumberValue(42),
+			wantErr: true,
+		},
+		{
+			name:    "bool value returns error",
+			value:   structpb.NewBoolValue(true),
+			wantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			items, err := getItems(test.value)
+			if test.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.wantCount, len(items))
+			}
+		})
+	}
+}
+
 func Test_resolvePodSpecRuntimeParameter(t *testing.T) {
 	tests := []struct {
 		name          string

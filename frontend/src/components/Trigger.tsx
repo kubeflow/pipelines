@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import MenuItem from '@material-ui/core/MenuItem';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
-import { TriggerSchedule } from '../lib/TriggerUtils';
 import { HelpButton } from '../atoms/HelpButton';
 import { ExternalLink } from '../atoms/ExternalLink';
 import Input from '../atoms/Input';
@@ -31,6 +26,7 @@ import {
   buildTrigger,
   dateToPickerFormat,
   PeriodicInterval,
+  TriggerSchedule,
   pickersToDate,
   triggers,
   TriggerType,
@@ -38,6 +34,8 @@ import {
   ParsedTrigger,
 } from '../lib/TriggerUtils';
 import { logger } from 'src/lib/Utils';
+
+import { Fab, Checkbox, FormControlLabel, MenuItem } from '@mui/material';
 
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;
@@ -355,15 +353,14 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 />
                 <Separator />
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                  <Button
-                    variant='fab'
-                    mini={true}
+                  <Fab
                     key={i}
+                    size='small'
                     onClick={() => this._toggleDay(i)}
                     color={selectedDays[i] ? 'primary' : 'secondary'}
                   >
                     {day}
-                  </Button>
+                  </Fab>
                 ))}
               </div>
             )}
@@ -445,7 +442,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         startDateTime = pickersToDate(hasStartDate, startDate, startTime);
       }
     } catch (e) {
-      if (e.message === 'Invalid picker format') {
+      if (e instanceof Error && e.message === 'Invalid picker format') {
         startTimeMessage = "Invalid start date or time, start time won't be set";
       } else {
         throw e;
@@ -457,7 +454,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         endDateTime = pickersToDate(hasEndDate, endDate, endTime);
       }
     } catch (e) {
-      if (e.message === 'Invalid picker format') {
+      if (e instanceof Error && e.message === 'Invalid picker format') {
         endTimeMessage = "Invalid end date or time, end time won't be set";
       } else {
         throw e;

@@ -17,7 +17,7 @@
 import React, { useEffect, useState } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
-import { LinkedArtifact, getArtifactName } from 'src/mlmd/MlmdUtils';
+import { LinkedArtifact, getArtifactName, getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import TwoLevelDropdown, {
   DropdownItem,
   DropdownSubItem,
@@ -30,12 +30,10 @@ import {
 } from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
-import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
 import { SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
-import { getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import {
   metricsTypeToString,
   ExecutionArtifact,
@@ -43,6 +41,7 @@ import {
   RunArtifact,
   compareCss,
 } from 'src/lib/v2/CompareUtils';
+import { CircularProgress } from '@mui/material';
 
 const css = stylesheet({
   leftCell: {
@@ -198,14 +197,10 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     async () => {
       let viewerConfigs: ViewerConfig[] = [];
       if (linkedArtifact) {
-        try {
-          if (metricsTab === MetricsType.HTML) {
-            viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
-          } else if (metricsTab === MetricsType.MARKDOWN) {
-            viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
-          }
-        } catch (err) {
-          throw err;
+        if (metricsTab === MetricsType.HTML) {
+          viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
+        } else if (metricsTab === MetricsType.MARKDOWN) {
+          viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
         }
       }
       return viewerConfigs;

@@ -31,8 +31,10 @@ beforeEach(() => {
 
 describe('/apps/tensorboard', () => {
   let app: UIServer;
-  afterEach(() => {
-    app?.close();
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
   const tagName = '1.0.0';
   const commitHash = 'abcdefg';
@@ -89,12 +91,14 @@ describe('/apps/tensorboard', () => {
     type?: string;
   } = {}) {
     return {
-      metadata: {
-        name,
-      },
-      spec: {
-        tensorboardSpec: { logDir, tensorflowImage },
-        type,
+      body: {
+        metadata: {
+          name,
+        },
+        spec: {
+          tensorboardSpec: { logDir, tensorflowImage },
+          type,
+        },
       },
     };
   }
@@ -272,6 +276,32 @@ describe('/apps/tensorboard', () => {
           },
         ]
       `);
+    });
+
+    it('gets tensorboard url with custom cluster domain (defensive normalization)', async () => {
+      // Test both with and without leading dot
+      app = new UIServer(loadConfigs(argv, { CLUSTER_DOMAIN: 'cluster.test' }));
+      k8sGetCustomObjectSpy.mockImplementation(() =>
+        Promise.resolve(
+          newGetTensorboardResponse({
+            name: 'viewer-abcdefg',
+            logDir: 'log-dir-1',
+            tensorflowImage: 'tensorflow:2.0.0',
+          }),
+        ),
+      );
+
+      await requests(app.app)
+        .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+        .expect(
+          200,
+          JSON.stringify({
+            podAddress:
+              'http://viewer-abcdefg-service.test-ns.cluster.test:80/tensorboard/viewer-abcdefg/',
+            tfVersion: '2.0.0',
+            image: 'tensorflow:2.0.0',
+          }),
+        );
     });
   });
 

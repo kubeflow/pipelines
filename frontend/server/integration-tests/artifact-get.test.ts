@@ -67,8 +67,10 @@ describe('/artifacts', () => {
     });
   });
 
-  afterEach(() => {
-    app?.close();
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('/get', () => {
@@ -77,7 +79,7 @@ describe('/artifacts', () => {
 
       const configs = loadConfigs(argv, {
         MINIO_ACCESS_KEY: 'minio',
-        MINIO_HOST: 'minio-service',
+        MINIO_HOST: 'seaweedfs',
         MINIO_NAMESPACE: 'kubeflow',
         MINIO_PORT: '9000',
         MINIO_SECRET_KEY: 'minio123',
@@ -91,7 +93,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent);
       expect(mockedMinioClient).toBeCalledWith({
         accessKey: 'minio',
-        endPoint: 'minio-service.kubeflow',
+        endPoint: 'seaweedfs.kubeflow',
         port: 9000,
         secretKey: 'minio123',
         useSSL: false,
@@ -820,6 +822,21 @@ describe('/artifacts', () => {
       await request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(500, 'Failed to open volume.');
+    });
+
+    it('rejects keys longer than 1024 characters', async () => {
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+      const request = requests(app.start());
+      await request
+        .get(
+          '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=' +
+            'a'.repeat(1025),
+        )
+        .expect(500, 'Object key too long');
     });
   });
 

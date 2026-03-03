@@ -1,5 +1,37 @@
+root: true
+parser: '@typescript-eslint/parser'
+env:
+    browser: true
+    es2020: true
+    node: true
+parserOptions:
+    ecmaVersion: 2020
+    sourceType: module
+    ecmaFeatures:
+        jsx: true
+settings:
+    react:
+        version: detect
+    import/resolver:
+        node:
+            paths:
+                - .
+            extensions:
+                - .js
+                - .jsx
+                - .ts
+                - .tsx
+plugins:
+    - '@typescript-eslint'
+    - import
+    - react
+    - react-hooks
+    - jsx-a11y
 extends:
-    - react-app
+    - eslint:recommended
+    - plugin:import/recommended
+    - plugin:import/typescript
+    - plugin:react-hooks/recommended
 ignorePatterns:
     - node_modules/
     - src/apis # these are generated api clients
@@ -10,4 +42,30 @@ ignorePatterns:
     - src/third_party/mlmd/generated # MLMD generated definition from source.
     - src/stories # Storybook is for development only.
 rules:
+    # TypeScript handles undefined symbol checks.
+    no-undef: off
+    no-unused-vars: off
+    no-redeclare: off
+    '@typescript-eslint/no-redeclare': error
+    '@typescript-eslint/no-unused-vars':
+        - error
+        - argsIgnorePattern: '^_'
+          varsIgnorePattern: '^_'
+          caughtErrorsIgnorePattern: '^_'
+          ignoreRestSiblings: true
+    import/no-unresolved:
+        - error
+        - ignore:
+              - '^src/build/tailwind.output.css$'
+    import/no-anonymous-default-export:
+        - error
+        - allowArray: true
+          allowArrowFunction: true
+          allowAnonymousClass: true
+          allowAnonymousFunction: true
+          allowCallExpression: true
+          allowLiteral: true
+          allowObject: true
+    react/react-in-jsx-scope: off
+    react/prop-types: off
     react/jsx-no-target-blank: ['error', { "allowReferrer": true }]

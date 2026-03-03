@@ -16,198 +16,106 @@
 
 import * as Utils from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
-import { shallow } from 'enzyme';
+import { render } from '@testing-library/react';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { vi } from 'vitest';
 
 describe('Status', () => {
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
-  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
-
   const startDate = new Date('Wed Jan 2 2019 9:10:11 GMT-0800');
   const endDate = new Date('Thu Jan 3 2019 10:11:12 GMT-0800');
 
   beforeEach(() => {
-    formatDateStringSpy.mockImplementation((date: Date) => {
+    vi.spyOn(Utils, 'formatDateString').mockImplementation((date: Date) => {
       return date === startDate ? '1/2/2019, 9:10:11 AM' : '1/3/2019, 10:11:12 AM';
     });
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('statusToIcon', () => {
     it('handles an unknown state', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      const tree = shallow(statusToIcon('bad state' as any));
-      expect(tree).toMatchSnapshot();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const { asFragment } = render(statusToIcon('bad state' as any));
+      expect(asFragment()).toMatchSnapshot();
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown state:', 'bad state');
     });
 
     it('handles an undefined state', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      const tree = shallow(statusToIcon(/* no phase */));
-      expect(tree).toMatchSnapshot();
-      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown state:', undefined);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const { asFragment } = render(statusToIcon(/* no phase */));
+      expect(asFragment()).toMatchSnapshot();
+      expect(consoleSpy).not.toHaveBeenCalled();
     });
 
-    // TODO: Enable this test after react-scripts is upgraded to v4.0.0
-    // it('react testing for ERROR state', async () => {
-    //   const { findByText, getByTestId } = render(
-    //     statusToIcon(NodePhase.ERROR),
-    //   );
-
-    //   fireEvent.mouseOver(getByTestId('node-status-sign'));
-    //   findByText('Error while running this resource');
-    // });
-
     it('handles FAILED state', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.FAILED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(ErrorIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#d50000",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.FAILED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles PENDING state', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.PENDING));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(ScheduleIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#9aa0a6",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.PENDING));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles RUNNING state', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.RUNNING));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <StatusRunning
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#4285f4",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.RUNNING));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles CANCELING state', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.CANCELING));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <StatusRunning
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#4285f4",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.CANCELING));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles SKIPPED state', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.SKIPPED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(SkipNextIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#5f6368",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SKIPPED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles SUCCEEDED state', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.SUCCEEDED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(CheckCircleIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#34a853",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SUCCEEDED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles CANCELED state', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.CANCELED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <StatusRunning
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#80868b",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.CANCELED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('displays start and end dates if both are provided', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.SUCCEEDED, startDate, endDate));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(
+        statusToIcon(V2beta1RuntimeState.SUCCEEDED, startDate, endDate),
+      );
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display a end date if none was provided', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.SUCCEEDED, startDate));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SUCCEEDED, startDate));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display a start date if none was provided', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.SUCCEEDED, undefined, endDate));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(
+        statusToIcon(V2beta1RuntimeState.SUCCEEDED, undefined, endDate),
+      );
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display any dates if neither was provided', () => {
-      const tree = shallow(statusToIcon(V2beta1RuntimeState.SUCCEEDED /* No dates */));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SUCCEEDED /* No dates */));
+      expect(asFragment()).toMatchSnapshot();
     });
 
-    Object.keys(V2beta1RuntimeState).map(status =>
+    Object.keys(V2beta1RuntimeState).forEach(status =>
       it('renders an icon with tooltip for phase: ' + status, () => {
-        const tree = shallow(statusToIcon(V2beta1RuntimeState[status]));
-        expect(tree).toMatchSnapshot();
+        const { asFragment } = render(
+          statusToIcon(V2beta1RuntimeState[status as keyof typeof V2beta1RuntimeState]),
+        );
+        expect(asFragment()).toMatchSnapshot();
       }),
     );
   });

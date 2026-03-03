@@ -1,3 +1,5 @@
+exclude: ^backend/api/(v1beta1|v2beta1)/python_http_client/
+
 repos:
   # other fast helpful checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -55,7 +57,7 @@ repos:
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.1.2
+    rev: v2.10.1
     hooks:
       - id: golangci-lint
         name: golangci-lint

@@ -23,7 +23,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet --no-warn-script-location 'codeflare-sdk==0.32.2'\
-          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -45,24 +45,82 @@ deploymentSpec:
           \      head_cpu_limits=1,\n            head_memory_requests=4,\n       \
           \     head_memory_limits=4,\n            worker_cpu_requests=1,\n      \
           \      worker_cpu_limits=1,\n            worker_memory_requests=1,\n   \
-          \         worker_memory_limits=2,\n            # Corresponds to quay.io/modh/ray:2.47.1-py311-cu121\n\
-          \            image=\"quay.io/modh/ray@sha256:6d076aeb38ab3c34a6a2ef0f58dc667089aa15826fa08a73273c629333e12f1e\"\
-          ,\n            verify_tls=False\n        )\n    )\n\n    # always clean\
-          \ the resources\n    cluster.down()\n    print(cluster.status())\n    cluster.up()\n\
-          \    cluster.wait_ready()\n    print(cluster.status())\n    print(cluster.details())\n\
-          \n    ray_dashboard_uri = cluster.cluster_dashboard_uri()\n    ray_cluster_uri\
-          \ = cluster.cluster_uri()\n    print(ray_dashboard_uri)\n    print(ray_cluster_uri)\n\
-          \n    # before proceeding make sure the cluster exists and the uri is not\
-          \ empty\n    assert ray_cluster_uri, \"Ray cluster needs to be started and\
-          \ set before proceeding\"\n\n    # reset the ray context in case there's\
-          \ already one.\n    ray.shutdown()\n    # establish connection to ray cluster\n\
-          \    generate_cert.generate_tls_cert(cluster.config.name, cluster.config.namespace)\n\
-          \    generate_cert.export_env(cluster.config.name, cluster.config.namespace)\n\
-          \    ray.init(address=cluster.cluster_uri(), logging_level=\"DEBUG\")\n\
-          \    print(\"Ray cluster is up and running: \", ray.is_initialized())\n\n\
-          \    @ray.remote\n    def train_fn():\n        return 100\n\n    result\
-          \ = ray.get(train_fn.remote())\n    assert 100 == result\n    ray.shutdown()\n\
-          \    cluster.down()\n    return result\n\n"
+          \         worker_memory_limits=2,\n            image=\"quay.io/modh/ray@sha256:6d076aeb38ab3c34a6a2ef0f58dc667089aa15826fa08a73273c629333e12f1e\"\
+          ,\n            verify_tls=False\n        )\n    )\n\n    # Clean up any\
+          \ existing cluster with the same name first\n    print(\"Cleaning up any\
+          \ existing cluster resources...\")\n    try:\n        cluster.down()\n \
+          \       print(\"Cleaned up existing cluster\")\n    except Exception as\
+          \ e:\n        print(f\"No existing cluster to clean up (expected): {e}\"\
+          )\n\n    # Create and start the cluster using current best practice\n  \
+          \  print(\"Creating Ray cluster...\")\n    cluster.apply()\n\n    # Custom\
+          \ wait logic since wait_ready() can hang\n    print(\"Waiting for Ray cluster\
+          \ to be ready...\")\n    import time\n    max_wait_time = 300  # 5 minutes\
+          \ timeout\n    wait_interval = 10   # Check every 10 seconds\n    elapsed_time\
+          \ = 0\n\n    cluster_ready = False\n    while elapsed_time < max_wait_time:\n\
+          \        try:\n            print(f\"Checking cluster readiness... ({elapsed_time}s\
+          \ elapsed)\")\n\n            # Try to get cluster URIs as a readiness check\n\
+          \            dashboard_uri = cluster.cluster_dashboard_uri()\n         \
+          \   cluster_uri = cluster.cluster_uri()\n\n            if dashboard_uri\
+          \ and cluster_uri:\n                print(f\"Cluster is ready! Dashboard:\
+          \ {dashboard_uri}\")\n                print(f\"Cluster URI: {cluster_uri}\"\
+          )\n                cluster_ready = True\n                break\n       \
+          \     else:\n                print(\"Cluster URIs not ready yet, waiting...\"\
+          )\n\n        except (ConnectionError, TimeoutError, RuntimeError, AttributeError)\
+          \ as e:\n            print(f\"Cluster not ready yet: {e}\")\n        except\
+          \ Exception as e:\n            print(f\"Unexpected error checking cluster\
+          \ readiness: {e}\")\n\n        time.sleep(wait_interval)\n        elapsed_time\
+          \ += wait_interval\n\n    if not cluster_ready:\n        print(\"Cluster\
+          \ details for debugging:\")\n        print(cluster.details())\n        raise\
+          \ RuntimeError(f\"Ray cluster failed to become ready within {max_wait_time}\
+          \ seconds\")\n\n    print(\"Cluster is fully ready!\")\n\n    # Get cluster\
+          \ connection info\n    ray_dashboard_uri = cluster.cluster_dashboard_uri()\n\
+          \    ray_cluster_uri = cluster.cluster_uri()\n    print(f\"Ray dashboard\
+          \ URI: {ray_dashboard_uri}\")\n    print(f\"Ray cluster URI: {ray_cluster_uri}\"\
+          )\n\n    # Verify cluster URI is available\n    assert ray_cluster_uri,\
+          \ \"Ray cluster URI is empty - cluster may not be ready\"\n\n    # Set up\
+          \ TLS and connect to Ray cluster\n    print(\"Attempting to connect to Ray\
+          \ cluster...\")\n\n    # Try TLS setup first, fall back to direct connection\
+          \ if it fails\n    tls_setup_successful = False\n    try:\n        print(\"\
+          Setting up TLS certificates...\")\n        generate_cert.generate_tls_cert(cluster.config.name,\
+          \ cluster.config.namespace)\n        generate_cert.export_env(cluster.config.name,\
+          \ cluster.config.namespace)\n        print(\"TLS certificates configured\
+          \ successfully\")\n        tls_setup_successful = True\n    except (OSError,\
+          \ PermissionError, ValueError, RuntimeError) as e:\n        print(f\"TLS\
+          \ setup failed (will try direct connection): {e}\")\n        print(\"Since\
+          \ cluster was configured with verify_tls=False, attempting direct connection...\"\
+          )\n    except Exception as e:\n        print(f\"Unexpected TLS setup error\
+          \ (will try direct connection): {e}\")\n        print(\"Since cluster was\
+          \ configured with verify_tls=False, attempting direct connection...\")\n\
+          \n    # Connect to the Ray cluster\n    try:\n        ray.init(address=ray_cluster_uri,\
+          \ logging_level=\"DEBUG\")\n        print(f\"Ray cluster connected: {ray.is_initialized()}\"\
+          )\n\n        if not ray.is_initialized():\n            raise RuntimeError(\"\
+          Ray failed to initialize\")\n\n    except (ConnectionError, TimeoutError,\
+          \ RuntimeError, OSError) as e:\n        print(f\"Ray connection failed:\
+          \ {e}\")\n        if tls_setup_successful:\n            print(\"Connection\
+          \ failed even with TLS setup\")\n        else:\n            print(\"Trying\
+          \ alternative connection approaches...\")\n\n            # Alternative:\
+          \ Try connecting without explicit address (auto-discovery)\n           \
+          \ try:\n                ray.shutdown()  # Clean any previous attempts\n\
+          \                print(\"Attempting Ray auto-discovery connection...\")\n\
+          \                ray.init(logging_level=\"DEBUG\")\n                print(f\"\
+          Ray auto-discovery connection: {ray.is_initialized()}\")\n            except\
+          \ (ConnectionError, TimeoutError, RuntimeError, OSError) as e2:\n      \
+          \          print(f\"Auto-discovery also failed: {e2}\")\n              \
+          \  raise RuntimeError(f\"All Ray connection attempts failed. Original error:\
+          \ {e}\")\n            except Exception as e2:\n                print(f\"\
+          Unexpected auto-discovery error: {e2}\")\n                raise RuntimeError(f\"\
+          All Ray connection attempts failed. Original error: {e}\")\n    except Exception\
+          \ as e:\n        print(f\"Unexpected Ray connection error: {e}\")\n    \
+          \    raise RuntimeError(f\"Ray connection failed with unexpected error:\
+          \ {e}\")\n\n    # Verify cluster resources\n    print(f\"Ray cluster resources:\
+          \ {ray.cluster_resources()}\")\n\n    # Define and run remote function\n\
+          \    @ray.remote\n    def train_fn():\n        return 100\n\n    print(\"\
+          Executing remote Ray function...\")\n    result = ray.get(train_fn.remote())\n\
+          \    print(f\"Ray function result: {result}\")\n    assert result == 100,\
+          \ f\"Expected 100, got {result}\"\n\n    # Clean shutdown\n    print(\"\
+          Shutting down Ray connection...\")\n    ray.shutdown()\n\n    print(\"Cleaning\
+          \ up Ray cluster...\")\n    cluster.down()\n    print(\"Ray cluster cleanup\
+          \ completed\")\n\n    return result\n\n"
         image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   description: Ray Integration Test
@@ -77,4 +135,4 @@ root:
         taskInfo:
           name: ray-fn
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.6
+sdkVersion: kfp-2.15.2

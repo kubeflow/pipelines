@@ -28,7 +28,7 @@ gcloud container clusters create $CLUSTER_NAME \
 You can only deploy one Kubeflow Pipelines into a given cluster.
 
 ## Namespace
-Specify a [Kubenetes namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/).
+Specify a [Kubernetes namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/).
 
 ## App instance name
 Specify an app instance name to help you identify this instance.

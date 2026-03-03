@@ -1512,8 +1512,143 @@ func TestRetryRun(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 		},
 	}
-	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	run, err := server.CreateRun(context.Background(), &apiv2beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	_, err = server.RetryRun(nil, &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+	// RetryRun requires the workflow to be in Failed/Error state, so expect an error.
+	_, err = server.RetryRun(context.Background(), &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+	assert.NotNil(t, err)
+}
+
+func TestNewRunServerV1(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServerV1(manager, &RunServerOptions{CollectMetrics: false})
+	assert.NotNil(t, server)
+	assert.NotNil(t, server.BaseRunServer)
+	assert.Equal(t, manager, server.resourceManager)
+}
+
+func TestArchiveRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.ArchiveRunV1(context.Background(), &apiv1beta1.ArchiveRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestArchiveRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.ArchiveRunV1(context.Background(), &apiv1beta1.ArchiveRunRequest{Id: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestArchiveRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	_, err := server.ArchiveRun(context.Background(), &apiv2beta1.ArchiveRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestUnarchiveRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	// Archive first, then unarchive.
+	_, err := server.ArchiveRunV1(context.Background(), &apiv1beta1.ArchiveRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+	_, err = server.UnarchiveRunV1(context.Background(), &apiv1beta1.UnarchiveRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestUnarchiveRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.UnarchiveRunV1(context.Background(), &apiv1beta1.UnarchiveRunRequest{Id: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestUnarchiveRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	// Archive first, then unarchive.
+	_, err := server.ArchiveRun(context.Background(), &apiv2beta1.ArchiveRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+	_, err = server.UnarchiveRun(context.Background(), &apiv2beta1.UnarchiveRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestDeleteRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.DeleteRunV1(context.Background(), &apiv1beta1.DeleteRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+	// Verify the run is gone.
+	_, err = manager.GetRun(run.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.DeleteRunV1(context.Background(), &apiv1beta1.DeleteRunRequest{Id: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	_, err := server.DeleteRun(context.Background(), &apiv2beta1.DeleteRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+	// Verify the run is gone.
+	_, err = manager.GetRun(run.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestTerminateRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.TerminateRunV1(context.Background(), &apiv1beta1.TerminateRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestTerminateRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.TerminateRunV1(context.Background(), &apiv1beta1.TerminateRunRequest{RunId: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestTerminateRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	_, err := server.TerminateRun(context.Background(), &apiv2beta1.TerminateRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestRetryRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	// RetryRunV1 requires the workflow to be in Failed/Error state, so expect an error.
+	_, err := server.RetryRunV1(context.Background(), &apiv1beta1.RetryRunRequest{RunId: run.UUID})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Workflow must be Failed/Error to retry")
 }

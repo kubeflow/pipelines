@@ -15,28 +15,24 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import Paper from '@material-ui/core/Paper';
-import PopOutIcon from '@material-ui/icons/Launch';
+import PopOutIcon from '@mui/icons-material/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
 import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
 import Toolbar, { ToolbarProps } from 'src/components/Toolbar';
-import Tooltip from '@material-ui/core/Tooltip';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
-import { logger } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+
+import { Button, Dialog, DialogActions, DialogContent, Paper, Tooltip } from '@mui/material';
 
 const css = stylesheet({
   card: {
@@ -335,9 +331,10 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           rr => rr.status === V2beta1RecurringRunStatus.ENABLED,
         ).length;
       } catch (err) {
+        const error = err instanceof Error ? err : new Error(await errorToMessage(err));
         await this.showPageError(
           `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
-          err,
+          error,
         );
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
@@ -351,7 +348,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
       this._selectionChanged([]);
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, error);
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
   }
@@ -409,7 +407,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     if (toolbarActions[ButtonKeys.RESTORE]) {
       toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
     }
-    this.setState({
+    this.setStateSafe({
       runListToolbarProps: {
         actions: toolbarActions,
         breadcrumbs: this.state.runListToolbarProps.breadcrumbs,
@@ -421,9 +419,11 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   };
 
   private _recurringRunsManagerClosed(): void {
-    this.setState({ recurringRunsManagerOpen: false });
+    this.setStateSafe({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
-    this.refresh();
+    if (this._isMounted) {
+      this.refresh();
+    }
   }
 }
 

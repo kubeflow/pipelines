@@ -13,4 +13,4 @@ spec:
             - name: HTTPS_PROXY
               value: "http://squid.squid.svc.cluster.local:3128"
             - name: NO_PROXY
-              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,mysql,mysql.kubeflow,minio-service.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"
+              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,mysql,mysql.kubeflow,seaweedfs.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"

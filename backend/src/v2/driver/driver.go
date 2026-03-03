@@ -91,6 +91,13 @@ type Options struct {
 	PipelineJobCreateTimeUTC string
 
 	PipelineJobScheduleTimeUTC string
+
+	// Admin-configured default runAsUser for user containers. Nil means not set.
+	DefaultRunAsUser *int64
+	// Admin-configured default runAsGroup for user containers. Nil means not set.
+	DefaultRunAsGroup *int64
+	// Admin-configured default runAsNonRoot for user containers. Nil means not set.
+	DefaultRunAsNonRoot *bool
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
@@ -578,6 +585,22 @@ func addModelcarsToPodSpec(
 
 		image := strings.TrimPrefix(inputArtifact.Uri, "oci://")
 
+		// Apply the same security context to modelcar containers as the main
+		// container to ensure matching credentials for /proc/<pid>/root access
+		// via shareProcessNamespace. Without matching security contexts, the
+		// kernel's ptrace_may_access check can deny access to the symlinked
+		// model files.
+		allowPrivilegeEscalation := false
+		modelcarSecurityContext := &k8score.SecurityContext{
+			AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+			Capabilities: &k8score.Capabilities{
+				Drop: []k8score.Capability{"ALL"},
+			},
+			SeccompProfile: &k8score.SeccompProfile{
+				Type: k8score.SeccompProfileTypeRuntimeDefault,
+			},
+		}
+
 		podSpec.InitContainers = append(
 			podSpec.InitContainers,
 			k8score.Container{
@@ -595,6 +618,7 @@ func addModelcarsToPodSpec(
 						" exit 1)",
 				},
 				Env:                      userEnvVar,
+				SecurityContext:          modelcarSecurityContext,
 				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
 			},
 		)
@@ -629,6 +653,7 @@ func addModelcarsToPodSpec(
 				ImagePullPolicy: "IfNotPresent",
 				Env:             userEnvVar,
 				VolumeMounts:    []k8score.VolumeMount{emptyDirVolumeMount},
+				SecurityContext: modelcarSecurityContext,
 				Command: []string{
 					"sh",
 					"-c",

@@ -16,13 +16,12 @@
 
 import * as React from 'react';
 import BusyButton from 'src/atoms/BusyButton';
-import Button from '@material-ui/core/Button';
 import Input from 'src/atoms/Input';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from 'src/pages/Page';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser } from 'src/lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
@@ -32,6 +31,7 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { NewExperimentFC } from 'src/pages/functional_components/NewExperimentFC';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
+import { Button } from '@mui/material';
 
 interface NewExperimentState {
   description: string;
@@ -196,7 +196,9 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
       }
       this.setState({ validationError: '' });
     } catch (err) {
-      this.setState({ validationError: err.message });
+      this.setState({
+        validationError: err instanceof Error ? err.message : 'Experiment name is required',
+      });
     }
   }
 }

@@ -15,27 +15,27 @@
  */
 
 import * as React from 'react';
-import ErrorIcon from '@material-ui/icons/Error';
-import PendingIcon from '@material-ui/icons/Schedule';
+import ErrorIcon from '@mui/icons-material/Error';
+import PendingIcon from '@mui/icons-material/Schedule';
 import RunningIcon from 'src/icons/statusRunning';
-import SkippedIcon from '@material-ui/icons/SkipNext';
-import SuccessIcon from '@material-ui/icons/CheckCircle';
+import SkippedIcon from '@mui/icons-material/SkipNext';
+import SuccessIcon from '@mui/icons-material/CheckCircle';
 import CachedIcon from 'src/icons/statusCached';
 import TerminatedIcon from 'src/icons/statusTerminated';
-import Tooltip from '@material-ui/core/Tooltip';
-import UnknownIcon from '@material-ui/icons/Help';
+import UnknownIcon from '@mui/icons-material/Help';
 import { color } from 'src/Css';
 import { logger, formatDateString } from 'src/lib/Utils';
 import { checkIfTerminatedV2 } from 'src/lib/StatusUtils';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
-import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { Tooltip } from '@mui/material';
 
 export function statusToIcon(
   state?: V2beta1RuntimeState,
   startDate?: Date | string,
   endDate?: Date | string,
   nodeMessage?: string,
-  mlmdState?: Execution.State,
+  mlmdState?: metadataStorePb.Execution.State,
 ): JSX.Element {
   state = checkIfTerminatedV2(state, nodeMessage);
   // tslint:disable-next-line:variable-name
@@ -63,6 +63,11 @@ export function statusToIcon(
       iconColor = color.blue;
       title = 'Run is canceling';
       break;
+    case V2beta1RuntimeState.PAUSED:
+      IconComponent = PendingIcon;
+      iconColor = color.weak;
+      title = 'Run is paused';
+      break;
     case V2beta1RuntimeState.SKIPPED:
       IconComponent = SkippedIcon;
       title = 'Execution has been skipped for this resource';
@@ -80,10 +85,12 @@ export function statusToIcon(
     case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
       break;
     default:
-      logger.verbose('Unknown state:', state);
+      if (state != null) {
+        logger.verbose('Unknown state:', state);
+      }
   }
   // TODO(jlyaoyuli): Additional changes is probably needed after Status IR integration.
-  if (mlmdState === Execution.State.CACHED) {
+  if (mlmdState === metadataStorePb.Execution.State.CACHED) {
     IconComponent = CachedIcon;
     iconColor = color.success;
     title = 'Execution was skipped and outputs were taken from cache';

@@ -15,26 +15,28 @@
  */
 
 import * as React from 'react';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
-import ChevronLeft from '@material-ui/icons/ChevronLeft';
-import ChevronRight from '@material-ui/icons/ChevronRight';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import FilterIcon from '@material-ui/icons/FilterList';
-import IconButton from '@material-ui/core/IconButton';
+import ArrowRight from '@mui/icons-material/ArrowRight';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ChevronRight from '@mui/icons-material/ChevronRight';
+import FilterIcon from '@mui/icons-material/FilterList';
 import Input from '../atoms/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import Radio from '@material-ui/core/Radio';
 import Separator from '../atoms/Separator';
-import TableSortLabel from '@material-ui/core/TableSortLabel';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
-import Tooltip from '@material-ui/core/Tooltip';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
 import { logger } from '../lib/Utils';
 import { debounce } from 'lodash';
-import { InputAdornment } from '@material-ui/core';
+import {
+  InputAdornment,
+  Checkbox,
+  CircularProgress,
+  IconButton,
+  MenuItem,
+  Radio,
+  TableSortLabel,
+  TextField,
+  Tooltip,
+} from '@mui/material';
 import { CustomTableRow } from './CustomTableRow';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
@@ -245,14 +247,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     };
   }
 
-  public handleSelectAllClick(event: React.ChangeEvent): void {
+  public handleSelectAllClick(event: React.ChangeEvent<HTMLInputElement>): void {
     if (this.props.disableSelection === true) {
       // This should be impossible to reach
       return;
     }
-    const selectedIds = (event.target as CheckboxProps).checked
-      ? this.props.rows.map(v => v.id)
-      : [];
+    const selectedIds = event.target.checked ? this.props.rows.map(v => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
@@ -330,7 +330,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             />
           </div>
         )}
-
         {/* Header */}
         <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
           {// Called as function to avoid breaking shallow rendering tests.
@@ -367,6 +366,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                       active={isCurrentSortColumn}
                       className={commonCss.ellipsis}
                       direction={isColumnSortable ? sortOrder : undefined}
+                      hideSortIcon={!isColumnSortable}
                       onClick={() => this._requestSort(this.props.columns[i].sortKey)}
                     >
                       {col.label}
@@ -377,7 +377,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             );
           })}
         </div>
-
         {/* Body */}
         <div className={commonCss.scrollContainer} style={{ minHeight: 60 }}>
           {/* Busy experience */}
@@ -444,7 +443,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             );
           })}
         </div>
-
         {/* Footer */}
         {!this.props.disablePaging && (
           <div className={css.footer}>
@@ -465,12 +463,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               ))}
             </TextField>
 
-            <IconButton onClick={() => this._pageChanged(-1)} disabled={!this.state.currentPage}>
+            <IconButton
+              onClick={() => this._pageChanged(-1)}
+              disabled={!this.state.currentPage}
+              size='large'
+            >
               <ChevronLeft />
             </IconButton>
             <IconButton
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
+              size='large'
             >
               <ChevronRight />
             </IconButton>
@@ -608,8 +611,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
   }
 
-  private async _requestRowsPerPage(event: React.ChangeEvent): Promise<void> {
-    const pageSize = (event.target as TextFieldProps).value as number;
+  private async _requestRowsPerPage(
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ): Promise<void> {
+    const pageSize = Number(event.target.value);
 
     this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
   }
@@ -726,6 +731,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
             )}
             onClick={onExpand}
             aria-label='Expand'
+            size='large'
           >
             <ArrowRight />
           </IconButton>

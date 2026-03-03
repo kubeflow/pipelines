@@ -20,6 +20,7 @@ spec:
         application-crd-id: kubeflow-pipelines
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
         fsGroup: 1000
@@ -42,35 +43,88 @@ spec:
             exec:
               command:
               - /bin/sh
-              - -ec
+              - -c
               - |
-                # wait until seaweedfs master is ready
-                for i in $(seq 1 120); do
+                # Wait up to 120 seconds  for SeaweedFS master to be ready
+                for i in $(seq 1 60); do
                   if wget -q --spider http://127.0.0.1:8333/status; then
                     break
                   fi
+                  if [ "$i" -eq 60 ]; then
+                    echo "ERROR: SeaweedFS master did not become ready within 120 seconds"
+                    exit 1
+                  fi
                   sleep 2
                 done
-                # create bucket if not exists (ignore error if exists)
-                echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell || true
-                # configure admin user using keys from secret
-                echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell
+
+                # Create bucket with retries (maximum 25 seconds)
+                for i in $(seq 1 5); do
+                  echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell 2>&1 || true
+                  if echo "s3.bucket.list" | /usr/bin/weed shell 2>/dev/null | grep -q mlpipeline; then
+                    break
+                  fi
+                  if [ "$i" -eq 5 ]; then
+                    echo "ERROR: mlpipeline bucket not found after 5 attempts"
+                    exit 1
+                  fi
+                  sleep 5
+                done
+
+                # Configure admin user with retries (25s max)
+                for i in $(seq 1 5); do
+                  if echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell 2>&1; then
+                    break
+                  fi
+                  if [ "$i" -eq 5 ]; then
+                    echo "ERROR: Failed to configure kubeflow-admin after 5 attempts"
+                    exit 1
+                  fi
+                  sleep 5
+                done
+
+                # Verify bucket is accessible
+                if ! echo "s3.bucket.list" | /usr/bin/weed shell | grep -q mlpipeline; then
+                  echo "ERROR: mlpipeline bucket verification failed"
+                  exit 1
+                fi
+
+                # Signal successful initialization for the startup probe
+                touch /tmp/initialization-complete
         ports:
         - containerPort: 8333
         - containerPort: 8111
         - containerPort: 9333
         - containerPort: 19333
         - containerPort: 8888
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -f /tmp/initialization-complete && echo "s3.bucket.list" | /usr/bin/weed shell | grep -q mlpipeline
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 10
+          failureThreshold: 24
+          successThreshold: 1
         readinessProbe:
           httpGet:
             path: /status
             port: 8333
             scheme: HTTP
-          initialDelaySeconds: 15
-          periodSeconds: 15
-          successThreshold: 1
-          failureThreshold: 100
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8333
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
           timeoutSeconds: 10
+          failureThreshold: 3
         securityContext: # Using restricted profile
           allowPrivilegeEscalation: false
           privileged: false
@@ -81,6 +135,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - mountPath: /data
           name: data

@@ -1,6 +1,6 @@
 # Pipeline Anatomy
 
-This document clarifies the anatomy of a single-component pipeline. Complexity sometimes discourage scrutiny. My hope is that improved clarity will pave the way for consolidation and simplification. 
+This document clarifies the anatomy of a single-component pipeline. Complexity sometimes discourages scrutiny. My hope is that improved clarity will pave the way for consolidation and simplification. 
 
 ## Flowchart
 

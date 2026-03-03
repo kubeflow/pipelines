@@ -16,7 +16,7 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -56,15 +56,17 @@ initFeatures();
 export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
-    <MuiThemeProvider theme={theme}>
-      <BuildInfoProvider>
-        <GkeMetadataProvider>
-          <HashRouter>
-            <Router />
-          </HashRouter>
-        </GkeMetadataProvider>
-      </BuildInfoProvider>
-    </MuiThemeProvider>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <BuildInfoProvider>
+          <GkeMetadataProvider>
+            <HashRouter>
+              <Router />
+            </HashRouter>
+          </GkeMetadataProvider>
+        </BuildInfoProvider>
+      </ThemeProvider>
+    </StyledEngineProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
@@ -72,7 +74,7 @@ ReactDOM.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
-    <NamespaceContext.Provider value={process.env.REACT_APP_NAMESPACE || undefined}>
+    <NamespaceContext.Provider value={import.meta.env.VITE_NAMESPACE || undefined}>
       {app}
     </NamespaceContext.Provider>
   ),
