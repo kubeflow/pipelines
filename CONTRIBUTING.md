@@ -11,6 +11,8 @@ Please see https://github.com/kubeflow/community/tree/master/dco-signoff-hook#si
 
 ## Contribution Guidelines
 
+For planning and review guardrails, use the [Project Improvement Checklist](./README.md#project-improvement-checklist).
+
 To propose a new feature or a change that alters some existing user experience
 or creates a new user experience, follow these steps:
 
@@ -66,7 +68,7 @@ request issue to help reviewers catch up on the context.
 
 ## Project Structure
 
-Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md##build-image). To get started, see the development guides:
+Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md#build-image). To get started, see the development guides:
 
 * [Frontend development guide](./frontend/README.md)
 * [Backend development guide](./backend/README.md)
@@ -183,7 +185,7 @@ omit the scope because it's optional, or propose an additional scope here.
 
 ## Adding Kubernetes Enhancement Proposals (KEPs)
 
-When a change requires a significant change to the underlying system, it should be preceded with an Kubernetes Enhancement Proposal (KEP).
+When a change requires a significant change to the underlying system, it should be preceded with a Kubernetes Enhancement Proposal (KEP).
 
 KEPs are found in the `proposals` folder at the root of this repo. Read more about the process [here](proposals/README.md).
 

@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-02-23
+- Last updated: 2026-02-28
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
@@ -17,6 +17,15 @@
 - When you change CI matrices (Kubernetes versions, pipeline stores, proxy/cache toggles, Argo versions) or add/remove workflows, update the CI/CD section.
 - If you come across new common errors or fixes, extend "Common error patterns and quick fixes".
 - Always bump the "Last updated" date above when you make substantive changes.
+
+### Project Improvement Checklist
+
+Use this checklist when planning or reviewing a change:
+
+* Confirm the change aligns with the current [Roadmap](./ROADMAP.md).
+* Keep [README](./README.md), [How to Contribute](./CONTRIBUTING.md), [Developer Guide](./developer_guide.md), and [Agent Guide](./AGENTS.md) consistent when workflows evolve.
+* Update generated-file instructions whenever generation sources or commands change.
+* Prefer small, test-covered changes with clear rollback paths and low coupling across domains.
 
 ## Baseline architecture
 

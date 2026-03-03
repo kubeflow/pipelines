@@ -213,7 +213,7 @@ describe('/apps/tensorboard', () => {
         .get('/apis/v1beta1/auth', (_, res) => {
           res.status(400).send(
             JSON.stringify({
-              error: 'User xxx is not unauthorized to list viewers',
+              error: 'User xxx is not authorized to list viewers',
               details: ['unauthorized', 'callstack'],
             }),
           );
@@ -231,13 +231,13 @@ describe('/apps/tensorboard', () => {
         .get(`/apps/tensorboard?logdir=some-log-dir&namespace=test-ns`)
         .expect(
           401,
-          'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
+          'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not authorized to list viewers',
         );
       expect(errorSpy).toHaveBeenCalledTimes(1);
       expect(
         errorSpy,
       ).toHaveBeenCalledWith(
-        'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
+        'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not authorized to list viewers',
         ['unauthorized', 'callstack'],
       );
     });
