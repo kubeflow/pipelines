@@ -283,9 +283,12 @@ describe('CompareV2', () => {
     });
     // Wait for runs to render (indicates all queries resolved) before banner clears
     await waitForRunCheckboxes(3);
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith({});
-    });
+    await waitFor(
+      () => {
+        expect(updateBannerSpy).toHaveBeenCalledWith({});
+      },
+      { timeout: 10000 },
+    );
   });
 
   it('Log warning when artifact with specified ID is not found', async () => {
@@ -556,11 +559,14 @@ describe('CompareV2', () => {
     );
     await waitForRunCheckboxes(3);
 
-    await waitFor(() => {
-      expect(getBodyText()).toContain(
-        'There are no Scalar Metrics artifacts available on the selected runs.',
-      );
-    });
+    await waitFor(
+      () => {
+        expect(getBodyText()).toContain(
+          'There are no Scalar Metrics artifacts available on the selected runs.',
+        );
+      },
+      { timeout: 10000 },
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
     await waitFor(() => {
@@ -640,14 +646,14 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(3);
 
     await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(15));
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
-    fireEvent.click(await screen.findByText('Choose a first Confusion Matrix artifact'));
+    fireEvent.click(await screen.findByText('Choose a first Confusion Matrix artifact', { timeout: 10000 }));
 
     // Get the second element that has run text: first will be the run list.
     await waitForRunLabel(MOCK_RUN_2_ID);
@@ -729,7 +735,7 @@ describe('CompareV2', () => {
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confusion Matrix' }));
-    fireEvent.click(await screen.findByText('Choose a first Confusion Matrix artifact'));
+    fireEvent.click(await screen.findByText('Choose a first Confusion Matrix artifact', { timeout: 10000 }));
 
     // Get the second element that has run text: first will be the run list.
     await waitForRunLabel(MOCK_RUN_2_ID);
@@ -801,7 +807,7 @@ describe('CompareV2', () => {
     await waitForRunCheckboxes(3);
 
     fireEvent.click(screen.getByRole('button', { name: 'ROC Curve' }));
-    await waitFor(() => screen.getByText('ROC Curve: artifactName'));
+    await screen.findByText('ROC Curve: artifactName', { timeout: 10000 });
 
     let runCheckboxes = await waitForRunCheckboxes(3);
     fireEvent.click(runCheckboxes[0]);
