@@ -15,6 +15,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -313,4 +314,47 @@ func TestValidateReportScheduledWorkflowRequest_MissingField(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a UID")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+}
+
+func TestReportScheduledWorkflowV1_InvalidManifest(t *testing.T) {
+	clientManager, resourceManager, _ := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServerV1(resourceManager)
+
+	_, err := reportServer.ReportScheduledWorkflowV1(context.Background(), &api.ReportScheduledWorkflowRequest{
+		ScheduledWorkflow: "INVALID_JSON",
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Could not unmarshal")
+}
+
+func TestReportScheduledWorkflowV1_MissingFields(t *testing.T) {
+	clientManager, resourceManager, _ := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServerV1(resourceManager)
+
+	// Missing name
+	scheduledWorkflow := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
+	_, err := reportServer.ReportScheduledWorkflowV1(context.Background(), &api.ReportScheduledWorkflowRequest{
+		ScheduledWorkflow: scheduledWorkflow.ToStringForStore(),
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "must have a name")
+}
+
+func TestReportScheduledWorkflow_InvalidManifest(t *testing.T) {
+	clientManager, resourceManager, _ := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServer(resourceManager)
+
+	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &apiv2.ReportScheduledWorkflowRequest{
+		ScheduledWorkflow: "INVALID_JSON",
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Could not unmarshal")
 }

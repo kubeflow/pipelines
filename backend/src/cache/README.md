@@ -15,7 +15,7 @@ export NAMESPACE=kubeflow
 ./deployer/deploy-cache-service.sh
 ```
 
-3. Go to pipelines/manifests/kustomize/base/cache folder and run following scripts:
+3. Go to pipelines/manifests/kustomize/base/cache folder and run the following scripts:
 
 ```
 kubectl apply -f cache-deployment.yaml --namespace $NAMESPACE

@@ -15,11 +15,11 @@
  */
 
 import * as React from 'react';
-import Tooltip from '@material-ui/core/Tooltip';
-import WarningIcon from '@material-ui/icons/WarningRounded';
+import WarningIcon from '@mui/icons-material/WarningRounded';
 import { Row, Column } from './CustomTable';
 import { color, fonts, fontsize } from '../Css';
 import { stylesheet } from 'typestyle';
+import { Tooltip } from '@mui/material';
 
 export const css = stylesheet({
   cell: {

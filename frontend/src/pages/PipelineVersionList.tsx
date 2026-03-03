@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import * as React from 'react';
 import { Link, RouteComponentProps } from 'react-router-dom';
@@ -27,6 +26,7 @@ import { Apis, ListRequest, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss } from 'src/Css';
+import { Tooltip } from '@mui/material';
 
 export interface PipelineVersionListProps extends RouteComponentProps {
   pipelineId?: string;

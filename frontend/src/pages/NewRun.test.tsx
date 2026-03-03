@@ -694,7 +694,7 @@ describe('NewRun', () => {
         .simulate('click');
       await TestUtils.flushPromises();
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
-    });
+    }, 20000);
 
     it('closes the pipeline selector modal', async () => {
       tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);

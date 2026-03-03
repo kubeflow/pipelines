@@ -7,7 +7,7 @@ SeaweedFS is a simple and highly scalable distributed file system. It has an S3 
 
 ## Prerequisites
 
-- Kubernetes (any recent Version should work)
+- Kubernetes (any recent version should work)
 - You should have `kubectl` available and configured to talk to the desired cluster.
 - `kustomize`
 

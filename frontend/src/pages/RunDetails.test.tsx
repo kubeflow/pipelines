@@ -1281,12 +1281,13 @@ describe('RunDetails', () => {
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1jqzauf"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+                  data-testid="InfoIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"
                   />
                 </svg>
                 Failed to retrieve pod logs. Use Stackdriver Kubernetes Monitoring to view them.
@@ -1295,17 +1296,13 @@ describe('RunDetails', () => {
                 class="flex_f16jawj4"
               >
                 <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b detailsButton_fgq2mjo"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
                   tabindex="0"
                   type="button"
                 >
+                  Details
                   <span
-                    class="MuiButton-label"
-                  >
-                    Details
-                  </span>
-                  <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </button>
               </div>
@@ -1361,12 +1358,13 @@ describe('RunDetails', () => {
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root icon_f1jqzauf"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+                  data-testid="InfoIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
                 >
                   <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-6h2zm0-8h-2V7h2z"
                   />
                 </svg>
                 Failed to retrieve pod logs.
@@ -1375,17 +1373,13 @@ describe('RunDetails', () => {
                 class="flex_f16jawj4"
               >
                 <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_fu86r2b detailsButton_fgq2mjo"
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
                   tabindex="0"
                   type="button"
                 >
+                  Details
                   <span
-                    class="MuiButton-label"
-                  >
-                    Details
-                  </span>
-                  <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </button>
               </div>
