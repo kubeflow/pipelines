@@ -18,6 +18,7 @@ const {
   buildTableRowSelector,
   clearDefaultInput,
   getValueFromDetailsTable,
+  isSelectorDisplayed,
   saveDebugScreenshot,
   waitForCondition,
   waitForGraphNodeCount,
@@ -37,6 +38,16 @@ const uiTimeout = 5000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
+const v1RunFormSelectors = {
+  description: '#descriptionInput',
+  message: 'input#newRunPipelineParam0',
+  runName: '#runNameInput',
+};
+const v2RunFormSelectors = {
+  description: '//label[normalize-space()="Description"]/following::*[self::textarea or self::input][1]',
+  message: '#message',
+  runName: '//label[normalize-space()="Run name"]/following::input[1]',
+};
 
 async function selectPipelineForRun() {
   await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
@@ -71,6 +82,57 @@ async function selectPipelineForRun() {
   await $('#usePipelineBtn').waitForEnabled({ timeout: uiTimeout });
   await $('#usePipelineBtn').click();
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout, reverse: true });
+}
+
+async function waitForRunFormSelectors() {
+  let selectors;
+
+  try {
+    await waitForCondition(
+      async () => {
+        if (
+          (await isSelectorDisplayed(v1RunFormSelectors.runName)) &&
+          (await isSelectorDisplayed(v1RunFormSelectors.message))
+        ) {
+          selectors = v1RunFormSelectors;
+          return true;
+        }
+        if (
+          (await isSelectorDisplayed(v2RunFormSelectors.runName)) &&
+          (await isSelectorDisplayed(v2RunFormSelectors.message))
+        ) {
+          selectors = v2RunFormSelectors;
+          return true;
+        }
+        return false;
+      },
+      {
+        timeout: uiTimeout,
+        timeoutMsg: 'expected a run creation form to load',
+      },
+    );
+  } catch (error) {
+    await saveDebugScreenshot('run-creation-form');
+    throw error;
+  }
+
+  return selectors;
+}
+
+async function fillRunForm({ runName, description, message }) {
+  const selectors = await waitForRunFormSelectors();
+
+  await $(selectors.runName).click();
+  await clearDefaultInput();
+  await browser.keys(runName);
+
+  await $(selectors.description).click();
+  await browser.keys(description);
+
+  await $(selectors.message).waitForDisplayed({ timeout: uiTimeout });
+  await $(selectors.message).click();
+  await clearDefaultInput();
+  await browser.keys(message);
 }
 
 async function waitForRunLink(runNameToFind, { timeout = runStartTimeout } = {}) {
@@ -133,18 +195,11 @@ describe('deploy helloworld sample run', () => {
     await selectPipelineForRun();
     await waitForSelectedPipelineVersion({ timeout: uiTimeout });
 
-    await $('#runNameInput').waitForDisplayed({ timeout: uiTimeout });
-    await $('#runNameInput').click();
-    await clearDefaultInput();
-    await browser.keys(runName);
-
-    await $('#descriptionInput').click();
-    await browser.keys(runDescription);
-
-    // The parameter name is "message" in this testing pipeline.
-    await $('input#newRunPipelineParam0').click();
-    await clearDefaultInput();
-    await browser.keys(outputParameterValue);
+    await fillRunForm({
+      description: runDescription,
+      message: outputParameterValue,
+      runName,
+    });
 
     await $('#startNewRunBtn').click();
   });
@@ -241,32 +296,34 @@ describe('deploy helloworld sample run', () => {
     await selectPipelineForRun();
     await waitForSelectedPipelineVersion({ timeout: uiTimeout });
 
-    await $('#runNameInput').waitForDisplayed({ timeout: uiTimeout });
-    await $('#runNameInput').click();
-    await clearDefaultInput();
-    await browser.keys(runWithoutExperimentName);
-
-    await $('#descriptionInput').click();
-    await browser.keys(runWithoutExperimentDescription);
-
-    await $('input#newRunPipelineParam0').click();
-    await clearDefaultInput();
-    await browser.keys(outputParameterValue);
+    await fillRunForm({
+      description: runWithoutExperimentDescription,
+      message: outputParameterValue,
+      runName: runWithoutExperimentName,
+    });
 
     await $('#startNewRunBtn').click();
   });
 
-  it('redirects back to all runs page', async () => {
+  it('lands on runs list or run details', async () => {
     await waitForCondition(
-      async () => new URL(await browser.getUrl()).hash === '#/runs',
+      async () => {
+        const hash = new URL(await browser.getUrl()).hash;
+        return hash === '#/runs' || hash.startsWith('#/runs/details/');
+      },
       {
         timeout: uiTimeout,
-        timeoutMsg: 'expected URL hash to equal #/runs',
+        timeoutMsg: 'expected URL hash to equal #/runs or start with #/runs/details/',
       },
     );
   });
 
   it('displays both runs in all runs page', async () => {
+    if (new URL(await browser.getUrl()).hash.startsWith('#/runs/details/')) {
+      await $('#runsBtn').click();
+      await waitForHashPrefix('#/runs', { timeout: uiTimeout });
+    }
+
     await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
 
     const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
