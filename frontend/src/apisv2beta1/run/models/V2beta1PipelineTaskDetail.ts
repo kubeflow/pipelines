@@ -13,42 +13,42 @@
  */
 
 import { mapValues } from '../runtime';
-import { GooglerpcStatus } from './GooglerpcStatus';
+import type { GooglerpcStatus } from './GooglerpcStatus';
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusFromJSONTyped,
   GooglerpcStatusToJSON,
   GooglerpcStatusToJSONTyped,
 } from './GooglerpcStatus';
-import { PipelineTaskDetailChildTask } from './PipelineTaskDetailChildTask';
+import type { PipelineTaskDetailChildTask } from './PipelineTaskDetailChildTask';
 import {
   PipelineTaskDetailChildTaskFromJSON,
   PipelineTaskDetailChildTaskFromJSONTyped,
   PipelineTaskDetailChildTaskToJSON,
   PipelineTaskDetailChildTaskToJSONTyped,
 } from './PipelineTaskDetailChildTask';
-import { V2beta1RuntimeStatus } from './V2beta1RuntimeStatus';
+import type { V2beta1RuntimeStatus } from './V2beta1RuntimeStatus';
 import {
   V2beta1RuntimeStatusFromJSON,
   V2beta1RuntimeStatusFromJSONTyped,
   V2beta1RuntimeStatusToJSON,
   V2beta1RuntimeStatusToJSONTyped,
 } from './V2beta1RuntimeStatus';
-import { V2beta1RuntimeState } from './V2beta1RuntimeState';
+import type { V2beta1RuntimeState } from './V2beta1RuntimeState';
 import {
   V2beta1RuntimeStateFromJSON,
   V2beta1RuntimeStateFromJSONTyped,
   V2beta1RuntimeStateToJSON,
   V2beta1RuntimeStateToJSONTyped,
 } from './V2beta1RuntimeState';
-import { V2beta1ArtifactList } from './V2beta1ArtifactList';
+import type { V2beta1ArtifactList } from './V2beta1ArtifactList';
 import {
   V2beta1ArtifactListFromJSON,
   V2beta1ArtifactListFromJSONTyped,
   V2beta1ArtifactListToJSON,
   V2beta1ArtifactListToJSONTyped,
 } from './V2beta1ArtifactList';
-import { V2beta1PipelineTaskExecutorDetail } from './V2beta1PipelineTaskExecutorDetail';
+import type { V2beta1PipelineTaskExecutorDetail } from './V2beta1PipelineTaskExecutorDetail';
 import {
   V2beta1PipelineTaskExecutorDetailFromJSON,
   V2beta1PipelineTaskExecutorDetailFromJSONTyped,

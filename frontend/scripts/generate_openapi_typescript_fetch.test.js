@@ -2,18 +2,16 @@ const path = require('path');
 
 const {
   normalizeGeneratedTypeScriptSource,
-  normalizePrettier1IncompatibleTypeScript,
-  resolvePrettierBin,
+  resolvePrettierModule,
 } = require('./generate_openapi_typescript_fetch.js');
 
 describe('generate_openapi_typescript_fetch', () => {
-  it('resolves the frontend-local prettier binary', () => {
+  it('resolves the frontend-local prettier module', () => {
     const repoRoot = path.resolve(__dirname, '..', '..');
-    const prettierBin = resolvePrettierBin(repoRoot);
+    const prettier = resolvePrettierModule(repoRoot);
 
-    expect(prettierBin).toMatch(
-      /frontend[\\/]node_modules[\\/]prettier[\\/]bin-prettier\.js$/,
-    );
+    expect(prettier).toBeTruthy();
+    expect(typeof prettier.format).toBe('function');
   });
 
   it('renames v1 api symbols without touching unrelated identifiers', () => {
@@ -59,7 +57,7 @@ private fetchApi = async (url: string, init: RequestInit) => {
     );
   });
 
-  it('strips syntax that the pinned prettier cannot parse', () => {
+  it('preserves modern TypeScript syntax under the current formatter', () => {
     const original = `
 import type { Foo } from './Foo';
 
@@ -68,11 +66,9 @@ export class ResponseError extends Error {
 }
 `;
 
-    const updated = normalizePrettier1IncompatibleTypeScript(original);
+    const updated = normalizeGeneratedTypeScriptSource(original);
 
-    expect(updated).toContain("import { Foo } from './Foo';");
-    expect(updated).toContain('name: "ResponseError" = "ResponseError";');
-    expect(updated).not.toContain('import type');
-    expect(updated).not.toContain('override name');
+    expect(updated).toContain("import type { Foo } from './Foo';");
+    expect(updated).toContain('override name: "ResponseError" = "ResponseError";');
   });
 });

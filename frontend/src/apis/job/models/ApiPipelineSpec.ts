@@ -13,14 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
-import { PipelineSpecRuntimeConfig } from './PipelineSpecRuntimeConfig';
+import type { PipelineSpecRuntimeConfig } from './PipelineSpecRuntimeConfig';
 import {
   PipelineSpecRuntimeConfigFromJSON,
   PipelineSpecRuntimeConfigFromJSONTyped,
   PipelineSpecRuntimeConfigToJSON,
   PipelineSpecRuntimeConfigToJSONTyped,
 } from './PipelineSpecRuntimeConfig';
-import { ApiParameter } from './ApiParameter';
+import type { ApiParameter } from './ApiParameter';
 import {
   ApiParameterFromJSON,
   ApiParameterFromJSONTyped,

@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiRunMetric } from './ApiRunMetric';
+import type { ApiRunMetric } from './ApiRunMetric';
 import {
   ApiRunMetricFromJSON,
   ApiRunMetricFromJSONTyped,

@@ -20,7 +20,7 @@ export const ApiRunStorageState = {
   STORAGESTATE_AVAILABLE: 'STORAGESTATE_AVAILABLE',
   STORAGESTATE_ARCHIVED: 'STORAGESTATE_ARCHIVED',
 } as const;
-export type ApiRunStorageState = typeof ApiRunStorageState[keyof typeof ApiRunStorageState];
+export type ApiRunStorageState = (typeof ApiRunStorageState)[keyof typeof ApiRunStorageState];
 
 export function instanceOfApiRunStorageState(value: any): boolean {
   for (const key in ApiRunStorageState) {

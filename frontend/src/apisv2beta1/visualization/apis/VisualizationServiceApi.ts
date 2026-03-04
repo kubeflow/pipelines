@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import { GooglerpcStatus, V2beta1Visualization } from '../models/index';
+import type { GooglerpcStatus, V2beta1Visualization } from '../models/index';
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusToJSON,
@@ -77,7 +77,7 @@ export class VisualizationServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1VisualizationFromJSON(jsonValue),
     );
   }

@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiRun } from './ApiRun';
+import type { ApiRun } from './ApiRun';
 import { ApiRunFromJSON, ApiRunFromJSONTyped, ApiRunToJSON, ApiRunToJSONTyped } from './ApiRun';
 
 /**

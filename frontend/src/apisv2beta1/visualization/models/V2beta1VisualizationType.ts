@@ -25,7 +25,8 @@ export const V2beta1VisualizationType = {
   TABLE: 'TABLE',
   CUSTOM: 'CUSTOM',
 } as const;
-export type V2beta1VisualizationType = typeof V2beta1VisualizationType[keyof typeof V2beta1VisualizationType];
+export type V2beta1VisualizationType =
+  (typeof V2beta1VisualizationType)[keyof typeof V2beta1VisualizationType];
 
 export function instanceOfV2beta1VisualizationType(value: any): boolean {
   for (const key in V2beta1VisualizationType) {

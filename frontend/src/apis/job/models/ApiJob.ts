@@ -13,28 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiPipelineSpec } from './ApiPipelineSpec';
+import type { ApiPipelineSpec } from './ApiPipelineSpec';
 import {
   ApiPipelineSpecFromJSON,
   ApiPipelineSpecFromJSONTyped,
   ApiPipelineSpecToJSON,
   ApiPipelineSpecToJSONTyped,
 } from './ApiPipelineSpec';
-import { JobMode } from './JobMode';
+import type { JobMode } from './JobMode';
 import {
   JobModeFromJSON,
   JobModeFromJSONTyped,
   JobModeToJSON,
   JobModeToJSONTyped,
 } from './JobMode';
-import { ApiTrigger } from './ApiTrigger';
+import type { ApiTrigger } from './ApiTrigger';
 import {
   ApiTriggerFromJSON,
   ApiTriggerFromJSONTyped,
   ApiTriggerToJSON,
   ApiTriggerToJSONTyped,
 } from './ApiTrigger';
-import { ApiResourceReference } from './ApiResourceReference';
+import type { ApiResourceReference } from './ApiResourceReference';
 import {
   ApiResourceReferenceFromJSON,
   ApiResourceReferenceFromJSONTyped,

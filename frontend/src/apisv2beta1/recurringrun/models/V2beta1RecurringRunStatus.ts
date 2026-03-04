@@ -21,7 +21,8 @@ export const V2beta1RecurringRunStatus = {
   ENABLED: 'ENABLED',
   DISABLED: 'DISABLED',
 } as const;
-export type V2beta1RecurringRunStatus = typeof V2beta1RecurringRunStatus[keyof typeof V2beta1RecurringRunStatus];
+export type V2beta1RecurringRunStatus =
+  (typeof V2beta1RecurringRunStatus)[keyof typeof V2beta1RecurringRunStatus];
 
 export function instanceOfV2beta1RecurringRunStatus(value: any): boolean {
   for (const key in V2beta1RecurringRunStatus) {

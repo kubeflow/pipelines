@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { GooglerpcStatus } from './GooglerpcStatus';
+import type { GooglerpcStatus } from './GooglerpcStatus';
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusFromJSONTyped,

@@ -13,23 +13,23 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiUrl } from './ApiUrl';
+import type { ApiUrl } from './ApiUrl';
 import { ApiUrlFromJSON, ApiUrlFromJSONTyped, ApiUrlToJSON, ApiUrlToJSONTyped } from './ApiUrl';
-import { ApiPipelineVersion } from './ApiPipelineVersion';
+import type { ApiPipelineVersion } from './ApiPipelineVersion';
 import {
   ApiPipelineVersionFromJSON,
   ApiPipelineVersionFromJSONTyped,
   ApiPipelineVersionToJSON,
   ApiPipelineVersionToJSONTyped,
 } from './ApiPipelineVersion';
-import { ApiParameter } from './ApiParameter';
+import type { ApiParameter } from './ApiParameter';
 import {
   ApiParameterFromJSON,
   ApiParameterFromJSONTyped,
   ApiParameterToJSON,
   ApiParameterToJSONTyped,
 } from './ApiParameter';
-import { ApiResourceReference } from './ApiResourceReference';
+import type { ApiResourceReference } from './ApiResourceReference';
 import {
   ApiResourceReferenceFromJSON,
   ApiResourceReferenceFromJSONTyped,

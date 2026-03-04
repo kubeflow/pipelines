@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiExperiment } from './ApiExperiment';
+import type { ApiExperiment } from './ApiExperiment';
 import {
   ApiExperimentFromJSON,
   ApiExperimentFromJSONTyped,

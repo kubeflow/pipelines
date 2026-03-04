@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import {
+import type {
   ApiGetTemplateResponse,
   ApiListPipelineVersionsResponse,
   ApiListPipelinesResponse,
@@ -137,7 +137,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiPipelineFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiPipelineFromJSON(jsonValue));
   }
 
   /**
@@ -188,7 +188,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiPipelineVersionFromJSON(jsonValue),
     );
   }
@@ -351,7 +351,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiPipelineFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiPipelineFromJSON(jsonValue));
   }
 
   /**
@@ -404,7 +404,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiPipelineFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiPipelineFromJSON(jsonValue));
   }
 
   /**
@@ -456,7 +456,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiGetTemplateResponseFromJSON(jsonValue),
     );
   }
@@ -513,7 +513,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiPipelineVersionFromJSON(jsonValue),
     );
   }
@@ -564,7 +564,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiGetTemplateResponseFromJSON(jsonValue),
     );
   }
@@ -631,7 +631,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiListPipelineVersionsResponseFromJSON(jsonValue),
     );
   }
@@ -714,7 +714,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiListPipelinesResponseFromJSON(jsonValue),
     );
   }
@@ -824,7 +824,8 @@ export const ListPipelineVersionsV1ResourceKeyTypeEnum = {
   PIPELINE_VERSION: 'PIPELINE_VERSION',
   NAMESPACE: 'NAMESPACE',
 } as const;
-export type ListPipelineVersionsV1ResourceKeyTypeEnum = typeof ListPipelineVersionsV1ResourceKeyTypeEnum[keyof typeof ListPipelineVersionsV1ResourceKeyTypeEnum];
+export type ListPipelineVersionsV1ResourceKeyTypeEnum =
+  (typeof ListPipelineVersionsV1ResourceKeyTypeEnum)[keyof typeof ListPipelineVersionsV1ResourceKeyTypeEnum];
 /**
  * @export
  */
@@ -836,4 +837,5 @@ export const ListPipelinesV1ResourceReferenceKeyTypeEnum = {
   PIPELINE_VERSION: 'PIPELINE_VERSION',
   NAMESPACE: 'NAMESPACE',
 } as const;
-export type ListPipelinesV1ResourceReferenceKeyTypeEnum = typeof ListPipelinesV1ResourceReferenceKeyTypeEnum[keyof typeof ListPipelinesV1ResourceReferenceKeyTypeEnum];
+export type ListPipelinesV1ResourceReferenceKeyTypeEnum =
+  (typeof ListPipelinesV1ResourceReferenceKeyTypeEnum)[keyof typeof ListPipelinesV1ResourceReferenceKeyTypeEnum];

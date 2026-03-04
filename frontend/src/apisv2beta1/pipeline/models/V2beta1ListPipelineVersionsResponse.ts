@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1PipelineVersion } from './V2beta1PipelineVersion';
+import type { V2beta1PipelineVersion } from './V2beta1PipelineVersion';
 import {
   V2beta1PipelineVersionFromJSON,
   V2beta1PipelineVersionFromJSONTyped,

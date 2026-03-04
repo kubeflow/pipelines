@@ -13,28 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
-import { PredicateStringValues } from './PredicateStringValues';
+import type { PredicateStringValues } from './PredicateStringValues';
 import {
   PredicateStringValuesFromJSON,
   PredicateStringValuesFromJSONTyped,
   PredicateStringValuesToJSON,
   PredicateStringValuesToJSONTyped,
 } from './PredicateStringValues';
-import { PredicateIntValues } from './PredicateIntValues';
+import type { PredicateIntValues } from './PredicateIntValues';
 import {
   PredicateIntValuesFromJSON,
   PredicateIntValuesFromJSONTyped,
   PredicateIntValuesToJSON,
   PredicateIntValuesToJSONTyped,
 } from './PredicateIntValues';
-import { V2beta1PredicateOperation } from './V2beta1PredicateOperation';
+import type { V2beta1PredicateOperation } from './V2beta1PredicateOperation';
 import {
   V2beta1PredicateOperationFromJSON,
   V2beta1PredicateOperationFromJSONTyped,
   V2beta1PredicateOperationToJSON,
   V2beta1PredicateOperationToJSONTyped,
 } from './V2beta1PredicateOperation';
-import { PredicateLongValues } from './PredicateLongValues';
+import type { PredicateLongValues } from './PredicateLongValues';
 import {
   PredicateLongValuesFromJSON,
   PredicateLongValuesFromJSONTyped,

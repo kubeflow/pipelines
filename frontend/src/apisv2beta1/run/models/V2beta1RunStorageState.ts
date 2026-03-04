@@ -25,7 +25,8 @@ export const V2beta1RunStorageState = {
   AVAILABLE: 'AVAILABLE',
   ARCHIVED: 'ARCHIVED',
 } as const;
-export type V2beta1RunStorageState = typeof V2beta1RunStorageState[keyof typeof V2beta1RunStorageState];
+export type V2beta1RunStorageState =
+  (typeof V2beta1RunStorageState)[keyof typeof V2beta1RunStorageState];
 
 export function instanceOfV2beta1RunStorageState(value: any): boolean {
   for (const key in V2beta1RunStorageState) {

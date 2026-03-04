@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import { ApiJob, ApiListJobsResponse, GooglerpcStatus } from '../models/index';
+import type { ApiJob, ApiListJobsResponse, GooglerpcStatus } from '../models/index';
 import {
   ApiJobFromJSON,
   ApiJobToJSON,
@@ -93,7 +93,7 @@ export class JobServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiJobFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiJobFromJSON(jsonValue));
   }
 
   /**
@@ -289,7 +289,7 @@ export class JobServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiJobFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiJobFromJSON(jsonValue));
   }
 
   /**
@@ -355,7 +355,7 @@ export class JobServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiListJobsResponseFromJSON(jsonValue),
     );
   }
@@ -398,4 +398,5 @@ export const ListJobsResourceReferenceKeyTypeEnum = {
   PIPELINE_VERSION: 'PIPELINE_VERSION',
   NAMESPACE: 'NAMESPACE',
 } as const;
-export type ListJobsResourceReferenceKeyTypeEnum = typeof ListJobsResourceReferenceKeyTypeEnum[keyof typeof ListJobsResourceReferenceKeyTypeEnum];
+export type ListJobsResourceReferenceKeyTypeEnum =
+  (typeof ListJobsResourceReferenceKeyTypeEnum)[keyof typeof ListJobsResourceReferenceKeyTypeEnum];

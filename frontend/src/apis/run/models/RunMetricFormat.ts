@@ -23,7 +23,7 @@ export const RunMetricFormat = {
   RAW: 'RAW',
   PERCENTAGE: 'PERCENTAGE',
 } as const;
-export type RunMetricFormat = typeof RunMetricFormat[keyof typeof RunMetricFormat];
+export type RunMetricFormat = (typeof RunMetricFormat)[keyof typeof RunMetricFormat];
 
 export function instanceOfRunMetricFormat(value: any): boolean {
   for (const key in RunMetricFormat) {

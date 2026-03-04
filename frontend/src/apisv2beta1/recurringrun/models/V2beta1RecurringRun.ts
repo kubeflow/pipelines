@@ -13,42 +13,42 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1PipelineVersionReference } from './V2beta1PipelineVersionReference';
+import type { V2beta1PipelineVersionReference } from './V2beta1PipelineVersionReference';
 import {
   V2beta1PipelineVersionReferenceFromJSON,
   V2beta1PipelineVersionReferenceFromJSONTyped,
   V2beta1PipelineVersionReferenceToJSON,
   V2beta1PipelineVersionReferenceToJSONTyped,
 } from './V2beta1PipelineVersionReference';
-import { V2beta1RecurringRunStatus } from './V2beta1RecurringRunStatus';
+import type { V2beta1RecurringRunStatus } from './V2beta1RecurringRunStatus';
 import {
   V2beta1RecurringRunStatusFromJSON,
   V2beta1RecurringRunStatusFromJSONTyped,
   V2beta1RecurringRunStatusToJSON,
   V2beta1RecurringRunStatusToJSONTyped,
 } from './V2beta1RecurringRunStatus';
-import { V2beta1RuntimeConfig } from './V2beta1RuntimeConfig';
+import type { V2beta1RuntimeConfig } from './V2beta1RuntimeConfig';
 import {
   V2beta1RuntimeConfigFromJSON,
   V2beta1RuntimeConfigFromJSONTyped,
   V2beta1RuntimeConfigToJSON,
   V2beta1RuntimeConfigToJSONTyped,
 } from './V2beta1RuntimeConfig';
-import { GooglerpcStatus } from './GooglerpcStatus';
+import type { GooglerpcStatus } from './GooglerpcStatus';
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusFromJSONTyped,
   GooglerpcStatusToJSON,
   GooglerpcStatusToJSONTyped,
 } from './GooglerpcStatus';
-import { RecurringRunMode } from './RecurringRunMode';
+import type { RecurringRunMode } from './RecurringRunMode';
 import {
   RecurringRunModeFromJSON,
   RecurringRunModeFromJSONTyped,
   RecurringRunModeToJSON,
   RecurringRunModeToJSONTyped,
 } from './RecurringRunMode';
-import { V2beta1Trigger } from './V2beta1Trigger';
+import type { V2beta1Trigger } from './V2beta1Trigger';
 import {
   V2beta1TriggerFromJSON,
   V2beta1TriggerFromJSONTyped,

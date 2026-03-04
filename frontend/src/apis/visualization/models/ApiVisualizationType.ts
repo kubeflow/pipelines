@@ -25,7 +25,7 @@ export const ApiVisualizationType = {
   TABLE: 'TABLE',
   CUSTOM: 'CUSTOM',
 } as const;
-export type ApiVisualizationType = typeof ApiVisualizationType[keyof typeof ApiVisualizationType];
+export type ApiVisualizationType = (typeof ApiVisualizationType)[keyof typeof ApiVisualizationType];
 
 export function instanceOfApiVisualizationType(value: any): boolean {
   for (const key in ApiVisualizationType) {

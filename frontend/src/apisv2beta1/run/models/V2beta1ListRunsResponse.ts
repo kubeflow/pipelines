@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1Run } from './V2beta1Run';
+import type { V2beta1Run } from './V2beta1Run';
 import {
   V2beta1RunFromJSON,
   V2beta1RunFromJSONTyped,

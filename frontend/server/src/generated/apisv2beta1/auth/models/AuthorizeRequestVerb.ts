@@ -22,7 +22,7 @@ export const AuthorizeRequestVerb = {
   GET: 'GET',
   DELETE: 'DELETE',
 } as const;
-export type AuthorizeRequestVerb = typeof AuthorizeRequestVerb[keyof typeof AuthorizeRequestVerb];
+export type AuthorizeRequestVerb = (typeof AuthorizeRequestVerb)[keyof typeof AuthorizeRequestVerb];
 
 export function instanceOfAuthorizeRequestVerb(value: any): boolean {
   for (const key in AuthorizeRequestVerb) {

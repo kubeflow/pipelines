@@ -13,28 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiPipelineSpec } from './ApiPipelineSpec';
+import type { ApiPipelineSpec } from './ApiPipelineSpec';
 import {
   ApiPipelineSpecFromJSON,
   ApiPipelineSpecFromJSONTyped,
   ApiPipelineSpecToJSON,
   ApiPipelineSpecToJSONTyped,
 } from './ApiPipelineSpec';
-import { ApiRunMetric } from './ApiRunMetric';
+import type { ApiRunMetric } from './ApiRunMetric';
 import {
   ApiRunMetricFromJSON,
   ApiRunMetricFromJSONTyped,
   ApiRunMetricToJSON,
   ApiRunMetricToJSONTyped,
 } from './ApiRunMetric';
-import { ApiRunStorageState } from './ApiRunStorageState';
+import type { ApiRunStorageState } from './ApiRunStorageState';
 import {
   ApiRunStorageStateFromJSON,
   ApiRunStorageStateFromJSONTyped,
   ApiRunStorageStateToJSON,
   ApiRunStorageStateToJSONTyped,
 } from './ApiRunStorageState';
-import { ApiResourceReference } from './ApiResourceReference';
+import type { ApiResourceReference } from './ApiResourceReference';
 import {
   ApiResourceReferenceFromJSON,
   ApiResourceReferenceFromJSONTyped,

@@ -13,49 +13,49 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1PipelineVersionReference } from './V2beta1PipelineVersionReference';
+import type { V2beta1PipelineVersionReference } from './V2beta1PipelineVersionReference';
 import {
   V2beta1PipelineVersionReferenceFromJSON,
   V2beta1PipelineVersionReferenceFromJSONTyped,
   V2beta1PipelineVersionReferenceToJSON,
   V2beta1PipelineVersionReferenceToJSONTyped,
 } from './V2beta1PipelineVersionReference';
-import { V2beta1RunStorageState } from './V2beta1RunStorageState';
+import type { V2beta1RunStorageState } from './V2beta1RunStorageState';
 import {
   V2beta1RunStorageStateFromJSON,
   V2beta1RunStorageStateFromJSONTyped,
   V2beta1RunStorageStateToJSON,
   V2beta1RunStorageStateToJSONTyped,
 } from './V2beta1RunStorageState';
-import { V2beta1RuntimeConfig } from './V2beta1RuntimeConfig';
+import type { V2beta1RuntimeConfig } from './V2beta1RuntimeConfig';
 import {
   V2beta1RuntimeConfigFromJSON,
   V2beta1RuntimeConfigFromJSONTyped,
   V2beta1RuntimeConfigToJSON,
   V2beta1RuntimeConfigToJSONTyped,
 } from './V2beta1RuntimeConfig';
-import { GooglerpcStatus } from './GooglerpcStatus';
+import type { GooglerpcStatus } from './GooglerpcStatus';
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusFromJSONTyped,
   GooglerpcStatusToJSON,
   GooglerpcStatusToJSONTyped,
 } from './GooglerpcStatus';
-import { V2beta1RuntimeStatus } from './V2beta1RuntimeStatus';
+import type { V2beta1RuntimeStatus } from './V2beta1RuntimeStatus';
 import {
   V2beta1RuntimeStatusFromJSON,
   V2beta1RuntimeStatusFromJSONTyped,
   V2beta1RuntimeStatusToJSON,
   V2beta1RuntimeStatusToJSONTyped,
 } from './V2beta1RuntimeStatus';
-import { V2beta1RuntimeState } from './V2beta1RuntimeState';
+import type { V2beta1RuntimeState } from './V2beta1RuntimeState';
 import {
   V2beta1RuntimeStateFromJSON,
   V2beta1RuntimeStateFromJSONTyped,
   V2beta1RuntimeStateToJSON,
   V2beta1RuntimeStateToJSONTyped,
 } from './V2beta1RuntimeState';
-import { V2beta1RunDetails } from './V2beta1RunDetails';
+import type { V2beta1RunDetails } from './V2beta1RunDetails';
 import {
   V2beta1RunDetailsFromJSON,
   V2beta1RunDetailsFromJSONTyped,

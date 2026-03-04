@@ -93,7 +93,7 @@ export const DefaultConfig = new Configuration();
  */
 export class BaseAPI {
   private static readonly jsonRegex = new RegExp(
-    '^(:?application/json|[^;/ \t]+/[^;/ \t]+[+]json)[ \t]*(:?;.*)?$',
+    '^(:?application\/json|[^;/ \t]+\/[^;/ \t]+[+]json)[ \t]*(:?;.*)?$',
     'i',
   );
   private middleware: Middleware[];
@@ -109,12 +109,12 @@ export class BaseAPI {
   }
 
   withPreMiddleware<T extends BaseAPI>(this: T, ...preMiddlewares: Array<Middleware['pre']>) {
-    const middlewares = preMiddlewares.map(pre => ({ pre }));
+    const middlewares = preMiddlewares.map((pre) => ({ pre }));
     return this.withMiddleware<T>(...middlewares);
   }
 
   withPostMiddleware<T extends BaseAPI>(this: T, ...postMiddlewares: Array<Middleware['post']>) {
-    const middlewares = postMiddlewares.map(post => ({ post }));
+    const middlewares = postMiddlewares.map((post) => ({ post }));
     return this.withMiddleware<T>(...middlewares);
   }
 
@@ -160,7 +160,7 @@ export class BaseAPI {
     }
 
     const headers = Object.assign({}, this.configuration.headers, context.headers);
-    Object.keys(headers).forEach(key => (headers[key] === undefined ? delete headers[key] : {}));
+    Object.keys(headers).forEach((key) => (headers[key] === undefined ? delete headers[key] : {}));
 
     const initOverrideFn =
       typeof initOverrides === 'function' ? initOverrides : async () => initOverrides;
@@ -274,22 +274,31 @@ function isFormData(value: any): value is FormData {
 }
 
 export class ResponseError extends Error {
-  name: 'ResponseError' = 'ResponseError';
-  constructor(public response: Response, msg?: string) {
+  override name: 'ResponseError' = 'ResponseError';
+  constructor(
+    public response: Response,
+    msg?: string,
+  ) {
     super(msg);
   }
 }
 
 export class FetchError extends Error {
-  name: 'FetchError' = 'FetchError';
-  constructor(public cause: Error, msg?: string) {
+  override name: 'FetchError' = 'FetchError';
+  constructor(
+    public cause: Error,
+    msg?: string,
+  ) {
     super(msg);
   }
 }
 
 export class RequiredError extends Error {
-  name: 'RequiredError' = 'RequiredError';
-  constructor(public field: string, msg?: string) {
+  override name: 'RequiredError' = 'RequiredError';
+  constructor(
+    public field: string,
+    msg?: string,
+  ) {
     super(msg);
   }
 }
@@ -345,8 +354,8 @@ export interface RequestOpts {
 
 export function querystring(params: HTTPQuery, prefix: string = ''): string {
   return Object.keys(params)
-    .map(key => querystringSingleKey(key, params[key], prefix))
-    .filter(part => part.length > 0)
+    .map((key) => querystringSingleKey(key, params[key], prefix))
+    .filter((part) => part.length > 0)
     .join('&');
 }
 
@@ -366,7 +375,7 @@ function querystringSingleKey(
   const fullKey = keyPrefix + (keyPrefix.length ? `[${key}]` : key);
   if (value instanceof Array) {
     const multiValue = value
-      .map(singleValue => encodeURIComponent(String(singleValue)))
+      .map((singleValue) => encodeURIComponent(String(singleValue)))
       .join(`&${encodeURIComponent(fullKey)}=`);
     return `${encodeURIComponent(fullKey)}=${multiValue}`;
   }

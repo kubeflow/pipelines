@@ -23,7 +23,7 @@ export const JobMode = {
   ENABLED: 'ENABLED',
   DISABLED: 'DISABLED',
 } as const;
-export type JobMode = typeof JobMode[keyof typeof JobMode];
+export type JobMode = (typeof JobMode)[keyof typeof JobMode];
 
 export function instanceOfJobMode(value: any): boolean {
   for (const key in JobMode) {

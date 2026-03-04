@@ -13,14 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiExperimentStorageState } from './ApiExperimentStorageState';
+import type { ApiExperimentStorageState } from './ApiExperimentStorageState';
 import {
   ApiExperimentStorageStateFromJSON,
   ApiExperimentStorageStateFromJSONTyped,
   ApiExperimentStorageStateToJSON,
   ApiExperimentStorageStateToJSONTyped,
 } from './ApiExperimentStorageState';
-import { ApiResourceReference } from './ApiResourceReference';
+import type { ApiResourceReference } from './ApiResourceReference';
 import {
   ApiResourceReferenceFromJSON,
   ApiResourceReferenceFromJSONTyped,

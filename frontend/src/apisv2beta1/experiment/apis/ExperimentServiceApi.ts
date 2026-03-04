@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import {
+import type {
   GooglerpcStatus,
   V2beta1Experiment,
   V2beta1ListExperimentsResponse,
@@ -143,7 +143,9 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1ExperimentFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1ExperimentFromJSON(jsonValue),
+    );
   }
 
   /**
@@ -242,7 +244,9 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1ExperimentFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1ExperimentFromJSON(jsonValue),
+    );
   }
 
   /**
@@ -299,7 +303,7 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1ListExperimentsResponseFromJSON(jsonValue),
     );
   }

@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiJob } from './ApiJob';
+import type { ApiJob } from './ApiJob';
 import { ApiJobFromJSON, ApiJobFromJSONTyped, ApiJobToJSON, ApiJobToJSONTyped } from './ApiJob';
 
 /**

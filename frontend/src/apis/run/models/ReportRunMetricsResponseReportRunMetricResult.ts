@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ReportRunMetricsResponseReportRunMetricResultStatus } from './ReportRunMetricsResponseReportRunMetricResultStatus';
+import type { ReportRunMetricsResponseReportRunMetricResultStatus } from './ReportRunMetricsResponseReportRunMetricResultStatus';
 import {
   ReportRunMetricsResponseReportRunMetricResultStatusFromJSON,
   ReportRunMetricsResponseReportRunMetricResultStatusFromJSONTyped,

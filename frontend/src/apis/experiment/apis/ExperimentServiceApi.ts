@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import { ApiExperiment, ApiListExperimentsResponse, GooglerpcStatus } from '../models/index';
+import type { ApiExperiment, ApiListExperimentsResponse, GooglerpcStatus } from '../models/index';
 import {
   ApiExperimentFromJSON,
   ApiExperimentToJSON,
@@ -142,7 +142,7 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiExperimentFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiExperimentFromJSON(jsonValue));
   }
 
   /**
@@ -240,7 +240,7 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiExperimentFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiExperimentFromJSON(jsonValue));
   }
 
   /**
@@ -306,7 +306,7 @@ export class ExperimentServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiListExperimentsResponseFromJSON(jsonValue),
     );
   }
@@ -398,4 +398,5 @@ export const ListExperimentsV1ResourceReferenceKeyTypeEnum = {
   PIPELINE_VERSION: 'PIPELINE_VERSION',
   NAMESPACE: 'NAMESPACE',
 } as const;
-export type ListExperimentsV1ResourceReferenceKeyTypeEnum = typeof ListExperimentsV1ResourceReferenceKeyTypeEnum[keyof typeof ListExperimentsV1ResourceReferenceKeyTypeEnum];
+export type ListExperimentsV1ResourceReferenceKeyTypeEnum =
+  (typeof ListExperimentsV1ResourceReferenceKeyTypeEnum)[keyof typeof ListExperimentsV1ResourceReferenceKeyTypeEnum];

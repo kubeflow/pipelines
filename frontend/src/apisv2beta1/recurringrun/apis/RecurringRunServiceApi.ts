@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import {
+import type {
   GooglerpcStatus,
   V2beta1ListRecurringRunsResponse,
   V2beta1RecurringRun,
@@ -94,7 +94,7 @@ export class RecurringRunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1RecurringRunFromJSON(jsonValue),
     );
   }
@@ -305,7 +305,7 @@ export class RecurringRunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1RecurringRunFromJSON(jsonValue),
     );
   }
@@ -371,7 +371,7 @@ export class RecurringRunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1ListRecurringRunsResponseFromJSON(jsonValue),
     );
   }
@@ -412,4 +412,5 @@ export const DeleteRecurringRunPropagationPolicyEnum = {
   BACKGROUND: 'BACKGROUND',
   ORPHAN: 'ORPHAN',
 } as const;
-export type DeleteRecurringRunPropagationPolicyEnum = typeof DeleteRecurringRunPropagationPolicyEnum[keyof typeof DeleteRecurringRunPropagationPolicyEnum];
+export type DeleteRecurringRunPropagationPolicyEnum =
+  (typeof DeleteRecurringRunPropagationPolicyEnum)[keyof typeof DeleteRecurringRunPropagationPolicyEnum];

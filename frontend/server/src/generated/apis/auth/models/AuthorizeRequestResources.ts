@@ -20,7 +20,8 @@ export const AuthorizeRequestResources = {
   UNASSIGNED_RESOURCES: 'UNASSIGNED_RESOURCES',
   VIEWERS: 'VIEWERS',
 } as const;
-export type AuthorizeRequestResources = typeof AuthorizeRequestResources[keyof typeof AuthorizeRequestResources];
+export type AuthorizeRequestResources =
+  (typeof AuthorizeRequestResources)[keyof typeof AuthorizeRequestResources];
 
 export function instanceOfAuthorizeRequestResources(value: any): boolean {
   for (const key in AuthorizeRequestResources) {

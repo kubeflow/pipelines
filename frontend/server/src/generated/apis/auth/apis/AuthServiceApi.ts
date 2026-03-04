@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime.js';
-import { GooglerpcStatus } from '../models/index.js';
+import type { GooglerpcStatus } from '../models/index.js';
 import { GooglerpcStatusFromJSON, GooglerpcStatusToJSON } from '../models/index.js';
 
 export interface AuthorizeRequest {
@@ -90,7 +90,8 @@ export const AuthorizeV1ResourcesEnum = {
   UNASSIGNED_RESOURCES: 'UNASSIGNED_RESOURCES',
   VIEWERS: 'VIEWERS',
 } as const;
-export type AuthorizeV1ResourcesEnum = typeof AuthorizeV1ResourcesEnum[keyof typeof AuthorizeV1ResourcesEnum];
+export type AuthorizeV1ResourcesEnum =
+  (typeof AuthorizeV1ResourcesEnum)[keyof typeof AuthorizeV1ResourcesEnum];
 /**
  * @export
  */
@@ -100,4 +101,4 @@ export const AuthorizeV1VerbEnum = {
   GET: 'GET',
   DELETE: 'DELETE',
 } as const;
-export type AuthorizeV1VerbEnum = typeof AuthorizeV1VerbEnum[keyof typeof AuthorizeV1VerbEnum];
+export type AuthorizeV1VerbEnum = (typeof AuthorizeV1VerbEnum)[keyof typeof AuthorizeV1VerbEnum];

@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiPipelineVersion } from './ApiPipelineVersion';
+import type { ApiPipelineVersion } from './ApiPipelineVersion';
 import {
   ApiPipelineVersionFromJSON,
   ApiPipelineVersionFromJSONTyped,

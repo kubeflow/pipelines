@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1Predicate } from './V2beta1Predicate';
+import type { V2beta1Predicate } from './V2beta1Predicate';
 import {
   V2beta1PredicateFromJSON,
   V2beta1PredicateFromJSONTyped,

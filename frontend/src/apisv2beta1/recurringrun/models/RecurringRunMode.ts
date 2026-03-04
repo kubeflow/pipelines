@@ -25,7 +25,7 @@ export const RecurringRunMode = {
   ENABLE: 'ENABLE',
   DISABLE: 'DISABLE',
 } as const;
-export type RecurringRunMode = typeof RecurringRunMode[keyof typeof RecurringRunMode];
+export type RecurringRunMode = (typeof RecurringRunMode)[keyof typeof RecurringRunMode];
 
 export function instanceOfRecurringRunMode(value: any): boolean {
   for (const key in RecurringRunMode) {

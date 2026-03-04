@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ProtobufAny } from './ProtobufAny';
+import type { ProtobufAny } from './ProtobufAny';
 import {
   ProtobufAnyFromJSON,
   ProtobufAnyFromJSONTyped,

@@ -34,7 +34,7 @@ export const PredicateOp = {
   IN: 'IN',
   IS_SUBSTRING: 'IS_SUBSTRING',
 } as const;
-export type PredicateOp = typeof PredicateOp[keyof typeof PredicateOp];
+export type PredicateOp = (typeof PredicateOp)[keyof typeof PredicateOp];
 
 export function instanceOfPredicateOp(value: any): boolean {
   for (const key in PredicateOp) {

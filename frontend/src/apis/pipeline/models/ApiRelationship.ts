@@ -21,7 +21,7 @@ export const ApiRelationship = {
   OWNER: 'OWNER',
   CREATOR: 'CREATOR',
 } as const;
-export type ApiRelationship = typeof ApiRelationship[keyof typeof ApiRelationship];
+export type ApiRelationship = (typeof ApiRelationship)[keyof typeof ApiRelationship];
 
 export function instanceOfApiRelationship(value: any): boolean {
   for (const key in ApiRelationship) {

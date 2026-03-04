@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiVisualizationType } from './ApiVisualizationType';
+import type { ApiVisualizationType } from './ApiVisualizationType';
 import {
   ApiVisualizationTypeFromJSON,
   ApiVisualizationTypeFromJSONTyped,

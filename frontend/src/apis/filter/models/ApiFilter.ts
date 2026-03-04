@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiPredicate } from './ApiPredicate';
+import type { ApiPredicate } from './ApiPredicate';
 import {
   ApiPredicateFromJSON,
   ApiPredicateFromJSONTyped,

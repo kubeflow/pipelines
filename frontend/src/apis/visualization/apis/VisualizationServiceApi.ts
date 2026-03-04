@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import { ApiVisualization, GooglerpcStatus } from '../models/index';
+import type { ApiVisualization, GooglerpcStatus } from '../models/index';
 import {
   ApiVisualizationFromJSON,
   ApiVisualizationToJSON,
@@ -77,7 +77,9 @@ export class VisualizationServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiVisualizationFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      ApiVisualizationFromJSON(jsonValue),
+    );
   }
 
   /**

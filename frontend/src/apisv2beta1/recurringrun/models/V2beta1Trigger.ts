@@ -13,14 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1CronSchedule } from './V2beta1CronSchedule';
+import type { V2beta1CronSchedule } from './V2beta1CronSchedule';
 import {
   V2beta1CronScheduleFromJSON,
   V2beta1CronScheduleFromJSONTyped,
   V2beta1CronScheduleToJSON,
   V2beta1CronScheduleToJSONTyped,
 } from './V2beta1CronSchedule';
-import { V2beta1PeriodicSchedule } from './V2beta1PeriodicSchedule';
+import type { V2beta1PeriodicSchedule } from './V2beta1PeriodicSchedule';
 import {
   V2beta1PeriodicScheduleFromJSON,
   V2beta1PeriodicScheduleFromJSONTyped,

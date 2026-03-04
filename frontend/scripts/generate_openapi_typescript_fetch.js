@@ -20,7 +20,6 @@ const GLOBAL_PROPERTIES = [
   'apiTests=false',
   'modelTests=false',
 ].join(',');
-const PRETTIER_BIN = 'prettier/bin-prettier.js';
 
 const SPEC_TARGETS = {
   'v1:experiment': {
@@ -181,18 +180,9 @@ function normalizeNodeCompatibleFetchTypes(source) {
   return updated;
 }
 
-function normalizePrettier1IncompatibleTypeScript(source) {
-  let updated = source;
-  // This repo is still pinned to Prettier 1.19.1 for format checks, and its
-  // TypeScript parser cannot handle `import type` or `override`.
-  updated = updated.replace(/import\s+type\s+([^;]+;)/g, 'import $1');
-  updated = updated.replace(/\boverride\s+([A-Za-z_$][A-Za-z0-9_$]*\s*:)/g, '$1');
-  return updated;
-}
-
 function normalizeGeneratedTypeScriptSource(source, options = {}) {
   const { nodeCompatibleFetchTypes = false, renameV1ApiSymbols = false } = options;
-  let updated = normalizePrettier1IncompatibleTypeScript(source);
+  let updated = source;
   if (renameV1ApiSymbols) {
     updated = normalizeV1ApiSymbols(updated);
   }
@@ -248,19 +238,18 @@ function listTypeScriptFiles(rootDir) {
   return files;
 }
 
-function resolvePrettierBin(repoRoot) {
+function resolvePrettierModule(repoRoot) {
   try {
-    return require.resolve(PRETTIER_BIN, {
+    const prettierPath = require.resolve('prettier', {
       paths: [path.join(repoRoot, 'frontend')],
     });
+    return require(prettierPath);
   } catch (error) {
-    fatal(
-      'Prettier is required for API generation. Run `cd frontend && npm ci` and retry.',
-    );
+    fatal(`Prettier is required for API generation. Run \`cd frontend && npm ci\` and retry.`);
   }
 }
 
-function formatGeneratedTypeScript(repoRoot, outputDirs) {
+async function formatGeneratedTypeScript(repoRoot, outputDirs) {
   const typeScriptFiles = [];
   for (const outputDir of outputDirs) {
     typeScriptFiles.push(...listTypeScriptFiles(outputDir));
@@ -268,8 +257,20 @@ function formatGeneratedTypeScript(repoRoot, outputDirs) {
   if (typeScriptFiles.length === 0) {
     return;
   }
-  const prettierBin = resolvePrettierBin(repoRoot);
-  runCommand(process.execPath, [prettierBin, '--write', ...typeScriptFiles]);
+  const prettier = resolvePrettierModule(repoRoot);
+  for (const filePath of typeScriptFiles) {
+    const original = fs.readFileSync(filePath, 'utf8');
+    const config = (await prettier.resolveConfig(filePath)) || {};
+    const formatted = await Promise.resolve(
+      prettier.format(original, {
+        ...config,
+        filepath: filePath,
+      }),
+    );
+    if (formatted !== original) {
+      fs.writeFileSync(filePath, formatted);
+    }
+  }
 }
 
 function generateTarget(repoRoot, targetKey) {
@@ -328,7 +329,7 @@ function generateTarget(repoRoot, targetKey) {
   });
 }
 
-function main() {
+async function main() {
   const scriptDir = __dirname;
   const repoRoot = path.resolve(scriptDir, '..', '..');
   const args = process.argv.slice(2);
@@ -341,11 +342,11 @@ function main() {
   const outputDirs = [
     ...new Set(targets.map(targetKey => path.join(repoRoot, SPEC_TARGETS[targetKey].output))),
   ];
-  formatGeneratedTypeScript(repoRoot, outputDirs);
+  await formatGeneratedTypeScript(repoRoot, outputDirs);
 }
 
 if (require.main === module) {
-  main();
+  main().catch(error => fatal(error.stack || error.message));
 }
 
 module.exports = {
@@ -355,8 +356,7 @@ module.exports = {
   normalizeGeneratedTypeScript,
   normalizeGeneratedTypeScriptSource,
   normalizeNodeCompatibleFetchTypes,
-  normalizePrettier1IncompatibleTypeScript,
   normalizeV1ApiSymbols,
-  resolvePrettierBin,
+  resolvePrettierModule,
   resolveTargets,
 };

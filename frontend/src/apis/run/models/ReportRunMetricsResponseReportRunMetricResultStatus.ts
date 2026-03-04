@@ -27,7 +27,8 @@ export const ReportRunMetricsResponseReportRunMetricResultStatus = {
   DUPLICATE_REPORTING: 'DUPLICATE_REPORTING',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 } as const;
-export type ReportRunMetricsResponseReportRunMetricResultStatus = typeof ReportRunMetricsResponseReportRunMetricResultStatus[keyof typeof ReportRunMetricsResponseReportRunMetricResultStatus];
+export type ReportRunMetricsResponseReportRunMetricResultStatus =
+  (typeof ReportRunMetricsResponseReportRunMetricResultStatus)[keyof typeof ReportRunMetricsResponseReportRunMetricResultStatus];
 
 export function instanceOfReportRunMetricsResponseReportRunMetricResultStatus(value: any): boolean {
   for (const key in ReportRunMetricsResponseReportRunMetricResultStatus) {

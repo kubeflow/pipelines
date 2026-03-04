@@ -13,14 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiRelationship } from './ApiRelationship';
+import type { ApiRelationship } from './ApiRelationship';
 import {
   ApiRelationshipFromJSON,
   ApiRelationshipFromJSONTyped,
   ApiRelationshipToJSON,
   ApiRelationshipToJSONTyped,
 } from './ApiRelationship';
-import { ApiResourceKey } from './ApiResourceKey';
+import type { ApiResourceKey } from './ApiResourceKey';
 import {
   ApiResourceKeyFromJSON,
   ApiResourceKeyFromJSONTyped,

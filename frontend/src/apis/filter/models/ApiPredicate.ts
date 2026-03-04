@@ -13,28 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiStringValues } from './ApiStringValues';
+import type { ApiStringValues } from './ApiStringValues';
 import {
   ApiStringValuesFromJSON,
   ApiStringValuesFromJSONTyped,
   ApiStringValuesToJSON,
   ApiStringValuesToJSONTyped,
 } from './ApiStringValues';
-import { PredicateOp } from './PredicateOp';
+import type { PredicateOp } from './PredicateOp';
 import {
   PredicateOpFromJSON,
   PredicateOpFromJSONTyped,
   PredicateOpToJSON,
   PredicateOpToJSONTyped,
 } from './PredicateOp';
-import { ApiLongValues } from './ApiLongValues';
+import type { ApiLongValues } from './ApiLongValues';
 import {
   ApiLongValuesFromJSON,
   ApiLongValuesFromJSONTyped,
   ApiLongValuesToJSON,
   ApiLongValuesToJSONTyped,
 } from './ApiLongValues';
-import { ApiIntValues } from './ApiIntValues';
+import type { ApiIntValues } from './ApiIntValues';
 import {
   ApiIntValuesFromJSON,
   ApiIntValuesFromJSONTyped,

@@ -21,7 +21,8 @@ export const ApiExperimentStorageState = {
   STORAGESTATE_AVAILABLE: 'STORAGESTATE_AVAILABLE',
   STORAGESTATE_ARCHIVED: 'STORAGESTATE_ARCHIVED',
 } as const;
-export type ApiExperimentStorageState = typeof ApiExperimentStorageState[keyof typeof ApiExperimentStorageState];
+export type ApiExperimentStorageState =
+  (typeof ApiExperimentStorageState)[keyof typeof ApiExperimentStorageState];
 
 export function instanceOfApiExperimentStorageState(value: any): boolean {
   for (const key in ApiExperimentStorageState) {

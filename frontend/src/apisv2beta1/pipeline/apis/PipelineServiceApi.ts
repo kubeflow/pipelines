@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import {
+import type {
   GooglerpcStatus,
   V2beta1CreatePipelineAndVersionRequest,
   V2beta1ListPipelineVersionsResponse,
@@ -130,7 +130,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1PipelineFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => V2beta1PipelineFromJSON(jsonValue));
   }
 
   /**
@@ -181,7 +181,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1PipelineFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => V2beta1PipelineFromJSON(jsonValue));
   }
 
   /**
@@ -243,7 +243,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1PipelineVersionFromJSON(jsonValue),
     );
   }
@@ -428,7 +428,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1PipelineFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => V2beta1PipelineFromJSON(jsonValue));
   }
 
   /**
@@ -481,7 +481,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1PipelineFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => V2beta1PipelineFromJSON(jsonValue));
   }
 
   /**
@@ -548,7 +548,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1PipelineVersionFromJSON(jsonValue),
     );
   }
@@ -622,7 +622,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1ListPipelineVersionsResponseFromJSON(jsonValue),
     );
   }
@@ -698,7 +698,7 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1ListPipelinesResponseFromJSON(jsonValue),
     );
   }

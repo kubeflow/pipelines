@@ -25,7 +25,8 @@ export const V2beta1ExperimentStorageState = {
   AVAILABLE: 'AVAILABLE',
   ARCHIVED: 'ARCHIVED',
 } as const;
-export type V2beta1ExperimentStorageState = typeof V2beta1ExperimentStorageState[keyof typeof V2beta1ExperimentStorageState];
+export type V2beta1ExperimentStorageState =
+  (typeof V2beta1ExperimentStorageState)[keyof typeof V2beta1ExperimentStorageState];
 
 export function instanceOfV2beta1ExperimentStorageState(value: any): boolean {
   for (const key in V2beta1ExperimentStorageState) {

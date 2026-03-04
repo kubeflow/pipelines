@@ -13,14 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiPeriodicSchedule } from './ApiPeriodicSchedule';
+import type { ApiPeriodicSchedule } from './ApiPeriodicSchedule';
 import {
   ApiPeriodicScheduleFromJSON,
   ApiPeriodicScheduleFromJSONTyped,
   ApiPeriodicScheduleToJSON,
   ApiPeriodicScheduleToJSONTyped,
 } from './ApiPeriodicSchedule';
-import { ApiCronSchedule } from './ApiCronSchedule';
+import type { ApiCronSchedule } from './ApiCronSchedule';
 import {
   ApiCronScheduleFromJSON,
   ApiCronScheduleFromJSONTyped,

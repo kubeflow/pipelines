@@ -40,7 +40,8 @@ export const V2beta1PredicateOperation = {
   IN: 'IN',
   IS_SUBSTRING: 'IS_SUBSTRING',
 } as const;
-export type V2beta1PredicateOperation = typeof V2beta1PredicateOperation[keyof typeof V2beta1PredicateOperation];
+export type V2beta1PredicateOperation =
+  (typeof V2beta1PredicateOperation)[keyof typeof V2beta1PredicateOperation];
 
 export function instanceOfV2beta1PredicateOperation(value: any): boolean {
   for (const key in V2beta1PredicateOperation) {

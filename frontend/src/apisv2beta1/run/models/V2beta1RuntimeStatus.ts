@@ -13,14 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
-import { GooglerpcStatus } from './GooglerpcStatus';
+import type { GooglerpcStatus } from './GooglerpcStatus';
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusFromJSONTyped,
   GooglerpcStatusToJSON,
   GooglerpcStatusToJSONTyped,
 } from './GooglerpcStatus';
-import { V2beta1RuntimeState } from './V2beta1RuntimeState';
+import type { V2beta1RuntimeState } from './V2beta1RuntimeState';
 import {
   V2beta1RuntimeStateFromJSON,
   V2beta1RuntimeStateFromJSONTyped,

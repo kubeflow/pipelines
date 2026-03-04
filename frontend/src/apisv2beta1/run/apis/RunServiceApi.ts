@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import { GooglerpcStatus, V2beta1ListRunsResponse, V2beta1Run } from '../models/index';
+import type { GooglerpcStatus, V2beta1ListRunsResponse, V2beta1Run } from '../models/index';
 import {
   GooglerpcStatusFromJSON,
   GooglerpcStatusToJSON,
@@ -172,7 +172,7 @@ export class RunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1RunFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => V2beta1RunFromJSON(jsonValue));
   }
 
   /**
@@ -292,7 +292,7 @@ export class RunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => V2beta1RunFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => V2beta1RunFromJSON(jsonValue));
   }
 
   /**
@@ -361,7 +361,7 @@ export class RunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       V2beta1ListRunsResponseFromJSON(jsonValue),
     );
   }

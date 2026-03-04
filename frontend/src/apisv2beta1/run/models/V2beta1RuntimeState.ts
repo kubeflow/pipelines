@@ -38,7 +38,7 @@ export const V2beta1RuntimeState = {
   CANCELED: 'CANCELED',
   PAUSED: 'PAUSED',
 } as const;
-export type V2beta1RuntimeState = typeof V2beta1RuntimeState[keyof typeof V2beta1RuntimeState];
+export type V2beta1RuntimeState = (typeof V2beta1RuntimeState)[keyof typeof V2beta1RuntimeState];
 
 export function instanceOfV2beta1RuntimeState(value: any): boolean {
   for (const key in V2beta1RuntimeState) {

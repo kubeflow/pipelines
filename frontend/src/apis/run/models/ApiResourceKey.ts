@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiResourceType } from './ApiResourceType';
+import type { ApiResourceType } from './ApiResourceType';
 import {
   ApiResourceTypeFromJSON,
   ApiResourceTypeFromJSONTyped,

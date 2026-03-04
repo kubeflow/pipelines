@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { ApiPipeline } from './ApiPipeline';
+import type { ApiPipeline } from './ApiPipeline';
 import {
   ApiPipelineFromJSON,
   ApiPipelineFromJSONTyped,

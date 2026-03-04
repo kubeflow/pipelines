@@ -24,7 +24,7 @@ export const ApiResourceType = {
   PIPELINE_VERSION: 'PIPELINE_VERSION',
   NAMESPACE: 'NAMESPACE',
 } as const;
-export type ApiResourceType = typeof ApiResourceType[keyof typeof ApiResourceType];
+export type ApiResourceType = (typeof ApiResourceType)[keyof typeof ApiResourceType];
 
 export function instanceOfApiResourceType(value: any): boolean {
   for (const key in ApiResourceType) {

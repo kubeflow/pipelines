@@ -24,7 +24,7 @@
 export const ProtobufNullValue = {
   NULL_VALUE: 'NULL_VALUE',
 } as const;
-export type ProtobufNullValue = typeof ProtobufNullValue[keyof typeof ProtobufNullValue];
+export type ProtobufNullValue = (typeof ProtobufNullValue)[keyof typeof ProtobufNullValue];
 
 export function instanceOfProtobufNullValue(value: any): boolean {
   for (const key in ProtobufNullValue) {

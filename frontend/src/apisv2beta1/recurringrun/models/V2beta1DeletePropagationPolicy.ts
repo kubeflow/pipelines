@@ -22,7 +22,8 @@ export const V2beta1DeletePropagationPolicy = {
   BACKGROUND: 'BACKGROUND',
   ORPHAN: 'ORPHAN',
 } as const;
-export type V2beta1DeletePropagationPolicy = typeof V2beta1DeletePropagationPolicy[keyof typeof V2beta1DeletePropagationPolicy];
+export type V2beta1DeletePropagationPolicy =
+  (typeof V2beta1DeletePropagationPolicy)[keyof typeof V2beta1DeletePropagationPolicy];
 
 export function instanceOfV2beta1DeletePropagationPolicy(value: any): boolean {
   for (const key in V2beta1DeletePropagationPolicy) {

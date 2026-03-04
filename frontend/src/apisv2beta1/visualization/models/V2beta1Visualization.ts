@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1VisualizationType } from './V2beta1VisualizationType';
+import type { V2beta1VisualizationType } from './V2beta1VisualizationType';
 import {
   V2beta1VisualizationTypeFromJSON,
   V2beta1VisualizationTypeFromJSONTyped,

@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { RunMetricFormat } from './RunMetricFormat';
+import type { RunMetricFormat } from './RunMetricFormat';
 import {
   RunMetricFormatFromJSON,
   RunMetricFormatFromJSONTyped,

@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1RecurringRun } from './V2beta1RecurringRun';
+import type { V2beta1RecurringRun } from './V2beta1RecurringRun';
 import {
   V2beta1RecurringRunFromJSON,
   V2beta1RecurringRunFromJSONTyped,

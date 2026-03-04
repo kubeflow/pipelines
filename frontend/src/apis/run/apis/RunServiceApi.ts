@@ -13,7 +13,7 @@
  */
 
 import * as runtime from '../runtime';
-import {
+import type {
   ApiListRunsResponse,
   ApiReportRunMetricsResponse,
   ApiRun,
@@ -168,7 +168,7 @@ export class RunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiRunDetailFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiRunDetailFromJSON(jsonValue));
   }
 
   /**
@@ -269,7 +269,7 @@ export class RunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue => ApiRunDetailFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ApiRunDetailFromJSON(jsonValue));
   }
 
   /**
@@ -335,7 +335,7 @@ export class RunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiListRunsResponseFromJSON(jsonValue),
     );
   }
@@ -414,7 +414,7 @@ export class RunServiceApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, jsonValue =>
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
       ApiReportRunMetricsResponseFromJSON(jsonValue),
     );
   }
@@ -596,4 +596,5 @@ export const ListRunsV1ResourceReferenceKeyTypeEnum = {
   PIPELINE_VERSION: 'PIPELINE_VERSION',
   NAMESPACE: 'NAMESPACE',
 } as const;
-export type ListRunsV1ResourceReferenceKeyTypeEnum = typeof ListRunsV1ResourceReferenceKeyTypeEnum[keyof typeof ListRunsV1ResourceReferenceKeyTypeEnum];
+export type ListRunsV1ResourceReferenceKeyTypeEnum =
+  (typeof ListRunsV1ResourceReferenceKeyTypeEnum)[keyof typeof ListRunsV1ResourceReferenceKeyTypeEnum];

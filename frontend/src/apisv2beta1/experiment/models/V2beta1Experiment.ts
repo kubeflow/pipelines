@@ -13,7 +13,7 @@
  */
 
 import { mapValues } from '../runtime';
-import { V2beta1ExperimentStorageState } from './V2beta1ExperimentStorageState';
+import type { V2beta1ExperimentStorageState } from './V2beta1ExperimentStorageState';
 import {
   V2beta1ExperimentStorageStateFromJSON,
   V2beta1ExperimentStorageStateFromJSONTyped,
