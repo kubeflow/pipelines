@@ -267,8 +267,8 @@ async function parseKfpApiError(error: any): Promise<ErrorDetails | undefined> {
     error && typeof error.json === 'function'
       ? error
       : error.response && typeof error.response.json === 'function'
-      ? error.response
-      : undefined;
+        ? error.response
+        : undefined;
 
   if (!response) {
     return undefined;

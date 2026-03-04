@@ -345,7 +345,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // each run individually.
       await this._getAndSetRuns(displayRuns);
       const predicates = filter.predicates?.filter(
-        p => p.key === 'name' && p.operation === V2beta1PredicateOperation.IS_SUBSTRING,
+        (p) => p.key === 'name' && p.operation === V2beta1PredicateOperation.IS_SUBSTRING,
       );
       const substrings = predicates?.map((p) => p.string_value?.toLowerCase() || '') || [];
       displayRuns = displayRuns.filter((runDetail) => {
