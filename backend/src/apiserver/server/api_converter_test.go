@@ -15,6 +15,7 @@
 package server
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -23,10 +24,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/status"
@@ -39,6 +42,16 @@ const testPluginsExperimentName = "my-exp"
 const testPluginsRecurringExperimentName = "recurring-exp"
 const testPluginsJobName = "test-job"
 const testPluginsUnsafeJavaScriptURL = "javascript:alert(1)"
+const testPluginsURLBase = "https://example.com/"
+
+func setPluginLimitsConfigForTest(t *testing.T, values map[string]string) {
+	t.Helper()
+	t.Cleanup(viper.Reset)
+	viper.Reset()
+	for k, v := range values {
+		viper.Set(k, v)
+	}
+}
 
 func strPtr(s string) *string {
 	return &s
@@ -47,6 +60,33 @@ func strPtr(s string) *string {
 func testLargeTextPtr(s string) *model.LargeText {
 	lt := model.LargeText(s)
 	return &lt
+}
+
+// createPluginInputMapWithNKeys builds n plugin input entries with a small valid payload.
+func createPluginInputMapWithNKeys(n int) map[string]*structpb.Struct {
+	input := make(map[string]*structpb.Struct, n)
+	for i := range n {
+		input[fmt.Sprintf("plugin-%d", i)] = &structpb.Struct{
+			Fields: map[string]*structpb.Value{"k": structpb.NewStringValue("ok")},
+		}
+	}
+	return input
+}
+
+func createPluginOutputMapWithNKeys(n int) map[string]*apiv2beta1.PluginOutput {
+	output := make(map[string]*apiv2beta1.PluginOutput, n)
+	for i := range n {
+		output[fmt.Sprintf("plugin-%d", i)] = &apiv2beta1.PluginOutput{
+			Entries: map[string]*apiv2beta1.MetadataValue{
+				"run_url": {
+					Value:      structpb.NewStringValue(testPluginsURLBase),
+					RenderType: apiv2beta1.MetadataValue_URL.Enum(),
+				},
+			},
+			State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+		}
+	}
+	return output
 }
 
 func TestToModelExperiment(t *testing.T) {
@@ -5144,35 +5184,6 @@ func TestValidatePluginsOutput(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "nil plugin output is ignored",
-			input: map[string]*apiv2beta1.PluginOutput{
-				"mlflow": nil,
-			},
-		},
-		{
-			name: "nil metadata entry is ignored",
-			input: map[string]*apiv2beta1.PluginOutput{
-				"mlflow": {
-					Entries: map[string]*apiv2beta1.MetadataValue{
-						"run_url": nil,
-					},
-				},
-			},
-		},
-		{
-			name: "metadata with nil value is ignored",
-			input: map[string]*apiv2beta1.PluginOutput{
-				"mlflow": {
-					Entries: map[string]*apiv2beta1.MetadataValue{
-						"run_url": {
-							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
-							Value:      nil,
-						},
-					},
-				},
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -5185,6 +5196,372 @@ func TestValidatePluginsOutput(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestValidatePluginsInputLimits(t *testing.T) {
+	tooLongPayloadValue := strings.Repeat("a", 55000)
+
+	tests := []struct {
+		name            string
+		input           map[string]*structpb.Struct
+		wantErrContains string
+	}{
+		{
+			name:  "nil map",
+			input: nil,
+		},
+		{
+			name:  "empty map",
+			input: map[string]*structpb.Struct{},
+		},
+		{
+			name: "accepts multiple small plugin input payloads",
+			input: map[string]*structpb.Struct{
+				"plugin-0": {Fields: map[string]*structpb.Value{"k": structpb.NewStringValue("ok")}},
+				"plugin-1": {Fields: map[string]*structpb.Value{"k": structpb.NewStringValue("ok")}},
+			},
+		},
+		{
+			name:            "rejects plugin input map with too many keys",
+			input:           createPluginInputMapWithNKeys(common.DefaultPluginMaxKeys + 1),
+			wantErrContains: pluginErrPluginsInputTooManyKeys,
+		},
+		{
+			name: "rejects plugin input entry exceeding per-plugin size",
+			input: map[string]*structpb.Struct{
+				"plugin-0": {
+					Fields: map[string]*structpb.Value{
+						"k": structpb.NewStringValue(strings.Repeat("a", common.DefaultPluginMaxPayloadBytes*2)),
+					},
+				},
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsInputEntrySize, "plugin-0"),
+		},
+		{
+			name: "rejects plugin input map exceeding total payload size",
+			input: map[string]*structpb.Struct{
+				"plugin-0": {Fields: map[string]*structpb.Value{"k": structpb.NewStringValue(tooLongPayloadValue)}},
+				"plugin-1": {Fields: map[string]*structpb.Value{"k": structpb.NewStringValue(tooLongPayloadValue)}},
+				"plugin-2": {Fields: map[string]*structpb.Value{"k": structpb.NewStringValue(tooLongPayloadValue)}},
+				"plugin-3": {Fields: map[string]*structpb.Value{"k": structpb.NewStringValue(tooLongPayloadValue)}},
+				"plugin-4": {Fields: map[string]*structpb.Value{"k": structpb.NewStringValue(tooLongPayloadValue)}},
+			},
+			wantErrContains: pluginErrPluginsInputTotalSize,
+		},
+		{
+			name: "nesting too deep",
+			input: map[string]*structpb.Struct{
+				"mlflow": makeDeepStruct(common.DefaultPluginMaxNestingDepth + 1),
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsInputNestingDepth, "mlflow"),
+		},
+		{
+			name: "at configured boundaries",
+			input: map[string]*structpb.Struct{
+				"mlflow": makeDeepStruct(common.DefaultPluginMaxNestingDepth),
+			},
+		},
+		{
+			name: "reject nil plugin struct entry",
+			input: map[string]*structpb.Struct{
+				"mlflow": nil,
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsInputNilEntry, "mlflow"),
+		},
+		{
+			name: "reject unset value kind in plugins_input",
+			input: map[string]*structpb.Struct{
+				"mlflow": {
+					Fields: map[string]*structpb.Value{
+						"broken": {},
+					},
+				},
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsInputInvalidValue, "mlflow"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			limits, err := common.GetPluginLimitsConfig()
+			require.NoError(t, err)
+			err = validatePluginsInputLimits(tt.input, limits)
+			if tt.wantErrContains != "" {
+				require.Error(t, err)
+				require.ErrorContains(t, err, tt.wantErrContains)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestValidatePluginsOutputLimits(t *testing.T) {
+	tooLongPayloadValue := strings.Repeat("a", 55000)
+
+	tests := []struct {
+		name            string
+		input           map[string]*apiv2beta1.PluginOutput
+		wantErrContains string
+	}{
+		{
+			name: "allow nil plugin output entry",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": nil,
+			},
+		},
+		{
+			name: "accepts multiple small plugin output payloads",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"plugin-0": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {Value: structpb.NewStringValue(testPluginsURLBase), RenderType: apiv2beta1.MetadataValue_URL.Enum()},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+				"plugin-1": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {Value: structpb.NewStringValue(testPluginsURLBase), RenderType: apiv2beta1.MetadataValue_URL.Enum()},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+			},
+		},
+		{
+			name:            "rejects plugin output map with too many keys",
+			input:           createPluginOutputMapWithNKeys(common.DefaultPluginMaxKeys + 1),
+			wantErrContains: pluginErrPluginsOutputTooManyKeys,
+		},
+		{
+			name: "rejects plugin output entry exceeding per-plugin size",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"plugin-0": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:      structpb.NewStringValue(testPluginsURLBase + strings.Repeat("a", common.DefaultPluginMaxPayloadBytes*2)),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsOutputEntrySize, "plugin-0"),
+		},
+		{
+			name: "rejects plugin output map exceeding total payload size",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"plugin-0": {Entries: map[string]*apiv2beta1.MetadataValue{"run_url": {Value: structpb.NewStringValue(testPluginsURLBase + tooLongPayloadValue), RenderType: apiv2beta1.MetadataValue_URL.Enum()}}, State: apiv2beta1.PluginState_PLUGIN_RUNNING},
+				"plugin-1": {Entries: map[string]*apiv2beta1.MetadataValue{"run_url": {Value: structpb.NewStringValue(testPluginsURLBase + tooLongPayloadValue), RenderType: apiv2beta1.MetadataValue_URL.Enum()}}, State: apiv2beta1.PluginState_PLUGIN_RUNNING},
+				"plugin-2": {Entries: map[string]*apiv2beta1.MetadataValue{"run_url": {Value: structpb.NewStringValue(testPluginsURLBase + tooLongPayloadValue), RenderType: apiv2beta1.MetadataValue_URL.Enum()}}, State: apiv2beta1.PluginState_PLUGIN_RUNNING},
+				"plugin-3": {Entries: map[string]*apiv2beta1.MetadataValue{"run_url": {Value: structpb.NewStringValue(testPluginsURLBase + tooLongPayloadValue), RenderType: apiv2beta1.MetadataValue_URL.Enum()}}, State: apiv2beta1.PluginState_PLUGIN_RUNNING},
+				"plugin-4": {Entries: map[string]*apiv2beta1.MetadataValue{"run_url": {Value: structpb.NewStringValue(testPluginsURLBase + tooLongPayloadValue), RenderType: apiv2beta1.MetadataValue_URL.Enum()}}, State: apiv2beta1.PluginState_PLUGIN_RUNNING},
+			},
+			wantErrContains: pluginErrPluginsOutputTotalSize,
+		},
+		{
+			name: "nested metadata value too deep",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"nested": {
+							Value: makeDeepValue(common.DefaultPluginMaxNestingDepth + 1),
+						},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsOutputNestingDepth, "mlflow", "nested"),
+		},
+		{
+			name: "at configured boundaries",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"nested": {
+							Value: makeDeepValue(common.DefaultPluginMaxNestingDepth),
+						},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+			},
+		},
+		{
+			name: "reject nil metadata entry",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": nil,
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsOutputNilMetadata, "mlflow", "run_url"),
+		},
+		{
+			name: "reject nil metadata value",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value: nil,
+						},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsOutputNilValue, "mlflow", "run_url"),
+		},
+		{
+			name: "reject unset value kind in plugins_output",
+			input: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value: &structpb.Value{},
+						},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+				},
+			},
+			wantErrContains: fmt.Sprintf(pluginErrPluginsOutputInvalidValue, "mlflow", "run_url"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			limits, err := common.GetPluginLimitsConfig()
+			require.NoError(t, err)
+			err = validatePluginsOutputLimits(tt.input, limits)
+			if tt.wantErrContains != "" {
+				require.Error(t, err)
+				require.ErrorContains(t, err, tt.wantErrContains)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestValidatePluginsInputLimitsUsesConfiguredOverrides(t *testing.T) {
+	input := map[string]*structpb.Struct{
+		"mlflow": {
+			Fields: map[string]*structpb.Value{
+				"k": structpb.NewStringValue("ok"),
+			},
+		},
+		"other": {
+			Fields: map[string]*structpb.Value{
+				"k": structpb.NewStringValue("ok"),
+			},
+		},
+	}
+
+	setPluginLimitsConfigForTest(t, map[string]string{
+		common.PluginMaxKeys: "1",
+	})
+
+	limits, err := common.GetPluginLimitsConfig()
+	require.NoError(t, err)
+	err = validatePluginsInputLimits(input, limits)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "exceeds maximum 1")
+}
+
+func TestValidatePluginsOutputLimitsUsesConfiguredOverrides(t *testing.T) {
+	output := map[string]*apiv2beta1.PluginOutput{
+		"mlflow": {
+			Entries: map[string]*apiv2beta1.MetadataValue{
+				"run_url": {
+					Value:      structpb.NewStringValue(testPluginsURLBase),
+					RenderType: apiv2beta1.MetadataValue_URL.Enum(),
+				},
+			},
+			State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+		},
+	}
+
+	setPluginLimitsConfigForTest(t, map[string]string{
+		common.PluginMaxPayloadBytes: "64",
+	})
+
+	limits, err := common.GetPluginLimitsConfig()
+	require.NoError(t, err)
+	err = validatePluginsOutputLimits(output, limits)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "exceeds maximum 64 bytes")
+}
+
+func TestValidatePluginsInputLimitsUsesNestingDepthOverride(t *testing.T) {
+	input := map[string]*structpb.Struct{
+		"mlflow": {
+			Fields: map[string]*structpb.Value{
+				"nested": makeDeepValue(3),
+			},
+		},
+	}
+
+	setPluginLimitsConfigForTest(t, map[string]string{
+		common.PluginMaxNestingDepth: "2",
+	})
+
+	limits, err := common.GetPluginLimitsConfig()
+	require.NoError(t, err)
+	err = validatePluginsInputLimits(input, limits)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "nesting depth exceeds maximum 2")
+}
+
+func TestValidatePluginsOutputLimitsUsesTotalPayloadOverride(t *testing.T) {
+	output := map[string]*apiv2beta1.PluginOutput{
+		"mlflow": {
+			Entries: map[string]*apiv2beta1.MetadataValue{
+				"run_url": {
+					Value:      structpb.NewStringValue("https://example.com/run1"),
+					RenderType: apiv2beta1.MetadataValue_URL.Enum(),
+				},
+			},
+			State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+		},
+		"other": {
+			Entries: map[string]*apiv2beta1.MetadataValue{
+				"status": {
+					Value: structpb.NewStringValue("https://example.com/run2"),
+				},
+			},
+			State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+		},
+	}
+
+	setPluginLimitsConfigForTest(t, map[string]string{
+		common.PluginMaxTotalPayloadBytes: "10",
+		common.PluginMaxPayloadBytes:      "10",
+	})
+
+	limits, err := common.GetPluginLimitsConfig()
+	require.NoError(t, err)
+	err = validatePluginsOutputLimits(output, limits)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "exceeds maximum 10 bytes")
+}
+
+func makeDeepStruct(depth int) *structpb.Struct {
+	current := structpb.NewStringValue("leaf")
+	for range depth {
+		current = structpb.NewStructValue(&structpb.Struct{
+			Fields: map[string]*structpb.Value{"nested": current},
+		})
+	}
+	return current.GetStructValue()
+}
+
+func makeDeepValue(depth int) *structpb.Value {
+	current := structpb.NewStringValue("leaf")
+	for range depth {
+		current = structpb.NewStructValue(&structpb.Struct{
+			Fields: map[string]*structpb.Value{"nested": current},
+		})
+	}
+	return current
 }
 
 func TestToModelRunPluginsFields(t *testing.T) {
@@ -5270,6 +5647,54 @@ func TestToModelRunPluginsFields(t *testing.T) {
 							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 						},
 					},
+				},
+			},
+		}
+
+		_, err := toModelRun(apiRun)
+		require.Error(t, err)
+	})
+
+	t.Run("plugins_input exceeding limits returns error", func(t *testing.T) {
+		apiRun := &apiv2beta1.Run{
+			RunId:       "run4",
+			DisplayName: "test-too-large-input",
+			PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+				PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+					PipelineId: "p1", PipelineVersionId: "pv1",
+				},
+			},
+			PluginsInput: map[string]*structpb.Struct{
+				"mlflow": {
+					Fields: map[string]*structpb.Value{
+						"blob": structpb.NewStringValue(strings.Repeat("a", common.DefaultPluginMaxPayloadBytes*2)),
+					},
+				},
+			},
+		}
+
+		_, err := toModelRun(apiRun)
+		require.Error(t, err)
+	})
+
+	t.Run("plugins_output exceeding limits returns error", func(t *testing.T) {
+		apiRun := &apiv2beta1.Run{
+			RunId:       "run5",
+			DisplayName: "test-too-large-output",
+			PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+				PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+					PipelineId: "p1", PipelineVersionId: "pv1",
+				},
+			},
+			PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+				"mlflow": {
+					Entries: map[string]*apiv2beta1.MetadataValue{
+						"run_url": {
+							Value:      structpb.NewStringValue(testPluginsURLBase + strings.Repeat("a", common.DefaultPluginMaxPayloadBytes*2)),
+							RenderType: apiv2beta1.MetadataValue_URL.Enum(),
+						},
+					},
+					State: apiv2beta1.PluginState_PLUGIN_RUNNING,
 				},
 			},
 		}
@@ -5395,6 +5820,30 @@ func TestToModelJobPluginsInput(t *testing.T) {
 		got, err := toModelJob(apiJob)
 		require.NoError(t, err)
 		assert.Nil(t, got.PluginsInputString)
+	})
+
+	t.Run("plugins_input exceeding limits returns error", func(t *testing.T) {
+		apiJob := &apiv2beta1.RecurringRun{
+			RecurringRunId: "job3",
+			DisplayName:    "test-job-too-large",
+			MaxConcurrency: 1,
+			Mode:           apiv2beta1.RecurringRun_ENABLE,
+			Trigger: &apiv2beta1.Trigger{
+				Trigger: &apiv2beta1.Trigger_PeriodicSchedule{
+					PeriodicSchedule: &apiv2beta1.PeriodicSchedule{IntervalSecond: 60},
+				},
+			},
+			PluginsInput: map[string]*structpb.Struct{
+				"mlflow": {
+					Fields: map[string]*structpb.Value{
+						"blob": structpb.NewStringValue(strings.Repeat("a", common.DefaultPluginMaxPayloadBytes*2)),
+					},
+				},
+			},
+		}
+
+		_, err := toModelJob(apiJob)
+		require.Error(t, err)
 	})
 }
 
