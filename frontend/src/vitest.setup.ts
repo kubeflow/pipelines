@@ -12,13 +12,15 @@ if (!globalThis.DOMMatrixReadOnly) {
       this.m22 = 1;
     }
   }
-  globalThis.DOMMatrixReadOnly = (DOMMatrixReadOnlyMock as unknown) as typeof DOMMatrixReadOnly;
+  globalThis.DOMMatrixReadOnly = DOMMatrixReadOnlyMock as unknown as typeof DOMMatrixReadOnly;
 }
 
-// @xyflow/react's d3-drag dependency accesses event.view.document on mousedown,
-// but jsdom leaves event.view null. This must be global (not per-file beforeAll)
-// because Vitest's process-level uncaught-exception monitor fires before scoped
-// window error handlers in parallel worker threads.
+// Workaround: @xyflow/react's d3-drag dependency accesses event.view.document
+// on mousedown, but jsdom leaves event.view null. This must be global (not
+// per-file beforeAll) because Vitest's process-level uncaught-exception monitor
+// fires before scoped window error handlers in parallel worker threads.
+// TODO: Remove once jsdom natively supports event.view on synthetic mouse events,
+// or when a vitest environment override can be scoped to only the affected tests.
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event: ErrorEvent) => {
     if (

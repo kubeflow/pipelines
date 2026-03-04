@@ -135,10 +135,6 @@ const nodes = [
 ];
 
 function WrappedNodeGallery({}) {
-  const onInit = (reactFlowInstance: { fitView: () => void }) => {
-    reactFlowInstance.fitView();
-  };
-
   return (
     <div style={{ width: '1200px', height: '1000px' }}>
       {/* // className='flex container mx-auto' */}
@@ -150,7 +146,7 @@ function WrappedNodeGallery({}) {
           snapToGrid={true}
           nodeTypes={NODE_TYPES}
           edgeTypes={{}}
-          onInit={onInit}
+          onInit={(instance) => instance.fitView()}
         >
           <MiniMap />
           <Controls />

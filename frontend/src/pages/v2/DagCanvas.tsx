@@ -30,16 +30,13 @@ import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
 import {
   getTaskKeyFromNodeKey,
+  isNode,
   NodeTypeNames,
   NODE_TYPES,
   PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 
 type PipelineNode = Node<FlowElementDataBase>;
-
-function isNode(el: PipelineFlowElement): el is PipelineNode {
-  return 'position' in el;
-}
 
 export interface DagCanvasProps {
   elements: PipelineFlowElement[];
@@ -58,12 +55,30 @@ export default function DagCanvas({
   onElementClick,
   nodesDraggable = true,
 }: DagCanvasProps) {
-  const nodes = useMemo(() => elements.filter(isNode), [elements]);
+  const subDagExpand = useCallback(
+    (nodeKey: string) => {
+      const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
+      onLayersUpdate(newLayers);
+    },
+    [layers, onLayersUpdate],
+  );
+
+  const nodes = useMemo(
+    () =>
+      elements
+        .filter(isNode)
+        .map((node) =>
+          node.type === NodeTypeNames.SUB_DAG && node.data
+            ? { ...node, data: { ...node.data, expand: subDagExpand } }
+            : node,
+        ),
+    [elements, subDagExpand],
+  );
   const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
 
   const onNodeDragStop = useCallback(
     (_event: ReactMouseEvent, draggedNode: PipelineNode) => {
-      const updatedElements = elements.map(el =>
+      const updatedElements = elements.map((el) =>
         isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
       );
       setFlowElements(updatedElements);
@@ -71,29 +86,21 @@ export default function DagCanvas({
     [elements, setFlowElements],
   );
 
-  const subDagExpand = (nodeKey: string) => {
-    const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
-    onLayersUpdate(newLayers);
-  };
-
-  nodes.forEach(node => {
-    if (node && node.type === NodeTypeNames.SUB_DAG && node.data) {
-      node.data.expand = subDagExpand;
-    }
-  });
-
   return (
     <>
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
+          {/* onNodesChange/onEdgesChange are intentionally omitted: this DAG viewer
+              does not need keyboard deletion, multi-select, or internal selection
+              tracking. Drag persistence is handled via onNodeDragStop only. */}
           <ReactFlow<PipelineNode, Edge>
             style={{ background: color.lightGrey }}
             nodes={nodes}
             edges={edges}
             snapToGrid={true}
             nodesDraggable={nodesDraggable}
-            onInit={instance => instance.fitView()}
+            onInit={(instance) => instance.fitView()}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
             onNodeClick={(event, node) => onElementClick(event, node)}

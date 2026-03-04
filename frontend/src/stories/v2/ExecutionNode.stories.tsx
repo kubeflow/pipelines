@@ -28,10 +28,6 @@ interface WrappedExecutionNodeProps {
 }
 
 function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
-  const onInit = (reactFlowInstance: { fitView: () => void }) => {
-    reactFlowInstance.fitView();
-  };
-
   const nodes = [
     {
       id: id,
@@ -51,7 +47,7 @@ function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
           snapToGrid={true}
           nodeTypes={NODE_TYPES}
           edgeTypes={{}}
-          onInit={onInit}
+          onInit={(instance) => instance.fitView()}
         >
           <MiniMap />
           <Controls />

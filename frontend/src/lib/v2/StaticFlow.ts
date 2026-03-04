@@ -23,7 +23,7 @@ import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pi
 
 export type PipelineFlowElement = Node<FlowElementDataBase> | Edge;
 
-function isNode(el: PipelineFlowElement): el is Node<FlowElementDataBase> {
+export function isNode(el: PipelineFlowElement): el is Node<FlowElementDataBase> {
   return 'position' in el;
 }
 

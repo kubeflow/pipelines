@@ -34,10 +34,6 @@ interface WrappedArtifactNodeProps {
 }
 
 function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
-  const onInit = (reactFlowInstance: { fitView: () => void }) => {
-    reactFlowInstance.fitView();
-  };
-
   const nodes = [
     {
       id: id,
@@ -61,7 +57,7 @@ function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
           snapToGrid={true}
           nodeTypes={nodeTypes}
           edgeTypes={{}}
-          onInit={onInit}
+          onInit={(instance) => instance.fitView()}
         >
           <MiniMap />
           <Controls />

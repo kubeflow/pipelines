@@ -87,7 +87,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
-  const getNodeName = function(element: PipelineFlowElement | null): string {
+  const getNodeName = function (element: PipelineFlowElement | null): string {
     if (
       element &&
       element.data &&

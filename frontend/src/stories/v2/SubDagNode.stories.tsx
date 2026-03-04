@@ -31,10 +31,6 @@ interface WrappedSubDagNodeProps {
 }
 
 function WrappedSubDagNode({ id, label }: WrappedSubDagNodeProps) {
-  const onInit = (reactFlowInstance: { fitView: () => void }) => {
-    reactFlowInstance.fitView();
-  };
-
   const nodes = [
     {
       id: id,
@@ -58,7 +54,7 @@ function WrappedSubDagNode({ id, label }: WrappedSubDagNodeProps) {
           snapToGrid={true}
           nodeTypes={nodeTypes}
           edgeTypes={{}}
-          onInit={onInit}
+          onInit={(instance) => instance.fitView()}
         >
           <MiniMap />
           <Controls />
