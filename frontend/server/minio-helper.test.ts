@@ -30,7 +30,7 @@ vi.mock('@aws-sdk/credential-providers');
 
 describe('minio-helper', () => {
   const MockedMinioClient: Mock = MinioClient as any;
-  const MockedAuthorizeFn: Mock = vi.fn(x => undefined);
+  const MockedAuthorizeFn: Mock = vi.fn((x) => undefined);
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -98,12 +98,13 @@ describe('minio-helper', () => {
     });
 
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
-      (fromNodeProviderChain as Mock).mockImplementation(() => () =>
-        Promise.resolve({
-          accessKeyId: 'AccessKeyId',
-          secretAccessKey: 'SecretAccessKey',
-          sessionToken: 'SessionToken',
-        }),
+      (fromNodeProviderChain as Mock).mockImplementation(
+        () => () =>
+          Promise.resolve({
+            accessKeyId: 'AccessKeyId',
+            secretAccessKey: 'SecretAccessKey',
+            sessionToken: 'SessionToken',
+          }),
       );
       const client = await createMinioClient({ endPoint: 's3.amazonaws.com' }, 's3');
       expect(client).toBeInstanceOf(MinioClient);
@@ -149,7 +150,7 @@ describe('minio-helper', () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end(tarBuffer);
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         stream.on('end', () => {
           expect(maybeTar.read().toString()).toBe('hello world\n');
           resolve();
@@ -161,7 +162,7 @@ describe('minio-helper', () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end('hello world');
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         stream.on('end', () => {
           expect(maybeTar.read().toString()).toBe('hello world');
           resolve();
@@ -199,14 +200,10 @@ describe('minio-helper', () => {
 
       return new Promise<void>((resolve, reject) => {
         const chunks: Buffer[] = [];
-        stream.on('data', chunk => chunks.push(chunk));
+        stream.on('data', (chunk) => chunks.push(chunk));
         stream.on('end', () => {
           try {
-            expect(
-              Buffer.concat(chunks)
-                .toString()
-                .trim(),
-            ).toBe('hello world');
+            expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
             resolve();
           } catch (err) {
             reject(err);
@@ -226,14 +223,10 @@ describe('minio-helper', () => {
 
       return new Promise<void>((resolve, reject) => {
         const chunks: Buffer[] = [];
-        stream.on('data', chunk => chunks.push(chunk));
+        stream.on('data', (chunk) => chunks.push(chunk));
         stream.on('end', () => {
           try {
-            expect(
-              Buffer.concat(chunks)
-                .toString()
-                .trim(),
-            ).toBe('hello world');
+            expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
             resolve();
           } catch (err) {
             reject(err);
@@ -253,14 +246,10 @@ describe('minio-helper', () => {
 
       return new Promise<void>((resolve, reject) => {
         const chunks: Buffer[] = [];
-        stream.on('data', chunk => chunks.push(chunk));
+        stream.on('data', (chunk) => chunks.push(chunk));
         stream.on('end', () => {
           try {
-            expect(
-              Buffer.concat(chunks)
-                .toString()
-                .trim(),
-            ).toBe('hello world');
+            expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
             resolve();
           } catch (err) {
             reject(err);

@@ -45,7 +45,7 @@ describe('/artifacts authorization', () => {
 
   beforeEach(() => {
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function() {
+    mockedMinioClient.mockImplementation(function () {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -327,7 +327,9 @@ describe('/artifacts authorization', () => {
         .expect(403);
 
       expect(consoleSpy).toHaveBeenCalled();
-      const logCall = consoleSpy.mock.calls.find(call => call[0] && call[0].includes('[SECURITY]'));
+      const logCall = consoleSpy.mock.calls.find(
+        (call) => call[0] && call[0].includes('[SECURITY]'),
+      );
       expect(logCall).toBeDefined();
       if (logCall) {
         expect(logCall[0]).toContain('attacker@example.com');
@@ -360,7 +362,7 @@ describe('/artifacts authorization', () => {
 
       expect(consoleSpy).toHaveBeenCalled();
       const logCall = consoleSpy.mock.calls.find(
-        call => call[0] && call[0].includes('[SECURITY]') && call[0].includes('Unauthenticated'),
+        (call) => call[0] && call[0].includes('[SECURITY]') && call[0].includes('Unauthenticated'),
       );
       expect(logCall).toBeDefined();
     });

@@ -46,8 +46,8 @@ describe('workflow-helper', () => {
 
   afterEach(async () => {
     await Promise.all(
-      streams.map(stream => {
-        return new Promise<void>(resolve => {
+      streams.map((stream) => {
+        return new Promise<void>((resolve) => {
           if (stream.destroyed) {
             resolve();
             return;
@@ -64,7 +64,7 @@ describe('workflow-helper', () => {
     );
     streams.length = 0;
     vi.restoreAllMocks();
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
   describe('composePodLogsStreamHandler', () => {
@@ -227,8 +227,7 @@ describe('workflow-helper', () => {
                 bucket: 'bucket',
                 endpoint: 'seaweedfs.kubeflow',
                 insecure: true,
-                key:
-                  'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
+                key: 'prefix/workflow-name/workflow-name-system-container-impl-abc/some-artifact.csv',
                 secretKeySecret: { key: 'secretKey', name: 'secretKeyName' },
               },
             },
