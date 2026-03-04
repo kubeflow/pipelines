@@ -67,7 +67,11 @@ async function clearDefaultInput() {
 }
 
 function buildTableRowSelector(rowLabel, { containerXPath = '' } = {}) {
-  return `${containerXPath}//*[@data-testid="table-row"][.//*[self::a or self::span][normalize-space()="${rowLabel}"]]`;
+  const rowSelector =
+    '//*[@data-testid="table-row"][.//*[self::a or self::span][normalize-space()="' +
+    rowLabel +
+    '"]]';
+  return containerXPath ? `${containerXPath}${rowSelector}` : rowSelector;
 }
 
 async function saveDebugScreenshot(name) {
