@@ -52,7 +52,7 @@ describe('/artifacts', () => {
   beforeEach(() => {
     artifactContent = 'hello world'; // reset
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function() {
+    mockedMinioClient.mockImplementation(function () {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -378,7 +378,7 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function() {
+      mockedGcsStorage.mockImplementationOnce(function () {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -573,7 +573,7 @@ describe('/artifacts', () => {
       const stream = new PassThrough();
       stream.write(artifactContent);
       stream.end();
-      mockedGcsStorage.mockImplementationOnce(function() {
+      mockedGcsStorage.mockImplementationOnce(function () {
         return {
           bucket: () => ({
             getFiles: () =>
@@ -595,7 +595,7 @@ describe('/artifacts', () => {
       const mockedGcsStorage: Mock = GCSStorage as any;
       const stream = new PassThrough();
       stream.end(artifactContent);
-      mockedGcsStorage.mockImplementationOnce(function() {
+      mockedGcsStorage.mockImplementationOnce(function () {
         return {
           bucket: () => ({
             getFiles: () =>

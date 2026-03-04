@@ -79,18 +79,16 @@ describe('GettingStarted page', () => {
 
   it('fallbacks to show pipeline list page if request failed', async () => {
     let count = 0;
-    pipelineListSpy.mockImplementation(
-      (): Promise<V2beta1ListPipelinesResponse> => {
-        ++count;
-        if (count === 1) {
-          return Promise.reject(new Error('Mocked error'));
-        }
-        return Promise.resolve({
-          pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
-          total_size: 1,
-        });
-      },
-    );
+    pipelineListSpy.mockImplementation((): Promise<V2beta1ListPipelinesResponse> => {
+      ++count;
+      if (count === 1) {
+        return Promise.reject(new Error('Mocked error'));
+      }
+      return Promise.resolve({
+        pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
+        total_size: 1,
+      });
+    });
     render(<GettingStarted {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(screen.getByRole('link', { name: 'Data passing in Python components' })).toHaveAttribute(

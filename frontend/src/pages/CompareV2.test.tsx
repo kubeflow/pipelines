@@ -59,7 +59,9 @@ describe('CompareV2', () => {
 
   beforeEach(() => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id) || newMockRun(id));
+    getRunSpy.mockImplementation(
+      (id: string) => runs.find((r) => r.run_id === id) || newMockRun(id),
+    );
 
     vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(new Context());
     vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
@@ -218,7 +220,7 @@ describe('CompareV2', () => {
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -234,7 +236,7 @@ describe('CompareV2', () => {
   it('Clear banner when getRun and MLMD requests succeed', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -243,13 +245,13 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
     const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
@@ -284,7 +286,7 @@ describe('CompareV2', () => {
   it('Log warning when artifact with specified ID is not found', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -293,13 +295,13 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
     const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [newMockArtifact(1), newMockArtifact(3)];
@@ -333,7 +335,7 @@ describe('CompareV2', () => {
     const expectError = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation(_ => {
+    getRunSpy.mockImplementation((_) => {
       throw {
         text: () => Promise.resolve('test error'),
       };
@@ -360,7 +362,7 @@ describe('CompareV2', () => {
     const expectError = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
     vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockRejectedValue(new Error('Not connected to MLMD'));
 
     render(
@@ -384,7 +386,7 @@ describe('CompareV2', () => {
     const expectError = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
     vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
@@ -412,7 +414,7 @@ describe('CompareV2', () => {
   it('Allows individual sections to be collapsed and expanded', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -452,7 +454,7 @@ describe('CompareV2', () => {
   it('All runs are initially selected', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -474,7 +476,7 @@ describe('CompareV2', () => {
     const expectError = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
     vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockRejectedValue(new Error('Not connected to MLMD'));
     vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockRejectedValue(
       new Error('Not connected to MLMD'),
@@ -534,7 +536,7 @@ describe('CompareV2', () => {
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(new Context());
     vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
@@ -587,7 +589,7 @@ describe('CompareV2', () => {
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -596,14 +598,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [
@@ -671,7 +673,7 @@ describe('CompareV2', () => {
   it('Confusion matrix shown on select and removed after run is de-selected', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -680,14 +682,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [
@@ -745,7 +747,7 @@ describe('CompareV2', () => {
   it('One ROC Curve shown on select, hidden on run de-select', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -754,14 +756,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [
@@ -807,7 +809,7 @@ describe('CompareV2', () => {
   it('Multiple ROC Curves shown on select', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -816,14 +818,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = vi.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(300)]];
     const getExecutionsSpy = vi.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [

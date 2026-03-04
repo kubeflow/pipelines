@@ -124,7 +124,6 @@
     "@types/lodash": ">=4.14.117",
     "@types/markdown-to-jsx": "^6.9.0",
     "@types/node": "^20.19.28",
-    "@types/prettier": "^1.19.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
     "@types/react-router": "^5.1.20",
@@ -148,7 +147,7 @@
     "playwright": "^1.58.0",
     "pngjs": "^7.0.0",
     "postcss": "^8.4.5",
-    "prettier": "1.19.1",
+    "prettier": "^3.5.0",
     "react-test-renderer": "^17.0.2",
     "rollup-plugin-visualizer": "^5.12.0",
     "semver": "^7.7.4",
@@ -194,8 +193,7 @@
     "nth-check": "2.0.1",
     "terser": "5.14.2",
     "ws": "8.17.1",
-    "micromatch": ">=4.0.8",
-    "prettier": "$prettier"
+    "micromatch": ">=4.0.8"
   },
   "homepage": "./",
   "browserslist": {

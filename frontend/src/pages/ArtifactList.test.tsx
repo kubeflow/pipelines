@@ -48,7 +48,7 @@ describe('ArtifactList', () => {
   const listOperationOpts = new metadataStorePb.ListOperationOptions();
   listOperationOpts.setMaxResultSize(10);
   const getArtifactsRequest = new GetArtifactsRequest();
-  getArtifactsRequest.setOptions(listOperationOpts),
+  (getArtifactsRequest.setOptions(listOperationOpts),
     beforeEach(() => {
       updateBannerSpy = vi.fn();
       updateDialogSpy = vi.fn();
@@ -72,7 +72,7 @@ describe('ArtifactList', () => {
         response.setArtifactsList(artifacts);
         return Promise.resolve(response);
       });
-    });
+    }));
 
   function generateNArtifacts(n: number) {
     let artifacts: Artifact[] = [];
@@ -169,12 +169,12 @@ describe('ArtifactList', () => {
     fireEvent.click(newRowsPerPage);
 
     listOperationOpts.setMaxResultSize(20);
-    getArtifactsRequest.setOptions(listOperationOpts),
+    (getArtifactsRequest.setOptions(listOperationOpts),
       await waitFor(() => {
         // API will be called again if "Rows per page" is changed
         expect(getArtifactTypesSpy).toHaveBeenCalledTimes(1);
         expect(getArtifactsSpy).toHaveBeenLastCalledWith(getArtifactsRequest);
-      });
+      }));
 
     screen.getByText('test artifact 20'); // The 20th artifacts appears.
   });

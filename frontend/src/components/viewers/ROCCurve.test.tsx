@@ -61,7 +61,7 @@ describe('ROCCurve', () => {
     const dataLines = Array.from(container.querySelectorAll('.recharts-line-curve'));
     expect(dataLines.length).toBeGreaterThanOrEqual(3);
     const dataLineColors = dataLines
-      .map(line => line.getAttribute('stroke'))
+      .map((line) => line.getAttribute('stroke'))
       .filter((stroke): stroke is string => !!stroke);
     expect(new Set(dataLineColors).size).toBeGreaterThanOrEqual(3);
   });

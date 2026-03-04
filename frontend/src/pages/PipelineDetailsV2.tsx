@@ -57,7 +57,7 @@ function PipelineDetailsV2({
     setSubDagLayers(l);
   };
 
-  const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
+  const getNodeName = function (element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
       return element.data.label;
     }
