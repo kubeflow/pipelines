@@ -24,7 +24,19 @@ import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pi
 export type PipelineFlowElement = Node<FlowElementDataBase> | Edge;
 
 export function isNode(el: PipelineFlowElement): el is Node<FlowElementDataBase> {
-  return 'position' in el;
+  return 'position' in el && !('source' in el);
+}
+
+export function getNodeName(element: PipelineFlowElement | null): string {
+  if (
+    element &&
+    element.data &&
+    'label' in element.data &&
+    typeof element.data.label === 'string'
+  ) {
+    return element.data.label;
+  }
+  return 'unknown';
 }
 
 const nodeWidth = 224;

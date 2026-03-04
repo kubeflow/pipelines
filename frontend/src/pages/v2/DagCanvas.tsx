@@ -24,7 +24,6 @@ import {
   MiniMap,
   Node,
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
@@ -86,6 +85,16 @@ export default function DagCanvas({
     [elements, setFlowElements],
   );
 
+  const handleNodeClick = useCallback(
+    (event: ReactMouseEvent, node: PipelineNode) => onElementClick(event, node),
+    [onElementClick],
+  );
+
+  const handleEdgeClick = useCallback(
+    (event: ReactMouseEvent, edge: Edge) => onElementClick(event, edge),
+    [onElementClick],
+  );
+
   return (
     <>
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
@@ -103,8 +112,8 @@ export default function DagCanvas({
             onInit={(instance) => instance.fitView()}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
-            onNodeClick={(event, node) => onElementClick(event, node)}
-            onEdgeClick={(event, edge) => onElementClick(event, edge)}
+            onNodeClick={handleNodeClick}
+            onEdgeClick={handleEdgeClick}
             onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
           >
             <MiniMap />

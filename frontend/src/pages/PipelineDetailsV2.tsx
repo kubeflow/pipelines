@@ -20,7 +20,7 @@ import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCa
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
-import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 
 import { commonCss, padding } from 'src/Css';
 import DagCanvas from './v2/DagCanvas';
@@ -54,19 +54,6 @@ function PipelineDetailsV2({
     setSelectedNode(null);
     setLayers(l);
     setSubDagLayers(l);
-  };
-
-  const getNodeName = function (element: PipelineFlowElement | null): string {
-    if (
-      element &&
-      element.data &&
-      'label' in element.data &&
-      typeof element.data.label === 'string'
-    ) {
-      return element.data.label;
-    }
-
-    return 'unknown';
   };
 
   return (

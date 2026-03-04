@@ -35,7 +35,7 @@ import {
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -86,19 +86,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
-
-  const getNodeName = function (element: PipelineFlowElement | null): string {
-    if (
-      element &&
-      element.data &&
-      'label' in element.data &&
-      typeof element.data.label === 'string'
-    ) {
-      return element.data.label;
-    }
-
-    return 'unknown';
-  };
 
   // Retrieves MLMD states from the MLMD store.
   const { isSuccess, data } = useQuery<MlmdPackage, Error>(
