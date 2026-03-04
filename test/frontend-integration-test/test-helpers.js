@@ -18,6 +18,24 @@ const URL = require('url').URL;
 
 const defaultTimeout = 10000;
 const screenshotDir = process.env.FRONTEND_INTEGRATION_SCREENSHOT_DIR || '/tmp';
+const runPageLoadingText = 'Currently loading pipeline information';
+
+const legacyRunFormSelectors = {
+  description: '#descriptionInput',
+  message: 'input#newRunPipelineParam0',
+  runName: '#runNameInput',
+};
+
+const v2RunFormSelectors = {
+  description: '//label[normalize-space()="Description"]/following::*[self::textarea or self::input][1]',
+  message: '#message',
+  runName: '//label[starts-with(normalize-space(), "Run name")]/following::input[1]',
+};
+
+const defaultRunFormVariants = [
+  { name: 'legacy', selectors: legacyRunFormSelectors },
+  { name: 'v2', selectors: v2RunFormSelectors },
+];
 
 async function waitForCondition(condition, { timeout = defaultTimeout, timeoutMsg, interval } = {}) {
   const waitOptions = { timeout };
@@ -40,18 +58,61 @@ async function waitForHashPrefix(prefix, { timeout = defaultTimeout } = {}) {
   );
 }
 
-async function waitForSelectedPipelineVersion({ timeout = defaultTimeout } = {}) {
-  await waitForCondition(
-    async () => {
-      const hash = new URL(await browser.getUrl()).hash;
-      const query = hash.split('?')[1] || '';
-      return Boolean(new URLSearchParams(query).get('pipelineVersionId'));
-    },
-    {
-      timeout,
-      timeoutMsg: 'expected pipeline version to be selected after choosing pipeline',
-    },
-  );
+async function isRunPageLoading() {
+  return browser.execute((loadingText) => {
+    const pageText = document.body ? document.body.innerText : '';
+    return pageText.includes(loadingText);
+  }, runPageLoadingText);
+}
+
+async function waitForRunPageReady({
+  timeout = defaultTimeout,
+  requirePipelineVersion = true,
+  timeoutMsg = 'expected a run creation form to load',
+  variants = defaultRunFormVariants,
+} = {}) {
+  let matchedVariant;
+
+  try {
+    await waitForCondition(
+      async () => {
+        if (requirePipelineVersion) {
+          const hash = new URL(await browser.getUrl()).hash;
+          const query = hash.split('?')[1] || '';
+          if (!new URLSearchParams(query).get('pipelineVersionId')) {
+            return false;
+          }
+        }
+
+        if (await isRunPageLoading()) {
+          return false;
+        }
+
+        for (const variant of variants) {
+          if (
+            (await isSelectorDisplayed(variant.selectors.runName)) &&
+            (await isSelectorDisplayed(variant.selectors.description))
+          ) {
+            matchedVariant = variant;
+            return true;
+          }
+        }
+
+        return false;
+      },
+      {
+        timeout,
+        timeoutMsg,
+      },
+    );
+  } catch (error) {
+    console.log('RUN_PAGE_LOADING', await isRunPageLoading());
+    console.log('RUN_PAGE_URL', await browser.getUrl());
+    await saveDebugScreenshot('run-page-ready');
+    throw error;
+  }
+
+  return matchedVariant;
 }
 
 async function getValueFromDetailsTable(key) {
@@ -153,6 +214,6 @@ module.exports = {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
-  waitForSelectedPipelineVersion,
+  waitForRunPageReady,
   waitForTableRows,
 };

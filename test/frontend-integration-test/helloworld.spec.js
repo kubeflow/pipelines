@@ -18,12 +18,11 @@ const {
   buildTableRowSelector,
   clearDefaultInput,
   getValueFromDetailsTable,
-  isSelectorDisplayed,
   saveDebugScreenshot,
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
-  waitForSelectedPipelineVersion,
+  waitForRunPageReady,
 } = require('./test-helpers');
 
 const experimentName = 'helloworld-experiment-' + Date.now();
@@ -38,16 +37,6 @@ const uiTimeout = 5000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
-const v1RunFormSelectors = {
-  description: '#descriptionInput',
-  message: 'input#newRunPipelineParam0',
-  runName: '#runNameInput',
-};
-const v2RunFormSelectors = {
-  description: '//label[normalize-space()="Description"]/following::*[self::textarea or self::input][1]',
-  message: '#message',
-  runName: '//label[starts-with(normalize-space(), "Run name")]/following::input[1]',
-};
 
 async function selectPipelineForRun() {
   await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
@@ -84,41 +73,6 @@ async function selectPipelineForRun() {
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout: uiTimeout, reverse: true });
 }
 
-async function waitForRunFormSelectors() {
-  let selectors;
-
-  try {
-    await waitForCondition(
-      async () => {
-        if (
-          (await isSelectorDisplayed(v1RunFormSelectors.runName)) &&
-          (await isSelectorDisplayed(v1RunFormSelectors.description))
-        ) {
-          selectors = v1RunFormSelectors;
-          return true;
-        }
-        if (
-          (await isSelectorDisplayed(v2RunFormSelectors.runName)) &&
-          (await isSelectorDisplayed(v2RunFormSelectors.description))
-        ) {
-          selectors = v2RunFormSelectors;
-          return true;
-        }
-        return false;
-      },
-      {
-        timeout: uiTimeout,
-        timeoutMsg: 'expected a run creation form to load',
-      },
-    );
-  } catch (error) {
-    await saveDebugScreenshot('run-creation-form');
-    throw error;
-  }
-
-  return selectors;
-}
-
 async function waitForRunParameterField(selector) {
   try {
     await $(selector).waitForDisplayed({ timeout: runStartTimeout });
@@ -129,7 +83,11 @@ async function waitForRunParameterField(selector) {
 }
 
 async function fillRunForm({ runName, description, message }) {
-  const selectors = await waitForRunFormSelectors();
+  const runFormVariant = await waitForRunPageReady({
+    timeout: runStartTimeout,
+    timeoutMsg: 'expected a run creation form to load',
+  });
+  const selectors = runFormVariant.selectors;
 
   await $(selectors.runName).click();
   await clearDefaultInput();
@@ -202,7 +160,6 @@ describe('deploy helloworld sample run', () => {
 
   it('creates a new run in the experiment', async () => {
     await selectPipelineForRun();
-    await waitForSelectedPipelineVersion({ timeout: uiTimeout });
 
     await fillRunForm({
       description: runDescription,
@@ -303,7 +260,6 @@ describe('deploy helloworld sample run', () => {
     await $('#createNewRunBtn').click();
 
     await selectPipelineForRun();
-    await waitForSelectedPipelineVersion({ timeout: uiTimeout });
 
     await fillRunForm({
       description: runWithoutExperimentDescription,

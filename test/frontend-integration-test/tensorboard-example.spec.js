@@ -23,7 +23,7 @@ const {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
-  waitForSelectedPipelineVersion,
+  waitForRunPageReady,
 } = require('./test-helpers');
 
 const experimentName = 'tensorboard-example-experiment-' + Date.now();
@@ -315,10 +315,12 @@ describe('deploy tensorboard example run', () => {
     await runPhase('create run', async () => {
       await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
       await selectPipelineForRun();
-      await waitForSelectedPipelineVersion({ timeout: uiTimeout });
+      const runFormVariant = await waitForRunPageReady({
+        timeout: runStartTimeout,
+        timeoutMsg: 'expected a run creation form to load',
+      });
 
-      await $('#runNameInput').waitForDisplayed({ timeout: uiTimeout });
-      await $('#runNameInput').click();
+      await $(runFormVariant.selectors.runName).click();
       await clearDefaultInput();
       await browser.keys(runName);
       await $('#startNewRunBtn').click();
