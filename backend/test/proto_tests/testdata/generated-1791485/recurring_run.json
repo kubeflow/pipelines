@@ -29,5 +29,6 @@
   "error": null,
   "no_catchup": false,
   "namespace": "namespace1",
-  "experiment_id": ""
+  "experiment_id": "",
+  "plugins_input": {}
 }

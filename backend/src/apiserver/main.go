@@ -506,12 +506,20 @@ func initConfig() {
 	if err != nil {
 		glog.Fatalf("Fatal error config file: %s", err)
 	}
+	if _, err := common.GetPluginLimitsConfig(); err != nil {
+		glog.Fatalf("Invalid plugin limits configuration: %v", err)
+	}
 
 	// Watch for configuration change
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		// Read in config again
-		viper.ReadInConfig()
+		if err := viper.ReadInConfig(); err != nil {
+			glog.Fatalf("Fatal error config file: %s", err)
+		}
+		if _, err := common.GetPluginLimitsConfig(); err != nil {
+			glog.Fatalf("Invalid plugin limits configuration: %v", err)
+		}
 	})
 
 	proxy.InitializeConfigWithEnv()
