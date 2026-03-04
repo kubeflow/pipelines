@@ -46,7 +46,7 @@ const v1RunFormSelectors = {
 const v2RunFormSelectors = {
   description: '//label[normalize-space()="Description"]/following::*[self::textarea or self::input][1]',
   message: '#message',
-  runName: '//label[normalize-space()="Run name"]/following::input[1]',
+  runName: '//label[starts-with(normalize-space(), "Run name")]/following::input[1]',
 };
 
 async function selectPipelineForRun() {
