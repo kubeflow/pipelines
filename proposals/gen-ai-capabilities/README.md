@@ -70,8 +70,8 @@ requires explicit administrator configuration to enable.
 ## Motivation
 
 Kubeflow Pipelines is a powerful platform for building and deploying ML workflows, but it has a
-steep learning curve. Users must understand the KFP SDK, pipeline DSL, Kubernetes concepts, and
-Argo Workflows to effectively build, debug, and optimize pipelines. This creates friction for:
+steep learning curve. Users must understand the KFP SDK and pipeline DSL to effectively build,
+debug, and optimize pipelines. This creates friction for:
 
 - **Data scientists** who are proficient in ML but not infrastructure or pipeline DSLs.
 - **New adopters** who struggle to translate their ML workflows into KFP pipelines.
@@ -107,8 +107,8 @@ Copilot for code, Jupyter AI for notebooks).
    prompt engineering and retrieval-augmented generation (RAG).
 2. Autonomous pipeline execution. The AI assists and suggests; the user always confirms and
    triggers execution.
-3. Replacing the existing SDK or UI authoring experience. Gen-AI capabilities augment the existing
-   workflows.
+3. Replacing the existing SDK authoring experience. Gen-AI capabilities augment the existing
+   SDK-based workflows.
 4. Supporting real-time streaming inference pipelines. This proposal focuses on batch/training
    pipeline workflows.
 5. Building a general-purpose chatbot. The AI assistant is scoped to Kubeflow Pipelines operations.
@@ -131,7 +131,9 @@ operations that the frontend consumes.
 As a data scientist, I want to describe my ML workflow in plain English (e.g., "Create a pipeline
 that loads data from BigQuery, preprocesses it with pandas, trains an XGBoost model, evaluates it,
 and deploys to a KServe endpoint if accuracy > 0.95") and receive valid KFP Python SDK code that I
-can review, edit, and run.
+can review, edit, and run in my local development environment. Today, pipeline authoring happens
+entirely outside the KFP UI (in IDEs or notebooks using the KFP SDK); this feature provides an
+AI-assisted starting point that generates SDK code for the user to refine locally.
 
 #### Story 2: Intelligent Pipeline Debugging
 
@@ -636,7 +638,8 @@ Context-specific AI actions integrated into existing UI surfaces:
 
 - **Run details page**: "Analyze failure" button on failed runs.
 - **Pipeline details page**: "Generate docs" and "Suggest optimizations" buttons.
-- **Pipeline list**: "Create with AI" button alongside the existing upload flow.
+- **Pipeline list**: "Generate with AI" button that produces KFP SDK code for the user to
+  download, review, and run locally.
 
 ### SDK Extensions
 
