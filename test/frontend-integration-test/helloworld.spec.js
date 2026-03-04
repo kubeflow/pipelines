@@ -92,14 +92,14 @@ async function waitForRunFormSelectors() {
       async () => {
         if (
           (await isSelectorDisplayed(v1RunFormSelectors.runName)) &&
-          (await isSelectorDisplayed(v1RunFormSelectors.message))
+          (await isSelectorDisplayed(v1RunFormSelectors.description))
         ) {
           selectors = v1RunFormSelectors;
           return true;
         }
         if (
           (await isSelectorDisplayed(v2RunFormSelectors.runName)) &&
-          (await isSelectorDisplayed(v2RunFormSelectors.message))
+          (await isSelectorDisplayed(v2RunFormSelectors.description))
         ) {
           selectors = v2RunFormSelectors;
           return true;
@@ -119,6 +119,15 @@ async function waitForRunFormSelectors() {
   return selectors;
 }
 
+async function waitForRunParameterField(selector) {
+  try {
+    await $(selector).waitForDisplayed({ timeout: runStartTimeout });
+  } catch (error) {
+    await saveDebugScreenshot('run-parameter-field');
+    throw error;
+  }
+}
+
 async function fillRunForm({ runName, description, message }) {
   const selectors = await waitForRunFormSelectors();
 
@@ -129,7 +138,7 @@ async function fillRunForm({ runName, description, message }) {
   await $(selectors.description).click();
   await browser.keys(description);
 
-  await $(selectors.message).waitForDisplayed({ timeout: uiTimeout });
+  await waitForRunParameterField(selectors.message);
   await $(selectors.message).click();
   await clearDefaultInput();
   await browser.keys(message);
