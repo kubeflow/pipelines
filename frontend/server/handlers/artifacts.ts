@@ -133,7 +133,7 @@ export function getArtifactsAuthMiddleware(
     if (!namespace) {
       console.warn(
         `[SECURITY] Missing namespace parameter. ` +
-        `User: ${userId}, Path: ${request.originalUrl}`,
+          `User: ${userId}, Path: ${request.originalUrl}`,
       );
       response.status(400).send('Namespace parameter is required when authentication is enabled');
       return;
@@ -142,8 +142,8 @@ export function getArtifactsAuthMiddleware(
     if (!isAllowedResourceName(namespace)) {
       console.warn(
         `[SECURITY] Invalid namespace format. ` +
-        `User: ${userId}, ` +
-        `Namespace: ${namespace}, Path: ${request.originalUrl}`,
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}`,
       );
       response.status(400).send('Invalid namespace format');
       return;
@@ -161,9 +161,9 @@ export function getArtifactsAuthMiddleware(
     if (authError) {
       console.warn(
         `[SECURITY] Unauthorized cross-namespace access attempt. ` +
-        `User: ${userId}, ` +
-        `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
-        `Reason: ${authError.message}`,
+          `User: ${userId}, ` +
+          `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
+          `Reason: ${authError.message}`,
       );
       response.status(403).send(authError.message);
       return;
@@ -353,7 +353,7 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', (err) => res.status(500).send(`Failed to get object in bucket: ${err}`))
+        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
@@ -416,12 +416,19 @@ function getGCSArtifactHandler(
       const storage = new Storage(storageOptions);
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
       const files = await storage.bucket(bucket).getFiles({ prefix });
-      const matchingFiles = files[0].filter((f) => {
+      const matchingFiles = files[0].filter(f => {
         // Escape regex characters
         const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
         // Build a RegExp object that only recognizes asterisks ('*'), and
         // escapes everything else.
-        const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
+        const regex = new RegExp(
+          '^' +
+            key
+              .split(/\*+/)
+              .map(escapeRegexChars)
+              .join('.*') +
+            '$',
+        );
         return regex.test(f.name);
       });
 
@@ -432,12 +439,15 @@ function getGCSArtifactHandler(
       }
       console.log(
         `Found ${matchingFiles.length} matching files: `,
-        matchingFiles.map((file) => file.name).join(','),
+        matchingFiles.map(file => file.name).join(','),
       );
       let contents = '';
       // TODO: support peek for concatenated matching files
       if (peek) {
-        matchingFiles[0].createReadStream().pipe(new PreviewStream({ peek })).pipe(res);
+        matchingFiles[0]
+          .createReadStream()
+          .pipe(new PreviewStream({ peek }))
+          .pipe(res);
         return;
       }
 
@@ -445,9 +455,12 @@ function getGCSArtifactHandler(
       matchingFiles.forEach((f, i) => {
         const buffer: Buffer[] = [];
         f.createReadStream()
-          .on('data', (data) => buffer.push(Buffer.from(data)))
+          .on('data', data => buffer.push(Buffer.from(data)))
           .on('end', () => {
-            contents += Buffer.concat(buffer).toString().trim() + '\n';
+            contents +=
+              Buffer.concat(buffer)
+                .toString()
+                .trim() + '\n';
             if (i === matchingFiles.length - 1) {
               res.send(contents);
             }
@@ -497,7 +510,9 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         return;
       }
 
-      fs.createReadStream(filePath).pipe(new PreviewStream({ peek })).pipe(res);
+      fs.createReadStream(filePath)
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
     } catch (err) {
       console.log(`Failed to open volume: ${err}`);
       res.status(500).send(`Failed to open volume.`);
@@ -551,7 +566,7 @@ export function getArtifactsProxyHandler({
     },
     {
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
+      onProxyReq: proxyReq => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
       pathRewrite: (pathStr, req) => {
@@ -559,7 +574,7 @@ export function getArtifactsProxyHandler({
         url.searchParams.delete(QUERIES.NAMESPACE);
         return url.pathname + url.search;
       },
-      router: (req) => {
+      router: req => {
         const namespace = getNamespaceFromUrl(req.url || '');
         if (!namespace) {
           console.log(`namespace query param expected in ${req.url}.`);

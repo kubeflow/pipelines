@@ -281,7 +281,7 @@ function extractFirstTarRecordAsStream() {
     });
     stream.resume(); // just auto drain the stream
   });
-  extract.on('error', (error) => transformStream.emit('error', error));
+  extract.on('error', error => transformStream.emit('error', error));
   return transformStream;
 }
 
