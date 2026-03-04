@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
@@ -40,6 +36,8 @@ import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+
+import { Button, FormControlLabel, InputAdornment, Radio } from '@mui/material';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -113,7 +111,7 @@ const css = stylesheet({
 
 const getK8sNameRegex = () => /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
@@ -244,7 +242,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
 
           {newPipeline === true && this.props.buildInfo?.apiServerMultiUser && (
             <PrivateSharedSelector
-              onChange={val => {
+              onChange={(val) => {
                 this.setState({
                   isPrivate: val,
                 });
@@ -278,7 +276,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   variant='outlined'
                   inputRef={this._pipelineDisplayNameRef}
                   onChange={this.handleChange('pipelineDisplayName')}
-                  autoFocus={true}
                 />
               )}
               <Input
@@ -289,7 +286,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineDescriptionRef}
                 onChange={this.handleChange('pipelineDescription')}
-                autoFocus={true}
               />
               {/* Choose a local file for package or specify a url for package */}
             </>
@@ -308,7 +304,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
                 onChange={this.handleChange('pipelineName')}
-                autoFocus={true}
                 InputProps={{
                   classes: { disabled: css.nonEditableInput },
                   endAdornment: (
@@ -362,7 +357,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   required={false}
                   onChange={this.handleChange('pipelineVersionDisplayName')}
                   value={pipelineVersionDisplayName}
-                  autoFocus={true}
                   variant='outlined'
                 />
               )}
@@ -373,7 +367,6 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 label='Pipeline Version Description'
                 variant='outlined'
                 onChange={this.handleChange('pipelineVersionDescription')}
-                autoFocus={true}
               />
             </>
           )}
@@ -528,10 +521,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         pipelineVersionName:
           pipelineResponse.display_name +
           '-version-at-' +
-          currDate
-            .toISOString()
-            .toLowerCase()
-            .replace(/:/g, '-'),
+          currDate.toISOString().toLowerCase().replace(/:/g, '-'),
       });
     }
 
@@ -549,12 +539,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       this.setState(
         {
           pipelineVersionName:
-            value +
-            '-version-at-' +
-            currDate
-              .toISOString()
-              .toLowerCase()
-              .replace(/:/g, '-'),
+            value + '-version-at-' + currDate.toISOString().toLowerCase().replace(/:/g, '-'),
         },
         this._validate.bind(this),
       );
@@ -580,10 +565,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           (pipeline &&
             pipeline.name +
               '-version-at-' +
-              currDate
-                .toISOString()
-                .toLowerCase()
-                .replace(/:/g, '-')) ||
+              currDate.toISOString().toLowerCase().replace(/:/g, '-')) ||
           '',
       },
       () => this._validate(),
@@ -635,9 +617,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
             name: this.state.pipelineName,
             namespace,
           };
-          const createPipelineResponse = await Apis.pipelineServiceApiV2.createPipeline(
-            newPipeline,
-          );
+          const createPipelineResponse =
+            await Apis.pipelineServiceApiV2.createPipeline(newPipeline);
           this.setState({ pipelineId: createPipelineResponse.pipeline_id });
           pipelineVersionResponse = await this._createPipelineVersion();
         } else {
@@ -699,14 +680,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     // (1) new pipeline (and a default version) from local file
     // (2) new pipeline (and a default version) from url
     // (3) new pipeline version (under an existing pipeline) from url
-    const {
-      fileName,
-      pipeline,
-      pipelineVersionName,
-      packageUrl,
-      newPipeline,
-      pipelineName,
-    } = this.state;
+    const { fileName, pipeline, pipelineVersionName, packageUrl, newPipeline, pipelineName } =
+      this.state;
     try {
       if (newPipeline) {
         if (!packageUrl && !fileName) {
@@ -775,7 +750,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   }
 }
 
-const EnhancedNewPipelineVersion: React.FC<PageProps> = props => {
+const EnhancedNewPipelineVersion: React.FC<PageProps> = (props) => {
   const buildInfo = React.useContext(BuildInfoContext);
   const namespace = React.useContext(NamespaceContext);
 

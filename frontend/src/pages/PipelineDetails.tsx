@@ -134,15 +134,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             return this.state.v2Pipeline
               ? this.state.v2Pipeline.pipeline_id
               : pipelineIdFromParams
-              ? pipelineIdFromParams
-              : '';
+                ? pipelineIdFromParams
+                : '';
           },
           () => {
             return this.state.v2SelectedVersion
               ? this.state.v2SelectedVersion.pipeline_version_id
               : pipelineVersionIdFromParams
-              ? pipelineVersionIdFromParams
-              : '';
+                ? pipelineVersionIdFromParams
+                : '';
           },
         )
         .newPipelineVersion('Upload version', () =>
@@ -152,8 +152,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           this.state.v1Pipeline
             ? this.state.v1Pipeline.id!
             : pipelineIdFromParams
-            ? pipelineIdFromParams
-            : '',
+              ? pipelineIdFromParams
+              : '',
         )
         .deletePipelineVersion(
           () =>
@@ -578,9 +578,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public async handleVersionSelected(versionId: string): Promise<void> {
     if (this.state.v2Pipeline) {
-      const v1SelectedVersion = (this.state.v1Versions || []).find(v => v.id === versionId);
+      const v1SelectedVersion = (this.state.v1Versions || []).find((v) => v.id === versionId);
       const v2SelectedVersion = (this.state.v2Versions || []).find(
-        v => v.pipeline_version_id === versionId,
+        (v) => v.pipeline_version_id === versionId,
       );
       const pageTitle = this.state.v2Pipeline.display_name?.concat(
         ' (',

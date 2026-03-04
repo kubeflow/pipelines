@@ -61,7 +61,7 @@ describe('/artifacts/get namespaced proxy', () => {
   }
   afterEach(async () => {
     if (artifactServerInUserNamespace) {
-      await new Promise<void>(resolve => artifactServerInUserNamespace.close(() => resolve()));
+      await new Promise<void>((resolve) => artifactServerInUserNamespace.close(() => resolve()));
       artifactServerInUserNamespace = undefined as any;
     }
   });

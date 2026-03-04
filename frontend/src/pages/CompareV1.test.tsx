@@ -175,7 +175,7 @@ describe('CompareV1', () => {
     run2.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -200,7 +200,7 @@ describe('CompareV1', () => {
 
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
     outputArtifactLoaderSpy.mockResolvedValue([]);
     getRunV2Spy.mockImplementation((id: string) => Promise.resolve(newMockRunV2(id)));
@@ -243,7 +243,7 @@ describe('CompareV1', () => {
   it('fetches a run for each ID in query params', async () => {
     runs = [newMockRun('run-1'), newMockRun('run-2'), newMockRun('run-3')];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -282,7 +282,7 @@ describe('CompareV1', () => {
       newMockRun(MOCK_RUN_3_ID, true),
     ];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     await renderCompare();
@@ -353,7 +353,7 @@ describe('CompareV1', () => {
     run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -398,7 +398,7 @@ describe('CompareV1', () => {
     run2.pipeline_runtime!.workflow_manifest = JSON.stringify(run2Workflow);
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -417,7 +417,7 @@ describe('CompareV1', () => {
     ];
     runs = [run];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -444,7 +444,7 @@ describe('CompareV1', () => {
     run2.run!.metrics = [{ name: 'some-metric', number_value: 0.67 }];
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -481,7 +481,7 @@ describe('CompareV1', () => {
     run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();
@@ -661,7 +661,7 @@ describe('CompareV1', () => {
     run2.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
     runs = [run1, run2];
     getRunSpy.mockImplementation(
-      (id: string) => runs.find(r => r.run!.id === id) || newMockRun(id),
+      (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
 
     const props = generateProps();

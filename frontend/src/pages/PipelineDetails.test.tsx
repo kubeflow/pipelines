@@ -438,7 +438,7 @@ describe('PipelineDetails', () => {
   it(
     'directly use pipeline_manifest dumped from ' + 'pipeline_spec in run as template string (v2)',
     async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
         if (featureKey === features.FeatureKey.V2_ALPHA) {
           return true;
         }
@@ -461,7 +461,7 @@ describe('PipelineDetails', () => {
     'directly use pipeline_manifest dumped from pipeline_spec ' +
       'in recurring run as template string (v2)',
     async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
         if (featureKey === features.FeatureKey.V2_ALPHA) {
           return true;
         }
@@ -485,7 +485,7 @@ describe('PipelineDetails', () => {
   );
 
   it('use pipeline_version_id in run to get pipeline template string (v2)', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -537,7 +537,7 @@ describe('PipelineDetails', () => {
   });
 
   it('use pipeline_version_id in recurring run to get pipeline template string (v2)', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -661,7 +661,7 @@ describe('PipelineDetails', () => {
       'when pipeline_spec in the response of getPipelineVersion() is undefined' +
       'and v1 getPipelineVersionTemplate() returns empty string',
     async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
         if (featureKey === features.FeatureKey.V2_ALPHA) {
           return true;
         }
@@ -694,7 +694,7 @@ describe('PipelineDetails', () => {
       'when pipeline_spec in the response of getPipelineVersion() is undefined' +
       'and v1 getTemplate() returns empty string',
     async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
         if (featureKey === features.FeatureKey.V2_ALPHA) {
           return true;
         }
@@ -726,7 +726,7 @@ describe('PipelineDetails', () => {
     'shows no graph error banner ' +
       'when pipeline_spec in the response of getPipelineVersion() is invalid format',
     async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
         if (featureKey === features.FeatureKey.V2_ALPHA) {
           return true;
         }
@@ -756,7 +756,7 @@ describe('PipelineDetails', () => {
   );
 
   it('shows no graph error banner when failing to parse graph', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -815,9 +815,8 @@ describe('PipelineDetails', () => {
     const instance = tree.instance() as PipelineDetails;
     /* create run and create pipeline version, so 2 */
     expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(1);
-    const cloneRecurringRunBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.CLONE_RECURRING_RUN
-    ];
+    const cloneRecurringRunBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RECURRING_RUN];
     expect(cloneRecurringRunBtn).toBeDefined();
   });
 
@@ -846,9 +845,8 @@ describe('PipelineDetails', () => {
       );
       await TestUtils.flushPromises();
       const instance = tree.instance() as PipelineDetails;
-      const cloneRecurringRunBtn = instance.getInitialToolbarState().actions[
-        ButtonKeys.CLONE_RECURRING_RUN
-      ];
+      const cloneRecurringRunBtn =
+        instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RECURRING_RUN];
       cloneRecurringRunBtn!.action();
       expect(historyPushSpy).toHaveBeenCalledTimes(1);
       expect(historyPushSpy).toHaveBeenLastCalledWith(
@@ -864,9 +862,8 @@ describe('PipelineDetails', () => {
     const instance = tree.instance() as PipelineDetails;
     /* create run, create pipeline version, create experiment and delete run, so 4 */
     expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(4);
-    const newRunBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-    ];
+    const newRunBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     expect(newRunBtn).toBeDefined();
   });
 
@@ -874,9 +871,8 @@ describe('PipelineDetails', () => {
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-    ];
+    const newRunFromPipelineVersionBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     newRunFromPipelineVersionBtn.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
@@ -891,9 +887,8 @@ describe('PipelineDetails', () => {
     );
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
-      ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-    ];
+    const newRunFromPipelineVersionBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     newRunFromPipelineVersionBtn.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
@@ -911,9 +906,8 @@ describe('PipelineDetails', () => {
       );
       // Intentionally don't wait until all network requests finish.
       const instance = tree.instance() as PipelineDetails;
-      const newRunFromPipelineVersionBtn = instance.getInitialToolbarState().actions[
-        ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION
-      ];
+      const newRunFromPipelineVersionBtn =
+        instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
       newRunFromPipelineVersionBtn.action();
       expect(historyPushSpy).toHaveBeenCalledTimes(1);
       expect(historyPushSpy).toHaveBeenLastCalledWith(

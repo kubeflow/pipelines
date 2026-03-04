@@ -19,7 +19,7 @@ import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 
 interface Segment {
   angle: number;
@@ -156,7 +156,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
     const displayEdges: Edge[] = [];
 
     // Creates the lines that constitute the edges connecting the graph.
-    graph.edges().forEach(edgeInfo => {
+    graph.edges().forEach((edgeInfo) => {
       const edge = graph.edge(edgeInfo);
       const segments: Segment[] = [];
 
@@ -263,7 +263,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
       <div className={css.root}>
         {graph
           .nodes()
-          .map(id => Object.assign(graph.node(id), { id }))
+          .map((id) => Object.assign(graph.node(id), { id }))
           .map((node, i) => (
             <div
               className={classes(
@@ -327,17 +327,19 @@ export class Graph extends React.Component<GraphProps, GraphState> {
                 />
               ))}
               {/* Arrowhead */}
-              {!edge.isPlaceholder && lastSegment.x2 !== undefined && lastSegment.y2 !== undefined && (
-                <div
-                  className={css.arrowHead}
-                  style={{
-                    borderTopColor: edgeColor,
-                    left: lastSegment.x2 + this.LEFT_OFFSET - 6,
-                    top: lastSegment.y2 + this.TOP_OFFSET - 3,
-                    transform: `rotate(${lastSegment.angle + 90}deg)`,
-                  }}
-                />
-              )}
+              {!edge.isPlaceholder &&
+                lastSegment.x2 !== undefined &&
+                lastSegment.y2 !== undefined && (
+                  <div
+                    className={css.arrowHead}
+                    style={{
+                      borderTopColor: edgeColor,
+                      left: lastSegment.x2 + this.LEFT_OFFSET - 6,
+                      top: lastSegment.y2 + this.TOP_OFFSET - 3,
+                      transform: `rotate(${lastSegment.angle + 90}deg)`,
+                    }}
+                  />
+                )}
             </div>
           );
         })}

@@ -202,7 +202,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
 
       const executionTypesMap = new Map<number, ExecutionType>();
 
-      response.getExecutionTypesList().forEach(executionType => {
+      response.getExecutionTypesList().forEach((executionType) => {
         executionTypesMap.set(executionType.getId(), executionType);
       });
 
@@ -225,7 +225,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
   ) => {
     return (
       <Link
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className={commonCss.link}
         to={RoutePageFactory.executionDetails(Number(props.id))}
       >
@@ -236,7 +236,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
 
   private getFlattenedRowsFromExecutions(request: ListRequest, executions: Execution[]): Row[] {
     return executions
-      .map(execution => {
+      .map((execution) => {
         const executionType = this.executionTypesMap!.get(execution.getTypeId());
         const type = executionType ? executionType.getName() : execution.getTypeId();
         return {

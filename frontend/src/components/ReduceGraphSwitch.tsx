@@ -15,12 +15,12 @@
  */
 
 import * as React from 'react';
-import Switch, { SwitchProps } from '@material-ui/core/Switch';
-import FormGroup from '@material-ui/core/FormGroup';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
+import { SwitchProps } from '@mui/material/Switch';
 import { stylesheet } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
 import { CardTooltip } from '../atoms/CardTooltip';
+
+import { Switch, FormGroup, FormControlLabel } from '@mui/material';
 
 const css = stylesheet({
   reduceGraphPosition: {

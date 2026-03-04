@@ -126,9 +126,9 @@ spec:
                   name: mlpipeline-minio-artifact
                   key: secretkey
             - name: V2_DRIVER_IMAGE
-              value: ghcr.io/kubeflow/kfp-driver:2.15.0
+              value: ghcr.io/kubeflow/kfp-driver:2.16.0
             - name: V2_LAUNCHER_IMAGE
-              value: ghcr.io/kubeflow/kfp-launcher:2.15.0
+              value: ghcr.io/kubeflow/kfp-launcher:2.16.0
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"

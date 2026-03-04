@@ -80,8 +80,8 @@ describe('PagedTable', () => {
     try {
       render(<PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />);
 
-      const hasDomNestingWarning = consoleErrorSpy.mock.calls.some(args =>
-        args.some(arg => typeof arg === 'string' && arg.includes('validateDOMNesting')),
+      const hasDomNestingWarning = consoleErrorSpy.mock.calls.some((args) =>
+        args.some((arg) => typeof arg === 'string' && arg.includes('validateDOMNesting')),
       );
       expect(hasDomNestingWarning).toBe(false);
     } finally {

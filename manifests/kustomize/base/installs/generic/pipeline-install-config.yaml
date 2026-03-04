@@ -11,7 +11,7 @@ data:
     until the changes take effect. A quick way to restart all deployments in a
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
-  appVersion: 2.15.0
+  appVersion: 2.16.0
   dbHost: mysql # relic to be removed after release
   dbPort: "3306" # relic to be removed after release
   dbType: mysql
@@ -24,7 +24,7 @@ data:
   ## defaultPipelineRoot: Optional. Default pipeline root in v2 compatible mode.
   ## https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/
   ##
-  ## If the field is not set, kfp-launcher configmaps won't be created and 
+  ## If the field is not set, kfp-launcher configmaps won't be created and
   ## v2 compatible mode defaults to minio://mlpipeline/v2/artifacts as pipeline
   ## root.
   ##
@@ -61,20 +61,20 @@ data:
   ## [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
   cronScheduleTimezone: "UTC"
   ## cacheImage is the image that the mutating webhook will use to patch
-  ## cached steps with. Will be used to echo a message announcing that 
-  ## the cached step result will be used. If not set it will default to 
+  ## cached steps with. Will be used to echo a message announcing that
+  ## the cached step result will be used. If not set it will default to
   ## 'ghcr.io/containerd/busybox'
   cacheImage: "ghcr.io/containerd/busybox"
   ## cacheNodeRestrictions the dummy container runing if output is cached
   ## will run with the same affinity and node selector as the default pipeline
-  ## step. This is defaulted to 'false' to allow the pod to be scheduled on 
+  ## step. This is defaulted to 'false' to allow the pod to be scheduled on
   ## any node and avoid defaulting to specific nodes. Allowed values are:
   ## 'false' and 'true'.
   cacheNodeRestrictions: "false"
   ## MAXIMUM_CACHE_STALENESS configures caching according to
   ## https://www.kubeflow.org/docs/components/pipelines/overview/caching/ and
   ## https://www.kubeflow.org/docs/components/pipelines/overview/caching-v2/.
-  ## Larger than MAXIMUM_CACHE_STALENESS per pipeline user set values are 
+  ## Larger than MAXIMUM_CACHE_STALENESS per pipeline user set values are
   ## reduced to MAXIMUM_CACHE_STALENESS.
   ## The administrator of the storage backend can rely on it to delete old cache
   ## artifacts.
@@ -102,10 +102,10 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/pull/11965
   ARTIFACTS_PROXY_ENABLED: "false"
-  ## ARTIFACT_RETENTION_DAYS: Defines the retention period (in days) for artifacts stored in SeaweedFS.  
-  ## - A positive integer specifies the number of days after which the artifact will be automatically deleted.  
-  ## - A negative integer (e.g., -1) disables automatic deletion, meaning artifacts are retained indefinitely.  
-  ## Note: The unit of this configuration is always in days.  
+  ## ARTIFACT_RETENTION_DAYS: Defines the retention period (in days) for artifacts stored in SeaweedFS.
+  ## - A positive integer specifies the number of days after which the artifact will be automatically deleted.
+  ## - A negative integer (e.g., -1) disables automatic deletion, meaning artifacts are retained indefinitely.
+  ## Note: The unit of this configuration is always in days.
   ARTIFACT_RETENTION_DAYS: "-1"
   ## Default security context for customer workload containers.
   ## Leave empty to disable (default). When set, SDK-specified values

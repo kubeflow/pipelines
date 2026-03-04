@@ -3,29 +3,30 @@
 exports[`Input > accepts height and width as prop overrides 1`] = `
 <DocumentFragment>
   <div
-    class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+    class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
     spellcheck="false"
     style="height: 123px; max-width: 600px; width: 456px;"
   >
     <div
-      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
     >
       <input
         aria-invalid="false"
-        class="MuiInputBase-input MuiOutlinedInput-input"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-2"
         type="text"
         value="some input value"
       />
       <fieldset
         aria-hidden="true"
-        class="PrivateNotchedOutline-root-5 MuiOutlinedInput-notchedOutline"
-        style="padding-left: 8px;"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
         <legend
-          class="PrivateNotchedOutline-legend-6"
-          style="width: 0.01px;"
+          class="css-1whs34k-MuiNotchedOutlined-root"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </legend>
@@ -38,29 +39,30 @@ exports[`Input > accepts height and width as prop overrides 1`] = `
 exports[`Input > renders with the right styles by default 1`] = `
 <DocumentFragment>
   <div
-    class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+    class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
     spellcheck="false"
     style="height: 40px; max-width: 600px; width: 100%;"
   >
     <div
-      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
     >
       <input
         aria-invalid="false"
-        class="MuiInputBase-input MuiOutlinedInput-input"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-1"
         type="text"
         value="some input value"
       />
       <fieldset
         aria-hidden="true"
-        class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
-        style="padding-left: 8px;"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
         <legend
-          class="PrivateNotchedOutline-legend-2"
-          style="width: 0.01px;"
+          class="css-1whs34k-MuiNotchedOutlined-root"
         >
-          <span>
+          <span
+            class="notranslate"
+          >
             ​
           </span>
         </legend>

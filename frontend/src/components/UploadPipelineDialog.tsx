@@ -16,21 +16,24 @@
 
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogTitle from '@material-ui/core/DialogTitle';
 import Dropzone from 'react-dropzone';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Input from '../atoms/Input';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@mui/material/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
 import PrivateSharedSelector from './PrivateSharedSelector';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogTitle,
+  FormControlLabel,
+  InputAdornment,
+  Radio,
+} from '@mui/material';
 
 const css = stylesheet({
   dropOverlay: {
@@ -104,15 +107,8 @@ class UploadPipelineDialog extends React.Component<
   }
 
   public render(): JSX.Element {
-    const {
-      dropzoneActive,
-      file,
-      fileName,
-      fileUrl,
-      importMethod,
-      uploadPipelineName,
-      busy,
-    } = this.state;
+    const { dropzoneActive, file, fileName, fileUrl, importMethod, uploadPipelineName, busy } =
+      this.state;
 
     return (
       <Dialog
@@ -125,7 +121,7 @@ class UploadPipelineDialog extends React.Component<
         <div className={padding(20, 'lr')}>
           {this.context?.apiServerMultiUser && (
             <PrivateSharedSelector
-              onChange={val => {
+              onChange={(val) => {
                 this.setState({
                   isPrivatePipeline: val,
                 });
@@ -214,6 +210,7 @@ class UploadPipelineDialog extends React.Component<
             label='Pipeline name'
             onChange={this.handleChange('uploadPipelineName')}
             required={true}
+            autoFocus={true}
             value={uploadPipelineName}
             variant='outlined'
           />

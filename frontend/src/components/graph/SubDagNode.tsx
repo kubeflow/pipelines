@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import CropFreeIcon from '@material-ui/icons/CropFree';
+import CropFreeIcon from '@mui/icons-material/CropFree';
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
 import { SubDagFlowElementData } from './Constants';
 import { getExecutionIcon, getIcon } from './ExecutionNode';
-// import ExpandLessIcon from '@material-ui/icons/ExpandLess';
-// import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+// import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+// import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 interface SubDagNodeProps {
   id: string;
@@ -79,15 +79,15 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
       <Handle
         type='target'
         position={Position.Top}
-        isValidConnection={connection => connection.source === 'some-id'}
-        onConnect={params => console.log('handle onConnect', params)}
+        isValidConnection={(connection) => connection.source === 'some-id'}
+        onConnect={(params) => console.log('handle onConnect', params)}
         style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
       <Handle
         type='source'
         position={Position.Bottom}
-        isValidConnection={connection => connection.source === 'some-id'}
-        onConnect={params => console.log('handle onConnect', params)}
+        isValidConnection={(connection) => connection.source === 'some-id'}
+        onConnect={(params) => console.log('handle onConnect', params)}
         style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
       />
     </>

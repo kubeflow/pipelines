@@ -216,7 +216,7 @@ describe('RecurringRunDetailsV2FC', () => {
 
   it('shows Experiments -> Experiment name -> run name when there is an experiment', async () => {
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
-    getExperimentSpy.mockImplementation(id => ({
+    getExperimentSpy.mockImplementation((id) => ({
       experiment_id: id,
       display_name: 'test experiment name',
     }));

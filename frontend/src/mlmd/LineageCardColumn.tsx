@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import grey from '@material-ui/core/colors/grey';
 import React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { LineageCard } from './LineageCard';
@@ -23,6 +22,7 @@ import { CARD_OFFSET, EdgeCanvas } from './EdgeCanvas';
 import { Artifact } from 'src/third_party/mlmd';
 import { ControlledEdgeCanvas } from './ControlledEdgeCanvas';
 import { CARD_ROW_HEIGHT } from './LineageCss';
+import { grey } from '@mui/material/colors';
 
 export interface CardDetails {
   title: string;
@@ -150,14 +150,14 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
 
     const artifactIdToCardMap = new Map<number, number>();
     artifactCards.forEach((card, index) => {
-      card.elements.forEach(row => {
+      card.elements.forEach((row) => {
         artifactIdToCardMap.set(row.typedResource.resource.getId(), index);
       });
     });
 
     const executionIdToCardMap = new Map<number, number>();
     executionCards.forEach((card, index) => {
-      card.elements.forEach(row => {
+      card.elements.forEach((row) => {
         executionIdToCardMap.set(row.typedResource.resource.getId(), index);
       });
     });
@@ -198,7 +198,7 @@ export class LineageCardColumn extends React.Component<LineageCardColumnProps> {
       );
 
       // Advance starting artifact offset.
-      artifactIds.forEach(artifactId => {
+      artifactIds.forEach((artifactId) => {
         if (artifactCardIndex === null) {
           artifactCardIndex = artifactIdToCardMap.get(artifactId) as number;
           return;
