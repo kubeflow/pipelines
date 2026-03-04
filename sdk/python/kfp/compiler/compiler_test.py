@@ -214,6 +214,20 @@ class TestCompilePipeline(parameterized.TestCase):
                                                                           'a']):
                 print_op(message=literal_param)
 
+    def test_compile_pipeline_with_literal_input_invalid_value(self):
+        # Compilation should fail when a constant argument is not in the allowed Literal set
+        @dsl.component
+        def literal_component(literal_param: Literal['a', 'b']):
+            print_op(message=literal_param)
+
+        # The validation happens when the pipeline is defined (not during compile)
+        # because the invalid value is detected when calling the component
+        with self.assertRaises(type_utils.InconsistentTypeException):
+
+            @dsl.pipeline(name='test-literal-pipeline-invalid')
+            def literal_pipeline():
+                literal_component(literal_param='c')
+
     def test_can_use_dsl_attribute_on_kfp(self):
 
         @kfp.dsl.pipeline
