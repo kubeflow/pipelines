@@ -16,6 +16,8 @@ package client
 
 import (
 	"testing"
+
+	credentials "github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func TestJoinHostPort(t *testing.T) {
@@ -138,9 +140,9 @@ func TestCreateCredentialProvidersChain(t *testing.T) {
 		if cred == nil {
 			t.Fatal("createCredentialProvidersChain() returned nil")
 		}
-		value, err := cred.Get()
+		value, err := cred.GetWithContext(&credentials.CredContext{})
 		if err != nil {
-			t.Fatalf("cred.Get() unexpected error: %v", err)
+			t.Fatalf("cred.GetWithContext() unexpected error: %v", err)
 		}
 		if value.AccessKeyID != "mykey" {
 			t.Errorf("AccessKeyID = %q, want %q", value.AccessKeyID, "mykey")
