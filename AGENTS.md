@@ -18,6 +18,11 @@
 - If you come across new common errors or fixes, extend "Common error patterns and quick fixes".
 - Always bump the "Last updated" date above when you make substantive changes.
 
+### Commit policy (agents and contributors)
+
+- Always sign off on commits with `git commit -s` (adds a `Signed-off-by:` trailer).
+- Never include AI agents (e.g. Claude Code, Copilot, or similar tools) as co-authors on commits. The human author is responsible for the work.
+
 ## Baseline architecture
 
 - Start with inspecting the architectural diagram found here `images/kfp-cluster-wide-architecture.drawio.xml` (rendered format can be found here: `images/kfp-cluster-wide-architecture.png`).
