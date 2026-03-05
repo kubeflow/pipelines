@@ -16,33 +16,41 @@
 
 import * as React from 'react';
 import { render } from '@testing-library/react';
+import { vi } from 'vitest';
 import { PipelineSpecTabContent } from './PipelineSpecTabContent';
-import jsyaml from 'js-yaml';
+
+// Mock Editor to capture the value prop passed to it
+vi.mock('./Editor', () => ({
+  __esModule: true,
+  default: (props: { value: string; mode: string; readOnly: boolean }) => (
+    <pre data-testid='editor-mock' data-mode={props.mode} data-readonly={props.readOnly}>
+      {props.value}
+    </pre>
+  ),
+}));
 
 describe('PipelineSpecTabContent', () => {
-  it('renders JSON template as YAML in the editor', () => {
+  it('converts JSON template to YAML and passes to editor', () => {
     const jsonTemplate = JSON.stringify({ key: 'value', nested: { a: 1 } });
-    const expectedYaml = jsyaml.safeDump(jsyaml.safeLoad(jsonTemplate));
-    const { container } = render(<PipelineSpecTabContent templateString={jsonTemplate} />);
-    const editorContent = container.querySelector('.ace_content');
-    expect(editorContent).toBeInTheDocument();
-    // Verify the editor received the YAML-converted content
-    expect(expectedYaml).toContain('key: value');
-    expect(expectedYaml).toContain('nested:');
+    const { getByTestId } = render(<PipelineSpecTabContent templateString={jsonTemplate} />);
+    const editor = getByTestId('editor-mock');
+    expect(editor.textContent).toContain('key: value');
+    expect(editor.textContent).toContain('nested:');
+    expect(editor.textContent).toContain('a: 1');
   });
 
-  it('renders YAML template preserving format', () => {
+  it('preserves YAML template format through round-trip', () => {
     const yamlTemplate = 'key: value\nnested:\n  a: 1\n';
-    const expectedYaml = jsyaml.safeDump(jsyaml.safeLoad(yamlTemplate));
-    const { container } = render(<PipelineSpecTabContent templateString={yamlTemplate} />);
-    const editorContent = container.querySelector('.ace_content');
-    expect(editorContent).toBeInTheDocument();
-    expect(expectedYaml).toContain('key: value');
+    const { getByTestId } = render(<PipelineSpecTabContent templateString={yamlTemplate} />);
+    const editor = getByTestId('editor-mock');
+    expect(editor.textContent).toContain('key: value');
+    expect(editor.textContent).toContain('nested:');
   });
 
-  it('renders with a simple YAML key-value', () => {
-    const { container } = render(<PipelineSpecTabContent templateString='name: test' />);
-    const editorContent = container.querySelector('.ace_content');
-    expect(editorContent).toBeInTheDocument();
+  it('passes yaml mode and readOnly to the editor', () => {
+    const { getByTestId } = render(<PipelineSpecTabContent templateString='name: test' />);
+    const editor = getByTestId('editor-mock');
+    expect(editor).toHaveAttribute('data-mode', 'yaml');
+    expect(editor).toHaveAttribute('data-readonly', 'true');
   });
 });

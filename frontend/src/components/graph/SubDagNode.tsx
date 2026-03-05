@@ -64,6 +64,7 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
           </div>
 
           <div
+            data-testid='expand-button'
             onClick={handleClick}
             className='transition transform hover:shadow-inner hover:scale-110 flex flex-col absolute rounded-full h-9 w-9 z-30 group-focus:border-blue-500 hover:border-blue-500  border-2 bg-white -right-5 top-8 items-center justify-center justify-items-center'
           >

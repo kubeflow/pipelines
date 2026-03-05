@@ -62,13 +62,11 @@ describe('SubDagNode', () => {
 
   it('calls expand callback when expand button is clicked', () => {
     const expandFn = vi.fn();
-    const { container } = renderWithProvider(
+    renderWithProvider(
       <SubDagNode id='subdag-1' data={{ ...defaultData, expand: expandFn }} />,
     );
-    // The expand button is the rounded-full div containing the CropFreeIcon
-    const expandButton = container.querySelector('div[class*="rounded-full"]');
-    expect(expandButton).not.toBeNull();
-    fireEvent.click(expandButton!);
+    const expandButton = screen.getByTestId('expand-button');
+    fireEvent.click(expandButton);
     expect(expandFn).toHaveBeenCalledWith('subdag-1');
   });
 

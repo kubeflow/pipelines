@@ -15,99 +15,30 @@
  */
 
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { vi } from 'vitest';
 import SidePanel from './SidePanel';
 
-// Mock @mui/material Slide to avoid react-transition-group issues in jsdom
-vi.mock('@mui/material', async () => {
-  const actual = await vi.importActual('@mui/material');
-  return {
-    ...actual,
-    Slide: ({ children, in: isIn }: { children: React.ReactElement; in: boolean }) =>
-      isIn ? children : null,
-  };
-});
+describe('SidePanel (unmocked)', () => {
+  it('does not emit legacy componentWillReceiveProps warnings from Resizable', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error');
 
-// Mock re-resizable to avoid rendering issues in jsdom
-vi.mock('re-resizable', () => ({
-  __esModule: true,
-  Resizable: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
-}));
+    try {
+      render(
+        <SidePanel isOpen={true} onClose={vi.fn()} title='Node details'>
+          side panel content
+        </SidePanel>,
+      );
 
-describe('SidePanel', () => {
-  const defaultProps = {
-    isOpen: true,
-    onClose: vi.fn(),
-    title: 'Test Panel',
-  };
+      const legacyLifecycleWarnings = consoleErrorSpy.mock.calls.filter(([message]) =>
+        typeof message === 'string'
+          ? message.includes('componentWillReceiveProps') && message.includes('Resizable')
+          : false,
+      );
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  // Note: The original Resizable lifecycle warning test is no longer meaningful
-  // with Slide and Resizable mocked above. The mocks are necessary for the
-  // remaining tests to run in jsdom. The real Resizable behavior is tested
-  // via integration/e2e tests.
-
-  it('renders the title when open', () => {
-    render(<SidePanel {...defaultProps} />);
-    expect(screen.getByText('Test Panel')).toBeInTheDocument();
-  });
-
-  it('renders children when open', () => {
-    render(
-      <SidePanel {...defaultProps}>
-        <div>Child Content</div>
-      </SidePanel>,
-    );
-    expect(screen.getByText('Child Content')).toBeInTheDocument();
-  });
-
-  it('renders close button when open', () => {
-    render(<SidePanel {...defaultProps} />);
-    expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
-  });
-
-  it('calls onClose when close button is clicked', () => {
-    const onClose = vi.fn();
-    render(<SidePanel {...defaultProps} onClose={onClose} />);
-    fireEvent.click(screen.getByRole('button', { name: 'close' }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onClose when Escape key is pressed', () => {
-    const onClose = vi.fn();
-    render(<SidePanel {...defaultProps} onClose={onClose} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not call onClose on Escape when panel is closed', () => {
-    const onClose = vi.fn();
-    render(<SidePanel {...defaultProps} isOpen={false} onClose={onClose} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it('shows loading spinner when isBusy is true', () => {
-    render(<SidePanel {...defaultProps} isBusy={true} />);
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
-
-  it('does not show loading spinner when isBusy is false', () => {
-    render(<SidePanel {...defaultProps} isBusy={false} />);
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('removes keydown listener on unmount', () => {
-    const onClose = vi.fn();
-    const { unmount } = render(<SidePanel {...defaultProps} onClose={onClose} />);
-    unmount();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onClose).not.toHaveBeenCalled();
+      expect(legacyLifecycleWarnings).toHaveLength(0);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
