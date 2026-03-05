@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Kubeflow Authors
+ * Copyright 2026 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,20 +48,14 @@ describe('SubDagNode', () => {
 
   it('renders with COMPLETE state', () => {
     renderWithProvider(
-      <SubDagNode
-        id='subdag-1'
-        data={{ ...defaultData, state: Execution.State.COMPLETE }}
-      />,
+      <SubDagNode id='subdag-1' data={{ ...defaultData, state: Execution.State.COMPLETE }} />,
     );
     expect(screen.getByText('sub-pipeline')).toBeInTheDocument();
   });
 
   it('renders with RUNNING state', () => {
     renderWithProvider(
-      <SubDagNode
-        id='subdag-1'
-        data={{ ...defaultData, state: Execution.State.RUNNING }}
-      />,
+      <SubDagNode id='subdag-1' data={{ ...defaultData, state: Execution.State.RUNNING }} />,
     );
     expect(screen.getByText('sub-pipeline')).toBeInTheDocument();
   });
@@ -71,11 +65,10 @@ describe('SubDagNode', () => {
     const { container } = renderWithProvider(
       <SubDagNode id='subdag-1' data={{ ...defaultData, expand: expandFn }} />,
     );
-    // The expand button contains the CropFreeIcon
+    // The expand button is the rounded-full div containing the CropFreeIcon
     const expandButton = container.querySelector('div[class*="rounded-full"]');
-    if (expandButton) {
-      fireEvent.click(expandButton);
-    }
+    expect(expandButton).not.toBeNull();
+    fireEvent.click(expandButton!);
     expect(expandFn).toHaveBeenCalledWith('subdag-1');
   });
 

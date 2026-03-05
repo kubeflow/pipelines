@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Kubeflow Authors
+ * Copyright 2026 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,6 +58,9 @@ describe('validateConfidenceMetrics', () => {
 });
 
 describe('buildRocCurveConfig', () => {
+  // The ConfidenceMetric TypeScript type declares confidenceThreshold as string,
+  // but the runtypes runtime validator (ConfidenceMetricArrayRunType) expects Number
+  // for all three fields. We use `as any` to match the runtime expectation.
   it('builds ROC curve config from valid metrics', () => {
     const metrics = [
       { confidenceThreshold: 0.9, falsePositiveRate: 0.1, recall: 0.95 },

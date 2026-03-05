@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Kubeflow Authors
+ * Copyright 2026 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,50 +27,35 @@ describe('ArtifactNode', () => {
 
   it('renders the artifact label', () => {
     renderWithProvider(
-      <ArtifactNode
-        id='artifact-1'
-        data={{ label: 'my-artifact', state: undefined }}
-      />,
+      <ArtifactNode id='artifact-1' data={{ label: 'my-artifact', state: undefined }} />,
     );
     expect(screen.getByText('my-artifact')).toBeInTheDocument();
   });
 
   it('renders with LIVE state', () => {
     renderWithProvider(
-      <ArtifactNode
-        id='artifact-1'
-        data={{ label: 'live-artifact', state: Artifact.State.LIVE }}
-      />,
+      <ArtifactNode id='artifact-1' data={{ label: 'live-artifact', state: Artifact.State.LIVE }} />,
     );
     expect(screen.getByText('live-artifact')).toBeInTheDocument();
   });
 
   it('renders with undefined state', () => {
     renderWithProvider(
-      <ArtifactNode
-        id='artifact-1'
-        data={{ label: 'unknown-artifact', state: undefined }}
-      />,
+      <ArtifactNode id='artifact-1' data={{ label: 'unknown-artifact', state: undefined }} />,
     );
     expect(screen.getByText('unknown-artifact')).toBeInTheDocument();
   });
 
   it('sets the title attribute on the button', () => {
     renderWithProvider(
-      <ArtifactNode
-        id='artifact-1'
-        data={{ label: 'titled-artifact', state: undefined }}
-      />,
+      <ArtifactNode id='artifact-1' data={{ label: 'titled-artifact', state: undefined }} />,
     );
     expect(screen.getByTitle('titled-artifact')).toBeInTheDocument();
   });
 
   it('renders with the correct id on the label span', () => {
     const { container } = renderWithProvider(
-      <ArtifactNode
-        id='artifact-42'
-        data={{ label: 'test', state: undefined }}
-      />,
+      <ArtifactNode id='artifact-42' data={{ label: 'test', state: undefined }} />,
     );
     expect(container.querySelector('#artifact-42')).toBeInTheDocument();
   });

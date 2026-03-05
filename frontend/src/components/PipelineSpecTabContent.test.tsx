@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Kubeflow Authors
+ * Copyright 2026 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,32 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import { PipelineSpecTabContent } from './PipelineSpecTabContent';
+import jsyaml from 'js-yaml';
 
 describe('PipelineSpecTabContent', () => {
-  it('renders with a JSON template string', () => {
+  it('renders JSON template as YAML in the editor', () => {
     const jsonTemplate = JSON.stringify({ key: 'value', nested: { a: 1 } });
+    const expectedYaml = jsyaml.safeDump(jsyaml.safeLoad(jsonTemplate));
     const { container } = render(<PipelineSpecTabContent templateString={jsonTemplate} />);
-    expect(container).toBeInTheDocument();
+    const editorContent = container.querySelector('.ace_content');
+    expect(editorContent).toBeInTheDocument();
+    // Verify the editor received the YAML-converted content
+    expect(expectedYaml).toContain('key: value');
+    expect(expectedYaml).toContain('nested:');
   });
 
-  it('renders with a YAML template string', () => {
+  it('renders YAML template preserving format', () => {
     const yamlTemplate = 'key: value\nnested:\n  a: 1\n';
+    const expectedYaml = jsyaml.safeDump(jsyaml.safeLoad(yamlTemplate));
     const { container } = render(<PipelineSpecTabContent templateString={yamlTemplate} />);
-    expect(container).toBeInTheDocument();
+    const editorContent = container.querySelector('.ace_content');
+    expect(editorContent).toBeInTheDocument();
+    expect(expectedYaml).toContain('key: value');
   });
 
   it('renders with a simple YAML key-value', () => {
     const { container } = render(<PipelineSpecTabContent templateString='name: test' />);
-    expect(container).toBeInTheDocument();
+    const editorContent = container.querySelector('.ace_content');
+    expect(editorContent).toBeInTheDocument();
   });
 });

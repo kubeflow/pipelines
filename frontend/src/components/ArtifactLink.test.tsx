@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Kubeflow Authors
+ * Copyright 2026 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +30,15 @@ describe('ArtifactLink', () => {
     expect(screen.queryByRole('link')).toBeNull();
   });
 
-  it('renders a clickable link for gs:// URIs', () => {
+  it('renders a clickable link for gs:// URIs with correct href', () => {
     render(<ArtifactLink artifactUri='gs://my-bucket/my-object' />);
     const link = screen.getByRole('link');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noreferrer noopener');
+    expect(link).toHaveAttribute(
+      'href',
+      'https://console.cloud.google.com/storage/browser/my-bucket/my-object',
+    );
     expect(link).toHaveTextContent('gs://my-bucket/my-object');
   });
 
@@ -51,16 +55,20 @@ describe('ArtifactLink', () => {
     expect(link).toHaveAttribute('href', 'https://example.com/artifact');
   });
 
-  it('renders a clickable link for s3:// URIs', () => {
+  it('renders a clickable link for s3:// URIs with generated href', () => {
     render(<ArtifactLink artifactUri='s3://my-bucket/my-object' />);
     const link = screen.getByRole('link');
     expect(link).toHaveTextContent('s3://my-bucket/my-object');
+    expect(link).toHaveAttribute('href');
+    expect(link.getAttribute('href')).not.toBe('');
   });
 
-  it('renders a clickable link for minio:// URIs', () => {
+  it('renders a clickable link for minio:// URIs with generated href', () => {
     render(<ArtifactLink artifactUri='minio://my-bucket/my-object' />);
     const link = screen.getByRole('link');
     expect(link).toHaveTextContent('minio://my-bucket/my-object');
+    expect(link).toHaveAttribute('href');
+    expect(link.getAttribute('href')).not.toBe('');
   });
 
   it('renders an empty string when artifactUri is empty', () => {

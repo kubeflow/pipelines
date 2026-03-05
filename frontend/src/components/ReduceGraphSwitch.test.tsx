@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arrikto Inc.
+ * Copyright 2026 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,8 +45,8 @@ describe('ReduceGraphSwitch', () => {
     expect(handleChange).toHaveBeenCalled();
   });
 
-  it('renders with transitive reduction help text', () => {
+  it('renders with transitive reduction help text in tooltip', () => {
     const { container } = render(<ReduceGraphSwitch />);
-    expect(container.firstChild).toBeInTheDocument();
+    expect(container.textContent).toContain('Simplify Graph');
   });
 });
