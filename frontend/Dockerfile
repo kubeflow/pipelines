@@ -14,7 +14,9 @@ COPY . .
 
 WORKDIR ./frontend
 
-RUN npm ci && npm run postinstall
+# Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
+# race condition where parallel download workers collide on the same cache entry.
+RUN npm ci && npm run postinstall || (npm cache clean --force && npm ci && npm run postinstall)
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
@@ -30,7 +32,9 @@ COPY --from=build ./src/frontend/build /client
 WORKDIR /server
 
 EXPOSE 3000
-RUN npm ci
+# Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
+# race condition where parallel download workers collide on the same cache entry.
+RUN npm ci || (npm cache clean --force && npm ci)
 RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000
