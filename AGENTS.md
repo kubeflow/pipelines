@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-03
+- Last updated: 2026-03-04
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
