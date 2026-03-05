@@ -118,10 +118,11 @@ export function MetricsVisualizations({
     staleTime: Infinity,
   });
 
-  const { isSuccess: isHtmlDownloaded, error: htmlError, data: htmlViewerConfigs } = useQuery<
-    HTMLViewerConfig[],
-    Error
-  >({
+  const {
+    isSuccess: isHtmlDownloaded,
+    error: htmlError,
+    data: htmlViewerConfigs,
+  } = useQuery<HTMLViewerConfig[], Error>({
     queryKey: [
       'htmlViewerConfig',
       {

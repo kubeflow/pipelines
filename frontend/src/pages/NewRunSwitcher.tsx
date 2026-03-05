@@ -37,10 +37,11 @@ function NewRunSwitcher(props: PageProps) {
   let pipelineVersionIdFromRunOrRecurringRun;
 
   // Retrieve v2 run details
-  const { isSuccess: getV2RunSuccess, isFetching: v2RunIsFetching, data: v2Run } = useQuery<
-    V2beta1Run,
-    Error
-  >({
+  const {
+    isSuccess: getV2RunSuccess,
+    isFetching: v2RunIsFetching,
+    data: v2Run,
+  } = useQuery<V2beta1Run, Error>({
     queryKey: ['v2_run_details', existingRunId],
     queryFn: () => {
       if (!existingRunId) {

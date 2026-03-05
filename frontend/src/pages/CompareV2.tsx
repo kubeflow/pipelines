@@ -306,7 +306,7 @@ function CompareV2(props: CompareV2Props) {
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>({
-    queryKey: ['run_artifacts', { runs }],
+    queryKey: ['run_artifacts', { runIds }],
     queryFn: () =>
       Promise.all(
         runIds.map(async (runId) => {

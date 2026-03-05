@@ -186,7 +186,12 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showError, setShowError] = useState<boolean>(false);
 
-  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>({
+  const {
+    isLoading,
+    isError,
+    error,
+    data: viewerConfigs,
+  } = useQuery<ViewerConfig[], Error>({
     queryKey: [
       'viewerConfig',
       {
@@ -216,15 +221,22 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     }
 
     if (isError) {
+      let isMounted = true;
       (async function () {
         const updatedMessage = await errorToMessage(error);
-        setErrorMessage(updatedMessage);
-        setShowError(true);
+        if (isMounted) {
+          setErrorMessage(updatedMessage);
+          setShowError(true);
+        }
       })();
-    } else {
-      setShowError(false);
+      return () => {
+        isMounted = false;
+      };
     }
-  }, [isLoading, isError, error, setErrorMessage, setShowError]);
+
+    setShowError(false);
+    return undefined;
+  }, [isLoading, isError, error]);
 
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;

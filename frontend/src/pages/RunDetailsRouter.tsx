@@ -30,10 +30,11 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   let pipelineManifest: string | undefined;
 
   // Retrieves v2 run detail.
-  const { isSuccess: getV2RunSuccess, isFetching: runIsFetching, data: v2Run } = useQuery<
-    V2beta1Run,
-    Error
-  >({
+  const {
+    isSuccess: getV2RunSuccess,
+    isFetching: runIsFetching,
+    data: v2Run,
+  } = useQuery<V2beta1Run, Error>({
     queryKey: ['v2_run_detail', { id: runId }],
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
   });

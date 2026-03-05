@@ -62,7 +62,11 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   // TODO(jlyaoyuli): Display other information (container, args, image, command)
 
   // Retrieves input and output artifacts from Metadata store.
-  const { isSuccess, error, data: linkedArtifacts } = useQuery<LinkedArtifact[], Error>({
+  const {
+    isSuccess,
+    error,
+    data: linkedArtifacts,
+  } = useQuery<LinkedArtifact[], Error>({
     queryKey: ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
     queryFn: () => getLinkedArtifactsByExecution(execution),
     staleTime: Infinity,
