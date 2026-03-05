@@ -45,8 +45,11 @@ describe('ReduceGraphSwitch', () => {
     expect(handleChange).toHaveBeenCalled();
   });
 
-  it('renders with transitive reduction help text in tooltip', () => {
-    const { container } = render(<ReduceGraphSwitch />);
-    expect(container.textContent).toContain('Simplify Graph');
+  it('renders tooltip with transitive reduction help text on hover', async () => {
+    render(<ReduceGraphSwitch />);
+    const label = screen.getByText('Simplify Graph');
+    fireEvent.mouseOver(label);
+    const tooltipText = await screen.findByText(/transitive reduction/i);
+    expect(tooltipText).toBeInTheDocument();
   });
 });

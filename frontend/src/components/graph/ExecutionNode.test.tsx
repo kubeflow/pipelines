@@ -32,31 +32,34 @@ describe('ExecutionNode', () => {
     expect(screen.getByText('train-step')).toBeInTheDocument();
   });
 
-  it('renders with COMPLETE state', () => {
-    renderWithProvider(
+  it('renders with COMPLETE state and green background', () => {
+    const { container } = renderWithProvider(
       <ExecutionNode
         id='exec-1'
         data={{ label: 'completed-step', state: Execution.State.COMPLETE }}
       />,
     );
     expect(screen.getByText('completed-step')).toBeInTheDocument();
+    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
   });
 
-  it('renders with RUNNING state', () => {
-    renderWithProvider(
+  it('renders with RUNNING state and green background', () => {
+    const { container } = renderWithProvider(
       <ExecutionNode
         id='exec-1'
         data={{ label: 'running-step', state: Execution.State.RUNNING }}
       />,
     );
     expect(screen.getByText('running-step')).toBeInTheDocument();
+    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
   });
 
-  it('renders with FAILED state', () => {
-    renderWithProvider(
+  it('renders with FAILED state and red background', () => {
+    const { container } = renderWithProvider(
       <ExecutionNode id='exec-1' data={{ label: 'failed-step', state: Execution.State.FAILED }} />,
     );
     expect(screen.getByText('failed-step')).toBeInTheDocument();
+    expect(container.querySelector('.bg-mui-red-50')).toBeInTheDocument();
   });
 
   it('sets the title attribute', () => {
@@ -72,50 +75,58 @@ describe('getIcon', () => {
     expect(getIcon(undefined)).toBeNull();
   });
 
-  it('returns an icon for COMPLETE state', () => {
-    const icon = getIcon(Execution.State.COMPLETE);
-    expect(icon).not.toBeNull();
+  it('returns a green CheckCircle icon for COMPLETE state', () => {
+    const { container } = render(getIcon(Execution.State.COMPLETE)!);
+    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="CheckCircleIcon"]')).toBeInTheDocument();
   });
 
-  it('returns an icon for RUNNING state', () => {
-    const icon = getIcon(Execution.State.RUNNING);
-    expect(icon).not.toBeNull();
+  it('returns a green Refresh icon for RUNNING state', () => {
+    const { container } = render(getIcon(Execution.State.RUNNING)!);
+    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="RefreshIcon"]')).toBeInTheDocument();
   });
 
-  it('returns an icon for FAILED state', () => {
-    const icon = getIcon(Execution.State.FAILED);
-    expect(icon).not.toBeNull();
+  it('returns a red Error icon for FAILED state', () => {
+    const { container } = render(getIcon(Execution.State.FAILED)!);
+    expect(container.querySelector('.bg-mui-red-50')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="ErrorIcon"]')).toBeInTheDocument();
   });
 
-  it('returns an icon for NEW state', () => {
-    const icon = getIcon(Execution.State.NEW);
-    expect(icon).not.toBeNull();
+  it('returns a blue PowerSettingsNew icon for NEW state', () => {
+    const { container } = render(getIcon(Execution.State.NEW)!);
+    expect(container.querySelector('.bg-mui-blue-50')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="PowerSettingsNewIcon"]')).toBeInTheDocument();
   });
 
-  it('returns an icon for CANCELED state', () => {
-    const icon = getIcon(Execution.State.CANCELED);
-    expect(icon).not.toBeNull();
+  it('returns a grey icon for CANCELED state', () => {
+    const { container } = render(getIcon(Execution.State.CANCELED)!);
+    expect(container.querySelector('.bg-mui-grey-200')).toBeInTheDocument();
   });
 
-  it('returns an icon for CACHED state', () => {
-    const icon = getIcon(Execution.State.CACHED);
-    expect(icon).not.toBeNull();
+  it('returns a green CloudDownload icon for CACHED state', () => {
+    const { container } = render(getIcon(Execution.State.CACHED)!);
+    expect(container.querySelector('.bg-mui-green-50')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="CloudDownloadIcon"]')).toBeInTheDocument();
   });
 
-  it('returns an icon for UNKNOWN state', () => {
-    const icon = getIcon(Execution.State.UNKNOWN);
-    expect(icon).not.toBeNull();
+  it('returns a grey MoreHoriz icon for UNKNOWN state', () => {
+    const { container } = render(getIcon(Execution.State.UNKNOWN)!);
+    expect(container.querySelector('.bg-mui-grey-200')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="MoreHorizIcon"]')).toBeInTheDocument();
   });
 });
 
 describe('getExecutionIcon', () => {
-  it('returns an icon for undefined state', () => {
-    const icon = getExecutionIcon(undefined);
-    expect(icon).not.toBeNull();
+  it('returns a grey ListAlt icon for undefined state', () => {
+    const { container } = render(getExecutionIcon(undefined));
+    expect(container.querySelector('.text-mui-grey-500')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="ListAltIcon"]')).toBeInTheDocument();
   });
 
-  it('returns an icon for defined state', () => {
-    const icon = getExecutionIcon(Execution.State.RUNNING);
-    expect(icon).not.toBeNull();
+  it('returns a blue ListAlt icon for defined state', () => {
+    const { container } = render(getExecutionIcon(Execution.State.RUNNING));
+    expect(container.querySelector('.text-mui-blue-600')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="ListAltIcon"]')).toBeInTheDocument();
   });
 });

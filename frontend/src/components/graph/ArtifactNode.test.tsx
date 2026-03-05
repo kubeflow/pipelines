@@ -32,21 +32,23 @@ describe('ArtifactNode', () => {
     expect(screen.getByText('my-artifact')).toBeInTheDocument();
   });
 
-  it('renders with LIVE state', () => {
-    renderWithProvider(
+  it('renders with LIVE state and yellow icon', () => {
+    const { container } = renderWithProvider(
       <ArtifactNode
         id='artifact-1'
         data={{ label: 'live-artifact', state: Artifact.State.LIVE }}
       />,
     );
     expect(screen.getByText('live-artifact')).toBeInTheDocument();
+    expect(container.querySelector('.text-mui-yellow-800')).toBeInTheDocument();
   });
 
-  it('renders with undefined state', () => {
-    renderWithProvider(
+  it('renders with undefined state and grey icon', () => {
+    const { container } = renderWithProvider(
       <ArtifactNode id='artifact-1' data={{ label: 'unknown-artifact', state: undefined }} />,
     );
     expect(screen.getByText('unknown-artifact')).toBeInTheDocument();
+    expect(container.querySelector('.text-mui-grey-300-dark')).toBeInTheDocument();
   });
 
   it('sets the title attribute on the button', () => {
