@@ -54,10 +54,7 @@ describe('ExecutionNode', () => {
 
   it('renders with FAILED state', () => {
     renderWithProvider(
-      <ExecutionNode
-        id='exec-1'
-        data={{ label: 'failed-step', state: Execution.State.FAILED }}
-      />,
+      <ExecutionNode id='exec-1' data={{ label: 'failed-step', state: Execution.State.FAILED }} />,
     );
     expect(screen.getByText('failed-step')).toBeInTheDocument();
   });

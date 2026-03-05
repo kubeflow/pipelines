@@ -62,18 +62,14 @@ describe('SubDagNode', () => {
 
   it('calls expand callback when expand button is clicked', () => {
     const expandFn = vi.fn();
-    renderWithProvider(
-      <SubDagNode id='subdag-1' data={{ ...defaultData, expand: expandFn }} />,
-    );
+    renderWithProvider(<SubDagNode id='subdag-1' data={{ ...defaultData, expand: expandFn }} />);
     const expandButton = screen.getByTestId('expand-button');
     fireEvent.click(expandButton);
     expect(expandFn).toHaveBeenCalledWith('subdag-1');
   });
 
   it('renders with the correct id on the label span', () => {
-    const { container } = renderWithProvider(
-      <SubDagNode id='subdag-42' data={defaultData} />,
-    );
+    const { container } = renderWithProvider(<SubDagNode id='subdag-42' data={defaultData} />);
     expect(container.querySelector('#subdag-42')).toBeInTheDocument();
   });
 });

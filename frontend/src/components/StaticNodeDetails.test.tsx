@@ -25,10 +25,13 @@ describe('StaticNodeDetails', () => {
     return Object.assign(info, overrides);
   }
 
-  it('renders nothing for unknown node type', () => {
+  it('renders no detail sections for unknown node type', () => {
     const nodeInfo = createNodeInfo({ nodeType: 'unknown' });
-    const { container } = render(<StaticNodeDetails nodeInfo={nodeInfo} />);
-    expect(container.querySelector('div')).toBeInTheDocument();
+    render(<StaticNodeDetails nodeInfo={nodeInfo} />);
+    expect(screen.queryByText('Input parameters')).toBeNull();
+    expect(screen.queryByText('Output parameters')).toBeNull();
+    expect(screen.queryByText('Arguments')).toBeNull();
+    expect(screen.queryByText('Manifest')).toBeNull();
   });
 
   it('renders container node details', () => {

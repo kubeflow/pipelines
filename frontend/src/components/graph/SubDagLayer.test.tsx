@@ -51,14 +51,18 @@ describe('SubDagLayer', () => {
 
   it('calls onLayersUpdate when an inactive breadcrumb is clicked', () => {
     const onLayersUpdate = vi.fn();
-    render(<SubDagLayer layers={['root', 'child', 'grandchild']} onLayersUpdate={onLayersUpdate} />);
+    render(
+      <SubDagLayer layers={['root', 'child', 'grandchild']} onLayersUpdate={onLayersUpdate} />,
+    );
     fireEvent.click(screen.getByText('root'));
     expect(onLayersUpdate).toHaveBeenCalledWith(['root']);
   });
 
   it('calls onLayersUpdate with correct slice when middle breadcrumb is clicked', () => {
     const onLayersUpdate = vi.fn();
-    render(<SubDagLayer layers={['root', 'child', 'grandchild']} onLayersUpdate={onLayersUpdate} />);
+    render(
+      <SubDagLayer layers={['root', 'child', 'grandchild']} onLayersUpdate={onLayersUpdate} />,
+    );
     fireEvent.click(screen.getByText('child'));
     expect(onLayersUpdate).toHaveBeenCalledWith(['root', 'child']);
   });

@@ -34,7 +34,10 @@ describe('ArtifactNode', () => {
 
   it('renders with LIVE state', () => {
     renderWithProvider(
-      <ArtifactNode id='artifact-1' data={{ label: 'live-artifact', state: Artifact.State.LIVE }} />,
+      <ArtifactNode
+        id='artifact-1'
+        data={{ label: 'live-artifact', state: Artifact.State.LIVE }}
+      />,
     );
     expect(screen.getByText('live-artifact')).toBeInTheDocument();
   });
