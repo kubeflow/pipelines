@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-03
+- Last updated: 2026-03-04
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
@@ -17,6 +17,11 @@
 - When you change CI matrices (Kubernetes versions, pipeline stores, proxy/cache toggles, Argo versions) or add/remove workflows, update the CI/CD section.
 - If you come across new common errors or fixes, extend "Common error patterns and quick fixes".
 - Always bump the "Last updated" date above when you make substantive changes.
+
+### Commit policy (agents and contributors)
+
+- Always sign off on commits with `git commit -s` (adds a `Signed-off-by:` trailer).
+- Never include AI agents (e.g. Claude Code, Copilot, or similar tools) as co-authors on commits. The human author is responsible for the work.
 
 ## Baseline architecture
 
