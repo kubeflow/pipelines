@@ -53,3 +53,15 @@ func TestFakeSubjectAccessReviewClientUnauthorized_Create(t *testing.T) {
 		t.Errorf("Create() Status.Reason = %q, want %q", result.Status.Reason, "this is not allowed")
 	}
 }
+
+func TestFakeSubjectAccessReviewClientError_Create(t *testing.T) {
+	client := NewFakeSubjectAccessReviewClientError()
+	review := &authzv1.SubjectAccessReview{}
+
+	// Note: FakeSubjectAccessReviewClientError has a legacy Create signature
+	// that does not match SubjectAccessReviewInterface (missing context and CreateOptions).
+	_, err := client.Create(review)
+	if err == nil {
+		t.Error("Create() expected error, got nil")
+	}
+}

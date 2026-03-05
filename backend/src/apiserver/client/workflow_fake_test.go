@@ -229,6 +229,20 @@ func TestFakeBadWorkflowClient_Get(t *testing.T) {
 	}
 }
 
+func TestFakeBadWorkflowClient_Update(t *testing.T) {
+	client := &FakeBadWorkflowClient{}
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "test"},
+	})
+
+	_, err := client.Update(ctx, workflow, v1.UpdateOptions{})
+	if err == nil {
+		t.Error("FakeBadWorkflowClient.Update() expected error, got nil")
+	}
+}
+
 func TestFakeBadWorkflowClient_Delete(t *testing.T) {
 	client := &FakeBadWorkflowClient{}
 	ctx := context.Background()

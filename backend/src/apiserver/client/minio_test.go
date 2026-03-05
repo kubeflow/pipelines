@@ -44,7 +44,7 @@ func TestJoinHostPort(t *testing.T) {
 			want: "10.0.0.1:443",
 		},
 		{
-			name: "empty host and port",
+			name: "empty host with port",
 			host: "",
 			port: "9000",
 			want: ":9000",
