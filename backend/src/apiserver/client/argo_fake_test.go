@@ -59,7 +59,9 @@ func TestFakeExecClient_GetWorkflowCount(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "test-wf"},
 	})
-	client.Execution("default").Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Execution("default").Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	if count := client.GetWorkflowCount(); count != 1 {
 		t.Errorf("GetWorkflowCount() after create = %d, want 1", count)
@@ -73,7 +75,9 @@ func TestFakeExecClient_GetWorkflowKeys(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "key-workflow"},
 	})
-	client.Execution("default").Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Execution("default").Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	keys := client.GetWorkflowKeys()
 	if !keys["key-workflow"] {
@@ -92,7 +96,9 @@ func TestFakeExecClient_IsTerminated(t *testing.T) {
 			ActiveDeadlineSeconds: &terminatedDeadline,
 		},
 	})
-	client.Execution("default").Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Execution("default").Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	isTerminated, err := client.IsTerminated("terminated-wf")
 	if err != nil {
@@ -100,6 +106,30 @@ func TestFakeExecClient_IsTerminated(t *testing.T) {
 	}
 	if !isTerminated {
 		t.Error("IsTerminated() = false, want true")
+	}
+}
+
+func TestFakeExecClient_IsNotTerminated(t *testing.T) {
+	client := NewFakeExecClient()
+	ctx := context.Background()
+
+	activeDeadline := int64(300)
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "running-wf"},
+		Spec: v1alpha1.WorkflowSpec{
+			ActiveDeadlineSeconds: &activeDeadline,
+		},
+	})
+	if _, err := client.Execution("default").Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
+
+	isTerminated, err := client.IsTerminated("running-wf")
+	if err != nil {
+		t.Fatalf("IsTerminated() unexpected error: %v", err)
+	}
+	if isTerminated {
+		t.Error("IsTerminated() = true for ActiveDeadlineSeconds=300, want false")
 	}
 }
 
@@ -119,7 +149,9 @@ func TestFakeExecClient_IsTerminatedNoDeadline(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "no-deadline"},
 	})
-	client.Execution("default").Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Execution("default").Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	_, err := client.IsTerminated("no-deadline")
 	if err == nil {

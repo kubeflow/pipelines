@@ -133,43 +133,41 @@ func TestCreateMinioClient(t *testing.T) {
 }
 
 func TestCreateCredentialProvidersChain(t *testing.T) {
-	tests := []struct {
-		name      string
-		endpoint  string
-		accessKey string
-		secretKey string
-	}{
-		{
-			name:      "static credentials when both keys provided",
-			endpoint:  "minio:9000",
-			accessKey: "mykey",
-			secretKey: "mysecret",
-		},
-		{
-			name:      "chained providers when access key is empty",
-			endpoint:  "minio:9000",
-			accessKey: "",
-			secretKey: "mysecret",
-		},
-		{
-			name:      "chained providers when secret key is empty",
-			endpoint:  "minio:9000",
-			accessKey: "mykey",
-			secretKey: "",
-		},
-		{
-			name:      "chained providers when both keys are empty",
-			endpoint:  "minio:9000",
-			accessKey: "",
-			secretKey: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cred := createCredentialProvidersChain(tt.endpoint, tt.accessKey, tt.secretKey)
-			if cred == nil {
-				t.Error("createCredentialProvidersChain() returned nil")
-			}
-		})
-	}
+	t.Run("static credentials when both keys provided", func(t *testing.T) {
+		cred := createCredentialProvidersChain("minio:9000", "mykey", "mysecret")
+		if cred == nil {
+			t.Fatal("createCredentialProvidersChain() returned nil")
+		}
+		value, err := cred.Get()
+		if err != nil {
+			t.Fatalf("cred.Get() unexpected error: %v", err)
+		}
+		if value.AccessKeyID != "mykey" {
+			t.Errorf("AccessKeyID = %q, want %q", value.AccessKeyID, "mykey")
+		}
+		if value.SecretAccessKey != "mysecret" {
+			t.Errorf("SecretAccessKey = %q, want %q", value.SecretAccessKey, "mysecret")
+		}
+	})
+
+	t.Run("chained providers when access key is empty", func(t *testing.T) {
+		cred := createCredentialProvidersChain("minio:9000", "", "mysecret")
+		if cred == nil {
+			t.Fatal("createCredentialProvidersChain() returned nil")
+		}
+	})
+
+	t.Run("chained providers when secret key is empty", func(t *testing.T) {
+		cred := createCredentialProvidersChain("minio:9000", "mykey", "")
+		if cred == nil {
+			t.Fatal("createCredentialProvidersChain() returned nil")
+		}
+	})
+
+	t.Run("chained providers when both keys are empty", func(t *testing.T) {
+		cred := createCredentialProvidersChain("minio:9000", "", "")
+		if cred == nil {
+			t.Fatal("createCredentialProvidersChain() returned nil")
+		}
+	})
 }

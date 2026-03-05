@@ -70,7 +70,9 @@ func TestFakeWorkflowClient_Get(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "test-workflow"},
 	})
-	client.Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	result, err := client.Get(ctx, "test-workflow", v1.GetOptions{})
 	if err != nil {
@@ -98,7 +100,9 @@ func TestFakeWorkflowClient_Delete(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "to-delete"},
 	})
-	client.Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	err := client.Delete(ctx, "to-delete", v1.DeleteOptions{})
 	if err != nil {
@@ -123,7 +127,9 @@ func TestFakeWorkflowClient_Update(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "update-me"},
 	})
-	client.Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	_, err := client.Update(ctx, workflow, v1.UpdateOptions{})
 	if err != nil {
@@ -152,7 +158,9 @@ func TestFakeWorkflowClient_PatchTerminate(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "patch-me"},
 	})
-	client.Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	patchData := []byte(`{"spec":{"activeDeadlineSeconds":0}}`)
 	result, err := client.Patch(ctx, "patch-me", types.MergePatchType, patchData, v1.PatchOptions{})
@@ -182,7 +190,9 @@ func TestFakeWorkflowClient_PatchMetadata(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "metadata-patch"},
 	})
-	client.Create(ctx, workflow, v1.CreateOptions{})
+	if _, err := client.Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
 
 	patchData := []byte(`{"metadata":{"labels":{"some-label":"value"}}}`)
 	result, err := client.Patch(ctx, "metadata-patch", types.MergePatchType, patchData, v1.PatchOptions{})

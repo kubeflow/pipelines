@@ -22,14 +22,12 @@ import (
 
 func TestPathExists(t *testing.T) {
 	t.Run("returns true for existing file", func(t *testing.T) {
-		tempFile, err := os.CreateTemp("", "pathexists-test-*")
-		if err != nil {
+		filePath := filepath.Join(t.TempDir(), "testfile")
+		if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil {
 			t.Fatalf("failed to create temp file: %v", err)
 		}
-		defer os.Remove(tempFile.Name())
-		tempFile.Close()
 
-		exists, err := PathExists(tempFile.Name())
+		exists, err := PathExists(filePath)
 		if err != nil {
 			t.Fatalf("PathExists() unexpected error: %v", err)
 		}
@@ -39,11 +37,7 @@ func TestPathExists(t *testing.T) {
 	})
 
 	t.Run("returns true for existing directory", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "pathexists-test-*")
-		if err != nil {
-			t.Fatalf("failed to create temp dir: %v", err)
-		}
-		defer os.RemoveAll(tempDir)
+		tempDir := t.TempDir()
 
 		exists, err := PathExists(tempDir)
 		if err != nil {
@@ -55,7 +49,7 @@ func TestPathExists(t *testing.T) {
 	})
 
 	t.Run("returns false for non-existent path", func(t *testing.T) {
-		nonExistentPath := filepath.Join(os.TempDir(), "non-existent-path-12345")
+		nonExistentPath := filepath.Join(t.TempDir(), "does-not-exist")
 
 		exists, err := PathExists(nonExistentPath)
 		if err != nil {
