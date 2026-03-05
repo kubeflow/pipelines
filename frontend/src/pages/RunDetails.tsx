@@ -838,7 +838,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const breadcrumbs: Array<{ displayName: string; href: string }> = [];
       // If this is an archived run, only show Archive in breadcrumbs, otherwise show
       // the full path, including the experiment if any.
-      if (runMetadata.storage_state === ApiRunStorageState.ARCHIVED) {
+      if (runMetadata.storage_state === ApiRunStorageState.STORAGESTATE_ARCHIVED) {
         breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS });
       } else {
         if (experiment) {
@@ -870,7 +870,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         this.getInitialToolbarState().actions,
       );
       const idGetter = () => (runMetadata ? [runMetadata!.id!] : []);
-      runMetadata!.storage_state === ApiRunStorageState.ARCHIVED
+      runMetadata!.storage_state === ApiRunStorageState.STORAGESTATE_ARCHIVED
         ? buttons.restore('run', idGetter, true, () => this.refresh())
         : buttons.archive('run', idGetter, true, () => this.refresh());
       const actions = buttons.getToolbarActionMap();

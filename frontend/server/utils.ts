@@ -257,23 +257,72 @@ function parseGenericError(error: any): ErrorDetails | undefined {
   return undefined;
 }
 async function parseKfpApiError(error: any): Promise<ErrorDetails | undefined> {
-  if (!error || !error.json || typeof error.json !== 'function') {
+  if (!error) {
     return undefined;
   }
-  try {
-    const json = await error.json();
-    const { error: message, details } = json;
-    if (message && details && typeof message === 'string' && typeof details === 'object') {
-      return {
-        message,
-        additionalInfo: details,
-      };
-    } else {
+
+  // Swagger client throws the fetch response directly (with json()).
+  // OpenAPI client throws ResponseError with response at error.response.
+  const response =
+    error && typeof error.json === 'function'
+      ? error
+      : error.response && typeof error.response.json === 'function'
+        ? error.response
+        : undefined;
+
+  if (!response) {
+    return undefined;
+  }
+
+  const canClone = typeof response.clone === 'function';
+
+  if (!canClone && typeof response.text === 'function') {
+    try {
+      // Without clone(), read the body once as text so we can recover both JSON
+      // and plain-text error payloads from the same buffer.
+      const text = await response.text();
+      const parsed = parseJSONString<{ error?: string; details?: any }>(text);
+      if (parsed && typeof parsed.error === 'string') {
+        return { message: parsed.error, additionalInfo: parsed.details ?? parsed };
+      }
+      if (text) {
+        return { message: text, additionalInfo: text };
+      }
+      return undefined;
+    } catch (_err) {
       return undefined;
     }
-  } catch (err) {
+  }
+
+  try {
+    const jsonSource = canClone ? response.clone() : response;
+    const json = await jsonSource.json();
+    const { error: message, details } = json;
+    if (typeof message === 'string') {
+      return {
+        message,
+        additionalInfo: details ?? json,
+      };
+    }
+  } catch (_err) {
+    // Fall through and try parsing response text.
+  }
+
+  try {
+    const textSource = canClone ? response.clone() : response;
+    const text = await textSource.text();
+    const parsed = parseJSONString<{ error?: string; details?: any }>(text);
+    if (parsed && typeof parsed.error === 'string') {
+      return { message: parsed.error, additionalInfo: parsed.details ?? parsed };
+    }
+    if (text) {
+      return { message: text, additionalInfo: text };
+    }
+  } catch (_err) {
     return undefined;
   }
+
+  return undefined;
 }
 function parseK8sError(error: any): ErrorDetails | undefined {
   if (!error || !error.body || typeof error.body !== 'object') {
