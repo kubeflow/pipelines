@@ -84,23 +84,24 @@ describe('/apps/tensorboard', () => {
     logDir = 'log-dir-example',
     tensorflowImage = 'tensorflow:2.0.0',
     type = 'tensorboard',
+    wrapInBody = false,
   }: {
     name?: string;
     logDir?: string;
     tensorflowImage?: string;
     type?: string;
+    wrapInBody?: boolean;
   } = {}) {
-    return {
-      body: {
-        metadata: {
-          name,
-        },
-        spec: {
-          tensorboardSpec: { logDir, tensorflowImage },
-          type,
-        },
+    const response = {
+      metadata: {
+        name,
+      },
+      spec: {
+        tensorboardSpec: { logDir, tensorflowImage },
+        type,
       },
     };
+    return wrapInBody ? { body: response } : response;
   }
 
   beforeEach(() => {
@@ -294,6 +295,32 @@ describe('/apps/tensorboard', () => {
           JSON.stringify({
             podAddress:
               'http://viewer-abcdefg-service.test-ns.cluster.test:80/tensorboard/viewer-abcdefg/',
+            tfVersion: '2.0.0',
+            image: 'tensorflow:2.0.0',
+          }),
+        );
+    });
+
+    it('gets tensorboard url from wrapped custom object responses', async () => {
+      app = new UIServer(loadConfigs(argv, {}));
+      k8sGetCustomObjectSpy.mockImplementation(() =>
+        Promise.resolve(
+          newGetTensorboardResponse({
+            name: 'viewer-abcdefg',
+            logDir: 'log-dir-1',
+            tensorflowImage: 'tensorflow:2.0.0',
+            wrapInBody: true,
+          }),
+        ),
+      );
+
+      await requests(app.app)
+        .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+        .expect(
+          200,
+          JSON.stringify({
+            podAddress:
+              'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
             tfVersion: '2.0.0',
             image: 'tensorflow:2.0.0',
           }),
