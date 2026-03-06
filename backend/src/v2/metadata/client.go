@@ -189,6 +189,9 @@ type ExecutionConfig struct {
 	// DAGExecution custom properties
 	IterationCount *int // Number of iterations for an iterator DAG.
 	TotalDagTasks  *int // Number of tasks inside the DAG
+
+	// MLflow properties
+	MLflowParentRunID, MLflowRunID string
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -582,6 +585,8 @@ const (
 	keyIterationIndex        = "iteration_index"
 	keyIterationCount        = "iteration_count"
 	keyTotalDagTasks         = "total_dag_tasks"
+	mlflowParentRunId        = "mlflow_parent_run_id"
+	mlflowRunId              = "mlflow_run_id"
 )
 
 // CreateExecution creates a new MLMD execution under the specified Pipeline.
@@ -599,8 +604,10 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	e := &pb.Execution{
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
-			keyDisplayName: StringValue(config.DisplayName),
-			keyTaskName:    StringValue(config.TaskName),
+			keyDisplayName:    StringValue(config.DisplayName),
+			keyTaskName:       StringValue(config.TaskName),
+			mlflowParentRunId: StringValue(config.MLflowParentRunID),
+			mlflowRunId:       StringValue(config.MLflowRunID),
 		},
 	}
 	if config.Name != "" {
