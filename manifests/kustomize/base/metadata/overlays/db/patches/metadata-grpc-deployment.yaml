@@ -5,6 +5,13 @@ metadata:
 spec:
   template:
     spec:
+      initContainers:
+        - name: wait-for-database
+          env:
+          - name: DB_HOST
+            value: $(MLMD_DB_HOST)
+          - name: DB_PORT
+            value: "3306"
       containers:
         - name: container
           # Remove existing environment variables

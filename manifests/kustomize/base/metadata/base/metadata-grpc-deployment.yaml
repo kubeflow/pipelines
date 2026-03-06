@@ -32,18 +32,34 @@ spec:
             drop:
             - ALL
         env:
-        - name: MYSQL_HOST
+        - name: DB_HOST
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbHost
-        - name: MYSQL_PORT
+        - name: DB_PORT
           valueFrom:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbPort
-        command: ['sh', '-c',
-          'for i in $(seq 1 60); do nc -z -w 2 ${MYSQL_HOST} ${MYSQL_PORT} && exit 0; echo "Waiting for database at ${MYSQL_HOST}:${MYSQL_PORT}... ($i/60)"; sleep 5; done; echo "Database not available after 5 minutes"; exit 1']
+        command: ["/bin/sh", "-ec"]
+        args:
+          - |
+            if [ -z "${DB_HOST:-}" ] || [ -z "${DB_PORT:-}" ]; then
+              echo "ERROR: DB_HOST or DB_PORT is not set."
+              exit 1
+            fi
+            MAX_RETRIES=60
+            i=0
+            while ! nc -z -w 2 "${DB_HOST}" "${DB_PORT}"; do
+              i=$((i+1))
+              if [ "$i" -ge "$MAX_RETRIES" ]; then
+                echo "ERROR: Timed out waiting for database at ${DB_HOST}:${DB_PORT} after ${MAX_RETRIES} attempts."
+                exit 1
+              fi
+              echo "Waiting for database at ${DB_HOST}:${DB_PORT} (attempt ${i}/${MAX_RETRIES})..."
+              sleep 5
+            done
       containers:
       - name: container
         # ! Sync to the same MLMD version:
