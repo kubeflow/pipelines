@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"github.com/kubeflow/pipelines/backend/src/common"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -92,6 +93,11 @@ type ScheduledWorkflowSpec struct {
 
 	// ServiceAccount
 	ServiceAccount string `json:"serviceAccount,omitempty"`
+
+	// PluginsInput is passed through to CreateRun for each triggered run.
+	// Each key is a plugin name and the value is that plugin's raw config.
+	// +optional
+	PluginsInput map[string]apiextensionsv1.JSON `json:"pluginsInput,omitempty"`
 
 	// TODO: support additional resource types: K8 jobs, etc.
 
