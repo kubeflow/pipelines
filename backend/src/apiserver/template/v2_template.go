@@ -57,6 +57,11 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 		return nil, util.Wrap(err, "converting model trigger to crd trigger failed")
 	}
 
+	var pluginsInput string
+	if modelJob.PluginsInputString != nil {
+		pluginsInput = string(*modelJob.PluginsInputString)
+	}
+
 	return &scheduledworkflow.ScheduledWorkflow{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kubeflow.org/v2beta1",
@@ -73,6 +78,7 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			PipelineName:      modelJob.PipelineName,
 			PipelineVersionId: modelJob.PipelineVersionId,
 			ServiceAccount:    modelJob.ServiceAccount,
+			PluginsInput:      pluginsInput,
 		},
 	}, nil
 }

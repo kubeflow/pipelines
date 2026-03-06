@@ -34,6 +34,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -541,6 +542,21 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	mlflowInput, err := apiservermlflow.ResolvePluginInput((*string)(run.PluginsInputString))
+	if err != nil {
+		return nil, util.NewBadRequestError(err, "Failed to create a run due to invalid MLflow plugin input")
+	}
+	if mlflowInput.Disabled {
+		glog.Infof("MLflow is disabled for this run; skipping MLflow-specific create-run behavior")
+	} else {
+		selectedExperimentID, selectedExperimentName := apiservermlflow.SelectExperiment(mlflowInput)
+		if selectedExperimentID != "" {
+			glog.Infof("Resolved MLflow experiment selector for run creation: experiment_id=%q (create-by-name skipped)", selectedExperimentID)
+		} else {
+			glog.Infof("Resolved MLflow experiment selector for run creation: experiment_name=%q", selectedExperimentName)
+		}
+	}
+
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
@@ -638,6 +654,47 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 
 	return newRun, nil
+}
+
+// mlflowHandlerDeps returns the dependencies needed by the MLflow handler.
+func (r *ResourceManager) mlflowHandlerDeps() apiservermlflow.HandlerDeps {
+	return apiservermlflow.HandlerDeps{
+		KubeClients:               r.k8sCoreClient,
+		SubjectAccessReviewClient: r.subjectAccessReviewClient,
+		IsAuthorized:              r.IsAuthorized,
+		RunStoreUpdater:           r.runStore,
+	}
+}
+
+func (r *ResourceManager) applyMLflowOnRunStart(ctx context.Context, run *model.Run, namespace string, input *apiservermlflow.PluginInput, executionSpec util.ExecutionSpec) {
+	handler := apiservermlflow.NewHandler(r.mlflowHandlerDeps(), input)
+	pluginOutput, pluginErr := handler.OnRunStart(ctx, run, namespace)
+	if pluginErr != nil {
+		glog.Warningf("MLflow OnRunStart failed for run %q (run creation will continue): %v", run.UUID, pluginErr)
+	}
+	if pluginOutput == nil {
+		return
+	}
+	if err := apiservermlflow.UpsertRunPluginOutput(run, apiservermlflow.PluginName, pluginOutput); err != nil {
+		glog.Warningf("Failed to persist MLflow plugin output for run %q: %v", run.UUID, err)
+	}
+	if len(handler.RunStartEnv) != 0 {
+		if err := apiservermlflow.InjectRuntimeEnv(executionSpec, handler.RunStartEnv); err != nil {
+			glog.Warningf("Failed to inject MLflow runtime env for run %q: %v", run.UUID, err)
+		}
+	}
+}
+
+func (r *ResourceManager) applyMLflowOnRunEnd(ctx context.Context, run *model.Run, namespace string) {
+	handler := apiservermlflow.NewHandler(r.mlflowHandlerDeps(), nil)
+	if err := handler.OnRunEnd(ctx, run, namespace); err != nil {
+		glog.Warningf("MLflow OnRunEnd failed for run %q: %v", run.UUID, err)
+	}
+}
+
+func (r *ResourceManager) applyMLflowOnRunRetry(ctx context.Context, run *model.Run, namespace string) {
+	handler := apiservermlflow.NewHandler(r.mlflowHandlerDeps(), nil)
+	handler.HandleRetry(ctx, run, namespace)
 }
 
 // ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
@@ -974,7 +1031,19 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newExecSpec = newCreatedWorkflow
 	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
-	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: model.LargeText(newExecSpec.ToStringForStore()), State: model.RuntimeState(condition).ToV2()}})
+	// PluginsOutputString is intentionally omitted here: HandleRetry
+	// persists it independently via UpdateRunPluginsOutput so that
+	// MLflow state changes are committed even if this UpdateRun call
+	// is modified in the future.
+	err = r.runStore.UpdateRun(&model.Run{
+		UUID: runId,
+		RunDetails: model.RunDetails{
+			Conditions:              condition,
+			FinishedAtInSec:         0,
+			WorkflowRuntimeManifest: model.LargeText(newExecSpec.ToStringForStore()),
+			State:                   model.RuntimeState(condition).ToV2(),
+		},
+	})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
@@ -1189,6 +1258,14 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
 		}
+	}
+
+	// When PluginsInput is set on the SWF spec, clear Workflow.Spec so the
+	// controller takes the CreateRun API path instead of directly creating a
+	// workflow.  This ensures each triggered run flows through the standard
+	// plugin integration logic (e.g. MLflow parent run creation).
+	if scheduledWorkflow.Spec.PluginsInput != "" && scheduledWorkflow.Spec.Workflow != nil {
+		scheduledWorkflow.Spec.Workflow.Spec = nil
 	}
 
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
