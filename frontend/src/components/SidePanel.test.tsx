@@ -19,7 +19,7 @@ import { render } from '@testing-library/react';
 import { vi } from 'vitest';
 import SidePanel from './SidePanel';
 
-describe('SidePanel', () => {
+describe('SidePanel (unmocked)', () => {
   it('does not emit legacy componentWillReceiveProps warnings from Resizable', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error');
 
