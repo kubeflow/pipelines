@@ -18,6 +18,32 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: wait-for-database
+        image: busybox:1.37
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbHost
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbPort
+        command: ['sh', '-c',
+          'until nc -z -w 2 ${MYSQL_HOST} ${MYSQL_PORT}; do echo "Waiting for database at ${MYSQL_HOST}:${MYSQL_PORT}..."; sleep 5; done']
       containers:
       - name: container
         # ! Sync to the same MLMD version:
