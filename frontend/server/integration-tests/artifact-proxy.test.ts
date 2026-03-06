@@ -39,11 +39,7 @@ describe('/artifacts/get namespaced proxy', () => {
   }
 
   let artifactServerInUserNamespace: Server;
-  async function setUpNamespacedArtifactService({
-    namespace = 'any-ns',
-  }: {
-    namespace?: string;
-  }) {
+  async function setUpNamespacedArtifactService({ namespace = 'any-ns' }: { namespace?: string }) {
     const receivedUrls: string[] = [];
     const artifactService = express();
     const response = `artifact service in ${namespace}`;
