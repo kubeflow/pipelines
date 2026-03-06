@@ -19,15 +19,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.9'
+          python-version: 3.9
+          cache: 'pip'
 
-      - name: Install protobuf dependencies & generate proto files
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        id: install-protobuf-deps
         uses: ./.github/actions/protobuf
+        with:
+          generate_golang_proto: "false"
 
       - name: Run SDK upgrade tests
-        env:
-          SETUP_ENV: false
         run: ./test/presubmit-test-sdk-upgrade.sh

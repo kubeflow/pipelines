@@ -1,0 +1,2 @@
+include requirements.in
+include kfp/registry/context/*.json

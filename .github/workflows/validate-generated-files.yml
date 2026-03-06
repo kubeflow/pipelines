@@ -36,10 +36,11 @@ jobs:
         with:
           go-version-file: go.mod
       
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.9'
+          python-version: 3.9
+          cache: 'pip'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
