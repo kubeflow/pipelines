@@ -68,7 +68,7 @@ jobs:
         test_label: [ "E2ECritical" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
-          - k8s_version: "v1.33.7"
+          - k8s_version: "v1.29.14"
             cache_enabled: "false"
             argo_version: "v3.5.14"
             test_label: "E2ECritical"
