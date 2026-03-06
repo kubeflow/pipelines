@@ -46,6 +46,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
+import { RouteComponentProps } from 'react-router-dom';
 import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
@@ -70,10 +71,16 @@ interface RunDetailsV2Info {
   run: V2beta1Run;
 }
 
-export type RunDetailsV2Props = RunDetailsV2Info & RunDetailsProps;
+export interface RunDetailsV2Params {
+  [RouteParams.runId]: string;
+}
+
+export type RunDetailsV2Props = RunDetailsV2Info &
+  RunDetailsProps &
+  RouteComponentProps<RunDetailsV2Params>;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
-  const runId = (props.match.params as Record<string, string>)[RouteParams.runId];
+  const runId = props.match.params[RouteParams.runId];
   const run = props.run;
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
@@ -155,9 +162,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
-  const [runIdFromParams] = useState(
-    (props.match.params as Record<string, string>)[RouteParams.runId],
-  );
+  const [runIdFromParams] = useState(props.match.params[RouteParams.runId]);
   useEffect(() => {
     if (hasFinishedV2(run.state)) {
       setRunFinished(true);
