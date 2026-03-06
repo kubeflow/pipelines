@@ -484,3 +484,43 @@ func TestCrdPluginsInputToProto(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid plugins_input entry")
 	})
 }
+
+func TestCrdPluginsInputToProto(t *testing.T) {
+	t.Run("valid single plugin", func(t *testing.T) {
+		input := map[string]apiextensionsv1.JSON{
+			"mlflow": {Raw: []byte(`{"experiment_name":"my-exp"}`)},
+		}
+		result, err := crdPluginsInputToProto(input)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		require.Contains(t, result, "mlflow")
+		assert.Equal(t, "my-exp", result["mlflow"].Fields["experiment_name"].GetStringValue())
+	})
+
+	t.Run("valid multiple plugins", func(t *testing.T) {
+		input := map[string]apiextensionsv1.JSON{
+			"mlflow": {Raw: []byte(`{"experiment_name":"exp-1"}`)},
+			"other":  {Raw: []byte(`{"key":"val"}`)},
+		}
+		result, err := crdPluginsInputToProto(input)
+		require.NoError(t, err)
+		require.Len(t, result, 2)
+		assert.Contains(t, result, "mlflow")
+		assert.Contains(t, result, "other")
+	})
+
+	t.Run("empty map", func(t *testing.T) {
+		result, err := crdPluginsInputToProto(map[string]apiextensionsv1.JSON{})
+		require.NoError(t, err)
+		assert.Empty(t, result)
+	})
+
+	t.Run("invalid inner value", func(t *testing.T) {
+		input := map[string]apiextensionsv1.JSON{
+			"mlflow": {Raw: []byte(`"not-an-object"`)},
+		}
+		_, err := crdPluginsInputToProto(input)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid plugins_input entry")
+	})
+}
