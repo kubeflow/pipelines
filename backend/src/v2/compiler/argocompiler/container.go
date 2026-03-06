@@ -25,16 +25,15 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -146,6 +145,21 @@ func GetPipelineRunAsUser() *int64 {
 	}
 
 	return &runAsUser
+}
+
+// getDriverPodConfig returns driver pod labels and annotations from the cached
+// configuration in the apiserver/common package. Returns nil when no labels or
+// annotations are configured.
+func getDriverPodConfig() *driverPodConfig {
+	labels := common.GetDriverPodLabels()
+	annotations := common.GetDriverPodAnnotations()
+	if len(labels) == 0 && len(annotations) == 0 {
+		return nil
+	}
+	return &driverPodConfig{
+		Labels:      labels,
+		Annotations: annotations,
+	}
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
@@ -275,6 +289,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 	}
 	applySecurityContextToTemplate(template)
+
+	c.driverPodConfig.applyToTemplate(template)
+
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(template)

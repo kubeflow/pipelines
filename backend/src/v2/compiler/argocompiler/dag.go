@@ -644,6 +644,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		},
 	}
 	applySecurityContextToTemplate(template)
+
+	c.driverPodConfig.applyToTemplate(template)
+
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(template)
