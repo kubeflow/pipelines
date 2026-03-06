@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -38,7 +39,7 @@ func validateDAG(opts Options) (err error) {
 	return validateNonRoot(opts)
 }
 
-func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *Execution, err error) {
+func DAG(ctx context.Context, opts Options, mlmd *metadata.Client, dispatcher plugins.TaskPluginDispatcher) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.DAG(%s) failed: %w", opts.info(), err)
@@ -106,6 +107,17 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
+
+	// Dispatch a plugin task for each loop DAG driver, but not the loop's individual iteration DAG drivers.
+	if iterationIndex != nil && *iterationIndex == 0 {
+		taskStartResult, err := dispatcher.OnTaskStart(ctx, taskName)
+		if err != nil {
+			glog.Errorf("failed to dispatch task start: %v", err)
+		}
+		if taskStartResult != nil {
+			ecfg.MLflowRunID = taskStartResult.RunID
+		}
+	}
 
 	// Handle writing output parameters to MLMD.
 	ecfg.OutputParameters = opts.Component.GetDag().GetOutputs().GetParameters()
@@ -176,5 +188,11 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	}
 	glog.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
+
+	err = dispatcher.OnTaskEnd(ctx, createdExecution, nil)
+	if err != nil {
+		glog.Errorf("failed to dispatch task end: %v", err)
+	}
+
 	return execution, nil
 }

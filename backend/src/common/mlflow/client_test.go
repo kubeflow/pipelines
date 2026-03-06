@@ -604,3 +604,86 @@ func TestMLflowRuntimeConfig_RoundTrip(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &decoded))
 	assert.Equal(t, original, decoded)
 }
+
+func TestLogBatch_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, pathRunsLogBatch, r.URL.Path)
+
+		body, _ := io.ReadAll(r.Body)
+		var payload map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &payload))
+		assert.Equal(t, "exp-1", payload["run_id"])
+		assert.Equal(t, testFormattedMetrics(), payload["metrics"])
+		assert.Equal(t, testFormattedParams(), payload["params"])
+		assert.Equal(t, testFormattedTags(), payload["tags"])
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+
+	err := c.LogBatch(context.Background(), testLogBatchRequest())
+	require.NoError(t, err)
+}
+
+func TestLogBatch_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error_code":"INVALID_PARAMETER_VALUE","message":"bad param"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+
+	err := c.LogBatch(context.Background(), testLogBatchRequest())
+	require.Error(t, err)
+	apiErr, ok := err.(*APIError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, apiErr.StatusCode)
+	assert.Equal(t, "INVALID_PARAMETER_VALUE", apiErr.ErrorCode)
+}
+
+func testLogBatchRequest() LogBatchRequest {
+	return LogBatchRequest{
+		RunID: "exp-1",
+		Metrics: []Metric{
+			{Key: "CreateTimeSinceEpoch", Value: 1742826366000},
+		},
+		Params: []Param{
+			{Key: "input-parameter-key", Value: "input-parameter-value"},
+		},
+		Tags: []Tag{
+			{Key: "tag-key", Value: "tag-value"},
+		},
+	}
+}
+
+func testFormattedMetrics() []interface{} {
+	return []interface{}{
+		map[string]interface{}{
+			"key":       "CreateTimeSinceEpoch",
+			"step":      float64(0),
+			"timestamp": float64(0),
+			"value":     float64(1742826366000),
+		},
+	}
+}
+
+func testFormattedParams() []interface{} {
+	return []interface{}{
+		map[string]interface{}{
+			"key":   "input-parameter-key",
+			"value": "input-parameter-value",
+		},
+	}
+}
+
+func testFormattedTags() []interface{} {
+	return []interface{}{
+		map[string]interface{}{
+			"key":   "tag-key",
+			"value": "tag-value",
+		},
+	}
+}

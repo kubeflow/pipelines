@@ -21,7 +21,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 const (
@@ -161,15 +164,75 @@ func BuildHTTPClient(timeout time.Duration, tlsCfg *TLSConfig) (*http.Client, er
 	}, nil
 }
 
-// ToMLflowTerminalStatus converts a KFP RuntimeState string to an MLflow
-// terminal status.
-func ToMLflowTerminalStatus(stateV2 string) string {
-	switch stateV2 {
-	case "SUCCEEDED":
-		return "FINISHED"
-	case "CANCELED", "CANCELING":
-		return "KILLED"
-	default:
-		return "FAILED"
+// ResolveMLflowCredentials resolves the Kubernetes service account token used
+// to authenticate with the MLflow endpoint.
+func ResolveMLflowCredentials() (MLflowCredentials, error) {
+	restConfig, err := util.GetKubernetesConfig()
+	if err != nil {
+		return MLflowCredentials{}, util.NewInternalServerError(err, "failed to get Kubernetes config for MLflow auth")
 	}
+	token := restConfig.BearerToken
+	if token == "" && restConfig.BearerTokenFile != "" {
+		tokenBytes, err := os.ReadFile(restConfig.BearerTokenFile)
+		if err != nil {
+			return MLflowCredentials{}, util.NewInternalServerError(err, "failed to read bearer token file %q for MLflow auth", restConfig.BearerTokenFile)
+		}
+		token = strings.TrimSpace(string(tokenBytes))
+	}
+	if token == "" {
+		return MLflowCredentials{}, util.NewInvalidInputError("Kubernetes bearer token is empty for MLflow auth")
+	}
+	return MLflowCredentials{
+		AuthType:    AuthTypeKubernetes,
+		BearerToken: token,
+	}, nil
+}
+
+// BuildMLflowRequestContext is the shared core that validates the PluginConfig,
+// resolves credentials, builds the HTTP client and MLflow client, and returns
+// a ready-to-use RequestContext. The workspace and workspacesEnabled values
+// are caller-specific and passed in directly.
+func BuildMLflowRequestContext(pluginCfg PluginConfig, workspace string, workspacesEnabled bool) (*RequestContext, error) {
+	baseURL, err := url.Parse(pluginCfg.Endpoint)
+	if err != nil || baseURL.Scheme == "" || baseURL.Host == "" {
+		return nil, util.NewInvalidInputError("invalid plugins.mlflow endpoint %q", pluginCfg.Endpoint)
+	}
+	timeout, err := time.ParseDuration(pluginCfg.Timeout)
+	if err != nil {
+		return nil, util.NewInvalidInputError("invalid plugins.mlflow timeout %q: %v", pluginCfg.Timeout, err)
+	}
+	if timeout <= 0 {
+		return nil, util.NewInvalidInputError("plugins.mlflow timeout must be > 0")
+	}
+	authMaterial, err := ResolveMLflowCredentials()
+	if err != nil {
+		return nil, err
+	}
+	httpClient, err := BuildHTTPClient(timeout, pluginCfg.TLS)
+	if err != nil {
+		return nil, err
+	}
+	retrySettings := RetryPolicy{
+		InitialInterval: DefaultRetryInitial,
+		MaxInterval:     DefaultRetryMax,
+		MaxElapsedTime:  DefaultRetryElapsed,
+		Multiplier:      2.0,
+	}
+	sharedClient, err := NewClient(Config{
+		Endpoint:          pluginCfg.Endpoint,
+		HTTPClient:        httpClient,
+		BearerToken:       authMaterial.BearerToken,
+		WorkspacesEnabled: workspacesEnabled,
+		Workspace:         workspace,
+		Retry:             retrySettings,
+	})
+	if err != nil {
+		return nil, util.NewInvalidInputError("failed to build MLflow client: %v", err)
+	}
+	return &RequestContext{
+		BaseURL:           baseURL,
+		Workspace:         workspace,
+		WorkspacesEnabled: workspacesEnabled,
+		Client:            sharedClient,
+	}, nil
 }

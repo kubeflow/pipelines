@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -43,7 +44,7 @@ func validateContainer(opts Options) (err error) {
 	return validateNonRoot(opts)
 }
 
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client) (execution *Execution, err error) {
+func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client, dispatcher plugins.TaskPluginDispatcher) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
@@ -188,6 +189,13 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, nil
 	}
 
+	taskStartResult, err := dispatcher.OnTaskStart(ctx, opts.TaskName)
+	if err != nil {
+		glog.Errorf("failed to dispatch task start: %v", err)
+	} else if taskStartResult != nil {
+		ecfg.MLflowRunID = taskStartResult.RunID
+	}
+
 	// Use cache and skip launcher if all contions met:
 	// (1) Cache is enabled globally
 	// (2) Cache is enabled for the task
@@ -206,6 +214,10 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
 				return execution, fmt.Errorf("failed to publish cached execution: %w", err)
 			}
+			err = dispatcher.OnTaskEnd(ctx, createdExecution, outputArtifacts)
+			if err != nil {
+				glog.Errorf("failed to dispatch task end: %v", err)
+			}
 			glog.Infof("Use cache for task %s", opts.Task.GetTaskInfo().GetName())
 			*execution.Cached = true
 			return execution, nil
@@ -217,6 +229,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	taskConfig := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
+		dispatcher,
 		opts.Container,
 		opts.Component,
 		executorInput,

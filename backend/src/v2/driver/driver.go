@@ -20,9 +20,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -236,6 +236,7 @@ func getTaskConfigOptions(
 // dynamic values are patched here. The volume mounts / configmap mounts are
 // defined in compiler, because they are static.
 func initPodSpecPatch(
+	dispatcher plugins.TaskPluginDispatcher,
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
 	executorInput *pipelinespec.ExecutorInput,
@@ -269,6 +270,10 @@ func initPodSpecPatch(
 	for _, envVar := range container.GetEnv() {
 		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
 	}
+
+	// Append any env variables relevant for task plugin.
+	pluginEnvVars := dispatcher.RetrieveUserContainerEnvVars()
+	userEnvVar = append(userEnvVar, pluginEnvVars...)
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
 

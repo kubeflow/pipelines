@@ -279,7 +279,7 @@ func TestBuildMLflowRequestContextKubernetesAuth(t *testing.T) {
 		},
 	}
 
-	mlflowCtx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	mlflowCtx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.NoError(t, err)
 	require.NotNil(t, mlflowCtx)
 	assert.Equal(t, "https://mlflow.example.com", mlflowCtx.BaseURL.String())
@@ -433,11 +433,11 @@ func TestSetPendingRunPluginOutput(t *testing.T) {
 }
 
 func TestToMLflowTerminalStatus(t *testing.T) {
-	assert.Equal(t, "FINISHED", commonmlflow.ToMLflowTerminalStatus("SUCCEEDED"))
-	assert.Equal(t, "KILLED", commonmlflow.ToMLflowTerminalStatus("CANCELED"))
-	assert.Equal(t, "KILLED", commonmlflow.ToMLflowTerminalStatus("CANCELING"))
-	assert.Equal(t, "FAILED", commonmlflow.ToMLflowTerminalStatus("FAILED"))
-	assert.Equal(t, "FAILED", commonmlflow.ToMLflowTerminalStatus("UNKNOWN"))
+	assert.Equal(t, "FINISHED", ToMLflowTerminalStatus("SUCCEEDED"))
+	assert.Equal(t, "KILLED", ToMLflowTerminalStatus("CANCELED"))
+	assert.Equal(t, "KILLED", ToMLflowTerminalStatus("CANCELING"))
+	assert.Equal(t, "FAILED", ToMLflowTerminalStatus("FAILED"))
+	assert.Equal(t, "FAILED", ToMLflowTerminalStatus("UNKNOWN"))
 }
 
 func strPtr(s string) *string {
@@ -512,7 +512,7 @@ func TestResolveMLflowRequestConfig_NeitherGlobalNorNamespace(t *testing.T) {
 func TestResolveMLflowCredentials_EmptySAToken(t *testing.T) {
 	setupFakeKubernetesConfig(t, "")
 
-	_, err := ResolveMLflowCredentials()
+	_, err := commonmlflow.ResolveMLflowCredentials()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bearer token is empty")
 }
@@ -525,7 +525,7 @@ func TestBuildMLflowRequestContext_InvalidEndpoint(t *testing.T) {
 		},
 		Settings: &commonmlflow.MLflowPluginSettings{},
 	}
-	ctx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.Error(t, err)
 	assert.Nil(t, ctx)
 	assert.Contains(t, err.Error(), "invalid plugins.mlflow endpoint")
@@ -541,7 +541,7 @@ func TestBuildMLflowRequestContext_ZeroTimeout(t *testing.T) {
 		},
 		Settings: &commonmlflow.MLflowPluginSettings{},
 	}
-	ctx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.Error(t, err)
 	assert.Nil(t, ctx)
 	assert.Contains(t, err.Error(), "timeout must be > 0")
@@ -611,7 +611,7 @@ func newTestMLflowRequestContext(t *testing.T, serverURL string) *commonmlflow.R
 			WorkspacesEnabled: &enabled,
 		},
 	}
-	ctx, err := BuildMLflowRequestContext(context.Background(), "ns1", requestCfg)
+	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
 	require.NoError(t, err)
 	require.NotNil(t, ctx)
 	return ctx

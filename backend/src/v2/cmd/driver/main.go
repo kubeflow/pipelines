@@ -21,6 +21,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/common/mlflow"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -102,6 +105,7 @@ var (
 
 func main() {
 	flag.Parse()
+	initConfig()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
 	err := flag.Set("v", *logLevel)
@@ -212,6 +216,13 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+	// pluginDispatcher executes task-level plugin lifecycle hooks
+	var pluginDispatcher plugins.TaskPluginDispatcher = plugins.NoOpDispatcher{}
+	if mlflow.IsEnabled() {
+		if d, err := mlflow.NewDispatcher(); err == nil {
+			pluginDispatcher = d
+		}
+	}
 	options := driver.Options{
 		PipelineName:            *pipelineName,
 		RunID:                   *runID,
@@ -242,7 +253,7 @@ func drive() (err error) {
 		options.RuntimeConfig = runtimeConfig
 		execution, driverErr = driver.RootDAG(ctx, options, client)
 	case DAG:
-		execution, driverErr = driver.DAG(ctx, options, client)
+		execution, driverErr = driver.DAG(ctx, options, client, pluginDispatcher)
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
@@ -259,7 +270,7 @@ func drive() (err error) {
 				options.DefaultRunAsNonRoot = &v
 			}
 		}
-		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
+		execution, driverErr = driver.Container(ctx, options, client, cacheClient, pluginDispatcher)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}
@@ -381,4 +392,9 @@ func writeFile(path string, data []byte) (err error) {
 
 func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.Config) (*metadata.Client, error) {
 	return metadata.NewClient(mlmdServerAddress, mlmdServerPort, tlsCfg)
+}
+
+func initConfig() {
+	//Configure Viper env
+	viper.AutomaticEnv()
 }
