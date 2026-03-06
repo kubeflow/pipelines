@@ -210,6 +210,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		job:             job,
 		spec:            spec,
 		executors:       deploy.GetExecutors(),
+		driverPodConfig: common.GetDriverPodConfig(),
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
@@ -325,6 +326,36 @@ type workflowCompiler struct {
 	defaultRunAsGroup    *int64
 	defaultRunAsNonRoot  *bool
 	defaultHostUsers     *bool
+	driverPodConfig      *common.DriverPodConfig
+}
+
+// applyDriverPodConfig applies driver pod labels and annotations to a workflow
+// template's metadata. Existing keys are kept, since admin configuration has lower
+// priority than metadata that the system already set.
+func applyDriverPodConfig(d *common.DriverPodConfig, tmpl *wfapi.Template) {
+	if d == nil || tmpl == nil {
+		return
+	}
+	if len(d.Labels) > 0 {
+		if tmpl.Metadata.Labels == nil {
+			tmpl.Metadata.Labels = make(map[string]string, len(d.Labels))
+		}
+		for k, v := range d.Labels {
+			if _, exists := tmpl.Metadata.Labels[k]; !exists {
+				tmpl.Metadata.Labels[k] = v
+			}
+		}
+	}
+	if len(d.Annotations) > 0 {
+		if tmpl.Metadata.Annotations == nil {
+			tmpl.Metadata.Annotations = make(map[string]string, len(d.Annotations))
+		}
+		for k, v := range d.Annotations {
+			if _, exists := tmpl.Metadata.Annotations[k]; !exists {
+				tmpl.Metadata.Annotations[k] = v
+			}
+		}
+	}
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
