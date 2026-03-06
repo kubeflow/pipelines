@@ -14,7 +14,6 @@
 
 # Contact one of chensun, HumairAK if this remote image needs an update.
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
-UV_VERSION=0.10.3
 
 .PHONY: all
 all: golang python
@@ -39,18 +38,16 @@ clean-go:
 
 # Build Python package using pre-built image
 .PHONY: python
-python: fetch-protos
+python: python fetch-protos
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-		    pip install --user --break-system-packages uv==$(UV_VERSION) && \
-		    cd api/v2alpha1/python && \
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python && \
+		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
 		    python3 generate_proto.py && \
-		    cd /go/src/github.com/kubeflow/pipelines && \
-		    ~/.local/bin/uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist'
+            python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
 
 # Build and locally install Python package using editable mode for development.
 .PHONY: python-dev

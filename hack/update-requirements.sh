@@ -1,11 +1,11 @@
-#!/bin/bash -ex
-# Copyright 2022 Kubeflow Pipelines contributors
+#!/bin/bash
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source_root=$(pwd)
+# Usage: ./update_requirements.sh <requirements.in >requirements.txt
 
-python3 -m pip install --upgrade pip
-python3 -m pip install $(grep 'isort==' sdk/python/requirements-dev.txt)
-python3 -m pip install $(grep 'pycln==' sdk/python/requirements-dev.txt)
-
-pycln --check "${source_root}/sdk/python"
-isort --check --profile google "${source_root}/sdk/python"
+set -euo pipefail
+IMAGE=${1:-"python:3.11"}
+docker run -i --rm  --entrypoint "" "$IMAGE" sh -c '
+  python3 -m pip install pip setuptools --quiet --upgrade
+  python3 -m pip install pip-tools==6.14.0 --quiet
+  pip-compile --resolver=backtracking --output-file - -
+'

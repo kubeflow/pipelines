@@ -20,10 +20,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.9'
+          python-version: 3.9
+          cache: 'pip'
 
       - name: Run isort tests
         run: ./test/presubmit-isort-sdk.sh
