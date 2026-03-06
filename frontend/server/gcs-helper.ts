@@ -77,7 +77,7 @@ export async function downloadGCSObjectStream(options: {
   bucket: string;
   objectName: string;
   credentials?: CredentialBody;
-}): Promise<NodeJS.ReadableStream> {
+}): Promise<Readable> {
   const { bucket, objectName, credentials } = options;
   const client = await getGCSClient(credentials);
   const response = await client.request<Readable>({
