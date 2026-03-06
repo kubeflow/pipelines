@@ -26,6 +26,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -643,6 +644,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
+	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {

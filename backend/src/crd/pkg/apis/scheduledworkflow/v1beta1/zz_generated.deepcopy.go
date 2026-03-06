@@ -19,6 +19,7 @@
 package v1beta1
 
 import (
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -188,6 +189,13 @@ func (in *ScheduledWorkflowSpec) DeepCopyInto(out *ScheduledWorkflowSpec) {
 		in, out := &in.Workflow, &out.Workflow
 		*out = new(WorkflowResource)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.PluginsInput != nil {
+		in, out := &in.PluginsInput, &out.PluginsInput
+		*out = make(map[string]v1.JSON, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
 	}
 	return
 }
