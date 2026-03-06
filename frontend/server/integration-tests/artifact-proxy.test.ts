@@ -39,12 +39,10 @@ describe('/artifacts/get namespaced proxy', () => {
   }
 
   let artifactServerInUserNamespace: Server;
-  function setUpNamespacedArtifactService({
+  async function setUpNamespacedArtifactService({
     namespace = 'any-ns',
-    port = 3002,
   }: {
     namespace?: string;
-    port?: number;
   }) {
     const receivedUrls: string[] = [];
     const artifactService = express();
@@ -53,10 +51,17 @@ describe('/artifacts/get namespaced proxy', () => {
       receivedUrls.push(req.url);
       res.status(200).send(response);
     });
-    artifactServerInUserNamespace = artifactService.listen(port);
+    artifactServerInUserNamespace = await new Promise<Server>((resolve, reject) => {
+      const server = artifactService.listen(0, '127.0.0.1', () => resolve(server));
+      server.on('error', reject);
+    });
+    const address = artifactServerInUserNamespace.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected artifact proxy test server to bind to a TCP port');
+    }
     const getArtifactServiceGetterSpy = vi
       .spyOn(artifactsHandler, 'getArtifactServiceGetter')
-      .mockImplementation(() => () => `http://localhost:${port}`);
+      .mockImplementation(() => () => `http://127.0.0.1:${address.port}`);
     return { receivedUrls, getArtifactServiceGetterSpy, response };
   }
   afterEach(async () => {
@@ -81,7 +86,7 @@ describe('/artifacts/get namespaced proxy', () => {
   });
 
   it('proxies a request to namespaced artifact service', async () => {
-    const { receivedUrls, getArtifactServiceGetterSpy } = setUpNamespacedArtifactService({
+    const { receivedUrls, getArtifactServiceGetterSpy } = await setUpNamespacedArtifactService({
       namespace: 'ns2',
     });
     const configs = loadConfigs(argv, {
@@ -110,7 +115,7 @@ describe('/artifacts/get namespaced proxy', () => {
   });
 
   it('proxies a download request to namespaced artifact service', async () => {
-    const { receivedUrls, getArtifactServiceGetterSpy } = setUpNamespacedArtifactService({
+    const { receivedUrls, getArtifactServiceGetterSpy } = await setUpNamespacedArtifactService({
       namespace: 'ns2',
     });
     const configs = loadConfigs(argv, {
@@ -152,7 +157,7 @@ describe('/artifacts/get namespaced proxy', () => {
   });
 
   it('proxies a request with basePath too', async () => {
-    const { receivedUrls, response } = setUpNamespacedArtifactService({});
+    const { receivedUrls, response } = await setUpNamespacedArtifactService({});
     const configs = loadConfigs(argv, {
       ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
     });
