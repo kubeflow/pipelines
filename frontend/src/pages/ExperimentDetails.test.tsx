@@ -29,7 +29,7 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
-import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter/api';
+import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { vi } from 'vitest';
 
 describe('ExperimentDetails', () => {
@@ -269,7 +269,7 @@ describe('ExperimentDetails', () => {
     await mockNRecurringRuns(1);
     await renderExperimentDetails();
     await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
-    expectRunStorageFilter(V2beta1PredicateOperation.NOTEQUALS);
+    expectRunStorageFilter(V2beta1PredicateOperation.NOT_EQUALS);
   });
 
   it('shows a list of archived runs', async () => {

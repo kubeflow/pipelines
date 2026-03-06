@@ -15,6 +15,7 @@
 package util
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -42,5 +43,22 @@ func TestGetMetricValue(t *testing.T) {
 
 		value := GetMetricValue(counter)
 		assert.Equal(t, float64(10), value)
+	})
+
+	t.Run("histogram is invalid type", func(t *testing.T) {
+		// Suppress glog error output from GetMetricValue's invalid type branch.
+		previousThreshold := flag.Lookup("stderrthreshold").Value.String()
+		flag.Set("stderrthreshold", "FATAL")
+		defer flag.Set("stderrthreshold", previousThreshold)
+
+		histogram := prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "test_histogram",
+			Help:    "A test histogram",
+			Buckets: prometheus.DefBuckets,
+		})
+		histogram.Observe(1.5)
+
+		value := GetMetricValue(histogram)
+		assert.Equal(t, float64(0), value)
 	})
 }

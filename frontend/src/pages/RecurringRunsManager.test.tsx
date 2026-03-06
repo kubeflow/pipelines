@@ -40,7 +40,7 @@ const RECURRINGRUNS: V2beta1RecurringRun[] = [
     created_at: new Date(2018, 10, 9, 8, 7, 6),
     display_name: 'test recurring run name3',
     recurring_run_id: 'recurringrun3',
-    status: V2beta1RecurringRunStatus.STATUSUNSPECIFIED,
+    status: V2beta1RecurringRunStatus.STATUS_UNSPECIFIED,
   },
 ];
 
