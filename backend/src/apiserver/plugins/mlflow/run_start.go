@@ -11,7 +11,7 @@ import (
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/mlflow"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/encoding/protojson"
 	structpb "google.golang.org/protobuf/types/known/structpb"
