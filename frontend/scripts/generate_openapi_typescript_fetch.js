@@ -2,8 +2,9 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 // Keep this pinned to the latest stable non-snapshot release.
 const GENERATOR_IMAGE =
@@ -20,6 +21,8 @@ const GLOBAL_PROPERTIES = [
   'apiTests=false',
   'modelTests=false',
 ].join(',');
+
+const DEFAULT_CONCURRENCY = Math.max(1, Math.min(os.cpus().length, 4));
 
 const SPEC_TARGETS = {
   'v1:experiment': {
@@ -81,8 +84,8 @@ const SPEC_TARGETS = {
 };
 
 const GROUPS = {
-  v1: Object.keys(SPEC_TARGETS).filter(key => key.startsWith('v1:')),
-  v2beta1: Object.keys(SPEC_TARGETS).filter(key => key.startsWith('v2beta1:')),
+  v1: Object.keys(SPEC_TARGETS).filter((key) => key.startsWith('v1:')),
+  v2beta1: Object.keys(SPEC_TARGETS).filter((key) => key.startsWith('v2beta1:')),
   all: Object.keys(SPEC_TARGETS),
 };
 
@@ -137,12 +140,47 @@ function runCommand(command, args) {
   }
 }
 
+const MAX_STDERR_BYTES = 1024 * 1024;
+
+function runCommandAsync(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const stderrChunks = [];
+    let stderrLength = 0;
+    child.stderr.on('data', (chunk) => {
+      if (stderrLength >= MAX_STDERR_BYTES) return;
+      const remaining = MAX_STDERR_BYTES - stderrLength;
+      const toStore = chunk.length <= remaining ? chunk : chunk.subarray(0, remaining);
+      stderrChunks.push(toStore);
+      stderrLength += toStore.length;
+    });
+    child.on('error', (err) => reject(new Error(`Failed to run ${command}: ${err.message}`)));
+    child.on('close', (code) => {
+      if (code !== 0) {
+        const error = new Error(`${command} exited with code ${code}`);
+        error.stderr = Buffer.concat(stderrChunks).toString();
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 function ensureDockerAvailable() {
   const result = spawnSync('docker', ['--version'], { encoding: 'utf8' });
   if (result.error || result.status !== 0) {
-    fatal(
-      'Docker is required for API generation. Install/start Docker and retry `npm run apis`.',
-    );
+    fatal('Docker is required for API generation. Install/start Docker and retry `npm run apis`.');
+  }
+}
+
+function ensureImageAvailable() {
+  const result = spawnSync('docker', ['image', 'inspect', GENERATOR_IMAGE], {
+    stdio: 'ignore',
+  });
+  if (result.status !== 0) {
+    console.log(`Pulling ${GENERATOR_IMAGE}...`);
+    runCommand('docker', ['pull', GENERATOR_IMAGE]);
   }
 }
 
@@ -273,30 +311,20 @@ async function formatGeneratedTypeScript(repoRoot, outputDirs) {
   }
 }
 
-function generateTarget(repoRoot, targetKey) {
+function isServerTarget(target) {
+  return target.output.startsWith('frontend/server/src/generated/');
+}
+
+function buildDockerArgs(repoRoot, targetKey) {
   const target = SPEC_TARGETS[targetKey];
-  const specPath = path.join(repoRoot, target.spec);
-  const outputPath = path.join(repoRoot, target.output);
-  const swaggerConfigPath = path.join(repoRoot, 'frontend/swagger-config.json');
-
-  if (!fs.existsSync(specPath)) {
-    fatal(`Spec not found: ${specPath}`);
-  }
-  if (!fs.existsSync(swaggerConfigPath)) {
-    fatal(`Config not found: ${swaggerConfigPath}`);
-  }
-
-  fs.rmSync(outputPath, { recursive: true, force: true });
-
   const uid = process.getuid ? String(process.getuid()) : '1000';
   const gid = process.getgid ? String(process.getgid()) : '1000';
   const additionalProperties = [...BASE_ADDITIONAL_PROPERTIES];
-  const isServerTarget = target.output.startsWith('frontend/server/src/generated/');
-  if (isServerTarget) {
+  if (isServerTarget(target)) {
     additionalProperties.push('importFileExtension=.js');
   }
 
-  const dockerArgs = [
+  return [
     'run',
     '--rm',
     '-u',
@@ -319,14 +347,104 @@ function generateTarget(repoRoot, targetKey) {
     '--global-property',
     GLOBAL_PROPERTIES,
   ];
+}
 
-  console.log(`Generating ${targetKey} -> ${target.output}`);
-  runCommand('docker', dockerArgs);
+function prepareTarget(repoRoot, targetKey) {
+  const target = SPEC_TARGETS[targetKey];
+  const specPath = path.join(repoRoot, target.spec);
+  const outputPath = path.join(repoRoot, target.output);
+  const swaggerConfigPath = path.join(repoRoot, 'frontend/swagger-config.json');
+
+  if (!fs.existsSync(specPath)) {
+    fatal(`Spec not found: ${specPath}`);
+  }
+  if (!fs.existsSync(swaggerConfigPath)) {
+    fatal(`Config not found: ${swaggerConfigPath}`);
+  }
+
+  fs.rmSync(outputPath, { recursive: true, force: true });
+}
+
+function postProcessTarget(repoRoot, targetKey) {
+  const target = SPEC_TARGETS[targetKey];
+  const outputPath = path.join(repoRoot, target.output);
+
   removeGeneratorMetadata(outputPath);
   normalizeGeneratedTypeScript(outputPath, {
-    nodeCompatibleFetchTypes: isServerTarget,
+    nodeCompatibleFetchTypes: isServerTarget(target),
     renameV1ApiSymbols: targetKey.startsWith('v1:'),
   });
+}
+
+function generateTarget(repoRoot, targetKey) {
+  prepareTarget(repoRoot, targetKey);
+  console.log(`Generating ${targetKey} -> ${SPEC_TARGETS[targetKey].output}`);
+  runCommand('docker', buildDockerArgs(repoRoot, targetKey));
+  postProcessTarget(repoRoot, targetKey);
+}
+
+async function runPool(taskFns, concurrency) {
+  let nextIdx = 0;
+  let failed = false;
+
+  async function worker() {
+    while (!failed && nextIdx < taskFns.length) {
+      const idx = nextIdx++;
+      try {
+        await taskFns[idx]();
+      } catch (err) {
+        failed = true;
+        throw err;
+      }
+    }
+  }
+
+  const results = await Promise.allSettled(
+    Array.from({ length: Math.min(concurrency, taskFns.length) }, () => worker()),
+  );
+  const firstFailure = results.find((r) => r.status === 'rejected');
+  if (firstFailure) {
+    throw firstFailure.reason;
+  }
+}
+
+async function generateTargetsParallel(repoRoot, targets, concurrency, hooks) {
+  const {
+    prepare = prepareTarget,
+    dockerGenerate = (rr, tk) => runCommandAsync('docker', buildDockerArgs(rr, tk)),
+    postProcess = postProcessTarget,
+    pullImage = ensureImageAvailable,
+  } = hooks || {};
+
+  pullImage();
+
+  const effectiveConcurrency = Math.min(concurrency, targets.length);
+  console.log(`Generating ${targets.length} target(s) with concurrency ${effectiveConcurrency}...`);
+  const startTime = Date.now();
+
+  const tasks = targets.map((targetKey) => async () => {
+    const target = SPEC_TARGETS[targetKey];
+    prepare(repoRoot, targetKey);
+    console.log(`  [start] ${targetKey} -> ${target.output}`);
+    const taskStart = Date.now();
+    try {
+      await dockerGenerate(repoRoot, targetKey);
+      postProcess(repoRoot, targetKey);
+      const elapsed = ((Date.now() - taskStart) / 1000).toFixed(1);
+      console.log(`  [done]  ${targetKey} (${elapsed}s)`);
+    } catch (error) {
+      console.error(`  [fail]  ${targetKey}`);
+      if (error.stderr) {
+        process.stderr.write(error.stderr);
+      }
+      throw error;
+    }
+  });
+
+  await runPool(tasks, effectiveConcurrency);
+
+  const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`Generated ${targets.length} target(s) in ${totalElapsed}s`);
 }
 
 async function main() {
@@ -334,23 +452,32 @@ async function main() {
   const repoRoot = path.resolve(scriptDir, '..', '..');
   const args = process.argv.slice(2);
   const targets = resolveTargets(args);
+  const concurrency = Math.max(
+    1,
+    parseInt(process.env.OPENAPI_CONCURRENCY || '', 10) || DEFAULT_CONCURRENCY,
+  );
 
   ensureDockerAvailable();
-  for (const targetKey of targets) {
-    generateTarget(repoRoot, targetKey);
+
+  if (targets.length === 1) {
+    generateTarget(repoRoot, targets[0]);
+  } else {
+    await generateTargetsParallel(repoRoot, targets, concurrency);
   }
+
   const outputDirs = [
-    ...new Set(targets.map(targetKey => path.join(repoRoot, SPEC_TARGETS[targetKey].output))),
+    ...new Set(targets.map((targetKey) => path.join(repoRoot, SPEC_TARGETS[targetKey].output))),
   ];
   await formatGeneratedTypeScript(repoRoot, outputDirs);
 }
 
 if (require.main === module) {
-  main().catch(error => fatal(error.stack || error.message));
+  main().catch((error) => fatal(error.stack || error.message));
 }
 
 module.exports = {
   formatGeneratedTypeScript,
+  generateTargetsParallel,
   listTypeScriptFiles,
   main,
   normalizeGeneratedTypeScript,
@@ -359,4 +486,5 @@ module.exports = {
   normalizeV1ApiSymbols,
   resolvePrettierModule,
   resolveTargets,
+  runPool,
 };
