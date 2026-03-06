@@ -33,3 +33,11 @@ labels:
   pairs:
     app.kubernetes.io/component: ml-pipeline
     app.kubernetes.io/name: kubeflow-pipelines
+vars:
+- name: kfp-namespace
+  objref:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-pipeline
+  fieldref:
+    fieldPath: metadata.namespace

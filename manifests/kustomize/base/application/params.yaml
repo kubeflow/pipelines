@@ -1,0 +1,5 @@
+varReference:
+  - path: metadata/name
+    kind: Application
+  - path: spec/descriptor/version
+    kind: Application
