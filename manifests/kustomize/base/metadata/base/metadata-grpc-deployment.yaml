@@ -20,7 +20,7 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: wait-for-mysql
-        image: ghcr.io/containerd/busybox:1.36
+        image: alpine:3.23
         env:
         - name: MYSQL_HOST
           valueFrom:

@@ -21,7 +21,7 @@ spec:
     
       initContainers:
       - name: wait-for-metadata-grpc
-        image: ghcr.io/containerd/busybox:1.36
+        image: alpine:3.23
         command:
         - sh
         - -c

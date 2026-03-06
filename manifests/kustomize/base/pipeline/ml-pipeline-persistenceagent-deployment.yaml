@@ -21,7 +21,7 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: wait-for-ml-pipeline
-        image: ghcr.io/containerd/busybox:1.36
+        image: alpine:3.23
         command:
         - sh
         - -c
