@@ -26,4 +26,4 @@ jobs:
           cache: 'pip'
 
       - name: Run tests
-        run: ./test/presubmit-backend-visualization.sh
+        run: make test-backend-visualization-test
