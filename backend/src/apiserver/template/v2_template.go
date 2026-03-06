@@ -32,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	goyaml "gopkg.in/yaml.v3"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -57,6 +58,11 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 		return nil, util.Wrap(err, "converting model trigger to crd trigger failed")
 	}
 
+	pluginsInput, err := modelPluginsInputToCRD(modelJob.PluginsInputString)
+	if err != nil {
+		return nil, util.Wrap(err, "Create job failed")
+	}
+
 	return &scheduledworkflow.ScheduledWorkflow{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kubeflow.org/v2beta1",
@@ -73,6 +79,7 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			PipelineName:      modelJob.PipelineName,
 			PipelineVersionId: modelJob.PipelineVersionId,
 			ServiceAccount:    modelJob.ServiceAccount,
+			PluginsInput:      pluginsInput,
 		},
 	}, nil
 }
@@ -511,4 +518,22 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 	}
 
 	return nil
+}
+
+// modelPluginsInputToCRD converts the JSON-encoded plugins_input string from
+// the model layer into the map[string]apiextensionsv1.JSON representation
+// used by the ScheduledWorkflow CRD spec.
+func modelPluginsInputToCRD(lt *model.LargeText) (map[string]apiextensionsv1.JSON, error) {
+	if lt == nil || *lt == "" {
+		return nil, nil
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(*lt), &raw); err != nil {
+		return nil, fmt.Errorf("invalid plugins_input JSON: %w", err)
+	}
+	result := make(map[string]apiextensionsv1.JSON, len(raw))
+	for k, v := range raw {
+		result[k] = apiextensionsv1.JSON{Raw: v}
+	}
+	return result, nil
 }

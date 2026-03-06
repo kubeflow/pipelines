@@ -31,6 +31,15 @@ const (
 	Unknown      ExecutionType = "Unknown"
 )
 
+// ExecutionRuntimeRole identifies a logical container role within an execution engine.
+type ExecutionRuntimeRole string
+
+const (
+	ExecutionRuntimeRoleDriver   ExecutionRuntimeRole = "driver"
+	ExecutionRuntimeRoleLauncher ExecutionRuntimeRole = "launcher"
+	ExecutionRuntimeRoleExecutor ExecutionRuntimeRole = "executor"
+)
+
 var (
 	executionType = ArgoWorkflow // an utility var to store current ExecutionType
 )
@@ -170,6 +179,10 @@ type ExecutionSpec interface {
 
 	// Set OwnerReferences from a ScheduledWorkflow
 	SetOwnerReferences(schedule *swfapi.ScheduledWorkflow)
+
+	// UpsertRuntimeEnvVars adds or replaces env vars on containers that
+	// implement the given runtime roles for this execution engine.
+	UpsertRuntimeEnvVars(envVars map[string]string, roles ...ExecutionRuntimeRole) error
 }
 
 // Convert YAML in bytes into ExecutionSpec instance
