@@ -20,6 +20,7 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
@@ -747,4 +748,155 @@ spec:
 	err = yaml.Unmarshal([]byte(expectedWorkflowString), &expectedWorkflow)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedWorkflow, workflow)
+}
+
+// ---------- UpsertRuntimeEnvVars tests ----------
+
+// Helper that builds a Workflow with the supplied templates.
+func workflowWithTemplates(templates ...workflowapi.Template) *Workflow {
+	return NewWorkflow(&workflowapi.Workflow{
+		Spec: workflowapi.WorkflowSpec{
+			Templates: templates,
+		},
+	})
+}
+
+// dagTemplate returns a DAG-only template (no container).
+func dagTemplate(name string) workflowapi.Template {
+	return workflowapi.Template{
+		Name: name,
+		DAG:  &workflowapi.DAGTemplate{},
+	}
+}
+
+func TestUpsertRuntimeEnvVars_EmptyInputs(t *testing.T) {
+	w := workflowWithTemplates(
+		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
+	)
+
+	// Empty env map — should be a no-op.
+	assert.NoError(t, w.UpsertRuntimeEnvVars(map[string]string{}, ExecutionRuntimeRoleDriver))
+	assert.Empty(t, w.Spec.Templates[0].Container.Env)
+
+	// Nil env map — should be a no-op.
+	assert.NoError(t, w.UpsertRuntimeEnvVars(nil, ExecutionRuntimeRoleDriver))
+
+	// No templates.
+	empty := NewWorkflow(&workflowapi.Workflow{})
+	assert.NoError(t, empty.UpsertRuntimeEnvVars(map[string]string{"K": "V"}, ExecutionRuntimeRoleDriver))
+}
+
+func TestUpsertRuntimeEnvVars_DAGTemplateSkipped(t *testing.T) {
+	w := workflowWithTemplates(dagTemplate("dag"))
+	err := w.UpsertRuntimeEnvVars(
+		map[string]string{"K": "V"},
+		ExecutionRuntimeRoleDriver,
+		ExecutionRuntimeRoleLauncher,
+		ExecutionRuntimeRoleExecutor,
+	)
+	assert.NoError(t, err)
+	// DAG template has no container — nothing to modify.
+	assert.Nil(t, w.Spec.Templates[0].Container)
+}
+
+// --- Annotation-based role detection tests ---
+
+// annotatedTemplate returns a template with the runtime-role annotation set.
+func annotatedTemplate(name string, role ExecutionRuntimeRole, existingEnv ...corev1.EnvVar) workflowapi.Template {
+	return workflowapi.Template{
+		Name: name,
+		Metadata: workflowapi.Metadata{
+			Annotations: map[string]string{
+				AnnotationKeyRuntimeRole: string(role),
+			},
+		},
+		Container: &corev1.Container{
+			Image: "some-image:latest",
+			Env:   existingEnv,
+		},
+	}
+}
+
+func TestUpsertRuntimeEnvVars_Annotation_DriverRole(t *testing.T) {
+	w := workflowWithTemplates(
+		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
+		annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher),
+	)
+	err := w.UpsertRuntimeEnvVars(
+		map[string]string{"KEY": "val"},
+		ExecutionRuntimeRoleDriver,
+	)
+	assert.NoError(t, err)
+
+	assert.Equal(t, []corev1.EnvVar{{Name: "KEY", Value: "val"}},
+		w.Spec.Templates[0].Container.Env)
+	// Launcher should be untouched.
+	assert.Empty(t, w.Spec.Templates[1].Container.Env)
+}
+
+func TestUpsertRuntimeEnvVars_Annotation_LauncherRole(t *testing.T) {
+	w := workflowWithTemplates(
+		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
+		annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher),
+	)
+	err := w.UpsertRuntimeEnvVars(
+		map[string]string{"KEY": "val"},
+		ExecutionRuntimeRoleLauncher,
+	)
+	assert.NoError(t, err)
+
+	assert.Empty(t, w.Spec.Templates[0].Container.Env)
+	assert.Equal(t, []corev1.EnvVar{{Name: "KEY", Value: "val"}},
+		w.Spec.Templates[1].Container.Env)
+}
+
+func TestUpsertRuntimeEnvVars_Annotation_MultipleRoles(t *testing.T) {
+	w := workflowWithTemplates(
+		annotatedTemplate("driver", ExecutionRuntimeRoleDriver),
+		annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher),
+		dagTemplate("dag"),
+	)
+	err := w.UpsertRuntimeEnvVars(
+		map[string]string{"KEY": "val"},
+		ExecutionRuntimeRoleDriver,
+		ExecutionRuntimeRoleLauncher,
+	)
+	assert.NoError(t, err)
+
+	expected := []corev1.EnvVar{{Name: "KEY", Value: "val"}}
+	assert.Equal(t, expected, w.Spec.Templates[0].Container.Env)
+	assert.Equal(t, expected, w.Spec.Templates[1].Container.Env)
+	assert.Nil(t, w.Spec.Templates[2].Container)
+}
+
+func TestUpsertRuntimeEnvVars_Annotation_UpsertReplacesExisting(t *testing.T) {
+	w := workflowWithTemplates(
+		annotatedTemplate("driver", ExecutionRuntimeRoleDriver,
+			corev1.EnvVar{Name: "OLD", Value: "before"}),
+	)
+	err := w.UpsertRuntimeEnvVars(
+		map[string]string{"OLD": "after", "NEW": "fresh"},
+		ExecutionRuntimeRoleDriver,
+	)
+	assert.NoError(t, err)
+
+	env := w.Spec.Templates[0].Container.Env
+	assert.Len(t, env, 2)
+	assert.Equal(t, corev1.EnvVar{Name: "OLD", Value: "after"}, env[0])
+	assert.Equal(t, corev1.EnvVar{Name: "NEW", Value: "fresh"}, env[1])
+}
+
+func TestUpsertRuntimeEnvVars_Annotation_UnknownRoleIgnored(t *testing.T) {
+	// A template with an unknown annotation value should not match any role.
+	w := workflowWithTemplates(
+		annotatedTemplate("unknown", "some-other-role"),
+	)
+	err := w.UpsertRuntimeEnvVars(
+		map[string]string{"KEY": "val"},
+		ExecutionRuntimeRoleDriver,
+		ExecutionRuntimeRoleLauncher,
+		ExecutionRuntimeRoleExecutor,
+	)
+	assert.NoError(t, err)
+	assert.Empty(t, w.Spec.Templates[0].Container.Env)
 }
