@@ -19,7 +19,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import SubDagNode from './SubDagNode';
 import { Execution } from 'src/third_party/mlmd';
-import { ReactFlowProvider } from 'react-flow-renderer';
+import { ReactFlowProvider } from '@xyflow/react';
 
 describe('SubDagNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {

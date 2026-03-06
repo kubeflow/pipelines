@@ -25,7 +25,8 @@ if (typeof window !== 'undefined') {
   window.addEventListener('error', (event: ErrorEvent) => {
     if (
       event.error instanceof TypeError &&
-      event.error.message.includes("Cannot read properties of null (reading 'document')")
+      event.error.message.includes("Cannot read properties of null (reading 'document')") &&
+      event.error.stack?.includes('d3-drag')
     ) {
       event.preventDefault();
     }
