@@ -232,11 +232,11 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
       return () => {
         isMounted = false;
       };
+    } else {
+      setShowError(false);
+      return undefined;
     }
-
-    setShowError(false);
-    return undefined;
-  }, [isLoading, isError, error]);
+  }, [isLoading, isError, error, setErrorMessage, setShowError]);
 
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;

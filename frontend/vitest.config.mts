@@ -17,7 +17,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['src/vitest.setup.ts'],
     globals: true,
-    testTimeout: 15000,
     // Reduce parallelism to avoid flakiness from shared React Query cache across CompareV2/RecurringRunDetailsV2FC tests
     maxWorkers: 1,
     css: true,

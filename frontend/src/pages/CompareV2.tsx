@@ -300,6 +300,8 @@ function CompareV2(props: CompareV2Props) {
   });
 
   // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
+  // Using runIds only (not runStates) — runStates in the key causes memory leak warnings
+  // and CompareV2.test.tsx failures.
   const {
     data: mlmdPackages,
     isLoading: isLoadingMlmdPackages,
