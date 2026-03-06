@@ -19,3 +19,18 @@ labels:
 - includeSelectors: true
   pairs:
     application-crd-id: kubeflow-pipelines
+vars:
+- name: kfp-app-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+  fieldref:
+    fieldPath: data.appName
+- name: kfp-app-version
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+  fieldref:
+    fieldPath: data.appVersion

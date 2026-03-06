@@ -20,3 +20,18 @@ labels:
 - includeSelectors: true
   pairs:
     application-crd-id: kubeflow-pipelines
+vars:
+- name: kfp-namespace
+  objref:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-pipeline
+  fieldref:
+    fieldPath: metadata.namespace
+- name: kfp-artifact-bucket-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+  fieldref:
+    fieldPath: data.bucketName
