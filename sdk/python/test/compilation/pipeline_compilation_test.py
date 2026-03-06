@@ -209,6 +209,8 @@ from test_data.sdk_compiled_pipelines.valid.pipeline_with_importer import \
     my_pipeline as importer_pipeline
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_importer_and_gcpc_types import \
     my_pipeline as pipeline_with_importer_and_gcpc_types
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_literal_inputs import \
+    literal_pipeline
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_loops_and_conditions import \
     my_pipeline as loops_and_conditions_pipeline
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_metadata_fields import \
@@ -1125,6 +1127,13 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='placeholder_none_input_value.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/essential/placeholder_with_if_placeholder_none_input_value.yaml'
+            ),
+            TestData(
+                pipeline_name='literal-pipeline',
+                pipeline_func=literal_pipeline,
+                pipline_func_args=None,
+                compiled_file_name='pipeline_with_literal_inputs.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/pipeline_with_literal_inputs.yaml'
             ),
         ],
         ids=str)

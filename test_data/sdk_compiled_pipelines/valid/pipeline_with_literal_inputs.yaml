@@ -1,0 +1,59 @@
+# PIPELINE DEFINITION
+# Name: literal-pipeline
+components:
+  comp-literal-component:
+    executorLabel: exec-literal-component
+    inputDefinitions:
+      parameters:
+        literal_param:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-literal-component:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - literal_component
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef literal_component(literal_param: typing.Literal['a', 'b']):\n\
+          \    print(literal_param)\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: literal-pipeline
+root:
+  dag:
+    tasks:
+      literal-component:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-literal-component
+        inputs:
+          parameters:
+            literal_param:
+              runtimeValue:
+                constant: a
+        taskInfo:
+          name: literal-component
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
