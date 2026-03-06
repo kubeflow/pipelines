@@ -20,7 +20,7 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: wait-for-database
-        image: busybox:1.37
+        image: ghcr.io/containerd/busybox:latest
         securityContext:
           allowPrivilegeEscalation: false
           seccompProfile:
@@ -43,7 +43,7 @@ spec:
               name: pipeline-install-config
               key: dbPort
         command: ['sh', '-c',
-          'until nc -z -w 2 ${MYSQL_HOST} ${MYSQL_PORT}; do echo "Waiting for database at ${MYSQL_HOST}:${MYSQL_PORT}..."; sleep 5; done']
+          'for i in $(seq 1 60); do nc -z -w 2 ${MYSQL_HOST} ${MYSQL_PORT} && exit 0; echo "Waiting for database at ${MYSQL_HOST}:${MYSQL_PORT}... ($i/60)"; sleep 5; done; echo "Database not available after 5 minutes"; exit 1']
       containers:
       - name: container
         # ! Sync to the same MLMD version:
