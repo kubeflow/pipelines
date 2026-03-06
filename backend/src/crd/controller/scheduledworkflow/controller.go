@@ -34,8 +34,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -618,6 +620,16 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		}
 	}
 
+	// Convert PluginsInput from the SWF spec (map[string]apiextensionsv1.JSON)
+	// to the protobuf map expected by the CreateRun request.
+	var pluginsInput map[string]*structpb.Struct
+	if len(swf.Spec.PluginsInput) > 0 {
+		pluginsInput, err = crdPluginsInputToProto(swf.Spec.PluginsInput)
+		if err != nil {
+			return false, "", fmt.Errorf("failed to parse plugins_input from SWF spec: %w", err)
+		}
+	}
+
 	run, err := c.runClient.CreateRun(ctx, &api.CreateRunRequest{
 		ExperimentId: swf.Spec.ExperimentId,
 		Run: &api.Run{
@@ -625,6 +637,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			DisplayName:    swf.NextResourceName(),
 			RecurringRunId: string(swf.UID),
 			RuntimeConfig:  runtimeConfig,
+			PluginsInput:   pluginsInput,
 			PipelineSource: &api.Run_PipelineVersionReference{
 				PipelineVersionReference: &api.PipelineVersionReference{
 					PipelineId: swf.Spec.PipelineId,
@@ -688,4 +701,18 @@ func (c *Controller) updateStatus(
 		return err
 	}
 	return nil
+}
+
+// crdPluginsInputToProto converts the CRD's map[string]apiextensionsv1.JSON
+// representation into the protobuf map expected by the CreateRun request.
+func crdPluginsInputToProto(input map[string]apiextensionsv1.JSON) (map[string]*structpb.Struct, error) {
+	result := make(map[string]*structpb.Struct, len(input))
+	for key, val := range input {
+		s := &structpb.Struct{}
+		if err := protojson.Unmarshal(val.Raw, s); err != nil {
+			return nil, fmt.Errorf("invalid plugins_input entry %q: %w", key, err)
+		}
+		result[key] = s
+	}
+	return result, nil
 }
