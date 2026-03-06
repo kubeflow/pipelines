@@ -257,6 +257,21 @@ spec:
                   name: pipeline-install-config
                   key: V1_ALLOWED_NAMESPACES
                   optional: true
+            # Driver pod labels and annotations. Viper reads these config keys from the
+            # environment, so the variable names must match the keys defined in
+            # backend/src/apiserver/common/driver_config.go.
+            - name: DRIVER_POD_LABELS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: DRIVER_POD_LABELS
+                  optional: true
+            - name: DRIVER_POD_ANNOTATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: DRIVER_POD_ANNOTATIONS
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
