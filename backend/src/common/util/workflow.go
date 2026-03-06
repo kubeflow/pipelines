@@ -39,6 +39,7 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -671,6 +672,54 @@ func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
 			w.Spec.Templates[index].Metadata.Labels[key] = value
 		}
 	}
+}
+
+// UpsertRuntimeEnvVars adds or replaces env vars on workflow containers
+// matching the specified runtime roles using the AnnotationKeyRuntimeRole
+// annotation stamped by the compiler.  Templates without the annotation are
+// skipped.
+func (w *Workflow) UpsertRuntimeEnvVars(envVars map[string]string, roles ...ExecutionRuntimeRole) error {
+	if len(envVars) == 0 || len(w.Spec.Templates) == 0 {
+		return nil
+	}
+	roleSet := make(map[ExecutionRuntimeRole]bool, len(roles))
+	for _, r := range roles {
+		roleSet[r] = true
+	}
+	envList := make([]corev1.EnvVar, 0, len(envVars))
+	for k, v := range envVars {
+		envList = append(envList, corev1.EnvVar{Name: k, Value: v})
+	}
+	for i := range w.Spec.Templates {
+		tmpl := &w.Spec.Templates[i]
+		if tmpl.Container == nil {
+			continue
+		}
+
+		role := tmpl.Metadata.Annotations[AnnotationKeyRuntimeRole]
+		if role != "" && roleSet[ExecutionRuntimeRole(role)] {
+			tmpl.Container.Env = upsertEnvVars(tmpl.Container.Env, envList)
+		}
+	}
+	return nil
+}
+
+// upsertEnvVars merges toAdd into existing: env vars whose name already
+// exists are replaced; new names are appended.
+func upsertEnvVars(existing []corev1.EnvVar, toAdd []corev1.EnvVar) []corev1.EnvVar {
+	nameIndex := make(map[string]int, len(existing))
+	for i, e := range existing {
+		nameIndex[e.Name] = i
+	}
+	for _, e := range toAdd {
+		if idx, ok := nameIndex[e.Name]; ok {
+			existing[idx] = e
+		} else {
+			nameIndex[e.Name] = len(existing)
+			existing = append(existing, e)
+		}
+	}
+	return existing
 }
 
 // SetOwnerReferences sets owner references on a Workflow.

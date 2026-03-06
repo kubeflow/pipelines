@@ -56,6 +56,11 @@ const (
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
 
+	// AnnotationKeyRuntimeRole is set on compiled Argo Workflow templates to
+	// identify the logical role of the pod (driver, launcher, etc.).  It is
+	// used by UpsertRuntimeEnvVars to target the right containers.
+	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
+
 	// LabelKeyCacheEnabled is a workflow label key.
 	// It captures whether this step will be selected by cache service.
 	// To disable/enable cache for a single run, this label needs to be added in every step under a run.
