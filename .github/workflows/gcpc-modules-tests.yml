@@ -53,14 +53,9 @@ jobs:
           python -m build .
           pip install dist/*.whl
 
-      - name: Install python sdk
-        run: pip install sdk/python
-
-      - name: Install google-cloud component
-        run: pip install components/google-cloud
-
-      - name: Install Pytest
-        run: pip install "$(grep 'pytest==' sdk/python/requirements-dev.txt)"
+      - name: Install GCPC test dependencies
+        run: make install-gcpc-test-deps
 
       - name: Run test
-        run: pytest ./test/gcpc-tests/run_all_gcpc_modules.py
+        run: make test-gcpc-modules
+
