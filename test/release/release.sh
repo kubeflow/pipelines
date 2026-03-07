@@ -16,6 +16,15 @@
 
 set -e
 
+# Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
+sedi() {
+  if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i '' "$@"
+  else
+    sed -i "$@"
+  fi
+}
+
 TAG=$1
 BRANCH=$2
 FORK_REMOTE=$3
@@ -60,19 +69,22 @@ RELEASE_BRANCH_FROM_VERSION="${BRANCH}"
 echo "Will update image references to tag: ${RELEASE_BRANCH_FROM_VERSION}"
 
 # Update image tag references used by client generation and tooling to the release branch tag
-sed -i -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" backend/api/Makefile
-sed -i -E "s#^(RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" backend/api/Makefile
-sed -i -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" api/Makefile
-sed -i -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" sdk/Makefile
-sed -i -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" kubernetes_platform/Makefile
+sedi -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" backend/api/Makefile
+sedi -E "s#^(RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" backend/api/Makefile
+sedi -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" api/Makefile
+sedi -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" sdk/Makefile
+sedi -E "s#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" kubernetes_platform/Makefile
 # Keep release tools Makefile consistent as well
-sed -i -E "s#^(REMOTE=ghcr.io/kubeflow/kfp-release:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" test/release/Makefile
+sedi -E "s#^(REMOTE=ghcr.io/kubeflow/kfp-release:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" test/release/Makefile
 
 # Update the release tools Dockerfile base image tag to align with the branch
-sed -i -E "s#^(FROM ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" test/release/Dockerfile.release
+sedi -E "s#^(FROM ghcr.io/kubeflow/kfp-api-generator:).*#\\1${RELEASE_BRANCH_FROM_VERSION}#" test/release/Dockerfile.release
 
 # Update default RELEASE_IMAGE tag in bump-version-docker.sh to this branch
-sed -i -E "s#^(RELEASE_IMAGE=\$\{RELEASE_IMAGE:-ghcr.io/kubeflow/kfp-release:).*#\\1${RELEASE_BRANCH_FROM_VERSION}}#" test/release/bump-version-docker.sh
+sedi -E "s#^(RELEASE_IMAGE=\$\{RELEASE_IMAGE:-ghcr.io/kubeflow/kfp-release:).*#\\1${RELEASE_BRANCH_FROM_VERSION}}#" test/release/bump-version-docker.sh
+
+# Update the public version ConfigMap to reflect the release tag
+sedi -E "s#^(      - kubeflow_pipelines_version=).*#\\1v${TAG}#" manifests/kustomize/base/pipeline/kustomization.yaml
 
 # Ensure the release bump container uses the correct tag for this branch
 export RELEASE_IMAGE="ghcr.io/kubeflow/kfp-release:${RELEASE_BRANCH_FROM_VERSION}"

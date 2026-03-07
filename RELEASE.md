@@ -4,22 +4,30 @@
   - [Schedule](#schedule)
   - [Release Tags and Branches](#release-tags-and-branches)
   - [Contributor Instructions](#contributor-instructions)
-    - [Cherry-picking pull requests to release branch](#cherry-picking-pull-requests-to-release-branch)
-      - [Option - (Recommended) cherrypick-approved label](#option---recommended-cherrypick-approved-label)
-      - [Option - git cherry-pick](#option---git-cherry-pick)
+    - [Cherry picking pull requests to release branch](#cherry-picking-pull-requests-to-release-branch)
   - [Release Manager Instructions](#release-manager-instructions)
     - [Common Prerequisites](#common-prerequisites)
-    - [Cutting a release branch (Optional)](#cutting-a-release-branch)
+    - [Cutting a release branch](#cutting-a-release-branch)
     - [Before release](#before-release)
     - [Releasing from release branch](#releasing-from-release-branch)
-    - [Release KFP Python Packages](#releasing-kfp-python-packages)
+    - [Releasing KFP Python Packages](#releasing-kfp-python-packages)
+      - [Update `kfp` requirements](#update-kfp-requirements)
+      - [Update `kfp-kubernetes` requirements](#update-kfp-kubernetes-requirements)
+      - [Make the Pull Request to the release branch](#make-the-pull-request-to-the-release-branch)
+      - [Release the packages](#release-the-packages)
+      - [Create kfp-kubernetes readthedocs branch](#create-kfp-kubernetes-readthedocs-branch)
+      - [Update `kfp` Readthedocs](#update-kfp-readthedocs)
+      - [Update `kfp-kubernetes` Readthedocs](#update-kfp-kubernetes-readthedocs)
     - [Create GitHub Release](#create-github-release)
-    - [Sync Master Branch with Release](#sync-master-branch-with-latest-release)
+    - [Sync Master Branch with latest release](#sync-master-branch-with-latest-release)
   - [Release Process Development](#release-process-development)
+  - [Versioning Policy in KFP](#versioning-policy-in-kfp)
+    - [Versioning and Compatibility Policy](#versioning-and-compatibility-policy)
+  - [Opportunities for release improvement](#opportunities-for-release-improvement)
 
 ## Schedule
 
-Kubeflow Pipelines has quarterly minor releases. Patch releases occur on a 
+Kubeflow Pipelines has quarterly minor releases. Patch releases occur on a
 need basis and don't currently operate on a schedule.
 
 Patch releases only contain bug fixes, while minor releases have new features
@@ -89,12 +97,14 @@ if you only want to use or contribute to this repo.
 
 ### Cutting a release branch
 
+Before you cut a release branch, verify that [CI is passing on the master branch](https://github.com/kubeflow/pipelines/commits/master). If it isn't, identify root cause and address it.
+
 KFP releases are required to be cut from a release branch. This includes all python packages.
 Release branches must be scoped to a minor version. The following components should always have all future patch versions tagged and released from their respective minor branch. For example, you would cut a release for SDK 2.14.1 from the release-2.14 branch, the same with KFP backend 2.14.4, kfp-kubernetes 2.14.2, and so on.
 
 1. Choose a good commit on master branch with commit hash as `$COMMIT_SHA`.
-1. Choose the next release branch's `$MINOR_VERSION` in format `x.y`, e.g. `1.0`, `1.1`...
-1. Make a release branch of format `release-$MINOR_VERSION`, e.g. `release-1.0`, `release-1.1`. Branch from the commit and push to kubeflow pipelines upstream repo.
+2. Choose the next release branch's `$MINOR_VERSION` in format `x.y`, e.g. `1.0`, `1.1`...
+3. Make a release branch of format `release-$MINOR_VERSION`, e.g. `release-1.0`, `release-1.1`. Branch from the commit and push to kubeflow pipelines upstream repo.
 
 ```bash
 git checkout $COMMIT_SHA
@@ -104,7 +114,7 @@ git push upstream HEAD
 ```
 
 > [!Note]
-> The creation of this release branch triggers image builds via the [Build Tools Workflow]. 
+> The creation of this release branch triggers image builds via the [Build Tools Workflow].
 > These images are required by the release script used in the next sections.
 
 ### Before release
@@ -117,11 +127,12 @@ Do the following things before a release:
     git cherry-pick <commit-id>
     ```
 
-1. Verify release branch CI is passing: visit <https://github.com/kubeflow/pipelines/commits/master> for master branch.
+1. Verify CI is passing on the release branch. There are two places where you can do this:
+   1. Navigate to https://github.com/kubeflow/pipelines/actions and enter the release branch name in the `Filter workflow runs` text entry field.
+   2. Navigate to the release branch on GitHub, e.g. https://github.com/kubeflow/pipelines/commits/release-2.16/, and click the CI status indicator for the latest commit.
+  ![How to verify release commit status](images/release-status-check.png)
 
-![How to verify release commit status](images/release-status-check.png)
-
-If not, contact the KFP team to determine if the failure(s) would block the release.
+  If CI is not passing, contact the KFP team to determine if the failure(s) would block the release.
 
 ### Releasing from release branch
 
@@ -134,38 +145,48 @@ If not, contact the KFP team to determine if the failure(s) would block the rele
 - ...
 Set the version by using `VERSION=<version-value>`. Contact @chensun or @HumairAK if you are not sure what next version should be.
 
-1. Update all version refs in release branch by
+Update all version refs in release branch by:
 
 > [!Note]
 > Ensure that the [Build Tools Workflow] for the release branch has completed successfully before proceeding.
 > You can also verify this by checking the release tools images [Release Image] and [Api Generate Image] have the `$BRANCH` tag.
 
 ```bash
-# Replace this with your fork remote, this is where you'll make a PR to the release branch. 
+# Replace this with your fork remote, this is where you'll make a PR to the release branch.
 export FORK_REMOTE=git@github.com:myuser/pipelines.git
-cd ./test/release && TAG=$VERSION BRANCH=$BRANCH FORK_REMOTE= make release
+cd ./test/release && TAG=$VERSION BRANCH=$BRANCH FORK_REMOTE=$FORK_REMOTE make release
 ```
 
-This script updates the version values for various manifests, and generated code.
+This script updates the version values for various manifests, and generated code.333
 Once finished, it will prompt you whether to push it to your fork.
-You can inspect the changes by navigating to the temporary directory it creates. 
+You can inspect the changes by navigating to the temporary directory it creates.
 Once you are comfortable with the changes, press `y` and hit `Enter`.
 If you choose no, you can always push manually later.
 
-In addition, verify that the public version ConfigMap reflects the new control-plane version used for this release:
-
-- In `manifests/kustomize/base/pipeline/kustomization.yaml`, set the `kubeflow_pipelines_version` literal under the `configMapGenerator` for the `kubeflow-pipelines-public` ConfigMap to the release tag with a `v` prefix (for example, `kubeflow_pipelines_version=v2.0.0-rc.1`).
-
 > [!Note]
-> the script will clone kubeflow/pipelines repo into a temporary location on your computer, 
+> the script will clone kubeflow/pipelines repo into a temporary location on your computer,
 > make those changes and attempt to push to your fork, so that it won't interfere with your current git repo.
 
 > [!Note]
 > If you see error "docker.sock: connect: permission error", you need to [allow managing docker as a non-root user].
 
-1. Build the release images by using the [Build images from sources].
+- Push the commit generated by `make release` / `release.sh` to your KFP fork.
+- Cut a PR from the fork to https://github.com/kubeflow/pipelines targeting the release branch.
+- Merge the PR.
 
-The target tag should be `$VERSION`. 
+
+Once the PR is merged, you're ready to build the appropriately tagged release images. Build the release images by running the [Build and Push for Release](https://github.com/kubeflow/pipelines/actions/workflows/image-builds-release.yml) workflow.
+
+Set the following fields:
+- Use workflow from: `$BRANCH`
+- Source branch to build KFP from: `$BRANCH`
+- Target Image Tag: `$VERSION`
+- Stop running entire Workflow if a single build fails: `true`
+- Overwrite images in GHCR if they already exist for this tag: `true`
+- Set latest tag on build images: `true`
+- Add a sha image tag: `true`
+
+Here's a screenshot for reference (note, the workflow name has since been updated):
 
 ![Build Images From Sources](images/build-images.png)
 
@@ -178,10 +199,10 @@ The target tag should be `$VERSION`.
 
 ### Releasing KFP Python Packages
 
-All Python packages must be released with wheel and source packages. 
-When doing a minor release, you *must* make a release for all Python packages as well, even if there are no new changes there. 
+All Python packages must be released with wheel and source packages.
+When doing a minor release, you *must* make a release for all Python packages as well, even if there are no new changes there.
 
-This includes: 
+This includes:
 * kfp-pipeline-spec
 * kfp
 * kfp-kubernetes
@@ -193,17 +214,17 @@ This includes:
 When performing these releases, you should adhere to the order presented below.
 
 > [!Note]
-> All python packages should be released with aligned patch versions. For example if you intend to release a new 
+> All python packages should be released with aligned patch versions. For example if you intend to release a new
 > patch version x.y.z for `kfp-pipeline-spec`, you must also release a new patch version x.y.z for `kfp`, `kfp-server-api`, and `kfp-kubernetes`.
 
 #### Update `kfp` requirements
 
-If this version of `kfp` depends on new api changes to: 
+If this version of `kfp` depends on new api changes to:
 
 * `kfp-pipeline-spec`
 * `kfp-server-api`
 
-Then update the lower-bound values for the aforementioned packages in `sdk/python/requirements.in` file. 
+Then update the lower-bound values for the aforementioned packages in `sdk/python/requirements.in` file.
 
 You can run the following to update the associated `requirements.txt`
 
@@ -218,12 +239,12 @@ Update the SDK version in `version.py` and `readthedocs` `versions.json`, exampl
 
 #### Update `kfp-kubernetes` requirements
 
-If this version of `kfp-kubernetes` depends on new api changes to: 
+If this version of `kfp-kubernetes` depends on new api changes to:
 
 * `kfp-pipeline-spec`
 * `kfp`
 
-Then update the lower-bound values in the aforementioned packages in `kubernetes_platform/python/requirements.in` file. 
+Then update the lower-bound values in the aforementioned packages in `kubernetes_platform/python/requirements.in` file.
 
 You can run the following to update the associated `requirements.txt`
 
@@ -237,15 +258,50 @@ Update the KFP Kubernetes SDK version in `__init__.py` and `readthedocs` `versio
 
 Once you have updated the versions make a pull request targeted towards the `release-x.y` branch. Ensure the CI passes.
 
-#### Release the packages 
+Please note this issue: https://github.com/kubeflow/pipelines/issues/12906. Some of the tests will not pass until it is resolved.
 
-Once the release pull request has been merged, create a GitHub release with the tag `sdk-x.y.z`, where `x.y.z` map to 
-the version being released. Once the tag is created, we can now initiate the GitHub workflow to publish the packages to Pypi. 
+#### Release the packages
 
-Navigate to the [Publishing Workflow]: 
-* Select "Run Workflow" 
+Once the release pull request has been merged, create a GitHub release.
+
+You'll need to create a new tag. It should be `sdk-$VERSION`, e.g. `sdk-2.16.0`.
+
+The target branch should be the release branch.
+
+The release title should look like this:
+
+```
+KFP SDK v$VERSION
+```
+
+The release body should look like this:
+
+````
+Release of:
+
+- KFP SDK
+- KFP Kubernetes
+- KFP Server API
+- KFP Pipeline Spec
+
+To install the KFP SDK:
+
+```
+pip install kfp-pipeline-spec==$VERSION
+pip install kfp-server-api==$VERSION
+pip install kfp==$VERSION
+pip install kfp-kubernetes==$VERSION
+```
+
+For changelog, see [release notes](https://github.com/kubeflow/pipelines/blob/sdk-$VERSION/sdk/RELEASE.md).
+````
+
+Once the tag is created, we can now initiate the GitHub workflow to publish the packages to Pypi.
+
+Navigate to the [Publishing Workflow]:
+* Select "Run Workflow"
 * Select Branch: `release-x.y`
-* Enter the tag `sdk-x.y.z` 
+* Enter the tag `sdk-x.y.z`
 * Select `all`
 * Click `Run Workflow`
 
@@ -253,27 +309,27 @@ This will build and publish all python packages.
 
 [Publishing Workflow]: https://github.com/kubeflow/pipelines/actions/workflows/publish-packages.yml
 
-#### Create kfp-kubernetes readthedocs branch 
+#### Create kfp-kubernetes readthedocs branch
 
 There is a separate kfp-kubernetes docs website. This requires a separate branch to be created and pushed,
-do this by running the following: 
+do this by running the following:
 
 ```bash
-# Cut release-the-docs branch 
+# Cut release-the-docs branch
 export KFP_KUBERNETES_VERSION= # Set this to the version being released x.y.z
 cd kubernetes_platform/python
 ./create_release_branch.sh
 ```
-    
+
 Follow the output push instructions to **commit and push the read the docs release branch to KFP**.
 
 > [!Note]
-> Note that kfp-kubernetes package has a separate readthedocs site and requires that a new branch be pushed for readthedocs to be able to host multiple pages from the same repo. 
+> Note that kfp-kubernetes package has a separate readthedocs site and requires that a new branch be pushed for readthedocs to be able to host multiple pages from the same repo.
 > Every new patch version for this package requires us to create a new release branch purely for readthedocs purposes. However always cut this branch from the `release-X.Y` branch.
 
 #### Update `kfp` Readthedocs
 
-* Create a GitHub release for KFP SDK release. [Here's an example](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.14.1) reference for a template.
+* Create a GitHub release for KFP SDK release (this was described in the earlier steps). [Here's an example](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.14.1) reference for a template.
   * When creating a release create a new tag `sdk-x.y.z`
 * Navigate to the readthedocs website [here](https://app.readthedocs.org/projects/kubeflow-pipelines/), login if needed
 * You should see a new build under "Versions" section for this new tag, ensure it succeeds.
@@ -283,18 +339,19 @@ Follow the output push instructions to **commit and push the read the docs relea
 
 #### Update `kfp-kubernetes` Readthedocs
 
-Once the branch is updated, you need to add this version to readthedocs. Follow these steps: 
+Once the branch is updated, you need to add this version to readthedocs. Follow these steps:
 
-* Navigate to the package section on the readthedocs website [here](https://app.readthedocs.org/projects/kfp-kubernetes/). 
+* Navigate to the package section on the readthedocs website [here](https://app.readthedocs.org/projects/kfp-kubernetes/).
 * Click "Add version"
-* Enter the branch `kfp-kubernetes-x.y.z` where x.y.z is the version you released, if you pushed it and it's not showing up, press the "Resync Versions" button and try again 
+* Enter the branch `kfp-kubernetes-x.y.z` where x.y.z is the version you released. If you created the branch and it's not showing up, press the "Resync Versions" button and try again.
+* Click Update Version.
 * Add this version, navigate back to the "Versions" section, and you should see a build, make sure it succeeds before moving onto the next section.
 * Go to Settings
-* Set this version as the default version. 
+* Set this version as the default version.
 * Click Save
 * Click "View Docs" to navigate to the docs page and ensure the new version shows up as the default.
 
-Push the changes to the `release-X.Y` branch. 
+Push the changes to the `release-X.Y` branch.
 
 ### Create GitHub Release
 
@@ -305,7 +362,7 @@ fill in the description. Detailed steps:
 1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
 Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
-1. Use this template for public releases and replace the `$VERSION` with real values.
+t Use this template for public releases and replace the `$VERSION` with real values.
 
 <pre>
 To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/)
@@ -337,10 +394,12 @@ Refer to:
 
 NOTE, kfp Python SDK is **NOT** included and released separately.
 </pre>
-    
+
 ### Sync Master Branch with latest release
 
-1. Update master branch to the same version and include latest changelog:
+At a high level, what you're going to do at this stage is run some scripts that update CHANGELOG.md, regenerate backend API artifacts, and rebuild that kfp-server-api Python packages, then push and PR those changes to the master branch.
+
+Run the following code. If you're curious about what `make release-in-place` does, here's some context from Claude.
 
 ```bash
 git checkout master
@@ -354,10 +413,12 @@ make release-in-place
 popd
 git checkout $VERSION -- CHANGELOG.md
 git add -A
-git commit -m "chore(release): bump version to $VERSION on master branch"
+git commit -m "chore(release): bump version to $VERSION on master branch" -s
 ```
 
-1. If current release is not a prerelease, create a PR to update version in kubeflow documentation website:
+Create a PR to master. Make sure it gets merged.
+
+If the current release is not a prerelease, create a PR to update the version in kubeflow documentation website:
 <https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html>
 
 Note, there **MUST NOT** be a line ending in the file. Editing on GitHub always add a line ending
@@ -374,7 +435,7 @@ and create a PR to update the version, e.g. <https://github.com/kubeflow/website
 
 Please refer to [./test/release](./test/release).
 
-## Versioning Policy in KFP 
+## Versioning Policy in KFP
 
 Starting from version **2.14**, all major and minor versions (X.Y) of the Kubeflow Pipelines (KFP) components are aligned. The following components are included in this alignment:
 
@@ -406,3 +467,23 @@ Specifically:
 
 * **Patch Releases:**
   Patch versions (X.Y.Z) may include bug fixes, maintenance updates, and minor feature enhancements. These changes must not break API compatibility or violate the support guarantees outlined above.
+
+## Opportunities for release improvement
+
+- Improve header hierarchy and consistency of this document.
+- Update markdown hyperlink syntax to store links near text.
+- Add some approximation of how long each step takes to help release manages plan.
+- Automate SDK requirements.in bumping.
+- api/v2alpha1/python/setup.py has a VERSION that wasn't bumped. Maybe this can be automated.
+- Automate this step for kfp and kfp-kubernetes python packages:
+
+````
+Update the SDK version in \`version.py` (`__init__.py` for kfp-kubernetes) and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
+````
+
+- kfp-kubernetes uses conf.py instead of versions.py. Consider standardizing.
+- Missing sdk/RELEASE.md update instructions.
+- Clarify that backend GitHub release creation happens after the SDK GitHub release. It's weird because the images get published and then we abruptly switch gears.
+- The PyPi publication workflow should run sequentially given the dependencies.
+- Can we replace or improve the API generator container? It's brittle and opaque.
+- The supplied release body template is not actually being adhered to in releases. Practically speaking, people are just using the automatic changelog generation in the GitHub UI. This documentation should reflect that.
