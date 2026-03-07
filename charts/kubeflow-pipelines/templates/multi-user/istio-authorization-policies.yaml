@@ -1,0 +1,144 @@
+{{- if .Values.multiUser.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ml-pipeline-ui
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-ui
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+  - when:
+    - key: request.headers[authorization]
+      values:
+      - "*"
+    - key: request.headers[kubeflow-userid]
+      notValues:
+      - "*"
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ml-pipeline
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-ui
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-persistenceagent
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-scheduledworkflow
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-viewer-crd-service-account
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/kubeflow-pipelines-cache
+  - when:
+    - key: request.headers[kubeflow-userid]
+      notValues: ['*']
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ml-pipeline-visualizationserver
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-visualizationserver
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-ui
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-persistenceagent
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-scheduledworkflow
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-viewer-crd-service-account
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/kubeflow-pipelines-cache
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: service-cache-server
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: cache-server
+  rules:
+  - {}
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: metadata-grpc-service
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      component: metadata-grpc-server
+  rules:
+  - {}
+---
+{{- if eq .Values.database.type "mysql" }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: mysql
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-ui
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-persistenceagent
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-scheduledworkflow
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-viewer-crd-service-account
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/kubeflow-pipelines-cache
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/metadata-grpc-server
+{{- end }}
+---
+{{- if eq .Values.objectStore.type "seaweedfs" }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: seaweedfs-service
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      app: seaweedfs
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/{{ .Release.Namespace }}/sa/ml-pipeline-ui
+  - {}
+{{- end }}
+{{- end }}

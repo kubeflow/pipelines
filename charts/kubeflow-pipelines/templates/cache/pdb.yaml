@@ -1,0 +1,14 @@
+{{- if .Values.cacheServer.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cache-server
+  labels:
+    app: cache-server
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.cacheServer.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app: cache-server
+{{- end }}

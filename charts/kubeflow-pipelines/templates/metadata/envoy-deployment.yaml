@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-envoy-deployment
+  labels:
+    component: metadata-envoy
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.metadataEnvoy.replicas }}
+  selector:
+    matchLabels:
+      component: metadata-envoy
+  template:
+    metadata:
+      labels:
+        component: metadata-envoy
+        sidecar.istio.io/inject: "false"
+    spec:
+      {{- include "kubeflow-pipelines.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: container
+        image: "{{ .Values.metadataEnvoy.image.repository }}:{{ .Values.metadataEnvoy.image.tag }}"
+        args: ["/etc/envoy/envoy-config.yaml"]
+        ports:
+        - name: md-envoy
+          containerPort: 9090
+        - name: envoy-admin
+          containerPort: 9901
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+        {{- with .Values.metadataEnvoy.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: metadata-envoy-configmap
+      {{- with ((kindIs "invalid" .Values.metadataEnvoy.nodeSelector) | ternary .Values.global.nodeSelector .Values.metadataEnvoy.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.metadataEnvoy.tolerations) | ternary .Values.global.tolerations .Values.metadataEnvoy.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with ((kindIs "invalid" .Values.metadataEnvoy.affinity) | ternary .Values.global.affinity .Values.metadataEnvoy.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

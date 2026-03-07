@@ -1,0 +1,307 @@
+# Kubeflow Pipelines Helm Chart Values
+# ======================================
+
+# -- Global settings applied to all components
+global:
+  # -- Image pull secrets for private registries
+  imagePullSecrets: []
+  # - name: my-registry-secret
+  # -- Default node selector for all components (override per-component by setting e.g. apiServer.nodeSelector)
+  nodeSelector: {}
+  # -- Default tolerations for all components
+  tolerations: []
+  # -- Default affinity rules for all components
+  affinity: {}
+
+# -- Multi-user mode (requires Istio + Metacontroller)
+multiUser:
+  enabled: false
+
+# -- Database backend: "mysql" or "postgresql"
+database:
+  type: mysql
+
+# -- Object store backend: "seaweedfs" or "minio"
+objectStore:
+  type: seaweedfs
+
+# -- Pipeline install configuration
+config:
+  appName: pipeline
+  appVersion: "2.15.0"
+  bucketName: mlpipeline
+  defaultPipelineRoot: ""
+  autoUpdatePipelineDefaultVersion: "true"
+  cronScheduleTimezone: "UTC"
+  cacheImage: "ghcr.io/containerd/busybox"
+  cacheNodeRestrictions: "false"
+  MAXIMUM_CACHE_STALENESS: ""
+  DEFAULT_CACHE_STALENESS: ""
+  ConMaxLifeTime: "120s"
+  logLevel: "info"
+  artifactsProxyEnabled: "false"
+  artifactRetentionDays: "-1"
+
+# -- Database credentials
+dbSecret:
+  # -- Use an existing secret instead of creating one
+  existingSecret: ""
+  # -- Secret key for username
+  usernameKey: username
+  # -- Secret key for password
+  passwordKey: password
+  # -- MySQL credentials (used when database.type=mysql)
+  mysql:
+    username: root
+    password: ""
+  # -- PostgreSQL credentials (used when database.type=postgresql)
+  postgresql:
+    username: user
+    password: "password"
+
+# -- Object store credentials
+objectStoreSecret:
+  # -- Use an existing secret instead of creating one
+  existingSecret: ""
+  accessKey: minio
+  secretKey: minio123
+  accessKeyKey: accesskey
+  secretKeyKey: secretkey
+
+# ==========================================
+# Component configurations
+# ==========================================
+
+apiServer:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-api-server
+    tag: "2.15.0"
+  driverImage: ghcr.io/kubeflow/kfp-driver:2.15.0
+  launcherImage: ghcr.io/kubeflow/kfp-launcher:2.15.0
+  compiledPipelineSpecPatch: "{}"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 500Mi
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+ui:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-frontend
+    tag: "2.15.0"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 70Mi
+
+persistenceAgent:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-persistence-agent
+    tag: "2.15.0"
+  ttlSecondsAfterWorkflowFinish: "86400"
+  numWorkers: "2"
+  resources:
+    requests:
+      cpu: 120m
+      memory: 500Mi
+
+scheduledWorkflow:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
+    tag: "2.15.0"
+  resources: {}
+
+viewerCrd:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-viewer-crd-controller
+    tag: "2.15.0"
+  maxNumViewers: "50"
+  resources: {}
+
+visualization:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-visualization-server
+    tag: "2.15.0"
+  resources:
+    requests:
+      cpu: 30m
+      memory: 500Mi
+
+metadataWriter:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-metadata-writer
+    tag: "2.15.0"
+  resources: {}
+
+metadataGrpc:
+  replicas: 1
+  image:
+    repository: gcr.io/tfx-oss-public/ml_metadata_store_server
+    tag: "1.14.0"
+  resources: {}
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+metadataEnvoy:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-metadata-envoy
+    tag: "2.15.0"
+  resources: {}
+
+cacheServer:
+  replicas: 1
+  image:
+    repository: ghcr.io/kubeflow/kfp-cache-server
+    tag: "2.15.0"
+  resources: {}
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+cacheDeployer:
+  image:
+    repository: ghcr.io/kubeflow/kfp-cache-deployer
+    tag: "2.15.0"
+  resources: {}
+
+# -- Profile controller (multi-user only)
+profileController:
+  image:
+    repository: docker.io/alpine/k8s
+    tag: "1.32.3"
+  disableIstioSidecar: "false"
+  resources: {}
+
+# ==========================================
+# In-chart SeaweedFS (when objectStore.type=seaweedfs)
+# ==========================================
+seaweedfs:
+  image:
+    repository: chrislusf/seaweedfs
+    tag: "4.00"
+  persistence:
+    size: 20Gi
+    storageClass: ""
+  resources: {}
+
+# ==========================================
+# Subchart overrides
+# ==========================================
+
+argo-workflows:
+  enabled: true
+  fullnameOverride: workflow
+  images:
+    tag: v3.7.3
+  # Kustomize uses namespace-install manifests; reduce cluster-scoped resources.
+  singleNamespace: true
+  createAggregateRoles: false
+  crds:
+    install: false
+  controller:
+    name: controller
+    podSecurityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    resources:
+      requests:
+        cpu: 100m
+        memory: 500Mi
+    configMap:
+      name: workflow-controller-configmap
+    serviceAccount:
+      create: true
+      name: argo
+    clusterWorkflowTemplates:
+      enabled: false
+    extraArgs:
+      - --configmap
+      - workflow-controller-configmap
+      - --executor-image
+      - quay.io/argoproj/argoexec:v3.7.3
+    workflowNamespaces: []  # Defaults to release namespace via argo-workflows subchart
+  server:
+    enabled: false
+  artifactRepository:
+    archiveLogs: true
+    s3:
+      endpoint: "minio-service:9000"
+      bucket: "mlpipeline"
+      keyFormat: "private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
+      insecure: true
+      accessKeySecret:
+        name: mlpipeline-minio-artifact
+        key: accesskey
+      secretKeySecret:
+        name: mlpipeline-minio-artifact
+        key: secretkey
+  executor:
+    image:
+      pullPolicy: IfNotPresent
+  workflow:
+    rbac:
+      create: false
+    serviceAccount:
+      create: false
+
+mysql:
+  enabled: true
+  fullnameOverride: mysql
+  image:
+    registry: docker.io
+    repository: mysql
+    tag: "8.4"
+  auth:
+    rootPassword: ""
+    database: mlpipeline
+  primary:
+    extraFlags: "--authentication-policy=mysql_native_password --mysql-native-password=ON"
+    persistence:
+      size: 20Gi
+      existingClaim: mysql-pv-claim
+
+postgresql:
+  enabled: false
+  auth:
+    username: user
+    password: "password"
+    database: mlpipeline
+  primary:
+    persistence:
+      size: 10Gi
+
+minio:
+  enabled: false
+  replicas: 1
+  persistence:
+    size: 20Gi
+  defaultBuckets: "mlpipeline"
+
+metacontroller:
+  enabled: false
+
+publicConfig:
+  # -- Override the version string; defaults to .Chart.AppVersion when empty
+  kubeflowPipelinesVersion: ""
+
+compat:
+  # Compatibility resources to align with Kustomize naming and expectations.
+  enabled: true
+  applicationCrdIdLabel: true
+  argo:
+    rbac: true
+    priorityClass: true
+  mysql:
+    pvc: true
+    deployment: false

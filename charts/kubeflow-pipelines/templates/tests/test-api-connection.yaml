@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-api"
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['--timeout=5', '-qO-', 'http://ml-pipeline:8888/apis/v1beta1/healthz']
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1000
+        capabilities:
+          drop:
+            - ALL
+  restartPolicy: Never

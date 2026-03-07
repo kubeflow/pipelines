@@ -1,0 +1,21 @@
+{{- if and .Values.compat.enabled .Values.compat.mysql.pvc (or .Values.mysql.enabled .Values.compat.mysql.deployment) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- if .Values.compat.applicationCrdIdLabel }}
+    application-crd-id: kubeflow-pipelines
+    {{- end }}
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.mysql.primary.persistence.size }}
+  {{- if .Values.mysql.primary.persistence.storageClass }}
+  storageClassName: {{ .Values.mysql.primary.persistence.storageClass }}
+  {{- end }}
+{{- end }}
