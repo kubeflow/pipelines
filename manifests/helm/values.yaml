@@ -1,0 +1,146 @@
+images:
+  registry: "ghcr.io/kubeflow"
+  tag: "2.15.0"
+  pullPolicy: "IfNotPresent"
+
+namespace:
+  create: false
+  name: "kubeflow"
+
+kubernetesNative:
+  enabled: true
+
+webhook:
+  certManager:
+    enabled: true
+
+
+components:
+  apiserver:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: ml-pipeline
+      annotations: {}
+    resources:
+      requests:
+        cpu: 250m
+        memory: 500Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+  ui:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: ml-pipeline-ui
+      annotations: {}
+    resources:
+      requests:
+        cpu: 10m
+        memory: 70Mi
+  metadata:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: ml-pipeline-metadata
+      annotations: {}
+    resources: {}
+  persistenceagent:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: ml-pipeline-persistenceagent
+      annotations: {}
+    resources: {}
+  scheduledworkflow:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: ml-pipeline-scheduledworkflow
+      annotations: {}
+    resources: {}
+  cache:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: kubeflow-pipelines-cache
+      annotations: {}
+    resources: {}
+  cacheDeployer:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: kubeflow-pipelines-cache-deployer-sa
+      annotations: {}
+    resources: {}
+  visualization:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: ml-pipeline-visualizationserver
+      annotations: {}
+    resources: {}
+  viewercrd:
+    enabled: true
+    replicas: 1
+    serviceAccount:
+      name: ml-pipeline-viewercrd
+      annotations: {}
+    resources: {}
+
+metadata:
+  image: "gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0"
+
+mysql:
+  external: true
+  host: ""
+  port: 3306
+  database: "mlmd"
+  secretName: "mysql-secret"
+  
+storage:
+  type: "s3"
+  bucket: ""
+  region: "eu-west-1"
+  defaultPipelineRoot: ""
+
+seaweedfs:
+  enabled: false
+  image: "chrislusf/seaweedfs:4.00"
+  resources:
+    requests:
+      cpu: 32m
+      memory: 128Mi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+
+config:
+  autoUpdatePipelineDefaultVersion: "true"
+  cronScheduleTimezone: "UTC"
+  cacheImage: "ghcr.io/containerd/busybox"
+  cacheNodeRestrictions: "false"
+  maximumCacheStaleness: ""
+  defaultCacheStaleness: ""
+  conMaxLifeTime: "120s"
+  logLevel: "info"
+  artifactsProxyEnabled: "false"
+  artifactRetentionDays: "-1"
+
+externalSecrets:
+  enabled: false
+  mysql:
+    secretStore: ""
+    remoteSecretKey: ""
+
+ingress:
+  enabled: false
+  host: ""
+  annotations: {}
+  tls: []
+
+
+
+

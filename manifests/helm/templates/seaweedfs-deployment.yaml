@@ -1,0 +1,105 @@
+{{- if .Values.seaweedfs.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+  namespace: {{ include "kubeflow-pipelines.namespace" . }}
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+    app: seaweedfs
+    application-crd-id: kubeflow-pipelines
+  annotations:
+    {{- include "kubeflow-pipelines.careem-annotations" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: seaweedfs
+  strategy:
+    type: Recreate
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        {{- include "kubeflow-pipelines.selectorLabels" . | nindent 8 }}
+        application-crd-id: kubeflow-pipelines
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+      serviceAccountName: seaweedfs
+      containers:
+        - name: seaweedfs
+          envFrom:
+            - secretRef:
+                name: mlpipeline-minio-artifact
+          image: {{ .Values.seaweedfs.image | default "chrislusf/seaweedfs:4.00" }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          args:
+            - "server"
+            - "-dir=/data"
+            - "-s3"
+            - "-iam"
+            - "-filer"
+            - "-master.volumePreallocate=false"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -ec
+                  - |
+                    # wait until seaweedfs master is ready
+                    for i in $(seq 1 120); do
+                      if wget -q --spider http://127.0.0.1:8333/status; then
+                        break
+                      fi
+                      sleep 2
+                    done
+                    # create bucket if not exists (ignore error if exists)
+                    echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell || true
+                    # configure admin user using keys from secret
+                    echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell
+          ports:
+            - containerPort: 8333
+            - containerPort: 8111
+            - containerPort: 9333
+            - containerPort: 19333
+            - containerPort: 8888
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8333
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 100
+            timeoutSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - mountPath: /data
+              name: data
+          resources:
+            {{- if .Values.seaweedfs.resources }}
+            {{- toYaml .Values.seaweedfs.resources | nindent 12 }}
+            {{- else }}
+            requests:
+              cpu: 32m
+              memory: 128Mi
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: seaweedfs-pvc
+{{- end }}
