@@ -47,7 +47,8 @@
     "json-schema": "0.4.0",
     "jsonpath-plus": "10.3.0",
     "date-and-time": "0.14.2",
-    "form-data@>=2.0.0 <2.5.4": "2.5.4"
+    "form-data@>=2.0.0 <2.5.4": "2.5.4",
+    "xmlbuilder": "15.1.1"
   },
   "scripts": {
     "build": "tsc --project .",
