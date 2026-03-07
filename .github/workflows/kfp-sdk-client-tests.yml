@@ -37,7 +37,7 @@ jobs:
     name: KFP SDK Client Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
@@ -115,7 +115,7 @@ jobs:
 
       - name: Collect test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: periodic-functional-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
