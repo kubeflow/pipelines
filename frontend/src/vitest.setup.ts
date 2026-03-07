@@ -4,6 +4,35 @@ import { cleanup } from '@testing-library/react';
 
 process.env.TZ = 'UTC';
 
+// @xyflow/react uses DOMMatrixReadOnly which jsdom does not implement.
+if (!globalThis.DOMMatrixReadOnly) {
+  class DOMMatrixReadOnlyMock {
+    m22: number;
+    constructor(_init?: string) {
+      this.m22 = 1;
+    }
+  }
+  globalThis.DOMMatrixReadOnly = DOMMatrixReadOnlyMock as unknown as typeof DOMMatrixReadOnly;
+}
+
+// Workaround: @xyflow/react's d3-drag dependency accesses event.view.document
+// on mousedown, but jsdom leaves event.view null. This must be global (not
+// per-file beforeAll) because Vitest's process-level uncaught-exception monitor
+// fires before scoped window error handlers in parallel worker threads.
+// TODO: Remove once jsdom natively supports event.view on synthetic mouse events,
+// or when a vitest environment override can be scoped to only the affected tests.
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event: ErrorEvent) => {
+    if (
+      event.error instanceof TypeError &&
+      event.error.message.includes("Cannot read properties of null (reading 'document')") &&
+      event.error.stack?.includes('d3-drag')
+    ) {
+      event.preventDefault();
+    }
+  });
+}
+
 if (!globalThis.URL.createObjectURL) {
   globalThis.URL.createObjectURL = () => 'blob:mock';
 }

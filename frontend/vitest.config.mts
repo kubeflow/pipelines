@@ -23,6 +23,11 @@ export default defineConfig({
       'scripts/**/*.{test,spec}.{js,cjs,mjs,ts}',
     ],
     environmentMatchGlobs: [['scripts/**/*.{test,spec}.{js,cjs,mjs,ts}', 'node']],
+    server: {
+      deps: {
+        inline: ['@xyflow/react', '@xyflow/system'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

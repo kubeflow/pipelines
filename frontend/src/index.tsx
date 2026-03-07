@@ -16,6 +16,7 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
+import '@xyflow/react/dist/style.css';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';

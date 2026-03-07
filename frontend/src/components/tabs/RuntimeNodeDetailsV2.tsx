@@ -17,7 +17,6 @@
 import { Button } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
-import { FlowElement } from 'react-flow-renderer';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import {
   KubernetesExecutorConfig,
@@ -29,7 +28,7 @@ import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage } from 'src/lib/Utils';
-import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
@@ -47,7 +46,6 @@ import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
 import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
@@ -86,7 +84,7 @@ interface RuntimeNodeDetailsV2Props {
   onLayerChange: (layers: string[]) => void;
   pipelineJobString?: string;
   runId?: string;
-  element?: FlowElement<FlowElementDataBase> | null;
+  element?: PipelineFlowElement | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
 }
@@ -142,7 +140,7 @@ export function RuntimeNodeDetailsV2({
 interface TaskNodeDetailProps {
   pipelineJobString?: string;
   runId?: string;
-  element?: FlowElement<FlowElementDataBase> | null;
+  element?: PipelineFlowElement | null;
   execution?: Execution;
   layers: string[];
   namespace: string | undefined;
@@ -221,7 +219,7 @@ function TaskNodeDetail({
 }
 
 function getTaskDetailsFields(
-  element?: FlowElement<FlowElementDataBase> | null,
+  element?: PipelineFlowElement | null,
   execution?: Execution,
 ): Array<KeyValue<string>> {
   const details: Array<KeyValue<string>> = [];
@@ -266,7 +264,7 @@ function getTaskDetailsFields(
 function getNodeVolumeMounts(
   layers: string[],
   pipelineJobString?: string,
-  element?: FlowElement<FlowElementDataBase> | null,
+  element?: PipelineFlowElement | null,
 ): Array<KeyValue<string>> {
   if (!pipelineJobString || !element) {
     return [];
@@ -485,7 +483,7 @@ function ArtifactInfo({
 }
 
 interface SubDAGNodeDetailProps {
-  element: FlowElement<FlowElementDataBase>;
+  element: PipelineFlowElement;
   execution?: Execution;
   layers: string[];
   onLayerChange: (layers: string[]) => void;
