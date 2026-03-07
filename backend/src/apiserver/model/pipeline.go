@@ -125,9 +125,9 @@ func (p *Pipeline) GetFieldValue(name string) interface{} {
 }
 
 func (p *Pipeline) GetSortByFieldPrefix(name string) string {
-	return "pipelines."
+	return "pipelines"
 }
 
 func (p *Pipeline) GetKeyFieldPrefix() string {
-	return "pipelines."
+	return "pipelines"
 }
