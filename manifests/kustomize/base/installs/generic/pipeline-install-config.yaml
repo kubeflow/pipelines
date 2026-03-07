@@ -114,3 +114,9 @@ data:
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
   defaultSecurityContextRunAsNonRoot: ""
+  ## Custom labels and annotations for driver pods (JSON format).
+  ## Useful for enabling Istio sidecar injection or other infrastructure integration.
+  ## Keys with the prefix "pipelines.kubeflow.org/" are reserved and will be filtered out.
+  ## Example: '{"sidecar.istio.io/inject":"true"}'
+  DriverPodLabels: ""
+  DriverPodAnnotations: ""
