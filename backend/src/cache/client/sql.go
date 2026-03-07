@@ -17,18 +17,9 @@ package client
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/go-sql-driver/mysql"
 )
-
-// quoteDSNValue quotes a value for use in a libpq keyword/value connection string.
-// Per libpq rules: wrap in single quotes, escape \ and ' with a backslash.
-func quoteDSNValue(v string) string {
-	v = strings.ReplaceAll(v, `\`, `\\`)
-	v = strings.ReplaceAll(v, `'`, `\'`)
-	return "'" + v + "'"
-}
 
 func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 	mysqlServicePort string, dbName string, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string) *mysql.Config {
@@ -56,24 +47,29 @@ func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 }
 
 func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
-) string {
-	var b bytes.Buffer
+) (dsn, redactedDSN string) {
+	var b, rb bytes.Buffer
 	if dbName != "" {
-		fmt.Fprintf(&b, "database=%s ", quoteDSNValue(dbName))
+		fmt.Fprintf(&b, "database=%s ", dbName)
+		fmt.Fprintf(&rb, "database=%s ", dbName)
 	}
 	if user != "" {
-		fmt.Fprintf(&b, "user=%s ", quoteDSNValue(user))
+		fmt.Fprintf(&b, "user=%s ", user)
+		fmt.Fprintf(&rb, "user=%s ", user)
 	}
 	if password != "" {
-		fmt.Fprintf(&b, "password=%s ", quoteDSNValue(password))
+		fmt.Fprintf(&b, "password=%s ", password)
+		fmt.Fprint(&rb, "password=*** ")
 	}
 	if postgresHost != "" {
-		fmt.Fprintf(&b, "host=%s ", quoteDSNValue(postgresHost))
+		fmt.Fprintf(&b, "host=%s ", postgresHost)
+		fmt.Fprintf(&rb, "host=%s ", postgresHost)
 	}
 	if postgresPort != 0 {
 		fmt.Fprintf(&b, "port=%d ", postgresPort)
+		fmt.Fprintf(&rb, "port=%d ", postgresPort)
 	}
 	fmt.Fprint(&b, "sslmode=disable")
-
-	return b.String()
+	fmt.Fprint(&rb, "sslmode=disable")
+	return b.String(), rb.String()
 }
