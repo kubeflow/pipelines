@@ -29,12 +29,11 @@ Now you can access Kubeflow Pipelines UI in your browser by <http://localhost:80
 
 Customize:
 
-There are two variations for platform-agnostic that uses different [argo workflow executors](https://argoproj.github.io/argo-workflows/workflow-executors/):
+There is a variation for platform-agnostic that uses the [emissary executor](https://argoproj.github.io/argo-workflows/workflow-executors/):
 
 * env/platform-agnostic-emissary
-* env/platform-agnostic-pns
 
-You can install them by changing `KFP_ENV` in above instructions to the variation you want.
+You can install it by changing `KFP_ENV` to `platform-agnostic-emissary` in the above instructions.
 
 Data:
 
