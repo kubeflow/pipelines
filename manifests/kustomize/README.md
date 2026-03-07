@@ -33,7 +33,7 @@ There is a variation for platform-agnostic that uses the [emissary executor](htt
 
 * env/platform-agnostic-emissary
 
-You can install it by changing `KFP_ENV` in above instructions.
+You can install it by changing `KFP_ENV` to `platform-agnostic-emissary` in the above instructions.
 
 Data:
 
