@@ -111,7 +111,7 @@ jobs:
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
 
