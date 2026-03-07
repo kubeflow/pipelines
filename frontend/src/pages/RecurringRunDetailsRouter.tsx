@@ -16,7 +16,7 @@
 
 import React from 'react';
 import * as JsYaml from 'js-yaml';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -36,16 +36,17 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     isSuccess: getRecurringRunSuccess,
     isFetching: recurringRunIsFetching,
     data: v2RecurringRun,
-  } = useQuery<V2beta1RecurringRun, Error>(
-    ['v2_recurring_run_detail', { id: recurringRunId }],
-    () => {
+  } = useQuery<V2beta1RecurringRun, Error>({
+    queryKey: ['v2_recurring_run_detail', { id: recurringRunId }],
+    queryFn: () => {
       if (!recurringRunId) {
         throw new Error('Recurring run ID is missing');
       }
       return Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
-    { enabled: !!recurringRunId, staleTime: Infinity },
-  );
+    enabled: !!recurringRunId,
+    staleTime: Infinity,
+  });
 
   if (getRecurringRunSuccess && v2RecurringRun && v2RecurringRun.pipeline_spec) {
     pipelineManifest = JsYaml.safeDump(v2RecurringRun.pipeline_spec);
@@ -57,9 +58,9 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } = useQuery<
     string,
     Error
-  >(
-    ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
-    async () => {
+  >({
+    queryKey: ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
+    queryFn: async () => {
       if (!pipelineId || !pipelineVersionId) {
         return '';
       }
@@ -70,8 +71,10 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
       const pipelineSpec = pipelineVersion.pipeline_spec;
       return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
     },
-    { enabled: !!pipelineId && !!pipelineVersionId, staleTime: Infinity, cacheTime: Infinity },
-  );
+    enabled: !!pipelineId && !!pipelineVersionId,
+    staleTime: Infinity,
+    cacheTime: Infinity, // v5: renamed to gcTime
+  });
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
