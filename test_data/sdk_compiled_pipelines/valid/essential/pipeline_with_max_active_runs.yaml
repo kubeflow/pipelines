@@ -1,0 +1,88 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-max-active-runs
+components:
+  comp-for-loop-2:
+    dag:
+      tasks:
+        produce-message:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-produce-message
+          inputs:
+            parameters:
+              msg:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: produce-message
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+  comp-produce-message:
+    executorLabel: exec-produce-message
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+        sleep_seconds:
+          defaultValue: 5.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-produce-message:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - produce_message
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef produce_message(msg: str, sleep_seconds: int = 5) -> str:\n\
+          \    import time\n\n    print(f'Processing {msg}...')\n    time.sleep(sleep_seconds)\n\
+          \    return msg\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-max-active-runs
+root:
+  dag:
+    tasks:
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["one", "two", "three", "four", "five"]'
+        taskInfo:
+          name: for-loop-2
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      maxActiveRuns: 2
