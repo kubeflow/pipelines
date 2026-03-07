@@ -197,8 +197,19 @@ describe('minio-helper', () => {
 
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
+
+      return new Promise<void>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', () => {
+          try {
+            expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        });
+        stream.on('error', reject);
       });
     });
 
@@ -209,8 +220,19 @@ describe('minio-helper', () => {
 
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
+
+      return new Promise<void>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', () => {
+          try {
+            expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        });
+        stream.on('error', reject);
       });
     });
 
@@ -221,8 +243,19 @@ describe('minio-helper', () => {
 
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
+
+      return new Promise<void>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', () => {
+          try {
+            expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        });
+        stream.on('error', reject);
       });
     });
   });
