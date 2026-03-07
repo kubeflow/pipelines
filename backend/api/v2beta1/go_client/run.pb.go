@@ -219,9 +219,13 @@ type Run struct {
 	RecurringRunId string `protobuf:"bytes,16,opt,name=recurring_run_id,json=recurringRunId,proto3" json:"recurring_run_id,omitempty"`
 	// Output. A sequence of run statuses. This field keeps a record
 	// of state transitions.
-	StateHistory  []*RuntimeStatus `protobuf:"bytes,17,rep,name=state_history,json=stateHistory,proto3" json:"state_history,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	StateHistory []*RuntimeStatus `protobuf:"bytes,17,rep,name=state_history,json=stateHistory,proto3" json:"state_history,omitempty"`
+	// Output. Display name of the experiment this run belongs to.
+	ExperimentDisplayName string `protobuf:"bytes,19,opt,name=experiment_display_name,json=experimentDisplayName,proto3" json:"experiment_display_name,omitempty"`
+	// Output. Display name of the pipeline version used by this run.
+	PipelineVersionDisplayName string `protobuf:"bytes,20,opt,name=pipeline_version_display_name,json=pipelineVersionDisplayName,proto3" json:"pipeline_version_display_name,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Run) Reset() {
@@ -392,6 +396,20 @@ func (x *Run) GetStateHistory() []*RuntimeStatus {
 		return x.StateHistory
 	}
 	return nil
+}
+
+func (x *Run) GetExperimentDisplayName() string {
+	if x != nil {
+		return x.ExperimentDisplayName
+	}
+	return ""
+}
+
+func (x *Run) GetPipelineVersionDisplayName() string {
+	if x != nil {
+		return x.PipelineVersionDisplayName
+	}
+	return ""
 }
 
 type isRun_PipelineSource interface {
@@ -1570,7 +1588,8 @@ var File_backend_api_v2beta1_run_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\n" +
-	"\x1dbackend/api/v2beta1/run.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a(backend/api/v2beta1/runtime_config.proto\"\xcc\t\n" +
+	"\x1dbackend/api/v2beta1/run.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a(backend/api/v2beta1/runtime_config.proto\"\xc7\n" +
+	"\n" +
 	"\x03Run\x12#\n" +
 	"\rexperiment_id\x18\x01 \x01(\tR\fexperimentId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12!\n" +
@@ -1593,7 +1612,9 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\vrun_details\x18\x0f \x01(\v22.kubeflow.pipelines.backend.api.v2beta1.RunDetailsR\n" +
 	"runDetails\x12(\n" +
 	"\x10recurring_run_id\x18\x10 \x01(\tR\x0erecurringRunId\x12Z\n" +
-	"\rstate_history\x18\x11 \x03(\v25.kubeflow.pipelines.backend.api.v2beta1.RuntimeStatusR\fstateHistory\"J\n" +
+	"\rstate_history\x18\x11 \x03(\v25.kubeflow.pipelines.backend.api.v2beta1.RuntimeStatusR\fstateHistory\x126\n" +
+	"\x17experiment_display_name\x18\x13 \x01(\tR\x15experimentDisplayName\x12A\n" +
+	"\x1dpipeline_version_display_name\x18\x14 \x01(\tR\x1apipelineVersionDisplayName\"J\n" +
 	"\fStorageState\x12\x1d\n" +
 	"\x19STORAGE_STATE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tAVAILABLE\x10\x01\x12\f\n" +
