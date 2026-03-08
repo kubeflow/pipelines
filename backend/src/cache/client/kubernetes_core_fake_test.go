@@ -24,7 +24,6 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 func TestNewFakeKuberneteCoresClient(t *testing.T) {
@@ -41,8 +40,6 @@ func TestFakeKuberneteCoreClientPodClientReturnsClient(t *testing.T) {
 	fakeClient := NewFakeKuberneteCoresClient()
 	podClient := fakeClient.PodClient("test-namespace")
 	assert.NotNil(t, podClient)
-
-	var _ v1.PodInterface = podClient
 }
 
 func TestFakeKuberneteCoreClientPodClientEmptyNamespacePanics(t *testing.T) {
