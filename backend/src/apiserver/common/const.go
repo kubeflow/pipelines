@@ -88,3 +88,9 @@ const (
 // empty map from nil, so this header preserves the intent across the
 // HTTP→gRPC proxy roundtrip.
 const ClearTagsMetadataKey = "x-clear-tags"
+
+const (
+	DefaultPodProvisioningTimeoutValue string = "3600s"
+	DefaultPodRuntimeTimeoutValue      string = "3600s"
+	DefaultPodNodeFailureTimeoutValue  string = "3600s"
+)
