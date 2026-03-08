@@ -19,9 +19,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -102,7 +104,7 @@ func TestFakePodClientWatch(t *testing.T) {
 
 func TestFakePodClientPatch(t *testing.T) {
 	fakePodClient := &FakePodClient{}
-	result, err := fakePodClient.Patch(context.Background(), "test-pod", "merge-patch+json", []byte(`{}`), metav1.PatchOptions{})
+	result, err := fakePodClient.Patch(context.Background(), "test-pod", types.MergePatchType, []byte(`{}`), metav1.PatchOptions{})
 	assert.Nil(t, result)
 	assert.NoError(t, err)
 }
@@ -111,6 +113,7 @@ func TestFakePodClientPatch(t *testing.T) {
 func TestFakePodClientStubMethods(t *testing.T) {
 	fakePodClient := &FakePodClient{}
 	ctx := context.Background()
+	minimalPod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"}}
 
 	t.Run("Get", func(t *testing.T) {
 		pod, err := fakePodClient.Get(ctx, "test-pod", metav1.GetOptions{})
@@ -125,19 +128,19 @@ func TestFakePodClientStubMethods(t *testing.T) {
 	})
 
 	t.Run("Create", func(t *testing.T) {
-		pod, err := fakePodClient.Create(ctx, nil, metav1.CreateOptions{})
+		pod, err := fakePodClient.Create(ctx, minimalPod, metav1.CreateOptions{})
 		assert.Nil(t, pod)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		pod, err := fakePodClient.Update(ctx, nil, metav1.UpdateOptions{})
+		pod, err := fakePodClient.Update(ctx, minimalPod, metav1.UpdateOptions{})
 		assert.Nil(t, pod)
 		assert.NoError(t, err)
 	})
 
 	t.Run("UpdateStatus", func(t *testing.T) {
-		pod, err := fakePodClient.UpdateStatus(ctx, nil, metav1.UpdateOptions{})
+		pod, err := fakePodClient.UpdateStatus(ctx, minimalPod, metav1.UpdateOptions{})
 		assert.Nil(t, pod)
 		assert.NoError(t, err)
 	})
@@ -148,7 +151,11 @@ func TestFakePodClientStubMethods(t *testing.T) {
 	})
 
 	t.Run("Bind", func(t *testing.T) {
-		err := fakePodClient.Bind(ctx, nil, metav1.CreateOptions{})
+		binding := &corev1.Binding{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-pod"},
+			Target:     corev1.ObjectReference{Name: "test-node"},
+		}
+		err := fakePodClient.Bind(ctx, binding, metav1.CreateOptions{})
 		assert.NoError(t, err)
 	})
 
@@ -168,7 +175,7 @@ func TestFakePodClientStubMethods(t *testing.T) {
 	})
 
 	t.Run("UpdateEphemeralContainers", func(t *testing.T) {
-		pod, err := fakePodClient.UpdateEphemeralContainers(ctx, "test-pod", nil, metav1.UpdateOptions{})
+		pod, err := fakePodClient.UpdateEphemeralContainers(ctx, "test-pod", minimalPod, metav1.UpdateOptions{})
 		assert.Nil(t, pod)
 		assert.NoError(t, err)
 	})
@@ -186,7 +193,7 @@ func TestFakePodClientStubMethods(t *testing.T) {
 	})
 
 	t.Run("UpdateResize", func(t *testing.T) {
-		pod, err := fakePodClient.UpdateResize(ctx, "test-pod", nil, metav1.UpdateOptions{})
+		pod, err := fakePodClient.UpdateResize(ctx, "test-pod", minimalPod, metav1.UpdateOptions{})
 		assert.Nil(t, pod)
 		assert.NoError(t, err)
 	})
