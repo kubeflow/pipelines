@@ -24,8 +24,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -41,20 +42,24 @@ type ImagePullFailureCheckerInterface interface {
 
 // ImagePullFailureChecker checks pods belonging to a workflow for image pull
 // failures and terminates the workflow after a configurable grace period.
+// It uses a pod lister backed by a shared informer to avoid direct API calls
+// to the Kubernetes API server on every check.
 type ImagePullFailureChecker struct {
-	kubeClient      kubernetes.Interface
+	podLister       corelisters.PodLister
 	executionClient util.ExecutionClient
 	gracePeriod     time.Duration
 }
 
-// NewImagePullFailureChecker creates a new checker.
+// NewImagePullFailureChecker creates a new checker. The podLister should be
+// backed by a shared informer so that pod lookups are served from a local
+// cache rather than making API calls to the Kubernetes API server.
 func NewImagePullFailureChecker(
-	kubeClient kubernetes.Interface,
+	podLister corelisters.PodLister,
 	executionClient util.ExecutionClient,
 	gracePeriod time.Duration,
 ) *ImagePullFailureChecker {
 	return &ImagePullFailureChecker{
-		kubeClient:      kubeClient,
+		podLister:       podLister,
 		executionClient: executionClient,
 		gracePeriod:     gracePeriod,
 	}
@@ -64,17 +69,17 @@ func NewImagePullFailureChecker(
 // if any pod has been stuck in ImagePullBackOff or ErrImagePull longer than the
 // grace period (measured from pod creation time).
 func (c *ImagePullFailureChecker) CheckAndTerminate(namespace string, workflowName string) error {
-	ctx := context.TODO()
+	selector, err := labels.Parse(fmt.Sprintf("%s=%s", argoWorkflowLabelKey, workflowName))
+	if err != nil {
+		return fmt.Errorf("failed to parse label selector for workflow %s/%s: %w", namespace, workflowName, err)
+	}
 
-	pods, err := c.kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", argoWorkflowLabelKey, workflowName),
-	})
+	pods, err := c.podLister.Pods(namespace).List(selector)
 	if err != nil {
 		return fmt.Errorf("failed to list pods for workflow %s/%s: %w", namespace, workflowName, err)
 	}
 
-	for i := range pods.Items {
-		pod := &pods.Items[i]
+	for _, pod := range pods {
 		failedImage := getImagePullFailure(pod)
 		if failedImage == "" {
 			continue
@@ -89,7 +94,7 @@ func (c *ImagePullFailureChecker) CheckAndTerminate(namespace string, workflowNa
 
 		log.Infof("Terminating workflow %s/%s: pod %s has image pull failure for %q (age: %v exceeds grace period %v)",
 			namespace, workflowName, pod.Name, failedImage, podAge.Round(time.Second), c.gracePeriod)
-		return c.terminateWorkflow(ctx, namespace, workflowName)
+		return c.terminateWorkflow(context.TODO(), namespace, workflowName)
 	}
 
 	return nil
