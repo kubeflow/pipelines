@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package worker implements persistence workers that sync Kubernetes resources
+// to the Kubeflow Pipelines database.
 package worker
 
 import (
