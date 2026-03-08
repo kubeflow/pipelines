@@ -26,8 +26,10 @@ import (
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -163,9 +165,25 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error building execution client for image pull failure handling: %v", err)
 		}
+
+		// Create a shared informer for pods so that image pull failure checks
+		// read from a local cache instead of making API calls on every check.
+		var podInformerFactory informers.SharedInformerFactory
+		if namespace == "" {
+			podInformerFactory = informers.NewSharedInformerFactory(kubeClient, time.Second*30)
+		} else {
+			podInformerFactory = informers.NewFilteredSharedInformerFactory(
+				kubeClient, time.Second*30, namespace, nil)
+		}
+		podLister := podInformerFactory.Core().V1().Pods().Lister()
+		go podInformerFactory.Start(stopCh)
+		if !cache.WaitForCacheSync(stopCh, podInformerFactory.Core().V1().Pods().Informer().HasSynced) {
+			log.Fatalf("Failed to sync pod informer cache for image pull failure handling")
+		}
+
 		gracePeriod := time.Duration(imagePullFailureGracePeriodInSec) * time.Second
 		imagePullFailureChecker = worker.NewImagePullFailureChecker(
-			kubeClient, executionClient, gracePeriod)
+			podLister, executionClient, gracePeriod)
 		log.Infof("Image pull failure handling enabled (grace period: %v)", gracePeriod)
 	}
 
