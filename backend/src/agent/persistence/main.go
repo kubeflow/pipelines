@@ -41,9 +41,8 @@ var (
 	initializeTimeout                time.Duration
 	timeout                          time.Duration
 	mlPipelineAPIServerName          string
-	mlPipelineAPIServerPort          string
 	mlPipelineAPIServerBasePath      string
-	mlPipelineServiceHttpPort        string
+	mlPipelineServiceHTTPPort        string
 	mlPipelineServiceGRPCPort        string
 	mlPipelineServiceTLSEnabled      bool
 	namespace                        string
@@ -66,7 +65,7 @@ const (
 	timeoutFlagName                          = "timeout"
 	mlPipelineAPIServerBasePathFlagName      = "mlPipelineAPIServerBasePath"
 	mlPipelineAPIServerNameFlagName          = "mlPipelineAPIServerName"
-	mlPipelineAPIServerHttpPortFlagName      = "mlPipelineServiceHttpPort"
+	mlPipelineAPIServerHTTPPortFlagName      = "mlPipelineServiceHTTPPort"
 	mlPipelineAPIServerGRPCPortFlagName      = "mlPipelineServiceGRPCPort"
 	mlPipelineAPIServerTLSEnabledFlagName    = "mlPipelineServiceTLSEnabled"
 	namespaceFlagName                        = "namespace"
@@ -147,7 +146,7 @@ func main() {
 		tokenRefresher,
 		mlPipelineAPIServerBasePath,
 		mlPipelineAPIServerName,
-		mlPipelineServiceHttpPort,
+		mlPipelineServiceHTTPPort,
 		mlPipelineServiceGRPCPort,
 		tlsCfg)
 	if err != nil {
@@ -212,7 +211,7 @@ func init() {
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
-	flag.StringVar(&mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceHTTPPort, mlPipelineAPIServerHTTPPortFlagName, "8888", "Http Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if ML pipeline API server serves over TLS.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
