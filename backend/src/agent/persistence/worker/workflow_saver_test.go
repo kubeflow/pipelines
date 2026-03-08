@@ -27,6 +27,21 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+// fakeImagePullFailureChecker is a test double for ImagePullFailureCheckerInterface.
+type fakeImagePullFailureChecker struct {
+	called        bool
+	namespace     string
+	workflowName  string
+	errorToReturn error
+}
+
+func (f *fakeImagePullFailureChecker) CheckAndTerminate(namespace string, workflowName string) error {
+	f.called = true
+	f.namespace = namespace
+	f.workflowName = workflowName
+	return f.errorToReturn
+}
+
 func TestWorkflow_Save_Success(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
@@ -217,4 +232,172 @@ func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
 
 	assert.Equal(t, false, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
 	assert.Equal(t, nil, err)
+}
+
+func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	checker := &fakeImagePullFailureChecker{}
+
+	// Workflow with Running phase (not in final state).
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowRunning,
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NoError(t, err)
+	assert.True(t, checker.called, "Checker should be called for running workflow")
+	assert.Equal(t, "MY_NAMESPACE", checker.namespace)
+	assert.Equal(t, "MY_NAME", checker.workflowName)
+}
+
+func TestWorkflow_Save_CheckerCalledForPendingWorkflow(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	checker := &fakeImagePullFailureChecker{}
+
+	// Workflow with empty phase (Pending/unknown, not in final state).
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NoError(t, err)
+	assert.True(t, checker.called, "Checker should be called for non-final-state workflow")
+}
+
+func TestWorkflow_Save_CheckerSkippedForCompletedWorkflow(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	checker := &fakeImagePullFailureChecker{}
+
+	// Workflow in Succeeded (final) state.
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowSucceeded,
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NoError(t, err)
+	assert.False(t, checker.called, "Checker should NOT be called for completed workflow")
+}
+
+func TestWorkflow_Save_CheckerSkippedForFailedWorkflow(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	checker := &fakeImagePullFailureChecker{}
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowFailed,
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NoError(t, err)
+	assert.False(t, checker.called, "Checker should NOT be called for failed workflow")
+}
+
+func TestWorkflow_Save_CheckerErrorDoesNotBlockReporting(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	checker := &fakeImagePullFailureChecker{
+		errorToReturn: fmt.Errorf("failed to list pods"),
+	}
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowRunning,
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	// Checker error should be logged but Save should still succeed.
+	assert.NoError(t, err)
+	assert.True(t, checker.called)
+	// Verify the workflow was still reported to the pipeline server.
+	assert.NotNil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"))
+}
+
+func TestWorkflow_Save_NoCheckerSetDoesNotPanic(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+
+	// Running workflow, but no checker set (feature disabled).
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowRunning,
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	// Do NOT set checker — should not panic.
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.NoError(t, err)
 }
