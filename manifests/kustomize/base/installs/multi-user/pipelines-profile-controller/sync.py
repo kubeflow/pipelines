@@ -175,6 +175,48 @@ def server_factory(frontend_image,
                 else:
                     print(f"ERROR: Failed to configure lifecycle policy: {exception}")
 
+        def create_role_and_binding(self, rbac_v1, namespace, role_name, sa_name, resources, verbs, resource_names=None):
+            # Configures necessary roles for the driver executor plugin
+            role = client.V1Role(
+                metadata=client.V1ObjectMeta(
+                    name=role_name,
+                    namespace=namespace
+                ),
+                rules=[
+                    client.V1PolicyRule(
+                        api_groups=[""],
+                        resources=resources,
+                        resource_names=resource_names,
+                        verbs=verbs
+                    )
+                ]
+            )
+            rbac_v1.create_namespaced_role(namespace=namespace, body=role)
+            print(f"Role {role_name} created in {namespace}")
+
+            role_binding_name = f"{role_name}-binding"
+            role_binding = client.V1RoleBinding(
+                metadata=client.V1ObjectMeta(
+                    name=role_binding_name,
+                    namespace=namespace
+                ),
+                subjects=[
+                    {
+                        "kind": "ServiceAccount",
+                        "name": sa_name,
+                        "namespace": namespace,
+                        "apiGroup": ""
+                    }
+                ],
+                role_ref=client.V1RoleRef(
+                    kind="Role",
+                    name=role_name,
+                    api_group="rbac.authorization.k8s.io"
+                )
+            )
+            rbac_v1.create_namespaced_role_binding(namespace=namespace, body=role_binding)
+            print(f"RoleBinding {role_binding_name} created in {namespace}")
+
         def upsert_executor_plugin_sa(self, namespace):
             print('create executor plugin SAs for: ', namespace)
             try:
@@ -195,52 +237,10 @@ def server_factory(frontend_image,
                     )
                 )
                 print(f"ServiceAccount {agent_sa_name} created in {namespace}")
-                role_name = "configmap-reader"
-                role = client.V1Role(
-                    metadata=client.V1ObjectMeta(
-                        name=role_name,
-                        namespace=namespace
-                    ),
-                    rules=[
-                        client.V1PolicyRule(
-                            api_groups=[""],
-                            resources=["configmaps"],
-                            verbs=["get", "list", "watch"]
-                        )
-                    ]
-                )
-                rbac_v1.create_namespaced_role(namespace=namespace, body=role)
-                print(f"Role {role_name} created in {namespace}")
 
-                role_binding_name = "configmap-reader-binding"
-                namespace = 'kubeflow-user-example-com'
                 agent_sa_name = "ml-pipeline-driver-agent-executor-plugin"
-                role_name = "configmap-reader"
-                role_binding = client.V1RoleBinding(
-                    metadata=client.V1ObjectMeta(
-                        name="configmap-reader-binding",
-                        namespace=namespace
-                    ),
-                    subjects=[
-                        {
-                            "kind": "ServiceAccount",
-                            "name": agent_sa_name,
-                            "namespace": namespace,
-                            "apiGroup": ""
-                        }
-                    ],
-                    role_ref=client.V1RoleRef(
-                        kind="Role",
-                        name=role_name,
-                        api_group="rbac.authorization.k8s.io"
-                    )
-                )
-
-                rbac_v1.create_namespaced_role_binding(
-                    namespace=namespace,
-                    body=role_binding
-                )
-                print(f"RoleBinding {role_binding_name} created in {namespace}")
+                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='configmap-reader', resources=["configmaps"], sa_name=agent_sa_name, verbs=["get", "list", "watch"])
+                self.create_role_and_binding(rbac_v1=rbac_v1, namespace=namespace, role_name='artifact-secret-reader', resources=["secrets"], sa_name=agent_sa_name, verbs=["get", "list", "watch"], resource_names=["mlpipeline-minio-artifact"])
             except ApiException as e:
                 if e.status == 409:
                     print(f"ServiceAccount {agent_sa_name} already exists in {namespace}")

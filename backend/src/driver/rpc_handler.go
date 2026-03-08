@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -33,8 +34,22 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"google.golang.org/protobuf/encoding/protojson"
+	"k8s.io/client-go/kubernetes"
 )
+
+type driverLogArtifactContext struct {
+	Execution        *driver.Execution
+	Task             string
+	LocalPath        string
+	OutputPathPrefix string
+	Namespace        string
+	PipelineRoot     string
+	StoreSessionInfo string
+	LogId            string
+}
 
 func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 	defer func(Body io.ReadCloser) {
@@ -133,7 +148,54 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 			err = fmt.Errorf("KFP driver: %w", err)
 		}
 	}()
-	ctx := context.Background()
+	var (
+		pipelineRoot     string
+		storeSessionInfo string
+		namespace        string
+		outputPathPrefix string
+	)
+	var pipeline *metadata.Pipeline
+	logId := fmt.Sprintf("%v-%v-%v", args.IterationIndex, args.Type, args.TaskName)
+	logDir := "/kfp/log"
+	logFile := fmt.Sprintf("%s/%s.log", logDir, logId)
+	ctx, f, err := util.WithLogger(context.Background(), logFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create driver logger: %v", err)
+	}
+	defer func() {
+		err = os.Remove(logFile)
+		if err != nil {
+			glog.Errorf("Failed to remove processed log file: %v", err)
+		}
+	}()
+	defer func() {
+		if pipelineRoot != "" {
+			logContext := &driverLogArtifactContext{
+				Execution:        execution,
+				Task:             args.TaskName,
+				LocalPath:        logFile,
+				LogId:            logId,
+				Namespace:        namespace,
+				PipelineRoot:     pipelineRoot,
+				StoreSessionInfo: storeSessionInfo,
+				OutputPathPrefix: outputPathPrefix,
+			}
+			uploadErr := uploadDriverLogArtifact(ctx, logContext)
+			if uploadErr != nil {
+				glog.Errorf("Failed to upload driver-logs artifact: %v", uploadErr)
+			}
+		}
+	}()
+	defer func() {
+		if f != nil {
+			err = f.Close()
+			if err != nil {
+				glog.Errorf("Failed to close file: %v", err)
+			}
+		}
+	}()
+
+	log := util.GetLoggerFrom(ctx)
 
 	// Support reading component spec from a file if value starts with @
 	// This bypasses exec() argument size limits for large workflows
@@ -144,19 +206,19 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 			return nil, fmt.Errorf("failed to read component spec from file %s: %w", filePath, err)
 		}
 		args.Component = string(data)
-		glog.Infof("Read component spec from file: %s (%d bytes)", filePath, len(data))
+		log.Infof("Read component spec from file: %s (%d bytes)", filePath, len(data))
 	}
 
 	proxy.InitializeConfig(args.HTTPProxy, args.HTTPSProxy, args.NoProxy)
 
-	glog.Infof("input ComponentSpec:%s\n", prettyPrint(args.Component))
+	log.Infof("input ComponentSpec:%s\n", prettyPrint(args.Component))
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := util.UnmarshalString(args.Component, componentSpec); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, prettyPrint(args.Component))
 	}
 	var taskSpec *pipelinespec.PipelineTaskSpec
 	if args.Task != "" {
-		glog.Infof("input TaskSpec:%s\n", prettyPrint(args.Task))
+		log.Infof("input TaskSpec:%s\n", prettyPrint(args.Task))
 		taskSpec = &pipelinespec.PipelineTaskSpec{}
 		if err := util.UnmarshalString(args.Task, taskSpec); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, args.Task)
@@ -165,24 +227,27 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
 	if args.Container != "" {
-		glog.Infof("input ContainerSpec:%s\n", prettyPrint(args.Container))
+		log.Infof("input ContainerSpec:%s\n", prettyPrint(args.Container))
 		if err := util.UnmarshalString(args.Container, containerSpec); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, args.Container)
 		}
 	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if args.RuntimeConfig != "" {
-		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(args.RuntimeConfig))
+		log.Infof("input RuntimeConfig:%s\n", prettyPrint(args.RuntimeConfig))
 		runtimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
 		if err := util.UnmarshalString(args.RuntimeConfig, runtimeConfig); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, args.RuntimeConfig)
 		}
 	}
+	if args.KubernetesConfig != "" {
+		log.Infof("input kubernetesConfig:%s\n", prettyPrint(args.KubernetesConfig))
+	}
 	k8sExecCfg, err := parseExecConfigJSON(&args.KubernetesConfig)
 	if err != nil {
 		return nil, err
 	}
-	namespace, err := config.InPodNamespace()
+	namespace, err = config.InPodNamespace()
 	if err != nil {
 		return nil, err
 	}
@@ -238,9 +303,20 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 	switch args.Type {
 	case RootDag:
 		options.RuntimeConfig = runtimeConfig
-		execution, driverErr = driver.RootDAG(ctx, options, client)
+		execution, pipeline, driverErr = driver.RootDAG(ctx, options, client)
+		if driverErr != nil {
+			return nil, err
+		}
+		pipelineRoot = pipeline.GetPipelineRoot()
+		storeSessionInfo = pipeline.GetStoreSessionInfo()
 	case DAG:
-		execution, driverErr = driver.DAG(ctx, options, client)
+		pipeline, driverErr = client.GetPipeline(ctx, options.PipelineName, options.RunID, "", "", "", "")
+		if driverErr != nil {
+			return nil, driverErr
+		}
+		pipelineRoot = pipeline.GetPipelineRoot()
+		storeSessionInfo = pipeline.GetStoreSessionInfo()
+		execution, driverErr = driver.DAG(ctx, pipeline, options, client)
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
@@ -256,11 +332,19 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 				options.DefaultRunAsNonRoot = &v
 			}
 		}
-		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
+		pipeline, driverErr = client.GetPipeline(ctx, options.PipelineName, options.RunID, "", "", "", "")
+		if driverErr != nil {
+			return nil, driverErr
+		}
+		pipelineRoot = pipeline.GetPipelineRoot()
+		storeSessionInfo = pipeline.GetStoreSessionInfo()
+		outputPathPrefix = uuid.NewString()
+		execution, driverErr = driver.Container(ctx, pipeline, options, client, cacheClient, outputPathPrefix)
 	default:
 		err = fmt.Errorf("unknown driverType %s", args.Type)
 	}
 	if driverErr != nil {
+		log.Errorf("driver execution failed with error: %v", driverErr)
 		if execution == nil {
 			return nil, driverErr
 		}
@@ -273,6 +357,44 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 	}
 
 	return execution, nil
+}
+
+func uploadDriverLogArtifact(ctx context.Context, logContext *driverLogArtifactContext) error {
+	if logContext == nil {
+		return fmt.Errorf("logContext is nil")
+	}
+	if logContext.PipelineRoot != "" {
+		restConfig, err := util.GetKubernetesConfig()
+		if err != nil {
+			return fmt.Errorf("failed to get kubernetes config: %v", err)
+		}
+		k8sClient, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			return fmt.Errorf("failed to initialize kubernetes client set: %w", err)
+		}
+		session, err := objectstore.GetSessionInfoFromString(logContext.StoreSessionInfo)
+		if err != nil {
+			return fmt.Errorf("failed to get session info from store: %v", err)
+		}
+		bucketConfig, err := objectstore.ParseBucketConfig(logContext.PipelineRoot, session)
+		if err != nil {
+			return fmt.Errorf("failed to parse bucket config: %v", err)
+		}
+		bucket, err := objectstore.OpenBucket(ctx, k8sClient, logContext.Namespace, bucketConfig)
+		if err != nil {
+			return fmt.Errorf("failed to open bucket: %v", err)
+		}
+		key := fmt.Sprintf("driver/%s-logs", logContext.LogId)
+		if logContext.Execution != nil && logContext.OutputPathPrefix != "" {
+			key = fmt.Sprintf("%s/%s/driver-logs", logContext.Task, logContext.OutputPathPrefix)
+		}
+		glog.Infof("Uploading log key: %s ...", key)
+		err = objectstore.UploadBlob(ctx, bucket, logContext.LocalPath, key)
+		if err != nil {
+			return fmt.Errorf("failed to upload log: %v", err)
+		}
+	}
+	return nil
 }
 
 func validate(args api.DriverPluginArgs) error {
@@ -337,4 +459,8 @@ func WriteJSONResponse(w http.ResponseWriter, payload api.DriverResponse) {
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func putLog() {
+
 }

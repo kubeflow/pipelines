@@ -9,6 +9,17 @@ data:
     imagePullPolicy: IfNotPresent
     ports:
       - containerPort: 8080
+    env:
+      - name: LOG_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: mlpipeline-minio-artifact
+            key: accesskey
+      - name: LOG_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: mlpipeline-minio-artifact
+            key: secretkey
     resources:
       requests:
         cpu: 100m
@@ -29,4 +40,7 @@ data:
     - name: argo-workflows-agent-ca-certificates
       mountPath: /kfp/certs
       readOnly: true
+    - name: var-run-argo
+      mountPath: /kfp/log
+      readOnly: false
   

@@ -75,7 +75,6 @@ func init() {
 func parseExecConfigJSON(k8sExecConfigJSON *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
 	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
 	if *k8sExecConfigJSON != "" {
-		glog.Infof("input kubernetesConfig:%s\n", prettyPrint(*k8sExecConfigJSON))
 		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
 		if err := util.UnmarshalString(*k8sExecConfigJSON, k8sExecCfg); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal Kubernetes config, error: %w\nKubernetesConfig: %v", err, k8sExecConfigJSON)
@@ -166,6 +165,5 @@ func writeFile(path string, data []byte) (err error) {
 }
 
 func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.Config) (*metadata.Client, error) {
-	glog.Infof("mlmd server address: %s:%s\n", mlmdServerAddress, mlmdServerPort)
 	return metadata.NewClient(mlmdServerAddress, mlmdServerPort, tlsCfg)
 }

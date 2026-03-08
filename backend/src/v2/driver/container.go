@@ -20,9 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/glog"
-	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -43,14 +42,18 @@ func validateContainer(opts Options) (err error) {
 	return validateNonRoot(opts)
 }
 
-func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client) (execution *Execution, err error) {
+func Container(ctx context.Context, pipeline *metadata.Pipeline, opts Options, mlmd *metadata.Client, cacheClient cacheutils.Client, outputPathPrefix string) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.Container(%s) failed: %w", opts.info(), err)
 		}
 	}()
 	b, _ := json.Marshal(opts)
-	glog.V(4).Info("Container opts: ", string(b))
+	log := util.GetLoggerFrom(ctx)
+	if log == nil {
+		return nil, fmt.Errorf("failed to get logger for container: %s", string(b))
+	}
+	log.Trace("Container opts: ", string(b))
 	err = validateContainer(opts)
 	if err != nil {
 		return nil, err
@@ -62,15 +65,11 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 	// TODO(Bobgy): there's no need to pass any parameters, because pipeline
 	// and pipeline run context have been created by root DAG driver.
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
-	if err != nil {
-		return nil, err
-	}
 	dag, err := mlmd.GetDAG(ctx, opts.DAGExecutionID)
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("parent DAG: %+v", dag.Execution)
+	log.Infof("parent DAG: %+v", dag.Execution)
 	expr, err := expression.New()
 	if err != nil {
 		return nil, err
@@ -116,7 +115,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			pipeline.GetPipelineRoot(),
 			opts.TaskName,
 			opts.Component.GetOutputDefinitions(),
-			uuid.NewString(),
+			outputPathPrefix,
 			opts.PublishLogs,
 		)
 	}
@@ -182,7 +181,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return execution, err
 	}
-	glog.Infof("Created execution: %s", createdExecution)
+	log.Infof("Created execution: %s", createdExecution)
 	execution.ID = createdExecution.GetID()
 	if !execution.WillTrigger() {
 		return execution, nil
@@ -206,12 +205,12 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
 				return execution, fmt.Errorf("failed to publish cached execution: %w", err)
 			}
-			glog.Infof("Use cache for task %s", opts.Task.GetTaskInfo().GetName())
+			log.Infof("Use cache for task %s", opts.Task.GetTaskInfo().GetName())
 			*execution.Cached = true
 			return execution, nil
 		}
 	} else {
-		glog.Info("Cache disabled globally at the server level.")
+		log.Info("Cache disabled globally at the server level.")
 	}
 
 	taskConfig := &TaskConfig{}
