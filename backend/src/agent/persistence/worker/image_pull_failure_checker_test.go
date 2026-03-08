@@ -19,11 +19,43 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 )
+
+// fakeExecutionInterface records Patch calls for testing.
+type fakeExecutionInterface struct {
+	util.ExecutionInterface
+	patchCalled bool
+	patchedName string
+	patchData   []byte
+}
+
+func (f *fakeExecutionInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (util.ExecutionSpec, error) {
+	f.patchCalled = true
+	f.patchedName = name
+	f.patchData = data
+	return nil, nil
+}
+
+// fakeExecutionClient returns a fakeExecutionInterface for testing.
+type fakeExecutionClient struct {
+	executionInterface *fakeExecutionInterface
+	namespace          string
+}
+
+func (f *fakeExecutionClient) Execution(namespace string) util.ExecutionInterface {
+	f.namespace = namespace
+	return f.executionInterface
+}
+
+func (f *fakeExecutionClient) Compare(old, new interface{}) bool {
+	return true
+}
 
 func TestGetImagePullFailure_NoFailure(t *testing.T) {
 	pod := &corev1.Pod{
@@ -308,4 +340,42 @@ func TestCheckAndTerminate_OnlyListsPodsForWorkflow(t *testing.T) {
 	checker := NewImagePullFailureChecker(kubeClient, nil, 5*time.Minute)
 	err = checker.CheckAndTerminate("default", "my-workflow")
 	assert.NoError(t, err)
+}
+
+func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
+	kubeClient := fake.NewSimpleClientset()
+	ctx := context.Background()
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "failing-pod",
+			Namespace:         "default",
+			Labels:            map[string]string{argoWorkflowLabelKey: "my-workflow"},
+			CreationTimestamp: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Image: "bad-image:latest",
+					State: corev1.ContainerState{
+						Waiting: &corev1.ContainerStateWaiting{Reason: "ImagePullBackOff"},
+					},
+				},
+			},
+		},
+	}
+	_, err := kubeClient.CoreV1().Pods("default").Create(ctx, pod, metav1.CreateOptions{})
+	assert.NoError(t, err)
+
+	fakeExecInterface := &fakeExecutionInterface{}
+	fakeExecClient := &fakeExecutionClient{executionInterface: fakeExecInterface}
+
+	checker := NewImagePullFailureChecker(kubeClient, fakeExecClient, 5*time.Minute)
+	err = checker.CheckAndTerminate("default", "my-workflow")
+
+	assert.NoError(t, err)
+	assert.True(t, fakeExecInterface.patchCalled, "Patch should have been called to terminate the workflow")
+	assert.Equal(t, "my-workflow", fakeExecInterface.patchedName)
+	assert.Equal(t, "default", fakeExecClient.namespace)
+	assert.Contains(t, string(fakeExecInterface.patchData), "activeDeadlineSeconds")
 }
