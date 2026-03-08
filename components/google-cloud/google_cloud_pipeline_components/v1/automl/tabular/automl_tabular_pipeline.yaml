@@ -9769,7 +9769,7 @@ deploymentSpec:
         command:
         - python
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5 
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5
     exec-model-evaluation-2:
       container:
         args:
