@@ -1,4 +1,4 @@
-// Copyright 2020 The Kubeflow Authors
+// Copyright 2026 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,6 @@ func TestFakeKuberneteCoreClientPodClientReturnsClient(t *testing.T) {
 	podClient := fakeClient.PodClient("test-namespace")
 	assert.NotNil(t, podClient)
 
-	// Verify it implements PodInterface
 	var _ v1.PodInterface = podClient
 }
 
@@ -108,95 +107,87 @@ func TestFakePodClientPatch(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestFakePodClientGet(t *testing.T) {
+// TestFakePodClientStubMethods verifies all unimplemented stub methods return nil values.
+func TestFakePodClientStubMethods(t *testing.T) {
 	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.Get(context.Background(), "test-pod", metav1.GetOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
-}
+	ctx := context.Background()
 
-func TestFakePodClientList(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	podList, err := fakePodClient.List(context.Background(), metav1.ListOptions{})
-	assert.Nil(t, podList)
-	assert.NoError(t, err)
-}
+	t.Run("Get", func(t *testing.T) {
+		pod, err := fakePodClient.Get(ctx, "test-pod", metav1.GetOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientCreate(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.Create(context.Background(), nil, metav1.CreateOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
-}
+	t.Run("List", func(t *testing.T) {
+		podList, err := fakePodClient.List(ctx, metav1.ListOptions{})
+		assert.Nil(t, podList)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientUpdate(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.Update(context.Background(), nil, metav1.UpdateOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
-}
+	t.Run("Create", func(t *testing.T) {
+		pod, err := fakePodClient.Create(ctx, nil, metav1.CreateOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientUpdateStatus(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.UpdateStatus(context.Background(), nil, metav1.UpdateOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
-}
+	t.Run("Update", func(t *testing.T) {
+		pod, err := fakePodClient.Update(ctx, nil, metav1.UpdateOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientDeleteCollection(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	err := fakePodClient.DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{})
-	assert.NoError(t, err)
-}
+	t.Run("UpdateStatus", func(t *testing.T) {
+		pod, err := fakePodClient.UpdateStatus(ctx, nil, metav1.UpdateOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientBind(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	err := fakePodClient.Bind(context.Background(), nil, metav1.CreateOptions{})
-	assert.NoError(t, err)
-}
+	t.Run("DeleteCollection", func(t *testing.T) {
+		err := fakePodClient.DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{})
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientEvict(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	err := fakePodClient.Evict(context.Background(), nil)
-	assert.NoError(t, err)
-}
+	t.Run("Bind", func(t *testing.T) {
+		err := fakePodClient.Bind(ctx, nil, metav1.CreateOptions{})
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientGetLogs(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	result := fakePodClient.GetLogs("test-pod", nil)
-	assert.Nil(t, result)
-}
+	t.Run("Evict", func(t *testing.T) {
+		err := fakePodClient.Evict(ctx, nil)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientProxyGet(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	result := fakePodClient.ProxyGet("http", "test-pod", "8080", "/healthz", nil)
-	assert.Nil(t, result)
-}
+	t.Run("GetLogs", func(t *testing.T) {
+		result := fakePodClient.GetLogs("test-pod", nil)
+		assert.Nil(t, result)
+	})
 
-func TestFakePodClientUpdateEphemeralContainers(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.UpdateEphemeralContainers(context.Background(), "test-pod", nil, metav1.UpdateOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
-}
+	t.Run("ProxyGet", func(t *testing.T) {
+		result := fakePodClient.ProxyGet("http", "test-pod", "8080", "/healthz", nil)
+		assert.Nil(t, result)
+	})
 
-func TestFakePodClientApply(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.Apply(context.Background(), nil, metav1.ApplyOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
-}
+	t.Run("UpdateEphemeralContainers", func(t *testing.T) {
+		pod, err := fakePodClient.UpdateEphemeralContainers(ctx, "test-pod", nil, metav1.UpdateOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientApplyStatus(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.ApplyStatus(context.Background(), nil, metav1.ApplyOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
-}
+	t.Run("Apply", func(t *testing.T) {
+		pod, err := fakePodClient.Apply(ctx, nil, metav1.ApplyOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
 
-func TestFakePodClientUpdateResize(t *testing.T) {
-	fakePodClient := &FakePodClient{}
-	pod, err := fakePodClient.UpdateResize(context.Background(), "test-pod", nil, metav1.UpdateOptions{})
-	assert.Nil(t, pod)
-	assert.NoError(t, err)
+	t.Run("ApplyStatus", func(t *testing.T) {
+		pod, err := fakePodClient.ApplyStatus(ctx, nil, metav1.ApplyOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
+
+	t.Run("UpdateResize", func(t *testing.T) {
+		pod, err := fakePodClient.UpdateResize(ctx, "test-pod", nil, metav1.UpdateOptions{})
+		assert.Nil(t, pod)
+		assert.NoError(t, err)
+	})
 }
