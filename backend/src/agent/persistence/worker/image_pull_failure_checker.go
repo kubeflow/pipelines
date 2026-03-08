@@ -82,7 +82,7 @@ func (c *ImagePullFailureChecker) CheckAndTerminate(namespace string, workflowNa
 
 		podAge := time.Since(pod.CreationTimestamp.Time)
 		if podAge < c.gracePeriod {
-			log.Infof("Pod %s/%s has image pull failure for %q (age: %v), waiting for grace period (%v)",
+			log.Debugf("Pod %s/%s has image pull failure for %q (age: %v), waiting for grace period (%v)",
 				pod.Namespace, pod.Name, failedImage, podAge.Round(time.Second), c.gracePeriod)
 			continue
 		}

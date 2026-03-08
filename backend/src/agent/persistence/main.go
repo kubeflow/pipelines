@@ -158,8 +158,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error building Kubernetes clientset: %s", err.Error())
 		}
-		executionClient := util.NewExecutionClientOrFatal(
-			util.CurrentExecutionType(), DefaultConnectionTimeout, clientParam)
+		executionClient, err := util.NewExecutionClientFromConfig(
+			util.CurrentExecutionType(), cfg)
+		if err != nil {
+			log.Fatalf("Error building execution client for image pull failure handling: %v", err)
+		}
 		gracePeriod := time.Duration(imagePullFailureGracePeriodInSec) * time.Second
 		imagePullFailureChecker = worker.NewImagePullFailureChecker(
 			kubeClient, executionClient, gracePeriod)
