@@ -28,6 +28,7 @@ type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
 	ttlSecondsAfterWorkflowFinish int64
+	imagePullFailureChecker       ImagePullFailureCheckerInterface
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
@@ -37,6 +38,13 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 		pipelineClient:                pipelineClient,
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
 	}
+}
+
+// SetImagePullFailureChecker sets the optional image pull failure checker.
+// When set, running workflows will be checked for pods stuck in
+// ImagePullBackOff/ErrImagePull and terminated after the grace period.
+func (s *WorkflowSaver) SetImagePullFailureChecker(checker ImagePullFailureCheckerInterface) {
+	s.imagePullFailureChecker = checker
 }
 
 func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch int64) error {
@@ -64,6 +72,13 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		// and the workflow hasn't being passing the TTL
 		log.Infof("Skip syncing Workflow (%v): workflow marked as persisted.", name)
 		return nil
+	}
+
+	// Check for image pull failures on workflows that are still running.
+	if s.imagePullFailureChecker != nil && !wf.ExecutionStatus().IsInFinalState() {
+		if checkErr := s.imagePullFailureChecker.CheckAndTerminate(namespace, name); checkErr != nil {
+			log.Warnf("Workflow (%v): error checking image pull failures: %v", name, checkErr)
+		}
 	}
 
 	// Save this Workflow to the database.
