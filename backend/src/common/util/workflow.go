@@ -460,7 +460,35 @@ func (w *Workflow) FinishedAt() int64 {
 }
 
 func (w *Workflow) Condition() exec.ExecutionPhase {
+	// If the workflow is still in a non-final phase but one of its nodes
+	// reports a terminal image pull error, surface this as a failed condition
+	// to Kubeflow Pipelines so that the corresponding run can be marked as
+	// failed instead of remaining in a misleading running state.
+	if !w.IsInFinalState() && w.hasImagePullError() {
+		return exec.ExecutionFailed
+	}
 	return exec.ExecutionPhase(w.Status.Phase)
+}
+
+// hasImagePullError returns true if any node in the workflow reports a message
+// indicating a terminal container image pull error (for example,
+// ImagePullBackOff or ErrImagePull). This is based on the node status message
+// surfaced by Argo Workflows, which in turn reflects the underlying Pod's
+// container waiting reason.
+func (w *Workflow) hasImagePullError() bool {
+	if w.Status.Nodes == nil {
+		return false
+	}
+	for _, node := range w.Status.Nodes {
+		if node.Message == "" {
+			continue
+		}
+		if strings.Contains(node.Message, "ImagePullBackOff") ||
+			strings.Contains(node.Message, "ErrImagePull") {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *Workflow) Message() string {

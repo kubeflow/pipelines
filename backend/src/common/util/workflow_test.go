@@ -221,19 +221,50 @@ func TestWorkflow_ScheduledAtInSecOr0(t *testing.T) {
 }
 
 func TestCondition(t *testing.T) {
-	// Base case
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		Status: workflowapi.WorkflowStatus{
-			Phase: workflowapi.WorkflowRunning,
-		},
+	t.Run("base case - running phase without image pull error", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowRunning,
+				Nodes: map[string]workflowapi.NodeStatus{},
+			},
+		})
+		assert.Equal(t, "Running", string(workflow.Condition()))
 	})
-	assert.Equal(t, "Running", string(workflow.Condition()))
 
-	// No status
-	workflow = NewWorkflow(&workflowapi.Workflow{
-		Status: workflowapi.WorkflowStatus{},
+	t.Run("no status", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{},
+		})
+		assert.Equal(t, "", string(workflow.Condition()))
 	})
-	assert.Equal(t, "", string(workflow.Condition()))
+
+	t.Run("running phase with ImagePullBackOff message is treated as Failed", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowRunning,
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-image-pull-failure": {
+						Message: "ImagePullBackOff: Back-off pulling image \"gcr.io/example/non-existent\"",
+					},
+				},
+			},
+		})
+		assert.Equal(t, "Failed", string(workflow.Condition()))
+	})
+
+	t.Run("running phase with ErrImagePull message is treated as Failed", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowRunning,
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-err-image-pull": {
+						Message: "ErrImagePull: rpc error: code = Unknown desc = failed to pull and unpack image",
+					},
+				},
+			},
+		})
+		assert.Equal(t, "Failed", string(workflow.Condition()))
+	})
 }
 
 func TestToStringForStore(t *testing.T) {
