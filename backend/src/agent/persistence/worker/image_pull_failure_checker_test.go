@@ -24,7 +24,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 // fakeExecutionInterface records Patch calls for testing.
@@ -55,6 +58,28 @@ func (f *fakeExecutionClient) Execution(namespace string) util.ExecutionInterfac
 
 func (f *fakeExecutionClient) Compare(old, new interface{}) bool {
 	return true
+}
+
+// newTestPodLister creates a pod lister backed by a fake clientset and shared
+// informer. The provided pods are pre-created in the fake clientset before the
+// informer cache is synced.
+func newTestPodLister(pods ...*corev1.Pod) corelisters.PodLister {
+	ctx := context.Background()
+	kubeClient := fake.NewSimpleClientset()
+	for _, pod := range pods {
+		kubeClient.CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{})
+	}
+
+	factory := informers.NewSharedInformerFactory(kubeClient, 0)
+	podInformer := factory.Core().V1().Pods()
+	podLister := podInformer.Lister()
+
+	stopChannel := make(chan struct{})
+	defer close(stopChannel)
+	factory.Start(stopChannel)
+	cache.WaitForCacheSync(stopChannel, podInformer.Informer().HasSynced)
+
+	return podLister
 }
 
 func TestGetImagePullFailure_NoFailure(t *testing.T) {
@@ -158,17 +183,14 @@ func TestGetImagePullFailure_OtherWaitingReason(t *testing.T) {
 }
 
 func TestCheckAndTerminate_NoPods(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	checker := NewImagePullFailureChecker(kubeClient, nil, 5*time.Minute)
+	podLister := newTestPodLister()
+	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
 
 	err := checker.CheckAndTerminate("default", "my-workflow")
 	assert.NoError(t, err)
 }
 
 func TestCheckAndTerminate_HealthyPods(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	ctx := context.Background()
-
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "healthy-pod",
@@ -184,18 +206,14 @@ func TestCheckAndTerminate_HealthyPods(t *testing.T) {
 			},
 		},
 	}
-	_, err := kubeClient.CoreV1().Pods("default").Create(ctx, pod, metav1.CreateOptions{})
-	assert.NoError(t, err)
 
-	checker := NewImagePullFailureChecker(kubeClient, nil, 5*time.Minute)
-	err = checker.CheckAndTerminate("default", "my-workflow")
+	podLister := newTestPodLister(pod)
+	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
+	err := checker.CheckAndTerminate("default", "my-workflow")
 	assert.NoError(t, err)
 }
 
 func TestCheckAndTerminate_ImagePullFailureWithinGracePeriod(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	ctx := context.Background()
-
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "failing-pod",
@@ -214,19 +232,15 @@ func TestCheckAndTerminate_ImagePullFailureWithinGracePeriod(t *testing.T) {
 			},
 		},
 	}
-	_, err := kubeClient.CoreV1().Pods("default").Create(ctx, pod, metav1.CreateOptions{})
-	assert.NoError(t, err)
 
+	podLister := newTestPodLister(pod)
 	// Grace period is 1 hour, pod was just created -- should not terminate.
-	checker := NewImagePullFailureChecker(kubeClient, nil, 1*time.Hour)
-	err = checker.CheckAndTerminate("default", "my-workflow")
+	checker := NewImagePullFailureChecker(podLister, nil, 1*time.Hour)
+	err := checker.CheckAndTerminate("default", "my-workflow")
 	assert.NoError(t, err)
 }
 
 func TestCheckAndTerminate_ImagePullFailureExceedsGracePeriod(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	ctx := context.Background()
-
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "failing-pod",
@@ -245,21 +259,17 @@ func TestCheckAndTerminate_ImagePullFailureExceedsGracePeriod(t *testing.T) {
 			},
 		},
 	}
-	_, err := kubeClient.CoreV1().Pods("default").Create(ctx, pod, metav1.CreateOptions{})
-	assert.NoError(t, err)
 
+	podLister := newTestPodLister(pod)
 	// Grace period is 5 min, pod is 10 min old -- should attempt to terminate.
 	// executionClient is nil so the termination will return an error.
-	checker := NewImagePullFailureChecker(kubeClient, nil, 5*time.Minute)
-	err = checker.CheckAndTerminate("default", "my-workflow")
+	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
+	err := checker.CheckAndTerminate("default", "my-workflow")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "execution client not configured")
 }
 
 func TestCheckAndTerminate_MixedPods(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	ctx := context.Background()
-
 	// Healthy pod
 	healthyPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -298,21 +308,14 @@ func TestCheckAndTerminate_MixedPods(t *testing.T) {
 		},
 	}
 
-	_, err := kubeClient.CoreV1().Pods("default").Create(ctx, healthyPod, metav1.CreateOptions{})
-	assert.NoError(t, err)
-	_, err = kubeClient.CoreV1().Pods("default").Create(ctx, newFailingPod, metav1.CreateOptions{})
-	assert.NoError(t, err)
-
+	podLister := newTestPodLister(healthyPod, newFailingPod)
 	// Grace period is 5 min, only the new failing pod has issues but is within grace -- should not terminate.
-	checker := NewImagePullFailureChecker(kubeClient, nil, 5*time.Minute)
-	err = checker.CheckAndTerminate("default", "my-workflow")
+	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
+	err := checker.CheckAndTerminate("default", "my-workflow")
 	assert.NoError(t, err)
 }
 
 func TestCheckAndTerminate_OnlyListsPodsForWorkflow(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	ctx := context.Background()
-
 	// Pod belonging to a different workflow, old and failing.
 	otherPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -333,19 +336,14 @@ func TestCheckAndTerminate_OnlyListsPodsForWorkflow(t *testing.T) {
 		},
 	}
 
-	_, err := kubeClient.CoreV1().Pods("default").Create(ctx, otherPod, metav1.CreateOptions{})
-	assert.NoError(t, err)
-
+	podLister := newTestPodLister(otherPod)
 	// Checking "my-workflow" should not see "other-workflow" pods.
-	checker := NewImagePullFailureChecker(kubeClient, nil, 5*time.Minute)
-	err = checker.CheckAndTerminate("default", "my-workflow")
+	checker := NewImagePullFailureChecker(podLister, nil, 5*time.Minute)
+	err := checker.CheckAndTerminate("default", "my-workflow")
 	assert.NoError(t, err)
 }
 
 func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	ctx := context.Background()
-
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "failing-pod",
@@ -364,14 +362,13 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 			},
 		},
 	}
-	_, err := kubeClient.CoreV1().Pods("default").Create(ctx, pod, metav1.CreateOptions{})
-	assert.NoError(t, err)
 
+	podLister := newTestPodLister(pod)
 	fakeExecInterface := &fakeExecutionInterface{}
 	fakeExecClient := &fakeExecutionClient{executionInterface: fakeExecInterface}
 
-	checker := NewImagePullFailureChecker(kubeClient, fakeExecClient, 5*time.Minute)
-	err = checker.CheckAndTerminate("default", "my-workflow")
+	checker := NewImagePullFailureChecker(podLister, fakeExecClient, 5*time.Minute)
+	err := checker.CheckAndTerminate("default", "my-workflow")
 
 	assert.NoError(t, err)
 	assert.True(t, fakeExecInterface.patchCalled, "Patch should have been called to terminate the workflow")
