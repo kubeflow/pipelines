@@ -14,7 +14,6 @@
 
 __all__ = [
     'create_component_from_func',
-    'create_component_from_func_v2',
     'func_to_container_op',
     'func_to_component_text',
     'default_base_image_or_builder',
@@ -944,56 +943,6 @@ def func_to_container_op(
         #TODO: assert ComponentSpec.from_dict(load_yaml(output_component_file)) == component_spec
 
     return _create_task_factory_from_component_spec(component_spec)
-
-
-def create_component_from_func_v2(func: Callable,
-                                  base_image: Optional[str] = None,
-                                  packages_to_install: List[str] = None,
-                                  output_component_file: Optional[str] = None,
-                                  install_kfp_package: bool = True,
-                                  kfp_package_path: Optional[str] = None):
-    """Converts a Python function to a v2 lightweight component.
-
-    A lightweight component is a self-contained Python function that includes
-    all necessary imports and dependencies.
-
-    Args:
-        func: The python function to create a component from. The function
-            should have type annotations for all its arguments, indicating how
-            it is intended to be used (e.g. as an input/output Artifact object,
-            a plain parameter, or a path to a file).
-        base_image: The image to use when executing |func|. It should
-            contain a default Python interpreter that is compatible with KFP.
-        packages_to_install: A list of optional packages to install before
-            executing |func|.
-        install_kfp_package: Specifies if we should add a KFP Python package to
-            |packages_to_install|. Lightweight Python functions always require
-            an installation of KFP in |base_image| to work. If you specify
-            a |base_image| that already contains KFP, you can set this to False.
-        kfp_package_path: Specifies the location from which to install KFP. By
-            default, this will try to install from PyPi using the same version
-            as that used when this component was created. KFP developers can
-            choose to override this to point to a Github pull request or
-            other pip-compatible location when testing changes to lightweight
-            Python functions.
-
-    Returns:
-        A component task factory that can be used in pipeline definitions.
-    """
-    warnings.warn(
-        'create_component_from_func_v2() has been deprecated and will be'
-        ' removed in KFP v1.9. Please use'
-        ' @kfp.v2.dsl.component() instead.',
-        category=FutureWarning,
-    )
-    from kfp.v2.components import component_factory
-    return component_factory.create_component_from_func(
-        func=func,
-        base_image=base_image,
-        packages_to_install=packages_to_install,
-        install_kfp_package=install_kfp_package,
-        kfp_package_path=kfp_package_path)
-
 
 def create_component_from_func(
     func: Callable,

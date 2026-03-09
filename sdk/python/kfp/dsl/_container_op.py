@@ -20,7 +20,6 @@ from typing import (Any, Callable, Dict, List, Optional, Sequence, Tuple,
 import kfp
 from kfp.components import _components, _structures
 from kfp.dsl import _pipeline_param, dsl_utils
-from kfp.pipeline_spec import pipeline_spec_pb2
 from kubernetes.client import V1Affinity, V1Toleration
 from kubernetes.client.models import (V1Container, V1ContainerPort,
                                       V1EnvFromSource, V1EnvVar, V1Lifecycle,
@@ -42,9 +41,6 @@ ALLOWED_RETRY_POLICIES = (
     'OnFailure',
     'OnTransientError',
 )
-
-# Shorthand for PipelineContainerSpec
-_PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
 
 # Unit constants for k8s size string.
 _E = 10**18  # Exa
@@ -204,9 +200,6 @@ class Container(V1Container):
         if not kwargs.get('name'):
             kwargs['name'] = ''
 
-        # v2 container_spec
-        self._container_spec = None
-
         self.env_dict = {}
 
         super(Container, self).__init__(
@@ -338,9 +331,6 @@ class Container(V1Container):
         """
         if not isinstance(memory, _pipeline_param.PipelineParam):
             self._validate_size_string(memory)
-            if self._container_spec:
-                self._container_spec.resources.memory_limit = _get_resource_number(
-                    memory)
         return self.add_resource_limit('memory', memory)
 
     def set_ephemeral_storage_request(self, size: Union[str,
@@ -392,8 +382,6 @@ class Container(V1Container):
 
         if not isinstance(cpu, _pipeline_param.PipelineParam):
             self._validate_cpu_string(cpu)
-            if self._container_spec:
-                self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
         return self.add_resource_limit('cpu', cpu)
 
     def set_gpu_limit(
@@ -417,10 +405,6 @@ class Container(V1Container):
 
         if not isinstance(gpu, _pipeline_param.PipelineParam):
             self._validate_positive_number(gpu, 'gpu')
-
-            if self._container_spec:
-                # For backforward compatibiliy, allow `gpu` to be a string.
-                self._container_spec.resources.accelerator.count = int(gpu)
 
             if vendor != 'nvidia' and vendor != 'amd':
                 raise ValueError('vendor can only be nvidia or amd.')
@@ -460,31 +444,6 @@ class Container(V1Container):
 
         self.volume_devices = create_and_append(self.volume_devices,
                                                 volume_device)
-        return self
-
-    def set_env_variable(self, name: str, value: str) -> 'Container':
-        """Sets environment variable to the container (v2 only).
-
-        Args:
-          name: The name of the environment variable.
-          value: The value of the environment variable.
-        """
-
-        if not kfp.COMPILING_FOR_V2:
-            raise ValueError(
-                'set_env_variable is v2 only. Use add_env_variable for v1.')
-
-        # Merge with any existing environment varaibles
-        self.env_dict = {
-            env.name: env.value for env in self._container_spec.env or []
-        }
-        self.env_dict[name] = value
-
-        del self._container_spec.env[:]
-        self._container_spec.env.extend([
-            _PipelineContainerSpec.EnvVar(name=name, value=value)
-            for name, value in self.env_dict.items()
-        ])
         return self
 
     def add_env_variable(self, env_variable) -> 'Container':
@@ -1369,18 +1328,6 @@ class ContainerOp(BaseOp):
     def is_v2(self, is_v2: bool):
         self._is_v2 = is_v2
 
-    # v2 container spec
-    @property
-    def container_spec(self):
-        return self._container._container_spec
-
-    @container_spec.setter
-    def container_spec(self, spec: _PipelineContainerSpec):
-        if not isinstance(spec, _PipelineContainerSpec):
-            raise TypeError('container_spec can only be PipelineContainerSpec. '
-                            'Got: {}'.format(spec))
-        self._container._container_spec = spec
-
     @property
     def command(self):
         return self._container.command
@@ -1529,19 +1476,6 @@ class ContainerOp(BaseOp):
         Returns:
           self return to allow chained call with other resource specification.
         """
-        if self.container_spec and not (
-                isinstance(label_name, _pipeline_param.PipelineParam) or
-                isinstance(value, _pipeline_param.PipelineParam)):
-            accelerator_cnt = 1
-            if self.container_spec.resources.accelerator.count > 1:
-                # Reserve the number if already set.
-                accelerator_cnt = self.container_spec.resources.accelerator.count
-
-            accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
-                type=_sanitize_gpu_type(value), count=accelerator_cnt)
-            self.container_spec.resources.accelerator.CopyFrom(
-                accelerator_config)
-
         super(ContainerOp, self).add_node_selector_constraint(label_name, value)
         return self
 

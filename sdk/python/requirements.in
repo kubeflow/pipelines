@@ -32,7 +32,6 @@ click>=7.1.2,<9
 typer>=0.3.2,<1.0
 
 # kfp.v2
-kfp-pipeline-spec==0.8.0
 fire>=0.7.0,<1
 google-api-python-client>=1.7.8,<2
 pydantic>=1.8.2,<2

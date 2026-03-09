@@ -9,7 +9,6 @@ on:
       - 'components/**/*.yaml'
       - 'test/presubmit-component-yaml.sh'
       - 'sdk/python/**'
-      - 'api/v2alpha1/**'
       - '.github/workflows/sdk-component-yaml.yml'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -26,9 +25,6 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Install protobuf-compiler
-        run: sudo apt update && sudo apt install -y protobuf-compiler
-
       - name: Install setuptools
         run: | 
           pip3 install setuptools
@@ -36,17 +32,6 @@ jobs:
 
       - name: Install Wheel
         run: pip3 install wheel==0.42.0
-
-      - name: Install protobuf
-        run: pip3 install protobuf==4.25.3
-
-      - name: Generate API proto files
-        working-directory: ./api
-        run: make clean python
-
-      - name: Install kfp-pipeline-spec from source
-        run: |
-          python3 -m pip install api/v2alpha1/python
 
       - name: Install prerequisites
         run: pip3 install -r ./test/sample-test/requirements.txt && pip install sdk/python

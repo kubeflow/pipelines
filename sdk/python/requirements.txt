@@ -70,8 +70,6 @@ jsonschema==4.25.0
     # via -r sdk/python/requirements.in
 jsonschema-specifications==2025.4.1
     # via jsonschema
-kfp-pipeline-spec==0.8.0
-    # via -r sdk/python/requirements.in
 kfp-server-api==1.8.5
     # via -r sdk/python/requirements.in
 kubernetes==25.3.0

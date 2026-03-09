@@ -17,7 +17,6 @@ import re
 from typing import Callable, List, Optional, Union
 
 from kfp.components import _structures
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 _COMPONENT_NAME_PREFIX = 'comp-'
 _EXECUTOR_LABEL_PREFIX = 'exec-'
@@ -56,23 +55,6 @@ def _sanitize_name(name: str) -> str:
     """
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-',
                                     name.lower())).lstrip('-').rstrip('-')
-
-
-def get_value(value: Union[str, int, float]) -> pipeline_spec_pb2.Value:
-    """Gets pipeline value proto from Python value."""
-    result = pipeline_spec_pb2.Value()
-    if isinstance(value, str):
-        result.string_value = value
-    elif isinstance(value, int):
-        result.int_value = value
-    elif isinstance(value, float):
-        result.double_value = value
-    else:
-        raise TypeError(
-            'Got unexpected type %s for value %s. Currently only support str, int '
-            'and float.' % (type(value), value))
-    return result
-
 
 # TODO: share with dsl._component_bridge
 def _input_artifact_uri_placeholder(input_key: str) -> str:

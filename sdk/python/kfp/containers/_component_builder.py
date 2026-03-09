@@ -29,11 +29,11 @@ from kfp import components
 from kfp import dsl
 from kfp.components import _components
 from kfp.components import _structures
-from kfp.containers import entrypoint
 
 V2_COMPONENT_ANNOTATION = 'pipelines.kubeflow.org/component_v2'
 _PROGRAM_LAUNCHER_CMD = 'program_path=$(mktemp)\nprintf "%s" "$0" > ' \
                         '"$program_path"\npython3 -u "$program_path" "$@"\n'
+FN_NAME_ARG = 'function_name' # From deleted entrypoint module
 
 
 class VersionedDependency(object):
@@ -334,7 +334,7 @@ def build_python_component(
         program_args = [
             '--executor_input_str',
             _structures.ExecutorInputPlaceholder(),
-            '--{}'.format(entrypoint.FN_NAME_ARG), component_func.__name__,
+            '--{}'.format(FN_NAME_ARG), component_func.__name__,
             '--output_metadata_path',
             _structures.OutputMetadataPlaceholder()
         ]
