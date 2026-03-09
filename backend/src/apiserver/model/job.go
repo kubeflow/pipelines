@@ -109,7 +109,8 @@ type Job struct {
 	ResourceReferences []*ResourceReference `gorm:"-"`
 	Trigger
 	PipelineSpec
-	Conditions string `gorm:"column:Conditions; not null;"`
+	Conditions         string     `gorm:"column:Conditions; not null;"`
+	PluginsInputString *LargeText `gorm:"column:PluginsInput; default:null;"`
 }
 
 // Converts to v1beta1-compatible internal representation of job.

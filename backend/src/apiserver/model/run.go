@@ -315,10 +315,12 @@ type RunDetails struct {
 	// varchar(125) is carefully chosen to ensure composite index constraints remain
 	// within MySQL's 767-byte limit (e.g., when combined with ExperimentId and FinishedAtInSec).
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
-	Conditions         string           `gorm:"column:Conditions; type:varchar(125); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
-	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString LargeText        `gorm:"column:StateHistory; default:null;"`
-	StateHistory       []*RuntimeStatus `gorm:"-;"`
+	Conditions          string           `gorm:"column:Conditions; type:varchar(125); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
+	State               RuntimeState     `gorm:"column:State; default:null;"`
+	StateHistoryString  LargeText        `gorm:"column:StateHistory; default:null;"`
+	StateHistory        []*RuntimeStatus `gorm:"-;"`
+	PluginsInputString  *LargeText       `gorm:"column:PluginsInput; default:null;"`
+	PluginsOutputString *LargeText       `gorm:"column:PluginsOutput; default:null;"`
 	// Serialized runtime details of a run in v2beta1
 	PipelineRuntimeManifest LargeText `gorm:"column:PipelineRuntimeManifest; not null;"`
 	// Serialized Argo CRD in v1beta1
