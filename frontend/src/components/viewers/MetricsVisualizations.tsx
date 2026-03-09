@@ -16,7 +16,7 @@
 
 import HelpIcon from '@mui/icons-material/Help';
 import React, { useEffect, useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
@@ -104,8 +104,8 @@ export function MetricsVisualizations({
     isSuccess: isV1ViewerConfigsSuccess,
     error: v1ViewerConfigError,
     data: v1ViewerConfigs,
-  } = useQuery<ViewerConfig[], Error>(
-    [
+  } = useQuery<ViewerConfig[], Error>({
+    queryKey: [
       'viewconfig',
       {
         artifact: v1VisualizationArtifact?.artifact.getId(),
@@ -113,16 +113,17 @@ export function MetricsVisualizations({
         namespace: namespace,
       },
     ],
-    () => getViewConfig(v1VisualizationArtifact, namespace),
-    { staleTime: Infinity },
-  );
+
+    queryFn: () => getViewConfig(v1VisualizationArtifact, namespace),
+    staleTime: Infinity,
+  });
 
   const {
     isSuccess: isHtmlDownloaded,
     error: htmlError,
     data: htmlViewerConfigs,
-  } = useQuery<HTMLViewerConfig[], Error>(
-    [
+  } = useQuery<HTMLViewerConfig[], Error>({
+    queryKey: [
       'htmlViewerConfig',
       {
         artifacts: htmlArtifacts.map((linkedArtifact) => {
@@ -132,16 +133,17 @@ export function MetricsVisualizations({
         namespace: namespace,
       },
     ],
-    () => getHtmlViewerConfig(htmlArtifacts, namespace),
-    { staleTime: Infinity },
-  );
+
+    queryFn: () => getHtmlViewerConfig(htmlArtifacts, namespace),
+    staleTime: Infinity,
+  });
 
   const {
     isSuccess: isMarkdownDownloaded,
     error: markdownError,
     data: markdownViewerConfigs,
-  } = useQuery<MarkdownViewerConfig[], Error>(
-    [
+  } = useQuery<MarkdownViewerConfig[], Error>({
+    queryKey: [
       'markdownViewerConfig',
       {
         artifacts: mdArtifacts.map((linkedArtifact) => {
@@ -151,9 +153,10 @@ export function MetricsVisualizations({
         namespace: namespace,
       },
     ],
-    () => getMarkdownViewerConfig(mdArtifacts, namespace),
-    { staleTime: Infinity },
-  );
+
+    queryFn: () => getMarkdownViewerConfig(mdArtifacts, namespace),
+    staleTime: Infinity,
+  });
 
   if (
     classificationMetricsArtifacts.length === 0 &&
@@ -526,7 +529,7 @@ function reloadRocCurve(
     decodeURIComponent(request.filter || '{"predicates": []}'),
   ) as ApiFilter;
   const predicates = apiFilter.predicates?.filter(
-    (p) => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
+    (p) => p.key === 'name' && p.op === PredicateOp.IS_SUBSTRING,
   );
   const substrings = predicates?.map((p) => p.string_value?.toLowerCase() || '') || [];
   const displayLinkedArtifacts = linkedArtifacts.filter((linkedArtifact) => {

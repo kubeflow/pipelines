@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { PassThrough } from 'stream';
-import { PreviewStream, findFileOnPodVolume, resolveFilePathOnVolume } from './utils.js';
+import {
+  PreviewStream,
+  findFileOnPodVolume,
+  parseError,
+  resolveFilePathOnVolume,
+} from './utils.js';
 
 describe('utils', () => {
   describe('PreviewStream', () => {
@@ -207,6 +212,52 @@ describe('utils', () => {
         '',
         'File a/b/c not mounted, expecting the file to be inside volume mount subpath other',
       ]);
+    });
+  });
+
+  describe('parseError', () => {
+    it('parses nested non-cloneable KFP error responses from text without consuming the body twice', async () => {
+      let consumed = false;
+      const response = {
+        async json() {
+          consumed = true;
+          throw new Error('json parse failed');
+        },
+        async text() {
+          if (consumed) {
+            throw new Error('body already consumed');
+          }
+          consumed = true;
+          return JSON.stringify({ error: 'backend exploded', details: { status: 500 } });
+        },
+      };
+
+      await expect(parseError({ response })).resolves.toEqual({
+        message: 'backend exploded',
+        additionalInfo: { status: 500 },
+      });
+    });
+
+    it('returns plain text for direct non-cloneable KFP responses', async () => {
+      let consumed = false;
+      const response = {
+        async json() {
+          consumed = true;
+          throw new Error('json parse failed');
+        },
+        async text() {
+          if (consumed) {
+            throw new Error('body already consumed');
+          }
+          consumed = true;
+          return 'plain text failure';
+        },
+      };
+
+      await expect(parseError(response)).resolves.toEqual({
+        message: 'plain text failure',
+        additionalInfo: 'plain text failure',
+      });
     });
   });
 });

@@ -316,14 +316,18 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private _startTensorboard = async () => {
     this.setStateSafe({ busy: true, errorMessage: undefined }, async () => {
       try {
-        await Apis.startTensorboardApp({
+        const podAddress = await Apis.startTensorboardApp({
           logdir: this._buildUrl(),
           namespace: this._getNamespace(),
           image: this.state.tfImage,
           podTemplateSpec: this._podTemplateSpec(),
         });
-        this.setStateSafe({ busy: false, tensorboardReady: false }, () => {
-          this._checkTensorboardApp();
+        this.setStateSafe({ busy: false, podAddress, tensorboardReady: false }, () => {
+          if (podAddress) {
+            this._checkTensorboardPodStatus();
+          } else {
+            this._checkTensorboardApp();
+          }
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';

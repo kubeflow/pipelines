@@ -192,7 +192,7 @@ describe('NewRun', () => {
   const startJobSpy = vi.spyOn(Apis.jobServiceApi, 'createJob');
   const startRunSpy = vi.spyOn(Apis.runServiceApi, 'createRun');
   const getExperimentSpy = vi.spyOn(Apis.experimentServiceApi, 'getExperiment');
-  const listExperimentSpy = vi.spyOn(Apis.experimentServiceApi, 'listExperiment');
+  const listExperimentsSpy = vi.spyOn(Apis.experimentServiceApi, 'listExperiments');
   const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
@@ -351,7 +351,7 @@ describe('NewRun', () => {
     startJobSpy.mockImplementation(() => Promise.resolve({ id: 'new-job-id' } as any));
     startRunSpy.mockImplementation(() => ({ id: 'new-run-id' }));
     getExperimentSpy.mockImplementation(() => MOCK_EXPERIMENT);
-    listExperimentSpy.mockImplementation(() => {
+    listExperimentsSpy.mockImplementation(() => {
       const response: ApiListExperimentsResponse = {
         experiments: [MOCK_EXPERIMENT],
         total_size: 1,
@@ -968,7 +968,7 @@ describe('NewRun', () => {
       tree.find('#chooseExperimentBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
       expect(tree.state('experimentSelectorOpen')).toBe(true);
-      expect(listExperimentSpy).toHaveBeenCalledWith(
+      expect(listExperimentsSpy).toHaveBeenCalledWith(
         '',
         10,
         'created_at desc',
@@ -977,8 +977,8 @@ describe('NewRun', () => {
             predicates: [
               {
                 key: 'storage_state',
-                op: PredicateOp.NOTEQUALS,
-                string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                op: PredicateOp.NOT_EQUALS,
+                string_value: ApiExperimentStorageState.STORAGESTATE_ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -996,7 +996,7 @@ describe('NewRun', () => {
 
       tree.find('#chooseExperimentBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
-      expect(listExperimentSpy).toHaveBeenCalledWith(
+      expect(listExperimentsSpy).toHaveBeenCalledWith(
         '',
         10,
         'created_at desc',
@@ -1005,8 +1005,8 @@ describe('NewRun', () => {
             predicates: [
               {
                 key: 'storage_state',
-                op: PredicateOp.NOTEQUALS,
-                string_value: ApiExperimentStorageState.ARCHIVED.toString(),
+                op: PredicateOp.NOT_EQUALS,
+                string_value: ApiExperimentStorageState.STORAGESTATE_ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -1612,7 +1612,7 @@ describe('NewRun', () => {
           {
             key: {
               id: MOCK_PIPELINE_VERSION.id,
-              type: ApiResourceType.PIPELINEVERSION,
+              type: ApiResourceType.PIPELINE_VERSION,
             },
             relationship: ApiRelationship.CREATOR,
           },
@@ -1667,7 +1667,7 @@ describe('NewRun', () => {
           {
             key: {
               id: 'original-run-pipeline-version-id',
-              type: ApiResourceType.PIPELINEVERSION,
+              type: ApiResourceType.PIPELINE_VERSION,
             },
             relationship: ApiRelationship.CREATOR,
           },
@@ -2118,7 +2118,7 @@ describe('NewRun', () => {
           {
             key: {
               id: MOCK_PIPELINE_VERSION.id,
-              type: ApiResourceType.PIPELINEVERSION,
+              type: ApiResourceType.PIPELINE_VERSION,
             },
             relationship: ApiRelationship.CREATOR,
           },

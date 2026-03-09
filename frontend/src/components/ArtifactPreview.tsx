@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
@@ -78,11 +78,11 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     }
   }
 
-  const { isSuccess, isError, data, error } = useQuery<string, Error>(
-    ['artifact_preview', { value, namespace, maxbytes, maxlines }],
-    () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
-    { staleTime: Infinity },
-  );
+  const { isSuccess, isError, data, error } = useQuery<string, Error>({
+    queryKey: ['artifact_preview', { value, namespace, maxbytes, maxlines }],
+    queryFn: () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
+    staleTime: Infinity,
+  });
 
   if (!storage) {
     return (

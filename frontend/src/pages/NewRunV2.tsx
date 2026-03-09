@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
-import { useMutation } from 'react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -348,11 +348,15 @@ function NewRunV2(props: NewRunV2Props) {
   }, [runName, existingPipeline, existingPipelineVersion, isTemplatePullSuccess]);
 
   // Defines the behavior when user clicks `Start` button.
-  const newRunMutation = useMutation((run: V2beta1Run) => {
-    return Apis.runServiceApiV2.createRun(run);
+  const newRunMutation = useMutation({
+    mutationFn: (run: V2beta1Run) => {
+      return Apis.runServiceApiV2.createRun(run);
+    },
   });
-  const newRecurringRunMutation = useMutation((recurringRun: V2beta1RecurringRun) => {
-    return Apis.recurringRunServiceApi.createRecurringRun(recurringRun);
+  const newRecurringRunMutation = useMutation({
+    mutationFn: (recurringRun: V2beta1RecurringRun) => {
+      return Apis.recurringRunServiceApi.createRecurringRun(recurringRun);
+    },
   });
 
   const startRun = () => {
@@ -1007,7 +1011,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
                   new_filter.predicates = (new_filter.predicates || []).concat([
                     {
                       key: 'storage_state',
-                      operation: V2beta1PredicateOperation.NOTEQUALS,
+                      operation: V2beta1PredicateOperation.NOT_EQUALS,
                       string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                     },
                   ]);

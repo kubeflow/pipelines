@@ -64,6 +64,13 @@ function getNameOfViewerResource(logdir: string): string {
   return 'viewer-' + crypto.SHA1(logdir);
 }
 
+function unwrapCustomObject<T>(resource: T | { body?: T } | undefined | null): T | undefined {
+  if (!resource) {
+    return undefined;
+  }
+  return (resource as { body?: T }).body ?? (resource as T);
+}
+
 /**
  * Parse logdir to Support volume:// url in logdir,
  * otherwise, there's no need to parse logdir, we can just use them.
@@ -171,13 +178,19 @@ export async function getTensorboardInstance(
       // if check logdir and then create Viewer CRD with same name will break anyway.
       // TODO fix hash collision
       (viewer: any) => {
-        if (viewer && viewer.body && viewer.body.spec && viewer.body.spec.type === 'tensorboard') {
+        const viewerResource = unwrapCustomObject<any>(viewer);
+        if (
+          viewerResource &&
+          viewerResource.metadata &&
+          viewerResource.spec &&
+          viewerResource.spec.type === 'tensorboard'
+        ) {
           // Normalize clusterDomain to ensure leading dot
           const normalizedDomain = clusterDomain.startsWith('.')
             ? clusterDomain
             : `.${clusterDomain}`;
-          const address = `http://${viewer.body.metadata.name}-service.${namespace}${normalizedDomain}:80/tensorboard/${viewer.body.metadata.name}/`;
-          const image = viewer.body.spec.tensorboardSpec.tensorflowImage;
+          const address = `http://${viewerResource.metadata.name}-service.${namespace}${normalizedDomain}:80/tensorboard/${viewerResource.metadata.name}/`;
+          const image = viewerResource.spec.tensorboardSpec.tensorflowImage;
           const tfImageParts = image.split(':', 2);
           const tfVersion = tfImageParts.length === 2 ? tfImageParts[1] : '';
           return { podAddress: address, tfVersion: tfVersion, image };
@@ -351,7 +364,7 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
     name: workflowName,
   });
 
-  return res as PartialArgoWorkflow;
+  return unwrapCustomObject<PartialArgoWorkflow>(res) as PartialArgoWorkflow;
 }
 
 /**
