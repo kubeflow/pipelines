@@ -162,9 +162,9 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 		return nil, fmt.Errorf("failed to create driver logger: %v", err)
 	}
 	defer func() {
-		err = os.Remove(logFile)
-		if err != nil {
-			glog.Errorf("Failed to remove processed log file: %v", err)
+		removeErr := os.Remove(logFile)
+		if removeErr != nil {
+			glog.Errorf("Failed to remove processed log file: %v", removeErr)
 		}
 	}()
 	defer func() {
@@ -187,9 +187,9 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 	}()
 	defer func() {
 		if f != nil {
-			err = f.Close()
-			if err != nil {
-				glog.Errorf("Failed to close file: %v", err)
+			closeErr := f.Close()
+			if closeErr != nil {
+				glog.Errorf("Failed to close file: %v", closeErr)
 			}
 		}
 	}()
