@@ -88,3 +88,10 @@ const (
 // empty map from nil, so this header preserves the intent across the
 // HTTP→gRPC proxy roundtrip.
 const ClearTagsMetadataKey = "x-clear-tags"
+
+const (
+	DefaultPluginMaxKeys              = 16
+	DefaultPluginMaxPayloadBytes      = 64 * 1024
+	DefaultPluginMaxTotalPayloadBytes = 256 * 1024
+	DefaultPluginMaxNestingDepth      = 10
+)

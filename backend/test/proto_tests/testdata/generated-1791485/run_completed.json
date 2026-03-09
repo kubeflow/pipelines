@@ -23,5 +23,7 @@
   "error": null,
   "run_details": null,
   "recurring_run_id": "recurring-schedule-001",
-  "state_history": []
+  "state_history": [],
+  "plugins_input": {},
+  "plugins_output": {}
 }
