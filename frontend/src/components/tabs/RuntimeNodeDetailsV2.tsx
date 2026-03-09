@@ -170,16 +170,16 @@ function TaskNodeDetail({
     { enabled: !!execution },
   );
 
-    const { data: driverLogsInfo } = useQuery<Map<string, string>, Error>(
-        ['driver-logs', { executionId: execution?.getId(), namespace }],
-        async () => {
-            if (!execution) {
-                throw new Error('No execution is found.');
-            }
-            return await getDriverLogsInfo(execution, namespace);
-        },
-        { enabled: !!execution },
-    );
+  const { data: driverLogsInfo } = useQuery<Map<string, string>, Error>(
+    ['driver-logs', { executionId: execution?.getId(), namespace }],
+    async () => {
+      if (!execution) {
+        throw new Error('No execution is found.');
+      }
+      return await getDriverLogsInfo(execution, namespace);
+    },
+    { enabled: !!execution },
+  );
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
@@ -234,18 +234,21 @@ function TaskNodeDetail({
         )}
         {/* System Logs tab */}
         {selectedTab === 3 && (
-              <div className={commonCss.page}>
-                  {sysLogsBannerMessage && (
-                      <React.Fragment>
-                          <Banner message={sysLogsBannerMessage} additionalInfo={sysLogsBannerAdditionalInfo} />
-                      </React.Fragment>
-                  )}
-                  {!sysLogsBannerMessage && (
-                      <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
-                          <LogViewer logLines={(sysLogDetails || '').split(/[\r\n]+/)} />
-                      </div>
-                  )}
+          <div className={commonCss.page}>
+            {sysLogsBannerMessage && (
+              <React.Fragment>
+                <Banner
+                  message={sysLogsBannerMessage}
+                  additionalInfo={sysLogsBannerAdditionalInfo}
+                />
+              </React.Fragment>
+            )}
+            {!sysLogsBannerMessage && (
+              <div className={commonCss.pageOverflowHidden} data-testid={'logs-view-window'}>
+                <LogViewer logLines={(sysLogDetails || '').split(/[\r\n]+/)} />
               </div>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -335,48 +338,48 @@ function getNodeVolumeMounts(
 }
 
 async function getDriverLogsInfo(
-    execution: Execution,
-    namespace?: string,
+  execution: Execution,
+  namespace?: string,
 ): Promise<Map<string, string>> {
-    const logsInfo = new Map<string, string>();
-    let podNameSpace = '';
-    let logsDetails = '';
-    let logsBannerMessage = '';
-    let logsBannerAdditionalInfo = '';
-    const customPropertiesMap = execution.getCustomPropertiesMap();
+  const logsInfo = new Map<string, string>();
+  let podNameSpace = '';
+  let logsDetails = '';
+  let logsBannerMessage = '';
+  let logsBannerAdditionalInfo = '';
+  const customPropertiesMap = execution.getCustomPropertiesMap();
 
-    if (execution) {
-        podNameSpace = customPropertiesMap.get('namespace')?.getStringValue() || '';
+  if (execution) {
+    podNameSpace = customPropertiesMap.get('namespace')?.getStringValue() || '';
+  }
+
+  try {
+    const driverLogUri = customPropertiesMap.get('driver_logs_uri')?.getStringValue();
+    const storeSessionInfo = customPropertiesMap.get('store_session_info')?.getStringValue();
+
+    if (driverLogUri && storeSessionInfo) {
+      const storagePath = WorkflowParser.parseStoragePath(driverLogUri);
+      const providerInfo = storeSessionInfo;
+      const artifactNamespace = namespace || podNameSpace;
+
+      logsDetails = await Apis.readFile({
+        path: storagePath,
+        providerInfo: providerInfo,
+        namespace: artifactNamespace,
+      });
+      logsInfo.set(SYS_LOGS_DETAILS, logsDetails);
+      return logsInfo;
     }
+  } catch (artifactErr) {
+    let errMsg = await errorToMessage(artifactErr);
+    logsBannerMessage = 'Failed to retrieve pod logs.';
+    logsInfo.set(SYS_LOGS_BANNER_MESSAGE, logsBannerMessage);
+    logsBannerAdditionalInfo = 'Error response: ' + errMsg;
+    logsInfo.set(SYS_LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
 
-    try {
-        const driverLogUri = customPropertiesMap.get('driver_logs_uri')?.getStringValue();
-        const storeSessionInfo = customPropertiesMap.get('store_session_info')?.getStringValue();
+    console.error('Failed to retrieve driver-logs artifact:', artifactErr);
+  }
 
-        if (driverLogUri && storeSessionInfo) {
-            const storagePath = WorkflowParser.parseStoragePath(driverLogUri);
-            const providerInfo = storeSessionInfo;
-            const artifactNamespace = namespace || podNameSpace;
-
-            logsDetails = await Apis.readFile({
-                path: storagePath,
-                providerInfo: providerInfo,
-                namespace: artifactNamespace,
-            });
-            logsInfo.set(SYS_LOGS_DETAILS, logsDetails);
-            return logsInfo;
-        }
-    } catch (artifactErr) {
-        let errMsg = await errorToMessage(artifactErr);
-        logsBannerMessage = 'Failed to retrieve pod logs.';
-        logsInfo.set(SYS_LOGS_BANNER_MESSAGE, logsBannerMessage);
-        logsBannerAdditionalInfo = 'Error response: ' + errMsg;
-        logsInfo.set(SYS_LOGS_BANNER_ADDITIONAL_INFO, logsBannerAdditionalInfo);
-
-        console.error('Failed to retrieve driver-logs artifact:', artifactErr);
-    }
-
-    return logsInfo;
+  return logsInfo;
 }
 
 async function getLogsInfo(
