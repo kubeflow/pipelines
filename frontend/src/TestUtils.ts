@@ -18,7 +18,7 @@
 // Because this is test utils.
 
 import 'src/build/tailwind.output.css';
-import { QueryClient } from 'react-query';
+import { QueryClient } from '@tanstack/react-query';
 import { match } from 'react-router';
 import { beforeEach, expect, MockInstance } from 'vitest';
 import { ToolbarActionConfig } from './components/Toolbar';
