@@ -660,10 +660,10 @@ func extendPodSpecPatch(
 						Weight:     *nodeAffinityTerm.Weight,
 						Preference: nodeSelectorTerm,
 					})
-					log.Trace("Added preferred node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added preferred node affinity: %+v", nodeSelectorTerm)
 				} else {
 					requiredTerms = append(requiredTerms, nodeSelectorTerm)
-					log.Trace("Added required node affinity: %+v", nodeSelectorTerm)
+					log.Tracef("Added required node affinity: %+v", nodeSelectorTerm)
 				}
 
 			}
@@ -925,7 +925,7 @@ func createPVC(
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: %w", err)
 	}
-	log.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
+	log.Infof("Created PVC %s\n", createdPVC.Name)
 
 	// Create a cache entry
 	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() {

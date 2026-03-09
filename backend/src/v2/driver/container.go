@@ -131,7 +131,7 @@ func Container(ctx context.Context, pipeline *metadata.Pipeline, opts Options, m
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
-	ecfg.DriverLogUri = metadata.GenerateOutputURI(pipeline.GetPipelineRoot(), []string{opts.TaskName, outputPathPrefix, "driver-logs"}, false)
+	ecfg.DriverLogURI = metadata.GenerateOutputURI(pipeline.GetPipelineRoot(), []string{opts.TaskName, outputPathPrefix, "driver-logs"}, false)
 
 	if isKubernetesPlatformOp {
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)

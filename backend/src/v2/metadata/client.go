@@ -181,7 +181,7 @@ type ExecutionConfig struct {
 	OutputArtifacts  map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
 	InputArtifactIDs map[string][]int64
 	IterationIndex   *int // Index of the iteration.
-	DriverLogUri     string
+	DriverLogURI     string
 
 	// ContainerExecution custom properties
 	Image, CachedMLMDExecutionID, FingerPrint string
@@ -578,7 +578,7 @@ const (
 	keyOutputs               = "outputs"
 	keyParameterProducerTask = "parameter_producer_task"
 	keyOutputArtifacts       = "output_artifacts"
-	keyDriverLogUri          = "driver_logs_uri"
+	keyDriverLogURI          = "driver_logs_uri"
 	keyArtifactProducerTask  = "artifact_producer_task"
 	keyParentDagID           = "parent_dag_id" // Parent DAG Execution ID.
 	keyIterationIndex        = "iteration_index"
@@ -636,8 +636,8 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 			e.CustomProperties[keyCacheFingerPrint] = StringValue(config.FingerPrint)
 		}
 	}
-	if config.DriverLogUri != "" {
-		e.CustomProperties[keyDriverLogUri] = StringValue(config.DriverLogUri)
+	if config.DriverLogURI != "" {
+		e.CustomProperties[keyDriverLogURI] = StringValue(config.DriverLogURI)
 		e.CustomProperties[keyStoreSessionInfo] = StringValue(pipeline.GetStoreSessionInfo())
 	}
 	if config.InputParameters != nil {

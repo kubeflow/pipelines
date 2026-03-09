@@ -48,7 +48,7 @@ type driverLogArtifactContext struct {
 	Namespace        string
 	PipelineRoot     string
 	StoreSessionInfo string
-	LogId            string
+	LogID            string
 }
 
 func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
@@ -154,9 +154,9 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 		outputPathPrefix string
 	)
 	var pipeline *metadata.Pipeline
-	logId := fmt.Sprintf("%v-%v-%v", args.IterationIndex, args.Type, args.TaskName)
+	logID := fmt.Sprintf("%v-%v-%v", args.IterationIndex, args.Type, args.TaskName)
 	logDir := "/kfp/log"
-	logFile := fmt.Sprintf("%s/%s.log", logDir, logId)
+	logFile := fmt.Sprintf("%s/%s.log", logDir, logID)
 	ctx, f, err := util.WithLogger(context.Background(), logFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create driver logger: %v", err)
@@ -173,7 +173,7 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 				Execution:        execution,
 				Task:             args.TaskName,
 				LocalPath:        logFile,
-				LogId:            logId,
+				LogID:            logID,
 				Namespace:        namespace,
 				PipelineRoot:     pipelineRoot,
 				StoreSessionInfo: storeSessionInfo,
@@ -384,7 +384,7 @@ func uploadDriverLogArtifact(ctx context.Context, logContext *driverLogArtifactC
 		if err != nil {
 			return fmt.Errorf("failed to open bucket: %v", err)
 		}
-		key := fmt.Sprintf("driver/%s-logs", logContext.LogId)
+		key := fmt.Sprintf("driver/%s-logs", logContext.LogID)
 		if logContext.Execution != nil && logContext.OutputPathPrefix != "" {
 			key = fmt.Sprintf("%s/%s/driver-logs", logContext.Task, logContext.OutputPathPrefix)
 		}
@@ -459,8 +459,4 @@ func WriteJSONResponse(w http.ResponseWriter, payload api.DriverResponse) {
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
-}
-
-func putLog() {
-
 }

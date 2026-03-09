@@ -165,7 +165,7 @@ func DAG(ctx context.Context, pipeline *metadata.Pipeline, opts Options, mlmd *m
 	log.Trace("pipeline: ", pipeline)
 	b, _ = json.Marshal(*ecfg)
 	log.Trace("ecfg: ", string(b))
-	log.Trace("dag: %v", dag)
+	log.Tracef("dag: %v", dag)
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
