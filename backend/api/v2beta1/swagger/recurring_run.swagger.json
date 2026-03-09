@@ -480,6 +480,13 @@
         "experiment_id": {
           "type": "string",
           "description": "ID of the parent experiment this recurring run belongs to."
+        },
+        "plugins_input": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "Optional input. Plugin inputs to propagate to each triggered run.\nEach triggered run will inherit these values in its plugins_input field."
         }
       }
     },

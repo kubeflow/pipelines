@@ -54,6 +54,8 @@ var runColumns = []string{
 	"JobUUID",
 	"State",
 	"StateHistory",
+	"PluginsInput",
+	"PluginsOutput",
 	"PipelineContextId",
 	"PipelineRunContextId",
 }
@@ -304,7 +306,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextId, pipelineRunContextId sql.NullInt64
-		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobId, state, stateHistory, pipelineVersionId sql.NullString
+		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 		err := rows.Scan(
 			&uuid,
 			&experimentUUID,
@@ -319,7 +321,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&finishedAtInSec,
 			&conditions,
 			&pipelineId,
-			&pipelineVersionId,
+			&pipelineVersionID,
 			&pipelineName,
 			&pipelineSpecManifest,
 			&workflowSpecManifest,
@@ -328,9 +330,11 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&pipelineRoot,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
-			&jobId,
+			&jobID,
 			&state,
 			&stateHistory,
+			&pluginsInput,
+			&pluginsOutput,
 			&pipelineContextId,
 			&pipelineRunContextId,
 			&resourceReferencesInString,
@@ -357,8 +361,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to parse task details")
 		}
-		jId := jobId.String
-		pvId := pipelineVersionId.String
+		jID := jobID.String
+		pvID := pipelineVersionID.String
 		if len(resourceReferences) > 0 {
 			if experimentUUID == "" {
 				experimentUUID = model.GetRefIdFromResourceReferences(resourceReferences, model.ExperimentResourceType)
@@ -369,11 +373,11 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			if pipelineId == "" {
 				pipelineId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineResourceType)
 			}
-			if pvId == "" {
-				pvId = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
+			if pvID == "" {
+				pvID = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
 			}
-			if jId == "" {
-				jId = model.GetRefIdFromResourceReferences(resourceReferences, model.JobResourceType)
+			if jID == "" {
+				jID = model.GetRefIdFromResourceReferences(resourceReferences, model.JobResourceType)
 			}
 		}
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
@@ -389,8 +393,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			StorageState:   model.StorageState(storageState),
 			Namespace:      namespace,
 			ServiceAccount: serviceAccount,
-			Description:    string(description),
-			RecurringRunId: jId,
+			Description:    description,
+			RecurringRunId: jID,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
 				ScheduledAtInSec:        scheduledAtInSec.Int64,
@@ -408,13 +412,21 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
-				PipelineVersionId:    pvId,
+				PipelineVersionId:    pvID,
 				PipelineName:         pipelineName,
 				PipelineSpecManifest: model.LargeText(pipelineSpecManifest),
 				WorkflowSpecManifest: model.LargeText(workflowSpecManifest),
 				Parameters:           model.LargeText(parameters),
 				RuntimeConfig:        runtimeConfig,
 			},
+		}
+		if pluginsInput.Valid {
+			lt := model.LargeText(pluginsInput.String)
+			run.PluginsInputString = &lt
+		}
+		if pluginsOutput.Valid {
+			lt := model.LargeText(pluginsOutput.String)
+			run.PluginsOutputString = &lt
 		}
 		run = run.ToV2()
 		runs = append(runs, run)
@@ -517,6 +529,8 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"JobUUID":                 r.RecurringRunId,
 			"State":                   r.RunDetails.State.ToString(),
 			"StateHistory":            stateHistoryString,
+			"PluginsInput":            largeTextToNullableSQL(r.PluginsInputString),
+			"PluginsOutput":           largeTextToNullableSQL(r.PluginsOutputString),
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
@@ -573,6 +587,8 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 			"StateHistory":            stateHistoryString,
 			"FinishedAtInSec":         run.FinishedAtInSec,
 			"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
+			"PluginsInput":            largeTextToNullableSQL(run.PluginsInputString),
+			"PluginsOutput":           largeTextToNullableSQL(run.PluginsOutputString),
 		}).
 		Where(sq.Eq{"UUID": run.UUID}).
 		ToSql()
