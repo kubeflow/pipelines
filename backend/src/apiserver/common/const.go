@@ -81,3 +81,10 @@ const (
 	DefaultMetadataServiceName   string = "metadata-grpc-service"
 	DefaultClusterDomain         string = "cluster.local"
 )
+
+const (
+	DefaultPluginMaxKeys              = 16
+	DefaultPluginMaxPayloadBytes      = 64 * 1024
+	DefaultPluginMaxTotalPayloadBytes = 256 * 1024
+	DefaultPluginMaxNestingDepth      = 10
+)

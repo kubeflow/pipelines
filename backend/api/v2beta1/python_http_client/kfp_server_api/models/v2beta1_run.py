@@ -50,7 +50,9 @@ class V2beta1Run(object):
         'error': 'GooglerpcStatus',
         'run_details': 'V2beta1RunDetails',
         'recurring_run_id': 'str',
-        'state_history': 'list[V2beta1RuntimeStatus]'
+        'state_history': 'list[V2beta1RuntimeStatus]',
+        'plugins_input': 'dict(str, object)',
+        'plugins_output': 'dict(str, V2beta1PluginOutput)'
     }
 
     attribute_map = {
@@ -71,10 +73,12 @@ class V2beta1Run(object):
         'error': 'error',
         'run_details': 'run_details',
         'recurring_run_id': 'recurring_run_id',
-        'state_history': 'state_history'
+        'state_history': 'state_history',
+        'plugins_input': 'plugins_input',
+        'plugins_output': 'plugins_output'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -98,6 +102,8 @@ class V2beta1Run(object):
         self._run_details = None
         self._recurring_run_id = None
         self._state_history = None
+        self._plugins_input = None
+        self._plugins_output = None
         self.discriminator = None
 
         if experiment_id is not None:
@@ -136,6 +142,10 @@ class V2beta1Run(object):
             self.recurring_run_id = recurring_run_id
         if state_history is not None:
             self.state_history = state_history
+        if plugins_input is not None:
+            self.plugins_input = plugins_input
+        if plugins_output is not None:
+            self.plugins_output = plugins_output
 
     @property
     def experiment_id(self):
@@ -538,6 +548,52 @@ class V2beta1Run(object):
         """
 
         self._state_history = state_history
+
+    @property
+    def plugins_input(self):
+        """Gets the plugins_input of this V2beta1Run.  # noqa: E501
+
+        Optional input. Plugin-specific inputs provided by the user at run creation. Each key is a plugin name (e.g., \"mlflow\") and the value is arbitrary JSON config.  # noqa: E501
+
+        :return: The plugins_input of this V2beta1Run.  # noqa: E501
+        :rtype: dict(str, object)
+        """
+        return self._plugins_input
+
+    @plugins_input.setter
+    def plugins_input(self, plugins_input):
+        """Sets the plugins_input of this V2beta1Run.
+
+        Optional input. Plugin-specific inputs provided by the user at run creation. Each key is a plugin name (e.g., \"mlflow\") and the value is arbitrary JSON config.  # noqa: E501
+
+        :param plugins_input: The plugins_input of this V2beta1Run.  # noqa: E501
+        :type plugins_input: dict(str, object)
+        """
+
+        self._plugins_input = plugins_input
+
+    @property
+    def plugins_output(self):
+        """Gets the plugins_output of this V2beta1Run.  # noqa: E501
+
+        Output. Plugin-specific outputs populated by backend components. Each key is a plugin name and the value contains the plugin's output entries and state.  # noqa: E501
+
+        :return: The plugins_output of this V2beta1Run.  # noqa: E501
+        :rtype: dict(str, V2beta1PluginOutput)
+        """
+        return self._plugins_output
+
+    @plugins_output.setter
+    def plugins_output(self, plugins_output):
+        """Sets the plugins_output of this V2beta1Run.
+
+        Output. Plugin-specific outputs populated by backend components. Each key is a plugin name and the value contains the plugin's output entries and state.  # noqa: E501
+
+        :param plugins_output: The plugins_output of this V2beta1Run.  # noqa: E501
+        :type plugins_output: dict(str, V2beta1PluginOutput)
+        """
+
+        self._plugins_output = plugins_output
 
     def to_dict(self):
         """Returns the model properties as a dict"""
