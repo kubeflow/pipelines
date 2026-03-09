@@ -63,7 +63,7 @@ func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
+	glog.Infof("Received request to execute plugin: %v", r)
 	args, err := parseDriverRequestArgs(r)
 	if err != nil {
 		glog.Errorf("Failed to parse driver request args: %v", err)
@@ -75,7 +75,6 @@ func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Driver plugin requires at least one argument", http.StatusBadRequest)
 		return
 	}
-	glog.Infof("driver plugin arguments: %v", args)
 	execution, err := drive(*args)
 	outputs := extractOutputParameters(execution, args.Type)
 	if err != nil {
@@ -197,6 +196,7 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 
 	log := util.GetLoggerFrom(ctx)
 
+	log.Infof("driver plugin arguments: %v", args)
 	// Support reading component spec from a file if value starts with @
 	// This bypasses exec() argument size limits for large workflows
 	if strings.HasPrefix(args.Component, "@") {

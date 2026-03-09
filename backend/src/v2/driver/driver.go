@@ -712,21 +712,13 @@ func provisionOutputs(
 		if artifacts == nil {
 			artifacts = make(map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec)
 		}
-		artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
-			ArtifactType: &pipelinespec.ArtifactTypeSchema{
-				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
-					SchemaTitle: "system.Artifact",
-				},
+	}
+	artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+		ArtifactType: &pipelinespec.ArtifactTypeSchema{
+			Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+				SchemaTitle: "system.Artifact",
 			},
-		}
-		artifacts["driver-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
-			ArtifactType: &pipelinespec.ArtifactTypeSchema{
-				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
-					SchemaTitle: "system.Artifact",
-				},
-			},
-		}
-
+		},
 	}
 
 	// Compute a task-root remote URI that will serve as the base for all
@@ -767,7 +759,6 @@ func provisionOutputs(
 		// Fallback to legacy path if the pipeline root scheme is not recognized.
 		outputs.OutputFile = component.OutputMetadataFilepath
 	}
-
 	return outputs
 }
 

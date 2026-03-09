@@ -125,11 +125,13 @@ func Container(ctx context.Context, pipeline *metadata.Pipeline, opts Options, m
 		return execution, err
 	}
 	ecfg.TaskName = opts.TaskName
+	ecfg.Namespace = opts.Namespace
 	ecfg.DisplayName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex
 	ecfg.NotTriggered = !execution.WillTrigger()
+	ecfg.DriverLogUri = metadata.GenerateOutputURI(pipeline.GetPipelineRoot(), []string{opts.TaskName, outputPathPrefix, "driver-logs"}, false)
 
 	if isKubernetesPlatformOp {
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
