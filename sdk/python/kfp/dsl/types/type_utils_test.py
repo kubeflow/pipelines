@@ -958,5 +958,28 @@ def compile_and_load_component(
         return components.load_component_from_file(output_path)
 
 
+
+class TestGetCanonicalNameForOuterGeneric(parameterized.TestCase):
+
+    @parameterized.parameters([
+        {
+            'type_name': 'typing.List[str]',
+            'expected': 'List',
+        },
+        {
+            'type_name': 'typing.Dict[str, str]',
+            'expected': 'Dict',
+        },
+        {
+            'type_name': 'String',
+            'expected': 'String',
+        },
+    ])
+    def test(self, type_name, expected):
+        self.assertEqual(
+            expected,
+            type_utils.get_canonical_name_for_outer_generic(type_name))
+
+
 if __name__ == '__main__':
     unittest.main()

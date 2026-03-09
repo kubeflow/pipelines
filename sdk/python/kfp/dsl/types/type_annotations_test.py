@@ -313,5 +313,29 @@ class TestGetInnerType(parameterized.TestCase):
         self.assertEqual(actual, expected)
 
 
+
+class TestMaybeStripOptionalFromAnnotationString(parameterized.TestCase):
+
+    @parameterized.parameters([
+        {
+            'annotation': 'Optional[int]',
+            'expected': 'int',
+        },
+        {
+            'annotation': 'Optional[List[str]]',
+            'expected': 'List[str]',
+        },
+        {
+            'annotation': 'String',
+            'expected': 'String',
+        },
+    ])
+    def test(self, annotation, expected):
+        self.assertEqual(
+            expected,
+            type_annotations.maybe_strip_optional_from_annotation_string(
+                annotation))
+
+
 if __name__ == '__main__':
     unittest.main()
