@@ -466,7 +466,7 @@ export function getArtifactsProxyHandler({
       onProxyReq: (proxyReq) => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
-      pathRewrite: (pathStr, req) => {
+      pathRewrite: (pathStr, _req) => {
         const url = new URL(pathStr || '', DUMMY_BASE_PATH);
         url.searchParams.delete(QUERIES.NAMESPACE);
         return url.pathname + url.search;

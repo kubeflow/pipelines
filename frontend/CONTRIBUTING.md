@@ -158,6 +158,7 @@ There are a few types of tests during pre-submit:
 
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
+  (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
 * TypeScript typecheck (no emit), run locally with `npm run typecheck`
 * client UI unit tests (Vitest), you can run locally with `npm run test:ui`
   (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops

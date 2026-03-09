@@ -24,7 +24,7 @@ export function isAllowedDomain(urlStr: string, allowedDomain: string): boolean 
 
 function domain_from_url(url: string): string {
   let result: string = '';
-  let match = url.match(/^(?:https?:\/\/)?(?:[^@\/\n]+@)?([^:\/?\n]+)/);
+  let match = url.match(/^(?:https?:\/\/)?(?:[^@/\n]+@)?([^:/?\n]+)/);
   if (match) {
     result = match[0];
   }
