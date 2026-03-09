@@ -15,7 +15,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useMutation, useQuery } from 'react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -57,11 +57,11 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const [errMsgFromApi, setErrMsgFromApi] = useState<string>();
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
 
-  const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>(
-    ['pipeline_versions', pipelineId],
-    () => getLatestVersion(pipelineId!),
-    { enabled: !!pipelineId },
-  );
+  const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>({
+    queryKey: ['pipeline_versions', pipelineId],
+    queryFn: () => getLatestVersion(pipelineId!),
+    enabled: !!pipelineId,
+  });
 
   useEffect(() => {
     updateToolbar({
@@ -114,8 +114,10 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errMsgFromApi, updateDialog]);
 
-  const newExperimentMutation = useMutation((experiment: V2beta1Experiment) => {
-    return Apis.experimentServiceApiV2.createExperiment(experiment);
+  const newExperimentMutation = useMutation({
+    mutationFn: (experiment: V2beta1Experiment) => {
+      return Apis.experimentServiceApiV2.createExperiment(experiment);
+    },
   });
 
   const createExperiment = () => {
