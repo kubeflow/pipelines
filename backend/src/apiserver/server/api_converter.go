@@ -17,8 +17,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -31,8 +33,42 @@ import (
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	urlSchemeJavaScript = "javascript:"
+	urlSchemeData       = "data:"
+	urlSchemeVBScript   = "vbscript:"
+
+	pluginErrInvalidLimitsConfig      = "invalid plugin limits configuration"
+	pluginErrPluginsInputTooManyKeys  = "number of plugins_input entries"
+	pluginErrPluginsInputNilEntry     = "plugins_input[%q] must not be nil"
+	pluginErrPluginsInputInvalidValue = "plugins_input[%q] contains invalid nested value"
+	pluginErrPluginsInputNestingDepth = "plugins_input[%q] nesting depth exceeds maximum"
+	pluginErrPluginsInputEntrySize    = "plugins_input[%q] size"
+	pluginErrPluginsInputTotalSize    = "plugins_input total size"
+	pluginErrPluginsInputMarshalEntry = "marshal plugins_input[%q]: %w"
+	pluginErrPluginsInputMarshalMap   = "marshal plugins_input map: %w"
+
+	pluginErrPluginsOutputTooManyKeys  = "number of plugins_output entries"
+	pluginErrPluginsOutputEntrySize    = "plugins_output[%q] size"
+	pluginErrPluginsOutputTotalSize    = "plugins_output total size"
+	pluginErrPluginsOutputMarshalEntry = "marshal plugins_output[%q]: %w"
+	pluginErrPluginsOutputMarshalMap   = "marshal plugins_output map: %w"
+	pluginErrPluginsOutputNilMetadata  = "plugins_output[%q].entries[%q] metadata must not be nil"
+	pluginErrPluginsOutputNilValue     = "plugins_output[%q].entries[%q].value must not be nil"
+	pluginErrPluginsOutputInvalidValue = "plugins_output[%q].entries[%q] contains invalid nested value"
+	pluginErrPluginsOutputNestingDepth = "plugins_output[%q].entries[%q] nesting depth exceeds maximum"
+
+	pluginErrStructValueNil = "struct value must not be nil"
+	pluginErrStructFieldNil = "struct field %q must not be nil"
+	pluginErrValueNil       = "value must not be nil"
+	pluginErrValueKindUnset = "unsupported or unset value kind"
+
+	pluginErrExceedsMaxBytes = " (%d bytes) exceeds maximum %d bytes"
 )
 
 // Converts API experiment to its internal representation.
@@ -1179,6 +1215,8 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	var state model.RuntimeState
 	var stateHistory []*model.RuntimeStatus
 	var tasks []*model.Task
+	var pluginsInputStr, pluginsOutputStr *string
+	var err error
 	switch r := r.(type) {
 	case *apiv1beta1.Run:
 		return toModelRun(&apiv1beta1.RunDetail{Run: r})
@@ -1258,6 +1296,23 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		} else {
 			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state history")
 		}
+		if pluginsInputStr, err = pluginsInputToJSON(apiRunV2.GetPluginsInput()); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
+		}
+		pluginLimitsConfig, err := common.GetPluginLimitsConfig()
+		if err != nil {
+			return nil, util.NewInvalidInputError("Invalid plugins limits configuration: %v", err)
+		}
+		if err = validatePluginsInputLimits(apiRunV2.GetPluginsInput(), pluginLimitsConfig); err != nil {
+			return nil, util.NewInvalidInputError("Invalid plugins_input: %v", err)
+		}
+		if err = validatePluginsOutputWithLimits(apiRunV2.GetPluginsOutput(), pluginLimitsConfig); err != nil {
+			return nil, util.NewInvalidInputError("Invalid plugins_output: %v", err)
+		}
+		if pluginsOutputStr, err = pluginsOutputToJSON(apiRunV2.GetPluginsOutput()); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to convert plugins_output to JSON")
+		}
+
 		namespace = ""
 		workflowSpec = ""
 		// TODO(gkcalat): implement runtime details of a run logic based on the apiRunV2.RuDetails().
@@ -1361,6 +1416,8 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			PipelineRuntimeManifest: model.LargeText(runtimePipelineSpec),
 			WorkflowRuntimeManifest: model.LargeText(runtimeWorkflowSpec),
 			TaskDetails:             tasks,
+			PluginsInputString:      stringToLargeText(pluginsInputStr),
+			PluginsOutputString:     stringToLargeText(pluginsOutputStr),
 		},
 	}
 
@@ -1545,7 +1602,39 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		FinishedAt:     timestamppb.New(time.Unix(r.RunDetails.FinishedAtInSec, 0)),
 		RunDetails:     apiRd,
 	}
-	err := util.NewInvalidInputError("Failed to parse the pipeline source")
+	var err error
+	apiRunV2.PluginsInput, err = jsonToPluginsInput(largeTextToString(r.PluginsInputString))
+	if err != nil {
+		return &apiv2beta1.Run{
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_input")),
+		}
+	}
+	apiRunV2.PluginsOutput, err = jsonToPluginsOutput(largeTextToString(r.PluginsOutputString))
+	if err != nil {
+		return &apiv2beta1.Run{
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
+		}
+	}
+	pluginLimitsConfig, err := common.GetPluginLimitsConfig()
+	if err != nil {
+		return &apiv2beta1.Run{
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
+		}
+	}
+	if err = validatePluginsOutputWithLimits(apiRunV2.PluginsOutput, pluginLimitsConfig); err != nil {
+		return &apiv2beta1.Run{
+			RunId:        r.UUID,
+			ExperimentId: r.ExperimentId,
+			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
+		}
+	}
+	err = util.NewInvalidInputError("Failed to parse the pipeline source")
 	if r.PipelineSpec.PipelineVersionId != "" {
 		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionReference{
 			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
@@ -1870,6 +1959,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	var maxConcur, createTime, updateTime int64
 	var noCatchup, isEnabled bool
 	var trigger *model.Trigger
+	var jobPluginsInputStr *string
 	resRefs := make([]*model.ResourceReference, 0)
 	switch apiJob := j.(type) {
 	case *apiv1beta1.Job:
@@ -1976,6 +2066,18 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		k8sName = jobName
 		specParams = ""
 		workflowSpec = ""
+
+		jobPluginsInputStr, err = pluginsInputToJSON(apiJob.GetPluginsInput())
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
+		}
+		pluginLimitsConfig, err := common.GetPluginLimitsConfig()
+		if err != nil {
+			return nil, util.NewInvalidInputError("Invalid plugins limits configuration: %v", err)
+		}
+		if err = validatePluginsInputLimits(apiJob.GetPluginsInput(), pluginLimitsConfig); err != nil {
+			return nil, util.NewInvalidInputError("Invalid plugins_input: %v", err)
+		}
 	default:
 		return nil, util.NewUnknownApiVersionError("RecurringRun", j)
 	}
@@ -2021,6 +2123,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		Conditions:         status.ToString(),
 		ExperimentId:       experimentId,
 		ResourceReferences: resRefs,
+		PluginsInputString: stringToLargeText(jobPluginsInputStr),
 		Trigger:            *trigger,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipelineId,
@@ -2255,6 +2358,14 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		RuntimeConfig:  runtimeConfig,
 		Namespace:      j.Namespace,
 		ExperimentId:   j.ExperimentId,
+	}
+	var err error
+	apiRecurringRunV2.PluginsInput, err = jsonToPluginsInput(largeTextToString(j.PluginsInputString))
+	if err != nil {
+		return &apiv2beta1.RecurringRun{
+			RecurringRunId: j.UUID,
+			Error:          util.ToRpcStatus(util.Wrap(err, "Failed to convert recurring run's internal representation to its API counterpart: invalid plugins_input")),
+		}
 	}
 
 	if j.PipelineSpec.PipelineId == "" && j.PipelineSpec.PipelineVersionId == "" {
@@ -2507,4 +2618,329 @@ func toApiRuntimeStatuses(s []*model.RuntimeStatus) []*apiv2beta1.RuntimeStatus 
 		statuses = append(statuses, toApiRuntimeStatus(status))
 	}
 	return statuses
+}
+
+func largeTextToString(lt *model.LargeText) *string {
+	if lt == nil {
+		return nil
+	}
+	s := string(*lt)
+	return &s
+}
+
+func stringToLargeText(s *string) *model.LargeText {
+	if s == nil || *s == "" {
+		return nil
+	}
+	lt := model.LargeText(*s)
+	return &lt
+}
+
+func pluginsInputToJSON(pluginsInput map[string]*structpb.Struct) (*string, error) {
+	if len(pluginsInput) == 0 {
+		return nil, nil
+	}
+	raw := make(map[string]json.RawMessage, len(pluginsInput))
+	for k, v := range pluginsInput {
+		b, err := protojson.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("marshal plugins_input[%q]: %w", k, err)
+		}
+		raw[k] = b
+	}
+	out, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("marshal plugins_input map: %w", err)
+	}
+	s := string(out)
+	return &s, nil
+}
+
+func jsonToPluginsInput(jsonStr *string) (map[string]*structpb.Struct, error) {
+	if jsonStr == nil || *jsonStr == "" {
+		return nil, nil
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(*jsonStr), &raw); err != nil {
+		return nil, fmt.Errorf("unmarshal plugins_input: %w", err)
+	}
+	result := make(map[string]*structpb.Struct, len(raw))
+	for k, v := range raw {
+		st := &structpb.Struct{}
+		if err := protojson.Unmarshal(v, st); err != nil {
+			return nil, fmt.Errorf("unmarshal plugins_input[%q]: %w", k, err)
+		}
+		result[k] = st
+	}
+	return result, nil
+}
+
+func pluginsOutputToJSON(pluginsOutput map[string]*apiv2beta1.PluginOutput) (*string, error) {
+	if len(pluginsOutput) == 0 {
+		return nil, nil
+	}
+	raw := make(map[string]json.RawMessage, len(pluginsOutput))
+	for k, v := range pluginsOutput {
+		b, err := protojson.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("marshal plugins_output[%q]: %w", k, err)
+		}
+		raw[k] = b
+	}
+	out, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("marshal plugins_output map: %w", err)
+	}
+	s := string(out)
+	return &s, nil
+}
+
+func validatePluginsOutput(pluginsOutput map[string]*apiv2beta1.PluginOutput) error {
+	limits, err := common.GetPluginLimitsConfig()
+	if err != nil {
+		return fmt.Errorf("%s: %w", pluginErrInvalidLimitsConfig, err)
+	}
+	return validatePluginsOutputWithLimits(pluginsOutput, limits)
+}
+
+func validatePluginsOutputWithLimits(pluginsOutput map[string]*apiv2beta1.PluginOutput, limits common.PluginLimitsConfig) error {
+	if err := validatePluginsOutputLimits(pluginsOutput, limits); err != nil {
+		return err
+	}
+	for pluginKey, output := range pluginsOutput {
+		if output == nil {
+			continue
+		}
+		if err := validatePluginOutputEntries(pluginKey, output.Entries); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validatePluginsInputLimits(pluginsInput map[string]*structpb.Struct, limits common.PluginLimitsConfig) error {
+	if len(pluginsInput) > limits.MaxKeys {
+		return fmt.Errorf("%s (%d) exceeds maximum %d", pluginErrPluginsInputTooManyKeys, len(pluginsInput), limits.MaxKeys)
+	}
+	raw := make(map[string]json.RawMessage, len(pluginsInput))
+	for pluginKey, pluginStruct := range pluginsInput {
+		if pluginStruct == nil {
+			return fmt.Errorf(pluginErrPluginsInputNilEntry, pluginKey)
+		}
+		depth, err := structDepth(pluginStruct)
+		if err != nil {
+			return fmt.Errorf(pluginErrPluginsInputInvalidValue+": %w", pluginKey, err)
+		}
+		if depth > limits.MaxNestingDepth {
+			return fmt.Errorf(pluginErrPluginsInputNestingDepth+" %d", pluginKey, limits.MaxNestingDepth)
+		}
+		pluginBytes, err := protojson.Marshal(pluginStruct)
+		if err != nil {
+			return fmt.Errorf(pluginErrPluginsInputMarshalEntry, pluginKey, err)
+		}
+		if len(pluginBytes) > limits.MaxPayloadBytes {
+			return fmt.Errorf(pluginErrPluginsInputEntrySize+pluginErrExceedsMaxBytes, pluginKey, len(pluginBytes), limits.MaxPayloadBytes)
+		}
+		raw[pluginKey] = pluginBytes
+	}
+	serialized, err := json.Marshal(raw)
+	if err != nil {
+		return fmt.Errorf(pluginErrPluginsInputMarshalMap, err)
+	}
+	if len(serialized) > limits.MaxTotalPayloadBytes {
+		return fmt.Errorf(pluginErrPluginsInputTotalSize+pluginErrExceedsMaxBytes, len(serialized), limits.MaxTotalPayloadBytes)
+	}
+	return nil
+}
+
+func validatePluginsOutputLimits(pluginsOutput map[string]*apiv2beta1.PluginOutput, limits common.PluginLimitsConfig) error {
+	if len(pluginsOutput) > limits.MaxKeys {
+		return fmt.Errorf("%s (%d) exceeds maximum %d", pluginErrPluginsOutputTooManyKeys, len(pluginsOutput), limits.MaxKeys)
+	}
+	raw := make(map[string]json.RawMessage, len(pluginsOutput))
+	for pluginKey, output := range pluginsOutput {
+		if err := validateSinglePluginOutputLimit(pluginKey, output, limits); err != nil {
+			return err
+		}
+		if output == nil {
+			continue
+		}
+		pluginBytes, err := protojson.Marshal(output)
+		if err != nil {
+			return fmt.Errorf(pluginErrPluginsOutputMarshalEntry, pluginKey, err)
+		}
+		if len(pluginBytes) > limits.MaxPayloadBytes {
+			return fmt.Errorf(
+				pluginErrPluginsOutputEntrySize+pluginErrExceedsMaxBytes,
+				pluginKey,
+				len(pluginBytes),
+				limits.MaxPayloadBytes,
+			)
+		}
+		raw[pluginKey] = pluginBytes
+	}
+	serialized, err := json.Marshal(raw)
+	if err != nil {
+		return fmt.Errorf(pluginErrPluginsOutputMarshalMap, err)
+	}
+	if len(serialized) > limits.MaxTotalPayloadBytes {
+		return fmt.Errorf(pluginErrPluginsOutputTotalSize+pluginErrExceedsMaxBytes, len(serialized), limits.MaxTotalPayloadBytes)
+	}
+	return nil
+}
+
+func validateSinglePluginOutputLimit(
+	pluginKey string,
+	output *apiv2beta1.PluginOutput,
+	limits common.PluginLimitsConfig,
+) error {
+	if output == nil {
+		return nil
+	}
+	for entryKey, metadata := range output.Entries {
+		if metadata == nil {
+			return fmt.Errorf(pluginErrPluginsOutputNilMetadata, pluginKey, entryKey)
+		}
+		if metadata.Value == nil {
+			return fmt.Errorf(pluginErrPluginsOutputNilValue, pluginKey, entryKey)
+		}
+		depth, err := valueDepth(metadata.Value)
+		if err != nil {
+			return fmt.Errorf(pluginErrPluginsOutputInvalidValue+": %w", pluginKey, entryKey, err)
+		}
+		if depth > limits.MaxNestingDepth {
+			return fmt.Errorf(pluginErrPluginsOutputNestingDepth+" %d", pluginKey, entryKey, limits.MaxNestingDepth)
+		}
+	}
+	return nil
+}
+
+func structDepth(s *structpb.Struct) (int, error) {
+	if s == nil {
+		return 0, fmt.Errorf(pluginErrStructValueNil)
+	}
+	maxDepth := 1
+	for fieldKey, fieldValue := range s.Fields {
+		if fieldValue == nil {
+			return 0, fmt.Errorf(pluginErrStructFieldNil, fieldKey)
+		}
+		fieldDepth, err := valueDepth(fieldValue)
+		if err != nil {
+			return 0, err
+		}
+		currentDepth := 1 + fieldDepth
+		if currentDepth > maxDepth {
+			maxDepth = currentDepth
+		}
+	}
+	return maxDepth, nil
+}
+
+func valueDepth(v *structpb.Value) (int, error) {
+	if v == nil {
+		return 0, fmt.Errorf(pluginErrValueNil)
+	}
+	switch kind := v.Kind.(type) {
+	case *structpb.Value_StructValue:
+		return structDepth(kind.StructValue)
+	case *structpb.Value_ListValue:
+		maxDepth := 1
+		for _, item := range kind.ListValue.Values {
+			itemDepth, err := valueDepth(item)
+			if err != nil {
+				return 0, err
+			}
+			currentDepth := 1 + itemDepth
+			if currentDepth > maxDepth {
+				maxDepth = currentDepth
+			}
+		}
+		return maxDepth, nil
+	case *structpb.Value_NullValue, *structpb.Value_NumberValue, *structpb.Value_StringValue, *structpb.Value_BoolValue:
+		return 0, nil
+	default:
+		return 0, fmt.Errorf(pluginErrValueKindUnset)
+	}
+}
+
+func validatePluginOutputEntries(pluginKey string, entries map[string]*apiv2beta1.MetadataValue) error {
+	for entryKey, metadata := range entries {
+		if metadata == nil || metadata.Value == nil {
+			continue
+		}
+		if metadata.GetRenderType() != apiv2beta1.MetadataValue_URL {
+			continue
+		}
+		if err := validateURLMetadataValue(pluginKey, entryKey, metadata); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateURLMetadataValue(pluginKey string, entryKey string, metadata *apiv2beta1.MetadataValue) error {
+	urlValue, err := getURLMetadataString(pluginKey, entryKey, metadata)
+	if err != nil {
+		return err
+	}
+	lowerTrimmed := strings.ToLower(urlValue)
+	if hasDisallowedURLSchemePrefix(lowerTrimmed) {
+		return fmt.Errorf("plugins_output[%q].entries[%q] has disallowed URL scheme", pluginKey, entryKey)
+	}
+	parsed, err := url.Parse(urlValue)
+	if err != nil {
+		return fmt.Errorf("plugins_output[%q].entries[%q] has invalid URL: %w", pluginKey, entryKey, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("plugins_output[%q].entries[%q] has invalid URL: missing scheme or host", pluginKey, entryKey)
+	}
+	if !isAllowedURLScheme(parsed.Scheme) {
+		return fmt.Errorf("plugins_output[%q].entries[%q] URL scheme must be http or https", pluginKey, entryKey)
+	}
+	return nil
+}
+
+func getURLMetadataString(pluginKey string, entryKey string, metadata *apiv2beta1.MetadataValue) (string, error) {
+	stringValue, isStringValue := metadata.Value.Kind.(*structpb.Value_StringValue)
+	if !isStringValue {
+		return "", fmt.Errorf("plugins_output[%q].entries[%q] URL render_type requires string value", pluginKey, entryKey)
+	}
+	return strings.TrimSpace(stringValue.StringValue), nil
+}
+
+func hasDisallowedURLSchemePrefix(urlValueLower string) bool {
+	for _, disallowedScheme := range []string{
+		urlSchemeJavaScript,
+		urlSchemeData,
+		urlSchemeVBScript,
+	} {
+		if strings.HasPrefix(urlValueLower, disallowedScheme) {
+			return true
+		}
+	}
+	return false
+}
+
+func isAllowedURLScheme(urlScheme string) bool {
+	lowerScheme := strings.ToLower(urlScheme)
+	return lowerScheme == "http" || lowerScheme == "https"
+}
+
+func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2beta1.PluginOutput, error) {
+	if jsonStr == nil || *jsonStr == "" {
+		return nil, nil
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(*jsonStr), &raw); err != nil {
+		return nil, fmt.Errorf("unmarshal plugins_output: %w", err)
+	}
+	result := make(map[string]*apiv2beta1.PluginOutput, len(raw))
+	for k, v := range raw {
+		po := &apiv2beta1.PluginOutput{}
+		if err := protojson.Unmarshal(v, po); err != nil {
+			return nil, fmt.Errorf("unmarshal plugins_output[%q]: %w", k, err)
+		}
+		result[k] = po
+	}
+	return result, nil
 }

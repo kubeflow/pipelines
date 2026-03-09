@@ -428,3 +428,48 @@ func TestLoadAWSConfig_WithCredentials(t *testing.T) {
 	assert.Equal(t, "test-key", creds.AccessKeyID)
 	assert.Equal(t, "test-secret", creds.SecretAccessKey)
 }
+
+func TestAutoMigrateSucceeds(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+
+	assertColumnExists := func(table, column string) {
+		t.Helper()
+		rows, err := sqlDB.Query(fmt.Sprintf("PRAGMA table_info(%s)", table))
+		require.NoError(t, err)
+		defer func() { require.NoError(t, rows.Close()) }()
+
+		var found bool
+		for rows.Next() {
+			var cid int
+			var name, ctype string
+			var notnull int
+			var dfltValue *string
+			var pk int
+			require.NoError(t, rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk))
+			if name == column {
+				found = true
+				break
+			}
+		}
+		require.True(t, found, "expected column %q on table %q after autoMigrate", column, table)
+	}
+
+	// Spot-check one column per table as a smoke test.
+	// We don't verify every column. The goal is to confirm
+	// that all models in AllModels() are migrated.
+	assertColumnExists("db_statuses", "HaveSamplesLoaded")
+	assertColumnExists("default_experiments", "DefaultExperimentId")
+	assertColumnExists("experiments", "Name")
+	assertColumnExists("pipelines", "UUID")
+	assertColumnExists("pipeline_versions", "UUID")
+	assertColumnExists("jobs", "PluginsInput")
+	assertColumnExists("run_details", "PluginsInput")
+	assertColumnExists("run_details", "PluginsOutput")
+	assertColumnExists("run_metrics", "RunUUID")
+	assertColumnExists("tasks", "RunUUID")
+	assertColumnExists("resource_references", "ResourceUUID")
+}

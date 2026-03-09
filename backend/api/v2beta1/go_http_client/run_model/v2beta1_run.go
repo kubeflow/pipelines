@@ -53,6 +53,14 @@ type V2beta1Run struct {
 	// Reference to a pipeline containing pipeline_id and optionally the pipeline_version_id.
 	PipelineVersionReference *V2beta1PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
 
+	// Optional input. Plugin-specific inputs provided by the user at run creation.
+	// Each key is a plugin name (e.g., "mlflow") and the value is arbitrary JSON config.
+	PluginsInput map[string]interface{} `json:"plugins_input,omitempty"`
+
+	// Output. Plugin-specific outputs populated by backend components.
+	// Each key is a plugin name and the value contains the plugin's output entries and state.
+	PluginsOutput map[string]V2beta1PluginOutput `json:"plugins_output,omitempty"`
+
 	// ID of the recurring run that triggered this run.
 	RecurringRunID string `json:"recurring_run_id,omitempty"`
 
@@ -102,6 +110,10 @@ func (m *V2beta1Run) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validatePipelineVersionReference(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePluginsOutput(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -192,6 +204,32 @@ func (m *V2beta1Run) validatePipelineVersionReference(formats strfmt.Registry) e
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) validatePluginsOutput(formats strfmt.Registry) error {
+	if swag.IsZero(m.PluginsOutput) { // not required
+		return nil
+	}
+
+	for k := range m.PluginsOutput {
+
+		if err := validate.Required("plugins_output"+"."+k, "body", m.PluginsOutput[k]); err != nil {
+			return err
+		}
+		if val, ok := m.PluginsOutput[k]; ok {
+			if err := val.Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("plugins_output" + "." + k)
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("plugins_output" + "." + k)
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -323,6 +361,10 @@ func (m *V2beta1Run) ContextValidate(ctx context.Context, formats strfmt.Registr
 		res = append(res, err)
 	}
 
+	if err := m.contextValidatePluginsOutput(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateRunDetails(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -386,6 +428,21 @@ func (m *V2beta1Run) contextValidatePipelineVersionReference(ctx context.Context
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1Run) contextValidatePluginsOutput(ctx context.Context, formats strfmt.Registry) error {
+
+	for k := range m.PluginsOutput {
+
+		if val, ok := m.PluginsOutput[k]; ok {
+			if err := val.ContextValidate(ctx, formats); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
