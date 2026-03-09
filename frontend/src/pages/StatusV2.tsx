@@ -15,20 +15,20 @@
  */
 
 import * as React from 'react';
-import ErrorIcon from '@material-ui/icons/Error';
-import PendingIcon from '@material-ui/icons/Schedule';
+import ErrorIcon from '@mui/icons-material/Error';
+import PendingIcon from '@mui/icons-material/Schedule';
 import RunningIcon from 'src/icons/statusRunning';
-import SkippedIcon from '@material-ui/icons/SkipNext';
-import SuccessIcon from '@material-ui/icons/CheckCircle';
+import SkippedIcon from '@mui/icons-material/SkipNext';
+import SuccessIcon from '@mui/icons-material/CheckCircle';
 import CachedIcon from 'src/icons/statusCached';
 import TerminatedIcon from 'src/icons/statusTerminated';
-import Tooltip from '@material-ui/core/Tooltip';
-import UnknownIcon from '@material-ui/icons/Help';
+import UnknownIcon from '@mui/icons-material/Help';
 import { color } from 'src/Css';
 import { logger, formatDateString } from 'src/lib/Utils';
 import { checkIfTerminatedV2 } from 'src/lib/StatusUtils';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { Tooltip } from '@mui/material';
 
 export function statusToIcon(
   state?: V2beta1RuntimeState,
@@ -82,7 +82,7 @@ export function statusToIcon(
       iconColor = color.terminated;
       title = 'Run was manually canceled';
       break;
-    case V2beta1RuntimeState.RUNTIMESTATEUNSPECIFIED:
+    case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       break;
     default:
       if (state != null) {

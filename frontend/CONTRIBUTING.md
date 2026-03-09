@@ -96,7 +96,7 @@ deployment running on a remote or local Kubernetes cluster. This dramatically
 improves iteration time, especially since the docker build can take 20+ minutes.
 
 KFP can be deployed in single-user or multi-user mode. Since there's a delta in
-logic between between the two modes, automated tests and manual validation
+logic between the two modes, automated tests and manual validation
 against a single-user cluster can still fail when deployed to a multi-user
 cluster.
 
@@ -118,7 +118,7 @@ make kind-cluster-agnostic
 
 #### Multi-user
 
-1. Install Kubernetes and deploy KFP to it on your your local machine by
+1. Install Kubernetes and deploy KFP to it on your local machine by
    following the [multi-user Kubeflow installation instructions](https://github.com/kubeflow/manifests?tab=readme-ov-file#installation).
 2. Run `cd frontend`.
 3. Run the following code block.
@@ -228,17 +228,21 @@ guide [here](https://prettier.io/docs/en/ignore.html). (Most likely you don't ne
 ## Api client code generation
 
 If you made any changes to protos (see backend/README), you'll need to
-regenerate the Typescript client library from swagger. We use
-swagger-codegen-cli@2.4.7, which you can get
-[here](https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/).
-Make sure to add the jar file to $PATH with the name swagger-codegen-cli.jar, then run `npm run apis` for
-v1 api or `npm run apis:v2beta1` for v2 api.
+regenerate the Typescript client library from swagger. The frontend uses
+OpenAPI Generator via Docker (`openapitools/openapi-generator-cli:v7.19.0`).
+Make sure Docker is running, then run `npm run apis` for v1 api,
+`npm run apis:v2beta1` for v2 api, or `npm run apis:all` to regenerate every
+frontend and server surface in one pass.
+
+You can also generate individual surfaces, for example:
+
+```bash
+npm run apis:run
+npm run apis:v2beta1:run
+# or invoke the generator directly from the repo root:
+node frontend/scripts/generate_openapi_typescript_fetch.js v1:run
 ```
-// add jar file to $PATH
-JAR_PATH=<folder-path-to-jar-file>
-export PATH="$JAR_PATH:$PATH"
-```
-After code generation, you should run `npm run format` to format the output and avoid creating a large PR.
+Code generation formats the generated files automatically.
 
 ## MLMD components
 
@@ -279,21 +283,12 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
   chmod +x /usr/local/bin/protoc-gen-grpc-web
   ```
 
-* Replace `metadata_store.proto` and `metadata_store_service.proto` proto files with target mlmd version by running
-
-  ```bash
-  npm run build:replace -- {mlmd_versions}
-  // example:
-  // npm run build:replace -- 1.0.0
-  ```
-
 * Generate new protos by running
 
   ```bash
   npm run build:protos
   ```
 
-The script run by `npm run build:replace` can be found at `scripts/replace_protos.js`.
 The script run by `npm run build:protos` can be found at `scripts/gen_grpc_web_protos.js`.
 
 The current TypeScript proto library was generated with `protoc-gen-grpc-web` version 1.2.1 with

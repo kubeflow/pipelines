@@ -72,10 +72,11 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
         ['Description', run.description!],
         ['Created at', formatDateString(run.created_at)],
       ];
-      inputParameters = Object.entries(run.runtime_config?.parameters || []).map(param => [
-        param[0] || '',
-        param[1] || '',
-      ]);
+      inputParameters = Object.entries(run.runtime_config?.parameters || []).map(([key, value]) => {
+        const displayValue =
+          value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
+        return [key || '', displayValue];
+      });
       if (run.trigger) {
         triggerDetails = [
           ['Enabled', enabledDisplayStringV2(run.trigger, run.status!)],

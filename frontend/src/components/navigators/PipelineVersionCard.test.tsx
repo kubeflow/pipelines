@@ -62,7 +62,7 @@ describe('PipelineVersionCard', () => {
         pipeline={TEST_PIPELINE}
         selectedVersion={OLD_TEST_PIPELINE_VERSION}
         versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,
@@ -78,7 +78,7 @@ describe('PipelineVersionCard', () => {
         pipeline={TEST_PIPELINE}
         selectedVersion={OLD_TEST_PIPELINE_VERSION}
         versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,
@@ -96,7 +96,7 @@ describe('PipelineVersionCard', () => {
         pipeline={TEST_PIPELINE}
         selectedVersion={OLD_TEST_PIPELINE_VERSION}
         versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,
@@ -121,7 +121,7 @@ describe('PipelineVersionCard', () => {
         pipeline={TEST_PIPELINE}
         selectedVersion={OLD_TEST_PIPELINE_VERSION}
         versions={TEST_PIPELINE_VERSIONS_LIST}
-        handleVersionSelected={versionId => {
+        handleVersionSelected={(versionId) => {
           return Promise.resolve();
         }}
       ></PipelineVersionCard>,
@@ -129,7 +129,7 @@ describe('PipelineVersionCard', () => {
 
     userEvent.click(screen.getByText('Show Summary'));
 
-    fireEvent.mouseDown(getByRole('button', { name: OLD_VERSION_NAME }));
+    fireEvent.mouseDown(getByRole('combobox'));
     await screen.findByRole('listbox');
     screen.getByRole('option', { name: NEW_VERSION_NAME });
   });

@@ -13,14 +13,28 @@
 // limitations under the License.
 
 const debug = process.env.DEBUG == '1' || process.env.DEBUG == 'true';
+const headless = !(process.env.HEADLESS == '0' || process.env.HEADLESS == 'false');
 
 const seleniumHost = process.env.SELENIUM_HOST || '127.0.0.1';
 const seleniumPort = Number(process.env.SELENIUM_PORT || 4444);
 const baseUrl = process.env.KFP_BASE_URL || 'http://localhost:3000';
+const junitOutputDir = process.env.WDIO_JUNIT_OUTPUT_DIR || './';
+const specsFromEnv = process.env.WDIO_SPECS
+  ? process.env.WDIO_SPECS.split(',')
+      .map(spec => spec.trim())
+      .filter(Boolean)
+  : [];
+const specs = specsFromEnv.length
+  ? specsFromEnv
+  : ['./helloworld.spec.js', './tensorboard-example.spec.js'];
+const chromeArgs = ['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'];
+if (headless) {
+  chromeArgs.unshift('--headless');
+}
 
 exports.config = {
   runner: 'local',
-  host: seleniumHost,
+  hostname: seleniumHost,
   port: seleniumPort,
   maxInstances: 1,
   baseUrl,
@@ -29,19 +43,12 @@ exports.config = {
       maxInstances: 1,
       browserName: 'chrome',
       'goog:chromeOptions': {
-        args: [
-          '--headless',
-          '--disable-gpu',
-          '--no-sandbox',
-          '--disable-dev-shm-usage',
-        ],
+        args: chromeArgs,
       },
     },
   ],
-  coloredLogs: true,
   connectionRetryCount: 3,
   connectionRetryTimeout: 90000,
-  deprecationWarnings: false,
   framework: 'mocha',
   mochaOpts: {
     ui: 'bdd',
@@ -54,15 +61,14 @@ exports.config = {
     [
       'junit',
       {
-        outputDir: './',
+        outputDir: junitOutputDir,
         outputFileFormat: function (options) {
           return 'junit_FrontendIntegrationTestOutput.xml';
         },
       },
     ],
   ],
-  services: debug ? [['selenium-standalone', { drivers: { chrome: 'latest' } }]] : [],
-  specs: ['./helloworld.spec.js'],
-  sync: true,
+  services: [],
+  specs,
   waitforTimeout: 10000,
 };

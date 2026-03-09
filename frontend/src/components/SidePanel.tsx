@@ -15,13 +15,12 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import CloseIcon from '@material-ui/icons/Close';
-import Resizable from 're-resizable';
-import Slide from '@material-ui/core/Slide';
+import CloseIcon from '@mui/icons-material/Close';
+import { Resizable } from 're-resizable';
 import { color, commonCss, zIndex } from '../Css';
 import { stylesheet } from 'typestyle';
+
+import { Button, CircularProgress, Slide } from '@mui/material';
 
 const css = stylesheet({
   closeButton: {
@@ -75,40 +74,43 @@ class SidePanel extends React.Component<SidePanelProps> {
     const { isBusy, isOpen, onClose, title, defaultWidth } = this.props;
     return (
       <Slide in={isOpen} direction='left'>
-        <Resizable
-          className={css.sidepane}
-          defaultSize={{ width: defaultWidth ? defaultWidth : '70%' }}
-          maxWidth='90%'
-          minWidth={100}
-          enable={{
-            bottom: false,
-            bottomLeft: false,
-            bottomRight: false,
-            left: true,
-            right: false,
-            top: false,
-            topLeft: false,
-            topRight: false,
-          }}
-        >
-          {isOpen && (
-            <div className={commonCss.page}>
-              <div className={commonCss.flex}>
-                <Button aria-label='close' className={css.closeButton} onClick={onClose}>
-                  <CloseIcon />
-                </Button>
-                <div className={css.nodeName}>{title}</div>
-              </div>
+        {/* Wrapper div is required for MUI v5 Slide: Slide expects a single DOM element child that can receive a ref. */}
+        <div>
+          <Resizable
+            className={css.sidepane}
+            defaultSize={{ width: defaultWidth ? defaultWidth : '70%' }}
+            maxWidth='90%'
+            minWidth={100}
+            enable={{
+              bottom: false,
+              bottomLeft: false,
+              bottomRight: false,
+              left: true,
+              right: false,
+              top: false,
+              topLeft: false,
+              topRight: false,
+            }}
+          >
+            {isOpen && (
               <div className={commonCss.page}>
-                {isBusy === true && (
-                  <CircularProgress size={30} className={commonCss.absoluteCenter} />
-                )}
+                <div className={commonCss.flex}>
+                  <Button aria-label='close' className={css.closeButton} onClick={onClose}>
+                    <CloseIcon />
+                  </Button>
+                  <div className={css.nodeName}>{title}</div>
+                </div>
+                <div className={commonCss.page}>
+                  {isBusy === true && (
+                    <CircularProgress size={30} className={commonCss.absoluteCenter} />
+                  )}
 
-                <div className={commonCss.page}>{this.props.children}</div>
+                  <div className={commonCss.page}>{this.props.children}</div>
+                </div>
               </div>
-            </div>
-          )}
-        </Resizable>
+            )}
+          </Resizable>
+        </div>
       </Slide>
     );
   }

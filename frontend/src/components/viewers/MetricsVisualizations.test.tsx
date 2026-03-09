@@ -262,11 +262,11 @@ describe('ConfidenceMetricsSection', () => {
     // Only the selected items are checked.
     const selectedCheckboxes = screen
       .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
+      .filter((r) => r.nodeName === 'INPUT');
     expect(selectedCheckboxes).toHaveLength(2);
 
     // Check all checkboxes (since the top row starts out indeterminate).
-    const checkboxes = screen.queryAllByRole('checkbox').filter(r => r.nodeName === 'INPUT');
+    const checkboxes = screen.queryAllByRole('checkbox').filter((r) => r.nodeName === 'INPUT');
     fireEvent.click(checkboxes[0]);
     expect(setSelectedIdsSpy).toHaveBeenLastCalledWith(['1-1', '1-2', '2-4']);
     expect(setSelectedIdColorMapSpy).toHaveBeenLastCalledWith({
@@ -287,11 +287,11 @@ describe('ConfidenceMetricsSection', () => {
     // Only the selected items are checked.
     const selectedCheckboxes = screen
       .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
+      .filter((r) => r.nodeName === 'INPUT');
     expect(selectedCheckboxes).toHaveLength(4);
 
     // Uncheck the first (non-"select all") checkbox.
-    const checkboxes = screen.queryAllByRole('checkbox').filter(r => r.nodeName === 'INPUT');
+    const checkboxes = screen.queryAllByRole('checkbox').filter((r) => r.nodeName === 'INPUT');
     fireEvent.click(checkboxes[1]);
     expect(setSelectedIdsSpy).toHaveBeenLastCalledWith(['1-2', '2-4']);
     expect(setSelectedIdColorMapSpy).toHaveBeenLastCalledWith({
@@ -317,10 +317,10 @@ describe('ConfidenceMetricsSection', () => {
     await TestUtils.flushPromises();
 
     // Only the selected items are checked.
-    let checkboxes = screen.queryAllByRole('checkbox').filter(r => r.nodeName === 'INPUT');
+    let checkboxes = screen.queryAllByRole('checkbox').filter((r) => r.nodeName === 'INPUT');
     let selectedCheckboxes = screen
       .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
+      .filter((r) => r.nodeName === 'INPUT');
     expect(checkboxes).toHaveLength(11);
     expect(selectedCheckboxes).toHaveLength(11);
     screen.getByText(
@@ -333,10 +333,10 @@ describe('ConfidenceMetricsSection', () => {
 
     // Ensure none of the next page checkboxes are checked.
     fireEvent.click(nextPage);
-    checkboxes = screen.queryAllByRole('checkbox').filter(r => r.nodeName === 'INPUT');
+    checkboxes = screen.queryAllByRole('checkbox').filter((r) => r.nodeName === 'INPUT');
     selectedCheckboxes = screen
       .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
+      .filter((r) => r.nodeName === 'INPUT');
     expect(checkboxes).toHaveLength(6);
     expect(selectedCheckboxes).toHaveLength(0);
 

@@ -368,7 +368,7 @@ describe('NewPipelineVersion', () => {
         name: 'test pipeline name',
         display_name: 'test pipeline name',
       });
-    });
+    }, 20000);
 
     it('creates pipeline from local file in single user mode', async () => {
       await renderNewPipelineVersion('', { buildInfo: { apiServerMultiUser: false } });

@@ -44,7 +44,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   const [recurringRunStatus, setRecurringRunStatus] = useState<V2beta1RecurringRunStatus>();
 
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
-  const Refresh = () => setRefresh(refreshed => !refreshed);
+  const Refresh = () => setRefresh((refreshed) => !refreshed);
 
   const {
     data: recurringRun,
@@ -240,10 +240,11 @@ function getRunTriggers(recurringRun: V2beta1RecurringRun): Array<KeyValue<strin
 function getRunParameters(recurringRun: V2beta1RecurringRun): Array<KeyValue<string>> {
   let parameters: Array<KeyValue<string>> = [];
 
-  parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(param => [
-    param[0] || '',
-    param[1] || '',
-  ]);
+  parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(([key, value]) => {
+    const displayValue =
+      value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
+    return [key || '', displayValue];
+  });
 
   return parameters;
 }

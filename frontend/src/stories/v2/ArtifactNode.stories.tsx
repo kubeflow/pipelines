@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
 import ReactFlow, {
   Background,
@@ -76,27 +76,28 @@ function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
   );
 }
 
-export default {
+const meta: Meta<typeof WrappedArtifactNode> = {
   title: 'v2/ArtifactNode',
   component: WrappedArtifactNode,
   argTypes: {
     backgroundColor: { control: 'color' },
   },
-} as ComponentMeta<typeof WrappedArtifactNode>;
-
-const Template: ComponentStory<typeof WrappedArtifactNode> = args => (
-  <WrappedArtifactNode {...args} />
-);
-
-export const Primary = Template.bind({});
-Primary.args = {
-  id: 'id',
-  label: 'This is an ArtifactNode',
-  state: Artifact.State.LIVE,
 };
 
-export const Secondary = Template.bind({});
-Secondary.args = {
-  id: 'id',
-  label: 'This is an ArtifactNode with long name',
+export default meta;
+type Story = StoryObj<typeof WrappedArtifactNode>;
+
+export const Primary: Story = {
+  args: {
+    id: 'id',
+    label: 'This is an ArtifactNode',
+    state: Artifact.State.LIVE,
+  },
+};
+
+export const Secondary: Story = {
+  args: {
+    id: 'id',
+    label: 'This is an ArtifactNode with long name',
+  },
 };

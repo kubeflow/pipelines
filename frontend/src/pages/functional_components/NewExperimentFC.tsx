@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery } from 'react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
@@ -29,6 +28,7 @@ import { errorToMessage } from 'src/lib/Utils';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { PageProps } from 'src/pages/Page';
 import { classes, stylesheet } from 'typestyle';
+import { Button } from '@mui/material';
 
 const css = stylesheet({
   errorMessage: {
@@ -127,11 +127,11 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     setIsBeingCreated(true);
 
     newExperimentMutation.mutate(newExperiment, {
-      onSuccess: response => {
+      onSuccess: (response) => {
         setExperimentResponse(response);
         setErrMsgFromApi(undefined);
       },
-      onError: async err => {
+      onError: async (err) => {
         setErrMsgFromApi(await errorToMessage(err));
       },
     });
@@ -153,7 +153,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
           id='experimentName'
           label='Experiment name'
           required={true}
-          onChange={event => setExperimentName(event.target.value)}
+          onChange={(event) => setExperimentName(event.target.value)}
           value={experimentName}
           autoFocus={true}
           variant='outlined'
@@ -162,7 +162,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
           id='experimentDescription'
           label='Description'
           multiline={true}
-          onChange={event => setDescription(event.target.value)}
+          onChange={(event) => setDescription(event.target.value)}
           required={false}
           value={description}
           variant='outlined'
