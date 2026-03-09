@@ -18,6 +18,14 @@
 - If you come across new common errors or fixes, extend "Common error patterns and quick fixes".
 - Always bump the "Last updated" date above when you make substantive changes.
 
+### Code reuse policy (agents and contributors)
+
+- Always reuse existing functions, helpers, and utilities before writing new code. Search the codebase for existing implementations that accomplish the same goal.
+- Do not duplicate logic that already exists elsewhere in the repo. If a function, method, or pattern is already implemented, import and call it rather than reimplementing it.
+- When adding new functionality, check related packages and modules for shared code that can be leveraged.
+- If existing code needs slight modifications to be reusable, prefer refactoring the existing code to be more general over duplicating it with changes.
+- Use descriptive variable and function names. Avoid abbreviations or single-letter names — prefer full, meaningful names that clearly convey purpose (e.g., `executionID` over `execID`, `fingerPrint` over `fp`).
+
 ### Commit policy (agents and contributors)
 
 - Always sign off on commits with `git commit -s` (adds a `Signed-off-by:` trailer).
