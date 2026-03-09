@@ -1160,6 +1160,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err := manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1171,6 +1172,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, nTotal)

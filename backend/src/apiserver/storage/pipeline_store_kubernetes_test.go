@@ -31,7 +31,7 @@ func TestListK8sPipelines(t *testing.T) {
 	fc := &model.FilterContext{}
 	options := list.EmptyOptions()
 
-	_, size, _, err := store.ListPipelines(fc, options)
+	_, size, _, err := store.ListPipelines(fc, options, nil)
 	require.Nil(t, err, "Failed to list all pipelines: %v")
 	require.Equalf(t, size, 1, "List size is not zero")
 
@@ -44,7 +44,7 @@ func TestListK8sPipelines(t *testing.T) {
 	_, err = store.CreatePipeline(pipeline)
 	require.Nil(t, err, "Failed to create Pipeline: %v", err)
 
-	_, size, _, err = store.ListPipelines(fc, options)
+	_, size, _, err = store.ListPipelines(fc, options, nil)
 	require.Nil(t, err, "Failed to list all pipelines: %v", err)
 	require.Equalf(t, size, 2, "List size should not be zero")
 }
@@ -77,7 +77,7 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "id", newFilter)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options)
+	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.Equalf(t, len(pipelines), 2, "List size should return 2")
 }
@@ -108,14 +108,14 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
 	require.Nil(t, err1, "Failed to create list options: %v")
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "Test Pipeline 3", "Pagination failed")
 }
@@ -146,13 +146,13 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name desc", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "Test Pipeline 3", "Pagination failed")
 }
@@ -183,13 +183,13 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "Test Pipeline 1", "Pagination failed")
 }
@@ -204,7 +204,7 @@ func TestListK8sPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options)
+	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options, nil)
 	require.Nil(t, err, "Failed to list pipelines: %v")
 	require.Equalf(t, pageSize, 1, "Page size should be 1")
 	require.Equalf(t, len(pipelines), 1, "List size should be 1")

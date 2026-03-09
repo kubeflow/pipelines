@@ -52,6 +52,9 @@ type Pipeline struct {
 	// Namespace is restricted to varchar(63) due to Kubernetes' naming constraints:
 	// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
 	Namespace string `gorm:"column:Namespace; uniqueIndex:namespace_name; type:varchar(63);"`
+	// Tags holds user-defined key-value pairs. Stored in a separate
+	// pipeline_tags table, not in the pipelines table itself.
+	Tags map[string]string `gorm:"-"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {

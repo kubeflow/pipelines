@@ -100,10 +100,10 @@ func TestListPipelinesAndVersions_FilterOutNotReady(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&model.FilterContext{}, opts)
+	pipelines, totalSize, nextPageToken, err := pipelineStore.ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	// Create pipeline versions

@@ -19,7 +19,9 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -93,6 +95,16 @@ var (
 		Name: "pipeline_server_update_default_version_requests",
 		Help: "The total number of UpdatePipelineDefaultVersion requests",
 	})
+
+	updatePipelineRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_update_requests",
+		Help: "The total number of UpdatePipeline requests",
+	})
+
+	updatePipelineVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_update_version_requests",
+		Help: "The total number of UpdatePipelineVersion requests",
+	})
 )
 
 type PipelineServerOptions struct {
@@ -146,9 +158,9 @@ func (s *BasePipelineServer) createPipeline(ctx context.Context, pipeline *model
 
 // Creates a pipeline and a pipeline version in a single transaction.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Context, pipeline *model.Pipeline, pipelineUrlStr string) (*model.Pipeline, *model.PipelineVersion, error) {
+func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Context, pipeline *model.Pipeline, pipelineURLStr string, versionTags map[string]string) (*model.Pipeline, *model.PipelineVersion, error) {
 	// Resolve name and namespace
-	pipelineFileName := path.Base(pipelineUrlStr)
+	pipelineFileName := path.Base(pipelineURLStr)
 
 	pipeline.Name = buildPipelineName(pipeline.Name, pipeline.DisplayName, pipelineFileName)
 	if pipeline.DisplayName == "" {
@@ -176,21 +188,22 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 	pipelineVersion := &model.PipelineVersion{
 		Name:            pipeline.Name,
 		DisplayName:     pipeline.DisplayName,
-		PipelineSpecURI: model.LargeText(pipelineUrlStr),
+		PipelineSpecURI: model.LargeText(pipelineURLStr),
 		Description:     pipeline.Description,
 		Status:          model.PipelineVersionCreating,
+		Tags:            versionTags,
 	}
 
 	// Download and parse pipeline spec
-	pipelineUrl, err := url.ParseRequestURI(pipelineUrlStr)
+	pipelineURL, err := url.ParseRequestURI(pipelineURLStr)
 	if err != nil {
-		return nil, nil, util.NewInvalidInputError("invalid pipeline spec URL: %v", pipelineUrlStr)
+		return nil, nil, util.NewInvalidInputError("invalid pipeline spec URL: %v", pipelineURLStr)
 	}
-	resp, err := s.httpClient.Get(pipelineUrl.String())
+	resp, err := s.httpClient.Get(pipelineURL.String())
 	if err != nil {
-		return nil, nil, util.NewInternalServerError(err, "error downloading the pipeline spec from %v", pipelineUrl.String())
+		return nil, nil, util.NewInternalServerError(err, "error downloading the pipeline spec from %v", pipelineURL.String())
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineUrl.String(), resp.Status)
+		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineURL.String(), resp.Status)
 	}
 	defer resp.Body.Close()
 	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
@@ -223,7 +236,7 @@ func (s *PipelineServerV1) CreatePipelineV1(ctx context.Context, request *apiv1b
 	}
 
 	// Create both pipeline and pipeline version is a single transaction
-	newPipeline, newPipelineVersion, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipeline().GetUrl().GetPipelineUrl())
+	newPipeline, newPipelineVersion, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipeline().GetUrl().GetPipelineUrl(), nil)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1)")
 	}
@@ -398,7 +411,7 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2be
 
 // Fetches an array of pipelines and an array of pipeline versions for given search query parameters.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, opts *list.Options, apiRequestVersion string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
+func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, opts *list.Options, apiRequestVersion string, tagFilters map[string]string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
 	// Fill in the default namespace
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if err := validation.ValidateNamespaceRequired(namespace); err != nil {
@@ -420,7 +433,7 @@ func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string
 	case "v1beta1":
 		return s.resourceManager.ListPipelinesV1(filterContext, opts)
 	case "v2beta1":
-		pipelines, size, token, err := s.resourceManager.ListPipelines(filterContext, opts)
+		pipelines, size, token, err := s.resourceManager.ListPipelines(filterContext, opts, tagFilters)
 		return pipelines, nil, size, token, err
 	default:
 		return nil, nil, 0, "", util.NewInternalServerError(
@@ -467,7 +480,7 @@ func (s *PipelineServerV1) ListPipelinesV1(ctx context.Context, request *apiv1be
 		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
 	}
 
-	pipelines, pipelineVersions, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, opts, "v1beta1")
+	pipelines, pipelineVersions, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, opts, "v1beta1", nil)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipelines (v1beta1) in namespace %s. Check error stack", namespace)
 	}
@@ -487,19 +500,87 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.
 	pageToken := request.GetPageToken()
 	pageSize := request.GetPageSize()
 	sortBy := request.GetSortBy()
-	filter := request.GetFilter()
+	filterSpec := request.GetFilter()
 
-	// Validate list options
-	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, filter, "v2beta1")
+	// Extract tag filter predicates (keys prefixed with "tags.") from the filter spec.
+	// Tag predicates are handled separately via subqueries and must not be passed to
+	// the standard filter/list options which map keys to DB columns.
+	cleanedFilterSpec, tagFilters, err := extractTagFiltersFromFilterSpec(filterSpec)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
+		return nil, util.Wrapf(err, "Failed to list pipelines due to invalid tag filter in filter spec")
 	}
 
-	pipelines, _, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, opts, "v2beta1")
+	// Validate list options with the cleaned filter (tag predicates removed)
+	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec, "v2beta1")
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
+	}
+
+	pipelines, _, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, opts, "v2beta1", tagFilters)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
 	}
 	return &apiv2beta1.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
+}
+
+// extractTagFiltersFromFilterSpec parses a filter spec string, extracts any predicates
+// with keys prefixed by "tags." (e.g., "tags.team"), and returns:
+//   - cleanedFilterSpec: the filter spec with tag predicates removed (re-serialized)
+//   - tagFilters: a map of tag key -> tag value extracted from EQUALS predicates
+//   - err: any parsing error
+//
+// Only EQUALS predicates are supported for tag filtering. Non-tag predicates are
+// preserved in the cleaned filter spec for standard filter/list processing.
+func extractTagFiltersFromFilterSpec(filterSpec string) (string, map[string]string, error) {
+	if filterSpec == "" {
+		return "", nil, nil
+	}
+
+	decoded, err := url.QueryUnescape(filterSpec)
+	if err != nil {
+		return filterSpec, nil, util.NewInvalidInputError("failed to decode filter spec: %v", err)
+	}
+
+	f := &apiv2beta1.Filter{}
+	if err := protojson.Unmarshal([]byte(decoded), f); err != nil {
+		return filterSpec, nil, util.NewInvalidInputError("failed to parse filter spec: %v", err)
+	}
+
+	var remainingPredicates []*apiv2beta1.Predicate
+	tagFilters := make(map[string]string)
+
+	for _, p := range f.GetPredicates() {
+		key := p.GetKey()
+		if strings.HasPrefix(key, "tags.") {
+			tagKey := strings.TrimPrefix(key, "tags.")
+			if p.GetOperation() != apiv2beta1.Predicate_EQUALS {
+				return "", nil, util.NewInvalidInputError("only EQUALS operation is supported for tag filtering, got %v for key %q", p.GetOperation(), key)
+			}
+			sv, ok := p.GetValue().(*apiv2beta1.Predicate_StringValue)
+			if !ok {
+				return "", nil, util.NewInvalidInputError("tag filter value must be a string for key %q", key)
+			}
+			tagFilters[tagKey] = sv.StringValue
+		} else {
+			remainingPredicates = append(remainingPredicates, p)
+		}
+	}
+
+	if len(tagFilters) == 0 {
+		return filterSpec, nil, nil
+	}
+
+	// Reconstruct the filter spec without tag predicates
+	if len(remainingPredicates) == 0 {
+		return "", tagFilters, nil
+	}
+	remainingFilter := &apiv2beta1.Filter{Predicates: remainingPredicates}
+	marshaler := &protojson.MarshalOptions{UseProtoNames: true}
+	data, err := marshaler.Marshal(remainingFilter)
+	if err != nil {
+		return "", nil, util.NewInternalServerError(err, "failed to re-serialize filter after extracting tag predicates")
+	}
+	return url.QueryEscape(string(data)), tagFilters, nil
 }
 
 // Removes a pipeline.
@@ -653,7 +734,7 @@ func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *
 	}
 
 	// Create both pipeline and pipeline version in a single transaction
-	newPipeline, _, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipelineVersion().GetPackageUrl().GetPipelineUrl())
+	newPipeline, _, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipelineVersion().GetPackageUrl().GetPipelineUrl(), request.GetPipelineVersion().GetTags())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline")
 	}
@@ -1035,6 +1116,67 @@ func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api
 		pipelineVersionCount.Dec()
 	}
 	return &emptypb.Empty{}, nil
+}
+
+// UpdatePipeline updates a pipeline's mutable fields (display_name, tags).
+// Supports v2beta1 behavior.
+func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2beta1.UpdatePipelineRequest) (*apiv2beta1.Pipeline, error) {
+	if s.options.CollectMetrics {
+		updatePipelineRequests.Inc()
+	}
+
+	pipeline := request.GetPipeline()
+	pipelineID := pipeline.GetPipelineId()
+	if pipelineID == "" {
+		return nil, util.NewInvalidInputError("Failed to update a pipeline. Pipeline id cannot be empty")
+	}
+
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUpdate,
+	}
+	if err := s.canAccessPipeline(ctx, pipelineID, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to update pipeline %v due to authorization error", pipelineID)
+	}
+
+	updatedPipeline, err := s.resourceManager.UpdatePipeline(pipelineID, pipeline.GetDisplayName(), pipeline.GetTags())
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to update pipeline %v. Check error stack", pipelineID)
+	}
+	return toApiPipeline(updatedPipeline), nil
+}
+
+// UpdatePipelineVersion updates a pipeline version's mutable fields (display_name, tags).
+// Supports v2beta1 behavior.
+func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *apiv2beta1.UpdatePipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+	if s.options.CollectMetrics {
+		updatePipelineVersionRequests.Inc()
+	}
+
+	pipelineVersion := request.GetPipelineVersion()
+	pipelineVersionID := pipelineVersion.GetPipelineVersionId()
+	if pipelineVersionID == "" {
+		return nil, util.NewInvalidInputError("Failed to update a pipeline version. Pipeline version id cannot be empty")
+	}
+
+	pipelineID := pipelineVersion.GetPipelineId()
+	if pipelineID == "" {
+		return nil, util.NewInvalidInputError("Failed to update pipeline version %v. Pipeline id cannot be empty", pipelineVersionID)
+	}
+
+	// Check authorization
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUpdate,
+	}
+	if err := s.canAccessPipelineVersion(ctx, pipelineVersionID, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to update pipeline version %v due to authorization error", pipelineVersionID)
+	}
+
+	updatedVersion, err := s.resourceManager.UpdatePipelineVersion(pipelineVersionID, pipelineVersion.GetDisplayName(), pipelineVersion.GetTags())
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to update pipeline version %v. Check error stack", pipelineVersionID)
+	}
+	return toApiPipelineVersion(updatedVersion), nil
 }
 
 // Returns pipeline template.

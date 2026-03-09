@@ -22,7 +22,9 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -269,13 +271,13 @@ func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
 	return r.experimentStore.UnarchiveExperiment(experimentId)
 }
 
-// Returns a list of pipelines.
-func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
-	pipelines, total_size, nextPageToken, err := r.pipelineStore.ListPipelines(filterContext, opts)
+// ListPipelines returns a list of pipelines. tagFilters is an optional map of tag key->value pairs for filtering.
+func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
+	pipelines, totalSize, nextPageToken, err := r.pipelineStore.ListPipelines(filterContext, opts, tagFilters)
 	if err != nil {
 		err = util.Wrapf(err, "Failed to list pipelines with context %v, options %v", filterContext, opts)
 	}
-	return pipelines, total_size, nextPageToken, err
+	return pipelines, totalSize, nextPageToken, err
 }
 
 // TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
@@ -382,6 +384,87 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 	return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
 }
 
+// MaxTagKeyLength is the maximum allowed length (in characters) for a tag key.
+const MaxTagKeyLength = 20
+
+// MaxTagValueLength is the maximum allowed length (in characters) for a tag value.
+const MaxTagValueLength = 20
+
+// MaxTagsPerEntity is the maximum number of tags allowed on a single pipeline or pipeline version.
+const MaxTagsPerEntity = 10
+
+// validateTags checks that tags conform to all constraints:
+// - maximum number of tags per entity
+// - no empty keys
+// - keys must not contain "." (conflicts with tag filter prefix "tags.")
+// - key and value character lengths within limits
+func validateTags(tags map[string]string) error {
+	if len(tags) > MaxTagsPerEntity {
+		return util.NewInvalidInputError("number of tags (%d) exceeds maximum of %d per entity", len(tags), MaxTagsPerEntity)
+	}
+	for key, value := range tags {
+		if key == "" {
+			return util.NewInvalidInputError("tag key cannot be empty")
+		}
+		if strings.Contains(key, ".") {
+			return util.NewInvalidInputError("tag key %q must not contain '.' character", key)
+		}
+		if utf8.RuneCountInString(key) > MaxTagKeyLength {
+			return util.NewInvalidInputError("tag key %q exceeds maximum length of %d characters", key, MaxTagKeyLength)
+		}
+		if utf8.RuneCountInString(value) > MaxTagValueLength {
+			return util.NewInvalidInputError("tag value %q for key %q exceeds maximum length of %d characters", value, key, MaxTagValueLength)
+		}
+	}
+	return nil
+}
+
+// UpdatePipeline updates mutable fields of a pipeline (display_name, tags).
+// TODO: Wrap UpdatePipelineFields and CreateOrUpdatePipelineTags in a single
+// database transaction to prevent partial updates when one operation succeeds
+// and the other fails.
+func (r *ResourceManager) UpdatePipeline(pipelineID string, displayName string, tags map[string]string) (*model.Pipeline, error) {
+	if pipelineID == "" {
+		return nil, util.NewInvalidInputError("pipeline id cannot be empty when updating pipeline")
+	}
+	// Verify the pipeline exists before attempting to update.
+	_, err := r.pipelineStore.GetPipeline(pipelineID)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to update pipeline")
+	}
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+	// Update fields and tags in a single transaction to prevent deadlocks.
+	if err := r.pipelineStore.UpdatePipelineFields(pipelineID, displayName, tags); err != nil {
+		return nil, util.Wrap(err, "Failed to update pipeline")
+	}
+	// Return the updated pipeline.
+	return r.pipelineStore.GetPipeline(pipelineID)
+}
+
+// UpdatePipelineVersion updates mutable fields of a pipeline version (display_name, tags)
+// in a single transaction to prevent deadlocks.
+func (r *ResourceManager) UpdatePipelineVersion(pipelineVersionID string, displayName string, tags map[string]string) (*model.PipelineVersion, error) {
+	if pipelineVersionID == "" {
+		return nil, util.NewInvalidInputError("pipeline version id cannot be empty when updating pipeline version")
+	}
+	// Verify the pipeline version exists before attempting to update.
+	_, err := r.pipelineStore.GetPipelineVersion(pipelineVersionID)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to update pipeline version")
+	}
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+	// Update fields and tags in a single transaction to prevent deadlocks.
+	if err := r.pipelineStore.UpdatePipelineVersionFields(pipelineVersionID, displayName, tags); err != nil {
+		return nil, util.Wrap(err, "Failed to update pipeline version")
+	}
+	// Return the updated pipeline version.
+	return r.pipelineStore.GetPipelineVersion(pipelineVersionID)
+}
+
 // Creates a pipeline, but does not create a pipeline version.
 // Call CreatePipelineVersion to create a pipeline version.
 func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
@@ -391,6 +474,10 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 
 	if p.DisplayName == "" {
 		p.DisplayName = p.Name
+	}
+
+	if err := validateTags(p.Tags); err != nil {
+		return nil, err
 	}
 
 	// Create a record in KFP DB (only pipelines table)
@@ -413,6 +500,13 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 // Creates a pipeline and a pipeline version.
 // This is used when two resources need to be created in a single DB transaction.
 func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
+	if err := validateTags(p.Tags); err != nil {
+		return nil, nil, err
+	}
+	if err := validateTags(pv.Tags); err != nil {
+		return nil, nil, err
+	}
+
 	// Fetch pipeline spec, verify it, and parse parameters
 	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
 	if err != nil {
@@ -494,6 +588,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline version after creation")
 	}
+
 	return newPipeline, newVersion, nil
 }
 
@@ -1795,7 +1890,11 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	pv.Status = model.PipelineVersionCreating
 	pv.PipelineSpec = model.LargeText(string(tmpl.Bytes()))
 
-	// Create a record in DB
+	if err := validateTags(pv.Tags); err != nil {
+		return nil, err
+	}
+
+	// Create a record in DB (tags are inserted in the same transaction to avoid deadlocks).
 	version, err := r.pipelineStore.CreatePipelineVersion(pv)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create pipeline version in PipelineStore")
@@ -1813,20 +1912,32 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 
 // Returns a pipeline version by Id.
 func (r *ResourceManager) GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error) {
-	if pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId); err != nil {
+	pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId)
+	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version with id %v", pipelineVersionId)
-	} else {
-		return pipelineVersion, nil
 	}
+	// Load tags
+	tags, err := r.pipelineStore.GetPipelineVersionTags(pipelineVersion.UUID)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get tags for pipeline version %v", pipelineVersionId)
+	}
+	pipelineVersion.Tags = tags
+	return pipelineVersion, nil
 }
 
 // Returns a pipeline version by Name.
 func (r *ResourceManager) GetPipelineVersionByName(name string) (*model.PipelineVersion, error) {
-	if pipelineVersion, err := r.pipelineStore.GetPipelineVersionByName(name); err != nil {
+	pipelineVersion, err := r.pipelineStore.GetPipelineVersionByName(name)
+	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version with name %v", name)
-	} else {
-		return pipelineVersion, nil
 	}
+	// Load tags
+	tags, err := r.pipelineStore.GetPipelineVersionTags(pipelineVersion.UUID)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get tags for pipeline version %v", name)
+	}
+	pipelineVersion.Tags = tags
+	return pipelineVersion, nil
 }
 
 // Returns the latest pipeline version for a specified pipeline id.
@@ -1842,6 +1953,12 @@ func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.Pi
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get the latest pipeline version for a pipeline")
 	}
+	// Load tags
+	tags, err := r.pipelineStore.GetPipelineVersionTags(latestPipelineVersion.UUID)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to get tags for latest pipeline version %v", latestPipelineVersion.UUID)
+	}
+	latestPipelineVersion.Tags = tags
 	return latestPipelineVersion, nil
 }
 
@@ -1850,8 +1967,25 @@ func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Opt
 	pipelineVersions, total_size, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts)
 	if err != nil {
 		err = util.Wrapf(err, "Failed to list pipeline versions with pipeline id %v, options %v", pipelineId, opts)
+		return nil, 0, "", err
 	}
-	return pipelineVersions, total_size, nextPageToken, err
+	// Load tags for all pipeline versions
+	if len(pipelineVersions) > 0 {
+		versionIds := make([]string, len(pipelineVersions))
+		for i, pv := range pipelineVersions {
+			versionIds[i] = pv.UUID
+		}
+		allTags, err := r.pipelineStore.GetPipelineVersionTagsForVersions(versionIds)
+		if err != nil {
+			return nil, 0, "", util.Wrapf(err, "Failed to get tags for pipeline versions")
+		}
+		for _, pv := range pipelineVersions {
+			if tags, ok := allTags[pv.UUID]; ok {
+				pv.Tags = tags
+			}
+		}
+	}
+	return pipelineVersions, total_size, nextPageToken, nil
 }
 
 // Deletes a pipeline version and the corresponding PipelineSpec.

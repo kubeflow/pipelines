@@ -101,6 +101,14 @@ export interface V2beta1PipelineVersion {
    * @memberof V2beta1PipelineVersion
    */
   error?: GooglerpcStatus;
+  /**
+   * Optional input field. User-defined tags (key-value pairs) for the pipeline version.
+   * Both keys and values are limited to 20 characters.
+   * Tags are stored in a separate table and can be retrieved via Get and List APIs.
+   * @type {{ [key: string]: string; }}
+   * @memberof V2beta1PipelineVersion
+   */
+  tags?: { [key: string]: string };
 }
 
 /**
@@ -133,6 +141,7 @@ export function V2beta1PipelineVersionFromJSONTyped(
     code_source_url: json['code_source_url'] == null ? undefined : json['code_source_url'],
     pipeline_spec: json['pipeline_spec'] == null ? undefined : json['pipeline_spec'],
     error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    tags: json['tags'] == null ? undefined : json['tags'],
   };
 }
 
@@ -160,5 +169,6 @@ export function V2beta1PipelineVersionToJSONTyped(
     code_source_url: value['code_source_url'],
     pipeline_spec: value['pipeline_spec'],
     error: GooglerpcStatusToJSON(value['error']),
+    tags: value['tags'],
   };
 }
