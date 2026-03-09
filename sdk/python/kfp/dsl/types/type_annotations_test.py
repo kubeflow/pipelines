@@ -313,7 +313,6 @@ class TestGetInnerType(parameterized.TestCase):
         self.assertEqual(actual, expected)
 
 
-
 class TestMaybeStripOptionalFromAnnotationString(parameterized.TestCase):
 
     @parameterized.parameters([

@@ -958,7 +958,6 @@ def compile_and_load_component(
         return components.load_component_from_file(output_path)
 
 
-
 class TestGetCanonicalNameForOuterGeneric(parameterized.TestCase):
 
     @parameterized.parameters([
