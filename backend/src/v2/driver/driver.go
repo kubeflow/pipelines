@@ -712,13 +712,13 @@ func provisionOutputs(
 		if artifacts == nil {
 			artifacts = make(map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec)
 		}
-	}
-	artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
-		ArtifactType: &pipelinespec.ArtifactTypeSchema{
-			Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
-				SchemaTitle: "system.Artifact",
+		artifacts["executor-logs"] = &pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+			ArtifactType: &pipelinespec.ArtifactTypeSchema{
+				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
+					SchemaTitle: "system.Artifact",
+				},
 			},
-		},
+		}
 	}
 
 	// Compute a task-root remote URI that will serve as the base for all

@@ -27,6 +27,11 @@ func newFileLogger(logFile string) (*logrus.Logger, io.Closer, error) {
 	return logger, f, nil
 }
 
+// WithExistingLogger For testing only
+func WithExistingLogger(ctx context.Context, logger *logrus.Logger) context.Context {
+	return context.WithValue(ctx, contextLoggerKey, logger)
+}
+
 func WithLogger(ctx context.Context, logFile string) (context.Context, io.Closer, error) {
 	if ctx == nil {
 		return nil, nil, fmt.Errorf(
