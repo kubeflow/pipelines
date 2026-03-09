@@ -49,7 +49,10 @@ class TestV2beta1Pipeline(unittest.TestCase):
                         {
                             'key' : None
                             }
-                        ], )
+                        ], ), 
+                tags = {
+                    'key' : '0'
+                    }
             )
         else :
             return V2beta1Pipeline(

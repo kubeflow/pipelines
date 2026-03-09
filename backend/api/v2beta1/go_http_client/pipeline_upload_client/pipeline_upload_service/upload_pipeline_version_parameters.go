@@ -73,6 +73,12 @@ type UploadPipelineVersionParams struct {
 	// Pipelineid.
 	Pipelineid *string
 
+	/* Tags.
+
+	   JSON-encoded map of key-value pairs for pipeline version tags.
+	*/
+	Tags *string
+
 	/* Uploadfile.
 
 	   The pipeline to upload. Maximum size of 32MB is supported.
@@ -176,6 +182,17 @@ func (o *UploadPipelineVersionParams) SetPipelineid(pipelineid *string) {
 	o.Pipelineid = pipelineid
 }
 
+// WithTags adds the tags to the upload pipeline version params
+func (o *UploadPipelineVersionParams) WithTags(tags *string) *UploadPipelineVersionParams {
+	o.SetTags(tags)
+	return o
+}
+
+// SetTags adds the tags to the upload pipeline version params
+func (o *UploadPipelineVersionParams) SetTags(tags *string) {
+	o.Tags = tags
+}
+
 // WithUploadfile adds the uploadfile to the upload pipeline version params
 func (o *UploadPipelineVersionParams) WithUploadfile(uploadfile runtime.NamedReadCloser) *UploadPipelineVersionParams {
 	o.SetUploadfile(uploadfile)
@@ -258,6 +275,23 @@ func (o *UploadPipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 		if qPipelineid != "" {
 
 			if err := r.SetQueryParam("pipelineid", qPipelineid); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Tags != nil {
+
+		// query param tags
+		var qrTags string
+
+		if o.Tags != nil {
+			qrTags = *o.Tags
+		}
+		qTags := qrTags
+		if qTags != "" {
+
+			if err := r.SetQueryParam("tags", qTags); err != nil {
 				return err
 			}
 		}
