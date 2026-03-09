@@ -160,6 +160,13 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
+      - name: Print Argo WF Specs events
+        if: always()
+        run: |
+          kubectl get events -A \
+            --field-selector involvedObject.kind=Workflow \
+            --sort-by=.lastTimestamp
+
   end-to-end-critical-scenario-multi-user-tests:
     runs-on: ubuntu-latest
     needs: build
