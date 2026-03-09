@@ -17,7 +17,7 @@
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { expectErrors, queryClientTest, testBestPractices } from 'src/TestUtils';
+import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
@@ -58,7 +58,6 @@ describe('CompareV2', () => {
   let runs: V2beta1Run[] = [];
 
   beforeEach(() => {
-    queryClientTest.clear();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockImplementation(
       (id: string) => runs.find((r) => r.run_id === id) || newMockRun(id),

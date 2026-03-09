@@ -19,7 +19,7 @@ import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import React from 'react';
-import { queryClientTest, testBestPractices } from 'src/TestUtils';
+import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
   V2beta1Experiment,
@@ -302,7 +302,6 @@ describe('NewRunV2', () => {
   }
 
   beforeEach(() => {
-    queryClientTest.clear();
     getPipelineV1Spy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
     getPipelineV1Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
     vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);

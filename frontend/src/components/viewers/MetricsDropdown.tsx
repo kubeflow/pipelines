@@ -216,26 +216,22 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   });
 
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
     if (isError) {
-      let isMounted = true;
-      (async function () {
-        const updatedMessage = await errorToMessage(error);
-        if (isMounted) {
-          setErrorMessage(updatedMessage);
+      let cancelled = false;
+      errorToMessage(error).then((msg) => {
+        if (!cancelled) {
+          setErrorMessage(msg);
           setShowError(true);
         }
-      })();
+      });
       return () => {
-        isMounted = false;
+        cancelled = true;
       };
-    } else {
-      setShowError(false);
-      return undefined;
     }
+    if (!isLoading) {
+      setShowError(false);
+    }
+    return undefined;
   }, [isLoading, isError, error, setErrorMessage, setShowError]);
 
   if (!linkedArtifact) {

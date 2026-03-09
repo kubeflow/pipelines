@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { queryClientTest } from './TestUtils';
 
 interface CommonTestWrapperProps {
   children: React.ReactElement;
 }
 export const CommonTestWrapper: React.FC<CommonTestWrapperProps> = (props) => {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      }),
+  );
   return (
     <BrowserRouter>
-      <QueryClientProvider client={queryClientTest}>{props.children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{props.children}</QueryClientProvider>
     </BrowserRouter>
   );
 };

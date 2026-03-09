@@ -18,7 +18,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { expectErrors, queryClientTest } from 'src/TestUtils';
+import TestUtils, { expectErrors } from 'src/TestUtils';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -64,7 +64,6 @@ describe('RecurringRunDetailsV2FC', () => {
   }
 
   beforeEach(() => {
-    queryClientTest.clear();
     fullTestV2RecurringRun = {
       created_at: new Date(2018, 8, 5, 4, 3, 2),
       description: 'test recurring run description',

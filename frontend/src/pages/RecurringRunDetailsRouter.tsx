@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
+import { errorToMessage } from 'src/lib/Utils';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -29,12 +30,15 @@ import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 // This is a router to determine whether to show V1 or V2 recurring run details page.
 export default function RecurringRunDetailsRouter(props: PageProps) {
+  const { updateBanner } = props;
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
   let pipelineManifest: string | undefined;
 
   const {
     isSuccess: getRecurringRunSuccess,
     isFetching: recurringRunIsFetching,
+    isError: getRecurringRunError,
+    error: recurringRunError,
     data: v2RecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
     queryKey: ['v2_recurring_run_detail', { id: recurringRunId }],
@@ -78,6 +82,25 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
+  useEffect(() => {
+    if (getRecurringRunError && recurringRunError) {
+      let cancelled = false;
+      errorToMessage(recurringRunError).then((msg) => {
+        if (!cancelled) {
+          updateBanner({
+            message: `Error: failed to retrieve recurring run: ${recurringRunId}. Click Details for more information.`,
+            mode: 'error',
+            additionalInfo: msg,
+          });
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    return undefined;
+  }, [getRecurringRunError, recurringRunError, recurringRunId, updateBanner]);
+
   if (getRecurringRunSuccess && v2RecurringRun && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
@@ -91,6 +114,10 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
 
   if (recurringRunIsFetching || templateStrIsFetching) {
     return <div>Currently loading recurring run information</div>;
+  }
+
+  if (getRecurringRunError) {
+    return null;
   }
 
   return <RecurringRunDetails {...props} />;
