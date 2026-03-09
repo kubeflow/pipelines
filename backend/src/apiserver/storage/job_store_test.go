@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -970,4 +972,76 @@ func TestJobAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Job{}).APIToModelFieldMap() {
 		assert.Contains(t, jobColumns, modelField)
 	}
+}
+
+func TestCreateJobPluginsInput(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer func() { require.NoError(t, db.Close()) }()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	experiment, err := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	require.NoError(t, err)
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipeline, err := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
+	require.NoError(t, err)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+
+	t.Run("with data round-trips", func(t *testing.T) {
+		const jobUUID = "plugins-job-1"
+		job := &model.Job{
+			UUID:        jobUUID,
+			DisplayName: "plugins job",
+			K8SName:     "plugins-job",
+			Namespace:   "n1",
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:   pipeline.UUID,
+				PipelineName: "p1",
+			},
+			CreatedAtInSec:     1,
+			UpdatedAtInSec:     1,
+			Enabled:            true,
+			ExperimentId:       experiment.UUID,
+			PluginsInputString: testLargeTextPtr(`{"mlflow":{"experiment_name":"job-exp"}}`),
+		}
+
+		created, err := jobStore.CreateJob(job.ToV1())
+		require.NoError(t, err)
+		require.NotNil(t, created)
+
+		got, err := jobStore.GetJob(jobUUID)
+		require.NoError(t, err)
+		require.NotNil(t, got.PluginsInputString)
+		assert.Equal(t, model.LargeText(`{"mlflow":{"experiment_name":"job-exp"}}`), *got.PluginsInputString)
+	})
+
+	t.Run("nil writes NULL", func(t *testing.T) {
+		const jobUUID = "empty-plugins-job-1"
+		job := &model.Job{
+			UUID:        jobUUID,
+			DisplayName: "empty plugins job",
+			K8SName:     "empty-plugins-job",
+			Namespace:   "n1",
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:   pipeline.UUID,
+				PipelineName: "p1",
+			},
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
+			Enabled:        true,
+			ExperimentId:   experiment.UUID,
+		}
+
+		created, err := jobStore.CreateJob(job.ToV1())
+		require.NoError(t, err)
+		require.NotNil(t, created)
+
+		got, err := jobStore.GetJob(jobUUID)
+		require.NoError(t, err)
+		assert.Nil(t, got.PluginsInputString, "nil PluginsInputString should round-trip as nil")
+
+		var pluginsInput sql.NullString
+		row := db.QueryRow("SELECT PluginsInput FROM jobs WHERE UUID = ?", jobUUID)
+		err = row.Scan(&pluginsInput)
+		require.NoError(t, err)
+		assert.False(t, pluginsInput.Valid, "PluginsInput column should be NULL, not empty string")
+	})
 }
