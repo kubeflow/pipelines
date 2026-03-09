@@ -18,12 +18,14 @@ import { Readable } from 'stream';
 const GCS_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_write';
 const GCS_API_BASE = 'https://storage.googleapis.com/storage/v1';
 
+export type GCSClient = Awaited<ReturnType<GoogleAuth['getClient']>>;
+
 interface GCSListResponse {
   items?: Array<{ name?: string }>;
   nextPageToken?: string;
 }
 
-async function getGCSClient(credentials?: CredentialBody) {
+export async function getGCSClient(credentials?: CredentialBody): Promise<GCSClient> {
   const auth = new GoogleAuth({
     credentials,
     scopes: GCS_SCOPE,
@@ -52,14 +54,15 @@ export async function listGCSObjectNames(options: {
   bucket: string;
   prefix: string;
   credentials?: CredentialBody;
+  client?: GCSClient;
 }): Promise<string[]> {
-  const { bucket, prefix, credentials } = options;
-  const client = await getGCSClient(credentials);
+  const { bucket, prefix, credentials, client } = options;
+  const resolvedClient = client ?? (await getGCSClient(credentials));
   const objectNames: string[] = [];
 
   let pageToken: string | undefined;
   do {
-    const response = await client.request<GCSListResponse>({
+    const response = await resolvedClient.request<GCSListResponse>({
       url: getListObjectsUrl(bucket, prefix, pageToken),
     });
     objectNames.push(
@@ -77,10 +80,11 @@ export async function downloadGCSObjectStream(options: {
   bucket: string;
   objectName: string;
   credentials?: CredentialBody;
+  client?: GCSClient;
 }): Promise<Readable> {
-  const { bucket, objectName, credentials } = options;
-  const client = await getGCSClient(credentials);
-  const response = await client.request<Readable>({
+  const { bucket, objectName, credentials, client } = options;
+  const resolvedClient = client ?? (await getGCSClient(credentials));
+  const response = await resolvedClient.request<Readable>({
     responseType: 'stream',
     url: getDownloadObjectUrl(bucket, objectName),
   });

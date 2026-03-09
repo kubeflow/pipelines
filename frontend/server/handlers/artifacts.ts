@@ -25,7 +25,8 @@ import { Handler, Request, Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
-import { listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
+import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
+import type { GCSClient } from '../gcs-helper.js';
 
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
@@ -286,9 +287,10 @@ async function parseGCSProviderInfo(
 async function readGCSObjectText(
   bucket: string,
   objectName: string,
+  client: GCSClient,
   credentials?: CredentialBody,
 ): Promise<string> {
-  const stream = await downloadGCSObjectStream({ bucket, objectName, credentials });
+  const stream = await downloadGCSObjectStream({ bucket, objectName, credentials, client });
   const chunks: Buffer[] = [];
   for await (const chunk of stream) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
@@ -323,16 +325,22 @@ function getGCSArtifactHandler(
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const matchingFiles = (await listGCSObjectNames({ bucket, prefix, credentials })).filter(
-        (name) => {
-          // Escape regex characters
-          const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
-          // Build a RegExp object that only recognizes asterisks ('*'), and
-          // escapes everything else.
-          const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
-          return regex.test(name);
-        },
-      );
+      const client = await getGCSClient(credentials);
+      const matchingFiles = (
+        await listGCSObjectNames({
+          bucket,
+          client,
+          credentials,
+          prefix,
+        })
+      ).filter((name) => {
+        // Escape regex characters
+        const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+        // Build a RegExp object that only recognizes asterisks ('*'), and
+        // escapes everything else.
+        const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
+        return regex.test(name);
+      });
 
       if (!matchingFiles.length) {
         console.log('No matching files found.');
@@ -345,6 +353,7 @@ function getGCSArtifactHandler(
       if (peek) {
         const stream = await downloadGCSObjectStream({
           bucket,
+          client,
           credentials,
           objectName: matchingFiles[0],
         });
@@ -354,7 +363,7 @@ function getGCSArtifactHandler(
 
       // if not peeking, iterate and append all the files
       for (const fileName of matchingFiles) {
-        contents += (await readGCSObjectText(bucket, fileName, credentials)).trim() + '\n';
+        contents += (await readGCSObjectText(bucket, fileName, client, credentials)).trim() + '\n';
       }
       res.send(contents);
     } catch (err) {
