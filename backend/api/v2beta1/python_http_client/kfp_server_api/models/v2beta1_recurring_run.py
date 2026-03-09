@@ -50,7 +50,8 @@ class V2beta1RecurringRun(object):
         'error': 'GooglerpcStatus',
         'no_catchup': 'bool',
         'namespace': 'str',
-        'experiment_id': 'str'
+        'experiment_id': 'str',
+        'plugins_input': 'dict(str, object)'
     }
 
     attribute_map = {
@@ -71,10 +72,11 @@ class V2beta1RecurringRun(object):
         'error': 'error',
         'no_catchup': 'no_catchup',
         'namespace': 'namespace',
-        'experiment_id': 'experiment_id'
+        'experiment_id': 'experiment_id',
+        'plugins_input': 'plugins_input'
     }
 
-    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, plugins_input=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1RecurringRun - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -98,6 +100,7 @@ class V2beta1RecurringRun(object):
         self._no_catchup = None
         self._namespace = None
         self._experiment_id = None
+        self._plugins_input = None
         self.discriminator = None
 
         if recurring_run_id is not None:
@@ -136,6 +139,8 @@ class V2beta1RecurringRun(object):
             self.namespace = namespace
         if experiment_id is not None:
             self.experiment_id = experiment_id
+        if plugins_input is not None:
+            self.plugins_input = plugins_input
 
     @property
     def recurring_run_id(self):
@@ -538,6 +543,29 @@ class V2beta1RecurringRun(object):
         """
 
         self._experiment_id = experiment_id
+
+    @property
+    def plugins_input(self):
+        """Gets the plugins_input of this V2beta1RecurringRun.  # noqa: E501
+
+        Optional input. Plugin inputs to propagate to each triggered run. Each triggered run will inherit these values in its plugins_input field.  # noqa: E501
+
+        :return: The plugins_input of this V2beta1RecurringRun.  # noqa: E501
+        :rtype: dict(str, object)
+        """
+        return self._plugins_input
+
+    @plugins_input.setter
+    def plugins_input(self, plugins_input):
+        """Sets the plugins_input of this V2beta1RecurringRun.
+
+        Optional input. Plugin inputs to propagate to each triggered run. Each triggered run will inherit these values in its plugins_input field.  # noqa: E501
+
+        :param plugins_input: The plugins_input of this V2beta1RecurringRun.  # noqa: E501
+        :type plugins_input: dict(str, object)
+        """
+
+        self._plugins_input = plugins_input
 
     def to_dict(self):
         """Returns the model properties as a dict"""

@@ -634,12 +634,18 @@ func initConfig() error {
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("config file error: %w", err)
 	}
+	if _, err := common.GetPluginLimitsConfig(); err != nil {
+		glog.Fatalf("Invalid plugin limits configuration: %v", err)
+	}
 
 	// Watch for configuration change
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		if err := viper.ReadInConfig(); err != nil {
 			glog.Errorf("Failed to reload config: %v", err)
+		}
+		if _, err := common.GetPluginLimitsConfig(); err != nil {
+			glog.Fatalf("Invalid plugin limits configuration: %v", err)
 		}
 	})
 
