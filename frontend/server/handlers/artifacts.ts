@@ -31,6 +31,7 @@ import type { GCSClient } from '../gcs-helper.js';
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
+import { StorageOptions } from '@google-cloud/storage';
 import { CredentialBody } from 'google-auth-library';
 
 /**
@@ -466,7 +467,7 @@ export function getArtifactsProxyHandler({
       onProxyReq: (proxyReq) => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
-      pathRewrite: (pathStr, _req) => {
+      pathRewrite: (pathStr, req) => {
         const url = new URL(pathStr || '', DUMMY_BASE_PATH);
         url.searchParams.delete(QUERIES.NAMESPACE);
         return url.pathname + url.search;
