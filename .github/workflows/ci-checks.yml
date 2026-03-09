@@ -34,7 +34,7 @@ jobs:
           delay: '5'
           retries: '10'
           polling_interval: '5'
-          checks_exclude: 'Cleanup artifacts,Upload results,Agent,Prepare'
+          checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Save PR payload
