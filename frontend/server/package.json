@@ -47,7 +47,7 @@
     "build": "tsc --project .",
     "format": "prettier --write './**/*.{ts,tsx}'",
     "format:check": "prettier --check './**/*.{ts,tsx}' || node ../scripts/check-format-error-info.js",
-    "lint": "cd .. && npm run lint:server",
+    "lint": "npm --prefix .. run lint:server",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ci": "npm run format:check && npm run lint && npm run test:coverage"

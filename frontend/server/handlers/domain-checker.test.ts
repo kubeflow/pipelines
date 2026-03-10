@@ -18,13 +18,33 @@ describe('isAllowedDomain', () => {
     expect(isAllowedDomain('https://example.com/path/to/artifact', '^example\\.com$')).toBe(true);
   });
 
+  it('matches a host-only allowlist for an http URL with a port', () => {
+    expect(isAllowedDomain('http://example.com:8080/path/to/artifact', '^example\\.com$')).toBe(
+      true,
+    );
+  });
+
   it('matches a host-only allowlist when the URL contains user info', () => {
     expect(isAllowedDomain('https://user@example.com/path/to/artifact', '^example\\.com$')).toBe(
       true,
     );
   });
 
+  it('rejects malformed input when the allowlist expects a hostname', () => {
+    expect(isAllowedDomain('https:///broken', '^example\\.com$')).toBe(false);
+  });
+
+  it('rejects a subdomain when the allowlist expects the exact host', () => {
+    expect(isAllowedDomain('https://sub.example.com/path/to/artifact', '^example\\.com$')).toBe(
+      false,
+    );
+  });
+
   it('rejects a URL whose host does not match the allowlist', () => {
     expect(isAllowedDomain('https://evil.example/path/to/artifact', '^example\\.com$')).toBe(false);
+  });
+
+  it('accepts the default production allowlist for service URLs', () => {
+    expect(isAllowedDomain('http://ml-pipeline.kubeflow:8888/artifacts', '^.*$')).toBe(true);
   });
 });
