@@ -360,12 +360,15 @@ function NewRunV2(props: NewRunV2Props) {
   });
 
   const startRun = () => {
-    const pipelineSpec = !(pipelineVersionRefClone || pipelineVersionRefNew)
-      ? (() => {
-          const loaded = JsYaml.safeLoad(templateString || '');
-          return loaded && typeof loaded === 'object' ? loaded : undefined;
-        })()
-      : undefined;
+    let pipelineSpec: object | undefined;
+    if (pipelineVersionRefClone || pipelineVersionRefNew) {
+      pipelineSpec = undefined;
+    } else {
+      pipelineSpec = (() => {
+        const loaded = JsYaml.safeLoad(templateString || '');
+        return loaded && typeof loaded === 'object' ? (loaded as object) : undefined;
+      })();
+    }
 
     let newRun: V2beta1Run = {
       description: runDescription,

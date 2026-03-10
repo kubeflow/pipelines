@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Markdown from 'markdown-to-jsx';
+import MarkdownRenderer from 'markdown-to-jsx';
 import * as React from 'react';
 import { classes, cssRaw } from 'typestyle';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
@@ -121,12 +121,12 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
   public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'), 'kfp-start-page')}>
-        <Markdown options={OPTIONS}>
+        <MarkdownRenderer options={OPTIONS}>
           {PAGE_CONTENT_MD({
             control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
           })}
-        </Markdown>
+        </MarkdownRenderer>
       </div>
     );
   }

@@ -16,7 +16,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { queryKeys, STALE_TIME_RUNTIME } from 'src/hooks';
+import { queryKeys, STALE_TIME_RUNTIME, STALE_TIME_STATIC } from 'src/hooks';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
@@ -52,7 +52,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     error: getRecurringRunError,
     refetch: refetchRecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: queryKeys.recurringRun(recurringRunId),
+    queryKey: queryKeys.v2RecurringRunDetail(recurringRunId),
     queryFn: async () => {
       if (!recurringRunId) {
         throw new Error('Recurring run ID is missing');
@@ -74,7 +74,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
     enabled: !!experimentId,
-    staleTime: STALE_TIME_RUNTIME,
+    staleTime: STALE_TIME_STATIC,
   });
 
   useEffect(() => {

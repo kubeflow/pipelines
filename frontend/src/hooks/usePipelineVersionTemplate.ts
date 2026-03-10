@@ -42,6 +42,6 @@ export function usePipelineVersionTemplate(
     },
     enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: STALE_TIME_STATIC,
-    cacheTime: Infinity, // v5: rename to gcTime when upgrading to React 18+
+    cacheTime: Infinity, // v5: renamed to gcTime when upgrading @tanstack/react-query to v5
   });
 }

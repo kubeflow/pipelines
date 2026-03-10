@@ -45,8 +45,9 @@ export const queryKeys = {
 
   v2RunDetails: (runIds: string[]) => ['v2_run_details', { ids: runIds }] as const,
 
-  v2RecurringRunDetail: (recurringRunId: string) =>
-    ['v2_recurring_run_detail', { id: recurringRunId }] as const,
+  /** Recurring run by ID. Shared cache for RecurringRunDetailsRouter and RecurringRunDetailsV2FC. */
+  v2RecurringRunDetail: (recurringRunId: string | undefined | null) =>
+    ['v2_recurring_run_detail', { id: recurringRunId ?? '' }] as const,
 
   recurringRun: (recurringRunId: string | undefined | null) =>
     ['recurringRun', recurringRunId ?? ''] as const,

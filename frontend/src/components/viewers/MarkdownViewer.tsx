@@ -17,7 +17,7 @@
 import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
 import { cssRaw } from 'typestyle';
-import Markdown from 'markdown-to-jsx';
+import MarkdownRenderer from 'markdown-to-jsx';
 import Banner from '../Banner';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 
@@ -121,7 +121,7 @@ const MarkdownAdvanced = ({
       {content.length > maxMarkdownStrLength && (
         <Banner message='This markdown is too large to render completely.' mode={'warning'} />
       )}
-      <Markdown options={markdownOptions}>{truncatedContent}</Markdown>
+      <MarkdownRenderer options={markdownOptions}>{truncatedContent}</MarkdownRenderer>
     </>
   );
 };

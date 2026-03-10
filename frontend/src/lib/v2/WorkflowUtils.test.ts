@@ -16,6 +16,7 @@ import { testBestPractices } from 'src/TestUtils';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
 import {
   convertYamlToPlatformSpec,
+  convertYamlToV2PipelineSpec,
   getContainer,
   isTemplateV2,
   isV2Pipeline,
@@ -146,6 +147,32 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
       lifecycle: undefined,
       resources: undefined,
     });
+  });
+
+  it('convertYamlToV2PipelineSpec throws on empty string', () => {
+    expect(() => convertYamlToV2PipelineSpec('')).toThrow(
+      'Failed to parse pipeline template from YAML.',
+    );
+  });
+
+  it('convertYamlToV2PipelineSpec throws on null-producing YAML', () => {
+    expect(() => convertYamlToV2PipelineSpec('null')).toThrow(
+      'Failed to parse pipeline template from YAML.',
+    );
+  });
+
+  it('getContainer returns null for empty template string', () => {
+    const componentSpec = {} as ComponentSpec;
+    componentSpec.executorLabel = 'exec-preprocess';
+    const container = getContainer(componentSpec, '');
+    expect(container).toBeNull();
+  });
+
+  it('getContainer returns null for null-producing YAML', () => {
+    const componentSpec = {} as ComponentSpec;
+    componentSpec.executorLabel = 'exec-preprocess';
+    const container = getContainer(componentSpec, 'null');
+    expect(container).toBeNull();
   });
 
   it('get container of given component from pipelineSpec in yaml with multiple spec', () => {

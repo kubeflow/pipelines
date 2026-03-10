@@ -910,7 +910,7 @@ describe('/artifacts', () => {
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',
       });
       app = new UIServer(configs);
-      const request = requests(app.start());
+      const request = requests(app.app);
       await request
         .get(
           '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=' +

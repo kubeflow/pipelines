@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import Markdown from 'markdown-to-jsx';
+import MarkdownRenderer from 'markdown-to-jsx';
 import { ExternalLink } from '../atoms/ExternalLink';
 
 function preventEventBubbling(e: React.MouseEvent): void {
@@ -40,5 +40,11 @@ export const Description: React.FC<{ description: string; forceInline?: boolean 
   description,
   forceInline,
 }) => {
-  return <Markdown options={forceInline ? optionsForceInline : options}>{description}</Markdown>;
+  return (
+    <span>
+      <MarkdownRenderer options={forceInline ? optionsForceInline : options}>
+        {description}
+      </MarkdownRenderer>
+    </span>
+  );
 };
