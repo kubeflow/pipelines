@@ -377,7 +377,7 @@ interface Param {
   value: any;
   type: ParameterType_ParameterTypeEnum;
   errorMsg: string;
-  literals?: any[];
+  literals?: (string | number | boolean)[];
 }
 
 interface ParamEditorProps {
@@ -431,8 +431,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     const { id, onChange, param } = this.props;
 
     if (param.literals?.length) {
-      const getLiteralString = (l: any) =>
-        typeof l === 'object' && l !== null ? JSON.stringify(l) : String(l);
+      const getLiteralString = (l: string | number | boolean) => String(l);
       const literalStrings = param.literals.map(getLiteralString);
       const stringValue = getLiteralString(param.value);
       const isValueInLiterals =
@@ -449,6 +448,14 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             onChange={ev => onChange(String(ev.target.value))}
             label={param.key}
             aria-label={param.key}
+            displayEmpty
+            renderValue={selected =>
+              selected === '' ? (
+                <span style={{ color: '#aaa' }}>Select a value</span>
+              ) : (
+                String(selected)
+              )
+            }
           >
             {literalStrings.map(literal => (
               <MenuItem key={literal} value={literal}>
