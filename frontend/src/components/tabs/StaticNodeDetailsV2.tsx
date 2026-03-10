@@ -16,7 +16,6 @@
 
 import { Button } from '@mui/material';
 import * as React from 'react';
-import { FlowElement } from 'react-flow-renderer';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { ParameterType } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 import { KeyValue } from 'src/lib/StaticGraphParser';
@@ -27,10 +26,10 @@ import {
   getTaskKeyFromNodeKey,
   isArtifactNode,
   isTaskNode,
+  PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import DetailsTable from '../DetailsTable';
-import { FlowElementDataBase } from '../graph/Constants';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -44,7 +43,7 @@ interface StaticNodeDetailsV2Props {
   templateString: string;
   layers: string[];
   onLayerChange: (layers: string[]) => void;
-  element: FlowElement<FlowElementDataBase> | null;
+  element: PipelineFlowElement | null;
 }
 
 export function StaticNodeDetailsV2({
@@ -87,7 +86,7 @@ export function StaticNodeDetailsV2({
 interface TaskNodeDetailProps {
   templateString: string;
   pipelineSpec: PipelineSpec;
-  element: FlowElement<FlowElementDataBase>;
+  element: PipelineFlowElement;
   layers: string[];
   onLayerChange: (layers: string[]) => void;
 }
@@ -190,7 +189,7 @@ function TaskNodeDetail({
 
 interface ArtifactNodeDetailProps {
   pipelineSpec: PipelineSpec;
-  element: FlowElement<FlowElementDataBase>;
+  element: PipelineFlowElement;
   layers: string[];
 }
 
@@ -202,7 +201,7 @@ function ArtifactNodeDetail({ pipelineSpec, element, layers }: ArtifactNodeDetai
     return NODE_INFO_UNKNOWN;
   }
 
-  const artifactType = getOutputArtifacts(componentSpec).filter(a => a[0] === artifactKey);
+  const artifactType = getOutputArtifacts(componentSpec).filter((a) => a[0] === artifactKey);
   const artifactInfo = [
     ['Upstream Task', taskKey],
     ['Artifact Name', artifactKey],
@@ -225,7 +224,7 @@ function getInputArtifacts(componentSpec: ComponentSpec) {
   if (!artifacts) {
     return Array<KeyValue<string>>();
   }
-  const inputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map(key => {
+  const inputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map((key) => {
     const artifactSpec = artifacts[key];
     const type = artifactSpec.artifactType;
     let value = type?.schemaTitle || type?.instanceSchema;
@@ -243,7 +242,7 @@ function getOutputArtifacts(componentSpec: ComponentSpec) {
   if (!artifacts) {
     return Array<KeyValue<string>>();
   }
-  const outputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map(key => {
+  const outputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map((key) => {
     const artifactSpec = artifacts[key];
     const type = artifactSpec.artifactType;
     let value = type?.schemaTitle || type?.instanceSchema;
@@ -261,7 +260,7 @@ function getInputParameters(componentSpec: ComponentSpec) {
   if (!parameters) {
     return Array<KeyValue<string>>();
   }
-  const inputParameters: Array<KeyValue<string>> = Object.keys(parameters).map(key => {
+  const inputParameters: Array<KeyValue<string>> = Object.keys(parameters).map((key) => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
     return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
@@ -275,7 +274,7 @@ function getOutputParameters(componentSpec: ComponentSpec) {
   if (!parameters) {
     return Array<KeyValue<string>>();
   }
-  const outputParameters: Array<KeyValue<string>> = Object.keys(parameters).map(key => {
+  const outputParameters: Array<KeyValue<string>> = Object.keys(parameters).map((key) => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
     return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];

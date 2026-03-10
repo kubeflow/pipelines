@@ -426,7 +426,7 @@ describe('NewRunV2', () => {
         '(enter from experiment details)',
       async () => {
         const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
+        getExperimentSpy.mockResolvedValue(NEW_EXPERIMENT);
 
         render(
           <CommonTestWrapper>
@@ -438,14 +438,14 @@ describe('NewRunV2', () => {
           expect(getExperimentSpy).toHaveBeenCalled();
         });
 
-        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name)).toBeInTheDocument();
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
 
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -463,7 +463,7 @@ describe('NewRunV2', () => {
         expect(getPipelineVersionSpy).toHaveBeenCalled();
       });
 
-      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
     });
 
     it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
@@ -476,7 +476,7 @@ describe('NewRunV2', () => {
       };
 
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -515,7 +515,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -536,7 +536,9 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        await waitFor(() => {
+          expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        });
       },
     );
 
@@ -553,7 +555,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -576,7 +578,7 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
   });
@@ -826,7 +828,7 @@ describe('NewRunV2', () => {
               predicates: [
                 {
                   key: 'storage_state',
-                  operation: V2beta1PredicateOperation.NOTEQUALS,
+                  operation: V2beta1PredicateOperation.NOT_EQUALS,
                   string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                 },
               ],
@@ -973,7 +975,7 @@ describe('NewRunV2', () => {
 
       const timeUnitDropdown = screen
         .getAllByRole('combobox')
-        .find(combobox => combobox.textContent === 'Hours');
+        .find((combobox) => combobox.textContent === 'Hours');
       if (!timeUnitDropdown) {
         throw new Error('Unable to find the interval unit dropdown');
       }

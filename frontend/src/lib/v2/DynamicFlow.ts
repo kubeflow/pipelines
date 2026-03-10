@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Elements, FlowElement, Node } from 'react-flow-renderer';
+import { Node } from '@xyflow/react';
 import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
@@ -45,7 +45,7 @@ export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
   executions: Execution[],
-): Elements {
+): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
@@ -120,7 +120,7 @@ function getExecutionLayers(layers: string[], executions: Execution[]) {
       executions = taskNameToExecution.get(parallelForName) || [];
     }
 
-    executions = executions.filter(exec => {
+    executions = executions.filter((exec) => {
       const customProperties = exec.getCustomPropertiesMap();
       if (!customProperties.has(PARENT_DAG_ID_KEY)) {
         return false;
@@ -145,8 +145,8 @@ function getExecutionLayers(layers: string[], executions: Execution[]) {
   return exectuionLayers;
 }
 
-function buildParallelForDag(rootDagExecution: Execution): Elements {
-  let flowGraph: FlowElement[] = [];
+function buildParallelForDag(rootDagExecution: Execution): PipelineFlowElement[] {
+  let flowGraph: PipelineFlowElement[] = [];
   addIterationNodes(rootDagExecution, flowGraph);
   return buildGraphLayout(flowGraph);
 }
@@ -241,16 +241,14 @@ export function updateFlowElementsState(
   if (canvasIsParallelForDag(executionLayers, layers)) {
     const parallelForDagExecution = executionLayers[executionLayers.length - 1];
     const executions = taskNameToExecution.get(
-      parallelForDagExecution
-        .getCustomPropertiesMap()
-        .get(TASK_NAME_KEY)
-        ?.getStringValue() || parallelForDagExecution.getName(),
+      parallelForDagExecution.getCustomPropertiesMap().get(TASK_NAME_KEY)?.getStringValue() ||
+        parallelForDagExecution.getName(),
     );
 
     for (let elem of elems) {
       let updatedElem = Object.assign({}, elem);
       const iterationId = Number(getIterationIdFromNodeKey(updatedElem.id));
-      const matchedExecs = executions?.filter(exec => {
+      const matchedExecs = executions?.filter((exec) => {
         const customProperties = exec.getCustomPropertiesMap();
         const iteration_index = customProperties.get(ITERATION_INDEX_KEY)?.getIntValue();
         const parent_dag_id = customProperties.get(PARENT_DAG_ID_KEY)?.getIntValue();
@@ -322,18 +320,16 @@ function getExecutionsUnderDAG(
   taskName: string,
   executionLayers: Execution[],
 ) {
-  return taskNameToExecution.get(taskName)?.filter(exec => {
+  return taskNameToExecution.get(taskName)?.filter((exec) => {
     return (
-      exec
-        .getCustomPropertiesMap()
-        .get(PARENT_DAG_ID_KEY)
-        ?.getIntValue() === executionLayers[executionLayers.length - 1].getId()
+      exec.getCustomPropertiesMap().get(PARENT_DAG_ID_KEY)?.getIntValue() ===
+      executionLayers[executionLayers.length - 1].getId()
     );
   });
 }
 
 export function getNodeMlmdInfo(
-  elem: FlowElement<FlowElementDataBase> | null,
+  elem: PipelineFlowElement | null,
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],
@@ -354,7 +350,7 @@ export function getNodeMlmdInfo(
     const taskLabel = getTaskLabelByPipelineFlowElement(elem);
     const executions = taskNameToExecution
       .get(taskLabel)
-      ?.filter(exec => exec.getId() === elem.data?.mlmdId);
+      ?.filter((exec) => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   } else if (NodeTypeNames.ARTIFACT === elem.type) {
     let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
@@ -378,7 +374,7 @@ export function getNodeMlmdInfo(
     const taskLabel = getTaskLabelByPipelineFlowElement(elem);
     const executions = taskNameToExecution
       .get(taskLabel)
-      ?.filter(exec => exec.getId() === elem.data?.mlmdId);
+      ?.filter((exec) => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   }
   return {};
@@ -424,7 +420,7 @@ function getArtifactNodeKeyToArtifact(
   artifactIdToArtifact: Map<number, Artifact>,
 ): Map<string, LinkedArtifact> {
   const map = new Map<string, LinkedArtifact>();
-  const outputEvents = events.filter(event => event.getType() === Event.Type.OUTPUT);
+  const outputEvents = events.filter((event) => event.getType() === Event.Type.OUTPUT);
   for (let event of outputEvents) {
     const executionId = event.getExecutionId();
     const execution = executionIdToExectuion.get(executionId);

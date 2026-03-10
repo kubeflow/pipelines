@@ -14,13 +14,11 @@
 
 import * as React from 'react';
 import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
-import { Edge, FlowElement, Node } from 'react-flow-renderer';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
@@ -37,7 +35,7 @@ import {
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
+import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -48,6 +46,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
+import { RouteComponentProps } from 'react-router-dom';
 import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
@@ -72,9 +71,16 @@ interface RunDetailsV2Info {
   run: V2beta1Run;
 }
 
-export type RunDetailsV2Props = RunDetailsV2Info & RunDetailsProps;
+export interface RunDetailsV2Params {
+  [RouteParams.runId]: string;
+}
+
+export type RunDetailsV2Props = RunDetailsV2Info &
+  RunDetailsProps &
+  RouteComponentProps<RunDetailsV2Params>;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
+  const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
   const run = props.run;
   const pipelineJobStr = props.pipeline_job;
@@ -84,23 +90,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [flowElements, setFlowElements] = useState(elements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<FlowElement<FlowElementDataBase> | null>(null);
+  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
-  const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
-    if (element && element.data && element.data.label) {
-      return element.data.label;
-    }
-
-    return 'unknown';
-  };
-
   // Retrieves MLMD states from the MLMD store.
-  const { isSuccess, data } = useQuery<MlmdPackage, Error>(
-    ['mlmd_package', { id: runId }],
-    async () => {
+  const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
+    queryKey: ['mlmd_package', { id: runId }],
+    queryFn: async () => {
       const context = await getKfpV2RunContext(runId);
       const executions = await getExecutionsFromContext(context);
       const artifacts = await getArtifactsFromContext(context);
@@ -108,18 +106,23 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
       return { executions, artifacts, events };
     },
-    {
-      staleTime: QUERY_STALE_TIME,
-      refetchInterval: QUERY_REFETCH_INTERNAL,
-      onError: error =>
-        props.updateBanner({
-          message: 'Cannot get MLMD objects from Metadata store.',
-          additionalInfo: error.message,
-          mode: 'error',
-        }),
-      onSuccess: () => props.updateBanner({}),
-    },
-  );
+    staleTime: QUERY_STALE_TIME,
+    refetchInterval: QUERY_REFETCH_INTERNAL,
+  });
+
+  // Use useEffect instead of deprecated onError/onSuccess (v5 removes them; v4+ recommended pattern).
+  useEffect(() => {
+    if (isError && error) {
+      updateBanner({
+        message: 'Cannot get MLMD objects from Metadata store.',
+        additionalInfo: error.message,
+        mode: 'error',
+      });
+    }
+    if (isSuccess) {
+      updateBanner({});
+    }
+  }, [isError, isSuccess, error, updateBanner]);
 
   const layerChange = (layers: string[]) => {
     setSelectedNode(null);
@@ -140,7 +143,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     );
   }
 
-  const onElementSelection = (event: ReactMouseEvent, element: Node | Edge) => {
+  const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
     if (data) {
       setSelectedNodeMlmdInfo(
@@ -151,11 +154,10 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
-  const { data: experiment } = useQuery<V2beta1Experiment, Error>(
-    ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
-    () => getExperiment(experimentId),
-    {},
-  );
+  const { data: experiment } = useQuery<V2beta1Experiment, Error>({
+    queryKey: ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
+    queryFn: () => getExperiment(experimentId),
+  });
   const namespace = experiment?.namespace;
 
   // Update page title and experiment information.
@@ -193,7 +195,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
               onElementClick={onElementSelection}
-              setFlowElements={elems => setFlowElements(elems)}
+              setFlowElements={(elems) => setFlowElements(elems)}
             ></DagCanvas>
 
             {/* Side panel for Execution, Artifact, Sub-DAG. */}
@@ -226,7 +228,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             {!!run.runtime_config?.parameters && (
               <DetailsTable
                 title='Run parameters'
-                fields={Object.entries(run.runtime_config?.parameters).map(param => [
+                fields={Object.entries(run.runtime_config?.parameters).map((param) => [
                   param[0],
                   param[1],
                 ])}
@@ -302,8 +304,8 @@ function updateToolBarActions(
     runMetadata && runMetadata.run_id
       ? [runMetadata.run_id]
       : runIdFromParams
-      ? [runIdFromParams]
-      : [];
+        ? [runIdFromParams]
+        : [];
 
   buttons
     .retryRun(getRunIdList, true, () => retry())

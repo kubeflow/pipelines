@@ -110,7 +110,7 @@ describe('Status', () => {
       expect(asFragment()).toMatchSnapshot();
     });
 
-    Object.keys(V2beta1RuntimeState).forEach(status =>
+    Object.keys(V2beta1RuntimeState).forEach((status) =>
       it('renders an icon with tooltip for phase: ' + status, () => {
         const { asFragment } = render(
           statusToIcon(V2beta1RuntimeState[status as keyof typeof V2beta1RuntimeState]),

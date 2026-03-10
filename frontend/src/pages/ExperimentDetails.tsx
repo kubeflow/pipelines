@@ -328,7 +328,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           experimentId,
         );
         activeRecurringRunsCount = (recurringRuns.recurringRuns || []).filter(
-          rr => rr.status === V2beta1RecurringRunStatus.ENABLED,
+          (rr) => rr.status === V2beta1RecurringRunStatus.ENABLED,
         ).length;
       } catch (err) {
         const error = err instanceof Error ? err : new Error(await errorToMessage(err));
@@ -360,7 +360,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
    * @param tab selected by user for run storage state
    */
   _onRunTabSwitch = (tab: RunListsGroupTab) => {
-    let runStorageState = V2beta1RunStorageState.AVAILABLE;
+    let runStorageState: V2beta1RunStorageState = V2beta1RunStorageState.AVAILABLE;
     if (tab === RunListsGroupTab.ARCHIVE) {
       runStorageState = V2beta1RunStorageState.ARCHIVED;
     }
@@ -387,14 +387,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         'run',
         () => this.state.selectedIds,
         false,
-        ids => this._selectionChanged(ids),
+        (ids) => this._selectionChanged(ids),
       );
     } else {
       toolbarButtons.restore(
         'run',
         () => this.state.selectedIds,
         false,
-        ids => this._selectionChanged(ids),
+        (ids) => this._selectionChanged(ids),
       );
     }
     const toolbarActions = toolbarButtons.getToolbarActionMap();
@@ -427,7 +427,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 }
 
-const EnhancedExperimentDetails: React.FC<PageProps> = props => {
+const EnhancedExperimentDetails: React.FC<PageProps> = (props) => {
   // When namespace changes, this experiment no longer belongs to new namespace.
   // So we redirect to experiment list page instead.
   const namespaceChanged = useNamespaceChangeEvent();

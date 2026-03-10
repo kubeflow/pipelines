@@ -83,7 +83,7 @@ describe('ExperimentList', () => {
 
   function mockNExperiments(n: number): void {
     listExperimentsSpy.mockResolvedValue({
-      experiments: range(1, n + 1).map(i => ({
+      experiments: range(1, n + 1).map((i) => ({
         experiment_id: 'testexperiment' + i,
         display_name: 'experiment with id: testexperiment' + i,
       })),
@@ -150,7 +150,7 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
             },
           ],
@@ -332,7 +332,7 @@ describe('ExperimentList', () => {
           predicates: [
             {
               key: 'storage_state',
-              operation: V2beta1PredicateOperation.NOTEQUALS,
+              operation: V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ],

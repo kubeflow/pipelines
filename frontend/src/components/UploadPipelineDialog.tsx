@@ -107,15 +107,8 @@ class UploadPipelineDialog extends React.Component<
   }
 
   public render(): JSX.Element {
-    const {
-      dropzoneActive,
-      file,
-      fileName,
-      fileUrl,
-      importMethod,
-      uploadPipelineName,
-      busy,
-    } = this.state;
+    const { dropzoneActive, file, fileName, fileUrl, importMethod, uploadPipelineName, busy } =
+      this.state;
 
     return (
       <Dialog
@@ -128,7 +121,7 @@ class UploadPipelineDialog extends React.Component<
         <div className={padding(20, 'lr')}>
           {this.context?.apiServerMultiUser && (
             <PrivateSharedSelector
-              onChange={val => {
+              onChange={(val) => {
                 this.setState({
                   isPrivatePipeline: val,
                 });

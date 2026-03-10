@@ -16,10 +16,11 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
+import '@xyflow/react/dist/style.css';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
 import Router from './components/Router';
@@ -33,8 +34,6 @@ import {
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
-// import { ReactQueryDevtools } from 'react-query/devtools';
-
 // TODO: license headers
 
 if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
