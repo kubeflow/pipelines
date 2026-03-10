@@ -47,7 +47,7 @@ def parse_arguments():
     parser.add_argument(
         '--mode',
         type=str,
-        help='compiler mode, defaults to V1, can also be V2_COMPATIBLE. You can override the default using env var KF_PIPELINES_COMPILER_MODE.'
+        help='(Deprecated) compiler mode, only V1_LEGACY is supported. You can override the default using env var KF_PIPELINES_COMPILER_MODE.'
     )
 
     args = parser.parse_args()
@@ -122,13 +122,9 @@ def main():
     mode = None
     if mode_str == 'V1_LEGACY' or mode_str == 'V1':
         mode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
-    elif mode_str == 'V2_COMPATIBLE':
-        mode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
-    elif mode_str == 'V2_ENGINE':
-        mode = kfp.dsl.PipelineExecutionMode.V2_ENGINE
     else:
         raise ValueError(
-            f'Got unexpected --mode option "{mode_str}", it must be one of V1, V2_COMPATIBLE or V2_ENGINE'
+            f'Got unexpected --mode option "{mode_str}", it must be V1 or V1_LEGACY. V2 modes are not supported in this SDK version.'
         )
     compile_pyfile(
         args.py,

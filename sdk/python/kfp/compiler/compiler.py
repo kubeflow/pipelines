@@ -25,7 +25,7 @@ from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp
 from kfp.dsl import _for_loop
-from kfp.compiler import _data_passing_rewriter, v2_compat
+from kfp.compiler import _data_passing_rewriter
 
 from kfp import dsl
 from kfp.compiler._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
@@ -68,16 +68,11 @@ class Compiler(object):
 
         Args:
           mode: The pipeline execution mode to use, defaults to kfp.dsl.PipelineExecutionMode.V1_LEGACY.
-          launcher_image: Configurable image for KFP launcher to use. Only applies
-            when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
-            needed for tests or custom deployments right now.
+          launcher_image: (Deprecated) Not used in V1_LEGACY mode.
         """
-        if mode == dsl.PipelineExecutionMode.V2_ENGINE:
-            raise ValueError('V2_ENGINE execution mode is not supported yet.')
+        if mode != dsl.PipelineExecutionMode.V1_LEGACY:
+            raise ValueError('Only V1_LEGACY execution mode is supported in this SDK version.')
 
-        if mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            warnings.warn('V2_COMPATIBLE execution mode is at Beta quality.'
-                          ' Some pipeline features may not work as expected.')
         self._mode = mode
         self._launcher_image = launcher_image
         self._pipeline_name_param: Optional[dsl.PipelineParam] = None
@@ -747,12 +742,6 @@ class Compiler(object):
                     'dsl.importer is not supported with v1 compiler.'
                 )
 
-            if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-                v2_compat.update_op(
-                    op,
-                    pipeline_name=self._pipeline_name_param,
-                    pipeline_root=self._pipeline_root_param,
-                    launcher_image=self._launcher_image)
             templates.extend(op_to_templates_handler(op))
 
             if hasattr(op, 'custom_job_spec'):
@@ -1038,23 +1027,6 @@ class Compiler(object):
         op_transformers.append(add_pod_labels(pod_labels))
         op_transformers.extend(pipeline_conf.op_transformers)
 
-        if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            # Add self._pipeline_name_param and self._pipeline_root_param to ops inputs
-            # if they don't exist already.
-            for op in dsl_pipeline.ops.values():
-                insert_pipeline_name_param = True
-                insert_pipeline_root_param = True
-                for param in op.inputs:
-                    if param.name == self._pipeline_name_param.name:
-                        insert_pipeline_name_param = False
-                    elif param.name == self._pipeline_root_param.name:
-                        insert_pipeline_root_param = False
-
-                if insert_pipeline_name_param:
-                    op.inputs.append(self._pipeline_name_param)
-                if insert_pipeline_root_param:
-                    op.inputs.append(self._pipeline_root_param)
-
         workflow = self._create_pipeline_workflow(
             args_list_with_defaults,
             dsl_pipeline,
@@ -1078,10 +1050,6 @@ class Compiler(object):
             ).isoformat()
         annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(
             pipeline_meta.to_dict(), sort_keys=True)
-
-        if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            annotations['pipelines.kubeflow.org/v2_pipeline'] = "true"
-            labels['pipelines.kubeflow.org/v2_pipeline'] = "true"
 
         # Labels might be logged better than annotations so adding some information here as well
         labels[_SDK_VERSION_LABEL] = kfp.__version__
@@ -1143,32 +1111,14 @@ class Compiler(object):
             any configuration that may be set by the pipeline.
         """
         pipeline_root_dir = getattr(pipeline_func, 'pipeline_root', None)
-        if (pipeline_root_dir is not None or
-                self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE):
+        if pipeline_root_dir is not None:
             self._pipeline_root_param = dsl.PipelineParam(
                 name=dsl.ROOT_PARAMETER_NAME, value=pipeline_root_dir or '')
-
-        if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-            pipeline_name = getattr(pipeline_func, '_component_human_name', '')
-            if not pipeline_name:
-                raise ValueError(
-                    '@dsl.pipeline decorator name field is required in v2 compatible mode'
-                )
-            # pipeline names have one of the following formats:
-            # * pipeline/<name>
-            # * namespace/<ns>/pipeline/<name>
-            # when compiling, we will only have pipeline/<name>, but it will be overriden
-            # when uploading the pipeline to KFP API server.
-            self._pipeline_name_param = dsl.PipelineParam(
-                name='pipeline-name', value=f'pipeline/{pipeline_name}')
 
         import kfp
         type_check_old_value = kfp.TYPE_CHECK
         compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
-        kfp.COMPILING_FOR_V2 = self._mode in [
-            dsl.PipelineExecutionMode.V2_COMPATIBLE,
-            dsl.PipelineExecutionMode.V2_ENGINE,
-        ]
+        kfp.COMPILING_FOR_V2 = False
 
         try:
             kfp.TYPE_CHECK = type_check

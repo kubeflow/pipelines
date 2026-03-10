@@ -19,8 +19,20 @@ Feature stage:
 from typing import Dict, Union
 import warnings
 
-from kfp.v2.components.types import type_utils
 
+def _is_parameter_type(type_name: str) -> bool:
+    """Check if a type is a parameter type (primitive) vs artifact type.
+
+    Parameter types are: String, str, Integer, int, Float, float, Bool, bool,
+    Dict, dict, List, list, and JsonObject.
+    """
+    if not type_name:
+        return False
+    type_lower = str(type_name).lower()
+    return type_lower in (
+        'string', 'str', 'integer', 'int', 'float', 'double',
+        'bool', 'boolean', 'dict', 'list', 'jsonobject'
+    )
 
 class BaseType:
     """BaseType is a base type for all scalar and artifact types."""
@@ -144,10 +156,10 @@ def verify_type_compatibility(given_type: TypeSpecType,
     # is compatible with any artifact types.
     # However, generic artifacts resulted from arbitrary unknown types do not
     # have such "compatible" feature.
-    if not type_utils.is_parameter_type(
+    if not _is_parameter_type(
             str(expected_type)) and str(given_type).lower() == "artifact":
         return True
-    if not type_utils.is_parameter_type(
+    if not _is_parameter_type(
             str(given_type)) and str(expected_type).lower() == "artifact":
         return True
 

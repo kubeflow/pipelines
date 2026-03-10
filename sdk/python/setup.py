@@ -49,10 +49,8 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    # Copied from https://github.com/kubeflow/pipelines/blob/4bd3d4b4e99b5af38380ddad9693a2a0bbe4e968/sdk/python/requirements.in#L17
-    'kfp-pipeline-spec==0.8.0',
     'fire>=0.7.0,<1',
-    'protobuf==6.31.1,<7.0',
+    'protobuf==6.33.5,<7.0',
     'uritemplate>=3.0.1,<4',
     'urllib3<3.0.0', 
     'pydantic>=1.8.2,<2',
@@ -126,17 +124,6 @@ setup(
         'kfp.dsl',
         'kfp.dsl.extensions',
         'kfp.notebook',
-        'kfp.v2',
-        'kfp.v2.compiler',
-        'kfp.v2.compiler.experimental',
-        'kfp.v2.components',
-        'kfp.v2.components.types',
-        'kfp.v2.components.types.experimental',
-        'kfp.v2.components.experimental',
-        'kfp.v2.dsl',
-        'kfp.v2.dsl.experimental',
-        'kfp.v2.google.client',
-        'kfp.v2.google.experimental',
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -159,7 +146,6 @@ setup(
     entry_points={
         'console_scripts': [
             'dsl-compile = kfp.compiler.main:main',
-            'dsl-compile-v2 = kfp.v2.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]
     })
