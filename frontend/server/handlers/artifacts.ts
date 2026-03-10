@@ -22,15 +22,15 @@ import {
 import { createMinioClient, getObjectStream } from '../minio-helper.js';
 import * as serverInfo from '../helpers/server-info.js';
 import { Handler, Request, Response } from 'express';
-import { Storage } from '@google-cloud/storage';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
+import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
+import type { GCSClient } from '../gcs-helper.js';
 
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
-import { StorageOptions } from '@google-cloud/storage';
 import { CredentialBody } from 'google-auth-library';
 
 /**
@@ -262,13 +262,12 @@ function getMinioArtifactHandler(
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,
   namespace: string,
-): Promise<StorageOptions> {
+): Promise<CredentialBody> {
   if (!providerInfo.Params.tokenKey || !providerInfo.Params.secretName) {
     throw new Error(
       'Provider info with fromEnv:false supplied with incomplete secret credential info.',
     );
   }
-  let configGCS: StorageOptions;
   try {
     const tokenString = await getK8sSecret(
       providerInfo.Params.secretName,
@@ -276,12 +275,27 @@ async function parseGCSProviderInfo(
       namespace,
     );
     const credentials = parseJSONString<CredentialBody>(tokenString);
-    configGCS = { credentials };
-    configGCS.scopes = 'https://www.googleapis.com/auth/devstorage.read_write';
-    return configGCS;
+    if (!credentials) {
+      throw new Error('Provider info token is not valid JSON.');
+    }
+    return credentials;
   } catch (err) {
     throw new Error('Failed to parse GCS Provider config. Error: ' + err);
   }
+}
+
+async function readGCSObjectText(
+  bucket: string,
+  objectName: string,
+  client: GCSClient,
+  credentials?: CredentialBody,
+): Promise<string> {
+  const stream = await downloadGCSObjectStream({ bucket, objectName, credentials, client });
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString();
 }
 
 function getGCSArtifactHandler(
@@ -293,14 +307,15 @@ function getGCSArtifactHandler(
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
-      let storageOptions: StorageOptions | undefined;
+      let credentials: CredentialBody | undefined;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
         if (providerInfo && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
             res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
+            return;
           } else {
-            storageOptions = await parseGCSProviderInfo(providerInfo, namespace);
+            credentials = await parseGCSProviderInfo(providerInfo, namespace);
           }
         }
       }
@@ -309,16 +324,22 @@ function getGCSArtifactHandler(
       // of the pattern until the first wildcard, then we create a regular
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
-      const storage = new Storage(storageOptions);
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const files = await storage.bucket(bucket).getFiles({ prefix });
-      const matchingFiles = files[0].filter((f) => {
+      const client = await getGCSClient(credentials);
+      const matchingFiles = (
+        await listGCSObjectNames({
+          bucket,
+          client,
+          credentials,
+          prefix,
+        })
+      ).filter((name) => {
         // Escape regex characters
         const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
         // Build a RegExp object that only recognizes asterisks ('*'), and
         // escapes everything else.
         const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
-        return regex.test(f.name);
+        return regex.test(name);
       });
 
       if (!matchingFiles.length) {
@@ -326,30 +347,25 @@ function getGCSArtifactHandler(
         res.send();
         return;
       }
-      console.log(
-        `Found ${matchingFiles.length} matching files: `,
-        matchingFiles.map((file) => file.name).join(','),
-      );
+      console.log(`Found ${matchingFiles.length} matching files: `, matchingFiles.join(','));
       let contents = '';
       // TODO: support peek for concatenated matching files
       if (peek) {
-        matchingFiles[0].createReadStream().pipe(new PreviewStream({ peek })).pipe(res);
+        const stream = await downloadGCSObjectStream({
+          bucket,
+          client,
+          credentials,
+          objectName: matchingFiles[0],
+        });
+        stream.pipe(new PreviewStream({ peek })).pipe(res);
         return;
       }
 
       // if not peeking, iterate and append all the files
-      matchingFiles.forEach((f, i) => {
-        const buffer: Buffer[] = [];
-        f.createReadStream()
-          .on('data', (data) => buffer.push(Buffer.from(data)))
-          .on('end', () => {
-            contents += Buffer.concat(buffer).toString().trim() + '\n';
-            if (i === matchingFiles.length - 1) {
-              res.send(contents);
-            }
-          })
-          .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
-      });
+      for (const fileName of matchingFiles) {
+        contents += (await readGCSObjectText(bucket, fileName, client, credentials)).trim() + '\n';
+      }
+      res.send(contents);
     } catch (err) {
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
     }
