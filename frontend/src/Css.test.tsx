@@ -53,7 +53,7 @@ describe('Css', () => {
       });
     });
 
-    it('delegates to _paddingInternal and returns a CSS class name', () => {
+    it('returns a non-empty CSS class name', () => {
       const result = Css.padding(100, 'lr');
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);

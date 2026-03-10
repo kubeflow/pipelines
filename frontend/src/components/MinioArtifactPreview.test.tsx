@@ -53,7 +53,7 @@ describe('MinioArtifactPreview', () => {
     ],
   ])('renders nothing for invalid artifact: %s', (_label, value) => {
     const { container } = render(<MinioArtifactPreview value={value} />);
-    expect(container.innerHTML).toBe('');
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('handles string value', () => {

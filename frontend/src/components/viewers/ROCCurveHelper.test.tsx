@@ -38,11 +38,7 @@ describe('validateConfidenceMetrics', () => {
     ['array containing null', [null], true],
   ] as const)('validates %s', (_label, input, expectError) => {
     const result = validateConfidenceMetrics(input);
-    if (expectError) {
-      expect(result.error).toBeDefined();
-    } else {
-      expect(result.error).toBeUndefined();
-    }
+    expect(result.error).toEqual(expectError ? expect.anything() : undefined);
   });
 });
 
