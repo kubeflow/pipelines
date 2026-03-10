@@ -27,43 +27,33 @@ describe('MinioArtifactPreview', () => {
     readFile.mockResolvedValue('preview ...');
   });
 
-  it('handles undefined artifact', () => {
-    const { container } = render(<MinioArtifactPreview value={undefined} />);
-    expect(container).toMatchInlineSnapshot(`<div />`);
-  });
-
-  it('handles null artifact', () => {
-    const { container } = render(<MinioArtifactPreview value={null as any} />);
-    expect(container).toMatchInlineSnapshot(`<div />`);
-  });
-
-  it('handles empty artifact', () => {
-    const { container } = render(<MinioArtifactPreview value={{} as any} />);
-    expect(container).toMatchInlineSnapshot(`<div />`);
-  });
-
-  it('handles invalid artifact: no bucket', () => {
-    const s3Artifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: '',
-      endpoint: 'minio.kubeflow',
-      key: 'bar',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
-    };
-    const { container } = render(<MinioArtifactPreview value={s3Artifact} />);
-    expect(container).toMatchInlineSnapshot(`<div />`);
-  });
-
-  it('handles invalid artifact: no key', () => {
-    const s3Artifact = {
-      accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
-      bucket: 'foo',
-      endpoint: 'minio.kubeflow',
-      key: '',
-      secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
-    };
-    const { container } = render(<MinioArtifactPreview value={s3Artifact} />);
-    expect(container).toMatchInlineSnapshot(`<div />`);
+  it.each([
+    ['undefined', undefined],
+    ['null', null as any],
+    ['empty object', {} as any],
+    [
+      'no bucket',
+      {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: '',
+        endpoint: 'minio.kubeflow',
+        key: 'bar',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
+    ],
+    [
+      'no key',
+      {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        key: '',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
+    ],
+  ])('renders nothing for invalid artifact: %s', (_label, value) => {
+    const { container } = render(<MinioArtifactPreview value={value} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('handles string value', () => {

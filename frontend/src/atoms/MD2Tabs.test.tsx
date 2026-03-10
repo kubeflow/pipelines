@@ -30,9 +30,9 @@ describe('MD2Tabs', () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
-  it('does not try to call the onSwitch handler if it is not defined', () => {
+  it('does not throw when clicking an unselected tab without onSwitch handler', () => {
     render(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
-    fireEvent.click(screen.getByRole('button', { name: 'tab2' }));
+    expect(() => fireEvent.click(screen.getByRole('button', { name: 'tab2' }))).not.toThrow();
   });
 
   it('calls the onSwitch function if an unselected button is clicked', () => {

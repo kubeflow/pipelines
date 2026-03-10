@@ -18,42 +18,27 @@ import { validateConfidenceMetrics, buildRocCurveConfig } from './ROCCurveHelper
 import { PlotType } from './Viewer';
 
 describe('validateConfidenceMetrics', () => {
-  it('returns no error for valid confidence metrics', () => {
-    const validMetrics = [
-      { confidenceThreshold: 0.9, falsePositiveRate: 0.1, recall: 0.95 },
-      { confidenceThreshold: 0.5, falsePositiveRate: 0.3, recall: 0.8 },
-    ];
-    const result = validateConfidenceMetrics(validMetrics);
-    expect(result.error).toBeUndefined();
-  });
-
-  it('returns an error for invalid data types', () => {
-    const invalidMetrics = [
-      { confidenceThreshold: 'not-a-number', falsePositiveRate: 'bad', recall: 'invalid' },
-    ];
-    const result = validateConfidenceMetrics(invalidMetrics);
-    expect(result.error).toBeDefined();
-  });
-
-  it('returns an error for missing fields', () => {
-    const incompleteMetrics = [{ confidenceThreshold: 0.9 }];
-    const result = validateConfidenceMetrics(incompleteMetrics);
-    expect(result.error).toBeDefined();
-  });
-
-  it('returns no error for an empty array', () => {
-    const result = validateConfidenceMetrics([]);
-    expect(result.error).toBeUndefined();
-  });
-
-  it('returns an error for non-array input', () => {
-    const result = validateConfidenceMetrics('not-an-array');
-    expect(result.error).toBeDefined();
-  });
-
-  it('returns an error when array contains null', () => {
-    const result = validateConfidenceMetrics([null]);
-    expect(result.error).toBeDefined();
+  it.each([
+    [
+      'valid confidence metrics',
+      [
+        { confidenceThreshold: 0.9, falsePositiveRate: 0.1, recall: 0.95 },
+        { confidenceThreshold: 0.5, falsePositiveRate: 0.3, recall: 0.8 },
+      ],
+      false,
+    ],
+    ['an empty array', [], false],
+    [
+      'invalid data types',
+      [{ confidenceThreshold: 'not-a-number', falsePositiveRate: 'bad', recall: 'invalid' }],
+      true,
+    ],
+    ['missing fields', [{ confidenceThreshold: 0.9 }], true],
+    ['non-array input', 'not-an-array', true],
+    ['array containing null', [null], true],
+  ] as const)('validates %s', (_label, input, expectError) => {
+    const result = validateConfidenceMetrics(input);
+    expect(result.error).toEqual(expectError ? expect.anything() : undefined);
   });
 });
 
