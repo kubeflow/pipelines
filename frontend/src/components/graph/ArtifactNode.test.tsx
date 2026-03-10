@@ -18,7 +18,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import ArtifactNode from './ArtifactNode';
 import { Artifact } from 'src/third_party/mlmd';
-import { ReactFlowProvider } from 'react-flow-renderer';
+import { ReactFlowProvider } from '@xyflow/react';
 
 describe('ArtifactNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {

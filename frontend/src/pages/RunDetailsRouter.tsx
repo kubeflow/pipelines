@@ -21,11 +21,14 @@ import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import { RouteComponentProps } from 'react-router-dom';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
-import { RunDetailsV2 } from 'src/pages/RunDetailsV2';
+import { RunDetailsV2, RunDetailsV2Params } from 'src/pages/RunDetailsV2';
 
 // This is a router to determine whether to show V1 or V2 run detail page.
-export default function RunDetailsRouter(props: RunDetailsProps) {
+export default function RunDetailsRouter(
+  props: RunDetailsProps & RouteComponentProps<RunDetailsV2Params>,
+) {
   const runId = props.match.params[RouteParams.runId];
   let pipelineManifest: string | undefined;
 

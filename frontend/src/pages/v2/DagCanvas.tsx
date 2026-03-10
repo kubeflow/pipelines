@@ -14,28 +14,36 @@
  * limitations under the License.
  */
 
-import React, { MouseEvent as ReactMouseEvent } from 'react';
-import ReactFlow, {
+import React, { MouseEvent as ReactMouseEvent, useCallback, useMemo } from 'react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   Edge,
-  Elements,
   MiniMap,
   Node,
-  OnLoadParams,
-  ReactFlowProvider,
-} from 'react-flow-renderer';
+} from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
-import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
+import {
+  getTaskKeyFromNodeKey,
+  isNode,
+  NodeTypeNames,
+  NODE_TYPES,
+  PipelineFlowElement,
+} from 'src/lib/v2/StaticFlow';
+
+type PipelineNode = Node<FlowElementDataBase>;
 
 export interface DagCanvasProps {
-  elements: Elements<FlowElementDataBase>;
-  setFlowElements: (elements: Elements<any>) => void;
+  elements: PipelineFlowElement[];
+  setFlowElements: (elements: PipelineFlowElement[]) => void;
   layers: string[];
   onLayersUpdate: (layers: string[]) => void;
-  onElementClick: (event: ReactMouseEvent, element: Node | Edge) => void;
+  onElementClick: (event: ReactMouseEvent, element: PipelineFlowElement) => void;
+  nodesDraggable?: boolean;
 }
 
 export default function DagCanvas({
@@ -44,46 +52,69 @@ export default function DagCanvas({
   onLayersUpdate,
   setFlowElements,
   onElementClick,
+  nodesDraggable = true,
 }: DagCanvasProps) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
-    reactFlowInstance.fitView();
-  };
+  const subDagExpand = useCallback(
+    (nodeKey: string) => {
+      const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
+      onLayersUpdate(newLayers);
+    },
+    [layers, onLayersUpdate],
+  );
 
-  const subDagExpand = (nodeKey: string) => {
-    const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
-    onLayersUpdate(newLayers);
-  };
+  const nodes = useMemo(
+    () =>
+      elements
+        .filter(isNode)
+        .map((node) =>
+          node.type === NodeTypeNames.SUB_DAG && node.data
+            ? { ...node, data: { ...node.data, expand: subDagExpand } }
+            : node,
+        ),
+    [elements, subDagExpand],
+  );
+  const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
 
-  elements.forEach((elem) => {
-    // For each SubDag node, provide a callback function if expand button is clicked.
-    if (elem && elem.type === NodeTypeNames.SUB_DAG && elem.data) {
-      elem.data.expand = subDagExpand;
-    }
-  });
+  const onNodeDragStop = useCallback(
+    (_event: ReactMouseEvent, draggedNode: PipelineNode) => {
+      const updatedElements = elements.map((el) =>
+        isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
+      );
+      setFlowElements(updatedElements);
+    },
+    [elements, setFlowElements],
+  );
+
+  const handleNodeClick = useCallback(
+    (event: ReactMouseEvent, node: PipelineNode) => onElementClick(event, node),
+    [onElementClick],
+  );
+
+  const handleEdgeClick = useCallback(
+    (event: ReactMouseEvent, edge: Edge) => onElementClick(event, edge),
+    [onElementClick],
+  );
 
   return (
     <>
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
-          <ReactFlow
+          {/* onNodesChange/onEdgesChange are intentionally omitted: this DAG viewer
+              does not need keyboard deletion, multi-select, or internal selection
+              tracking. Drag persistence is handled via onNodeDragStop only. */}
+          <ReactFlow<PipelineNode, Edge>
             style={{ background: color.lightGrey }}
-            elements={elements}
+            nodes={nodes}
+            edges={edges}
             snapToGrid={true}
-            onLoad={onLoad}
+            nodesDraggable={nodesDraggable}
+            onInit={(instance) => instance.fitView()}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
-            onElementClick={onElementClick}
-            onNodeDragStop={(event, node) => {
-              setFlowElements(
-                elements.map((value) => {
-                  if (value.id === node.id) {
-                    return node;
-                  }
-                  return value;
-                }),
-              );
-            }}
+            onNodeClick={handleNodeClick}
+            onEdgeClick={handleEdgeClick}
+            onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
           >
             <MiniMap />
             <Controls />

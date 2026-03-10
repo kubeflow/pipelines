@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Elements, FlowElement, Node } from 'react-flow-renderer';
+import { Node } from '@xyflow/react';
 import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
@@ -45,7 +45,7 @@ export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
   executions: Execution[],
-): Elements {
+): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
@@ -145,8 +145,8 @@ function getExecutionLayers(layers: string[], executions: Execution[]) {
   return exectuionLayers;
 }
 
-function buildParallelForDag(rootDagExecution: Execution): Elements {
-  let flowGraph: FlowElement[] = [];
+function buildParallelForDag(rootDagExecution: Execution): PipelineFlowElement[] {
+  let flowGraph: PipelineFlowElement[] = [];
   addIterationNodes(rootDagExecution, flowGraph);
   return buildGraphLayout(flowGraph);
 }
@@ -329,7 +329,7 @@ function getExecutionsUnderDAG(
 }
 
 export function getNodeMlmdInfo(
-  elem: FlowElement<FlowElementDataBase> | null,
+  elem: PipelineFlowElement | null,
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],
