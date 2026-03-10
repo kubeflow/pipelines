@@ -445,11 +445,11 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             labelId={`${id}-label`}
             id={id}
             value={selectValue}
-            onChange={ev => onChange(String(ev.target.value))}
+            onChange={(ev) => onChange(String(ev.target.value))}
             label={param.key}
             aria-label={param.key}
             displayEmpty
-            renderValue={selected =>
+            renderValue={(selected) =>
               selected === '' ? (
                 <span style={{ color: '#aaa' }}>Select a value</span>
               ) : (
@@ -457,7 +457,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               )
             }
           >
-            {literalStrings.map(literal => (
+            {literalStrings.map((literal) => (
               <MenuItem key={literal} value={literal}>
                 {literal}
               </MenuItem>
