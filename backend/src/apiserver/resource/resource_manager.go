@@ -642,6 +642,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		run.RunDetails.ScheduledAtInSec = run.RunDetails.CreatedAtInSec
 	}
 	run.State = model.RuntimeStatePending
+
+	// Apply MLflow plugin if enabled
+	if mlflowInput != nil && !mlflowInput.Disabled {
+		r.applyMLflowOnRunStart(ctx, run, k8sNamespace, mlflowInput, executionSpec)
+	}
+
 	newRun, err := r.runStore.CreateRun(run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a run")
@@ -1030,6 +1036,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 		newExecSpec = newCreatedWorkflow
 	}
+	// Notify MLflow plugin of retry
+	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+		r.applyMLflowOnRunRetry(ctx, run, namespace)
+	}
+
 	condition := string(newExecSpec.ExecutionStatus().Condition())
 	// PluginsOutputString is intentionally omitted here: HandleRetry
 	// persists it independently via UpdateRunPluginsOutput so that
@@ -1545,6 +1556,11 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		}
 	}
 	if execStatus.IsInFinalState() {
+		// Notify MLflow plugin of terminal state
+		if run != nil && run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+			r.applyMLflowOnRunEnd(ctx, run, execSpec.ExecutionNamespace())
+		}
+
 		err := addWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
