@@ -16,13 +16,8 @@
 
 import { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  OnLoadParams,
-  ReactFlowProvider,
-} from 'react-flow-renderer';
+import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import 'src/build/tailwind.output.css';
 import {
   ArtifactFlowElementData,
@@ -32,7 +27,7 @@ import {
 import { NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 import { Artifact, Execution } from 'src/third_party/mlmd';
 
-const elements = [
+const nodes = [
   {
     id: '2',
     type: NodeTypeNames.EXECUTION,
@@ -140,21 +135,18 @@ const elements = [
 ];
 
 function WrappedNodeGallery({}) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
-    reactFlowInstance.fitView();
-  };
-
   return (
     <div style={{ width: '1200px', height: '1000px' }}>
       {/* // className='flex container mx-auto' */}
       <ReactFlowProvider>
         <ReactFlow
           style={{ background: '#F5F5F5' }}
-          elements={elements}
+          nodes={nodes}
+          edges={[]}
           snapToGrid={true}
           nodeTypes={NODE_TYPES}
           edgeTypes={{}}
-          onLoad={onLoad}
+          onInit={(instance) => instance.fitView()}
         >
           <MiniMap />
           <Controls />

@@ -18,7 +18,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
 import { Execution } from 'src/third_party/mlmd';
-import { ReactFlowProvider } from 'react-flow-renderer';
+import { ReactFlowProvider } from '@xyflow/react';
 
 describe('ExecutionNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {

@@ -16,7 +16,7 @@
 
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import React from 'react';
-import { Handle, Position } from 'react-flow-renderer';
+import { Handle, Position } from '@xyflow/react';
 import { SubDagFlowElementData } from './Constants';
 import { getExecutionIcon, getIcon } from './ExecutionNode';
 // import ExpandLessIcon from '@mui/icons-material/ExpandLess';

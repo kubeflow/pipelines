@@ -18,11 +18,13 @@ export default defineConfig({
     setupFiles: ['src/vitest.setup.ts'],
     globals: true,
     css: true,
-    include: [
-      'src/**/*.{test,spec}.{ts,tsx}',
-      'scripts/**/*.{test,spec}.{js,cjs,mjs,ts}',
-    ],
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'scripts/**/*.{test,spec}.{js,cjs,mjs,ts}'],
     environmentMatchGlobs: [['scripts/**/*.{test,spec}.{js,cjs,mjs,ts}', 'node']],
+    server: {
+      deps: {
+        inline: ['@xyflow/react', '@xyflow/system'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
