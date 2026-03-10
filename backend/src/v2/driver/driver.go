@@ -20,9 +20,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/cmd/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -91,6 +91,8 @@ type Options struct {
 	PipelineJobCreateTimeUTC string
 
 	PipelineJobScheduleTimeUTC string
+
+	MLflowRunId string
 
 	// Admin-configured default runAsUser for user containers. Nil means not set.
 	DefaultRunAsUser *int64
@@ -254,6 +256,7 @@ func initPodSpecPatch(
 	mlPipelineServerPort string,
 	mlmdServerAddress string,
 	mlmdServerPort string,
+	mlflowRunId string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -271,6 +274,14 @@ func initPodSpecPatch(
 	}
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
+
+	// Add MLflow-specific env vars if mlFlowRunId is non-empty.
+	if mlflowRunId != "" {
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "MLFLOW_RUN_ID", Value: mlflowRunId})
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "MLFLOW_TRACKING_URI", Value: common.GetMLflowTrackingURI()})
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "MLFLOW_WORKSPACE", Value: common.GetMLflowWorkspace()})
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: "MLFLOW_TRACKING_AUTH", Value: common.GetMLflowTrackingAuthType()})
+	}
 
 	setOnTaskConfig, setOnPod := getTaskConfigOptions(componentSpec)
 

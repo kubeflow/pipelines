@@ -21,6 +21,8 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/kubeflow/pipelines/backend/src/plugins/mlflow"
+	"github.com/kubeflow/pipelines/backend/src/v2/cmd/driver/common"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -212,6 +214,17 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+	// create a nested mlflow run with injected env vars.
+	var result *mlflow.TaskStartResult
+	mlflowTaskInfo := getMLflowTaskInfo()
+	result, err = mlflow.OnTaskStart(ctx, *mlflowTaskInfo)
+	var mlflowRunId string
+	if err == nil {
+		mlflowRunId = result.RunId
+	}
+	if err != nil {
+		glog.Errorf("Failed to create mlflow run: %v", err)
+	}
 	options := driver.Options{
 		PipelineName:            *pipelineName,
 		RunID:                   *runID,
@@ -234,6 +247,7 @@ func drive() (err error) {
 		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
 		MLMDTLSEnabled:          *metadataTLSEnabled,
 		CaCertPath:              *caCertPath,
+		MLflowRunId:             mlflowRunId,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -282,7 +296,10 @@ func drive() (err error) {
 		Condition:      *conditionPath,
 		PodSpecPatch:   *podSpecPatchPath,
 	}
-
+	defer func() {
+		// Before finish, execute mlflow task end hook.
+		mlflow.OnTaskEnd(ctx, *mlflowTaskInfo, map[string]float64{}, map[string]string{})
+	}()
 	return handleExecution(execution, *driverType, executionPaths)
 }
 
@@ -381,4 +398,28 @@ func writeFile(path string, data []byte) (err error) {
 
 func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.Config) (*metadata.Client, error) {
 	return metadata.NewClient(mlmdServerAddress, mlmdServerPort, tlsCfg)
+}
+
+func getMLflowTaskInfo() *mlflow.TaskInfo {
+	var creds map[string]string
+	switch common.GetMLflowTrackingAuthType() {
+	case "Bearer":
+		creds["MLFLOW_TRACKING_TOKEN"] = common.GetMLflowTrackingToken()
+	case "Basic":
+		creds["USERNAME"] = common.GetMLflowTrackingUsername()
+		creds["PASSWORD"] = common.GetMLflowTrackingPassword()
+	case "kubernetes":
+		// Do nothing. No credentials are required here.
+	default:
+		glog.Errorf("MLflow tracking server is using unknown authentication method: %s", common.GetMLflowTrackingAuthType())
+		return nil
+	}
+
+	return &mlflow.TaskInfo{
+		TrackingUri: common.GetKfpMLflowTrackingURI(),
+		Workspace:   common.GetKfpMLflowWorkspace(),
+		ParentRunId: common.GetMLflowParentRunId(),
+		AuthType:    common.GetMLflowTrackingAuthType(),
+		Creds:       creds,
+	}
 }
