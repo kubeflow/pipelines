@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -618,6 +620,17 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		}
 	}
 
+	// Deserialize PluginsInput from the SWF spec so it can be forwarded to
+	// the CreateRun request.  Each triggered run then inherits the plugin
+	// configuration (e.g. MLflow experiment name) from the recurring run.
+	var pluginsInput map[string]*structpb.Struct
+	if swf.Spec.PluginsInput != "" {
+		pluginsInput, err = parsePluginsInputJSON(swf.Spec.PluginsInput)
+		if err != nil {
+			return false, "", fmt.Errorf("failed to parse plugins_input from SWF spec: %w", err)
+		}
+	}
+
 	run, err := c.runClient.CreateRun(ctx, &api.CreateRunRequest{
 		ExperimentId: swf.Spec.ExperimentId,
 		Run: &api.Run{
@@ -625,6 +638,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			DisplayName:    swf.NextResourceName(),
 			RecurringRunId: string(swf.UID),
 			RuntimeConfig:  runtimeConfig,
+			PluginsInput:   pluginsInput,
 			PipelineSource: &api.Run_PipelineVersionReference{
 				PipelineVersionReference: &api.PipelineVersionReference{
 					PipelineId: swf.Spec.PipelineId,
@@ -688,4 +702,23 @@ func (c *Controller) updateStatus(
 		return err
 	}
 	return nil
+}
+
+// parsePluginsInputJSON deserializes a JSON string produced by the API server
+// (e.g. `{"mlflow":{"experiment_name":"exp-1"}}`) into the protobuf map
+// expected by the CreateRun request.
+func parsePluginsInputJSON(raw string) (map[string]*structpb.Struct, error) {
+	var outer map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &outer); err != nil {
+		return nil, fmt.Errorf("invalid plugins_input JSON: %w", err)
+	}
+	result := make(map[string]*structpb.Struct, len(outer))
+	for key, val := range outer {
+		s := &structpb.Struct{}
+		if err := protojson.Unmarshal(val, s); err != nil {
+			return nil, fmt.Errorf("invalid plugins_input entry %q: %w", key, err)
+		}
+		result[key] = s
+	}
+	return result, nil
 }

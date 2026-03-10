@@ -19,6 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +34,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -2273,6 +2277,88 @@ func TestRetryRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
+}
+
+func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	type updateCall struct {
+		RunID  string
+		Status string
+	}
+	var updateCalls []updateCall
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			defer r.Body.Close()
+			var payload struct {
+				RunID  string `json:"run_id"`
+				Status string `json:"status"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
+			updateCalls = append(updateCalls, updateCall{RunID: payload.RunID, Status: payload.Status})
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			_, _ = w.Write([]byte(`{
+				"runs": [
+					{"info":{"run_id":"nested-failed","status":"FAILED"}},
+					{"info":{"run_id":"nested-killed","status":"KILLED"}},
+					{"info":{"run_id":"nested-finished","status":"FINISHED"}}
+				]
+			}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	tokenFile, err := os.CreateTemp(t.TempDir(), "mlflow-sa-token-*")
+	require.NoError(t, err)
+	_, err = tokenFile.WriteString("retry-token")
+	require.NoError(t, err)
+	require.NoError(t, tokenFile.Close())
+
+	originalTokenPath := apiservermlflow.ServiceAccountTokenPath
+	apiservermlflow.ServiceAccountTokenPath = tokenFile.Name()
+	defer func() {
+		apiservermlflow.ServiceAccountTokenPath = originalTokenPath
+	}()
+
+	origConfig := viper.Get("plugins.mlflow")
+	hadConfig := viper.IsSet("plugins.mlflow")
+	viper.Set("plugins.mlflow", map[string]interface{}{
+		"endpoint": server.URL,
+	})
+	defer func() {
+		if hadConfig {
+			viper.Set("plugins.mlflow", origConfig)
+		} else {
+			viper.Set("plugins.mlflow", nil)
+		}
+	}()
+
+	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	require.NoError(t, apiservermlflow.UpsertRunPluginOutput(runWithPluginOutput, "mlflow", mlflowOutput))
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err)
+
+	assert.Contains(t, updateCalls, updateCall{RunID: "parent-run-1", Status: "RUNNING"})
+	assert.Contains(t, updateCalls, updateCall{RunID: "nested-failed", Status: "RUNNING"})
+	assert.Contains(t, updateCalls, updateCall{RunID: "nested-killed", Status: "RUNNING"})
+	assert.NotContains(t, updateCalls, updateCall{RunID: "nested-finished", Status: "RUNNING"})
+
+	updatedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	updatedOutput, err := apiservermlflow.GetRunPluginOutput(updatedRun, apiservermlflow.PluginName)
+	require.NoError(t, err)
+	require.NotNil(t, updatedOutput)
+	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
+	assert.Equal(t, "", updatedOutput.StateMessage)
 }
 
 func TestRetryRun_RunNotExist(t *testing.T) {

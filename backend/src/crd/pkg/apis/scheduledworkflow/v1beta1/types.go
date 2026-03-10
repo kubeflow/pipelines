@@ -93,6 +93,13 @@ type ScheduledWorkflowSpec struct {
 	// ServiceAccount
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 
+	// PluginsInput is a JSON-encoded map of plugin-specific inputs
+	// (e.g. MLflow experiment name). The controller passes this value
+	// through to the CreateRun API so that each triggered run inherits
+	// the same plugin configuration.
+	// +optional
+	PluginsInput string `json:"pluginsInput,omitempty"`
+
 	// TODO: support additional resource types: K8 jobs, etc.
 
 }

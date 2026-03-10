@@ -40,6 +40,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -671,6 +672,45 @@ func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
 			w.Spec.Templates[index].Metadata.Labels[key] = value
 		}
 	}
+}
+
+// SetEnvVarsToDriverAndLauncherTemplates adds environment variables to every
+// container and init container across all templates in the Workflow. This is
+// used to inject MLflow tracking environment variables so that the driver,
+// launcher, and user containers all receive them.
+func (w *Workflow) SetEnvVarsToDriverAndLauncherTemplates(envVars map[string]string) {
+	if len(envVars) == 0 || len(w.Spec.Templates) == 0 {
+		return
+	}
+	envList := make([]corev1.EnvVar, 0, len(envVars))
+	for k, v := range envVars {
+		envList = append(envList, corev1.EnvVar{Name: k, Value: v})
+	}
+	for i := range w.Spec.Templates {
+		tmpl := &w.Spec.Templates[i]
+		// Main container (driver templates and executor user containers).
+		if tmpl.Container != nil {
+			tmpl.Container.Env = appendEnvNoDuplicates(tmpl.Container.Env, envList)
+		}
+		// Init containers (launcher init containers).
+		for j := range tmpl.InitContainers {
+			tmpl.InitContainers[j].Env = appendEnvNoDuplicates(tmpl.InitContainers[j].Env, envList)
+		}
+	}
+}
+
+// appendEnvNoDuplicates appends env vars that do not already exist by name.
+func appendEnvNoDuplicates(existing []corev1.EnvVar, toAdd []corev1.EnvVar) []corev1.EnvVar {
+	existingNames := make(map[string]bool, len(existing))
+	for _, e := range existing {
+		existingNames[e.Name] = true
+	}
+	for _, e := range toAdd {
+		if !existingNames[e.Name] {
+			existing = append(existing, e)
+		}
+	}
+	return existing
 }
 
 // SetOwnerReferences sets owner references on a Workflow.
