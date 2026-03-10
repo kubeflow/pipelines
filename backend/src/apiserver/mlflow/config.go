@@ -85,7 +85,6 @@ type PluginSettings struct {
 	AuthType              string               `json:"authType,omitempty"`
 	CredentialSecretRef   *CredentialSecretRef `json:"credentialSecretRef,omitempty"`
 	ExperimentDescription *string              `json:"experimentDescription,omitempty"`
-	KFPBaseURL            string               `json:"kfpBaseURL,omitempty"`
 }
 
 // ResolvedConfig bundles the merged plugin configuration and its parsed settings.

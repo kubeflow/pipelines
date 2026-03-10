@@ -16,7 +16,6 @@ package mlflow
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -80,22 +79,6 @@ func setGlobalMLflowConfig(t *testing.T, endpoint string) {
 			"settings": map[string]interface{}{
 				"authType":          "kubernetes",
 				"workspacesEnabled": false,
-			},
-		},
-	})
-	t.Cleanup(func() { viper.Set("plugins", nil) })
-}
-
-func setGlobalMLflowConfigWithKFPBaseURL(t *testing.T, endpoint, kfpBaseURL string) {
-	t.Helper()
-	viper.Set("plugins", map[string]interface{}{
-		"mlflow": map[string]interface{}{
-			"endpoint": endpoint,
-			"timeout":  "10s",
-			"settings": map[string]interface{}{
-				"authType":          "kubernetes",
-				"workspacesEnabled": false,
-				"kfpBaseURL":        kfpBaseURL,
 			},
 		},
 	})
@@ -208,53 +191,6 @@ func TestOnRunStart_MLflowFailure_ReturnsFailedOutput(t *testing.T) {
 	require.NotNil(t, output)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, output.State)
 	assert.NotEmpty(t, output.StateMessage)
-}
-
-func TestOnRunStart_KFPBaseURL_AbsoluteRunURL(t *testing.T) {
-	cleanup := setupSAToken(t)
-	defer cleanup()
-
-	var tagValues = map[string]string{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/2.0/mlflow/experiments/get-by-name":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"exp-1","name":"Default"}}`))
-		case "/api/2.0/mlflow/runs/create":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"run-abs-1"}}}`))
-		case "/api/2.0/mlflow/runs/set-tag":
-			body, _ := io.ReadAll(r.Body)
-			var tag struct {
-				Key   string `json:"key"`
-				Value string `json:"value"`
-			}
-			_ = json.Unmarshal(body, &tag)
-			tagValues[tag.Key] = tag.Value
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{}`))
-		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-	}))
-	defer server.Close()
-
-	setGlobalMLflowConfigWithKFPBaseURL(t, server.URL, "https://pipelines.example.com")
-	viper.Set(common.MultiUserMode, false)
-	t.Cleanup(func() { viper.Set(common.MultiUserMode, nil) })
-
-	handler := NewHandler(HandlerDeps{
-		IsAuthorized: fakeIsAuthorizedOK,
-	}, &PluginInput{ExperimentName: "Default"})
-
-	run := &model.Run{UUID: "kfp-run-abs"}
-	output, err := handler.OnRunStart(context.Background(), run, "ns1")
-	require.NoError(t, err)
-	require.NotNil(t, output)
-
-	// Verify the tag has an absolute URL
-	require.Contains(t, tagValues, TagKFPRunURL)
-	assert.Equal(t, "https://pipelines.example.com/#/runs/details/kfp-run-abs", tagValues[TagKFPRunURL])
 }
 
 // ---- OnRunEnd / syncOnRunTerminal tests ----
@@ -425,38 +361,23 @@ func TestHandleRetry_Success(t *testing.T) {
 func TestBuildKFPRunURL(t *testing.T) {
 	tests := []struct {
 		name    string
-		kfpBase string
 		runID   string
 		wantURL string
 	}{
 		{
 			name:    "empty runID returns empty",
-			kfpBase: "",
 			runID:   "",
 			wantURL: "",
 		},
 		{
-			name:    "no base URL returns relative",
-			kfpBase: "",
+			name:    "returns relative path",
 			runID:   "abc",
 			wantURL: "/#/runs/details/abc",
-		},
-		{
-			name:    "with base URL returns absolute",
-			kfpBase: "https://pipelines.example.com",
-			runID:   "abc",
-			wantURL: "https://pipelines.example.com/#/runs/details/abc",
-		},
-		{
-			name:    "trailing slash in base URL is trimmed",
-			kfpBase: "https://pipelines.example.com/",
-			runID:   "abc",
-			wantURL: "https://pipelines.example.com/#/runs/details/abc",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BuildKFPRunURL(tt.kfpBase, tt.runID)
+			got := BuildKFPRunURL(tt.runID)
 			assert.Equal(t, tt.wantURL, got)
 		})
 	}

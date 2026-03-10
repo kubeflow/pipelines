@@ -129,11 +129,7 @@ func (h *Handler) OnRunStart(ctx context.Context, run *model.Run, namespace stri
 		EnvParentRunID: parentRunID,
 		EnvAuthType:    authType,
 	}
-	kfpBaseURL := ""
-	if requestCfg.Settings != nil {
-		kfpBaseURL = requestCfg.Settings.KFPBaseURL
-	}
-	if err := TagRunWithKFPMetadata(ctx, mlflowRequestCtx, parentRunID, run, kfpBaseURL); err != nil {
+	if err := TagRunWithKFPMetadata(ctx, mlflowRequestCtx, parentRunID, run); err != nil {
 		return FailedPluginOutput(mlflowExperiment.ID, mlflowExperiment.Name, parentRunID, "", err.Error()), err
 	}
 	runURL := BuildRunURL(mlflowRequestCtx, mlflowExperiment.ID, parentRunID)

@@ -86,21 +86,16 @@ func CreateParentRun(ctx context.Context, requestCtx *RequestContext, experiment
 	return requestCtx.Client.CreateRun(ctx, experimentID, runDisplayName, nil)
 }
 
-// BuildKFPRunURL constructs the KFP pipeline run URL. When kfpBaseURL is
-// non-empty the result is an absolute URL; otherwise a relative path is
-// returned (compatible with in-cluster UI links).
-func BuildKFPRunURL(kfpBaseURL, runID string) string {
+// BuildKFPRunURL constructs a relative KFP pipeline run URL
+// (compatible with in-cluster UI links).
+func BuildKFPRunURL(runID string) string {
 	if runID == "" {
 		return ""
 	}
-	relPath := fmt.Sprintf("/#/runs/details/%s", runID)
-	if kfpBaseURL == "" {
-		return relPath
-	}
-	return stringsTrimRightSlash(kfpBaseURL) + relPath
+	return fmt.Sprintf("/#/runs/details/%s", runID)
 }
 
-func TagRunWithKFPMetadata(ctx context.Context, requestCtx *RequestContext, mlflowRunID string, run *model.Run, kfpBaseURL string) error {
+func TagRunWithKFPMetadata(ctx context.Context, requestCtx *RequestContext, mlflowRunID string, run *model.Run) error {
 	if run == nil {
 		return util.NewInvalidInputError("run cannot be nil")
 	}
@@ -109,7 +104,7 @@ func TagRunWithKFPMetadata(ctx context.Context, requestCtx *RequestContext, mlfl
 	}
 	tags := []commonmlflow.Tag{
 		{Key: TagKFPRunID, Value: run.UUID},
-		{Key: TagKFPRunURL, Value: BuildKFPRunURL(kfpBaseURL, run.UUID)},
+		{Key: TagKFPRunURL, Value: BuildKFPRunURL(run.UUID)},
 	}
 	if run.PipelineSpec.PipelineId != "" {
 		tags = append(tags, commonmlflow.Tag{Key: TagKFPPipelineID, Value: run.PipelineSpec.PipelineId})
@@ -302,7 +297,7 @@ func buildPluginOutput(experimentID, experimentName, runID, runURL string, state
 	}
 	if runURL != "" {
 		entries[EntryRunURL] = &apiv2beta1.MetadataValue{
-			Value:       structpb.NewStringValue(runURL),
+			Value:      structpb.NewStringValue(runURL),
 			RenderType: apiv2beta1.MetadataValue_URL.Enum(),
 		}
 	}

@@ -476,7 +476,7 @@ func TestCreateParentRunAndTagWithKFPMetadata(t *testing.T) {
 			PipelineVersionId: "pipeline-version-1",
 		},
 	}
-	err = TagRunWithKFPMetadata(context.Background(), mlflowCtx, mlflowRunID, run, "")
+	err = TagRunWithKFPMetadata(context.Background(), mlflowCtx, mlflowRunID, run)
 	require.NoError(t, err)
 
 	require.Len(t, seenTagPayloads, 4)
