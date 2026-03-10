@@ -28,7 +28,6 @@ import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import {
   filterLinkedArtifactsByType,
-  getArtifactTypes,
   getArtifactsFromContext,
   getEventsByExecutions,
   getExecutionsFromContext,
@@ -60,6 +59,7 @@ import {
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
+import { queryKeys, STALE_TIME_RUNTIME, useArtifactTypes } from 'src/hooks';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
@@ -294,21 +294,20 @@ function CompareV2(props: CompareV2Props) {
     data: runs,
     refetch,
   } = useQuery<V2beta1Run[], Error>({
-    queryKey: ['v2_run_details', { ids: runIds }],
+    queryKey: queryKeys.v2RunDetails(runIds),
     queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApiV2.getRun(id))),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
-  // Using runIds only (not runStates) — runStates in the key causes memory leak warnings
-  // and CompareV2.test.tsx failures.
+  // Using runIds only (not runStates) — runStates in the key causes memory leak warnings and CompareV2.test.tsx failures.
   const {
     data: mlmdPackages,
     isLoading: isLoadingMlmdPackages,
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>({
-    queryKey: ['run_artifacts', { runIds }],
+    queryKey: queryKeys.runArtifacts(runIds),
     queryFn: () =>
       Promise.all(
         runIds.map(async (runId) => {
@@ -325,7 +324,7 @@ function CompareV2(props: CompareV2Props) {
           } as MlmdPackage;
         }),
       ),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
@@ -335,11 +334,7 @@ function CompareV2(props: CompareV2Props) {
     isLoading: isLoadingArtifactTypes,
     isError: isErrorArtifactTypes,
     error: errorArtifactTypes,
-  } = useQuery<ArtifactType[], Error>({
-    queryKey: ['artifact_types', {}],
-    queryFn: () => getArtifactTypes(),
-    staleTime: Infinity,
-  });
+  } = useArtifactTypes();
 
   // Ensure that the two-panel selected artifacts are present in selected valid run list.
   const getVerifiedTwoPanelSelection = (

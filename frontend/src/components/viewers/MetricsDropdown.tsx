@@ -33,6 +33,7 @@ import { ViewerConfig } from 'src/components/viewers/Viewer';
 import Banner from 'src/components/Banner';
 import { SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_STATIC } from 'src/hooks';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import {
   metricsTypeToString,
@@ -192,14 +193,10 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     error,
     data: viewerConfigs,
   } = useQuery<ViewerConfig[], Error>({
-    queryKey: [
-      'viewerConfig',
-      {
-        artifact: linkedArtifact?.artifact.getId(),
-        namespace,
-      },
-    ],
-
+    queryKey: queryKeys.viewerConfig({
+      artifactId: linkedArtifact?.artifact.getId()?.toString(),
+      namespace,
+    }),
     queryFn: async () => {
       let viewerConfigs: ViewerConfig[] = [];
       if (linkedArtifact) {
@@ -211,8 +208,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
       }
       return viewerConfigs;
     },
-
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
   });
 
   useEffect(() => {

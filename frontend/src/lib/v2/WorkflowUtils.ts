@@ -33,11 +33,20 @@ function getPipelineDefFromYaml(template: string) {
   // If pipeline_spec exists in the return value of safeload,
   // which means the original yaml contains platform_spec,
   // then the PipelineSpec(IR) is stored in 'pipeline_spec' field.
-  return jsyaml.safeLoad(template)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
+  const loaded = jsyaml.safeLoad(template);
+  if (loaded === undefined || loaded === null) {
+    return undefined;
+  }
+  const loadedObj = loaded as Record<string, unknown>;
+  return loadedObj[PIPELINE_SPEC_TEMPLATE_KEY] ?? loaded;
 }
 
 function getPlatformDefFromYaml(template: string) {
-  return jsyaml.safeLoad(template)[PLATFORM_SPEC_TEMPLATE_KEY];
+  const loaded = jsyaml.safeLoad(template);
+  if (loaded === undefined || loaded === null || typeof loaded !== 'object') {
+    return undefined;
+  }
+  return (loaded as Record<string, unknown>)[PLATFORM_SPEC_TEMPLATE_KEY];
 }
 
 export function isV2Pipeline(workflow: Workflow): boolean {
@@ -54,7 +63,7 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 export function isTemplateV2(templateString: string): boolean {
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (isArgoWorkflowTemplate(template)) {
+    if (template && typeof template === 'object' && isArgoWorkflowTemplate(template as Workflow)) {
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
@@ -70,9 +79,12 @@ export function isTemplateV2(templateString: string): boolean {
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   const pipelineSpecDef = getPipelineDefFromYaml(template);
+  if (!pipelineSpecDef) {
+    throw new Error('Failed to parse pipeline template from YAML.');
+  }
   const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
   if (!pipelineSpec.root || !pipelineSpec.pipelineInfo || !pipelineSpec.deploymentSpec) {
-    throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
+    throw new Error('Important information is missing. Pipeline Spec is invalid.');
   }
   return pipelineSpec;
 
@@ -97,8 +109,12 @@ export function isPipelineSpec(templateString: string) {
   }
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
-      StaticGraphParser.createGraph(template!);
+    if (
+      template &&
+      typeof template === 'object' &&
+      WorkflowUtils.isArgoWorkflowTemplate(template as Workflow)
+    ) {
+      StaticGraphParser.createGraph(template as Workflow);
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
@@ -121,6 +137,9 @@ export function getContainer(componentSpec: ComponentSpec, templateString: strin
   }
 
   const pipelineSpecDef = getPipelineDefFromYaml(templateString);
+  if (!pipelineSpecDef) {
+    return null;
+  }
   const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
   const deploymentSpecObj = pipelineSpec?.deploymentSpec;
   if (!deploymentSpecObj) {

@@ -16,6 +16,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_STATIC } from 'src/hooks';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
@@ -47,9 +48,9 @@ export default function Compare(props: PageProps) {
 
   // Retrieves run details, set page version on success.
   const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>({
-    queryKey: ['run_details', { ids: runIds }],
+    queryKey: queryKeys.runDetails(runIds),
     queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApi.getRun(id))),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
   });
 
   useEffect(() => {

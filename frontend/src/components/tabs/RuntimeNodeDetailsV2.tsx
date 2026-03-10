@@ -33,7 +33,6 @@ import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
   getArtifactTypeName,
-  getArtifactTypes,
   getLinkedArtifactsByExecution,
   getStoreSessionInfoFromArtifact,
   filterEventWithOutputArtifact,
@@ -42,6 +41,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import WorkflowParser from 'src/lib/WorkflowParser';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
+import { queryKeys, STALE_TIME_RUNTIME, useArtifactTypes } from 'src/hooks';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
@@ -155,7 +155,7 @@ function TaskNodeDetail({
   namespace,
 }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>({
-    queryKey: ['execution_logs', { executionId: execution?.getId(), namespace }],
+    queryKey: queryKeys.executionLogs(execution?.getId()?.toString(), namespace),
     queryFn: async () => {
       if (!execution) {
         throw new Error('No execution is found.');
@@ -163,6 +163,7 @@ function TaskNodeDetail({
       return await getLogsInfo(execution, runId, namespace);
     },
     enabled: !!execution,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
@@ -374,11 +375,16 @@ interface ArtifactNodeDetailProps {
   linkedArtifact?: LinkedArtifact;
   namespace: string | undefined;
 }
+
+interface ArtifactInfoProps {
+  execution?: Execution;
+  artifactTypes?: ArtifactType[];
+  linkedArtifact?: LinkedArtifact;
+  namespace: string | undefined;
+}
+
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
-  const { data } = useQuery<ArtifactType[], Error>({
-    queryKey: ['artifact_types', { linkedArtifact }],
-    queryFn: () => getArtifactTypes(),
-  });
+  const { data } = useArtifactTypes();
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (
@@ -413,19 +419,7 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
   );
 }
 
-interface ArtifactNodeDetailProps {
-  execution?: Execution;
-  artifactTypes?: ArtifactType[];
-  linkedArtifact?: LinkedArtifact;
-  namespace: string | undefined;
-}
-
-function ArtifactInfo({
-  execution,
-  artifactTypes,
-  linkedArtifact,
-  namespace,
-}: ArtifactNodeDetailProps) {
+function ArtifactInfo({ execution, artifactTypes, linkedArtifact, namespace }: ArtifactInfoProps) {
   if (!execution || !linkedArtifact) {
     return NODE_STATE_UNAVAILABLE;
   }

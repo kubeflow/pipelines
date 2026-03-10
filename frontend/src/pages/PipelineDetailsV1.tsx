@@ -109,7 +109,8 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
 
   let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
   if (graphToShow && graphToShow.node(selectedNodeId)) {
-    selectedNodeInfo = graphToShow.node(selectedNodeId).info;
+    const node = graphToShow.node(selectedNodeId) as { info?: StaticGraphParser.SelectedNodeInfo };
+    selectedNodeInfo = node.info ?? null;
     if (!!selectedNodeId && !selectedNodeInfo) {
       logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
     }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_RUNTIME, STALE_TIME_STATIC } from 'src/hooks';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
@@ -42,7 +43,7 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: v2RunIsFetching,
     data: v2Run,
   } = useQuery<V2beta1Run, Error>({
-    queryKey: ['v2_run_details', existingRunId],
+    queryKey: queryKeys.v2RunDetail(existingRunId),
     queryFn: () => {
       if (!existingRunId) {
         throw new Error('Run ID is missing');
@@ -50,7 +51,7 @@ function NewRunSwitcher(props: PageProps) {
       return Apis.runServiceApiV2.getRun(existingRunId);
     },
     enabled: !!existingRunId,
-    staleTime: Infinity,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   // Retrieve recurring run details
@@ -59,7 +60,7 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: recurringRunIsFetching,
     data: recurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: ['recurringRun', originalRecurringRunId],
+    queryKey: queryKeys.recurringRun(originalRecurringRunId),
     queryFn: () => {
       if (!originalRecurringRunId) {
         throw new Error('Recurring Run ID is missing');
@@ -67,7 +68,7 @@ function NewRunSwitcher(props: PageProps) {
       return Apis.recurringRunServiceApi.getRecurringRun(originalRecurringRunId);
     },
     enabled: !!originalRecurringRunId,
-    staleTime: Infinity,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   if (v2Run !== undefined && recurringRun !== undefined) {
@@ -92,7 +93,7 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   const { isFetching: pipelineIsFetching, data: pipeline } = useQuery<V2beta1Pipeline, Error>({
-    queryKey: ['pipeline', pipelineIdFromPipeline],
+    queryKey: queryKeys.pipeline(pipelineIdFromPipeline),
     queryFn: () => {
       if (!pipelineIdFromPipeline) {
         throw new Error('Pipeline ID is missing');
@@ -100,7 +101,7 @@ function NewRunSwitcher(props: PageProps) {
       return Apis.pipelineServiceApiV2.getPipeline(pipelineIdFromPipeline);
     },
     enabled: !!pipelineIdFromPipeline,
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
     cacheTime: 0, // v5: renamed to gcTime
   });
 
@@ -111,8 +112,7 @@ function NewRunSwitcher(props: PageProps) {
     V2beta1PipelineVersion,
     Error
   >({
-    // Query key includes both IDs (pipeline version IDs may not be globally unique across backends).
-    queryKey: ['pipelineVersion', pipelineId, pipelineVersionId],
+    queryKey: queryKeys.pipelineVersion(pipelineId, pipelineVersionId),
     queryFn: () => {
       if (!(pipelineId && pipelineVersionId)) {
         throw new Error('Pipeline id or pipeline Version ID is missing');
@@ -120,15 +120,14 @@ function NewRunSwitcher(props: PageProps) {
       return Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, pipelineVersionId);
     },
     enabled: !!pipelineId && !!pipelineVersionId,
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
     cacheTime: 0, // v5: renamed to gcTime
   });
   const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
   const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
 
   const { isFetching: v1TemplateStrIsFetching, data: v1Template } = useQuery<string, Error>({
-    // Query key includes both IDs for correct cache invalidation (version IDs may not be globally unique).
-    queryKey: ['v1PipelineVersionTemplate', pipelineId, pipelineVersionId],
+    queryKey: queryKeys.v1PipelineVersionTemplate(pipelineId, pipelineVersionId),
     queryFn: async () => {
       if (!(pipelineId && pipelineVersionId)) {
         throw new Error('Pipeline id or pipeline Version ID is missing');
@@ -147,14 +146,14 @@ function NewRunSwitcher(props: PageProps) {
     // Requires BOTH IDs: queryFn throws if either is missing. `&&` prevents avoidable fetch-then-throw.
     // (Previously enabled: !!pipelineId || !!pipelineVersionId would run with only one ID and then throw.)
     enabled: !!pipelineId && !!pipelineVersionId,
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
     cacheTime: 0, // v5: renamed to gcTime
   });
   const v1TemplateStr = v1Template || '';
 
   const { isFetching: experimentIsFetching, data: experiment } = useQuery<V2beta1Experiment, Error>(
     {
-      queryKey: ['experiment', experimentId],
+      queryKey: queryKeys.experiment(experimentId),
       queryFn: async () => {
         if (!experimentId) {
           throw new Error('Experiment ID is missing');
@@ -162,7 +161,7 @@ function NewRunSwitcher(props: PageProps) {
         return Apis.experimentServiceApiV2.getExperiment(experimentId);
       },
       enabled: !!experimentId,
-      staleTime: Infinity,
+      staleTime: STALE_TIME_STATIC,
     },
   );
 

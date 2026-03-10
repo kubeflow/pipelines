@@ -360,14 +360,19 @@ function NewRunV2(props: NewRunV2Props) {
   });
 
   const startRun = () => {
+    const pipelineSpec = !(pipelineVersionRefClone || pipelineVersionRefNew)
+      ? (() => {
+          const loaded = JsYaml.safeLoad(templateString || '');
+          return loaded && typeof loaded === 'object' ? loaded : undefined;
+        })()
+      : undefined;
+
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
       experiment_id: experiment?.experiment_id,
       // pipeline_spec and pipeline_version_reference is exclusive.
-      pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
-        ? JsYaml.safeLoad(templateString || '')
-        : undefined,
+      pipeline_spec: pipelineSpec,
       pipeline_version_reference: useLatestVersion
         ? { pipeline_id: existingPipeline?.pipeline_id }
         : cloneOrigin.isClone

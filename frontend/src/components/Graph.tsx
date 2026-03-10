@@ -38,6 +38,14 @@ interface Edge {
   to: string;
 }
 
+/** Extended node type with custom properties added by StaticGraphParser and WorkflowParser */
+interface GraphNode extends dagre.Node {
+  bgColor?: string;
+  icon?: React.ReactNode;
+  isPlaceholder?: boolean;
+  statusColoring?: string;
+}
+
 const css = stylesheet({
   arrowHead: {
     borderColor: color.grey + ' transparent transparent transparent',
@@ -201,7 +209,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
           // Note that these adjustments may cause edges to overlap with nodes since we are
           // deviating from the explicit layout provided by dagre.
           if (finalSegment) {
-            const destinationNode = graph.node(edgeInfo.w);
+            const destinationNode = graph.node(edgeInfo.w) as GraphNode;
 
             // Placeholder nodes never need adjustment because they always have only a single
             // incoming edge.
@@ -263,7 +271,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
       <div className={css.root}>
         {graph
           .nodes()
-          .map((id) => Object.assign(graph.node(id), { id }))
+          .map((id) => Object.assign(graph.node(id), { id }) as GraphNode & { id: string })
           .map((node, i) => (
             <div
               className={classes(

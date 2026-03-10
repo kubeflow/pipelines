@@ -15,6 +15,7 @@
 import * as React from 'react';
 import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_RUNTIME } from 'src/hooks';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
@@ -51,8 +52,7 @@ import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
-const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
-const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
@@ -97,7 +97,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Retrieves MLMD states from the MLMD store.
   const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
-    queryKey: ['mlmd_package', { id: runId }],
+    queryKey: queryKeys.mlmdPackage(runId),
     queryFn: async () => {
       const context = await getKfpV2RunContext(runId);
       const executions = await getExecutionsFromContext(context);
@@ -106,8 +106,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
       return { executions, artifacts, events };
     },
-    staleTime: QUERY_STALE_TIME,
-    refetchInterval: QUERY_REFETCH_INTERNAL,
+    staleTime: STALE_TIME_RUNTIME,
+    refetchInterval: QUERY_REFETCH_INTERVAL,
   });
 
   // Use useEffect instead of deprecated onError/onSuccess (v5 removes them; v4+ recommended pattern).
@@ -155,8 +155,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
   const { data: experiment } = useQuery<V2beta1Experiment, Error>({
-    queryKey: ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
+    queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
     queryFn: () => getExperiment(experimentId),
+    staleTime: STALE_TIME_RUNTIME,
   });
   const namespace = experiment?.namespace;
 

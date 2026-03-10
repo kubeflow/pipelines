@@ -22,6 +22,7 @@ import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { RouteComponentProps } from 'react-router-dom';
+import { queryKeys, STALE_TIME_RUNTIME, usePipelineVersionTemplate } from 'src/hooks';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2, RunDetailsV2Params } from 'src/pages/RunDetailsV2';
 
@@ -38,8 +39,15 @@ export default function RunDetailsRouter(
     isFetching: runIsFetching,
     data: v2Run,
   } = useQuery<V2beta1Run, Error>({
-    queryKey: ['v2_run_detail', { id: runId }],
-    queryFn: () => Apis.runServiceApiV2.getRun(runId),
+    queryKey: queryKeys.v2RunDetail(runId),
+    queryFn: () => {
+      if (!runId) {
+        throw new Error('Run ID is missing');
+      }
+      return Apis.runServiceApiV2.getRun(runId);
+    },
+    enabled: !!runId,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
@@ -49,26 +57,8 @@ export default function RunDetailsRouter(
   const pipelineId = v2Run?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2Run?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } = useQuery<
-    string,
-    Error
-  >({
-    queryKey: ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
-    queryFn: async () => {
-      if (!pipelineId || !pipelineVersionId) {
-        return '';
-      }
-      const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
-        pipelineId,
-        pipelineVersionId,
-      );
-      const pipelineSpec = pipelineVersion.pipeline_spec;
-      return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
-    },
-    enabled: !!pipelineId && !!pipelineVersionId,
-    staleTime: Infinity,
-    cacheTime: Infinity, // v5: renamed to gcTime
-  });
+  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } =
+    usePipelineVersionTemplate(pipelineId, pipelineVersionId);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 

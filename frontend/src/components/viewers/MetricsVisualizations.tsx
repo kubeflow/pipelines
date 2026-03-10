@@ -17,6 +17,7 @@
 import HelpIcon from '@mui/icons-material/Help';
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_STATIC } from 'src/hooks';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
@@ -105,17 +106,13 @@ export function MetricsVisualizations({
     error: v1ViewerConfigError,
     data: v1ViewerConfigs,
   } = useQuery<ViewerConfig[], Error>({
-    queryKey: [
-      'viewconfig',
-      {
-        artifact: v1VisualizationArtifact?.artifact.getId(),
-        state: execution.getLastKnownState(),
-        namespace: namespace,
-      },
-    ],
-
+    queryKey: queryKeys.viewconfig({
+      artifactId: v1VisualizationArtifact?.artifact.getId()?.toString(),
+      state: execution.getLastKnownState(),
+      namespace,
+    }),
     queryFn: () => getViewConfig(v1VisualizationArtifact, namespace),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
   });
 
   const {
@@ -123,19 +120,13 @@ export function MetricsVisualizations({
     error: htmlError,
     data: htmlViewerConfigs,
   } = useQuery<HTMLViewerConfig[], Error>({
-    queryKey: [
-      'htmlViewerConfig',
-      {
-        artifacts: htmlArtifacts.map((linkedArtifact) => {
-          return linkedArtifact.artifact.getId();
-        }),
-        state: execution.getLastKnownState(),
-        namespace: namespace,
-      },
-    ],
-
+    queryKey: queryKeys.htmlViewerConfig({
+      artifactIds: htmlArtifacts.map((la) => la.artifact.getId().toString()),
+      state: execution.getLastKnownState(),
+      namespace,
+    }),
     queryFn: () => getHtmlViewerConfig(htmlArtifacts, namespace),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
   });
 
   const {
@@ -143,19 +134,13 @@ export function MetricsVisualizations({
     error: markdownError,
     data: markdownViewerConfigs,
   } = useQuery<MarkdownViewerConfig[], Error>({
-    queryKey: [
-      'markdownViewerConfig',
-      {
-        artifacts: mdArtifacts.map((linkedArtifact) => {
-          return linkedArtifact.artifact.getId();
-        }),
-        state: execution.getLastKnownState(),
-        namespace: namespace,
-      },
-    ],
-
+    queryKey: queryKeys.markdownViewerConfig({
+      artifactIds: mdArtifacts.map((la) => la.artifact.getId().toString()),
+      state: execution.getLastKnownState(),
+      namespace,
+    }),
     queryFn: () => getMarkdownViewerConfig(mdArtifacts, namespace),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
   });
 
   if (

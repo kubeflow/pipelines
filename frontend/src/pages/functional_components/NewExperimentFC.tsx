@@ -16,6 +16,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_STATIC } from 'src/hooks';
 import { commonCss, fontsize, padding } from 'src/Css';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -58,9 +59,10 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
 
   const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>({
-    queryKey: ['pipeline_versions', pipelineId],
+    queryKey: queryKeys.pipelineVersions(pipelineId),
     queryFn: () => getLatestVersion(pipelineId!),
     enabled: !!pipelineId,
+    staleTime: STALE_TIME_STATIC,
   });
 
   useEffect(() => {

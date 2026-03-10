@@ -26,12 +26,12 @@ import {
   filterEventWithOutputArtifact,
   getArtifactName,
   getArtifactTypeName,
-  getArtifactTypes,
   getLinkedArtifactsByExecution,
   getStoreSessionInfoFromArtifact,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { ArtifactType, Execution } from 'src/third_party/mlmd';
+import { queryKeys, STALE_TIME_STATIC, useArtifactTypes } from 'src/hooks';
+import { Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
@@ -67,15 +67,12 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
     error,
     data: linkedArtifacts,
   } = useQuery<LinkedArtifact[], Error>({
-    queryKey: ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
+    queryKey: queryKeys.executionArtifact(executionId.toString(), execution.getLastKnownState()),
     queryFn: () => getLinkedArtifactsByExecution(execution),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
   });
 
-  const { data: artifactTypes } = useQuery<ArtifactType[], Error>({
-    queryKey: ['artifact_types', { linkedArtifact: linkedArtifacts }],
-    queryFn: () => getArtifactTypes(),
-  });
+  const { data: artifactTypes } = useArtifactTypes();
 
   const artifactTypeNames =
     linkedArtifacts && artifactTypes ? getArtifactTypeName(artifactTypes, linkedArtifacts) : [];

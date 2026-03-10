@@ -111,7 +111,9 @@ spec:
     const props: PipelineDetailsV1Props = {
       pipeline: testPipeline,
       selectedVersion: custom_version ? testPipelineVersion : testPipeline.default_version,
-      versions: [testPipelineVersion],
+      versions: custom_version
+        ? [testPipelineVersion]
+        : [testPipeline.default_version, testPipelineVersion],
       graph: graph,
       reducedGraph: reducedGraph,
       templateString: JSON.stringify({ template: JsYaml.safeDump(pipelineSpecTemplate) }),

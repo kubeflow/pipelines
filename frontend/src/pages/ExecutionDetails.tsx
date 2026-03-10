@@ -17,6 +17,7 @@
 import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_STATIC } from 'src/hooks';
 import { Link } from 'react-router-dom';
 import { Api, getArtifactTypes } from 'src/mlmd/library';
 import {
@@ -439,12 +440,12 @@ interface ExecutionReferenceProps {
 
 function ExecutionReference({ execution }: ExecutionReferenceProps) {
   const { isSuccess, data: context } = useQuery<Context | undefined, Error>({
-    queryKey: [
-      'context_by_execution',
-      { id: execution.getId(), state: execution.getLastKnownState() },
-    ],
+    queryKey: queryKeys.contextByExecution(
+      execution.getId().toString(),
+      execution.getLastKnownState(),
+    ),
     queryFn: () => getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE),
-    staleTime: Infinity,
+    staleTime: STALE_TIME_STATIC,
   });
 
   const customPropertyMap = execution.getCustomPropertiesMap();

@@ -22,6 +22,7 @@ import { errorToMessage } from 'src/lib/Utils';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import { queryKeys, STALE_TIME_RUNTIME, usePipelineVersionTemplate } from 'src/hooks';
 import { PageProps } from './Page';
 import RecurringRunDetails from './RecurringRunDetails';
 import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
@@ -41,7 +42,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     error: recurringRunError,
     data: v2RecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: ['v2_recurring_run_detail', { id: recurringRunId }],
+    queryKey: queryKeys.v2RecurringRunDetail(recurringRunId),
     queryFn: () => {
       if (!recurringRunId) {
         throw new Error('Recurring run ID is missing');
@@ -49,7 +50,7 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
       return Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
     enabled: !!recurringRunId,
-    staleTime: Infinity,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   if (getRecurringRunSuccess && v2RecurringRun && v2RecurringRun.pipeline_spec) {
@@ -59,26 +60,8 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
   const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
 
-  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } = useQuery<
-    string,
-    Error
-  >({
-    queryKey: ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }],
-    queryFn: async () => {
-      if (!pipelineId || !pipelineVersionId) {
-        return '';
-      }
-      const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
-        pipelineId,
-        pipelineVersionId,
-      );
-      const pipelineSpec = pipelineVersion.pipeline_spec;
-      return pipelineSpec ? JsYaml.safeDump(pipelineSpec) : '';
-    },
-    enabled: !!pipelineId && !!pipelineVersionId,
-    staleTime: Infinity,
-    cacheTime: Infinity, // v5: renamed to gcTime
-  });
+  const { isFetching: templateStrIsFetching, data: templateStrFromPipelineVersion } =
+    usePipelineVersionTemplate(pipelineId, pipelineVersionId);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 

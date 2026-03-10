@@ -16,6 +16,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys, STALE_TIME_RUNTIME } from 'src/hooks';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
@@ -51,25 +52,29 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     error: getRecurringRunError,
     refetch: refetchRecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: ['recurringRun', recurringRunId],
+    queryKey: queryKeys.recurringRun(recurringRunId),
     queryFn: async () => {
+      if (!recurringRunId) {
+        throw new Error('Recurring run ID is missing');
+      }
       return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
-
     enabled: !!recurringRunId,
-    staleTime: 0,
+    staleTime: STALE_TIME_RUNTIME,
     cacheTime: 0, // v5: renamed to gcTime
   });
 
-  const experimentId = recurringRun?.experiment_id!;
+  const experimentId = recurringRun?.experiment_id;
   const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>({
-    queryKey: ['experiment', experimentId],
+    queryKey: queryKeys.experiment(experimentId),
     queryFn: async () => {
+      if (!experimentId) {
+        throw new Error('Experiment ID is missing');
+      }
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
-
     enabled: !!experimentId,
-    staleTime: 0,
+    staleTime: STALE_TIME_RUNTIME,
   });
 
   useEffect(() => {

@@ -747,7 +747,7 @@ describe('PipelineDetails', () => {
       expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
+          additionalInfo: 'Important information is missing. Pipeline Spec is invalid.',
           message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
           mode: 'error',
         }),

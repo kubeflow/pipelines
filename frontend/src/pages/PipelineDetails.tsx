@@ -651,9 +651,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let graphV2: PipelineFlowElement[] = [];
     if (templateString) {
       try {
-        const template = JsYaml.safeLoad(templateString);
-        if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
-          graph = StaticGraphParser.createGraph(template!);
+        const template = JsYaml.safeLoad(templateString) as Workflow | undefined;
+        if (
+          template &&
+          typeof template === 'object' &&
+          WorkflowUtils.isArgoWorkflowTemplate(template)
+        ) {
+          graph = StaticGraphParser.createGraph(template);
 
           reducedGraph = graph ? transitiveReduction(graph) : undefined;
           if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
