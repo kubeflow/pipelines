@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-04
+- Last updated: 2026-03-09
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
@@ -25,6 +25,13 @@
 - When adding new functionality, check related packages and modules for shared code that can be leveraged.
 - If existing code needs slight modifications to be reusable, prefer refactoring the existing code to be more general over duplicating it with changes.
 - Use descriptive variable and function names. Avoid abbreviations or single-letter names — prefer full, meaningful names that clearly convey purpose (e.g., `executionID` over `execID`, `fingerPrint` over `fp`).
+
+### Testing policy (agents and contributors)
+
+- Every new non-trivial function, method, or exported API must have accompanying unit tests before merging. Trivial helpers and glue code may be excluded when testing adds no meaningful value.
+- All existing tests must pass locally before pushing changes. Run the relevant test suites listed in the [Local testing](#local-testing) and [Quick reference](#quick-reference) sections (Go backend, Python SDK, `kfp-kubernetes`, and frontend).
+- When modifying existing functions, verify that existing tests still pass and add new test cases if the behavior changes.
+- Do not submit changes that break existing tests. If a test failure is pre-existing and unrelated to your changes, note it explicitly in the PR description.
 
 ### Commit policy (agents and contributors)
 
