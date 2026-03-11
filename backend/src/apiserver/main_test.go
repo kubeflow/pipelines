@@ -166,6 +166,13 @@ func TestApiServerInterceptor(t *testing.T) {
 }
 
 func TestInitCerts(t *testing.T) {
+	originalCertPath := *tlsCertPath
+	originalKeyPath := *tlsCertKeyPath
+	t.Cleanup(func() {
+		*tlsCertPath = originalCertPath
+		*tlsCertKeyPath = originalKeyPath
+	})
+
 	t.Run("no certs provided returns nil", func(t *testing.T) {
 		*tlsCertPath = ""
 		*tlsCertKeyPath = ""
@@ -224,12 +231,6 @@ func TestInitCerts(t *testing.T) {
 		assert.NotNil(t, tlsCfg)
 		assert.Len(t, tlsCfg.Certificates, 1)
 	})
-
-	// Reset flags after tests
-	t.Cleanup(func() {
-		*tlsCertPath = ""
-		*tlsCertKeyPath = ""
-	})
 }
 
 func TestGetPVCSpec(t *testing.T) {
@@ -248,8 +249,9 @@ func TestGetPVCSpec(t *testing.T) {
 		viper.Set("workspace.volumeclaimtemplatespec.storageclassname", storageName)
 
 		pvcSpec, err := getPVCSpec()
-		assert.NoError(t, err)
-		assert.NotNil(t, pvcSpec)
+		require.NoError(t, err)
+		require.NotNil(t, pvcSpec)
+		require.NotNil(t, pvcSpec.StorageClassName)
 		assert.Equal(t, storageName, *pvcSpec.StorageClassName)
 	})
 
