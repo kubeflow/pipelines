@@ -29,8 +29,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -102,8 +104,8 @@ func TestGrpcCustomMatcher(t *testing.T) {
 	}{
 		{
 			name:          "matching kubeflow user ID header",
-			headerKey:     "x-goog-authenticated-user-email",
-			expectedKey:   "x-goog-authenticated-user-email",
+			headerKey:     common.GoogleIAPUserIdentityHeader,
+			expectedKey:   common.GoogleIAPUserIdentityHeader,
 			expectedMatch: true,
 		},
 		{
@@ -197,8 +199,8 @@ func TestInitCerts(t *testing.T) {
 		tempDir := t.TempDir()
 		certFile := filepath.Join(tempDir, "cert.pem")
 		keyFile := filepath.Join(tempDir, "key.pem")
-		os.WriteFile(certFile, []byte("not a cert"), 0600)
-		os.WriteFile(keyFile, []byte("not a key"), 0600)
+		require.NoError(t, os.WriteFile(certFile, []byte("not a cert"), 0600))
+		require.NoError(t, os.WriteFile(keyFile, []byte("not a key"), 0600))
 
 		*tlsCertPath = certFile
 		*tlsCertKeyPath = keyFile
@@ -292,7 +294,7 @@ func generateSelfSignedCert(t *testing.T, certPath, keyPath string) {
 	t.Helper()
 
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
@@ -302,18 +304,18 @@ func generateSelfSignedCert(t *testing.T, certPath, keyPath string) {
 	}
 
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 	err = os.WriteFile(certPath, certPEM, 0600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	keyDER, err := x509.MarshalECPrivateKey(privateKey)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
 	err = os.WriteFile(keyPath, keyPEM, 0600)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func int64Ptr(v int64) *int64 { return &v }
