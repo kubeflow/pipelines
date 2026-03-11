@@ -326,9 +326,7 @@ function updateToolBarActions(
 
 function getActualStartTime(run?: V2beta1Run): Date | undefined {
   if (run?.state_history) {
-    const runningEntries = run.state_history.filter(
-      s => s.state === V2beta1RuntimeState.RUNNING,
-    );
+    const runningEntries = run.state_history.filter(s => s.state === V2beta1RuntimeState.RUNNING);
     if (runningEntries.length > 0) {
       const updateTime = runningEntries[runningEntries.length - 1].update_time;
       if (updateTime !== undefined) {
