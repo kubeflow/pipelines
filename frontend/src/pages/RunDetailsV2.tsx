@@ -330,7 +330,10 @@ function getActualStartTime(run?: V2beta1Run): Date | undefined {
       s => s.state === V2beta1RuntimeState.RUNNING,
     );
     if (runningEntries.length > 0) {
-      return runningEntries[runningEntries.length - 1].update_time;
+      const updateTime = runningEntries[runningEntries.length - 1].update_time;
+      if (updateTime !== undefined) {
+        return updateTime;
+      }
     }
   }
   return run?.scheduled_at;
