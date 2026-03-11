@@ -15,9 +15,25 @@
 package main
 
 import (
+	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"fmt"
+	"math/big"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestParseOptionalInt64(t *testing.T) {
@@ -75,6 +91,229 @@ func TestParseOptionalBool(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGrpcCustomMatcher(t *testing.T) {
+	tests := []struct {
+		name          string
+		headerKey     string
+		expectedKey   string
+		expectedMatch bool
+	}{
+		{
+			name:          "matching kubeflow user ID header",
+			headerKey:     "x-goog-authenticated-user-email",
+			expectedKey:   "x-goog-authenticated-user-email",
+			expectedMatch: true,
+		},
+		{
+			name:          "matching header case insensitive",
+			headerKey:     "X-Goog-Authenticated-User-Email",
+			expectedKey:   "x-goog-authenticated-user-email",
+			expectedMatch: true,
+		},
+		{
+			name:          "non-matching header returns false",
+			headerKey:     "Authorization",
+			expectedKey:   "authorization",
+			expectedMatch: false,
+		},
+		{
+			name:          "empty header returns false",
+			headerKey:     "",
+			expectedKey:   "",
+			expectedMatch: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key, matched := grpcCustomMatcher(tt.headerKey)
+			assert.Equal(t, tt.expectedKey, key)
+			assert.Equal(t, tt.expectedMatch, matched)
+		})
+	}
+}
+
+func TestApiServerInterceptor(t *testing.T) {
+	t.Run("successful handler call", func(t *testing.T) {
+		expectedResponse := "success"
+		handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+			return expectedResponse, nil
+		}
+		info := &grpc.UnaryServerInfo{FullMethod: "/api.TestService/TestMethod"}
+
+		response, err := apiServerInterceptor(context.Background(), "request", info, handler)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedResponse, response)
+	})
+
+	t.Run("handler returns error", func(t *testing.T) {
+		handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, fmt.Errorf("something went wrong")
+		}
+		info := &grpc.UnaryServerInfo{FullMethod: "/api.TestService/FailMethod"}
+
+		response, err := apiServerInterceptor(context.Background(), "request", info, handler)
+		assert.Nil(t, response)
+		assert.Error(t, err)
+		// The interceptor converts errors to gRPC status errors
+		grpcStatus, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.Internal, grpcStatus.Code())
+	})
+}
+
+func TestInitCerts(t *testing.T) {
+	t.Run("no certs provided returns nil", func(t *testing.T) {
+		*tlsCertPath = ""
+		*tlsCertKeyPath = ""
+
+		tlsCfg, err := initCerts()
+		assert.NoError(t, err)
+		assert.Nil(t, tlsCfg)
+	})
+
+	t.Run("cert path without key path returns error", func(t *testing.T) {
+		*tlsCertPath = "/some/cert.pem"
+		*tlsCertKeyPath = ""
+
+		tlsCfg, err := initCerts()
+		assert.Error(t, err)
+		assert.Nil(t, tlsCfg)
+		assert.Contains(t, err.Error(), "missing tlsCertKeyPath")
+	})
+
+	t.Run("key path without cert path returns error", func(t *testing.T) {
+		*tlsCertPath = ""
+		*tlsCertKeyPath = "/some/key.pem"
+
+		tlsCfg, err := initCerts()
+		assert.Error(t, err)
+		assert.Nil(t, tlsCfg)
+		assert.Contains(t, err.Error(), "missing tlsCertPath")
+	})
+
+	t.Run("invalid cert files returns error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		os.WriteFile(certFile, []byte("not a cert"), 0600)
+		os.WriteFile(keyFile, []byte("not a key"), 0600)
+
+		*tlsCertPath = certFile
+		*tlsCertKeyPath = keyFile
+
+		tlsCfg, err := initCerts()
+		assert.Error(t, err)
+		assert.Nil(t, tlsCfg)
+	})
+
+	t.Run("valid cert files returns tls config", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		generateSelfSignedCert(t, certFile, keyFile)
+
+		*tlsCertPath = certFile
+		*tlsCertKeyPath = keyFile
+
+		tlsCfg, err := initCerts()
+		assert.NoError(t, err)
+		assert.NotNil(t, tlsCfg)
+		assert.Len(t, tlsCfg.Certificates, 1)
+	})
+
+	// Reset flags after tests
+	t.Cleanup(func() {
+		*tlsCertPath = ""
+		*tlsCertKeyPath = ""
+	})
+}
+
+func TestGetPVCSpec(t *testing.T) {
+	t.Run("no workspace config returns nil", func(t *testing.T) {
+		viper.Reset()
+
+		pvcSpec, err := getPVCSpec()
+		assert.NoError(t, err)
+		assert.Nil(t, pvcSpec)
+	})
+
+	t.Run("valid workspace config returns PVC spec", func(t *testing.T) {
+		viper.Reset()
+		storageName := "standard"
+		viper.Set("workspace.volumeclaimtemplatespec.accessmodes", []string{"ReadWriteOnce"})
+		viper.Set("workspace.volumeclaimtemplatespec.storageclassname", storageName)
+
+		pvcSpec, err := getPVCSpec()
+		assert.NoError(t, err)
+		assert.NotNil(t, pvcSpec)
+		assert.Equal(t, storageName, *pvcSpec.StorageClassName)
+	})
+
+	t.Run("missing access modes returns error", func(t *testing.T) {
+		viper.Reset()
+		storageName := "standard"
+		viper.Set("workspace.volumeclaimtemplatespec.storageclassname", storageName)
+
+		pvcSpec, err := getPVCSpec()
+		assert.Error(t, err)
+		assert.Nil(t, pvcSpec)
+		assert.Contains(t, err.Error(), "must specify accessModes and storageClassName")
+	})
+
+	t.Run("missing storage class name returns error", func(t *testing.T) {
+		viper.Reset()
+		viper.Set("workspace.volumeclaimtemplatespec.accessmodes", []string{"ReadWriteOnce"})
+
+		pvcSpec, err := getPVCSpec()
+		assert.Error(t, err)
+		assert.Nil(t, pvcSpec)
+		assert.Contains(t, err.Error(), "must specify accessModes and storageClassName")
+	})
+
+	t.Run("empty storage class name returns error", func(t *testing.T) {
+		viper.Reset()
+		viper.Set("workspace.volumeclaimtemplatespec.accessmodes", []string{"ReadWriteOnce"})
+		viper.Set("workspace.volumeclaimtemplatespec.storageclassname", "")
+
+		pvcSpec, err := getPVCSpec()
+		assert.Error(t, err)
+		assert.Nil(t, pvcSpec)
+	})
+
+	t.Cleanup(func() {
+		viper.Reset()
+	})
+}
+
+// generateSelfSignedCert creates a self-signed TLS certificate and key for testing.
+func generateSelfSignedCert(t *testing.T, certPath, keyPath string) {
+	t.Helper()
+
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	assert.NoError(t, err)
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{Organization: []string{"Test"}},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	assert.NoError(t, err)
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+	err = os.WriteFile(certPath, certPEM, 0600)
+	assert.NoError(t, err)
+
+	keyDER, err := x509.MarshalECPrivateKey(privateKey)
+	assert.NoError(t, err)
+
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+	err = os.WriteFile(keyPath, keyPEM, 0600)
+	assert.NoError(t, err)
 }
 
 func int64Ptr(v int64) *int64 { return &v }
