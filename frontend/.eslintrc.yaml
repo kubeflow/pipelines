@@ -21,6 +21,11 @@ settings:
                 - .jsx
                 - .ts
                 - .tsx
+        typescript:
+            alwaysTryTypes: true
+            project:
+                - ./tsconfig.json
+                - ./server/tsconfig.json
 plugins:
     - '@typescript-eslint'
     - import
@@ -36,6 +41,8 @@ ignorePatterns:
     - node_modules/
     - src/apis # these are generated api clients
     - src/apisv2beta1 # these are generated v2 api clients
+    - server/dist
+    - server/src/generated # generated auth api clients
     - '*.test.ts'
     - '*.test.tsx'
     - src/generated # proto generated definition

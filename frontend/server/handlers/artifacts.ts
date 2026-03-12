@@ -454,7 +454,7 @@ export function getArtifactsProxyHandler({
   namespacedServiceGetter: NamespacedServiceGetter;
 }): Handler {
   if (!enabled) {
-    return (req, res, next) => next();
+    return (_req, _res, next) => next();
   }
   return createProxyMiddleware(
     (_pathname, req) => {
@@ -466,7 +466,7 @@ export function getArtifactsProxyHandler({
       onProxyReq: (proxyReq) => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
-      pathRewrite: (pathStr, req) => {
+      pathRewrite: (pathStr, _req) => {
         const url = new URL(pathStr || '', DUMMY_BASE_PATH);
         url.searchParams.delete(QUERIES.NAMESPACE);
         return url.pathname + url.search;

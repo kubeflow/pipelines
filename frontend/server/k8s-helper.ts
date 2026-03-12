@@ -22,7 +22,7 @@ import {
 import crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper.js';
-import { parseError, findFileOnPodVolume, isAllowedResourceName } from './utils.js';
+import { findFileOnPodVolume, isAllowedResourceName } from './utils.js';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
