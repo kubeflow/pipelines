@@ -80,13 +80,6 @@ jobs:
           pip install --upgrade pip
           pip install build==${{ env.PYTHON_BUILD_PKG_VERSION }}
 
-      - name: Install Test dependencies
-        run: |
-          pip install -r sdk/python/requirements.txt
-          pip install -r sdk/python/requirements-dev.txt
-          pip install pytest
-          pip install pytest-cov
-
       - name: Build & install kfp-server-api dist
         id: install-kfp-server-api
         shell: bash
@@ -95,6 +88,20 @@ jobs:
           rm -rf dist/
           python -m build .
           pip install dist/*.whl
+
+      - name: Install Test dependencies
+        run: |
+          # We need to install kfp-server-api before installing from
+          # requirements.txt to handle an edge case in the release process where
+          # the kfp-server-api package version is not yet released and available
+          # on PyPI; the --upgrade-strategy only-if-needed flag is used to avoid
+          # unnecessarily upgrading after the wheel has been installed which may
+          # cause compatibility issues with the kfp-server-api package installed
+          # in the previous step
+          pip install --upgrade-strategy only-if-needed -r sdk/python/requirements.txt
+          pip install --upgrade-strategy only-if-needed -r sdk/python/requirements-dev.txt
+          pip install pytest
+          pip install pytest-cov
 
       - name: Run tests
         id: tests
