@@ -326,11 +326,10 @@ function updateToolBarActions(
 
 function getActualStartTime(run?: V2beta1Run): Date | undefined {
   if (run?.state_history) {
-    const runningEntries = run.state_history.filter((s) => s.state === V2beta1RuntimeState.RUNNING);
-    if (runningEntries.length > 0) {
-      const updateTime = runningEntries[runningEntries.length - 1].update_time;
-      if (updateTime !== undefined) {
-        return updateTime;
+    for (let i = run.state_history.length - 1; i >= 0; i--) {
+      const entry = run.state_history[i];
+      if (entry.state === V2beta1RuntimeState.RUNNING && entry.update_time !== undefined) {
+        return entry.update_time;
       }
     }
   }
