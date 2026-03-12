@@ -238,13 +238,31 @@ func TestCondition(t *testing.T) {
 		assert.Equal(t, "", string(workflow.Condition()))
 	})
 
-	t.Run("running phase with ImagePullBackOff message is treated as Failed", func(t *testing.T) {
+	t.Run("running phase with ImagePullBackOff message within grace period is not failed", func(t *testing.T) {
 		workflow := NewWorkflow(&workflowapi.Workflow{
 			Status: workflowapi.WorkflowStatus{
 				Phase: workflowapi.WorkflowRunning,
 				Nodes: map[string]workflowapi.NodeStatus{
 					"step-image-pull-failure": {
-						Message: "ImagePullBackOff: Back-off pulling image \"gcr.io/example/non-existent\"",
+						Message:   "ImagePullBackOff: Back-off pulling image \"gcr.io/example/non-existent\"",
+						StartedAt: metav1.Now(),
+					},
+				},
+			},
+		})
+		assert.Equal(t, "Running", string(workflow.Condition()))
+	})
+
+	t.Run("running phase with ImagePullBackOff message beyond grace period is failed", func(t *testing.T) {
+		// Node started 6 minutes ago (beyond 5 minute grace period)
+		startedAt := metav1.NewTime(time.Now().Add(-6 * time.Minute))
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowRunning,
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-image-pull-failure": {
+						Message:   "ImagePullBackOff: Back-off pulling image \"gcr.io/example/non-existent\"",
+						StartedAt: startedAt,
 					},
 				},
 			},
@@ -252,18 +270,133 @@ func TestCondition(t *testing.T) {
 		assert.Equal(t, "Failed", string(workflow.Condition()))
 	})
 
-	t.Run("running phase with ErrImagePull message is treated as Failed", func(t *testing.T) {
+	t.Run("running phase with ErrImagePull message beyond grace period is failed", func(t *testing.T) {
+		// Node started 6 minutes ago (beyond 5 minute grace period)
+		startedAt := metav1.NewTime(time.Now().Add(-6 * time.Minute))
 		workflow := NewWorkflow(&workflowapi.Workflow{
 			Status: workflowapi.WorkflowStatus{
 				Phase: workflowapi.WorkflowRunning,
 				Nodes: map[string]workflowapi.NodeStatus{
 					"step-err-image-pull": {
-						Message: "ErrImagePull: rpc error: code = Unknown desc = failed to pull and unpack image",
+						Message:   "ErrImagePull: rpc error: code = Unknown desc = failed to pull and unpack image",
+						StartedAt: startedAt,
 					},
 				},
 			},
 		})
 		assert.Equal(t, "Failed", string(workflow.Condition()))
+	})
+
+	t.Run("workflow already in Failed phase with image pull message remains Failed", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowFailed,
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-image-pull-failure": {
+						Message: "ImagePullBackOff: Back-off pulling image",
+					},
+				},
+			},
+		})
+		assert.Equal(t, "Failed", string(workflow.Condition()))
+	})
+
+	t.Run("workflow already in Succeeded phase with image pull message remains Succeeded", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowSucceeded,
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-image-pull-failure": {
+						Message: "ImagePullBackOff: Back-off pulling image",
+					},
+				},
+			},
+		})
+		assert.Equal(t, "Succeeded", string(workflow.Condition()))
+	})
+}
+
+func TestImagePullErrorMessage(t *testing.T) {
+	t.Run("no image pull error returns empty string", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowRunning,
+				Nodes: map[string]workflowapi.NodeStatus{},
+			},
+		})
+		assert.Equal(t, "", workflow.ImagePullErrorMessage())
+	})
+
+	t.Run("image pull error returns formatted message", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowRunning,
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-image-pull-failure": {
+						DisplayName: "step-image-pull-failure",
+						Message:     "ImagePullBackOff: Back-off pulling image \"gcr.io/example/non-existent\"",
+					},
+				},
+			},
+		})
+		assert.Contains(t, workflow.ImagePullErrorMessage(), "ImagePullBackOff")
+		assert.Contains(t, workflow.ImagePullErrorMessage(), "step-image-pull-failure")
+	})
+
+	t.Run("ErrImagePull returns formatted message", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase: workflowapi.WorkflowRunning,
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-err-image-pull": {
+						DisplayName: "step-err-image-pull",
+						Message:     "ErrImagePull: rpc error: code = Unknown desc = failed to pull image",
+					},
+				},
+			},
+		})
+		assert.Contains(t, workflow.ImagePullErrorMessage(), "ErrImagePull")
+		assert.Contains(t, workflow.ImagePullErrorMessage(), "step-err-image-pull")
+	})
+}
+
+func TestMessage(t *testing.T) {
+	t.Run("workflow status message is returned when present", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase:   workflowapi.WorkflowFailed,
+				Message: "workflow failed due to timeout",
+			},
+		})
+		assert.Equal(t, "workflow failed due to timeout", workflow.Message())
+	})
+
+	t.Run("image pull error message is returned when status message is empty", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase:   workflowapi.WorkflowRunning,
+				Message: "",
+				Nodes: map[string]workflowapi.NodeStatus{
+					"step-image-pull-failure": {
+						DisplayName: "step-image-pull-failure",
+						Message:     "ImagePullBackOff: Back-off pulling image",
+					},
+				},
+			},
+		})
+		assert.Contains(t, workflow.Message(), "ImagePullBackOff")
+		assert.Contains(t, workflow.Message(), "step-image-pull-failure")
+	})
+
+	t.Run("empty string when no messages", func(t *testing.T) {
+		workflow := NewWorkflow(&workflowapi.Workflow{
+			Status: workflowapi.WorkflowStatus{
+				Phase:   workflowapi.WorkflowRunning,
+				Message: "",
+				Nodes:   map[string]workflowapi.NodeStatus{},
+			},
+		})
+		assert.Equal(t, "", workflow.Message())
 	})
 }
 
