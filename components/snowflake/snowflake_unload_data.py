@@ -6,8 +6,8 @@ from kfp import compiler
 from kfp.dsl import component
 
 @component(
-    base_image="python:3.11",
-    packages_to_install=["snowflake-connector-python==3.12.3"]
+    base_image="python:3.11-slim",
+    packages_to_install=["snowflake-connector-python:3.12.3"]
 )
 def snowflake_unload_op(
     output_gcs_path: str,
