@@ -341,7 +341,7 @@ function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
   const actualStart = getActualStartTime(run);
   const scheduledAt = run?.scheduled_at;
   const startDiffers =
-    actualStart && scheduledAt && formatDateString(actualStart) !== formatDateString(scheduledAt);
+    actualStart && scheduledAt && actualStart.getTime() !== scheduledAt.getTime();
 
   const fields: Array<KeyValue<string>> = [
     ['Run ID', run?.run_id || '-'],
@@ -355,7 +355,13 @@ function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
   ];
 
   if (startDiffers) {
-    fields.splice(5, 0, ['Scheduled at', formatDateString(scheduledAt)]);
+    const startedAtIndex = fields.findIndex(field => field[0] === 'Started at');
+    const scheduledAtField: KeyValue<string> = ['Scheduled at', formatDateString(scheduledAt)];
+    if (startedAtIndex >= 0) {
+      fields.splice(startedAtIndex, 0, scheduledAtField);
+    } else {
+      fields.push(scheduledAtField);
+    }
   }
 
   return fields;
