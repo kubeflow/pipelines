@@ -19,7 +19,7 @@ import { render } from '@testing-library/react';
 
 describe('Hr', () => {
   it('renders with the right styles', () => {
-    const { asFragment } = render(<Hr fields={[]} />);
+    const { asFragment } = render(<Hr />);
     expect(asFragment()).toMatchSnapshot();
   });
 });

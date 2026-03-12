@@ -3,7 +3,6 @@
 exports[`Hr > renders with the right styles 1`] = `
 <DocumentFragment>
   <hr
-    fields=""
     style="border: 0px transparent; border-top: 1px solid rgb(224, 224, 224); margin: 24px 0px;"
   />
 </DocumentFragment>
