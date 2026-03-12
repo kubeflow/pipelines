@@ -21,6 +21,11 @@ settings:
                 - .jsx
                 - .ts
                 - .tsx
+        typescript:
+            alwaysTryTypes: true
+            project:
+                - ./tsconfig.json
+                - ./server/tsconfig.json
 plugins:
     - '@typescript-eslint'
     - import
