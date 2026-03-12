@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -101,7 +100,7 @@ describe('PipelineDetailsV2', () => {
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
-    userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByText('Show Summary'));
   });
 
   it('shows selected version in summary card', async () => {
@@ -121,7 +120,7 @@ describe('PipelineDetailsV2', () => {
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
-    userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByText('Show Summary'));
     screen.getByText('test-pipeline-version-v2');
   });
 
@@ -143,11 +142,11 @@ describe('PipelineDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByText('Show Summary'));
     const selectedVersion = screen.getByText('test-pipeline-version-v2');
-    userEvent.click(selectedVersion); // Open dropdown list
+    await userEvent.click(selectedVersion); // Open dropdown list
     const anotherVersion = screen.getByText('new-test-pipeline-version-v2');
-    userEvent.click(anotherVersion); // Selected another version
+    await userEvent.click(anotherVersion); // Selected another version
     screen.getByText('new-test-pipeline-version-v2'); // Selected version change to another version
   });
 
@@ -169,11 +168,11 @@ describe('PipelineDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByText('Show Summary'));
     const selectedVersion = screen.getByText('test-pipeline-version-v2');
-    userEvent.click(selectedVersion); // Open dropdown list
+    await userEvent.click(selectedVersion); // Open dropdown list
     const v1Version = screen.getByText('test-pipeline-version-v1');
-    userEvent.click(v1Version); // Selected v1 version
+    await userEvent.click(v1Version); // Selected v1 version
     screen.getByText('test-pipeline-version-v1'); // Selected version change to v1 version
   });
 
@@ -231,7 +230,9 @@ describe('PipelineDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    userEvent.click(screen.getByText('preprocess'));
+    // Use fireEvent: user-event v14 creates events with non-configurable view, which breaks
+    // d3-drag (@xyflow/react) when event.view is null in jsdom.
+    fireEvent.click(screen.getByText('preprocess'));
     await screen.findByText('Input Artifacts');
     await screen.findByText('Input Parameters');
     await screen.findByText('Output Artifacts');

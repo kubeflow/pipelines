@@ -16,7 +16,6 @@
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { testBestPractices } from 'src/TestUtils';
 import { PipelineVersionCard } from './PipelineVersionCard';
@@ -84,9 +83,9 @@ describe('PipelineVersionCard', () => {
       ></PipelineVersionCard>,
     );
 
-    userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByText('Show Summary'));
     expect(screen.queryByText('Show Summary')).toBeNull();
-    userEvent.click(screen.getByText('Hide'));
+    await userEvent.click(screen.getByText('Hide'));
     screen.getByText('Show Summary');
   });
 
@@ -102,7 +101,7 @@ describe('PipelineVersionCard', () => {
       ></PipelineVersionCard>,
     );
 
-    userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByText('Show Summary'));
 
     screen.getByText('Pipeline ID');
     screen.getByText(TEST_PIPELINE_ID);
@@ -127,7 +126,7 @@ describe('PipelineVersionCard', () => {
       ></PipelineVersionCard>,
     );
 
-    userEvent.click(screen.getByText('Show Summary'));
+    await userEvent.click(screen.getByText('Show Summary'));
 
     fireEvent.mouseDown(getByRole('combobox'));
     await screen.findByRole('listbox');

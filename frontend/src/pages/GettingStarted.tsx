@@ -15,7 +15,6 @@
  */
 
 import Markdown from 'markdown-to-jsx';
-import * as React from 'react';
 import { classes, cssRaw } from 'typestyle';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { AutoLink } from 'src/atoms/ExternalLink';

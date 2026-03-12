@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=alpine
-FROM node:22.19 as build
+FROM node:22.19 AS build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}

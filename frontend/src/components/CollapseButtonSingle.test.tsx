@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import CollapseButtonSingle from './CollapseButtonSingle';
 

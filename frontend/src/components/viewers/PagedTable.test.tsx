@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import MinioArtifactPreview from './MinioArtifactPreview';
-import React from 'react';
 import TestUtils, { expectErrors } from '../TestUtils';
 import { act, render } from '@testing-library/react';
 import { Apis } from '../lib/Apis';

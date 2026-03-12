@@ -18,7 +18,6 @@
 import 'src/build/tailwind.output.css';
 import '@xyflow/react/dist/style.css';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
-import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter } from 'react-router-dom';
