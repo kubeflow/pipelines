@@ -387,7 +387,7 @@ const (
 
 func validatePageSize(pageSize int) (int, error) {
 	if pageSize < 0 {
-		return 0, util.NewInvalidInputError("The page size should be greater than 0. Got %q", pageSize)
+		return 0, util.NewInvalidInputError("The page size should be greater than 0. Got %d", pageSize)
 	}
 
 	if pageSize == 0 {

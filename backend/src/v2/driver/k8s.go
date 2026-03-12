@@ -837,9 +837,8 @@ func createPVC(
 	// Optional input: annotations
 	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
 	pvcAnnotations := make(map[string]string)
-	for key, val := range pvcAnnotationsInput.GetStructValue().AsMap() {
-		typedVal := val.(structpb.Value)
-		pvcAnnotations[key] = typedVal.GetStringValue()
+	for key, val := range pvcAnnotationsInput.GetStructValue().GetFields() {
+		pvcAnnotations[key] = val.GetStringValue()
 	}
 
 	// Optional input: volume_name
