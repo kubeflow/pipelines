@@ -20,8 +20,6 @@ import { vi } from 'vitest';
 import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
 import { ApiVisualizationType } from '../../apis/visualization';
-import renderer from 'react-test-renderer';
-import { Select } from '@mui/material';
 
 vi.mock('../Editor', () => ({
   default: ({ placeholder }: { placeholder?: string }) => (
@@ -292,10 +290,8 @@ describe('VisualizationCreator', () => {
       isBusy: true,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = renderer.create(<VisualizationCreator configs={[config]} />);
-    const select = tree.root.findByType(Select);
-    expect(select.props.disabled).toBe(true);
     render(<VisualizationCreator configs={[config]} />);
+    expect(screen.getByLabelText('Type')).toBeDisabled();
     expect(
       screen.getByPlaceholderText('File path or path pattern of data within GCS.'),
     ).toBeDisabled();

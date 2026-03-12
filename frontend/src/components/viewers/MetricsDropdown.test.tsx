@@ -15,7 +15,6 @@
  */
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors, testBestPractices } from 'src/TestUtils';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';

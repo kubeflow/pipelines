@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { MouseEvent as ReactMouseEvent, useCallback, useMemo } from 'react';
+import { MouseEvent as ReactMouseEvent, useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';

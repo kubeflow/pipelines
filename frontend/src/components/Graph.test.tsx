@@ -15,7 +15,6 @@
  */
 
 import * as dagre from 'dagre';
-import * as React from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import { vi } from 'vitest';
 import EnhancedGraph, { Graph } from './Graph';

@@ -18,6 +18,7 @@ swagger-codegen-cli.jar
 
 # misc
 .DS_Store
+.npmrc
 .env.local
 .env.development.local
 .env.test.local
@@ -29,6 +30,7 @@ yarn-error.log*
 
 # coverage reports
 coverage
+.coverage-baseline.json
 
 # vscode
 .vscode

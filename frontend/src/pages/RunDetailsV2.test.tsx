@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-import { act, queryByText, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import * as React from 'react';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
@@ -317,7 +316,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText('Run details');
       screen.getByText('Run ID');
@@ -341,7 +340,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText('test-run-id'); // 'Run ID'
       screen.getByText('test run'); // 'Workflow name'
@@ -373,7 +372,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // create time and duration are empty.
     });
@@ -399,12 +398,12 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
     });
 
-    it('shows run parameters', () => {
+    it('shows run parameters', async () => {
       render(
         <CommonTestWrapper>
           <RunDetailsV2
@@ -415,7 +414,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText('param1'); // 'Parameter name'
       screen.getByText('value1'); // 'Parameter value'
@@ -432,8 +431,8 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Pipeline Spec'));
-      screen.findByTestId('spec-ir');
+      await userEvent.click(screen.getByText('Pipeline Spec'));
+      await screen.findByTestId('spec-ir');
     });
 
     it('shows Execution Sidepanel', async () => {
@@ -457,12 +456,14 @@ describe('RunDetailsV2', () => {
       expect(screen.queryByText('Task Details')).toBeNull();
 
       // Select execution to open side panel.
-      userEvent.click(screen.getByText('preprocess'));
+      // Use fireEvent: user-event v14 creates events with non-configurable view, which breaks
+      // d3-drag (@xyflow/react) when event.view is null in jsdom.
+      fireEvent.click(screen.getByText('preprocess'));
       screen.getByText('Input/Output');
       screen.getByText('Task Details');
 
       // Close side panel.
-      userEvent.click(screen.getByLabelText('close'));
+      fireEvent.click(screen.getByLabelText('close'));
       expect(screen.queryByText('Input/Output')).toBeNull();
       expect(screen.queryByText('Task Details')).toBeNull();
     });
@@ -488,12 +489,14 @@ describe('RunDetailsV2', () => {
       expect(screen.queryByText('Visualization')).toBeNull();
 
       // Select artifact to open side panel.
-      userEvent.click(screen.getByText('model'));
+      // Use fireEvent: user-event v14 creates events with non-configurable view, which breaks
+      // d3-drag (@xyflow/react) when event.view is null in jsdom.
+      fireEvent.click(screen.getByText('model'));
       screen.getByText('Artifact Info');
       screen.getByText('Visualization');
 
       // Close side panel.
-      userEvent.click(screen.getByLabelText('close'));
+      fireEvent.click(screen.getByLabelText('close'));
       expect(screen.queryByText('Artifact Info')).toBeNull();
       expect(screen.queryByText('Visualization')).toBeNull();
     });

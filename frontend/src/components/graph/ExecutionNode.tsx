@@ -20,7 +20,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import StopCircle from 'src/icons/StopCircle';
 import { Execution } from 'src/third_party/mlmd';

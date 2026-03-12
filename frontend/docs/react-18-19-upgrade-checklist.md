@@ -172,6 +172,7 @@ Migrate remaining `act` imports from `react-dom/test-utils` to `@testing-library
 - `src/components/SideNav.test.tsx`
 
 Capture coverage baseline before and compare after -- coverage must not decrease.
+  - Scripts: `npm run coverage:baseline` (capture) and `npm run coverage:compare` (verify).
 
 **Acceptance Criteria**:
 - [ ] `npm run test:ci` passes with zero deprecation warnings

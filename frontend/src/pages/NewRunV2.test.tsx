@@ -18,7 +18,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
-import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {

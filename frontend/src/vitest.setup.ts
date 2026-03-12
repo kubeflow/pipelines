@@ -25,10 +25,18 @@ if (!globalThis.DOMMatrixReadOnly) {
 if (typeof window !== 'undefined') {
   const patchView = (event: MouseEvent) => {
     if (event.view === null) {
-      Object.defineProperty(event, 'view', {
-        get: () => window,
-        configurable: true,
-      });
+      try {
+        (event as { view?: Window }).view = window;
+      } catch {
+        try {
+          Object.defineProperty(event, 'view', {
+            get: () => window,
+            configurable: true,
+          });
+        } catch {
+          // user-event v14 may create events with non-configurable view
+        }
+      }
     }
   };
   for (const type of ['mousedown', 'mouseup'] as const) {

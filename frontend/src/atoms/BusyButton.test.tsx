@@ -14,34 +14,37 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import BusyButton from './BusyButton';
 import TestIcon from '@mui/icons-material/Help';
-import { create } from 'react-test-renderer';
+import { render } from '@testing-library/react';
 
 describe('BusyButton', () => {
   it('renders with just a title', () => {
-    const tree = create(<BusyButton title='test busy button' />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<BusyButton title='test busy button' />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders with a title and icon', () => {
-    const tree = create(<BusyButton title='test busy button' icon={TestIcon} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<BusyButton title='test busy button' icon={TestIcon} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders with a title and icon, and busy', () => {
-    const tree = create(<BusyButton title='test busy button' icon={TestIcon} busy={true} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(
+      <BusyButton title='test busy button' icon={TestIcon} busy={true} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders disabled', () => {
-    const tree = create(<BusyButton title='test busy button' icon={TestIcon} disabled={true} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(
+      <BusyButton title='test busy button' icon={TestIcon} disabled={true} />,
+    );
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders a primary outlined buton', () => {
-    const tree = create(<BusyButton title='test busy button' outlined={true} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<BusyButton title='test busy button' outlined={true} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 });

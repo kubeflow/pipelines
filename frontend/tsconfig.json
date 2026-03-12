@@ -19,7 +19,7 @@
     "allowJs": true,
     "resolveJsonModule": true,
     "downlevelIteration": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "moduleResolution": "node",
     "noImplicitReturns": true,
     "noImplicitThis": true,

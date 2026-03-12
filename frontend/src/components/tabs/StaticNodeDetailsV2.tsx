@@ -15,7 +15,6 @@
  */
 
 import { Button } from '@mui/material';
-import * as React from 'react';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { ParameterType } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 import { KeyValue } from 'src/lib/StaticGraphParser';

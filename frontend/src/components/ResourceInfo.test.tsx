@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { ResourceInfo, ResourceType } from './ResourceInfo';
 import { getByTestId, render, screen } from '@testing-library/react';
 import { Artifact, Value } from 'src/third_party/mlmd';
