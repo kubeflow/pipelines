@@ -75,7 +75,8 @@ export const queryKeys = {
   pipelineVersion: (pipelineId: string, pipelineVersionId: string) =>
     ['pipelineVersion', pipelineId, pipelineVersionId] as const,
 
-  pipelineVersions: (pipelineId: string) => ['pipeline_versions', pipelineId] as const,
+  pipelineVersions: (pipelineId: string | null | undefined) =>
+    ['pipeline_versions', pipelineId ?? ''] as const,
 
   // Includes both IDs for correct cache invalidation (version IDs may not be globally unique).
   v1PipelineVersionTemplate: (pipelineId: string, pipelineVersionId: string) =>
