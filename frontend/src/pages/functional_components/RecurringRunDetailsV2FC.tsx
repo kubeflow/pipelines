@@ -17,6 +17,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import { queryKeys } from 'src/hooks/queryKeys';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
@@ -51,7 +52,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     error: getRecurringRunError,
     refetch: refetchRecurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: ['recurringRun', recurringRunId],
+    queryKey: queryKeys.recurringRun(recurringRunId),
     queryFn: async () => {
       return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
@@ -63,7 +64,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
 
   const experimentId = recurringRun?.experiment_id!;
   const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>({
-    queryKey: ['experiment', experimentId],
+    queryKey: queryKeys.experiment(experimentId),
     queryFn: async () => {
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },

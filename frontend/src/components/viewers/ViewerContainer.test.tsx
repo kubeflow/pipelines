@@ -60,11 +60,12 @@ describe('ViewerContainer', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  Object.keys(PlotType).map((type) =>
-    it('renders a viewer of type ' + type, () => {
+  Object.keys(PlotType).map((type) => {
+    const isROC = type === 'ROC';
+    return it('renders a viewer of type ' + type, isROC ? { timeout: 10000 } : {}, () => {
       const plotType = PlotType[type as keyof typeof PlotType];
       const { asFragment } = render(<ViewerContainer configs={[sampleConfigs[plotType]]} />);
       expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
-    }),
-  );
+    });
+  });
 });

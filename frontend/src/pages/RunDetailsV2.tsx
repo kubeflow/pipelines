@@ -16,6 +16,7 @@ import * as React from 'react';
 import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
@@ -97,7 +98,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Retrieves MLMD states from the MLMD store.
   const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
-    queryKey: ['mlmd_package', { id: runId }],
+    queryKey: queryKeys.mlmdPackage(runId),
     queryFn: async () => {
       const context = await getKfpV2RunContext(runId);
       const executions = await getExecutionsFromContext(context);
@@ -155,7 +156,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
   const { data: experiment } = useQuery<V2beta1Experiment, Error>({
-    queryKey: ['RunDetailsV2_experiment', { runId: runId, experimentId: experimentId }],
+    queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
     queryFn: () => getExperiment(experimentId),
   });
   const namespace = experiment?.namespace;

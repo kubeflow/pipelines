@@ -17,6 +17,7 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import BusyButton from 'src/atoms/BusyButton';
@@ -58,8 +59,14 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
 
   const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>({
-    queryKey: ['pipeline_versions', pipelineId],
-    queryFn: () => getLatestVersion(pipelineId!),
+    queryKey: queryKeys.pipelineVersions(pipelineId),
+    queryFn: () => {
+      if (!pipelineId) {
+        // This branch should not be hit because the query is disabled when there is no pipelineId.
+        return Promise.reject(new Error('Pipeline ID is not available'));
+      }
+      return getLatestVersion(pipelineId);
+    },
     enabled: !!pipelineId,
   });
 
