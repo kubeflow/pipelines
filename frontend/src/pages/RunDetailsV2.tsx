@@ -324,15 +324,44 @@ function updateToolBarActions(
   updateToolbar({ actions });
 }
 
+function getActualStartTime(run?: V2beta1Run): Date | undefined {
+  if (run?.state_history) {
+    for (let i = run.state_history.length - 1; i >= 0; i--) {
+      const entry = run.state_history[i];
+      if (entry.state === V2beta1RuntimeState.RUNNING && entry.update_time !== undefined) {
+        return entry.update_time;
+      }
+    }
+  }
+  return run?.scheduled_at;
+}
+
 function getDetailsFields(run?: V2beta1Run): Array<KeyValue<string>> {
-  return [
+  const actualStart = getActualStartTime(run);
+  const scheduledAt = run?.scheduled_at;
+  const startDiffers =
+    actualStart && scheduledAt && actualStart.getTime() !== scheduledAt.getTime();
+
+  const fields: Array<KeyValue<string>> = [
     ['Run ID', run?.run_id || '-'],
     ['Workflow name', run?.display_name || '-'],
     ['Status', run?.state ? statusProtoMap.get(run?.state) : '-'],
     ['Description', run?.description || ''],
     ['Created at', run?.created_at ? formatDateString(run.created_at) : '-'],
-    ['Started at', formatDateString(run?.scheduled_at)],
+    ['Started at', formatDateString(actualStart)],
     ['Finished at', hasFinishedV2(run?.state) ? formatDateString(run?.finished_at) : '-'],
     ['Duration', hasFinishedV2(run?.state) ? getRunDurationV2(run) : '-'],
   ];
+
+  if (startDiffers) {
+    const startedAtIndex = fields.findIndex((field) => field[0] === 'Started at');
+    const scheduledAtField: KeyValue<string> = ['Scheduled at', formatDateString(scheduledAt)];
+    if (startedAtIndex >= 0) {
+      fields.splice(startedAtIndex, 0, scheduledAtField);
+    } else {
+      fields.push(scheduledAtField);
+    }
+  }
+
+  return fields;
 }
