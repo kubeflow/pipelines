@@ -13,8 +13,7 @@
 // limitations under the License.
 import path from 'path';
 import { fileURLToPath } from 'url';
-import express from 'express';
-import { Application, static as StaticHandler } from 'express';
+import express, { Application, static as StaticHandler } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
