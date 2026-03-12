@@ -974,7 +974,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newExecSpec = newCreatedWorkflow
 	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
-	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: model.LargeText(newExecSpec.ToStringForStore()), State: model.RuntimeState(condition).ToV2()}})
+	run.Conditions = condition
+	run.FinishedAtInSec = 0
+	run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+	run.State = model.RuntimeState(condition).ToV2()
+	err = r.runStore.UpdateRun(run)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
