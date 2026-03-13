@@ -131,22 +131,57 @@ class TestGetUri(unittest.TestCase):
 
 class TestConvertLocalPathToRemotePath(parameterized.TestCase):
 
-    @parameterized.parameters([{
-        'local_path': local_path,
-        'expected': expected
-    } for local_path, expected in [
-        ('/gcs/foo/bar', 'gs://foo/bar'),
-        ('/minio/foo/bar', 'minio://foo/bar'),
-        ('/s3/foo/bar', 's3://foo/bar'),
-        ('/oci/quay.io_org_repo:latest/models',
-         'oci://quay.io/org/repo:latest'),
-        ('/oci/quay.io_org_repo:latest', 'oci://quay.io/org/repo:latest'),
-        ('/tmp/kfp_outputs', '/tmp/kfp_outputs'),
-        ('/some/random/path', '/some/random/path'),
-    ]])
+    @parameterized.parameters([
+        {
+            'local_path': local_path,
+            'expected': expected
+        } for local_path, expected in [
+            ('/gcs/foo/bar', 'gs://foo/bar'),
+            ('/minio/foo/bar', 'minio://foo/bar'),
+            ('/s3/foo/bar', 's3://foo/bar'),
+            ('/oci/quay.io_org_repo:latest/models',
+             'oci://quay.io/org/repo:latest'),
+            ('/oci/quay.io_org_repo:latest', 'oci://quay.io/org/repo:latest'),
+            # Test coverage for HuggingFace URI scheme
+            ('/huggingface/gpt2', 'huggingface://gpt2'),
+            ('/huggingface/meta-llama/Llama-2-7b',
+             'huggingface://meta-llama/Llama-2-7b'),
+            ('/huggingface/microsoft/DialoGPT-medium/v1',
+             'huggingface://microsoft/DialoGPT-medium/v1'),
+            ('/tmp/kfp_outputs', '/tmp/kfp_outputs'),
+            ('/some/random/path', '/some/random/path'),
+        ]
+    ])
     def test_gcs(self, local_path, expected):
         actual = artifact_types.convert_local_path_to_remote_path(local_path)
         self.assertEqual(actual, expected)
+
+
+class TestArtifactGetPath(unittest.TestCase):
+
+    def test_huggingface_uri_to_local_path(self):
+        """Test coverage for HuggingFace URI scheme in _get_path method
+        (addressing Copilot suggestion)"""
+        # Test basic repo
+        artifact = dsl.Artifact()
+        artifact.uri = 'huggingface://gpt2'
+        expected_path = '/huggingface/gpt2'
+        self.assertEqual(artifact._get_path(), expected_path)
+
+        # Test repo with organization
+        artifact.uri = 'huggingface://meta-llama/Llama-2-7b'
+        expected_path = '/huggingface/meta-llama/Llama-2-7b'
+        self.assertEqual(artifact._get_path(), expected_path)
+
+        # Test repo with version
+        artifact.uri = 'huggingface://meta-llama/Llama-2-7b/v1'
+        expected_path = '/huggingface/meta-llama/Llama-2-7b/v1'
+        self.assertEqual(artifact._get_path(), expected_path)
+
+        # Test with query parameters (should be ignored in path generation)
+        artifact.uri = 'huggingface://microsoft/DialoGPT-medium?repo_type=model'
+        expected_path = '/huggingface/microsoft/DialoGPT-medium'
+        self.assertEqual(artifact._get_path(), expected_path)
 
 
 if __name__ == '__main__':
