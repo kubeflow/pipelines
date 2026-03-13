@@ -16,6 +16,7 @@ package end2end
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -246,6 +247,32 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 			})
 		}
+	})
+
+	Context("GPU component test >", Label("gpu"), func() {
+		var pipelineDir = "valid"
+		var pipelineFile = "pipeline_with_string_machine_fields_pipeline_input.yaml"
+
+		It("Upload pipeline with GPU accelerator, run and verify success", func() {
+			acceleratorType := os.Getenv("KFP_E2E_GPU_ACCELERATOR_TYPE")
+			if acceleratorType == "" {
+				acceleratorType = "nvidia.com/gpu"
+			}
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			logger.Log("Uploading GPU pipeline file %s (accelerator_type=%s)", pipelineFile, acceleratorType)
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+			pipelineRuntimeInputs := map[string]interface{}{
+				"accelerator_type":  acceleratorType,
+				"accelerator_limit": "1",
+			}
+			createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+			logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
+			compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
+			e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
+		})
 	})
 })
 
