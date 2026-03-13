@@ -29,6 +29,23 @@ jobs:
       with:
         node-version-file: frontend/.nvmrc
 
+    - name: Check for lockfile drift
+      if: github.event_name == 'pull_request'
+      run: |
+        git fetch origin ${{ github.base_ref }} --depth=1
+        pkg_changed=false
+        lock_changed=false
+        if ! git diff --quiet origin/${{ github.base_ref }} -- frontend/package.json; then
+          pkg_changed=true
+        fi
+        if ! git diff --quiet origin/${{ github.base_ref }} -- frontend/package-lock.json; then
+          lock_changed=true
+        fi
+        if [ "$lock_changed" = true ] && [ "$pkg_changed" = false ]; then
+          echo "::error::frontend/package-lock.json has drifted from ${{ github.base_ref }} without a corresponding change to package.json. This can cause silent Prettier/tooling version mismatches. Please rebase onto ${{ github.base_ref }} and run 'npm ci' to sync your lockfile."
+          exit 1
+        fi
+
     - name: Clean npm cache
       run: npm cache clean --force
 
