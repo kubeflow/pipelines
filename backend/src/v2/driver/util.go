@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/placeholder"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -37,10 +38,6 @@ type ifPresentCondition struct {
 // inputPipelineChannelPattern define a regex pattern to match the content within single quotes
 // example input channel looks like "{{$.inputs.parameters['pipelinechannel--val']}}"
 const inputPipelineChannelPattern = `\$.inputs.parameters\['(.+?)'\]`
-
-// fullInputParameterRe matches the complete {{$.inputs.parameters['name']}} placeholder
-// including the surrounding braces, for template substitution in container arguments.
-var fullInputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}}`)
 
 func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
@@ -116,80 +113,6 @@ func getItems(value *structpb.Value) (items []*structpb.Value, err error) {
 	}
 }
 
-// pbValueToString converts a structpb.Value to its string representation.
-// This handles all parameter types including STRING, NUMBER_INTEGER, NUMBER_DOUBLE, and BOOLEAN,
-// unlike GetStringValue() which returns an empty string for non-string types.
-// LIST and STRUCT values are serialized as JSON for parity with the launcher's
-// placeholder substitution behavior.
-func pbValueToString(v *structpb.Value) string {
-	switch v.GetKind().(type) {
-	case *structpb.Value_StringValue:
-		return v.GetStringValue()
-	case *structpb.Value_NumberValue:
-		n := v.GetNumberValue()
-		if n == float64(int64(n)) {
-			return fmt.Sprintf("%d", int64(n))
-		}
-		return fmt.Sprintf("%g", n)
-	case *structpb.Value_BoolValue:
-		if v.GetBoolValue() {
-			return "true"
-		}
-		return "false"
-	case *structpb.Value_NullValue:
-		return ""
-	default:
-		// LIST and STRUCT: marshal to JSON so the format matches the launcher path.
-		b, err := json.Marshal(v.AsInterface())
-		if err != nil {
-			return fmt.Sprintf("%v", v.AsInterface())
-		}
-		return string(b)
-	}
-}
-
-// resolveSinglePlaceholder resolves a single matched {{$.inputs.parameters['name']}}
-// placeholder to its string value from executorInput. Returns an error if the parameter
-// is not found.
-func resolveSinglePlaceholder(match string, executorInput *pipelinespec.ExecutorInput) (string, error) {
-	submatch := fullInputParameterRe.FindStringSubmatch(match)
-	if len(submatch) < 2 {
-		return "", fmt.Errorf("failed to extract parameter name from: %s", match)
-	}
-	paramName := submatch[1]
-	val, ok := executorInput.GetInputs().GetParameterValues()[paramName]
-	if !ok {
-		return "", fmt.Errorf("parameter %q not found in executor input", paramName)
-	}
-	return pbValueToString(val), nil
-}
-
-// resolveInputParameterPlaceholders performs template substitution on a string,
-// replacing all {{$.inputs.parameters['name']}} occurrences with their resolved values
-// from the executor input. This correctly handles both standalone placeholders and
-// placeholders embedded in larger strings (e.g., "prefix-{{$.inputs.parameters['x']}}").
-func resolveInputParameterPlaceholders(arg string, executorInput *pipelinespec.ExecutorInput) (string, error) {
-	if !fullInputParameterRe.MatchString(arg) {
-		return arg, nil
-	}
-	var resolveErr error
-	result := fullInputParameterRe.ReplaceAllStringFunc(arg, func(match string) string {
-		if resolveErr != nil {
-			return match
-		}
-		resolved, err := resolveSinglePlaceholder(match, executorInput)
-		if err != nil {
-			resolveErr = err
-			return match
-		}
-		return resolved
-	})
-	if resolveErr != nil {
-		return "", resolveErr
-	}
-	return result, nil
-}
-
 func isConditionClause(arg string) bool {
 	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
 }
@@ -220,10 +143,11 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 		return []string{}, nil
 	}
 
+	parameterValues := executorInput.GetInputs().GetParameterValues()
 	var resolved []string
 	switch v := values.(type) {
 	case string:
-		resolvedArg, err := resolveInputParameterPlaceholders(v, executorInput)
+		resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(v, parameterValues)
 		if err != nil {
 			return nil, err
 		}
@@ -234,7 +158,7 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 			if !ok {
 				return nil, fmt.Errorf("non-string item in IfPresent Then/Else array: %T", item)
 			}
-			resolvedArg, err := resolveInputParameterPlaceholders(str, executorInput)
+			resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(str, parameterValues)
 			if err != nil {
 				return nil, err
 			}
@@ -247,6 +171,7 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 }
 
 func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	parameterValues := executorInput.GetInputs().GetParameterValues()
 	var resolvedArgs []string
 	for _, arg := range args {
 		// Skip args containing output placeholders - these need to be resolved by Argo at runtime
@@ -263,7 +188,7 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 			}
 			resolvedArgs = append(resolvedArgs, resolved...)
 		} else {
-			resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
+			resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(arg, parameterValues)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
 			}
