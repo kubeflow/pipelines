@@ -73,8 +73,8 @@ const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((pr
   React.useImperativeHandle(ref, () => ({ open }), [open]);
 
   return (
-    <div {...getRootProps()} id={id} style={style} data-testid={dataTestId} aria-label={ariaLabel}>
-      <input {...getInputProps()} {...inputProps} />
+    <div {...getRootProps({ id, style, 'data-testid': dataTestId })}>
+      <input aria-label={ariaLabel} {...getInputProps(inputProps)} />
       {children}
     </div>
   );
