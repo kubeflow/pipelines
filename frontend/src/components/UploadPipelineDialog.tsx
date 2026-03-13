@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
-import Dropzone from 'react-dropzone';
+import DropzoneArea, { DropzoneAreaHandle } from '../atoms/DropzoneArea';
 import Input from '../atoms/Input';
 import { TextFieldProps } from '@mui/material/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
@@ -88,7 +88,7 @@ class UploadPipelineDialog extends React.Component<
   UploadPipelineDialogState
 > {
   static contextType = BuildInfoContext;
-  private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
+  private _dropzoneRef = React.createRef<DropzoneAreaHandle>();
 
   constructor(props: any) {
     super(props);
@@ -150,11 +150,10 @@ class UploadPipelineDialog extends React.Component<
 
           {importMethod === ImportMethod.LOCAL && (
             <React.Fragment>
-              <Dropzone
+              <DropzoneArea
                 id='dropZone'
                 data-testid='upload-pipeline-dropzone'
                 aria-label='Pipeline package drop zone'
-                disableClick={true}
                 onDrop={this._onDrop.bind(this)}
                 onDragEnter={this._onDropzoneDragEnter.bind(this)}
                 onDragLeave={this._onDropzoneDragLeave.bind(this)}
@@ -187,7 +186,7 @@ class UploadPipelineDialog extends React.Component<
                     readOnly: true,
                   }}
                 />
-              </Dropzone>
+              </DropzoneArea>
             </React.Fragment>
           )}
 
@@ -253,6 +252,10 @@ class UploadPipelineDialog extends React.Component<
   }
 
   private _onDrop(files: File[]): void {
+    if (!files.length) {
+      this.setState({ dropzoneActive: false });
+      return;
+    }
     this.setState({
       dropzoneActive: false,
       file: files[0],

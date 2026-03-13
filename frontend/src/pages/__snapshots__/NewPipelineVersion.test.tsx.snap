@@ -269,11 +269,17 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
           </span>
         </label>
         <div
-          aria-disabled="true"
-          class=""
           id="dropZone"
+          role="presentation"
           style="position: relative;"
         >
+          <input
+            accept="application/yaml,.yaml,.yml,application/zip,.zip,application/gzip,.tar.gz"
+            multiple=""
+            style="border: 0px; clip: rect(0px, 0px, 0px, 0px); clip-path: inset(50%); height: 1px; margin: 0px -1px -1px 0px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;"
+            tabindex="-1"
+            type="file"
+          />
           <div
             class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
             data-testid="uploadFileInput"
@@ -335,15 +341,6 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
               </fieldset>
             </div>
           </div>
-          <input
-            accept=".yaml,.yml,.zip,.tar.gz"
-            autocomplete="off"
-            disabled=""
-            multiple=""
-            style="position: absolute; top: 0px; right: 0px; bottom: 0px; left: 0px; opacity: 0.00001; pointer-events: none;"
-            tabindex="-1"
-            type="file"
-          />
         </div>
       </div>
       <div

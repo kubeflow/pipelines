@@ -16,7 +16,7 @@
 
 import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
-import Dropzone from 'react-dropzone';
+import DropzoneArea, { DropzoneAreaHandle } from 'src/atoms/DropzoneArea';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
 import { classes, stylesheet } from 'typestyle';
 import BusyButton from 'src/atoms/BusyButton';
@@ -116,7 +116,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props)
 };
 
 export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelineVersionState> {
-  private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
+  private _dropzoneRef = React.createRef<DropzoneAreaHandle>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineVersionDisplayNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
@@ -399,16 +399,19 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
             />
-            <Dropzone
+            <DropzoneArea
               id='dropZone'
-              disableClick={true}
               onDrop={this._onDrop.bind(this)}
               onDragEnter={this._onDropzoneDragEnter.bind(this)}
               onDragLeave={this._onDropzoneDragLeave.bind(this)}
               style={{ position: 'relative' }}
               ref={this._dropzoneRef}
               inputProps={{ tabIndex: -1 }}
-              accept='.yaml,.yml,.zip,.tar.gz'
+              accept={{
+                'application/yaml': ['.yaml', '.yml'],
+                'application/zip': ['.zip'],
+                'application/gzip': ['.tar.gz'],
+              }}
               disabled={importMethod === ImportMethod.URL}
             >
               {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
@@ -441,7 +444,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   },
                 }}
               />
-            </Dropzone>
+            </DropzoneArea>
           </div>
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
@@ -736,6 +739,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   }
 
   private _onDrop(files: File[]): void {
+    if (!files.length) {
+      this.setStateSafe({ dropzoneActive: false });
+      return;
+    }
     this.setStateSafe(
       {
         dropzoneActive: false,
