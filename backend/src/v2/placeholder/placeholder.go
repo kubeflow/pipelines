@@ -36,7 +36,7 @@ var InputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}
 // representation.  It handles STRING, NUMBER (integer and double), BOOLEAN,
 // NULL, LIST, and STRUCT values.  The number formatting uses
 // strconv.FormatFloat with 'f' format to match the launcher's established
-// production behaviour.
+// production behavior.
 func PbValueToString(v *structpb.Value) (string, error) {
 	if v == nil {
 		return "", nil
