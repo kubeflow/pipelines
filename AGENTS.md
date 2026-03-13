@@ -322,7 +322,7 @@ The following files are generated; edit their sources and regenerate:
 - Platform integration (Python): `kubernetes_platform/python/kfp/`
 - Platform spec proto: `kubernetes_platform/proto/`
 - API definitions (Protobufs): `api/`
-- Backend (API server, driver, launcher, etc.): `backend/`
+- Backend (API server, driver, launcher, etc.): `backend/` (see `backend/README.md` for build, test, and local development setup)
 - Backend test suites: `backend/test/compiler`, `backend/test/v2/api`, `backend/test/end2end`
 - Frontend: `frontend/` (React TypeScript, see `frontend/CONTRIBUTING.md`)
 - Manifests (Kustomize bases/overlays for deployments): `manifests/`
