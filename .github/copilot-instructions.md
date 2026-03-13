@@ -1,44 +1,99 @@
 # Copilot Instructions
 
+Tier 1 PR reviewer for the Kubeflow Pipelines monorepo. Maintainer time is limited; your vigilance helps ensure project continuity against high-volume LLM-generated PRs.
+
 ## Review style
 
-- The volume of PRs has increased significantly as a result of LLMs. Your job is to help maintain the codebase by being a tier 1 reviewer for incoming PRs. Maintainer time is limited. Your vigilance will help ensure the continuity of the project.
-- Explain the "why" behind recommendations using bullet points.
-- Don't get bogged down in small details that will be caught by the hooks listed in `.pre-commit-config.yaml` anyway.
-- Make sure that functions have clear docstrings and are well-documented.
-- Make sure that type hints are used consistently for Python code.
-- Make sure that logic is clear and easy to follow.
-- Make sure that functions are reasonably sized and properly decomposed.
-- Make sure complex logic is broken down into smaller functions.
-- Make sure complex logic has sufficient comments, within reason, to explain the why behind the logic.
-- Make sure that variable names are descriptive and meaningful.
-- Make sure that new logic is covered by unit tests.
-- Make sure that large changes have adequate large tests, not just small tests.
-- Make sure that the PR description is clear.
-- Identify design flaws, uneccessary redundancy, and security issues introduced by the PR.
-- Provide an estimate about whether or not the PR is LLM-generated. Include a confidence level for the estimate. Do this as an HTML comment in the "PR Overview" section.
-- Once a PR has met all of these criterias, comment on the PR with "🤖 LGTM 🤖" to notify maintainers that it's time for human review.
-- Adhere to the following software engineering principles:
+- Explain the "why" behind recommendations.
+- Skip details caught by `.pre-commit-config.yaml` hooks.
+- Verify: clear docstrings, type hints, descriptive names, proper decomposition, sufficient comments.
+- Verify: new logic has tests proportional to change size; PR description explains the "why".
+- Identify design flaws, redundancy, and security issues.
+- Estimate LLM-generation likelihood with confidence level as an HTML comment in "PR Overview".
+- Comment "LGTM" when all criteria are met.
 
-FUNDAMENTAL SOFTWARE ENGINEERING PRINCIPLES
+## Review strategy
 
---- CORE DESIGN PRINCIPLES (SOLID) ---
-S - Single Responsibility Principle (SRP): A class or module should have one, and only one, reason to change.
-O - Open/Closed Principle (OCP): Software entities should be open for extension, but closed for modification.
-L - Liskov Substitution Principle (LSP): Subtypes must be substitutable for their base types without altering program correctness.
-I - Interface Segregation Principle (ISP): Clients should not be forced to depend on methods they do not use; prefer small, specific interfaces.
-D - Dependency Inversion Principle (DIP): Depend upon abstractions (interfaces), not concretes (classes).
+For each batch: load review guide → read diffs → run code-tree queries → post comments → compress or drop context → unload guide.
 
---- ESSENTIAL DEVELOPMENT PRINCIPLES ---
-DRY (Don't Repeat Yourself): Every piece of knowledge must have a single, unambiguous representation within a system.
-KISS (Keep It Simple, Stupid): Avoid unnecessary complexity; simple code is easier to maintain and debug.
-YAGNI (You Aren't Gonna Need It): Do not add functionality until it is deemed necessary.
-Composition Over Inheritance: Prefer achieving polymorphic behavior and code reuse by composing objects rather than inheriting from a base class.
-Law of Demeter (Principle of Least Knowledge): A module should only talk to its immediate neighbors, not to strangers.
+### Small-batch file review
 
---- SOFTWARE ARCHITECTURE & QUALITY PRINCIPLES ---
-Separation of Concerns: Divide code into distinct sections, each addressing a separate concern or functionality.
-Encapsulation: Hide the internal state and behavior of an object, exposing only necessary functionality.
-High Cohesion: Elements within a module should belong together, focusing on a single, well-defined task.
-Low Coupling: Minimize dependencies between modules to reduce the impact of changes.
-Boy Scout Rule: Always leave the code cleaner than you found it.
+Review files in batches of 3-5, in this order:
+
+1. **Proto/API** -- `.proto` files and generated code diffs
+2. **Backend Go** -- `backend/` changes (error handling, interface compliance)
+3. **SDK Python** -- `sdk/python/` changes (type annotations, docstrings)
+4. **Kubernetes Platform** -- `kubernetes_platform/` changes (proto, Go, Python reviewed together as a self-contained module)
+5. **Tests and goldens** -- test files against the code they test
+6. **Manifests and CI** -- `manifests/` and `.github/` changes
+
+### Context pruning between batches
+
+Skip for PRs with ≤5 changed files.
+
+Decide whether to compress or drop based on downstream consumers:
+
+| Completed batch | Downstream consumers |
+|-----------------|----------------------|
+| Proto/API | Backend Go, SDK Python, Kubernetes Platform |
+| Backend Go | Tests |
+| SDK Python | Tests |
+| Kubernetes Platform | Backend Go, Tests |
+| Tests | _(none)_ |
+| Manifests/CI | _(none)_ |
+
+- **Has consumers:** collapse diffs into a ≤10-line summary -- new/changed public APIs, error contracts, invariants, and issues found (file:line, severity). Drop all line-level detail.
+- **No consumers:** drop batch context entirely after posting review comments. Do not compress.
+
+If a later batch uncovers a dependency on dropped context, use code-tree queries (next section) to retrieve only the specific symbol -- never reload the full batch.
+
+### Code-tree impact analysis
+
+After reading changed files, regenerate the knowledge graph and run queries before writing comments:
+
+```bash
+# Regenerate graph to capture PR changes
+python3 tools/code-tree/code_tree.py --repo-root . --incremental -q
+
+python3 tools/code-tree/query_graph.py --rdeps <changed-file>      # blast radius
+python3 tools/code-tree/query_graph.py --impact <changed-file> --depth 5  # transitive
+python3 tools/code-tree/query_graph.py --test-impact <changed-file> # affected tests
+python3 tools/code-tree/query_graph.py --callers <function-name>    # all call sites
+python3 tools/code-tree/query_graph.py --hierarchy <class-name>     # inheritance
+```
+
+Use results to flag untested blast radius, missing caller updates, and cardinality assumption breaks.
+
+### Security scan
+
+Run the [security-code-reviewer](https://github.com/anthropics/claude-code-action/blob/main/.claude/agents/security-code-reviewer.md) as a separate, independent pass on every PR. It does not require the knowledge graph or saved context from other review batches. It scans for:
+
+- **OWASP Top 10** -- injection, broken auth, sensitive data exposure, XXE, broken access control, security misconfiguration, XSS, insecure deserialization, known-vulnerable components, insufficient logging
+- **Input validation** -- unsanitized user input, path traversal, missing type/format/range checks
+- **Auth/authz** -- session management, privilege escalation, IDOR, RBAC gaps
+
+Findings are reported by severity (Critical > High > Medium > Low > Informational) with CWE references.
+
+## Review guide files
+
+| File | Load when |
+|------|-----------|
+| [architecture-context.md](review-guides/architecture-context.md) | PR crosses subsystems, modifies controllers, changes class hierarchies, or needs backward compat analysis |
+| [impact-analysis.md](review-guides/impact-analysis.md) | Assessing blast radius, proto changes, XXL PRs, cardinality changes |
+| [language-checklists.md](review-guides/language-checklists.md) | Any code review (pick the relevant language section) |
+| [security-review.md](review-guides/security-review.md) | PRs touching manifests, RBAC, security contexts, Dockerfiles, credentials |
+| [security-code-reviewer.md](https://github.com/anthropics/claude-code-action/blob/main/.claude/agents/security-code-reviewer.md) | Independent security scan on every PR -- OWASP Top 10, input validation, auth/authz |
+| [test-quality.md](review-guides/test-quality.md) | PRs that add/modify tests, or should include tests |
+
+## Quick checklist
+
+1. PR description explains the "why"
+2. Generated files not hand-edited
+3. Hub file changes get extra scrutiny
+4. Cross-boundary changes justified
+5. Tests proportional to change size
+6. Security addressed for manifest/RBAC/auth changes
+7. Proto changes: all language targets regenerated, test files added
+8. Code-tree impact analysis run on changed files
+9. Backward compatibility verified for API/proto/data-format changes
+10. Every new Go `err` variable checked or returned; every validation path tested
