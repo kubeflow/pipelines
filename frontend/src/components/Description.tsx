@@ -36,8 +36,8 @@ const optionsForceInline = {
   forceInline: true,
   overrides: {
     ...options.overrides,
-    // markdown-to-jsx v7 parses `*...*` as <em> even in forceInline mode.
-    // Strip the tags so list-marker asterisks render as plain text, matching v6 behavior.
+    // markdown-to-jsx v7 parses `*...*` / `**...**` as <em>/<strong> even in forceInline mode.
+    // Strip those tags so inline emphasis renders as plain text (no italic/bold) in this mode.
     em: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     strong: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   },
