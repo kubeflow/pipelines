@@ -24,6 +24,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/google/uuid"
@@ -154,7 +155,7 @@ func drive(args api.DriverPluginArgs) (execution *driver.Execution, err error) {
 		outputPathPrefix string
 	)
 	var pipeline *metadata.Pipeline
-	logID := fmt.Sprintf("%v-%v-%v", args.IterationIndex, args.Type, args.TaskName)
+	logID := fmt.Sprintf("%d-%v-%v-%v", time.Now().UnixMilli(), args.IterationIndex, args.Type, args.TaskName)
 	logDir := "/kfp/log"
 	logFile := fmt.Sprintf("%s/%s.log", logDir, logID)
 	ctx, f, err := util.WithLogger(context.Background(), logFile)
