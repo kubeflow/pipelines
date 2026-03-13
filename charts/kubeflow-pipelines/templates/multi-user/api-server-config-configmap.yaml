@@ -1,0 +1,13 @@
+{{- if .Values.multiUser.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-api-server-config
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+data:
+  MULTIUSER: "true"
+  DEFAULTPIPELINERUNNERSERVICEACCOUNT: default-editor
+  VISUALIZATIONSERVICE_NAME: ml-pipeline-visualizationserver
+  VISUALIZATIONSERVICE_PORT: "8888"
+{{- end }}

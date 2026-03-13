@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubeflow-pipelines-public
+  labels:
+    {{- include "kubeflow-pipelines.labels" . | nindent 4 }}
+data:
+  kubeflow_pipelines_version: {{ .Values.publicConfig.kubeflowPipelinesVersion | default .Chart.AppVersion | quote }}
