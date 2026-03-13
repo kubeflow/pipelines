@@ -78,8 +78,3 @@ rules:
     react/react-in-jsx-scope: off
     react/prop-types: off
     react/jsx-no-target-blank: ['error', { "allowReferrer": true }]
-overrides:
-    # Server uses .js extension in imports (TS compiles to ESM); node resolver can't resolve these.
-    - files: ['server/**/*.ts']
-      rules:
-          import/no-unresolved: off
