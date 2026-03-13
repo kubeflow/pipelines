@@ -46,15 +46,21 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
           >
             Data passing in Python components
           </a>
-           - Shows how to pass data between Python components. 
-          <a
-            class="link_f1fk43bf"
-            href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
-            rel="noopener"
-            target="_blank"
-          >
-            source code
-          </a>
+          
+
+          <ul>
+            <li>
+              Shows how to pass data between Python components. 
+              <a
+                class="link_f1fk43bf"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
         </li>
         <li>
           <a
@@ -63,15 +69,21 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
           >
             DSL - Control structures
           </a>
-           - Shows how to use conditional execution and exit handlers. 
-          <a
-            class="link_f1fk43bf"
-            href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
-            rel="noopener"
-            target="_blank"
-          >
-            source code
-          </a>
+          
+
+          <ul>
+            <li>
+              Shows how to use conditional execution and exit handlers. 
+              <a
+                class="link_f1fk43bf"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
         </li>
       </ul>
       <p>
