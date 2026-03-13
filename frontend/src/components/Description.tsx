@@ -34,6 +34,13 @@ const options = {
 const optionsForceInline = {
   ...options,
   forceInline: true,
+  overrides: {
+    ...options.overrides,
+    // markdown-to-jsx v7 parses `*...*` as <em> even in forceInline mode.
+    // Strip the tags so list-marker asterisks render as plain text, matching v6 behavior.
+    em: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    strong: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  },
 };
 
 export const Description: React.FC<{ description: string; forceInline?: boolean }> = ({
