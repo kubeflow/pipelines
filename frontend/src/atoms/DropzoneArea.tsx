@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { useDropzone } from 'react-dropzone';
+import { FileRejection, useDropzone } from 'react-dropzone';
 
 /**
  * The imperative handle exposed via ref. Class components that cannot use hooks
@@ -27,6 +27,7 @@ export interface DropzoneAreaHandle {
 
 interface DropzoneAreaProps {
   onDrop: (files: File[]) => void;
+  onDropRejected?: (rejections: FileRejection[]) => void;
   onDragEnter?: () => void;
   onDragLeave?: () => void;
   /** v14 accept format: MIME type → array of extensions, e.g. { 'application/yaml': ['.yaml'] } */
@@ -45,10 +46,14 @@ interface DropzoneAreaProps {
  * A thin functional wrapper around react-dropzone v14's useDropzone hook.
  * Exposes an imperative `open()` handle via forwardRef so class components can
  * programmatically open the file picker without needing to call the hook directly.
+ *
+ * Uses onDropAccepted so the onDrop prop is only called with non-empty accepted
+ * files, eliminating the need for empty-array guards in consumers.
  */
 const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((props, ref) => {
   const {
     onDrop,
+    onDropRejected,
     onDragEnter,
     onDragLeave,
     accept,
@@ -62,7 +67,8 @@ const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((pr
   } = props;
 
   const { getRootProps, getInputProps, open } = useDropzone({
-    onDrop,
+    onDropAccepted: onDrop,
+    onDropRejected,
     noClick: true,
     accept,
     disabled,
@@ -74,7 +80,7 @@ const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((pr
 
   return (
     <div {...getRootProps({ id, style, 'data-testid': dataTestId })}>
-      <input aria-label={ariaLabel} {...getInputProps(inputProps)} />
+      <input {...getInputProps({ ...inputProps, 'aria-label': ariaLabel })} />
       {children}
     </div>
   );

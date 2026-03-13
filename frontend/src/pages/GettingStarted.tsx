@@ -44,8 +44,10 @@ This section contains demo and tutorial pipelines.
 
 **Tutorials** - Learn pipeline concepts by following a tutorial.
 
-* [Data passing in Python components](${data}) - Shows how to pass data between Python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
-* [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
+* [Data passing in Python components](${data})
+  - Shows how to pass data between Python components. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components)
+* [DSL - Control structures](${control})
+  - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
 `;
