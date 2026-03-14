@@ -18,7 +18,7 @@ swagger-codegen-cli.jar
 
 # misc
 .DS_Store
-.npmrc
+# .npmrc is tracked (engine-strict=true); personal overrides go in ~/.npmrc
 .env.local
 .env.development.local
 .env.test.local
