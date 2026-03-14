@@ -828,6 +828,39 @@ implementation:
         with self.assertRaises(KeyError):
             for_loop_4['iteratorPolicy']
 
+    def test_compile_parallel_for_with_literal_dict_items(self):
+        """Test ParallelFor with literal dict items (Issue #12191)."""
+
+        @dsl.component
+        def process_item(item_a: int, item_b: int) -> int:
+            return item_a + item_b
+
+        @dsl.pipeline(name='test-parallel-for-with-literal-dicts')
+        def my_pipeline():
+            with dsl.ParallelFor(items=[{
+                    'a': 1,
+                    'b': 10
+            }, {
+                    'a': 2,
+                    'b': 20
+            }]) as item:
+                process_item(item_a=item.a, item_b=item.b)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            with open(output_yaml, 'r') as f:
+                yaml_content = f.read()
+
+        # Verify items are serialized as JSON strings (not objects)
+        self.assertIn('["{', yaml_content,
+                      'Dict items should be serialized as JSON strings')
+        # Verify parseJson expressions are generated for field access
+        self.assertIn(
+            'parseJson(string_value)["a"]', yaml_content,
+            'Should generate parseJson expressions for dict field access')
+
     def test_cannot_compile_parallel_for_with_single_param(self):
 
         with self.assertRaisesRegex(
