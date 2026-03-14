@@ -267,7 +267,11 @@ func initPodSpecPatch(
 	// Convert environment variables
 	userEnvVar := make([]k8score.EnvVar, 0)
 	for _, envVar := range container.GetEnv() {
-		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: envVar.GetValue()})
+		resolvedValue, err := resolveInputParameterPlaceholders(envVar.GetValue(), executorInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve environment variable %q: %w", envVar.GetName(), err)
+		}
+		userEnvVar = append(userEnvVar, k8score.EnvVar{Name: envVar.GetName(), Value: resolvedValue})
 	}
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
