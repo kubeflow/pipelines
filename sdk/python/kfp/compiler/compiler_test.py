@@ -1081,6 +1081,80 @@ implementation:
                     'empty-component']
                 self.assertTrue('inputs' not in dag_task)
 
+    def test_pipeline_with_pipeline_channel_env_variable(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            @dsl.component(base_image='python:3.11')
+            def empty_component():
+                pass
+
+            @dsl.pipeline()
+            def simple_pipeline(my_var: str):
+                task = empty_component()
+                task.set_env_variable('MY_VAR', my_var)
+
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=simple_pipeline,
+                package_path=output_yaml,
+                pipeline_parameters={'my_var': 'default'})
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+                container = pipeline_spec['deploymentSpec']['executors'][
+                    'exec-empty-component']['container']
+                env_vars = {
+                    e['name']: e['value'] for e in container.get('env', [])
+                }
+                self.assertEqual(
+                    env_vars['MY_VAR'],
+                    "{{$.inputs.parameters['pipelinechannel--my_var']}}")
+                input_parameters = pipeline_spec['root']['dag']['tasks'][
+                    'empty-component']['inputs']['parameters']
+                self.assertIn('pipelinechannel--my_var', input_parameters)
+
+    def test_pipeline_with_task_output_env_variable(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            @dsl.component(base_image='python:3.11')
+            def producer() -> str:
+                return 'hello'
+
+            @dsl.component(base_image='python:3.11')
+            def consumer():
+                pass
+
+            @dsl.pipeline()
+            def task_output_pipeline():
+                prod_task = producer()
+                cons_task = consumer()
+                cons_task.set_env_variable('MY_VAR', prod_task.output)
+
+            output_yaml = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=task_output_pipeline, package_path=output_yaml)
+            self.assertTrue(os.path.exists(output_yaml))
+
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+                container = pipeline_spec['deploymentSpec']['executors'][
+                    'exec-consumer']['container']
+                env_vars = {
+                    e['name']: e['value'] for e in container.get('env', [])
+                }
+                self.assertEqual(
+                    env_vars['MY_VAR'],
+                    "{{$.inputs.parameters['pipelinechannel--producer-Output']}}"
+                )
+                input_parameters = pipeline_spec['root']['dag']['tasks'][
+                    'consumer']['inputs']['parameters']
+                self.assertIn('pipelinechannel--producer-Output',
+                              input_parameters)
+                self.assertEqual(
+                    input_parameters['pipelinechannel--producer-Output']
+                    ['taskOutputParameter']['producerTask'], 'producer')
+
     def test_compile_with_kubernetes_manifest_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 

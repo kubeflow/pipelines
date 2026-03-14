@@ -18,6 +18,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import dsl
+from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_task
 from kfp.dsl import placeholders
 from kfp.dsl import structures
@@ -365,6 +366,20 @@ class PipelineTaskTest(parameterized.TestCase):
         )
         task.set_env_variable('env_name', 'env_value')
         self.assertEqual({'env_name': 'env_value'}, task.container_spec.env)
+
+    def test_set_env_variable_with_pipeline_channel(self):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='param', channel_type='String', task_name='upstream')
+        task.set_env_variable('MY_VAR', channel)
+        self.assertIn('MY_VAR', task.container_spec.env)
+        self.assertEqual(str(channel), task.container_spec.env['MY_VAR'])
+        self.assertEqual(1, len(task._channel_inputs))
+        self.assertEqual(channel.pattern, task._channel_inputs[0].pattern)
 
     def test_set_display_name(self):
         task = pipeline_task.PipelineTask(
