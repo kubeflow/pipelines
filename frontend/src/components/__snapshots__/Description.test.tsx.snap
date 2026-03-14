@@ -17,8 +17,8 @@ exports[`Description > When in inline mode > renders markdown list as pure text 
 <DocumentFragment>
   <span>
     
-* abc
-* def
+• abc
+• def
   </span>
 </DocumentFragment>
 `;

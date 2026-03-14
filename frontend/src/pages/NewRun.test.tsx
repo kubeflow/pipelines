@@ -781,7 +781,7 @@ describe('NewRun', () => {
       const dropZone = screen.getByTestId('upload-pipeline-dropzone');
       const file = new File(['file contents'], 'test-pipeline.yaml', { type: 'text/yaml' });
       fireEvent.drop(dropZone, {
-        dataTransfer: { files: [file] },
+        dataTransfer: { files: [file], types: ['Files'] },
       });
 
       const uploadBtn = await screen.findByText('Upload');
