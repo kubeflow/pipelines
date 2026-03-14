@@ -21,6 +21,7 @@ import {
   DocumentationCompilePipeline,
   PIPELINE_PACKAGE_ACCEPT,
   PIPELINE_PACKAGE_REJECT_MESSAGE,
+  pipelinePackageValidator,
 } from 'src/components/UploadPipelineDialog';
 import { classes, stylesheet } from 'typestyle';
 import BusyButton from 'src/atoms/BusyButton';
@@ -410,6 +411,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               onDragEnter={this._onDropzoneDragEnter.bind(this)}
               onDragLeave={this._onDropzoneDragLeave.bind(this)}
               accept={PIPELINE_PACKAGE_ACCEPT}
+              validator={pipelinePackageValidator}
               disabled={importMethod === ImportMethod.URL}
               style={{ position: 'relative' }}
               ref={this._dropzoneRef}

@@ -92,11 +92,32 @@ interface UploadPipelineDialogState {
 export const PIPELINE_PACKAGE_ACCEPT = {
   'application/yaml': ['.yaml', '.yml'],
   'application/zip': ['.zip'],
-  'application/gzip': ['.gz', '.tar.gz'],
+  'application/gzip': ['.tar.gz'],
 };
 
 export const PIPELINE_PACKAGE_REJECT_MESSAGE =
-  'Invalid file type. Supported formats: .yaml, .yml, .zip, .gz, .tar.gz';
+  'Invalid file type. Supported formats: .yaml, .yml, .zip, .tar.gz';
+
+/**
+ * Secondary validator for react-dropzone's {@link useDropzone} hook.
+ *
+ * The accept map must include `application/gzip` so the native file picker
+ * (File System Access API) correctly recognises `.tar.gz` files. However,
+ * plain `.gz` files share the same MIME type and pass the built-in MIME
+ * check. This validator rejects them before they reach `onDropAccepted`.
+ */
+export function pipelinePackageValidator(
+  file: File,
+): { code: string; message: string } | null {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.gz') && !name.endsWith('.tar.gz')) {
+    return { code: 'invalid-extension', message: PIPELINE_PACKAGE_REJECT_MESSAGE };
+  }
+  if (name.endsWith('.tgz')) {
+    return { code: 'invalid-extension', message: PIPELINE_PACKAGE_REJECT_MESSAGE };
+  }
+  return null;
+}
 
 class UploadPipelineDialog extends React.Component<
   UploadPipelineDialogProps,
@@ -183,6 +204,7 @@ class UploadPipelineDialog extends React.Component<
                 onDragEnter={this._onDropzoneDragEnter.bind(this)}
                 onDragLeave={this._onDropzoneDragLeave.bind(this)}
                 accept={PIPELINE_PACKAGE_ACCEPT}
+                validator={pipelinePackageValidator}
                 style={{ position: 'relative' }}
                 ref={this._dropzoneRef}
                 inputProps={{ tabIndex: -1 }}
