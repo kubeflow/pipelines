@@ -104,7 +104,7 @@ jobs:
           exit 1
 
       - name: Collect test results
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}
