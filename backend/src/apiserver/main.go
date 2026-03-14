@@ -515,6 +515,12 @@ func initConfig() {
 	})
 
 	proxy.InitializeConfigWithEnv()
+
+	// Initialize driver pod configuration after Viper config is loaded.
+	// This loads and caches the configuration to catch errors at startup.
+	// Note: driver pod config is intentionally NOT reloaded on config file change;
+	// an API server restart is required for changes to take effect.
+	common.InitDriverPodConfig()
 }
 
 // parseOptionalInt64 parses a string to *int64. Returns nil if the string is empty
