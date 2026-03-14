@@ -623,22 +623,43 @@ class PipelineTask:
         return self
 
     @block_if_final()
-    def set_env_variable(self, name: str, value: str) -> 'PipelineTask':
+    def set_env_variable(
+        self,
+        name: str,
+        value: Union[str, pipeline_channel.PipelineChannel],
+    ) -> 'PipelineTask':
         """Sets environment variable for the task.
 
         Args:
             name: Environment variable name.
-            value: Environment variable value.
+            value: Environment variable value. Supports dynamic values such as
+                Pipeline Parameters or outputs from previous tasks, which are
+                resolved at runtime.
 
         Returns:
             Self return to allow chained setting calls.
         """
         self._ensure_container_spec_exists()
 
+        pipeline_channels = (
+            pipeline_channel.extract_pipeline_channels_from_any(value))
+
+        if isinstance(value, pipeline_channel.PipelineChannel):
+            value = str(value)
+
         if self.container_spec.env is not None:
             self.container_spec.env[name] = value
         else:
             self.container_spec.env = {name: value}
+
+        if pipeline_channels:
+            existing_channel_patterns = {
+                channel.pattern for channel in self._channel_inputs
+            }
+            for channel in pipeline_channels:
+                if channel.pattern not in existing_channel_patterns:
+                    self._channel_inputs.append(channel)
+                    existing_channel_patterns.add(channel.pattern)
         return self
 
     @block_if_final()
