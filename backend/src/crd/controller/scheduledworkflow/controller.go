@@ -17,10 +17,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
@@ -34,6 +36,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -86,10 +89,12 @@ var (
 
 // Controller is the controller implementation for ScheduledWorkflow resources
 type Controller struct {
+	kubeClientSet  kubernetes.Interface
 	kubeClient     *client.KubeClient
 	swfClient      *client.ScheduledWorkflowClient
 	workflowClient *client.WorkflowClient
 	runClient      api.RunServiceClient
+	pipelineClient api.PipelineServiceClient
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -115,6 +120,7 @@ func NewController(
 	swfClientSet swfclientset.Interface,
 	workflowClientSet commonutil.ExecutionClient,
 	runClient api.RunServiceClient,
+	pipelineClient api.PipelineServiceClient,
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	executionInformer commonutil.ExecutionInformer,
 	time commonutil.TimeInterface,
@@ -136,9 +142,11 @@ func NewController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: util.ControllerAgentName})
 
 	controller := &Controller{
+		kubeClientSet:  kubeClientSet,
 		kubeClient:     client.NewKubeClient(kubeClientSet, recorder),
 		swfClient:      client.NewScheduledWorkflowClient(swfClientSet, swfInformer),
 		runClient:      runClient,
+		pipelineClient: pipelineClient,
 		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
@@ -305,7 +313,6 @@ func (c *Controller) handleWorkflow(obj interface{}) {
 	log.WithFields(log.Fields{
 		Workflow: object.GetName(),
 	}).Infof("Processing object (%s): object has no owner.", object.GetName())
-	return
 }
 
 // processNextWorkItem will read a single work item off the workqueue and
@@ -582,6 +589,30 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			return false, "", err
 		}
 
+		// Extract max_active_runs and set annotations before Create() to match CreateRun path behavior.
+		if workflow, ok := newWorkflow.(*commonutil.Workflow); ok {
+			maxActiveRuns, maxErr := c.extractMaxActiveRunsFromWorkflow(ctx, workflow, swf.Spec.PipelineId)
+			if maxErr != nil {
+				return false, "", maxErr
+			}
+			if maxActiveRuns > 0 {
+				if workflow.ExecutionObjectMeta().Annotations == nil {
+					workflow.ExecutionObjectMeta().Annotations = make(map[string]string)
+				}
+				workflow.ExecutionObjectMeta().Annotations[commonutil.AnnotationKeyMaxActiveRuns] = fmt.Sprintf("%d", maxActiveRuns)
+				if c.kubeClientSet == nil {
+					return false, "", fmt.Errorf("kube client not configured for pipeline parallelism ConfigMap updates")
+				}
+				if err := commonutil.EnsurePipelineParallelismConfigMap(
+					ctx,
+					c.kubeClientSet.CoreV1().ConfigMaps(swf.Namespace),
+					swf.Namespace,
+					workflow.ExecutionObjectMeta().Annotations,
+				); err != nil {
+					return false, "", err
+				}
+			}
+		}
 		createdWorkflow, err := c.workflowClient.Create(ctx, swf.Namespace, newWorkflow)
 		if err != nil {
 			return false, "", err
@@ -642,6 +673,115 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	}
 
 	return true, run.DisplayName, nil
+}
+
+// extractMaxActiveRunsFromWorkflow extracts max_active_runs from the workflow spec.
+// It identifies the pipeline version ID via semaphores, annotates the workflow with that ID,
+// and looks up max_active_runs from the pipeline version API (since it's not stored in the compiled workflow).
+func (c *Controller) extractMaxActiveRunsFromWorkflow(ctx context.Context, workflow *commonutil.Workflow, pipelineID string) (int32, error) {
+	if workflow == nil || workflow.Workflow == nil {
+		return 0, fmt.Errorf("workflow cannot be nil")
+	}
+	annotatePipelineVersion := func(id string) {
+		if id == "" {
+			return
+		}
+		if workflow.ExecutionObjectMeta().Annotations == nil {
+			workflow.ExecutionObjectMeta().Annotations = make(map[string]string)
+		}
+		workflow.ExecutionObjectMeta().Annotations[commonutil.AnnotationKeyPipelineVersionID] = id
+	}
+	if workflow.Spec.Synchronization == nil {
+		// No concurrency limit configured; nothing to enforce.
+		return 0, nil
+	}
+
+	var pipelineVersionID string
+	for _, semaphore := range workflow.Spec.Synchronization.Semaphores {
+		if semaphore.ConfigMapKeyRef == nil {
+			continue
+		}
+		if semaphore.ConfigMapKeyRef.Name != commonutil.PipelineParallelismConfigMapName {
+			continue
+		}
+		if semaphore.ConfigMapKeyRef.Key == "" {
+			return 0, fmt.Errorf("semaphore referencing %q is missing a pipeline version key", commonutil.PipelineParallelismConfigMapName)
+		}
+		pipelineVersionID = semaphore.ConfigMapKeyRef.Key
+		break
+	}
+
+	if pipelineVersionID == "" {
+		// The workflow does not reference the parallelism semaphore; no limit applies.
+		return 0, nil
+	}
+
+	if workflow.ExecutionObjectMeta().Annotations != nil {
+		if rawValue, ok := workflow.ExecutionObjectMeta().Annotations[commonutil.AnnotationKeyMaxActiveRuns]; ok && rawValue != "" {
+			parsed, err := strconv.ParseInt(rawValue, 10, 32)
+			if err != nil || parsed <= 0 {
+				return 0, fmt.Errorf("invalid max_active_runs annotation %q: %v", rawValue, err)
+			}
+			annotatePipelineVersion(pipelineVersionID)
+			return int32(parsed), nil
+		}
+	}
+
+	if c.pipelineClient == nil || pipelineID == "" {
+		return 0, fmt.Errorf("pipeline client not configured or pipeline ID missing when extracting max_active_runs")
+	}
+
+	if c.tokenSrc != nil {
+		token, err := c.tokenSrc.Token()
+		if err != nil {
+			log.Warnf("Failed to get token for pipeline version lookup: %v", err)
+		} else {
+			ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
+		}
+	}
+
+	pipelineVersion, err := c.pipelineClient.GetPipelineVersion(ctx, &api.GetPipelineVersionRequest{
+		PipelineId:        pipelineID,
+		PipelineVersionId: pipelineVersionID,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch pipeline version %q: %w", pipelineVersionID, err)
+	}
+	if pipelineVersion == nil || pipelineVersion.PipelineSpec == nil {
+		return 0, fmt.Errorf("pipeline version %q missing pipeline spec", pipelineVersionID)
+	}
+
+	specBytes, err := protojson.Marshal(pipelineVersion.PipelineSpec)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal pipeline spec for version %q: %w", pipelineVersionID, err)
+	}
+
+	tmpl, err := template.New(specBytes, template.TemplateOptions{})
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse pipeline spec for version %q: %w", pipelineVersionID, err)
+	}
+	if tmpl == nil || !tmpl.IsV2() {
+		return 0, fmt.Errorf("pipeline spec for version %q is not a v2 pipeline", pipelineVersionID)
+	}
+
+	v2Spec, ok := tmpl.(*template.V2Spec)
+	if !ok || v2Spec == nil {
+		return 0, fmt.Errorf("unexpected template type for pipeline version %q", pipelineVersionID)
+	}
+
+	value, err := v2Spec.MaxActiveRuns()
+	if err != nil {
+		return 0, fmt.Errorf("failed to extract max_active_runs for version %q: %w", pipelineVersionID, err)
+	}
+	if value == nil {
+		return 0, nil
+	}
+	if *value <= 0 {
+		return 0, fmt.Errorf("pipeline version %q has invalid max_active_runs: %d", pipelineVersionID, *value)
+	}
+
+	annotatePipelineVersion(pipelineVersionID)
+	return *value, nil
 }
 
 func (c *Controller) updateStatus(

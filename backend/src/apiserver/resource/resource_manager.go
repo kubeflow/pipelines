@@ -172,8 +172,25 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 	}
 }
 
+// extractMaxActiveRuns extracts max_active_runs from the template's platform spec.
+// Returns nil when the field is not set or the template is not V2.
+func extractMaxActiveRuns(tmpl template.Template) (*int32, error) {
+	if tmpl == nil || !tmpl.IsV2() {
+		return nil, nil
+	}
+	v2Spec, ok := tmpl.(*template.V2Spec)
+	if !ok || v2Spec == nil {
+		return nil, fmt.Errorf("expected V2 template to be *template.V2Spec")
+	}
+	return v2Spec.MaxActiveRuns()
+}
+
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
 	return r.execClient.Execution(namespace)
+}
+
+func (r *ResourceManager) getWorkflowClientWithConfigMap(namespace string) util.ExecutionInterface {
+	return r.execClient.ExecutionWithConfigMapClient(namespace, r.k8sCoreClient.ConfigMapClient(namespace))
 }
 
 func (r *ResourceManager) getScheduledWorkflowClient(namespace string) scheduledworkflowclient.ScheduledWorkflowInterface {
@@ -337,15 +354,9 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 		}
 
 		// Delete each pipeline version
+		// Use DeletePipelineVersion to ensure ConfigMap cleanup happens
 		for _, pipelineVersion := range pipelineVersions {
-			// Mark pipeline version as deleting so it's not visible to user.
-			err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersion.UUID, model.PipelineVersionDeleting)
-			if err != nil {
-				return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING during cascade delete", pipelineVersion.UUID)
-			}
-
-			// Delete the pipeline version from the database
-			err = r.pipelineStore.DeletePipelineVersion(pipelineVersion.UUID)
+			err = r.DeletePipelineVersion(pipelineVersion.UUID)
 			if err != nil {
 				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 			}
@@ -584,6 +595,20 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
+	// Extract max active runs from template and store in workflow annotations for WorkflowInterface.Create() to handle ConfigMap upsert.
+	// Semaphore configuration is handled in the Argo compiler during compilation.
+	maxActiveRuns, err := extractMaxActiveRuns(tmpl)
+	if err != nil {
+		return nil, util.Wrap(err, "failed to extract max_active_runs")
+	}
+	if maxActiveRuns != nil && run.PipelineVersionId != "" {
+		if executionSpec.ExecutionObjectMeta().Annotations == nil {
+			executionSpec.ExecutionObjectMeta().Annotations = make(map[string]string)
+		}
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyPipelineVersionID] = run.PipelineVersionId
+		executionSpec.ExecutionObjectMeta().Annotations[util.AnnotationKeyMaxActiveRuns] = strconv.Itoa(int(*maxActiveRuns))
+	}
+
 	// assign OwnerReference to scheduledworkflow
 	if run.RecurringRunId != "" {
 		job, err := r.jobStore.GetJob(run.RecurringRunId)
@@ -597,7 +622,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		executionSpec.SetOwnerReferences(swf)
 	}
 
-	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
+	newExecSpec, err := r.getWorkflowClientWithConfigMap(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return nil, util.NewUnavailableServerError(err, "Failed to create a workflow for (%s) - try again later", executionSpec.ExecutionName())
@@ -1150,6 +1175,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	} else if job.PipelineId == "" {
 		return nil, errors.New("Cannot create a job with an empty pipeline ID")
 	} else {
+		latestVersion, err := r.GetLatestPipelineVersion(job.PipelineId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to fetch latest pipeline version while creating a recurring run")
+		}
+		job.PipelineVersionId = latestVersion.UUID
+		job.PipelineName = latestVersion.Name
+
 		// Validate the input parameters on the latest pipeline version. The latest pipeline version is not stored
 		// in the ScheduledWorkflow. It's just to help the user with up front validation at recurring run creation
 		// time.
@@ -1867,6 +1899,28 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	if err != nil {
 		return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING", pipelineVersionId)
 	}
+
+	// Clean up engine-specific resources for this pipeline version asynchronously.
+	// This identifies all namespaces where runs of this pipeline version exist and delegates cleanup to the execution client.
+	defer func() {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			namespaces, err := r.runStore.GetRunNamespacesForPipelineVersion(pipelineVersionId)
+			if err != nil {
+				glog.Warningf("Failed to get namespaces for pipeline version %s during cleanup: %v", pipelineVersionId, err)
+				return
+			}
+			if ctx.Err() != nil {
+				glog.Warningf("Context canceled or timed out before cleanup for pipeline version %s: %v", pipelineVersionId, ctx.Err())
+				return
+			}
+			if err := r.execClient.OnDeletePipelineVersion(pipelineVersionId, namespaces); err != nil {
+				glog.Warningf("Failed to trigger engine cleanup for pipeline version %s: %v", pipelineVersionId, err)
+			}
+		}()
+	}()
 
 	// Delete pipeline spec file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.
