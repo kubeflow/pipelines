@@ -18,6 +18,48 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: wait-for-database
+        image: ghcr.io/containerd/busybox:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbHost
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: dbPort
+        command: ["/bin/sh", "-ec"]
+        args:
+          - |
+            if [ -z "${DB_HOST:-}" ] || [ -z "${DB_PORT:-}" ]; then
+              echo "ERROR: DB_HOST or DB_PORT is not set."
+              exit 1
+            fi
+            MAX_RETRIES=60
+            i=0
+            while ! nc -z -w 2 "${DB_HOST}" "${DB_PORT}"; do
+              i=$((i+1))
+              if [ "$i" -ge "$MAX_RETRIES" ]; then
+                echo "ERROR: Timed out waiting for database at ${DB_HOST}:${DB_PORT} after ${MAX_RETRIES} attempts."
+                exit 1
+              fi
+              echo "Waiting for database at ${DB_HOST}:${DB_PORT} (attempt ${i}/${MAX_RETRIES})..."
+              sleep 5
+            done
       containers:
       - name: container
         # ! Sync to the same MLMD version:
