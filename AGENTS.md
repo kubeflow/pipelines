@@ -340,15 +340,15 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 
 ### Prerequisites
 
-- Node.js version specified in `frontend/.nvmrc` (currently v22.19.0)
+- Node.js version specified in `frontend/.nvmrc` (currently v24.14.0)
 - Docker (required for frontend API client generation via OpenAPI Generator container)
 - Use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) for Node version management:
 
   ```bash
   # With fnm (faster)
-  fnm install 22.19.0 && fnm use 22.19.0
+  fnm install 24.14.0 && fnm use 24.14.0
   # With nvm
-  nvm install 22.19.0 && nvm use 22.19.0
+  nvm install 24.14.0 && nvm use 24.14.0
   ```
 
 ### Setup and installation

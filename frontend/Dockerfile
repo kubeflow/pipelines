@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=alpine
-FROM node:22.19-slim AS build
+FROM node:24.14-slim AS build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}
@@ -24,7 +24,7 @@ RUN mkdir -p ./server/dist && \
     echo ${DATE} > ./server/dist/BUILD_DATE && \
     echo ${TAG_NAME} > ./server/dist/TAG_NAME
 
-FROM node:22.19-${BASE_IMAGE}
+FROM node:24.14-${BASE_IMAGE}
 
 COPY --from=build ./src/frontend/server /server
 COPY --from=build ./src/frontend/build /client
