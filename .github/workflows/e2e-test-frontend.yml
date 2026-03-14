@@ -73,7 +73,7 @@ jobs:
 
       - name: Build frontend integration tests image
         working-directory: ./test/frontend-integration-test
-        run: docker build . -t kfp-frontend-integration-test:local
+        run: docker build --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) -t kfp-frontend-integration-test:local .
 
       - name: Prepare frontend integration test artifacts
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}
