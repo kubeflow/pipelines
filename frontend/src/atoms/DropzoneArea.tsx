@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { FileRejection, useDropzone } from 'react-dropzone';
+import { FileError, FileRejection, useDropzone } from 'react-dropzone';
 
 /**
  * The imperative handle exposed via ref. Class components that cannot use hooks
@@ -35,6 +35,8 @@ interface DropzoneAreaProps {
   disabled?: boolean;
   id?: string;
   style?: React.CSSProperties;
+  /** Custom file validator run after accept/MIME filtering but before onDropAccepted. */
+  validator?: (file: File) => FileError | FileError[] | null;
   /** Extra attributes forwarded to the hidden <input type="file"> element (e.g. tabIndex). */
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
   children?: React.ReactNode;
@@ -58,6 +60,7 @@ const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((pr
     onDragLeave,
     accept,
     disabled,
+    validator,
     id,
     style,
     inputProps,
@@ -72,6 +75,7 @@ const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((pr
     noClick: true,
     accept,
     disabled,
+    validator,
     onDragEnter: (_e) => onDragEnter?.(),
     onDragLeave: (_e) => onDragLeave?.(),
   });
