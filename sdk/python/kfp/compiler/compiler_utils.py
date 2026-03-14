@@ -796,7 +796,7 @@ def recursive_replace_placeholders(data: Any, old_value: str,
         new_value: The value to replace the old value with.
 
     Returns:
-        A copy of data with all occurences of old_value replaced by new_value.
+        A copy of data with all occurrences of old_value replaced by new_value.
     """
     if isinstance(data, dict):
         return {
