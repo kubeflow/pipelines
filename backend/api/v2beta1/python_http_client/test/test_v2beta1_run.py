@@ -128,7 +128,9 @@ class TestV2beta1Run(unittest.TestCase):
                                     'key' : None
                                     }
                                 ], ), )
-                    ]
+                    ], 
+                experiment_display_name = '0', 
+                pipeline_version_display_name = '0'
             )
         else :
             return V2beta1Run(

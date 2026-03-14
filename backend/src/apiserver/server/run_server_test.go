@@ -863,6 +863,7 @@ func TestGetRun(t *testing.T) {
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
+		ExperimentDisplayName: "exp1",
 	}
 
 	newRun, err := server.GetRun(nil, &apiv2beta1.GetRunRequest{RunId: returnedRun.RunId})
@@ -1206,6 +1207,7 @@ func TestListRuns(t *testing.T) {
 				State:      apiv2beta1.RuntimeState_PENDING,
 			},
 		},
+		ExperimentDisplayName: "exp1",
 	}
 
 	listRunsResponse, err := server.ListRuns(nil, &apiv2beta1.ListRunsRequest{

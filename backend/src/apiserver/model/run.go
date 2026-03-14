@@ -231,6 +231,13 @@ type Run struct {
 
 	PipelineSpec
 
+	// ExperimentDisplayName is populated at read time via a LEFT JOIN with the experiments table.
+	// It is not persisted in the run_details table.
+	ExperimentDisplayName string `gorm:"-"`
+	// PipelineVersionDisplayName is populated at read time via a LEFT JOIN with the pipeline_versions table.
+	// It is not persisted in the run_details table.
+	PipelineVersionDisplayName string `gorm:"-"`
+
 	RunDetails
 }
 

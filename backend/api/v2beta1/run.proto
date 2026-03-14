@@ -200,6 +200,12 @@ message Run {
   // Output. A sequence of run statuses. This field keeps a record
   // of state transitions.
   repeated RuntimeStatus state_history = 17;
+
+  // Output. Display name of the experiment this run belongs to.
+  string experiment_display_name = 19;
+
+  // Output. Display name of the pipeline version used by this run.
+  string pipeline_version_display_name = 20;
 }
 
 // Reference to an existing pipeline version.

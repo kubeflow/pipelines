@@ -1687,6 +1687,8 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
+	expectedRunDetail.ExperimentDisplayName = "e1"
+	expectedRunDetail.PipelineVersionDisplayName = "version_for_run"
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
@@ -1727,6 +1729,7 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
+	expectedRunDetail.ExperimentDisplayName = "e1"
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
@@ -1774,6 +1777,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
+	expectedRunDetail.ExperimentDisplayName = "e1"
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
@@ -1825,6 +1829,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
+	expectedRunDetail.ExperimentDisplayName = "e1"
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
@@ -1934,6 +1939,8 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
+	expectedRunDetail.ExperimentDisplayName = "e1"
+	expectedRunDetail.PipelineVersionDisplayName = "version_for_run"
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
@@ -2014,6 +2021,8 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
+	expectedRunDetail.ExperimentDisplayName = "e1"
+	expectedRunDetail.PipelineVersionDisplayName = "version_for_run"
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
 }
 
@@ -2904,6 +2913,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	}
 	expectedRun.PipelineSpec.PipelineName = run.PipelineSpec.PipelineName
 	expectedRun.RunDetails.WorkflowRuntimeManifest = run.RunDetails.WorkflowRuntimeManifest
+	expectedRun.ExperimentDisplayName = "e1"
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
 }
 
@@ -2963,6 +2973,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			},
 		},
 	}
+	expectedRunDetail.ExperimentDisplayName = "e1"
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())
 }
 
