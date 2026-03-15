@@ -51,6 +51,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 	corev1 "k8s.io/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -110,7 +111,9 @@ func initCerts() (*tls.Config, error) {
 func main() {
 	flag.Parse()
 
-	initConfig()
+	if err := initConfig(); err != nil {
+		glog.Fatalf("Failed to initialize config: %v", err)
+	}
 	// check ExecutionType Settings if presents
 	if viper.IsSet(executionTypeEnv) {
 		util.SetExecutionType(util.ExecutionType(common.GetStringConfig(executionTypeEnv)))
@@ -345,21 +348,26 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runtimeMux := runtime.NewServeMux(
 		runtime.WithIncomingHeaderMatcher(grpcCustomMatcher),
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, common.CustomMarshaler()))
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, runtimeMux, tlsCfg)
+	register := func(handler RegisterHttpHandlerFromEndpoint, serviceName string) {
+		if err := registerHTTPHandlerFromEndpoint(handler, serviceName, ctx, runtimeMux, tlsCfg); err != nil {
+			glog.Fatalf("%v", err)
+		}
+	}
+	register(apiv1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
+	register(apiv1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
+	register(apiv1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService")
+	register(apiv1beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
+	register(apiv1beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService")
+	register(apiv1beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
+	register(apiv1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization")
+	register(apiv1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
 
 	// Create gRPC HTTP MUX and register services for v2beta1 api.
-	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux, tlsCfg)
-	registerHTTPHandlerFromEndpoint(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux, tlsCfg)
+	register(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
+	register(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
+	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
+	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
+	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := mux.NewRouter()
@@ -477,9 +485,12 @@ func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *
 	return webhookServer, nil
 }
 
-func registerHTTPHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, serviceName string, ctx context.Context, mux *runtime.ServeMux, tlsCfg *tls.Config) {
+func registerHTTPHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, serviceName string, ctx context.Context, mux *runtime.ServeMux, tlsCfg *tls.Config) error {
 	endpoint := "localhost" + *rpcPortFlag
-	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32))}
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
+	}
 	if tlsCfg != nil {
 		opts = []grpc.DialOption{
 			grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)),
@@ -487,11 +498,12 @@ func registerHTTPHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 		}
 	}
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
-		glog.Fatalf("Failed to register %v handler: %v", serviceName, err)
+		return fmt.Errorf("failed to register %v handler: %w", serviceName, err)
 	}
+	return nil
 }
 
-func initConfig() {
+func initConfig() error {
 	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
@@ -502,9 +514,8 @@ func initConfig() {
 	// Set configuration file name. The format is auto detected in this case.
 	viper.SetConfigName("config")
 	viper.AddConfigPath(*configPath)
-	err := viper.ReadInConfig()
-	if err != nil {
-		glog.Fatalf("Fatal error config file: %s", err)
+	if err := viper.ReadInConfig(); err != nil {
+		return fmt.Errorf("fatal error config file: %w", err)
 	}
 
 	// Watch for configuration change
@@ -515,6 +526,7 @@ func initConfig() {
 	})
 
 	proxy.InitializeConfigWithEnv()
+	return nil
 }
 
 // parseOptionalInt64 parses a string to *int64. Returns nil if the string is empty

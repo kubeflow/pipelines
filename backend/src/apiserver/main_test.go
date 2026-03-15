@@ -19,6 +19,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -29,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -318,6 +320,91 @@ func generateSelfSignedCert(t *testing.T, certPath, keyPath string) {
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
 	err = os.WriteFile(keyPath, keyPEM, 0600)
 	require.NoError(t, err)
+}
+
+func TestInitConfig(t *testing.T) {
+	t.Run("success with valid config file", func(t *testing.T) {
+		viper.Reset()
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, "config.json")
+		require.NoError(t, os.WriteFile(configFile, []byte(`{}`), 0600))
+
+		originalConfigPath := *configPath
+		*configPath = tempDir
+		t.Cleanup(func() {
+			*configPath = originalConfigPath
+			viper.Reset()
+		})
+
+		err := initConfig()
+		assert.NoError(t, err)
+	})
+
+	t.Run("error with missing config file", func(t *testing.T) {
+		viper.Reset()
+		originalConfigPath := *configPath
+		*configPath = "/nonexistent/path"
+		t.Cleanup(func() {
+			*configPath = originalConfigPath
+			viper.Reset()
+		})
+
+		err := initConfig()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "fatal error config file")
+	})
+}
+
+func TestRegisterHTTPHandlerFromEndpoint(t *testing.T) {
+	t.Run("success without TLS", func(t *testing.T) {
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			return nil
+		}
+		serveMux := runtime.NewServeMux()
+
+		err := registerHTTPHandlerFromEndpoint(handler, "TestService", context.Background(), serveMux, nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("success with TLS", func(t *testing.T) {
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			return nil
+		}
+		serveMux := runtime.NewServeMux()
+		tlsCfg := &tls.Config{}
+
+		err := registerHTTPHandlerFromEndpoint(handler, "TestService", context.Background(), serveMux, tlsCfg)
+		assert.NoError(t, err)
+	})
+
+	t.Run("handler returns error", func(t *testing.T) {
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			return fmt.Errorf("registration failed")
+		}
+		serveMux := runtime.NewServeMux()
+
+		err := registerHTTPHandlerFromEndpoint(handler, "FailService", context.Background(), serveMux, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to register FailService handler")
+		assert.Contains(t, err.Error(), "registration failed")
+	})
+
+	t.Run("uses configured RPC port in endpoint", func(t *testing.T) {
+		originalPort := *rpcPortFlag
+		*rpcPortFlag = ":9999"
+		t.Cleanup(func() { *rpcPortFlag = originalPort })
+
+		var capturedEndpoint string
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			capturedEndpoint = endpoint
+			return nil
+		}
+		serveMux := runtime.NewServeMux()
+
+		err := registerHTTPHandlerFromEndpoint(handler, "TestService", context.Background(), serveMux, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "localhost:9999", capturedEndpoint)
+	})
 }
 
 func int64Ptr(v int64) *int64 { return &v }
