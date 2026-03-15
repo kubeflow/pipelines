@@ -26,9 +26,12 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -r sdk/python/requirements-dev.txt
   python3 -m pip install setuptools
   python3 -m pip install wheel==0.42.0
+  python3 -m pip install build
   python3 -m pip install pytest
   python3 -m pip install pytest-cov
   python3 -m pip install --upgrade protobuf
+  # Install local kfp-server-api first to avoid PyPI failures for unreleased versions (#12906).
+  python3 -m pip install backend/api/v2beta1/python_http_client
   python3 -m pip install sdk/python
 
   # regenerate the kfp-pipeline-spec
@@ -38,6 +41,18 @@ if [ "${SETUP_ENV}" = "true" ]; then
   # install the local kfp-pipeline-spec
   python3 -m pip install -I api/v2alpha1/python
 fi
+
+# Build a local kfp wheel to use instead of pulling from PyPI (#12906).
+pushd sdk/python
+rm -rf dist/
+python3 -m build .
+kfp_wheel=$(find dist -maxdepth 1 -name "*.whl" -type f | head -n 1)
+if [[ -z "${kfp_wheel}" ]]; then
+  echo "Error: No wheel file found in dist/ after build." >&2
+  exit 1
+fi
+popd
+export KFP_PACKAGE_PATH="${source_root}/sdk/python/${kfp_wheel}"
 
 python -m pytest sdk/python/test/client/ -v -s -m client --cov=kfp
 
