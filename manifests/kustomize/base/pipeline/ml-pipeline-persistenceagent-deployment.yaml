@@ -31,6 +31,10 @@ spec:
             value: "2"
           - name: LOG_LEVEL
             value: "info"
+          - name: IMAGE_PULL_FAILURE_HANDLING_ENABLED
+            value: "false"
+          - name: IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC
+            value: "300"
         image: ghcr.io/kubeflow/kfp-persistence-agent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent

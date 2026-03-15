@@ -49,4 +49,6 @@ ENV NUM_WORKERS=2
 ENV LOG_LEVEL=info
 
 ENV EXECUTIONTYPE=Workflow
-CMD ["/bin/sh", "-c", "persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS} --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL}"]
+ENV IMAGE_PULL_FAILURE_HANDLING_ENABLED=false
+ENV IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC=300
+CMD ["/bin/sh", "-c", "persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS} --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL} --imagePullFailureHandlingEnabled=${IMAGE_PULL_FAILURE_HANDLING_ENABLED} --imagePullFailureGracePeriodInSec=${IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC}"]

@@ -21,56 +21,63 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/tokenrefresher"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/worker"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 var (
-	masterURL                     string
-	logLevel                      string
-	kubeconfig                    string
-	initializeTimeout             time.Duration
-	timeout                       time.Duration
-	mlPipelineAPIServerName       string
-	mlPipelineAPIServerPort       string
-	mlPipelineAPIServerBasePath   string
-	mlPipelineServiceHttpPort     string
-	mlPipelineServiceGRPCPort     string
-	mlPipelineServiceTLSEnabled   bool
-	namespace                     string
-	ttlSecondsAfterWorkflowFinish int64
-	numWorker                     int
-	clientQPS                     float64
-	clientBurst                   int
-	executionType                 string
-	saTokenRefreshIntervalInSecs  int64
-	caCertPath                    string
+	masterURL                        string
+	logLevel                         string
+	kubeconfig                       string
+	initializeTimeout                time.Duration
+	timeout                          time.Duration
+	mlPipelineAPIServerName          string
+	mlPipelineAPIServerBasePath      string
+	mlPipelineServiceHTTPPort        string
+	mlPipelineServiceGRPCPort        string
+	mlPipelineServiceTLSEnabled      bool
+	namespace                        string
+	ttlSecondsAfterWorkflowFinish    int64
+	numWorker                        int
+	clientQPS                        float64
+	clientBurst                      int
+	executionType                    string
+	saTokenRefreshIntervalInSecs     int64
+	caCertPath                       string
+	imagePullFailureHandlingEnabled  bool
+	imagePullFailureGracePeriodInSec int64
 )
 
 const (
-	logLevelFlagName                      = "logLevel"
-	kubeconfigFlagName                    = "kubeconfig"
-	masterFlagName                        = "master"
-	initializationTimeoutFlagName         = "initializeTimeout"
-	timeoutFlagName                       = "timeout"
-	mlPipelineAPIServerBasePathFlagName   = "mlPipelineAPIServerBasePath"
-	mlPipelineAPIServerNameFlagName       = "mlPipelineAPIServerName"
-	mlPipelineAPIServerHttpPortFlagName   = "mlPipelineServiceHttpPort"
-	mlPipelineAPIServerGRPCPortFlagName   = "mlPipelineServiceGRPCPort"
-	mlPipelineAPIServerTLSEnabledFlagName = "mlPipelineServiceTLSEnabled"
-	namespaceFlagName                     = "namespace"
-	ttlSecondsAfterWorkflowFinishFlagName = "ttlSecondsAfterWorkflowFinish"
-	numWorkerName                         = "numWorker"
-	clientQPSFlagName                     = "clientQPS"
-	clientBurstFlagName                   = "clientBurst"
-	executionTypeFlagName                 = "executionType"
-	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
-	caCertPathFlagName                    = "caCertPath"
+	logLevelFlagName                         = "logLevel"
+	kubeconfigFlagName                       = "kubeconfig"
+	masterFlagName                           = "master"
+	initializationTimeoutFlagName            = "initializeTimeout"
+	timeoutFlagName                          = "timeout"
+	mlPipelineAPIServerBasePathFlagName      = "mlPipelineAPIServerBasePath"
+	mlPipelineAPIServerNameFlagName          = "mlPipelineAPIServerName"
+	mlPipelineAPIServerHTTPPortFlagName      = "mlPipelineServiceHTTPPort"
+	mlPipelineAPIServerGRPCPortFlagName      = "mlPipelineServiceGRPCPort"
+	mlPipelineAPIServerTLSEnabledFlagName    = "mlPipelineServiceTLSEnabled"
+	namespaceFlagName                        = "namespace"
+	ttlSecondsAfterWorkflowFinishFlagName    = "ttlSecondsAfterWorkflowFinish"
+	numWorkerName                            = "numWorker"
+	clientQPSFlagName                        = "clientQPS"
+	clientBurstFlagName                      = "clientBurst"
+	executionTypeFlagName                    = "executionType"
+	saTokenRefreshIntervalFlagName           = "saTokenRefreshIntervalInSecs"
+	caCertPathFlagName                       = "caCertPath"
+	imagePullFailureHandlingEnabledFlagName  = "imagePullFailureHandlingEnabled"
+	imagePullFailureGracePeriodInSecFlagName = "imagePullFailureGracePeriodInSec"
 )
 
 const (
@@ -139,18 +146,52 @@ func main() {
 		tokenRefresher,
 		mlPipelineAPIServerBasePath,
 		mlPipelineAPIServerName,
-		mlPipelineServiceHttpPort,
+		mlPipelineServiceHTTPPort,
 		mlPipelineServiceGRPCPort,
 		tlsCfg)
 	if err != nil {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
 
+	var imagePullFailureChecker worker.ImagePullFailureCheckerInterface
+	if imagePullFailureHandlingEnabled {
+		kubeClient, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			log.Fatalf("Error building Kubernetes clientset: %s", err.Error())
+		}
+		executionClient, err := util.NewExecutionClientFromConfig(
+			util.CurrentExecutionType(), cfg)
+		if err != nil {
+			log.Fatalf("Error building execution client for image pull failure handling: %v", err)
+		}
+
+		// Create a shared informer for pods so that image pull failure checks
+		// read from a local cache instead of making API calls on every check.
+		var podInformerFactory informers.SharedInformerFactory
+		if namespace == "" {
+			podInformerFactory = informers.NewSharedInformerFactory(kubeClient, time.Second*30)
+		} else {
+			podInformerFactory = informers.NewFilteredSharedInformerFactory(
+				kubeClient, time.Second*30, namespace, nil)
+		}
+		podLister := podInformerFactory.Core().V1().Pods().Lister()
+		go podInformerFactory.Start(stopCh)
+		if !cache.WaitForCacheSync(stopCh, podInformerFactory.Core().V1().Pods().Informer().HasSynced) {
+			log.Fatalf("Failed to sync pod informer cache for image pull failure handling")
+		}
+
+		gracePeriod := time.Duration(imagePullFailureGracePeriodInSec) * time.Second
+		imagePullFailureChecker = worker.NewImagePullFailureChecker(
+			podLister, executionClient, gracePeriod)
+		log.Infof("Image pull failure handling enabled (grace period: %v)", gracePeriod)
+	}
+
 	controller, err := NewPersistenceAgent(
 		swfInformerFactory,
 		execInformer,
 		pipelineClient,
-		util.NewRealTime())
+		util.NewRealTime(),
+		imagePullFailureChecker)
 	if err != nil {
 		log.Fatalf("Failed to instantiate the controller: %v", err)
 	}
@@ -170,7 +211,7 @@ func init() {
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
-	flag.StringVar(&mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceHTTPPort, mlPipelineAPIServerHTTPPortFlagName, "8888", "Http Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if ML pipeline API server serves over TLS.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
@@ -187,4 +228,9 @@ func init() {
 	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
 	flag.StringVar(&caCertPath, caCertPathFlagName, "", "The path to the CA certificate to trust on connections to the ML pipeline API server.")
+	flag.BoolVar(&imagePullFailureHandlingEnabled, imagePullFailureHandlingEnabledFlagName, false,
+		"Enable detection of image pull failures (ImagePullBackOff/ErrImagePull) on workflow pods. "+
+			"When enabled, workflows with pods stuck in image pull failure will be terminated after the grace period.")
+	flag.Int64Var(&imagePullFailureGracePeriodInSec, imagePullFailureGracePeriodInSecFlagName, 300,
+		"Grace period in seconds before terminating a workflow due to image pull failure. Default: 300 (5 minutes).")
 }
