@@ -95,6 +95,11 @@ type RunStoreInterface interface {
 
 	// Terminates a run.
 	TerminateRun(runId string) error
+
+	// GetRunByScheduledSlot returns the first run matching (recurringRunId, displayName),
+	// or nil if none exists. Used for idempotency when the SWF controller retries a V2
+	// scheduled run after a transient status-update failure.
+	GetRunByScheduledSlot(recurringRunId, displayName string) (*model.Run, error)
 }
 
 type RunStore struct {
@@ -241,6 +246,33 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	if string(runs[0].WorkflowRuntimeManifest) == "" && string(runs[0].WorkflowSpecManifest) != "" {
 		// This can only happen when workflow reporting is failed.
 		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
+	}
+	return runs[0], nil
+}
+
+// GetRunByScheduledSlot returns the first run for a given (recurringRunId, displayName) pair,
+// or nil if none exists. The combination identifies a unique scheduled slot for a recurring run.
+func (s *RunStore) GetRunByScheduledSlot(recurringRunId, displayName string) (*model.Run, error) {
+	sql, args, err := s.addMetricsResourceReferencesAndTasks(
+		sq.Select(runColumns...).
+			From("run_details").
+			Where(sq.Eq{"JobUUID": recurringRunId, "DisplayName": displayName}).
+			Limit(1), nil).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run by scheduled slot: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run by scheduled slot: %v", err.Error())
+	}
+	defer r.Close()
+	runs, err := s.scanRowsToRuns(r)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan run by scheduled slot: %v", err.Error())
+	}
+	if len(runs) == 0 {
+		return nil, nil
 	}
 	return runs[0], nil
 }
