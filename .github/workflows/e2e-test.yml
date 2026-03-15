@@ -141,8 +141,7 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
+          make build-modelcar-image CLUSTER_NAME=${{ env.CLUSTER_NAME }}
         continue-on-error: true
 
       - name: Run Tests
@@ -223,18 +222,15 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
+          make build-modelcar-image CLUSTER_NAME=${{ env.CLUSTER_NAME }}
         continue-on-error: true
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
         if: ${{ steps.deploy.outcome == 'success' && matrix.artifact_proxy == 'true' }}
         shell: bash
-        env:
-          USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
         run: |
-          ./test/artifact-proxy/test-artifact-proxy.sh "$USER_NAMESPACE"
+          make test-artifact-proxy USER_NAMESPACE="${{ env.USER_NAMESPACE }}"
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
