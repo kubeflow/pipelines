@@ -151,3 +151,98 @@ func TestCreateMySQLConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestCreatePostgreSQLConfig(t *testing.T) {
+	tests := []struct {
+		name         string
+		user         string
+		password     string
+		host         string
+		dbName       string
+		port         uint16
+		want         string
+		wantRedacted string
+	}{
+		{
+			name:         "all fields populated",
+			user:         "admin",
+			password:     "secret",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			want:         "database=mlpipeline user=admin password=secret host=postgres-host port=5432 sslmode=disable",
+			wantRedacted: "database=mlpipeline user=admin password=*** host=postgres-host port=5432 sslmode=disable",
+		},
+		{
+			name:         "empty password",
+			user:         "admin",
+			password:     "",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			want:         "database=mlpipeline user=admin host=postgres-host port=5432 sslmode=disable",
+			wantRedacted: "database=mlpipeline user=admin host=postgres-host port=5432 sslmode=disable",
+		},
+		{
+			name:         "empty user",
+			user:         "",
+			password:     "secret",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			want:         "database=mlpipeline password=secret host=postgres-host port=5432 sslmode=disable",
+			wantRedacted: "database=mlpipeline password=*** host=postgres-host port=5432 sslmode=disable",
+		},
+		{
+			name:         "empty database name",
+			user:         "admin",
+			password:     "secret",
+			host:         "postgres-host",
+			dbName:       "",
+			port:         5432,
+			want:         "user=admin password=secret host=postgres-host port=5432 sslmode=disable",
+			wantRedacted: "user=admin password=*** host=postgres-host port=5432 sslmode=disable",
+		},
+		{
+			name:         "empty host",
+			user:         "admin",
+			password:     "secret",
+			host:         "",
+			dbName:       "mlpipeline",
+			port:         5432,
+			want:         "database=mlpipeline user=admin password=secret port=5432 sslmode=disable",
+			wantRedacted: "database=mlpipeline user=admin password=*** port=5432 sslmode=disable",
+		},
+		{
+			name:         "zero port",
+			user:         "admin",
+			password:     "secret",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         0,
+			want:         "database=mlpipeline user=admin password=secret host=postgres-host sslmode=disable",
+			wantRedacted: "database=mlpipeline user=admin password=*** host=postgres-host sslmode=disable",
+		},
+		{
+			name:         "all fields empty",
+			user:         "",
+			password:     "",
+			host:         "",
+			dbName:       "",
+			port:         0,
+			want:         "sslmode=disable",
+			wantRedacted: "sslmode=disable",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotRedacted := CreatePostgreSQLConfig(tt.user, tt.password, tt.host, tt.dbName, tt.port)
+			if got != tt.want {
+				t.Errorf("CreatePostgreSQLConfig() dsn = %q, want %q", got, tt.want)
+			}
+			if gotRedacted != tt.wantRedacted {
+				t.Errorf("CreatePostgreSQLConfig() redactedDSN = %q, want %q", gotRedacted, tt.wantRedacted)
+			}
+		})
+	}
+}

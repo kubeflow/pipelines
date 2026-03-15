@@ -27,9 +27,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -100,8 +98,8 @@ type Options struct {
 
 func EmptyOptions() *Options {
 	return &Options{
-		math.MaxInt32,
-		&token{},
+		PageSize: math.MaxInt32,
+		token:    &token{},
 	}
 }
 
@@ -183,8 +181,10 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 // AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-	sqlBuilder = o.AddSortingToSelect(sqlBuilder)
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
+	sqlBuilder = o.AddSortingToSelect(sqlBuilder, quote)
 	// Add one more item than what is requested.
 	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
 
@@ -192,28 +192,73 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 }
 
 // AddSortingToSelect adds Order By clause.
-func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
+	if quote == nil {
+		quote = func(s string) string { return s }
+	}
+
+	sortByFieldNameWithPrefix := o.SortByFieldPrefix
+	if sortByFieldNameWithPrefix != "" {
+		sortByFieldNameWithPrefix = quote(sortByFieldNameWithPrefix) + "."
+	}
+	sortByFieldNameWithPrefix += quote(o.SortByFieldName)
+
+	keyFieldNameWithPrefix := o.KeyFieldPrefix
+	if keyFieldNameWithPrefix != "" {
+		keyFieldNameWithPrefix = quote(keyFieldNameWithPrefix) + "."
+	}
+	keyFieldNameWithPrefix += quote(o.KeyFieldName)
+
 	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
+		// For numeric comparisons, embed values directly in SQL to avoid driver type interpretation issues
+		_, isNumeric := o.SortByFieldValue.(float64)
+
 		if o.IsDesc {
-			sqlBuilder = sqlBuilder.
-				Where(sq.Or{
-					sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
-					},
-				})
+			if isNumeric {
+				floatVal := o.SortByFieldValue.(float64)
+				sqlBuilder = sqlBuilder.
+					Where(sq.Or{
+						sq.Expr(fmt.Sprintf("%s < %f", sortByFieldNameWithPrefix, floatVal)),
+						sq.And{
+							sq.Expr(fmt.Sprintf("%s = %f", sortByFieldNameWithPrefix, floatVal)),
+							sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
+						},
+					})
+			} else {
+				sqlBuilder = sqlBuilder.
+					Where(sq.Or{
+						sq.Lt{sortByFieldNameWithPrefix: o.SortByFieldValue},
+						sq.And{
+							sq.Eq{sortByFieldNameWithPrefix: o.SortByFieldValue},
+							sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
+						},
+					})
+			}
 		} else {
-			sqlBuilder = sqlBuilder.
-				Where(sq.Or{
-					sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
-					},
-				})
+			if isNumeric {
+				floatVal := o.SortByFieldValue.(float64)
+				sqlBuilder = sqlBuilder.
+					Where(sq.Or{
+						sq.Expr(fmt.Sprintf("%s > %f", sortByFieldNameWithPrefix, floatVal)),
+						sq.And{
+							sq.Expr(fmt.Sprintf("%s = %f", sortByFieldNameWithPrefix, floatVal)),
+							sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
+						},
+					})
+			} else {
+				sqlBuilder = sqlBuilder.
+					Where(sq.Or{
+						sq.Gt{sortByFieldNameWithPrefix: o.SortByFieldValue},
+						sq.And{
+							sq.Eq{sortByFieldNameWithPrefix: o.SortByFieldValue},
+							sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
+						},
+					})
+			}
 		}
 	}
 
@@ -223,11 +268,11 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 	}
 
 	if o.SortByFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order))
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortByFieldNameWithPrefix, order))
 	}
 
 	if o.KeyFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", keyFieldNameWithPrefix, order))
 	}
 
 	return sqlBuilder
@@ -236,76 +281,14 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 // AddFilterToSelect adds WHERE clauses with the filtering criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
 	if o.Filter != nil {
-		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
+		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, quote)
 	}
 
 	return sqlBuilder
-}
-
-// FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
-// table that match an optional given filter, and returns the rebuilt SelectBuilder.
-func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
-	selectCount bool, filterContext *model.FilterContext,
-) (sq.SelectBuilder, error) {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName)
-	if filterContext.ReferenceKey != nil && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
-		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
-			From("resource_references as rf").
-			Where(sq.And{
-				sq.Eq{"rf.ResourceType": resourceType},
-				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type},
-			}).ToSql()
-		if err != nil {
-			return selectBuilder, util.NewInternalServerError(
-				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
-		}
-		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
-	}
-	return selectBuilder, nil
-}
-
-// FilterOnExperiment filters the given table by rows based on provided experiment ID,
-// and returns the rebuilt SelectBuilder.
-func FilterOnExperiment(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	experimentID string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "ExperimentUUID", experimentID), nil
-}
-
-func FilterOnNamespace(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	namespace string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "Namespace", namespace), nil
-}
-
-func filterByColumnValue(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	columnName string,
-	filterValue interface{},
-) sq.SelectBuilder {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName).Where(
-		sq.Eq{columnName: filterValue},
-	)
-	return selectBuilder
 }
 
 // Scans the one given row into a number, and returns the number.
@@ -351,6 +334,25 @@ func (o *Options) NextPageToken(listable Listable) (string, error) {
 		return "", err
 	}
 	return t.marshal()
+}
+
+func (o *Options) GetSortByFieldValue() interface{} {
+	if o.token == nil {
+		return nil
+	}
+	return o.SortByFieldValue
+}
+
+// WithSortByFieldValue returns a new Options struct with the specific sort by field value.
+// It maintains immutability of the original Options.
+func (o *Options) WithSortByFieldValue(val interface{}) *Options {
+	newOpts := *o
+	if o.token != nil {
+		newToken := *o.token
+		newToken.SortByFieldValue = val
+		newOpts.token = &newToken
+	}
+	return &newOpts
 }
 
 func (o *Options) nextPageToken(listable Listable) (*token, error) {

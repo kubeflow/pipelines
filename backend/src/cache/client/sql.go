@@ -15,6 +15,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/go-sql-driver/mysql"
@@ -43,4 +44,32 @@ func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 		DBName:               dbName,
 		AllowNativePasswords: true,
 	}
+}
+
+func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
+) (dsn, redactedDSN string) {
+	var b, rb bytes.Buffer
+	if dbName != "" {
+		fmt.Fprintf(&b, "database=%s ", dbName)
+		fmt.Fprintf(&rb, "database=%s ", dbName)
+	}
+	if user != "" {
+		fmt.Fprintf(&b, "user=%s ", user)
+		fmt.Fprintf(&rb, "user=%s ", user)
+	}
+	if password != "" {
+		fmt.Fprintf(&b, "password=%s ", password)
+		fmt.Fprint(&rb, "password=*** ")
+	}
+	if postgresHost != "" {
+		fmt.Fprintf(&b, "host=%s ", postgresHost)
+		fmt.Fprintf(&rb, "host=%s ", postgresHost)
+	}
+	if postgresPort != 0 {
+		fmt.Fprintf(&b, "port=%d ", postgresPort)
+		fmt.Fprintf(&rb, "port=%d ", postgresPort)
+	}
+	fmt.Fprint(&b, "sslmode=disable")
+	fmt.Fprint(&rb, "sslmode=disable")
+	return b.String(), rb.String()
 }
