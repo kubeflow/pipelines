@@ -91,6 +91,44 @@ class OrchestratorUtils:
             return value
 
     @classmethod
+    def _create_pipeline_task_final_status(
+        cls,
+        producer_task: str,
+        task_status: status.Status,
+        error_message: str = None,
+    ):
+        """Create a PipelineTaskFinalStatus object for exit handler tasks.
+
+        Args:
+            producer_task: The name of the producer task.
+            task_status: The status of the producer task.
+            error_message: Optional error message if the task failed.
+
+        Returns:
+            A PipelineTaskFinalStatus dataclass instance.
+        """
+        from kfp.dsl import task_final_status as tfs
+
+        # Map local status to pipeline state strings
+        if task_status == status.Status.SUCCESS:
+            state = 'SUCCEEDED'
+            error_code = None
+            error_msg = None
+        else:  # FAILURE
+            state = 'FAILED'
+            # Use UNKNOWN error code for failures (per google.rpc.Code)
+            error_code = 2  # UNKNOWN = 2
+            error_msg = error_message or 'Task failed during local execution'
+
+        return tfs.PipelineTaskFinalStatus(
+            state=state,
+            pipeline_job_resource_name='local-pipeline-run',
+            pipeline_task_name=producer_task,
+            error_code=error_code,
+            error_message=error_msg,
+        )
+
+    @classmethod
     def execute_single_task(
         cls,
         task_name: str,
@@ -231,10 +269,30 @@ class OrchestratorUtils:
 
                 task_arguments[input_name] = parent_value
 
-            # TODO: support dsl.ExitHandler
+            # Handle task_final_status for dsl.ExitHandler
             elif input_spec.HasField('task_final_status'):
-                raise NotImplementedError(
-                    "'dsl.ExitHandler' is not yet support for local execution.")
+                producer_task = input_spec.task_final_status.producer_task
+                # Get status from IOStore
+                try:
+                    task_status = io_store.get_task_status(producer_task)
+                    error_message = io_store.get_task_error(producer_task)
+                    task_arguments[input_name] = cls._create_pipeline_task_final_status(
+                        producer_task=producer_task,
+                        task_status=task_status,
+                        error_message=error_message,
+                    )
+                except ValueError as exc:
+                    # If task status is not found, the producer task hasn't run yet or
+                    # its status was not recorded correctly. This should not occur in
+                    # normal operation and likely indicates a bug in the local
+                    # orchestrator logic.
+                    raise ValueError(
+                        f"Failed to retrieve final status for producer task "
+                        f"'{producer_task}' referenced by a dsl.ExitHandler. "
+                        f"This condition should never occur during normal pipeline "
+                        f"execution and likely indicates a bug in the local "
+                        f"orchestrator's scheduling or state management."
+                    ) from exc
 
             else:
                 raise ValueError(f'Missing input for parameter {input_name}.')
