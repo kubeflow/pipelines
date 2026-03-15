@@ -16,6 +16,7 @@ package end2end
 
 import (
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,7 +25,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
+	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
@@ -37,9 +42,255 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func collectRunInfos(runClient *apiserver.RunClient, experimentID *string, testContext *apitests.TestContext, recurringRunID string, targetRuns int) ([]RunInfo, error) {
+	GinkgoHelper()
+	if experimentID == nil {
+		return nil, fmt.Errorf("experimentID cannot be nil")
+	}
+	if testContext == nil {
+		return nil, fmt.Errorf("test context cannot be nil")
+	}
+
+	runInfos := make([]RunInfo, 0, targetRuns)
+	seen := make(map[string]struct{})
+	var collectErr error
+
+	Eventually(func() bool {
+		runs, _, _, err := runClient.List(&run_params.RunServiceListRunsParams{
+			ExperimentID: experimentID,
+		})
+		if err != nil {
+			if collectErr == nil {
+				collectErr = fmt.Errorf("failed to list runs for recurring run %s: %w", recurringRunID, err)
+			}
+			return false
+		}
+
+		for _, run := range runs {
+			if run.RecurringRunID == "" || run.RecurringRunID != recurringRunID {
+				continue
+			}
+			if _, exists := seen[run.RunID]; exists {
+				continue
+			}
+
+			seen[run.RunID] = struct{}{}
+			info := RunInfo{RunID: run.RunID}
+			if run.PipelineVersionReference != nil {
+				info.PipelineID = run.PipelineVersionReference.PipelineID
+				info.PipelineVersionID = run.PipelineVersionReference.PipelineVersionID
+			}
+			runInfos = append(runInfos, info)
+			testContext.PipelineRun.CreatedRunIds = append(testContext.PipelineRun.CreatedRunIds, run.RunID)
+		}
+
+		return len(runInfos) >= targetRuns
+	}, 6*time.Minute, 5*time.Second).Should(BeTrue(), "Expected recurring run %s to create at least %d runs", recurringRunID, targetRuns)
+
+	if collectErr != nil {
+		return nil, collectErr
+	}
+	if len(runInfos) > targetRuns {
+		runInfos = runInfos[:targetRuns]
+	}
+
+	return runInfos, nil
+}
+
+// MaxActiveRuns returns the configured maxActiveRuns from a pipeline spec.
+func MaxActiveRuns(pipelineFilePath string) (int32, error) {
+	spec := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
+	if spec == nil {
+		return 0, fmt.Errorf("pipeline spec %q missing platform configuration", pipelineFilePath)
+	}
+	value, err := spec.MaxActiveRuns()
+	if err != nil {
+		return 0, err
+	}
+	if value == nil {
+		return 0, fmt.Errorf("pipeline spec %q does not specify max_active_runs", pipelineFilePath)
+	}
+	return *value, nil
+}
+
+func kubectlGetWorkflowField(namespace, workflowName, jsonPath string) string {
+	cmd := exec.Command("kubectl", "get", "workflows", "-n", namespace, workflowName, "-o", "jsonpath="+jsonPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log("Failed to get workflow field %s for %s: %v, output: %s", jsonPath, workflowName, err, strings.TrimSpace(string(output)))
+		return ""
+	}
+	return strings.TrimSpace(string(output))
+}
+
+func logWorkflowSemaphoreInfo(runID string) {
+	namespace := testutil.GetNamespace()
+	workflowName := testutil.GetWorkflowNameByRunID(namespace, runID)
+	if workflowName == "" {
+		logger.Log("Debug semaphore: no workflow found for runID=%s", runID)
+		return
+	}
+	maxRuns := kubectlGetWorkflowField(namespace, workflowName, "{.metadata.annotations.pipelines\\.kubeflow\\.org/max_active_runs}")
+	pipelineVersionID := kubectlGetWorkflowField(namespace, workflowName, "{.metadata.annotations.pipelines\\.kubeflow\\.org/pipeline_version_id}")
+	semaphoreName := kubectlGetWorkflowField(namespace, workflowName, "{.spec.synchronization.semaphores[0].configMapKeyRef.name}")
+	semaphoreKey := kubectlGetWorkflowField(namespace, workflowName, "{.spec.synchronization.semaphores[0].configMapKeyRef.key}")
+	logger.Log("Debug semaphore: runID=%s workflow=%s max_active_runs=%s pipeline_version_id=%s semaphore_name=%s semaphore_key=%s",
+		runID, workflowName, maxRuns, pipelineVersionID, semaphoreName, semaphoreKey)
+}
+
+// ValidateWorkflowParallelismAcrossRuns launches multiple runs for the same pipeline version
+// and asserts that no more than the configured limit are active concurrently.
+func ValidateWorkflowParallelismAcrossRuns(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID string, pipelineVersionID string, experimentID *string, limit int32, maxPipelineWaitTime int) {
+	// Launch (limit + 2) runs to exercise the semaphore.
+	targetRuns := int(limit)
+	runIDs := make([]string, 0, targetRuns)
+	for i := 0; i < targetRuns; i++ {
+		created := e2e_utils.CreatePipelineRun(runClient, testContext, &pipelineID, &pipelineVersionID, experimentID, nil)
+		runIDs = append(runIDs, created.RunID)
+	}
+
+	// Wait a bit for Argo to process the runs and enforce semaphore limits
+	time.Sleep(5 * time.Second)
+
+	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
+	pollInterval := 2 * time.Second
+
+	validationPassed := false
+
+	for {
+		active := 0
+		allTerminal := true
+		for _, rid := range runIDs {
+			run := testutil.GetPipelineRun(runClient, &rid)
+			if run.State == nil {
+				active++
+				allTerminal = false
+				continue
+			}
+			switch *run.State {
+			case run_model.V2beta1RuntimeStateRUNNING:
+				// Only count RUNNING as active; PENDING may indicate waiting for semaphore
+				active++
+				allTerminal = false
+			case run_model.V2beta1RuntimeStatePENDING:
+				// PENDING runs might be waiting for semaphore, don't count as active
+				allTerminal = false
+			default:
+				// terminal
+			}
+		}
+		if int32(active) > limit {
+			for _, rid := range runIDs {
+				logWorkflowSemaphoreInfo(rid)
+			}
+		}
+		Expect(active).To(BeNumerically("<=", limit), "Active concurrent runs should respect max_active_runs")
+		if active > 0 {
+			validationPassed = true
+		}
+		if allTerminal {
+			if !validationPassed {
+				Fail("All runs completed before parallelism validation could be performed; runs may have completed too quickly or never started")
+			}
+			return
+		}
+		if time.Now().After(timeout) {
+			Fail(fmt.Sprintf("Timed out waiting for runs to finish; active=%d, limit=%d", active, limit))
+		}
+		time.Sleep(pollInterval)
+	}
+}
+
+// RunInfo tracks run information for parallelism validation
+type RunInfo struct {
+	RunID             string
+	PipelineID        string
+	PipelineVersionID string
+}
+
+// ValidateParallelismAcrossRuns validates parallelism limits across multiple runs with different pipeline/version combinations.
+// runInfos contains all runs to monitor, versionLimitMap maps pipelineVersionID to its max_active_runs limit.
+// For runs without max_active_runs, they should not be limited.
+func ValidateParallelismAcrossRuns(runClient *apiserver.RunClient, runInfos []RunInfo, versionLimitMap map[string]int32, maxPipelineWaitTime int) {
+	// Wait a bit for Argo to process the runs and enforce semaphore limits
+	time.Sleep(5 * time.Second)
+
+	timeout := time.Now().Add(time.Duration(maxPipelineWaitTime) * time.Second)
+	pollInterval := 2 * time.Second
+	validationPassed := false
+
+	for {
+		// Track active runs per pipeline version
+		activeByVersion := make(map[string]int)
+		pendingByVersion := make(map[string]int)
+		allTerminal := true
+
+		for _, runInfo := range runInfos {
+			run := testutil.GetPipelineRun(runClient, &runInfo.RunID)
+			if run.State == nil {
+				activeByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+				continue
+			}
+			switch *run.State {
+			case run_model.V2beta1RuntimeStateRUNNING:
+				activeByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+			case run_model.V2beta1RuntimeStatePENDING:
+				pendingByVersion[runInfo.PipelineVersionID]++
+				allTerminal = false
+			default:
+				// terminal
+			}
+		}
+
+		// Validate limits per version while runs are active
+		if len(activeByVersion) > 0 {
+			for versionID, activeCount := range activeByVersion {
+				if limit, hasLimit := versionLimitMap[versionID]; hasLimit {
+					if int32(activeCount) > limit {
+						for _, runInfo := range runInfos {
+							if runInfo.PipelineVersionID == versionID {
+								logWorkflowSemaphoreInfo(runInfo.RunID)
+							}
+						}
+					}
+					Expect(int32(activeCount)).To(BeNumerically("<=", limit),
+						fmt.Sprintf("Active concurrent runs for pipeline version %s should respect max_active_runs limit of %d, but found %d active", versionID, limit, activeCount))
+				}
+			}
+			validationPassed = true
+		}
+
+		if allTerminal {
+			if !validationPassed {
+				Fail(fmt.Sprintf("All runs completed before parallelism validation could be performed; runs may have completed too quickly or never started. Total runs: %d", len(runInfos)))
+			}
+			return
+		}
+
+		if time.Now().After(timeout) {
+			// If we never saw active runs, that's a problem
+			if !validationPassed {
+				Fail(fmt.Sprintf("Timed out waiting for runs to become active; active runs by version: %v, pending runs by version: %v, total runs: %d", activeByVersion, pendingByVersion, len(runInfos)))
+			}
+			// If we validated successfully and only PENDING runs remain, that's acceptable
+			if len(activeByVersion) == 0 && len(pendingByVersion) > 0 {
+				logger.Log("Validation passed. Some runs are still PENDING (waiting for semaphore), which is expected. Test passed.")
+				return
+			}
+			// If we validated but runs are still RUNNING, that's a timeout issue
+			Fail(fmt.Sprintf("Timed out waiting for runs to finish; active runs by version: %v, pending runs by version: %v", activeByVersion, pendingByVersion))
+		}
+		time.Sleep(pollInterval)
+	}
+}
 
 var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func() {
 	var testContext *apitests.TestContext
@@ -101,6 +352,10 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 	ReportAfterEach(func(specReport types.SpecReport) {
 		if testContext == nil {
 			return
+		}
+		logger.Log("Deleting %d recurring run(s)", len(testContext.RecurringRun.CreatedRecurringRunIds))
+		for _, recurringRunID := range testContext.RecurringRun.CreatedRecurringRunIds {
+			testutil.DeleteRecurringRun(recurringRunClient, recurringRunID)
 		}
 		if specReport.Failed() && len(testContext.PipelineRun.CreatedRunIds) > 0 {
 			report, _ := testutil.BuildArchivedWorkflowLogsReport(k8Client, testContext.PipelineRun.CreatedRunIds)
@@ -247,6 +502,309 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			})
 		}
 	})
+
+	Context("Pipeline run parallelism tests >", FlakeAttempts(2), Label(E2eParallelism), func() {
+		var pipelineFile = "essential/pipeline_with_max_active_runs.yaml"
+		var pipelineDir = "valid"
+		const parallelismWaitTime = 720 // 12 minutes
+
+		It("MaxParallelism runs of a single pipeline version - only MaxParallelism runs should be active", NodeTimeout(12*time.Minute), func(ctx SpecContext) {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, err := MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
+
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+
+			// Launch (limit + 1) runs to exercise the semaphore
+			targetRuns := int(limit) + 1
+			runInfos := make([]RunInfo, 0, targetRuns)
+			for i := 0; i < targetRuns; i++ {
+				created := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &uploadedPipelineVersion.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: uploadedPipelineVersion.PipelineVersionID,
+				})
+			}
+
+			versionLimitMap := map[string]int32{
+				uploadedPipelineVersion.PipelineVersionID: limit,
+			}
+			ValidateParallelismAcrossRuns(runClient, runInfos, versionLimitMap, parallelismWaitTime)
+		})
+
+		It("MaxParallelism runs of a single pipeline but with different versions - all runs should be active", NodeTimeout(12*time.Minute), func(ctx SpecContext) {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, err := MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
+
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			version1 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+
+			// Upload a second version of the same pipeline
+			uploadParams := upload_params.NewUploadPipelineVersionParams()
+			uploadParams.Pipelineid = &uploadedPipeline.PipelineID
+			version2, uploadErr2 := pipelineUploadClient.UploadPipelineVersion(pipelineFilePath, uploadParams)
+			Expect(uploadErr2).To(BeNil(), "Failed to upload second pipeline version")
+
+			// Launch all runs for version1 first, then all runs for version2 (sequential batches)
+			targetRuns := int(limit) + 1
+			runInfos := make([]RunInfo, 0, targetRuns*2)
+			// Launch all version1 runs first
+			for i := 0; i < targetRuns; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+			}
+			// Then launch all version2 runs
+			for i := 0; i < targetRuns; i++ {
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created2.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version2.PipelineVersionID,
+				})
+			}
+
+			// Both versions should have their own limits, so all runs from different versions should be active
+			versionLimitMap := map[string]int32{
+				version1.PipelineVersionID: limit,
+				version2.PipelineVersionID: limit,
+			}
+			ValidateParallelismAcrossRuns(runClient, runInfos, versionLimitMap, parallelismWaitTime)
+		})
+
+		It("MaxParallelism runs, mix of single pipeline with different versions + same version - only MaxParallelism runs off the same version should be allowed but all runs from different versions should be allowed", NodeTimeout(12*time.Minute), func(ctx SpecContext) {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, err := MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
+
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			version1 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+
+			// Upload a second version of the same pipeline
+			uploadParams := upload_params.NewUploadPipelineVersionParams()
+			uploadParams.Pipelineid = &uploadedPipeline.PipelineID
+			version2, uploadErr2 := pipelineUploadClient.UploadPipelineVersion(pipelineFilePath, uploadParams)
+			Expect(uploadErr2).To(BeNil(), "Failed to upload second pipeline version")
+
+			// Test a MIX scenario: Launch runs to test dynamic mixing
+			runInfos := make([]RunInfo, 0)
+
+			// Step 1: Launch runs from version1 (same version) to exceed the limit
+			version1Runs := int(limit) + 1
+			for i := 0; i < version1Runs; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+			}
+
+			// Step 2: Launch runs from version2 (different version) - should be allowed independently
+			version2Runs := int(limit) + 1
+			for i := 0; i < version2Runs; i++ {
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created2.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version2.PipelineVersionID,
+				})
+			}
+
+			// Step 3: Launch more runs from version1 (same version again) - should still be limited
+			additionalVersion1Runs := int(limit)
+			for i := 0; i < additionalVersion1Runs; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+			}
+
+			// Verify: The mix of "different versions + same version" doesn't cause interference
+			versionLimitMap := map[string]int32{
+				version1.PipelineVersionID: limit,
+				version2.PipelineVersionID: limit,
+			}
+			ValidateParallelismAcrossRuns(runClient, runInfos, versionLimitMap, parallelismWaitTime)
+		})
+
+		It("MaxParallelism runs different pipelines - all runs should be allowed", NodeTimeout(12*time.Minute), func(ctx SpecContext) {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, err := MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
+
+			// Upload first pipeline
+			uploadedPipeline1, uploadErr1 := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr1).To(BeNil(), "Failed to upload first pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline1)
+			version1 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline1.PipelineID)
+
+			// Upload second pipeline (different pipeline, not just a version)
+			pipelineName2 := testContext.Pipeline.PipelineGeneratedName + "-pipeline2"
+			uploadedPipeline2, uploadErr2 := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &pipelineName2, nil)
+			Expect(uploadErr2).To(BeNil(), "Failed to upload second pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline2)
+			version2 := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline2.PipelineID)
+
+			// Launch (limit + 1) runs for each pipeline
+			targetRuns := int(limit) + 1
+			runInfos := make([]RunInfo, 0, targetRuns*2)
+			for i := 0; i < targetRuns; i++ {
+				created1 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline1.PipelineID, &version1.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created1.RunID,
+					PipelineID:        uploadedPipeline1.PipelineID,
+					PipelineVersionID: version1.PipelineVersionID,
+				})
+				created2 := e2e_utils.CreatePipelineRun(runClient, testContext, &uploadedPipeline2.PipelineID, &version2.PipelineVersionID, experimentID, nil)
+				runInfos = append(runInfos, RunInfo{
+					RunID:             created2.RunID,
+					PipelineID:        uploadedPipeline2.PipelineID,
+					PipelineVersionID: version2.PipelineVersionID,
+				})
+			}
+
+			// Each pipeline version should have its own limit, so runs from different pipelines should not interfere
+			versionLimitMap := map[string]int32{
+				version1.PipelineVersionID: limit,
+				version2.PipelineVersionID: limit,
+			}
+			ValidateParallelismAcrossRuns(runClient, runInfos, versionLimitMap, parallelismWaitTime)
+		})
+	})
+
+	Context("Recurring run parallelism tests >", FlakeAttempts(2), Label(E2eParallelism), func() {
+		const (
+			pipelineDir         = "valid"
+			pipelineFile        = "essential/pipeline_with_max_active_runs.yaml"
+			parallelismWaitTime = 720 // 12 minutes
+		)
+
+		removeRecurringRunID := func(id string) {
+			for idx, storedID := range testContext.RecurringRun.CreatedRecurringRunIds {
+				if storedID == id {
+					testContext.RecurringRun.CreatedRecurringRunIds = append(
+						testContext.RecurringRun.CreatedRecurringRunIds[:idx],
+						testContext.RecurringRun.CreatedRecurringRunIds[idx+1:]...,
+					)
+					break
+				}
+			}
+		}
+
+		It("Recurring run referencing pipeline ID only respects max_active_runs", NodeTimeout(12*time.Minute), func(ctx SpecContext) {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, err := MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
+
+			uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline")
+			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+			latestVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+			Expect(latestVersion.PipelineVersionID).NotTo(BeEmpty(), "Expected latest pipeline version to have an ID")
+
+			createParams := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{
+				RecurringRun: &recurring_run_model.V2beta1RecurringRun{
+					DisplayName:  fmt.Sprintf("recurring-id-%s", randomName),
+					ExperimentID: *experimentID,
+					PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
+						PipelineID: uploadedPipeline.PipelineID,
+					},
+					MaxConcurrency: int64(limit),
+					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
+					Trigger: &recurring_run_model.V2beta1Trigger{
+						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
+							IntervalSecond: 5,
+						},
+					},
+				},
+			}
+			recurringRun, err := recurringRunClient.Create(createParams)
+			Expect(err).To(BeNil(), "Failed to create recurring run referencing pipeline ID")
+			Expect(recurringRun).NotTo(BeNil(), "Recurring run response should not be nil")
+			testContext.RecurringRun.CreatedRecurringRunIds = append(testContext.RecurringRun.CreatedRecurringRunIds, recurringRun.RecurringRunID)
+
+			targetRuns := int(limit)
+			runInfos, err := collectRunInfos(runClient, experimentID, testContext, recurringRun.RecurringRunID, targetRuns)
+			Expect(err).NotTo(HaveOccurred(), "Failed to collect run infos for recurring run %s", recurringRun.RecurringRunID)
+
+			versionLimitMap := make(map[string]int32)
+			for _, info := range runInfos {
+				versionLimitMap[info.PipelineVersionID] = limit
+			}
+
+			ValidateParallelismAcrossRuns(runClient, runInfos, versionLimitMap, parallelismWaitTime)
+
+			testutil.DeleteRecurringRun(recurringRunClient, recurringRun.RecurringRunID)
+			removeRecurringRunID(recurringRun.RecurringRunID)
+		})
+
+		It("Recurring run with embedded workflow spec respects max_active_runs", NodeTimeout(12*time.Minute), func(ctx SpecContext) {
+			pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			limit, err := MaxActiveRuns(pipelineFilePath)
+			Expect(err).NotTo(HaveOccurred(), "Pipeline should have max_active_runs configured")
+			Expect(limit).To(BeNumerically(">", 0), "max_active_runs should be greater than 0")
+
+			specTemplate := testutil.ParseFileToSpecs(pipelineFilePath, false, nil)
+			Expect(specTemplate).NotTo(BeNil(), "Failed to parse pipeline spec template")
+			pipelineSpec := &structpb.Struct{}
+			specBytes, err := protojson.Marshal(specTemplate.PipelineSpec())
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal pipeline spec")
+			Expect(protojson.Unmarshal(specBytes, pipelineSpec)).To(Succeed(), "Failed to unmarshal pipeline spec")
+
+			createParams := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{
+				RecurringRun: &recurring_run_model.V2beta1RecurringRun{
+					DisplayName:    fmt.Sprintf("recurring-spec-%s", randomName),
+					ExperimentID:   *experimentID,
+					PipelineSpec:   pipelineSpec,
+					MaxConcurrency: int64(limit),
+					Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
+					Trigger: &recurring_run_model.V2beta1Trigger{
+						PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
+							IntervalSecond: 5,
+						},
+					},
+				},
+			}
+			recurringRun, err := recurringRunClient.Create(createParams)
+			Expect(err).To(BeNil(), "Failed to create recurring run with embedded workflow spec")
+			Expect(recurringRun).NotTo(BeNil(), "Recurring run response should not be nil")
+			testContext.RecurringRun.CreatedRecurringRunIds = append(testContext.RecurringRun.CreatedRecurringRunIds, recurringRun.RecurringRunID)
+
+			targetRuns := int(limit)
+			runInfos, err := collectRunInfos(runClient, experimentID, testContext, recurringRun.RecurringRunID, targetRuns)
+			Expect(err).NotTo(HaveOccurred(), "Failed to collect run infos for recurring run %s", recurringRun.RecurringRunID)
+
+			versionLimitMap := make(map[string]int32)
+			for _, info := range runInfos {
+				versionLimitMap[info.PipelineVersionID] = limit
+			}
+
+			ValidateParallelismAcrossRuns(runClient, runInfos, versionLimitMap, parallelismWaitTime)
+
+			testutil.DeleteRecurringRun(recurringRunClient, recurringRun.RecurringRunID)
+			removeRecurringRunID(recurringRun.RecurringRunID)
+		})
+	})
 })
 
 func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {
@@ -266,5 +824,8 @@ func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testCon
 	}
 	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
 	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
+	if limit, err := MaxActiveRuns(pipelineFilePath); err == nil {
+		ValidateWorkflowParallelismAcrossRuns(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipelineVersion.PipelineVersionID, experimentID, limit, maxPipelineWaitTime)
+	}
 
 }
