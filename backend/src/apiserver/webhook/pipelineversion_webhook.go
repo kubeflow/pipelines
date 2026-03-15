@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -120,8 +121,15 @@ func (p *PipelineVersionsWebhook) ValidateUpdate(_ context.Context, oldObj, newO
 		return nil, newBadRequestError(fmt.Sprintf("Expected a PipelineVersion but got %T", newObj))
 	}
 
-	if oldPipelineVersion.Generation != newPipelineVersion.Generation {
-		return nil, newBadRequestError("Pipeline spec is immutable; only metadata changes (labels/annotations) are allowed")
+	// Allow mutable field changes (DisplayName, Tags) but reject changes to
+	// immutable pipeline spec fields.
+	if !reflect.DeepEqual(oldPipelineVersion.Spec.PipelineSpec, newPipelineVersion.Spec.PipelineSpec) ||
+		!reflect.DeepEqual(oldPipelineVersion.Spec.PlatformSpec, newPipelineVersion.Spec.PlatformSpec) ||
+		oldPipelineVersion.Spec.PipelineName != newPipelineVersion.Spec.PipelineName ||
+		oldPipelineVersion.Spec.Description != newPipelineVersion.Spec.Description ||
+		oldPipelineVersion.Spec.CodeSourceURL != newPipelineVersion.Spec.CodeSourceURL ||
+		oldPipelineVersion.Spec.PipelineSpecURI != newPipelineVersion.Spec.PipelineSpecURI {
+		return nil, newBadRequestError("Pipeline spec is immutable; only mutable fields (display_name, tags) can be updated")
 	}
 
 	return nil, nil

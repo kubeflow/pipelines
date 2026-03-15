@@ -168,5 +168,13 @@ else
     sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_recurring_run.go
     sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_periodic_schedule.go
 fi
+# Copy custom helper files that extend generated structs with convenience methods.
+# These are receiver methods on generated types and must live in the same package.
+# Source templates are in backend/api/hack/templates/.
+if [[ "$API_VERSION" == "v2beta1" ]]; then
+    cp backend/api/hack/templates/v2beta1/pipeline_upload_service/tags_helpers.go.tpl \
+       backend/api/${API_VERSION}/go_http_client/pipeline_upload_client/pipeline_upload_service/tags_helpers.go
+fi
+
 # Execute the //go:generate directives in the generated code.
 cd backend/api && go generate ./...

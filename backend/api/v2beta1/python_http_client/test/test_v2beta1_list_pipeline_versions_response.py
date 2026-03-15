@@ -55,9 +55,12 @@ class TestV2beta1ListPipelineVersionsResponse(unittest.TestCase):
                                 {
                                     'key' : None
                                     }
-                                ], ), )
-                    ], 
-                next_page_token = '0', 
+                                ], ),
+                        tags = {
+                            'key' : '0'
+                            }, )
+                    ],
+                next_page_token = '0',
                 total_size = 56
             )
         else :

@@ -135,7 +135,7 @@ func TestUploadPipeline(t *testing.T) {
 				},
 			}
 
-			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 			assert.Nil(t, err)
 			assert.Equal(t, str, "")
 			assert.Equal(t, 1, totalSize)
@@ -377,7 +377,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
@@ -478,7 +478,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
@@ -529,7 +529,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			Namespace:      "",
 		},
 	}
-	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
+	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
