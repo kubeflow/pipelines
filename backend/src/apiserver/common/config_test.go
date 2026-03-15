@@ -386,6 +386,21 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			getter:   func() interface{} { return GetDefaultSecurityContextRunAsNonRoot() },
 			expected: "",
 		},
+		{
+			name:     "GetDefaultPodProvisioningTimeout defaults to 3600s",
+			getter:   func() interface{} { return GetDefaultPodProvisioningTimeout() },
+			expected: DefaultPodProvisioningTimeoutValue,
+		},
+		{
+			name:     "GetDefaultPodRuntimeTimeout defaults to 3600s",
+			getter:   func() interface{} { return GetDefaultPodRuntimeTimeout() },
+			expected: DefaultPodRuntimeTimeoutValue,
+		},
+		{
+			name:     "GetDefaultPodNodeFailureTimeout defaults to 3600s",
+			getter:   func() interface{} { return GetDefaultPodNodeFailureTimeout() },
+			expected: DefaultPodNodeFailureTimeoutValue,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -525,6 +540,27 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "true",
 			getter:   func() interface{} { return GetDefaultSecurityContextRunAsNonRoot() },
 			expected: "true",
+		},
+		{
+			name:     "GetDefaultPodProvisioningTimeout with custom value",
+			envKey:   DefaultPodProvisioningTimeout,
+			envValue: "1800s",
+			getter:   func() interface{} { return GetDefaultPodProvisioningTimeout() },
+			expected: "1800s",
+		},
+		{
+			name:     "GetDefaultPodRuntimeTimeout with custom value",
+			envKey:   DefaultPodRuntimeTimeout,
+			envValue: "7200s",
+			getter:   func() interface{} { return GetDefaultPodRuntimeTimeout() },
+			expected: "7200s",
+		},
+		{
+			name:     "GetDefaultPodNodeFailureTimeout with custom value",
+			envKey:   DefaultPodNodeFailureTimeout,
+			envValue: "900s",
+			getter:   func() interface{} { return GetDefaultPodNodeFailureTimeout() },
+			expected: "900s",
 		},
 	}
 

@@ -81,3 +81,9 @@ const (
 	DefaultMetadataServiceName   string = "metadata-grpc-service"
 	DefaultClusterDomain         string = "cluster.local"
 )
+
+const (
+	DefaultPodProvisioningTimeoutValue string = "3600s"
+	DefaultPodRuntimeTimeoutValue      string = "3600s"
+	DefaultPodNodeFailureTimeoutValue  string = "3600s"
+)

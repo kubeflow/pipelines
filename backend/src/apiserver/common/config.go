@@ -44,6 +44,9 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	DefaultPodProvisioningTimeout string = "DEFAULT_POD_PROVISIONING_TIMEOUT"
+	DefaultPodRuntimeTimeout      string = "DEFAULT_POD_RUNTIME_TIMEOUT"
+	DefaultPodNodeFailureTimeout  string = "DEFAULT_POD_NODE_FAILURE_TIMEOUT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -186,4 +189,16 @@ func GetDefaultSecurityContextRunAsGroup() string {
 
 func GetDefaultSecurityContextRunAsNonRoot() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
+}
+
+func GetDefaultPodProvisioningTimeout() string {
+	return GetStringConfigWithDefault(DefaultPodProvisioningTimeout, DefaultPodProvisioningTimeoutValue)
+}
+
+func GetDefaultPodRuntimeTimeout() string {
+	return GetStringConfigWithDefault(DefaultPodRuntimeTimeout, DefaultPodRuntimeTimeoutValue)
+}
+
+func GetDefaultPodNodeFailureTimeout() string {
+	return GetStringConfigWithDefault(DefaultPodNodeFailureTimeout, DefaultPodNodeFailureTimeoutValue)
 }
