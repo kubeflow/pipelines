@@ -16,6 +16,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { classes, stylesheet } from 'typestyle';
 import { LinkedArtifact, getArtifactName, getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import TwoLevelDropdown, {
@@ -32,7 +33,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import Banner from 'src/components/Banner';
 import { SelectedArtifact } from 'src/pages/CompareV2';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import {
   metricsTypeToString,
@@ -191,15 +192,10 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     isError,
     error,
     data: viewerConfigs,
-  } = useQuery<ViewerConfig[], Error>(
-    [
-      'viewerConfig',
-      {
-        artifact: linkedArtifact?.artifact.getId(),
-        namespace,
-      },
-    ],
-    async () => {
+  } = useQuery<ViewerConfig[], Error>({
+    queryKey: queryKeys.visualizationPanelViewerConfig(linkedArtifact?.artifact.getId(), namespace),
+
+    queryFn: async () => {
       let viewerConfigs: ViewerConfig[] = [];
       if (linkedArtifact) {
         if (metricsTab === MetricsType.HTML) {
@@ -210,23 +206,27 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
       }
       return viewerConfigs;
     },
-    { staleTime: Infinity },
-  );
+
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
     if (isError) {
-      (async function () {
-        const updatedMessage = await errorToMessage(error);
-        setErrorMessage(updatedMessage);
-        setShowError(true);
-      })();
-    } else {
+      let cancelled = false;
+      errorToMessage(error).then((msg) => {
+        if (!cancelled) {
+          setErrorMessage(msg);
+          setShowError(true);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (!isLoading) {
       setShowError(false);
     }
+    return undefined;
   }, [isLoading, isError, error, setErrorMessage, setShowError]);
 
   if (!linkedArtifact) {

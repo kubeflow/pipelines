@@ -18,7 +18,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
-import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
@@ -426,7 +425,7 @@ describe('NewRunV2', () => {
         '(enter from experiment details)',
       async () => {
         const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
+        getExperimentSpy.mockResolvedValue(NEW_EXPERIMENT);
 
         render(
           <CommonTestWrapper>
@@ -438,8 +437,8 @@ describe('NewRunV2', () => {
           expect(getExperimentSpy).toHaveBeenCalled();
         });
 
-        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name)).toBeInTheDocument();
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
 
@@ -463,7 +462,7 @@ describe('NewRunV2', () => {
         expect(getPipelineVersionSpy).toHaveBeenCalled();
       });
 
-      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
     });
 
     it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
@@ -536,7 +535,9 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        await waitFor(() => {
+          expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        });
       },
     );
 
@@ -576,7 +577,7 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
   });

@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
-import {
-  getArtifactTypes,
-  getOutputLinkedArtifactsInExecution,
-  LinkedArtifact,
-} from 'src/mlmd/MlmdUtils';
-import { ArtifactType, Execution } from 'src/third_party/mlmd';
+import { getOutputLinkedArtifactsInExecution, LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import { Execution } from 'src/third_party/mlmd';
+import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
+import { queryKeys } from 'src/hooks/queryKeys';
 import Banner from '../Banner';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ExecutionTitle } from './ExecutionTitle';
@@ -60,11 +57,12 @@ export function MetricsTab({ execution, namespace }: MetricsTabProps) {
     isSuccess: isSuccessArtifacts,
     error: errorArtifacts,
     data: artifacts,
-  } = useQuery<LinkedArtifact[], Error>(
-    ['execution_output_artifact', { id: executionId, state: executionState }],
-    () => getOutputLinkedArtifactsInExecution(execution),
-    { enabled: executionCompleted, staleTime: Infinity },
-  );
+  } = useQuery<LinkedArtifact[], Error>({
+    queryKey: queryKeys.executionOutputArtifact(executionId, executionState),
+    queryFn: () => getOutputLinkedArtifactsInExecution(execution),
+    enabled: executionCompleted,
+    staleTime: Infinity,
+  });
 
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
   // so we can identify metrics artifact provided by system.
@@ -73,14 +71,7 @@ export function MetricsTab({ execution, namespace }: MetricsTabProps) {
     isSuccess: isSuccessArtifactTypes,
     error: errorArtifactTypes,
     data: artifactTypes,
-  } = useQuery<ArtifactType[], Error>(
-    ['artifact_types', { id: executionId, state: executionState }],
-    () => getArtifactTypes(),
-    {
-      enabled: executionCompleted,
-      staleTime: Infinity,
-    },
-  );
+  } = useArtifactTypes({ enabled: executionCompleted });
 
   let executionStateUnknown = executionState === Execution.State.UNKNOWN;
   // This react element produces banner message if query to MLMD is pending or has error.

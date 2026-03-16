@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-03-04
+- Last updated: 2026-03-09
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 17)
 
 ### Maintenance (agents and contributors)
@@ -17,6 +17,21 @@
 - When you change CI matrices (Kubernetes versions, pipeline stores, proxy/cache toggles, Argo versions) or add/remove workflows, update the CI/CD section.
 - If you come across new common errors or fixes, extend "Common error patterns and quick fixes".
 - Always bump the "Last updated" date above when you make substantive changes.
+
+### Code reuse policy (agents and contributors)
+
+- Always reuse existing functions, helpers, and utilities before writing new code. Search the codebase for existing implementations that accomplish the same goal.
+- Do not duplicate logic that already exists elsewhere in the repo. If a function, method, or pattern is already implemented, import and call it rather than reimplementing it.
+- When adding new functionality, check related packages and modules for shared code that can be leveraged.
+- If existing code needs slight modifications to be reusable, prefer refactoring the existing code to be more general over duplicating it with changes.
+- Use descriptive variable and function names. Avoid abbreviations or single-letter names — prefer full, meaningful names that clearly convey purpose (e.g., `executionID` over `execID`, `fingerPrint` over `fp`).
+
+### Testing policy (agents and contributors)
+
+- Every new non-trivial function, method, or exported API must have accompanying unit tests before merging. Trivial helpers and glue code may be excluded when testing adds no meaningful value.
+- All existing tests must pass locally before pushing changes. Run the relevant test suites listed in the [Local testing](#local-testing) and [Quick reference](#quick-reference) sections (Go backend, Python SDK, `kfp-kubernetes`, and frontend).
+- When modifying existing functions, verify that existing tests still pass and add new test cases if the behavior changes.
+- Do not submit changes that break existing tests. If a test failure is pre-existing and unrelated to your changes, note it explicitly in the PR description.
 
 ### Commit policy (agents and contributors)
 
@@ -307,7 +322,7 @@ The following files are generated; edit their sources and regenerate:
 - Platform integration (Python): `kubernetes_platform/python/kfp/`
 - Platform spec proto: `kubernetes_platform/proto/`
 - API definitions (Protobufs): `api/`
-- Backend (API server, driver, launcher, etc.): `backend/`
+- Backend (API server, driver, launcher, etc.): `backend/` (see `backend/README.md` for build, test, and local development setup)
 - Backend test suites: `backend/test/compiler`, `backend/test/v2/api`, `backend/test/end2end`
 - Frontend: `frontend/` (React TypeScript, see `frontend/CONTRIBUTING.md`)
 - Manifests (Kustomize bases/overlays for deployments): `manifests/`
@@ -325,15 +340,15 @@ The KFP frontend is a React TypeScript application that provides the web UI for 
 
 ### Prerequisites
 
-- Node.js version specified in `frontend/.nvmrc` (currently v22.19.0)
+- Node.js version specified in `frontend/.nvmrc` (currently v24.14.0)
 - Docker (required for frontend API client generation via OpenAPI Generator container)
 - Use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) for Node version management:
 
   ```bash
   # With fnm (faster)
-  fnm install 22.19.0 && fnm use 22.19.0
+  fnm install 24.14.0 && fnm use 24.14.0
   # With nvm
-  nvm install 22.19.0 && nvm use 22.19.0
+  nvm install 24.14.0 && nvm use 24.14.0
   ```
 
 ### Setup and installation

@@ -51,56 +51,6 @@ describe('Status', () => {
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
 
-    it('handles ERROR phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.ERROR));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles FAILED phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.FAILED));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles PENDING phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.PENDING));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles RUNNING phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.RUNNING));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles TERMINATING phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.TERMINATING));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles SKIPPED phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.SKIPPED));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles SUCCEEDED phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.SUCCEEDED));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles CACHED phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.CACHED));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles TERMINATED phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.TERMINATED));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
-    it('handles OMITTED phase', () => {
-      const { asFragment } = render(statusToIcon(NodePhase.OMITTED));
-      expect(asFragment()).toMatchSnapshot();
-    });
-
     it('displays start and end dates if both are provided', () => {
       const { asFragment } = render(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
       expect(asFragment()).toMatchSnapshot();

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import ExpandedIcon from '@mui/icons-material/ArrowDropUp';
 import { stylesheet, classes } from 'typestyle';
 import { color, fontsize } from '../Css';

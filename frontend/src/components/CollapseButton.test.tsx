@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import CollapseButton from './CollapseButton';
@@ -63,7 +62,7 @@ describe('CollapseButton', () => {
         sectionName='testSection'
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Expand/Collapse this section' }));
+    fireEvent.click(screen.getByRole('button', { name: 'testSection' }));
     expect(compareComponent.collapseSectionsUpdate).toHaveBeenCalledWith({ testSection: true });
   });
 
@@ -76,7 +75,7 @@ describe('CollapseButton', () => {
         sectionName='testSection'
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Expand/Collapse this section' }));
+    fireEvent.click(screen.getByRole('button', { name: 'testSection' }));
     expect(compareComponent.collapseSectionsUpdate).toHaveBeenCalledWith({ testSection: false });
   });
 });

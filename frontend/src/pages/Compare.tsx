@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
-import { useQuery } from 'react-query';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
@@ -46,13 +47,11 @@ export default function Compare(props: PageProps) {
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details, set page version on success.
-  const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>(
-    ['run_details', { ids: runIds }],
-    () => Promise.all(runIds.map(async (id) => await Apis.runServiceApi.getRun(id))),
-    {
-      staleTime: Infinity,
-    },
-  );
+  const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>({
+    queryKey: queryKeys.runDetails(runIds),
+    queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApi.getRun(id))),
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
     // Set the version based on the runs included.

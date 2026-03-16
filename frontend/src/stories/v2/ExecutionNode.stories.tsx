@@ -15,14 +15,8 @@
  */
 
 import { Meta, StoryObj } from '@storybook/react';
-import React from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  OnLoadParams,
-  ReactFlowProvider,
-} from 'react-flow-renderer';
+import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 import { Execution } from 'src/third_party/mlmd';
 
@@ -33,11 +27,7 @@ interface WrappedExecutionNodeProps {
 }
 
 function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
-    reactFlowInstance.fitView();
-  };
-
-  const elements = [
+  const nodes = [
     {
       id: id,
       type: NodeTypeNames.EXECUTION,
@@ -51,11 +41,12 @@ function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
       <ReactFlowProvider>
         <ReactFlow
           className='bg-gray-100'
-          elements={elements}
+          nodes={nodes}
+          edges={[]}
           snapToGrid={true}
           nodeTypes={NODE_TYPES}
           edgeTypes={{}}
-          onLoad={onLoad}
+          onInit={(instance) => instance.fitView()}
         >
           <MiniMap />
           <Controls />

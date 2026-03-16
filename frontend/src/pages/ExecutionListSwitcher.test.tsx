@@ -15,7 +15,6 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import { MockInstance } from 'vitest';
 import { Api } from 'src/mlmd/library';
 import {

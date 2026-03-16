@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import React, { useContext, useEffect, useRef, useState } from 'react';
-import { useQuery } from 'react-query';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
@@ -28,13 +28,14 @@ import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import {
   filterLinkedArtifactsByType,
-  getArtifactTypes,
   getArtifactsFromContext,
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
+import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
@@ -293,23 +294,23 @@ function CompareV2(props: CompareV2Props) {
     error: errorRunDetails,
     data: runs,
     refetch,
-  } = useQuery<V2beta1Run[], Error>(
-    ['v2_run_details', { ids: runIds }],
-    () => Promise.all(runIds.map(async (id) => await Apis.runServiceApiV2.getRun(id))),
-    {
-      staleTime: Infinity,
-    },
-  );
+  } = useQuery<V2beta1Run[], Error>({
+    queryKey: queryKeys.v2RunDetails(runIds),
+    queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApiV2.getRun(id))),
+    staleTime: Infinity,
+  });
 
   // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
+  // Using runIds only (not runStates) — runStates in the key causes memory leak warnings
+  // and CompareV2.test.tsx failures.
   const {
     data: mlmdPackages,
     isLoading: isLoadingMlmdPackages,
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
-  } = useQuery<MlmdPackage[], Error>(
-    ['run_artifacts', { runs }],
-    () =>
+  } = useQuery<MlmdPackage[], Error>({
+    queryKey: queryKeys.runArtifacts(runIds),
+    queryFn: () =>
       Promise.all(
         runIds.map(async (runId) => {
           // TODO(zijianjoy): MLMD query is limited to 100 artifacts per run.
@@ -325,10 +326,8 @@ function CompareV2(props: CompareV2Props) {
           } as MlmdPackage;
         }),
       ),
-    {
-      staleTime: Infinity,
-    },
-  );
+    staleTime: Infinity,
+  });
 
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
   // so we can identify metrics artifact provided by system.
@@ -337,9 +336,7 @@ function CompareV2(props: CompareV2Props) {
     isLoading: isLoadingArtifactTypes,
     isError: isErrorArtifactTypes,
     error: errorArtifactTypes,
-  } = useQuery<ArtifactType[], Error>(['artifact_types', {}], () => getArtifactTypes(), {
-    staleTime: Infinity,
-  });
+  } = useArtifactTypes();
 
   // Ensure that the two-panel selected artifacts are present in selected valid run list.
   const getVerifiedTwoPanelSelection = (

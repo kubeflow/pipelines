@@ -15,7 +15,6 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';

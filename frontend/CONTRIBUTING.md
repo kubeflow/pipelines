@@ -11,15 +11,15 @@ are available at their corresponding GitHub repositories.
 ### fnm
 
 ```bash
-fnm install 22.19.0
-fnm use 22.19.0
+fnm install 24.14.0
+fnm use 24.14.0
 ```
 
 ### nvm
 
 ```bash
-nvm install 22.19.0
-nvm use 22.19.0
+nvm install 24.14.0
+nvm use 24.14.0
 ```
 
 ## Manage dev environment with npm
@@ -158,6 +158,7 @@ There are a few types of tests during pre-submit:
 
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
+  (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
 * TypeScript typecheck (no emit), run locally with `npm run typecheck`
 * client UI unit tests (Vitest), you can run locally with `npm run test:ui`
   (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops

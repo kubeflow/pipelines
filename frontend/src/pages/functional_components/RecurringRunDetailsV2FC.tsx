@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useState } from 'react';
-import { useQuery } from 'react-query';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
+import { queryKeys } from 'src/hooks/queryKeys';
 import DetailsTable from 'src/components/DetailsTable';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
@@ -50,22 +51,27 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     data: recurringRun,
     error: getRecurringRunError,
     refetch: refetchRecurringRun,
-  } = useQuery<V2beta1RecurringRun, Error>(
-    ['recurringRun', recurringRunId],
-    async () => {
+  } = useQuery<V2beta1RecurringRun, Error>({
+    queryKey: queryKeys.recurringRun(recurringRunId),
+    queryFn: async () => {
       return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
     },
-    { enabled: !!recurringRunId, staleTime: 0, cacheTime: 0 },
-  );
+
+    enabled: !!recurringRunId,
+    staleTime: 0,
+    cacheTime: 0, // v5: renamed to gcTime
+  });
 
   const experimentId = recurringRun?.experiment_id!;
-  const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>(
-    ['experiment', experimentId],
-    async () => {
+  const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>({
+    queryKey: queryKeys.experiment(experimentId),
+    queryFn: async () => {
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
-    { enabled: !!experimentId, staleTime: 0 },
-  );
+
+    enabled: !!experimentId,
+    staleTime: 0,
+  });
 
   useEffect(() => {
     if (recurringRun) {
