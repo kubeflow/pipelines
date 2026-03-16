@@ -55,6 +55,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: 'false'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         if: ${{ steps.deploy.outcome == 'success' }}
@@ -93,7 +94,7 @@ jobs:
         run: |
           echo "Installing cert-manager..."
 
-          # Install cert-manager 
+          # Install cert-manager
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
 
           # Wait for cert-manager to be ready
@@ -108,7 +109,7 @@ jobs:
         if: ${{ steps.install-cert-manager.outcome == 'success' }}
         id: switch-to-k8s-mode
         run: |
-          kubectl delete deployment ml-pipeline -n kubeflow     
+          kubectl delete deployment ml-pipeline -n kubeflow
           # Deploy KFP in K8s mode
           echo "Deploying KFP in K8s mode..."
           kubectl kustomize --load-restrictor LoadRestrictionsNone  ".github/resources/manifests/kubernetes-native/default" | kubectl apply -f -
