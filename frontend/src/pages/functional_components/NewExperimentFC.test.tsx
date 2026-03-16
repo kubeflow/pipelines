@@ -15,7 +15,6 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors } from 'src/TestUtils';
 import { NewExperimentFC } from './NewExperimentFC';

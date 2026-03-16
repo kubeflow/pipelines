@@ -84,23 +84,24 @@ describe('/apps/tensorboard', () => {
     logDir = 'log-dir-example',
     tensorflowImage = 'tensorflow:2.0.0',
     type = 'tensorboard',
+    wrapInBody = false,
   }: {
     name?: string;
     logDir?: string;
     tensorflowImage?: string;
     type?: string;
+    wrapInBody?: boolean;
   } = {}) {
-    return {
-      body: {
-        metadata: {
-          name,
-        },
-        spec: {
-          tensorboardSpec: { logDir, tensorflowImage },
-          type,
-        },
+    const response = {
+      metadata: {
+        name,
+      },
+      spec: {
+        tensorboardSpec: { logDir, tensorflowImage },
+        type,
       },
     };
+    return wrapInBody ? { body: response } : response;
   }
 
   beforeEach(() => {
@@ -120,7 +121,7 @@ describe('/apps/tensorboard', () => {
 
   afterEach(async () => {
     if (kfpApiServer) {
-      await new Promise<void>(resolve => kfpApiServer.close(() => resolve()));
+      await new Promise<void>((resolve) => kfpApiServer.close(() => resolve()));
       kfpApiServer = undefined as any;
     }
   });
@@ -128,9 +129,7 @@ describe('/apps/tensorboard', () => {
   describe('get', () => {
     it('requires logdir for get tensorboard', async () => {
       app = new UIServer(loadConfigs(argv, {}));
-      await requests(app.app)
-        .get('/apps/tensorboard')
-        .expect(400, 'logdir argument is required');
+      await requests(app.app).get('/apps/tensorboard').expect(400, 'logdir argument is required');
     });
 
     it('requires namespace for get tensorboard', async () => {
@@ -234,9 +233,7 @@ describe('/apps/tensorboard', () => {
           'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
         );
       expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(
-        errorSpy,
-      ).toHaveBeenCalledWith(
+      expect(errorSpy).toHaveBeenCalledWith(
         'User is not authorized to GET VIEWERS in namespace test-ns: User xxx is not unauthorized to list viewers',
         ['unauthorized', 'callstack'],
       );
@@ -303,14 +300,38 @@ describe('/apps/tensorboard', () => {
           }),
         );
     });
+
+    it('gets tensorboard url from wrapped custom object responses', async () => {
+      app = new UIServer(loadConfigs(argv, {}));
+      k8sGetCustomObjectSpy.mockImplementation(() =>
+        Promise.resolve(
+          newGetTensorboardResponse({
+            name: 'viewer-abcdefg',
+            logDir: 'log-dir-1',
+            tensorflowImage: 'tensorflow:2.0.0',
+            wrapInBody: true,
+          }),
+        ),
+      );
+
+      await requests(app.app)
+        .get(`/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns`)
+        .expect(
+          200,
+          JSON.stringify({
+            podAddress:
+              'http://viewer-abcdefg-service.test-ns.svc.cluster.local:80/tensorboard/viewer-abcdefg/',
+            tfVersion: '2.0.0',
+            image: 'tensorflow:2.0.0',
+          }),
+        );
+    });
   });
 
   describe('post (create)', () => {
     it('requires logdir', async () => {
       app = new UIServer(loadConfigs(argv, {}));
-      await requests(app.app)
-        .post('/apps/tensorboard')
-        .expect(400, 'logdir argument is required');
+      await requests(app.app).post('/apps/tensorboard').expect(400, 'logdir argument is required');
     });
 
     it('requires namespace', async () => {

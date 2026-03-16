@@ -9,6 +9,8 @@ on:
       - master
     paths:
       - 'frontend/**'
+      - 'backend/api/v1beta1/swagger/**'
+      - 'backend/api/v2beta1/swagger/**'
       - '.github/workflows/frontend.yml'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -25,7 +27,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version-file: frontend/.nvmrc
 
     - name: Clean npm cache
       run: npm cache clean --force
@@ -33,6 +35,15 @@ jobs:
     - name: Install dependencies
       run: cd ./frontend && npm ci
 
+    - name: Verify generated API clients are up to date
+      run: |
+        cd ./frontend
+        npm run apis:all
+        git diff --exit-code -- \
+          src/apis \
+          src/apisv2beta1 \
+          server/src/generated/apis \
+          server/src/generated/apisv2beta1
+
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
-

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { ResourceInfo, ResourceType } from './ResourceInfo';
 import { getByTestId, render, screen } from '@testing-library/react';
 import { Artifact, Value } from 'src/third_party/mlmd';
@@ -59,7 +58,7 @@ describe('ResourceInfo', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toEqual(
       'System.ClassificationMetrics (Live)',
     );
-    expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent))
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent))
       .toMatchInlineSnapshot(`
       [
         "Properties",

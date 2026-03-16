@@ -13,19 +13,45 @@
 // limitations under the License.
 
 import portableFetch from 'portable-fetch';
-import { ExperimentServiceApi, FetchAPI } from 'src/apis/experiment';
-import { ExperimentServiceApi as ExperimentServiceApiV2 } from 'src/apisv2beta1/experiment';
-import { JobServiceApi } from 'src/apis/job';
-import { RecurringRunServiceApi } from 'src/apisv2beta1/recurringrun';
-import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from 'src/apis/pipeline';
 import {
+  Configuration as ExperimentConfiguration,
+  ExperimentServiceApi,
+  FetchAPI,
+} from 'src/apis/experiment';
+import {
+  Configuration as ExperimentConfigurationV2,
+  ExperimentServiceApi as ExperimentServiceApiV2,
+} from 'src/apisv2beta1/experiment';
+import { Configuration as JobConfiguration, JobServiceApi } from 'src/apis/job';
+import {
+  Configuration as RecurringRunConfiguration,
+  RecurringRunServiceApi,
+} from 'src/apisv2beta1/recurringrun';
+import {
+  ApiPipeline,
+  ApiPipelineVersion,
+  Configuration as PipelineConfiguration,
+  PipelineServiceApi,
+} from 'src/apis/pipeline';
+import {
+  Configuration as PipelineConfigurationV2,
   V2beta1Pipeline,
   V2beta1PipelineVersion,
   PipelineServiceApi as PipelineServiceApiV2,
 } from 'src/apisv2beta1/pipeline';
-import { RunServiceApi as RunServiceApiV1 } from 'src/apis/run';
-import { RunServiceApi as RunServiceApiV2 } from 'src/apisv2beta1/run';
-import { ApiVisualization, VisualizationServiceApi } from 'src/apis/visualization';
+import {
+  Configuration as RunConfigurationV1,
+  RunServiceApi as RunServiceApiV1,
+} from 'src/apis/run';
+import {
+  Configuration as RunConfigurationV2,
+  RunServiceApi as RunServiceApiV2,
+} from 'src/apisv2beta1/run';
+import {
+  ApiVisualization,
+  Configuration as VisualizationConfiguration,
+  VisualizationServiceApi,
+} from 'src/apis/visualization';
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { PlotType } from 'src/components/viewers/Viewer';
 import * as Utils from './Utils';
@@ -159,9 +185,10 @@ export class Apis {
   public static get experimentServiceApi(): ExperimentServiceApi {
     if (!this._experimentServiceApi) {
       this._experimentServiceApi = new ExperimentServiceApi(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new ExperimentConfiguration({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._experimentServiceApi;
@@ -171,9 +198,10 @@ export class Apis {
   public static get experimentServiceApiV2(): ExperimentServiceApiV2 {
     if (!this._experimentServiceApiV2) {
       this._experimentServiceApiV2 = new ExperimentServiceApiV2(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new ExperimentConfigurationV2({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._experimentServiceApiV2;
@@ -182,9 +210,10 @@ export class Apis {
   public static get jobServiceApi(): JobServiceApi {
     if (!this._jobServiceApi) {
       this._jobServiceApi = new JobServiceApi(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new JobConfiguration({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._jobServiceApi;
@@ -193,9 +222,10 @@ export class Apis {
   public static get recurringRunServiceApi(): RecurringRunServiceApi {
     if (!this._recurringRunServiceApi) {
       this._recurringRunServiceApi = new RecurringRunServiceApi(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new RecurringRunConfiguration({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._recurringRunServiceApi;
@@ -204,9 +234,10 @@ export class Apis {
   public static get pipelineServiceApi(): PipelineServiceApi {
     if (!this._pipelineServiceApi) {
       this._pipelineServiceApi = new PipelineServiceApi(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new PipelineConfiguration({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._pipelineServiceApi;
@@ -215,9 +246,10 @@ export class Apis {
   public static get pipelineServiceApiV2(): PipelineServiceApiV2 {
     if (!this._pipelineServiceApiV2) {
       this._pipelineServiceApiV2 = new PipelineServiceApiV2(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new PipelineConfigurationV2({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._pipelineServiceApiV2;
@@ -226,9 +258,10 @@ export class Apis {
   public static get runServiceApi(): RunServiceApiV1 {
     if (!this._runServiceApiV1) {
       this._runServiceApiV1 = new RunServiceApiV1(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new RunConfigurationV1({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._runServiceApiV1;
@@ -237,9 +270,10 @@ export class Apis {
   public static get runServiceApiV2(): RunServiceApiV2 {
     if (!this._runServiceApiV2) {
       this._runServiceApiV2 = new RunServiceApiV2(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new RunConfigurationV2({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._runServiceApiV2;
@@ -248,9 +282,10 @@ export class Apis {
   public static get visualizationServiceApi(): VisualizationServiceApi {
     if (!this._visualizationServiceApi) {
       this._visualizationServiceApi = new VisualizationServiceApi(
-        { basePath: this.basePath },
-        undefined,
-        crossBrowserFetch,
+        new VisualizationConfiguration({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
       );
     }
     return this._visualizationServiceApi;

@@ -15,7 +15,6 @@
  */
 
 import Markdown from 'markdown-to-jsx';
-import * as React from 'react';
 import { classes, cssRaw } from 'typestyle';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { AutoLink } from 'src/atoms/ExternalLink';
@@ -34,13 +33,11 @@ const DEMO_PIPELINES_ID_MAP = {
 };
 
 const PAGE_CONTENT_MD = ({ control, data }: { control: string; data: string }) => `
-<br/>
 
 ## Build your own pipeline with
 
 * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/v2/)
 
-<br/>
 
 ## Demonstrations and Tutorials
 This section contains demo and tutorial pipelines.
@@ -99,10 +96,10 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
   // token size sort filter
   public async componentDidMount() {
     const ids = await Promise.all(
-      DEMO_PIPELINES.map(name =>
+      DEMO_PIPELINES.map((name) =>
         Apis.pipelineServiceApiV2
           .listPipelines(undefined, undefined, 10, undefined, createAndEncodeFilter(name))
-          .then(pipelineList => {
+          .then((pipelineList) => {
             const pipelines = pipelineList.pipelines;
             if (pipelines?.length !== 1) {
               // This should be accurate, do not accept ambiguous results.

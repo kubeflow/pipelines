@@ -15,7 +15,6 @@
  */
 
 import jsyaml from 'js-yaml';
-import React from 'react';
 import { isSafari } from 'src/lib/Utils';
 import Editor from './Editor';
 

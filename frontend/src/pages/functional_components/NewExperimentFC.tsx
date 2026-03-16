@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import React, { useEffect, useState } from 'react';
-import { useMutation, useQuery } from 'react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import BusyButton from 'src/atoms/BusyButton';
@@ -29,6 +29,7 @@ import { errorToMessage } from 'src/lib/Utils';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { PageProps } from 'src/pages/Page';
 import { classes, stylesheet } from 'typestyle';
+import { Button } from '@mui/material';
 
 const css = stylesheet({
   errorMessage: {
@@ -57,11 +58,17 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const [errMsgFromApi, setErrMsgFromApi] = useState<string>();
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
 
-  const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>(
-    ['pipeline_versions', pipelineId],
-    () => getLatestVersion(pipelineId!),
-    { enabled: !!pipelineId },
-  );
+  const { data: latestVersion } = useQuery<V2beta1PipelineVersion | undefined, Error>({
+    queryKey: queryKeys.pipelineVersions(pipelineId),
+    queryFn: () => {
+      if (!pipelineId) {
+        // This branch should not be hit because the query is disabled when there is no pipelineId.
+        return Promise.reject(new Error('Pipeline ID is not available'));
+      }
+      return getLatestVersion(pipelineId);
+    },
+    enabled: !!pipelineId,
+  });
 
   useEffect(() => {
     updateToolbar({
@@ -114,8 +121,10 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errMsgFromApi, updateDialog]);
 
-  const newExperimentMutation = useMutation((experiment: V2beta1Experiment) => {
-    return Apis.experimentServiceApiV2.createExperiment(experiment);
+  const newExperimentMutation = useMutation({
+    mutationFn: (experiment: V2beta1Experiment) => {
+      return Apis.experimentServiceApiV2.createExperiment(experiment);
+    },
   });
 
   const createExperiment = () => {
@@ -127,11 +136,11 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     setIsBeingCreated(true);
 
     newExperimentMutation.mutate(newExperiment, {
-      onSuccess: response => {
+      onSuccess: (response) => {
         setExperimentResponse(response);
         setErrMsgFromApi(undefined);
       },
-      onError: async err => {
+      onError: async (err) => {
         setErrMsgFromApi(await errorToMessage(err));
       },
     });
@@ -153,7 +162,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
           id='experimentName'
           label='Experiment name'
           required={true}
-          onChange={event => setExperimentName(event.target.value)}
+          onChange={(event) => setExperimentName(event.target.value)}
           value={experimentName}
           autoFocus={true}
           variant='outlined'
@@ -162,7 +171,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
           id='experimentDescription'
           label='Description'
           multiline={true}
-          onChange={event => setDescription(event.target.value)}
+          onChange={(event) => setDescription(event.target.value)}
           required={false}
           value={description}
           variant='outlined'

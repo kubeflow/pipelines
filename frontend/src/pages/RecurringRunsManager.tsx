@@ -23,7 +23,7 @@ import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { DialogProps, RoutePage, RouteParams } from 'src/components/Router';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { SnackbarProps } from '@mui/material/Snackbar';
 import { commonCss } from 'src/Css';
 import { logger, formatDateString, errorToMessage } from 'src/lib/Utils';
 
@@ -68,7 +68,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       { customRenderer: this._enabledCustomRenderer, label: '', flex: 1 },
     ];
 
-    const rows: Row[] = runs.map(r => {
+    const rows: Row[] = runs.map((r) => {
       return {
         error: r.error?.toString(),
         id: r.recurring_run_id!,
@@ -84,7 +84,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
           rows={rows}
           ref={this._tableRef}
           selectedIds={selectedIds}
-          updateSelection={ids => this.setState({ selectedIds: ids })}
+          updateSelection={(ids) => this.setState({ selectedIds: ids })}
           initialSortColumn={JobSortKeys.CREATED_AT}
           reload={this._loadRuns.bind(this)}
           filterLabel='Filter recurring runs'

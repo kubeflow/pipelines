@@ -16,7 +16,6 @@
 
 import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import React from 'react';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';

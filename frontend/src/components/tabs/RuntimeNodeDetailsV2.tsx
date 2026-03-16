@@ -14,45 +14,44 @@
  * limitations under the License.
  */
 
-import { Button } from '@material-ui/core';
+import { Button } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
-import { FlowElement } from 'react-flow-renderer';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import {
   KubernetesExecutorConfig,
   PvcMount,
 } from 'src/generated/platform_spec/kubernetes_platform';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage } from 'src/lib/Utils';
-import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   getArtifactName,
   getArtifactTypeName,
-  getArtifactTypes,
   getLinkedArtifactsByExecution,
   getStoreSessionInfoFromArtifact,
   filterEventWithOutputArtifact,
   KfpExecutionProperties,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
+import { useArtifactTypes } from 'src/hooks/useArtifactTypes';
+import { queryKeys } from 'src/hooks/queryKeys';
 import WorkflowParser from 'src/lib/WorkflowParser';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
 import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
-import InputOutputTab, {
+import RuntimeInputOutputTab, {
   getArtifactParamList,
   ParamList,
 } from 'src/components/tabs/InputOutputTab';
@@ -86,7 +85,7 @@ interface RuntimeNodeDetailsV2Props {
   onLayerChange: (layers: string[]) => void;
   pipelineJobString?: string;
   runId?: string;
-  element?: FlowElement<FlowElementDataBase> | null;
+  element?: PipelineFlowElement | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
 }
@@ -142,7 +141,7 @@ export function RuntimeNodeDetailsV2({
 interface TaskNodeDetailProps {
   pipelineJobString?: string;
   runId?: string;
-  element?: FlowElement<FlowElementDataBase> | null;
+  element?: PipelineFlowElement | null;
   execution?: Execution;
   layers: string[];
   namespace: string | undefined;
@@ -156,16 +155,16 @@ function TaskNodeDetail({
   layers,
   namespace,
 }: TaskNodeDetailProps) {
-  const { data: logsInfo } = useQuery<Map<string, string>, Error>(
-    ['execution_logs', { executionId: execution?.getId(), namespace }],
-    async () => {
+  const { data: logsInfo } = useQuery<Map<string, string>, Error>({
+    queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
+    queryFn: async () => {
       if (!execution) {
         throw new Error('No execution is found.');
       }
       return await getLogsInfo(execution, runId, namespace);
     },
-    { enabled: !!execution },
-  );
+    enabled: !!execution,
+  });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
   const logsBannerMessage = logsInfo?.get(LOGS_BANNER_MESSAGE);
@@ -178,14 +177,14 @@ function TaskNodeDetail({
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
-        onSwitch={tab => setSelectedTab(tab)}
+        onSwitch={(tab) => setSelectedTab(tab)}
       />
       <div className={commonCss.page}>
         {/* Input/Output tab */}
         {selectedTab === 0 &&
           (() => {
             if (execution) {
-              return <InputOutputTab execution={execution} namespace={namespace} />;
+              return <RuntimeInputOutputTab execution={execution} namespace={namespace} />;
             }
             return NODE_STATE_UNAVAILABLE;
           })()}
@@ -221,7 +220,7 @@ function TaskNodeDetail({
 }
 
 function getTaskDetailsFields(
-  element?: FlowElement<FlowElementDataBase> | null,
+  element?: PipelineFlowElement | null,
   execution?: Execution,
 ): Array<KeyValue<string>> {
   const details: Array<KeyValue<string>> = [];
@@ -231,10 +230,7 @@ function getTaskDetailsFields(
       // Static execution info.
       details.push([
         'Task name',
-        execution
-          .getCustomPropertiesMap()
-          .get('display_name')
-          ?.getStringValue() || '-',
+        execution.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-',
       ]);
 
       // Runtime execution info.
@@ -269,7 +265,7 @@ function getTaskDetailsFields(
 function getNodeVolumeMounts(
   layers: string[],
   pipelineJobString?: string,
-  element?: FlowElement<FlowElementDataBase> | null,
+  element?: PipelineFlowElement | null,
 ): Array<KeyValue<string>> {
   if (!pipelineJobString || !element) {
     return [];
@@ -295,8 +291,11 @@ function getNodeVolumeMounts(
   let volumeMounts: Array<KeyValue<string>> = [];
   if (matchedExecutorObj) {
     const executor = KubernetesExecutorConfig.fromJSON(matchedExecutorObj[1]);
-    const pvcMounts = Object.values(executor.pvcMount).map(pvcm => PvcMount.fromJSON(pvcm));
-    volumeMounts = pvcMounts.map(pvcm => [pvcm.mountPath, pvcm.taskOutputParameter?.producerTask]);
+    const pvcMounts = Object.values(executor.pvcMount).map((pvcm) => PvcMount.fromJSON(pvcm));
+    volumeMounts = pvcMounts.map((pvcm) => [
+      pvcm.mountPath,
+      pvcm.taskOutputParameter?.producerTask,
+    ]);
   }
 
   return volumeMounts;
@@ -340,7 +339,7 @@ async function getLogsInfo(
       const linkedArtifacts = await getLinkedArtifactsByExecution(execution);
       const outputArtifacts = filterEventWithOutputArtifact(linkedArtifacts);
       const executorLogsArtifact = outputArtifacts.find(
-        artifact => getArtifactName(artifact) === 'executor-logs',
+        (artifact) => getArtifactName(artifact) === 'executor-logs',
       );
 
       if (executorLogsArtifact) {
@@ -377,11 +376,7 @@ interface ArtifactNodeDetailProps {
   namespace: string | undefined;
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
-  const { data } = useQuery<ArtifactType[], Error>(
-    ['artifact_types', { linkedArtifact }],
-    () => getArtifactTypes(),
-    {},
-  );
+  const { data } = useArtifactTypes();
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (
@@ -389,7 +384,7 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
       <MD2Tabs
         tabs={['Artifact Info', 'Visualization']}
         selectedTab={selectedTab}
-        onSwitch={tab => setSelectedTab(tab)}
+        onSwitch={(tab) => setSelectedTab(tab)}
       />
       <div className={padding(20)}>
         {/* Artifact Info tab */}
@@ -434,16 +429,9 @@ function ArtifactInfo({
   }
 
   // Static Artifact information.
-  const taskName =
-    execution
-      .getCustomPropertiesMap()
-      .get('display_name')
-      ?.getStringValue() || '-';
+  const taskName = execution.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-';
   const artifactName =
-    linkedArtifact.artifact
-      .getCustomPropertiesMap()
-      .get('display_name')
-      ?.getStringValue() || '-';
+    linkedArtifact.artifact.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-';
   let artifactTypeName = artifactTypes
     ? getArtifactTypeName(artifactTypes, [linkedArtifact])
     : ['-'];
@@ -492,7 +480,7 @@ function ArtifactInfo({
 }
 
 interface SubDAGNodeDetailProps {
-  element: FlowElement<FlowElementDataBase>;
+  element: PipelineFlowElement;
   execution?: Execution;
   layers: string[];
   onLayerChange: (layers: string[]) => void;
@@ -529,7 +517,7 @@ function SubDAGNodeDetail({
         <MD2Tabs
           tabs={['Input/Output', 'Task Details']}
           selectedTab={selectedTab}
-          onSwitch={tab => setSelectedTab(tab)}
+          onSwitch={(tab) => setSelectedTab(tab)}
         />
         <div className={commonCss.page}>
           {/* Input/Output tab */}
@@ -537,7 +525,10 @@ function SubDAGNodeDetail({
             (() => {
               if (execution) {
                 return (
-                  <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
+                  <RuntimeInputOutputTab
+                    execution={execution}
+                    namespace={namespace}
+                  ></RuntimeInputOutputTab>
                 );
               }
               return NODE_STATE_UNAVAILABLE;

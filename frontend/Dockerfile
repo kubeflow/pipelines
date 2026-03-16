@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=alpine
-FROM node:22.19 as build
+FROM node:24.14.0-slim AS build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}
@@ -14,7 +14,9 @@ COPY . .
 
 WORKDIR ./frontend
 
-RUN npm ci && npm run postinstall
+# Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
+# race condition where parallel download workers collide on the same cache entry.
+RUN npm ci && npm run postinstall || (npm cache clean --force && npm ci && npm run postinstall)
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
@@ -22,7 +24,7 @@ RUN mkdir -p ./server/dist && \
     echo ${DATE} > ./server/dist/BUILD_DATE && \
     echo ${TAG_NAME} > ./server/dist/TAG_NAME
 
-FROM node:22.19-${BASE_IMAGE}
+FROM node:24.14.0-${BASE_IMAGE}
 
 COPY --from=build ./src/frontend/server /server
 COPY --from=build ./src/frontend/build /client
@@ -30,7 +32,9 @@ COPY --from=build ./src/frontend/build /client
 WORKDIR /server
 
 EXPOSE 3000
-RUN npm ci
+# Retry with cache clean as a workaround for an intermittent npm EEXIST/ENOENT
+# race condition where parallel download workers collide on the same cache entry.
+RUN npm ci || (npm cache clean --force && npm ci)
 RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000

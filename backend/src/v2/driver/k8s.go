@@ -695,6 +695,27 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Pre-populate admin-configured defaults into the patch so they:
+	// (a) survive strategic merge onto the compiled template, and
+	// (b) cause the user-value checks below to see them as "already set".
+	if opts.DefaultRunAsUser != nil || opts.DefaultRunAsGroup != nil || opts.DefaultRunAsNonRoot != nil {
+		if podSpec.Containers[0].SecurityContext == nil {
+			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
+		}
+		if opts.DefaultRunAsUser != nil {
+			v := *opts.DefaultRunAsUser
+			podSpec.Containers[0].SecurityContext.RunAsUser = &v
+		}
+		if opts.DefaultRunAsGroup != nil {
+			v := *opts.DefaultRunAsGroup
+			podSpec.Containers[0].SecurityContext.RunAsGroup = &v
+		}
+		if opts.DefaultRunAsNonRoot != nil {
+			v := *opts.DefaultRunAsNonRoot
+			podSpec.Containers[0].SecurityContext.RunAsNonRoot = &v
+		}
+	}
+
 	// Apply container security context (PSS baseline compliant).
 	// User-specified identity fields (runAsUser, runAsGroup) are only applied
 	// when they are not already set by the platform/admin. If the compiler or
@@ -723,6 +744,14 @@ func extendPodSpecPatch(
 					*userSecurityContext.RunAsGroup, *existingSecurityContext.RunAsGroup)
 			} else {
 				podSpec.Containers[0].SecurityContext.RunAsGroup = userSecurityContext.RunAsGroup
+			}
+		}
+		if userSecurityContext.RunAsNonRoot != nil {
+			if existingSecurityContext.RunAsNonRoot != nil {
+				glog.Warningf("Ignoring user-specified runAsNonRoot (%v): security context already set by admin (runAsNonRoot=%v)",
+					*userSecurityContext.RunAsNonRoot, *existingSecurityContext.RunAsNonRoot)
+			} else {
+				podSpec.Containers[0].SecurityContext.RunAsNonRoot = userSecurityContext.RunAsNonRoot
 			}
 		}
 		// Always drop all capabilities to comply with PSS baseline.
@@ -806,16 +835,18 @@ func createPVC(
 	}
 
 	// Optional input: annotations
-	pvcAnnotationsInput := inputs.ParameterValues["annotations"]
 	pvcAnnotations := make(map[string]string)
-	for key, val := range pvcAnnotationsInput.GetStructValue().AsMap() {
-		typedVal := val.(structpb.Value)
-		pvcAnnotations[key] = typedVal.GetStringValue()
+	if pvcAnnotationsInput, ok := inputs.ParameterValues["annotations"]; ok && pvcAnnotationsInput != nil {
+		for key, val := range pvcAnnotationsInput.GetStructValue().GetFields() {
+			pvcAnnotations[key] = val.GetStringValue()
+		}
 	}
 
 	// Optional input: volume_name
-	volumeNameInput := inputs.ParameterValues["volume_name"]
-	volumeName := volumeNameInput.GetStringValue()
+	var volumeName string
+	if volumeNameInput, ok := inputs.ParameterValues["volume_name"]; ok && volumeNameInput != nil {
+		volumeName = volumeNameInput.GetStringValue()
+	}
 
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only

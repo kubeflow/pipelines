@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Node } from 'react-flow-renderer';
+import { Node } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
@@ -92,8 +92,8 @@ describe('DynamicFlow', () => {
       updateFlowElementsState(['root'], graph, executions, events, artifacts);
       for (let element of graph) {
         graph
-          .filter(e => e.id === element.id)
-          .forEach(e => {
+          .filter((e) => e.id === element.id)
+          .forEach((e) => {
             if (e.id === 'task.preprocess') {
               expect(e.data.state).toEqual(EXECUTION_PREPROCESS.getLastKnownState());
             } else if (e.id === 'task.train') {

@@ -13,10 +13,10 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.24 AS generator
+FROM golang:1.26.1 AS generator
 ENV GRPC_GATEWAY_VERSION=v2.27.1
 ENV GO_SWAGGER_VERSION=v0.32.3
-ENV GRPC_VERSION=v1.73.0
+ENV GRPC_VERSION=v1.79.2
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,
@@ -38,7 +38,7 @@ ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
 # Generating GO Code. These versions should be identical to the
 # runtime Go packages (in the project go.mod)
 ENV PROTOC_GEN_GO_GRPC=v1.5.1
-ENV PROTOBUF_GO=v1.36.6
+ENV PROTOBUF_GO=v1.36.11
 
 # Install protoc.
 RUN apt-get update -y && apt-get install -y jq sed unzip

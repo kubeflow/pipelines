@@ -16,10 +16,10 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import { ThemeProvider } from '@material-ui/core/styles';
-import * as React from 'react';
+import '@xyflow/react/dist/style.css';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import * as ReactDOM from 'react-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
 import Router from './components/Router';
@@ -33,8 +33,6 @@ import {
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
-// import { ReactQueryDevtools } from 'react-query/devtools';
-
 // TODO: license headers
 
 if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
@@ -56,15 +54,17 @@ initFeatures();
 export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider theme={theme}>
-      <BuildInfoProvider>
-        <GkeMetadataProvider>
-          <HashRouter>
-            <Router />
-          </HashRouter>
-        </GkeMetadataProvider>
-      </BuildInfoProvider>
-    </ThemeProvider>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <BuildInfoProvider>
+          <GkeMetadataProvider>
+            <HashRouter>
+              <Router />
+            </HashRouter>
+          </GkeMetadataProvider>
+        </BuildInfoProvider>
+      </ThemeProvider>
+    </StyledEngineProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
