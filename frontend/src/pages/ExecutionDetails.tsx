@@ -269,7 +269,7 @@ export class ExecutionDetailsContent extends Component<
   };
 }
 
-function parseEventsByType(
+export function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
 ): Record<Event.Type, Event[]> {
   const events: Record<Event.Type, Event[]> = {
