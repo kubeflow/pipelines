@@ -106,9 +106,7 @@ export const PIPELINE_PACKAGE_REJECT_MESSAGE =
  * plain `.gz` files share the same MIME type and pass the built-in MIME
  * check. This validator rejects them before they reach `onDropAccepted`.
  */
-export function pipelinePackageValidator(
-  file: File,
-): { code: string; message: string } | null {
+export function pipelinePackageValidator(file: File): { code: string; message: string } | null {
   const name = file.name.toLowerCase();
   if (name.endsWith('.gz') && !name.endsWith('.tar.gz')) {
     return { code: 'invalid-extension', message: PIPELINE_PACKAGE_REJECT_MESSAGE };
