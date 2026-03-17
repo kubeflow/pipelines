@@ -1897,7 +1897,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "kfp", editable = "sdk/python" },
-    { name = "protobuf", specifier = ">=6.31.1,<7.0" },
+    { name = "protobuf", specifier = ">=6.33.5,<7.0" },
 ]
 
 [[package]]
