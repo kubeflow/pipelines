@@ -208,7 +208,37 @@ describe('ArtifactDetails', () => {
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining('Error'),
+          message: expect.stringContaining('Service unavailable'),
+          mode: 'error',
+        }),
+      );
+    });
+  });
+
+  it('shows fallback error message when a non-service error with no message is thrown', async () => {
+    getArtifactsByIDSpy.mockRejectedValue(undefined);
+
+    renderWithRouter(generateProps());
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Error: failed to load artifact.',
+          mode: 'error',
+        }),
+      );
+    });
+  });
+
+  it('shows extracted error message when a non-service error with text() is thrown', async () => {
+    getArtifactsByIDSpy.mockRejectedValue({ text: () => 'detailed failure info' });
+
+    renderWithRouter(generateProps());
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Error: detailed failure info',
           mode: 'error',
         }),
       );
@@ -265,6 +295,18 @@ describe('ArtifactDetails', () => {
         expect.objectContaining({ pageTitle: expect.stringContaining('artifact-two') }),
       );
     });
+  });
+
+  it('renders with empty type name when artifact type list is empty', async () => {
+    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([buildArtifact()]));
+    getArtifactTypesByIDSpy.mockResolvedValue(buildGetArtifactTypesByIDResponse([]));
+
+    renderWithRouter(generateProps());
+
+    await waitFor(() => {
+      expect(screen.getByText('Overview')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
   });
 
   it('includes version in toolbar title when artifact has a version property', async () => {

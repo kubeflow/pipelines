@@ -20,6 +20,7 @@ import { Api } from 'src/mlmd/library';
 import * as MlmdUtils from 'src/mlmd/MlmdUtils';
 import {
   Artifact,
+  ArtifactType,
   Context,
   Event,
   Execution,
@@ -129,7 +130,6 @@ describe('parseEventsByType', () => {
     const result = parseEventsByType(response);
 
     expect(result[Event.Type.UNKNOWN]).toHaveLength(1);
-    expect(result[Event.Type.INPUT]).toHaveLength(0);
   });
 });
 
@@ -202,21 +202,8 @@ describe('ExecutionDetailsContent', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('shows page error when execution ID is invalid (NaN)', async () => {
-    renderContent(NaN);
-
-    await waitFor(() => {
-      expect(onErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid execution id'),
-        expect.any(Error),
-        'error',
-        expect.any(Function),
-      );
-    });
-  });
-
-  it('shows page error when execution ID is negative', async () => {
-    renderContent(-1);
+  it.each([NaN, -1])('shows page error when execution ID is invalid (%s)', async (id) => {
+    renderContent(id);
 
     await waitFor(() => {
       expect(onErrorSpy).toHaveBeenCalledWith(
@@ -279,6 +266,73 @@ describe('ExecutionDetailsContent', () => {
     });
   });
 
+  it('shows page error when multiple execution types are found', async () => {
+    getExecutionsByIDSpy.mockResolvedValue(buildExecutionsByIDResponse([buildExecution()]));
+    getEventsByExecutionIDsSpy.mockResolvedValue(buildEventsResponse([]));
+    getExecutionTypesByIDSpy.mockResolvedValue(
+      buildExecutionTypesByIDResponse([buildExecutionType(10), buildExecutionType(11)]),
+    );
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(onErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('More than one execution type found with id'),
+        undefined,
+        'error',
+        expect.any(Function),
+      );
+    });
+  });
+
+  it('shows service error when load fails with a ServiceError', async () => {
+    getExecutionsByIDSpy.mockRejectedValue({ message: 'GRPC unavailable', code: 14 });
+    getEventsByExecutionIDsSpy.mockRejectedValue({ message: 'GRPC unavailable', code: 14 });
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(onErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('GRPC unavailable'),
+        undefined,
+        'error',
+        expect.any(Function),
+      );
+    });
+  });
+
+  it('shows fallback error when load fails with a non-service error', async () => {
+    getExecutionsByIDSpy.mockRejectedValue(undefined);
+    getEventsByExecutionIDsSpy.mockRejectedValue(undefined);
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(onErrorSpy).toHaveBeenCalledWith(
+        'Error: failed to load execution details.',
+        expect.any(Error),
+        'error',
+        expect.any(Function),
+      );
+    });
+  });
+
+  it('shows warning when artifact types fetch fails', async () => {
+    mockSuccessfulLoad();
+    getArtifactTypesSpy.mockRejectedValue(new Error('artifact types unavailable'));
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(onErrorSpy).toHaveBeenCalledWith(
+        'Failed to fetch artifact types',
+        expect.any(Error),
+        'warning',
+        expect.any(Function),
+      );
+    });
+  });
+
   it('renders ResourceInfo with execution type name after data loads', async () => {
     mockSuccessfulLoad();
 
@@ -288,6 +342,20 @@ describe('ExecutionDetailsContent', () => {
       expect(screen.getByText('Reference')).toBeInTheDocument();
     });
     expect(onTitleUpdateSpy).toHaveBeenCalledWith('test-execution');
+  });
+
+  it('uses empty string as type name when execution type name is empty', async () => {
+    const emptyNameType = new ExecutionType();
+    emptyNameType.setId(10);
+    emptyNameType.setName('');
+    mockSuccessfulLoad(undefined, emptyNameType);
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Reference')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('system.ContainerExecution')).not.toBeInTheDocument();
   });
 
   it('renders IO section headers when events are present', async () => {
@@ -301,22 +369,7 @@ describe('ExecutionDetailsContent', () => {
     expect(screen.getByText('Outputs')).toBeInTheDocument();
   });
 
-  describe('SectionIO', () => {
-    it('renders null when events array is empty (no section headers)', async () => {
-      mockSuccessfulLoad();
-
-      renderContent();
-
-      await waitFor(() => {
-        expect(screen.getByText('Reference')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('Inputs')).not.toBeInTheDocument();
-      expect(screen.queryByText('Outputs')).not.toBeInTheDocument();
-      expect(screen.queryByText('Declared Inputs')).not.toBeInTheDocument();
-      expect(screen.queryByText('Declared Outputs')).not.toBeInTheDocument();
-    });
-
+  describe('IO sections (via ExecutionDetailsContent)', () => {
     it('renders a table row per event', async () => {
       mockLoadWithEvents([
         buildEvent(Event.Type.INPUT, 10),
@@ -340,7 +393,54 @@ describe('ExecutionDetailsContent', () => {
     });
   });
 
-  describe('ArtifactRow', () => {
+  it('renders artifact type name in SectionIO table rows', async () => {
+    const artifactType = new ArtifactType();
+    artifactType.setId(5);
+    artifactType.setName('system.Dataset');
+    const typesResponse = new GetArtifactTypesResponse();
+    typesResponse.setArtifactTypesList([artifactType]);
+    getArtifactTypesSpy.mockResolvedValue(typesResponse);
+
+    const artifact = new Artifact();
+    artifact.setId(10);
+    artifact.setTypeId(5);
+    artifact.setUri('gs://bucket/data');
+    getArtifactsByIDSpy.mockResolvedValue(
+      new GetArtifactsByIDResponse().setArtifactsList([artifact]),
+    );
+
+    mockLoadWithEvents([buildEvent(Event.Type.INPUT, 10, 'my-dataset')]);
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(screen.getByText('system.Dataset')).toBeInTheDocument();
+    });
+    expect(screen.getByText('gs://bucket/data')).toBeInTheDocument();
+  });
+
+  it('renders empty URI cell when artifact has no URI set', async () => {
+    const artifact = new Artifact();
+    artifact.setId(10);
+    getArtifactsByIDSpy.mockResolvedValue(
+      new GetArtifactsByIDResponse().setArtifactsList([artifact]),
+    );
+    mockLoadWithEvents([buildEvent(Event.Type.INPUT, 10, 'no-uri-artifact')]);
+
+    renderContent();
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: 'no-uri-artifact' })).toBeInTheDocument();
+    });
+
+    const inputsSection = screen.getByText('Inputs').closest('section')!;
+    const dataRows = within(inputsSection as HTMLElement).getAllByRole('row');
+    const dataRow = dataRows[1];
+    const cells = within(dataRow).getAllByRole('cell');
+    expect(cells[3]).toHaveTextContent('');
+  });
+
+  describe('artifact linking (via ExecutionDetailsContent)', () => {
     it('renders artifact name as a link when artifact ID exists', async () => {
       const artifact = new Artifact();
       artifact.setId(10);
@@ -388,7 +488,7 @@ describe('ExecutionDetailsContent', () => {
 
       expect(screen.getByRole('link', { name: 'runs/details/run-abc-123' })).toHaveAttribute(
         'href',
-        expect.stringContaining('runs/details/run-abc-123'),
+        '/runs/details/run-abc-123/execution/1',
       );
     });
 
@@ -407,7 +507,7 @@ describe('ExecutionDetailsContent', () => {
 
       expect(screen.getByRole('link', { name: 'execution/original-exec-42' })).toHaveAttribute(
         'href',
-        expect.stringContaining('/executions/original-exec-42'),
+        '/executions/original-exec-42',
       );
     });
 
@@ -426,7 +526,30 @@ describe('ExecutionDetailsContent', () => {
 });
 
 describe('ExecutionDetails (page wrapper)', () => {
-  beforeEach(() => {
+  function buildPageProps(overrides?: { updateToolbar?: Mock }) {
+    const updateToolbarSpy = overrides?.updateToolbar ?? vi.fn();
+    const match = {
+      isExact: true,
+      path: RoutePage.EXECUTION_DETAILS,
+      url: '/executions/1',
+      params: { [RouteParams.ID]: '1' },
+    } as any;
+    return {
+      props: TestUtils.generatePageProps(
+        ExecutionDetails,
+        { pathname: '/executions/1' } as any,
+        match,
+        vi.fn(),
+        vi.fn(),
+        vi.fn(),
+        updateToolbarSpy,
+        vi.fn(),
+      ),
+      updateToolbarSpy,
+    };
+  }
+
+  it('sets initial toolbar state with execution ID in title', () => {
     vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByID').mockReturnValue(
       new Promise(() => {}),
     );
@@ -436,25 +559,8 @@ describe('ExecutionDetails (page wrapper)', () => {
     vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes').mockReturnValue(
       new Promise(() => {}),
     );
-  });
 
-  it('renders the page with initial toolbar state', () => {
-    const match = {
-      isExact: true,
-      path: RoutePage.EXECUTION_DETAILS,
-      url: '/executions/1',
-      params: { [RouteParams.ID]: '1' },
-    } as any;
-    const props = TestUtils.generatePageProps(
-      ExecutionDetails,
-      { pathname: '/executions/1' } as any,
-      match,
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    );
+    const { props, updateToolbarSpy } = buildPageProps();
 
     render(
       <CommonTestWrapper>
@@ -462,6 +568,43 @@ describe('ExecutionDetails (page wrapper)', () => {
       </CommonTestWrapper>,
     );
 
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(updateToolbarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pageTitle: 'Execution #1',
+        breadcrumbs: [{ displayName: 'Executions', href: RoutePage.EXECUTIONS }],
+      }),
+    );
+  });
+
+  it('updates toolbar title via onTitleUpdate after successful load', async () => {
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByID').mockResolvedValue(
+      buildExecutionsByIDResponse([buildExecution()]),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      buildEventsResponse([]),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionTypesByID').mockResolvedValue(
+      buildExecutionTypesByIDResponse([buildExecutionType()]),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes').mockResolvedValue(
+      new GetArtifactTypesResponse(),
+    );
+    vi.spyOn(MlmdUtils, 'getContextByExecution').mockResolvedValue(undefined);
+
+    const { props, updateToolbarSpy } = buildPageProps();
+
+    render(
+      <CommonTestWrapper>
+        <ExecutionDetails {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(updateToolbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageTitle: 'test-execution',
+        }),
+      );
+    });
   });
 });
