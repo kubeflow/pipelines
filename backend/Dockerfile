@@ -59,10 +59,16 @@ COPY backend/src/apiserver/config/sample_config.json /samples/
 
 # Compiling the preloaded samples.
 # The default image is replaced with the GCR-hosted python image.
-RUN set -e; \
-    < /samples/sample_config.json jq ".pipelines[].file" --raw-output | while read pipeline_yaml; do \
+RUN apt-get update && apt-get install -y jq
+RUN set -ex; \
+    echo "Checking sample_config.json"; \
+    cat /samples/sample_config.json; \
+    jq ".pipelines[].file" --raw-output /samples/sample_config.json | while read pipeline_yaml; do \
     pipeline_py="${pipeline_yaml%.yaml}"; \
-    echo "Compiling: \"$pipeline_py\"" && python3 "$pipeline_py" && echo -n "Output: " && ls "$pipeline_py.yaml"; \
+    echo "Compiling: $pipeline_py"; \
+    python3 "$pipeline_py" || exit 1; \
+    echo "Checking output..."; \
+    ls "$pipeline_py.yaml" || exit 1; \
     done
 
 # 3. Start api web server

@@ -2,11 +2,12 @@ FROM python:3.11-slim
 WORKDIR /kfp
 RUN pip install uv
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-workspace --no-install-project --extra legacy-compatible-runtime \
-	&& uv pip install \
-		"kubernetes>=8.0.0,<=31.0.0" \
-		"PyYAML>=5.3,<7" \
-		"ml-metadata==1.17.0"
+COPY sdk/python ./sdk/python
+COPY kubernetes_platform/python ./kubernetes_platform/python
+COPY api/v2alpha1/python ./api/v2alpha1/python
+COPY backend/api/v2beta1/python_http_client ./backend/api/v2beta1/python_http_client
+RUN uv sync --frozen --extra legacy-compatible-runtime
+RUN cd /tmp && uv pip install --python /kfp/.venv/bin/python "ml-metadata==1.17.0"
 ENV PATH="/kfp/.venv/bin:$PATH"
 
 COPY backend/metadata_writer/src/ /kfp/metadata_writer/
