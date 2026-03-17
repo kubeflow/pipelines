@@ -30,9 +30,16 @@ RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 # 2. Compile preloaded pipeline samples
 FROM python:3.11-slim AS compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq wget curl
-RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-COPY backend/requirements.txt .
-RUN python3 -m pip install -r requirements.txt --no-cache-dir
+RUN pip install uv
+
+WORKDIR /workspace
+COPY pyproject.toml uv.lock ./
+COPY sdk/python ./sdk/python
+COPY kubernetes_platform/python ./kubernetes_platform/python
+COPY api/v2alpha1/python ./api/v2alpha1/python
+COPY backend/api/v2beta1/python_http_client ./backend/api/v2beta1/python_http_client
+RUN uv sync --frozen --no-dev
+ENV PATH="/workspace/.venv/bin:$PATH"
 
 ARG TARGETARCH
 RUN echo "Building for architecture: ${TARGETARCH}"

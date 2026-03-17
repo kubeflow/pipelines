@@ -50,10 +50,21 @@ RUN wget https://github.com/mikefarah/yq/releases/download/v4.31.2/yq_linux_amd6
 RUN ln -s /usr/bin/python3.8 /usr/bin/python \
  && python -m pip install --upgrade pip
 
-COPY ./components/aws/sagemaker/tests/integration_tests/requirements.txt requirements.txt
+RUN pip install uv
 
-RUN python -m pip install -r requirements.txt
-
+WORKDIR /workspace
+RUN uv pip install --system \
+    "boto3==1.26.*" \
+    "pytest-xdist==3.0.2" \
+    "pyyaml==5.4.1" \
+    "flake8==3.7.*" \
+    "flake8-black==0.1.*" \
+    "filelock==3.0.*" \
+    "kubernetes==11.0.*" \
+    "kfp==1.8.14" \
+    "minio==5.0.10" \
+    "sagemaker==2.148.*" \
+    "ruamel.yaml==0.16.*"
 
 # Environment variables to be used by tests
 ENV REGION="us-west-2"
