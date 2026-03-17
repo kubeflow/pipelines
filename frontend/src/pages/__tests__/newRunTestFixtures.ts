@@ -21,13 +21,18 @@
  * centralised here to keep the two files in sync and reduce duplication.
  */
 
+import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import { vi } from 'vitest';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { PageProps } from 'src/pages/Page';
-import v2XGYamlTemplateString from 'src/data/test/xgboost_sample_pipeline.yaml?raw';
+
+const v2XGYamlTemplateString = fs.readFileSync(
+  'src/data/test/xgboost_sample_pipeline.yaml',
+  'utf8',
+);
 
 export const ORIGINAL_TEST_PIPELINE_ID = 'test-pipeline-id';
 export const ORIGINAL_TEST_PIPELINE_NAME = 'test pipeline';
