@@ -17,7 +17,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
-import * as features from 'src/features';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
@@ -38,7 +37,6 @@ import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import NewRunV2 from 'src/pages/NewRunV2';
-import NewRunSwitcher from 'src/pages/NewRunSwitcher';
 import { PageProps } from 'src/Page';
 import { vi } from 'vitest';
 
@@ -243,8 +241,6 @@ describe('NewRunV2', () => {
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  let getPipelineV1Spy: ReturnType<typeof vi.spyOn>;
-  let getPipelineVersionTemplateSpy: ReturnType<typeof vi.spyOn>;
 
   // For creating new run with no pipeline is selected (enter from run list)
   function generatePropsNoPipelineDef(eid: string | null): PageProps {
@@ -301,11 +297,11 @@ describe('NewRunV2', () => {
   }
 
   beforeEach(() => {
-    getPipelineV1Spy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-    getPipelineV1Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+    vi.spyOn(Apis.pipelineServiceApi, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
     vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);
-    getPipelineVersionTemplateSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersionTemplate');
-    getPipelineVersionTemplateSpy.mockResolvedValue({ template: v2XGYamlTemplateString });
+    vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersionTemplate').mockResolvedValue({
+      template: v2XGYamlTemplateString,
+    });
   });
 
   afterEach(() => {
@@ -373,7 +369,6 @@ describe('NewRunV2', () => {
   });
 
   it('allows updating the run name (start a new run)', async () => {
-    // TODO(jlyaoyuli): create a new test file for NewRunSwitcher and move the following test to it.
     const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
     getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
     const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
@@ -611,184 +606,6 @@ describe('NewRunV2', () => {
     );
 
     expect(await screen.findByDisplayValue('gs://dummy_pipeline_root')).toBeInTheDocument();
-  });
-
-  describe('redirect to different new run page', () => {
-    it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
-      render(
-        <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNoPipelineDef(null)} />
-        </CommonTestWrapper>,
-      );
-
-      const chooseVersionBtn = screen.getAllByText('Choose')[1];
-      // choose button for pipeline version is diabled if no pipeline is selected
-      expect(chooseVersionBtn.closest('button')?.disabled).toEqual(true);
-
-      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
-      screen.getByText('A pipeline must be selected');
-    });
-
-    it(
-      'shows experiment name in new run v2 if experiment is selected' +
-        '(enter from experiment details)',
-      async () => {
-        const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-        getExperimentSpy.mockResolvedValue(NEW_EXPERIMENT);
-
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
-          </CommonTestWrapper>,
-        );
-
-        await waitFor(() => {
-          expect(getExperimentSpy).toHaveBeenCalled();
-        });
-
-        expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name)).toBeInTheDocument();
-        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
-      },
-    );
-
-    it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
-      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-      getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-      getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNewRun()} />
-        </CommonTestWrapper>,
-      );
-
-      await waitFor(() => {
-        expect(getPipelineSpy).toHaveBeenCalled();
-        expect(getPipelineVersionSpy).toHaveBeenCalled();
-      });
-
-      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
-    });
-
-    it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
-      const TEST_PIPELINE_VERSION_NOT_V2SPEC: V2beta1PipelineVersion = {
-        description: '',
-        display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-        pipeline_version_id: 'test-not-v2-spec-version-id',
-        pipeline_spec: { spec: { arguments: { parameters: [{ name: 'output' }] } } },
-      };
-
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
-      const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-      getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_NOT_V2SPEC);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunSwitcher
-            {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-not-v2-spec-version-id')}
-          />
-        </CommonTestWrapper>,
-      );
-
-      await waitFor(() => {
-        expect(getPipelineV2Spy).toHaveBeenCalled();
-        expect(getPipelineVersionSpy).toHaveBeenCalled();
-      });
-
-      await waitFor(() => {
-        // calling v1 getPipeline() -> direct to new run v1 page
-        expect(getPipelineV1Spy).toHaveBeenCalled();
-      });
-    });
-
-    it(
-      'directs to new run v1 if pipeline_spec is not existing in pipeline_version ' +
-        'and it is not v2 template in getPipelineVersionTemplate() response',
-      async () => {
-        const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
-          description: '',
-          display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-          pipeline_version_id: 'test-no-spec-version-id',
-          pipeline_spec: undefined,
-        };
-
-        vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-        );
-        const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        getPipelineVersionTemplateSpy.mockResolvedValueOnce({ template: 'test template' });
-
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher
-              {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
-            />
-          </CommonTestWrapper>,
-        );
-
-        await waitFor(() => {
-          expect(getPipelineV2Spy).toHaveBeenCalled();
-          expect(getPipelineVersionSpy).toHaveBeenCalled();
-        });
-
-        await waitFor(() => {
-          expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
-        });
-      },
-    );
-
-    it(
-      'directs to new run v2 if pipeline_spec is not existing in pipeline_version ' +
-        'and it is v2 template in getPipelineVersionTemplate() response',
-      async () => {
-        const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
-          description: '',
-          display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-          pipeline_version_id: 'test-no-spec-version-id',
-          pipeline_spec: undefined,
-        };
-
-        vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-        );
-        const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        getPipelineVersionTemplateSpy.mockResolvedValueOnce({
-          template: v2XGYamlTemplateString,
-        });
-
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher
-              {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
-            />
-          </CommonTestWrapper>,
-        );
-
-        await waitFor(() => {
-          expect(getPipelineV2Spy).toHaveBeenCalled();
-          expect(getPipelineVersionSpy).toHaveBeenCalled();
-        });
-
-        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
-      },
-    );
   });
 
   describe('starting a new run', () => {
