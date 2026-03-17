@@ -165,14 +165,13 @@ describe('RunDetailsRouter', () => {
     expect(element.dataset.isLoading).toBe('true');
   });
 
-  it('resolves template from run.pipeline_spec directly when present', async () => {
+  it('does not fetch pipeline version when run has an inline pipeline_spec', async () => {
+    // usePipelineVersionTemplate is only enabled when pipelineId and pipelineVersionId
+    // are both present. A run with only pipeline_spec has no version reference, so the
+    // hook stays disabled and getPipelineVersion is never called.
     const v2Run: V2beta1Run = {
       run_id: TEST_RUN_ID,
       pipeline_spec: v2PipelineSpec,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
     };
     getRunSpy.mockResolvedValue(v2Run);
 
@@ -185,6 +184,25 @@ describe('RunDetailsRouter', () => {
     await waitFor(() => {
       expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
     });
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
+  });
+
+  it('renders EnhancedRunDetails when getRun fails', async () => {
+    getRunSpy.mockRejectedValue(new Error('Not found'));
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID);
+    });
+
+    const element = screen.getByTestId('enhanced-run-details');
+    expect(element).toBeInTheDocument();
+    expect(element.dataset.isLoading).toBe('false');
   });
 
   it('fetches template from pipeline version when run has no inline spec', async () => {

@@ -18,8 +18,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
@@ -29,123 +28,59 @@ import { PageProps } from 'src/pages/Page';
 import React from 'react';
 import { vi } from 'vitest';
 import v2XGYamlTemplateString from 'src/data/test/xgboost_sample_pipeline.yaml?raw';
+import {
+  ORIGINAL_TEST_PIPELINE,
+  ORIGINAL_TEST_PIPELINE_ID,
+  ORIGINAL_TEST_PIPELINE_VERSION,
+  ORIGINAL_TEST_PIPELINE_VERSION_ID,
+  ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+  NEW_EXPERIMENT,
+  V1_PIPELINE_VERSION,
+  generatePropsNoPipelineDef,
+  generatePropsNewRun,
+} from './__tests__/newRunTestFixtures';
 
 describe('NewRunSwitcher', () => {
   const TEST_RUN_ID = 'test-run-id';
   const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
-  const ORIGINAL_TEST_PIPELINE_ID = 'test-pipeline-id';
-  const ORIGINAL_TEST_PIPELINE_NAME = 'test pipeline';
-  const ORIGINAL_TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
-  const ORIGINAL_TEST_PIPELINE_VERSION_NAME = 'test pipeline version';
 
-  const ORIGINAL_TEST_PIPELINE: V2beta1Pipeline = {
-    created_at: new Date(2018, 8, 5, 4, 3, 2),
-    description: '',
-    display_name: ORIGINAL_TEST_PIPELINE_NAME,
-    pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-  };
-
-  const ORIGINAL_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
-    description: '',
-    display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-    pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-    pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-    pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-  };
-
-  const V1_PIPELINE_VERSION = {
-    id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-    name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-    parameters: [],
-    resource_references: [{ key: { id: ORIGINAL_TEST_PIPELINE_ID, type: 'PIPELINE' } }],
-  } as any;
-
-  const NEW_EXPERIMENT: V2beta1Experiment = {
-    created_at: new Date('2022-07-26T17:44:28Z'),
-    experiment_id: 'new-experiment-id',
-    display_name: 'new-experiment',
-    storage_state: V2beta1ExperimentStorageState.AVAILABLE,
-  };
-
-  const historyPushSpy = vi.fn();
-  const historyReplaceSpy = vi.fn();
-  const updateBannerSpy = vi.fn();
-  const updateDialogSpy = vi.fn();
-  const updateSnackbarSpy = vi.fn();
-  const updateToolbarSpy = vi.fn();
   let getPipelineV1Spy: ReturnType<typeof vi.spyOn>;
   let getPipelineVersionTemplateSpy: ReturnType<typeof vi.spyOn>;
 
-  function generatePropsNoPipelineDef(experimentId: string | null): PageProps {
-    return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
-      location: {
-        pathname: RoutePage.NEW_RUN,
-        search: experimentId
-          ? `?${QUERY_PARAMS.experimentId}=${experimentId}`
-          : `?${QUERY_PARAMS.experimentId}=`,
-      } as any,
-      match: '' as any,
-      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
-  }
-
-  function generatePropsNewRun(
-    pipelineId = ORIGINAL_TEST_PIPELINE_ID,
-    versionId = ORIGINAL_TEST_PIPELINE_VERSION_ID,
-  ): PageProps {
-    return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
-      location: {
-        pathname: RoutePage.NEW_RUN,
-        search: `?${QUERY_PARAMS.pipelineId}=${pipelineId}&${QUERY_PARAMS.pipelineVersionId}=${versionId}`,
-      } as any,
-      match: '' as any,
-      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
-  }
-
   function generatePropsCloneRun(runId = TEST_RUN_ID): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      history: { push: vi.fn(), replace: vi.fn() } as any,
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.cloneFromRun}=${runId}`,
       } as any,
       match: '' as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a run' },
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
+      updateBanner: vi.fn(),
+      updateDialog: vi.fn(),
+      updateSnackbar: vi.fn(),
+      updateToolbar: vi.fn(),
     };
   }
 
   function generatePropsCloneRecurringRun(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      history: { push: vi.fn(), replace: vi.fn() } as any,
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.cloneFromRecurringRun}=${recurringRunId}`,
       } as any,
       match: '' as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a recurring run' },
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
+      updateBanner: vi.fn(),
+      updateDialog: vi.fn(),
+      updateSnackbar: vi.fn(),
+      updateToolbar: vi.fn(),
     };
   }
 
   beforeEach(() => {
+    vi.clearAllMocks();
     getPipelineV1Spy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
     getPipelineV1Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
     vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);
@@ -154,7 +89,6 @@ describe('NewRunSwitcher', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
     vi.restoreAllMocks();
   });
 
@@ -435,17 +369,17 @@ describe('NewRunSwitcher', () => {
       }
 
       const props: PageProps = {
-        history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+        history: { push: vi.fn(), replace: vi.fn() } as any,
         location: {
           pathname: RoutePage.NEW_RUN,
           search: `?${QUERY_PARAMS.cloneFromRun}=${TEST_RUN_ID}&${QUERY_PARAMS.cloneFromRecurringRun}=${TEST_RECURRING_RUN_ID}`,
         } as any,
         match: '' as any,
         toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
-        updateBanner: updateBannerSpy,
-        updateDialog: updateDialogSpy,
-        updateSnackbar: updateSnackbarSpy,
-        updateToolbar: updateToolbarSpy,
+        updateBanner: vi.fn(),
+        updateDialog: vi.fn(),
+        updateSnackbar: vi.fn(),
+        updateToolbar: vi.fn(),
       };
 
       render(

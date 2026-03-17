@@ -111,7 +111,46 @@ describe('RecurringRunDetailsRouter', () => {
     });
   });
 
+  it('renders RecurringRunDetailsV2FC when FUNCTIONAL_COMPONENT flag is enabled', async () => {
+    // Enables both V2_ALPHA (required by isPipelineSpec) and FUNCTIONAL_COMPONENT (router branch).
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) =>
+        featureKey === features.FeatureKey.V2_ALPHA ||
+        featureKey === features.FeatureKey.FUNCTIONAL_COMPONENT,
+    );
+    const recurringRun: V2beta1RecurringRun = {
+      recurring_run_id: TEST_RECURRING_RUN_ID,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    const pipelineVersion: V2beta1PipelineVersion = {
+      pipeline_id: TEST_PIPELINE_ID,
+      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      pipeline_spec: v2PipelineSpec,
+    };
+
+    getRecurringRunSpy.mockResolvedValue(recurringRun);
+    getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
+
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('recurring-run-details-v2-fc')).toBeInTheDocument();
+    });
+  });
+
   it('renders RecurringRunDetails (V1) when template is not a v2 pipeline spec', async () => {
+    // V2_ALPHA must be enabled so isPipelineSpec evaluates the template structure.
+    // Without it, isPipelineSpec returns false for any template regardless of content.
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
     const argoWorkflow = {
       apiVersion: 'argoproj.io/v1alpha1',
       kind: 'Workflow',

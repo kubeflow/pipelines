@@ -37,8 +37,18 @@ import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import NewRunV2 from 'src/pages/NewRunV2';
-import { PageProps } from 'src/Page';
+import { PageProps } from 'src/pages/Page';
 import { vi } from 'vitest';
+import {
+  ORIGINAL_TEST_PIPELINE,
+  ORIGINAL_TEST_PIPELINE_ID,
+  ORIGINAL_TEST_PIPELINE_NAME,
+  ORIGINAL_TEST_PIPELINE_VERSION,
+  ORIGINAL_TEST_PIPELINE_VERSION_ID,
+  ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+  NEW_EXPERIMENT,
+  V1_PIPELINE_VERSION,
+} from './__tests__/newRunTestFixtures';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
 const v2XGYamlTemplateString = fs.readFileSync(V2_XG_PIPELINESPEC_PATH, 'utf8');
@@ -53,25 +63,8 @@ testBestPractices();
 describe('NewRunV2', () => {
   const TEST_RUN_ID = 'test-run-id';
   const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
-  const ORIGINAL_TEST_PIPELINE_ID = 'test-pipeline-id';
-  const ORIGINAL_TEST_PIPELINE_NAME = 'test pipeline';
-  const ORIGINAL_TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
-  const ORIGINAL_TEST_PIPELINE_VERSION_NAME = 'test pipeline version';
   const OTHER_TEST_PIPELINE_VERSION_ID = 'other-test-pipeline-version-id';
   const OTHER_TEST_PIPELINE_VERSION_NAME = 'other-test-pipeline-version';
-  const ORIGINAL_TEST_PIPELINE: V2beta1Pipeline = {
-    created_at: new Date(2018, 8, 5, 4, 3, 2),
-    description: '',
-    display_name: ORIGINAL_TEST_PIPELINE_NAME,
-    pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-  };
-  const ORIGINAL_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
-    description: '',
-    display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-    pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-    pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-    pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
-  };
   const OTHER_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
     description: '',
     display_name: OTHER_TEST_PIPELINE_VERSION_NAME,
@@ -79,13 +72,6 @@ describe('NewRunV2', () => {
     pipeline_version_id: OTHER_TEST_PIPELINE_VERSION_ID,
     pipeline_spec: v2LWPipelineSpec,
   };
-  const V1_PIPELINE_VERSION = {
-    id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-    name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-    parameters: [],
-    resource_references: [{ key: { id: ORIGINAL_TEST_PIPELINE_ID, type: 'PIPELINE' } }],
-  } as any;
-
   const NEW_TEST_PIPELINE_ID = 'new-test-pipeline-id';
   const NEW_TEST_PIPELINE_NAME = 'new-test-pipeline';
   const NEW_TEST_PIPELINE_VERSION_ID = 'new-test-pipeline-version-id';
@@ -228,13 +214,6 @@ describe('NewRunV2', () => {
     storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
 
-  const NEW_EXPERIMENT: V2beta1Experiment = {
-    created_at: new Date('2022-07-26T17:44:28Z'),
-    experiment_id: 'new-experiment-id',
-    display_name: 'new-experiment',
-    storage_state: V2beta1ExperimentStorageState.AVAILABLE,
-  };
-
   const historyPushSpy = vi.fn();
   const historyReplaceSpy = vi.fn();
   const updateBannerSpy = vi.fn();
@@ -259,7 +238,7 @@ describe('NewRunV2', () => {
     };
   }
 
-  // For creating new run with pipeine definition (enter from pipeline details)
+  // For creating new run with pipeline definition (enter from pipeline details)
   function generatePropsNewRun(
     pid = ORIGINAL_TEST_PIPELINE_ID,
     vid = ORIGINAL_TEST_PIPELINE_VERSION_ID,
