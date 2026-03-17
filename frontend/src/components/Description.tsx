@@ -34,11 +34,6 @@ const options = {
 const optionsForceInline = {
   ...options,
   forceInline: true,
-  overrides: {
-    ...options.overrides,
-    em: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    strong: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  },
 };
 
 /**
