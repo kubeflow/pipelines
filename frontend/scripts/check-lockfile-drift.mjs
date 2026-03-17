@@ -15,6 +15,7 @@ const DEP_FIELDS = [
 
 const TOOLCHAIN_PACKAGES = ['prettier', 'eslint', 'typescript', 'vitest'];
 const TOOLCHAIN_PREFIXES = ['@typescript-eslint/'];
+const SILENT_STDIO = ['pipe', 'pipe', 'pipe'];
 
 function parseArgs(argv) {
   let baseRef = null;
@@ -47,7 +48,8 @@ function printHelp() {
 Compares the resolved versions of critical CI tooling packages (prettier,
 eslint, typescript, vitest, @typescript-eslint/*) between the current
 working tree and a base git ref. Fails only when those versions differ
-and no dependency-bearing field in package.json was intentionally changed.
+and no dependency-bearing field in package.json was intentionally changed
+by this branch (checked against the merge base, not the base branch tip).
 
 Run from the directory containing the package.json and package-lock.json
 to check (typically frontend/).
@@ -64,7 +66,7 @@ function gitShow(ref, filePath) {
   try {
     return execFileSync('git', ['show', `${ref}:${filePath}`], {
       encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: SILENT_STDIO,
     });
   } catch {
     return null;
@@ -100,15 +102,37 @@ function extractToolchainVersions(lockfile) {
   return versions;
 }
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+function parseJsonOrExit(content, label) {
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    console.error(`ERROR: failed to parse ${label}: ${error.message}`);
+    process.exit(2);
+  }
+}
+
+function formatDriftedPackages(packages) {
+  return packages.map(
+    ({ name, baseVersion, currentVersion }) => `  ${name}: ${baseVersion} \u2192 ${currentVersion}`,
+  );
+}
+
+function computeMergeBase(baseRef) {
+  try {
+    return execFileSync('git', ['merge-base', baseRef, 'HEAD'], {
+      encoding: 'utf8',
+      stdio: SILENT_STDIO,
+    }).trim();
+  } catch {
+    return null;
+  }
 }
 
 function verifyLockfileSync(lockfilePath) {
   const original = fs.readFileSync(lockfilePath, 'utf8');
   try {
     execFileSync('npm', ['install', '--package-lock-only', '--ignore-scripts'], {
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: SILENT_STDIO,
       cwd: path.dirname(lockfilePath),
     });
   } catch {
@@ -144,19 +168,8 @@ function main() {
     process.exit(2);
   }
 
-  let currentPkg, currentLock;
-  try {
-    currentPkg = readJson(packageJsonPath);
-  } catch (error) {
-    console.error(`ERROR: failed to parse package.json: ${error.message}`);
-    process.exit(2);
-  }
-  try {
-    currentLock = readJson(lockfilePath);
-  } catch (error) {
-    console.error(`ERROR: failed to parse package-lock.json: ${error.message}`);
-    process.exit(2);
-  }
+  const currentPkg = parseJsonOrExit(fs.readFileSync(packageJsonPath, 'utf8'), 'package.json');
+  const currentLock = parseJsonOrExit(fs.readFileSync(lockfilePath, 'utf8'), 'package-lock.json');
 
   const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
@@ -165,31 +178,35 @@ function main() {
   const gitPkgPath = gitPrefix ? `${gitPrefix}/package.json` : 'package.json';
   const gitLockPath = gitPrefix ? `${gitPrefix}/package-lock.json` : 'package-lock.json';
 
-  const basePkgContent = gitShow(baseRef, gitPkgPath);
   const baseLockContent = gitShow(baseRef, gitLockPath);
 
-  if (!basePkgContent || !baseLockContent) {
-    console.log('SKIP: could not read base branch files. Nothing to compare.');
+  if (!baseLockContent) {
+    console.log('SKIP: could not read base branch lockfile. Nothing to compare.');
     process.exit(0);
   }
 
-  let basePkg, baseLock;
-  try {
-    basePkg = JSON.parse(basePkgContent);
-  } catch (error) {
-    console.error(`ERROR: failed to parse base branch package.json: ${error.message}`);
-    process.exit(2);
-  }
-  try {
-    baseLock = JSON.parse(baseLockContent);
-  } catch (error) {
-    console.error(`ERROR: failed to parse base branch package-lock.json: ${error.message}`);
-    process.exit(2);
+  const baseLock = parseJsonOrExit(baseLockContent, 'base branch package-lock.json');
+
+  const mergeBase = computeMergeBase(baseRef);
+  const depsRef = mergeBase || baseRef;
+  if (!mergeBase) {
+    console.log(
+      'WARNING: could not compute merge base (shallow clone?). ' +
+        'Falling back to base branch tip for deps comparison.',
+    );
   }
 
+  const depsRefPkgContent = gitShow(depsRef, gitPkgPath);
+  if (!depsRefPkgContent) {
+    console.log('SKIP: could not read package.json from deps baseline. Nothing to compare.');
+    process.exit(0);
+  }
+
+  const depsRefPkg = parseJsonOrExit(depsRefPkgContent, 'baseline package.json');
+
   const currentDeps = extractDepFields(currentPkg);
-  const baseDeps = extractDepFields(basePkg);
-  const depsChanged = JSON.stringify(currentDeps) !== JSON.stringify(baseDeps);
+  const baselineDeps = extractDepFields(depsRefPkg);
+  const depsChanged = JSON.stringify(currentDeps) !== JSON.stringify(baselineDeps);
 
   const currentToolchain = extractToolchainVersions(currentLock);
   const baseToolchain = extractToolchainVersions(baseLock);
@@ -225,9 +242,7 @@ function main() {
         'PASS: toolchain versions changed alongside dependency-bearing manifest fields (intentional update).',
       );
       console.log('Changed toolchain packages:');
-      for (const { name, baseVersion, currentVersion } of driftedPackages) {
-        console.log(`  ${name}: ${baseVersion} \u2192 ${currentVersion}`);
-      }
+      formatDriftedPackages(driftedPackages).forEach((line) => console.log(line));
     } else {
       console.log('PASS: dependency-bearing fields changed; lockfile is in sync.');
     }
@@ -249,9 +264,7 @@ function main() {
   );
   console.error('');
   console.error('Drifted packages:');
-  for (const { name, baseVersion, currentVersion } of driftedPackages) {
-    console.error(`  ${name}: ${baseVersion} \u2192 ${currentVersion}`);
-  }
+  formatDriftedPackages(driftedPackages).forEach((line) => console.error(line));
   console.error('');
   console.error(
     `To fix: rebase onto ${baseRef.replace(/^origin\//, '')} and run 'npm ci' to sync your lockfile.`,

@@ -33,6 +33,7 @@ jobs:
       if: github.event_name == 'pull_request'
       run: |
         git fetch origin ${{ github.base_ref }} --depth=1
+        git fetch --deepen=100 2>/dev/null || true
         cd frontend && node scripts/check-lockfile-drift.mjs --base-ref "origin/${{ github.base_ref }}"
 
     - name: Clean npm cache
