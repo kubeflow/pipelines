@@ -5,6 +5,8 @@ on:
     branches: [ master ]
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - api/**
       - sdk/**
       - kubernetes_platform/**

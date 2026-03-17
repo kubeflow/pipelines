@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - "**/pyproject.toml"
+      - "uv.lock"
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
       - ".github/workflows/image-builds.yml"
       - ".github/actions/deploy/**"

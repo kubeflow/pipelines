@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - 'sdk/python/**'
       - 'test/presubmit-docformatter-sdk.sh'
       - '.github/workflows/sdk-docformatter.yml'

@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/e2e-test-frontend.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/deploy/**'

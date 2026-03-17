@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/api-integration-tests-v1.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'

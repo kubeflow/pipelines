@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - 'components/**/*.yaml'
       - 'test/presubmit-component-yaml.sh'
       - 'sdk/python/**'

@@ -5,6 +5,8 @@ on:
       - master
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/validate-generated-files.yml'
       - 'backend/api/**/*.proto'
       - 'backend/api/**/go_http_client/**'

@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - 'api/**'
       - 'sdk/python/**'
       - 'test/presubmit-isort-sdk.sh'

@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - 'sdk/python/**'
       - 'test/presubmit-test-sdk-upgrade.sh'
       - '.github/workflows/sdk-upgrade.yml'

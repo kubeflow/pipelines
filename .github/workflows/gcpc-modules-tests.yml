@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/gcpc-modules-tests.yml'
       - 'sdk/python/**'
       - '!**/*.md'
