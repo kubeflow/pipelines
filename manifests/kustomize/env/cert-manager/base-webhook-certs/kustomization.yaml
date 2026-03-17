@@ -11,3 +11,31 @@ configurations:
 # !!! If you want to customize the namespace,
 # please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
+
+replacements:
+- source:
+    kind: Certificate
+    name: kfp-api-webhook-cert
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - metadata.annotations.cert-manager.io/inject-ca-from
+    options:
+      delimiter: /
+      index: 0
+- source:
+    kind: Certificate
+    name: kfp-api-webhook-cert
+    fieldPath: metadata.name
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - metadata.annotations.cert-manager.io/inject-ca-from
+    options:
+      delimiter: /
+      index: 1

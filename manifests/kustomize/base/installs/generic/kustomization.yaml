@@ -7,41 +7,58 @@ resources:
 - ../../cache-deployer
 - pipeline-install-config.yaml
 - mysql-secret.yaml
-vars:
-- fieldref:
-    fieldPath: metadata.namespace
-  name: kfp-namespace
-  objref:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: ml-pipeline
-- fieldref:
-    fieldPath: data.appName
-  name: kfp-app-name
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
-- fieldref:
-    fieldPath: data.appVersion
-  name: kfp-app-version
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
-- fieldref:
-    fieldPath: data.bucketName
-  name: kfp-artifact-bucket-name
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
-- fieldref:
-    fieldPath: data.defaultPipelineRoot
-  name: kfp-default-pipeline-root
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
 configurations:
 - params.yaml
+replacements:
+- source:
+    kind: Deployment
+    name: ml-pipeline
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.*.clientConfig.service.namespace
+  - select:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.*.clientConfig.service.namespace
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - webhooks.*.clientConfig.service.namespace
+- source:
+    fieldPath: data.appName
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+  - select:
+      kind: Application
+    fieldPaths:
+    - metadata.name
+- source:
+    fieldPath: data.appVersion
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+    - select:
+        kind: Application
+      fieldPaths:
+      - spec.descriptor.version
+- source:
+    fieldPath: data.bucketName
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+  - select:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    fieldPaths:
+    - data.artifactRepository.s3.bucket
+

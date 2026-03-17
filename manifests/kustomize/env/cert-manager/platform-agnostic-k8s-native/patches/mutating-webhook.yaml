@@ -3,4 +3,4 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: pipelineversions.pipelines.kubeflow.org
   annotations:
-    cert-manager.io/inject-ca-from: $(kfp-namespace)/kfp-api-webhook-cert
+    cert-manager.io/inject-ca-from: NAMESPACE_PLACEHOLDER/CERT_NAME_PLACEHOLDER
