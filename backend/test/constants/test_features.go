@@ -28,6 +28,8 @@ const (
 	E2eFailed string = "E2EFailure"
 	// E2eCritical - For pipelines that verify the critical functionality of the system
 	E2eCritical string = "E2ECritical"
+	// E2eParallelism - For pipeline parallelism tests that need a dedicated cluster
+	E2eParallelism string = "E2EParallelism"
 	// E2eProxy - For pipeline that runs with a proxy
 	E2eProxy string = "E2EProxy"
 
