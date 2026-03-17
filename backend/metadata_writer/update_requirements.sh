@@ -1,5 +1,7 @@
 #!/bin/bash
 
-# This image should be in sync with Dockerfile.
-IMAGE="python:3.11"
-../../hack/update-requirements.sh $IMAGE <requirements.in >requirements.txt
+set -euo pipefail
+
+# Python dependencies are managed by uv in the workspace lockfile.
+cd ../..
+uv lock

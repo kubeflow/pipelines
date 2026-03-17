@@ -54,6 +54,7 @@ test = [
   "pip",
   "pytest",
   "pytest-cov",
+  "pytest-lazy-fixture",
   "pytest-mock",
   "pytest-xdist",
   "setuptools",
@@ -77,7 +78,7 @@ docs = [
   "m2r2",
   "sphinx",
   "sphinx-click",
-  "sphinx-immaterial",
+  "sphinx-immaterial>=0.9.0,<1",
   "sphinx-rtd-theme",
 ]
 
@@ -103,20 +104,30 @@ legacy-shared = [
   "urllib3>=1.15.1,<3.0.0",
 ]
 
-# backend/src/v2/test/requirements.txt
+# Legacy backend v2 test helpers
 backend-v2-test = [
   "fire",
 ]
 
-# backend/api/v1beta1/python_http_client/test-requirements.txt
+# Legacy backend API client test helpers
 backend-v1-client-test = [
   "pytest-randomly==1.2.3",
 ]
 
-# components/aws/sagemaker/dev_requirements.txt
+# Legacy SageMaker development tools
 sagemaker-dev-tools = [
   "black==19.10b0",
   "coverage==5.1",
+]
+
+# Legacy SDK deprecated runtime helpers
+sdk-deprecated-runtime = [
+  "Deprecated>=1.2.7",
+  "cloudpickle>=2.0.0",
+  "jsonschema>=4.25.1",
+  "strip-hints>=0.1.8",
+  "typer>=0.3.2",
+  "uritemplate>=3.0.1",
 ]
 
 # Legacy requirement entries that are compatible with the workspace's

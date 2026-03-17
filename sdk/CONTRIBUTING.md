@@ -55,7 +55,7 @@ uv run pytest -n auto
 ```
 
 ### Code Style
-Dependencies for code style checks/changes can be found in the kfp SDK [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
+Dependencies for code style checks/changes are managed in [pyproject.toml](https://github.com/kubeflow/pipelines/blob/master/pyproject.toml) via the `dev`, `lint`, and `test` extras.
 
 
 #### Style Guide [Required]

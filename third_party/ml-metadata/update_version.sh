@@ -28,10 +28,8 @@ do
     sed -i.bak -r "s/gcr.io\/tfx-oss-public\/ml_metadata_store_server\:[0-9.a-z-]+/gcr.io\/tfx-oss-public\/ml_metadata_store_server\:${TAG_NAME}/g" "${i}"
 done
 
-requirement_files=( "${REPO_ROOT}/backend/metadata_writer/requirements.in" \
-                    "${REPO_ROOT}/backend/src/v2/test/requirements.txt"
-                    )
-for i in "${requirement_files[@]}"
+dependency_files=( "${REPO_ROOT}/backend/metadata_writer/Dockerfile" )
+for i in "${dependency_files[@]}"
 do
     echo "Replacing ${i}"
     sed -i.bak -r "s/ml-metadata==[0-9.a-z-]+/ml-metadata==${TAG_NAME}/g" "${i}"

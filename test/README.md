@@ -44,8 +44,8 @@ To run tests locally, set up a Kind cluster and follow the same steps as the Git
 3.  **Prepare the Test Environment**:
 
     -   Install Python test dependencies:
-        
-        `pip install -r test/requirements.txt`
+
+        `uv sync --extra test`
 
     -   Deploy Kubeflow Pipelines to the Kind cluster:
         
@@ -54,7 +54,7 @@ To run tests locally, set up a Kind cluster and follow the same steps as the Git
 4.  **Run the Tests**: 
 Execute the desired test suite:
 
-    `pytest test/kfp-functional-test/`
+    `uv run pytest test/kfp-functional-test/`
 
 For additional guidance on deploying Kubeflow Pipelines in Kind, refer to:
 

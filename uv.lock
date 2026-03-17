@@ -534,6 +534,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cloudpickle"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/51/913ecca3970a2227cf4d5e8937df52cc28f465ac442216110b8e3323262d/cloudpickle-2.2.1.tar.gz", hash = "sha256:d89684b8de9e34a2a43b3460fbca07d09d6e25ce858df4d5a44240403b6178f5", size = 60800, upload-time = "2023-01-19T09:27:28.318Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/80/44286939ca215e88fa827b2aeb6fa3fd2b4a7af322485c7170d6f9fd96e0/cloudpickle-2.2.1-py3-none-any.whl", hash = "sha256:61f594d1f4c295fa5cd9014ceb3a1fc4a70b0de1164b94fbc2d854ccba056f9f", size = 25944, upload-time = "2023-01-19T09:27:26.341Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -670,6 +679,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/43/fa/6d96a0978d19e17b68d634497769987b16c8f4cd0a7a05048bec693caa6b/decorator-5.2.1.tar.gz", hash = "sha256:65f266143752f734b0a7cc83c46f4618af75b8c5911b00ccb61d0ac9b6da0360", size = 56711, upload-time = "2025-02-24T04:41:34.073Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4e/8c/f3147f5c4b73e7550fe5f9352eaa956ae838d5c51eb58e7a25b9f3e2643b/decorator-5.2.1-py3-none-any.whl", hash = "sha256:d316bb415a2d9e2d2b3abcc4084c6502fc09240e292cd76a76afc106a1c8e04a", size = 9190, upload-time = "2025-02-24T04:41:32.565Z" },
+]
+
+[[package]]
+name = "deprecated"
+version = "1.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wrapt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/49/85/12f0a49a7c4ffb70572b6c2ef13c90c88fd190debda93b23f026b25f9634/deprecated-1.3.1.tar.gz", hash = "sha256:b1b50e0ff0c1fddaa5708a2c6b0a6588bb09b892825ab2b214ac9ea9d92a5223", size = 2932523, upload-time = "2025-10-30T08:19:02.757Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/d0/205d54408c08b13550c733c4b85429e7ead111c7f0014309637425520a9a/deprecated-1.3.1-py2.py3-none-any.whl", hash = "sha256:597bfef186b6f60181535a29fbe44865ce137a5079f295b479886c82729d5f3f", size = 11298, upload-time = "2025-10-30T08:19:00.758Z" },
 ]
 
 [[package]]
@@ -1848,6 +1869,7 @@ ci = [
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest-cov" },
+    { name = "pytest-lazy-fixture" },
     { name = "pytest-mock" },
     { name = "pytest-xdist" },
     { name = "requests" },
@@ -1883,6 +1905,7 @@ dev = [
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest-cov" },
+    { name = "pytest-lazy-fixture" },
     { name = "pytest-mock" },
     { name = "pytest-xdist" },
     { name = "setuptools" },
@@ -1938,6 +1961,15 @@ sagemaker-dev-tools = [
     { name = "black" },
     { name = "coverage" },
 ]
+sdk-deprecated-runtime = [
+    { name = "cloudpickle" },
+    { name = "deprecated" },
+    { name = "jsonschema", version = "4.25.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "jsonschema", version = "4.26.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "strip-hints" },
+    { name = "typer" },
+    { name = "uritemplate" },
+]
 test = [
     { name = "absl-py", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "absl-py", version = "2.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -1949,6 +1981,7 @@ test = [
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest-cov" },
+    { name = "pytest-lazy-fixture" },
     { name = "pytest-mock" },
     { name = "pytest-xdist" },
     { name = "setuptools" },
@@ -1963,7 +1996,9 @@ requires-dist = [
     { name = "boto3", marker = "extra == 'legacy-compatible-runtime'", specifier = ">=1.14.12,<2" },
     { name = "build", marker = "extra == 'ci'" },
     { name = "certifi", marker = "extra == 'legacy-shared'", specifier = ">=14.5.14" },
+    { name = "cloudpickle", marker = "extra == 'sdk-deprecated-runtime'", specifier = ">=2.0.0" },
     { name = "coverage", marker = "extra == 'sagemaker-dev-tools'", specifier = "==5.1" },
+    { name = "deprecated", marker = "extra == 'sdk-deprecated-runtime'", specifier = ">=1.2.7" },
     { name = "docformatter", marker = "extra == 'lint'", specifier = "==1.4" },
     { name = "docker", marker = "extra == 'test'" },
     { name = "filelock", marker = "extra == 'legacy-compatible-runtime'", specifier = "==3.0.*" },
@@ -1973,6 +2008,7 @@ requires-dist = [
     { name = "future", marker = "python_full_version < '2.8' and extra == 'legacy-shared'" },
     { name = "google-cloud-pipeline-components", marker = "extra == 'test'" },
     { name = "isort", marker = "extra == 'lint'", specifier = "==5.10.1" },
+    { name = "jsonschema", marker = "extra == 'sdk-deprecated-runtime'", specifier = ">=4.25.1" },
     { name = "junit2html", marker = "extra == 'ci'" },
     { name = "kfp", editable = "sdk/python" },
     { name = "kfp-kubernetes", editable = "kubernetes_platform/python" },
@@ -1997,6 +2033,7 @@ requires-dist = [
     { name = "pylint", marker = "extra == 'lint'", specifier = "==2.17.7" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'test'" },
+    { name = "pytest-lazy-fixture", marker = "extra == 'test'" },
     { name = "pytest-mock", marker = "extra == 'test'" },
     { name = "pytest-randomly", marker = "extra == 'backend-v1-client-test'", specifier = "==1.2.3" },
     { name = "pytest-xdist", marker = "extra == 'test'" },
@@ -2008,18 +2045,21 @@ requires-dist = [
     { name = "six", marker = "extra == 'legacy-shared'", specifier = ">=1.10" },
     { name = "sphinx", marker = "extra == 'docs'" },
     { name = "sphinx-click", marker = "extra == 'docs'" },
-    { name = "sphinx-immaterial", marker = "extra == 'docs'" },
+    { name = "sphinx-immaterial", marker = "extra == 'docs'", specifier = ">=0.9.0,<1" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
+    { name = "strip-hints", marker = "extra == 'sdk-deprecated-runtime'", specifier = ">=0.1.8" },
     { name = "twine", marker = "extra == 'ci'" },
+    { name = "typer", marker = "extra == 'sdk-deprecated-runtime'", specifier = ">=0.3.2" },
     { name = "types-protobuf", marker = "extra == 'dev'" },
     { name = "types-pyyaml", marker = "extra == 'dev'" },
     { name = "types-requests", marker = "extra == 'dev'" },
     { name = "types-tabulate", marker = "extra == 'dev'" },
+    { name = "uritemplate", marker = "extra == 'sdk-deprecated-runtime'", specifier = ">=3.0.1" },
     { name = "urllib3", marker = "extra == 'legacy-shared'", specifier = ">=1.15.1,<3.0.0" },
     { name = "wheel", marker = "extra == 'test'" },
     { name = "yapf", marker = "extra == 'lint'", specifier = "==0.43.0" },
 ]
-provides-extras = ["lint", "test", "dev", "docs", "ci", "legacy-shared", "backend-v2-test", "backend-v1-client-test", "sagemaker-dev-tools", "legacy-compatible-runtime"]
+provides-extras = ["lint", "test", "dev", "docs", "ci", "legacy-shared", "backend-v2-test", "backend-v1-client-test", "sagemaker-dev-tools", "sdk-deprecated-runtime", "legacy-compatible-runtime"]
 
 [[package]]
 name = "kubernetes"
@@ -3161,6 +3201,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8f/d9/05d0d003613cf4cf86ce4505c93c149abd330d2519d1a031c1515e7924ec/pytest-cov-2.10.1.tar.gz", hash = "sha256:47bd0ce14056fdd79f93e1713f88fad7bdcc583dcd7783da86ef2f085a0bb88e", size = 56822, upload-time = "2020-08-14T17:21:20.758Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/18/401594af67eda194a8b9167208621761927c937db7d60292608342bbac0a/pytest_cov-2.10.1-py2.py3-none-any.whl", hash = "sha256:45ec2d5182f89a81fc3eb29e3d1ed3113b9e9a873bcddb2a71faaab066110191", size = 19499, upload-time = "2020-08-14T17:21:19.132Z" },
+]
+
+[[package]]
+name = "pytest-lazy-fixture"
+version = "0.6.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pytest", version = "9.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b2/82/ae6d2f6903719c4ec410dcd31ee24e3bce74b2cef3c5b9150ad36e8594b6/pytest-lazy-fixture-0.6.3.tar.gz", hash = "sha256:0e7d0c7f74ba33e6e80905e9bfd81f9d15ef9a790de97993e34213deb5ad10ac", size = 7878, upload-time = "2020-02-01T18:04:02.321Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2d/a1/2f2c1c2353350d66c4d110d283e422e4943eb5ad10effa9357ba66f7b5b9/pytest_lazy_fixture-0.6.3-py3-none-any.whl", hash = "sha256:e0b379f38299ff27a653f03eaa69b08a6fd4484e46fd1c9907d984b9f9daeda6", size = 4948, upload-time = "2020-02-01T18:04:00.347Z" },
 ]
 
 [[package]]
@@ -4498,6 +4551,18 @@ wheels = [
 ]
 
 [[package]]
+name = "strip-hints"
+version = "0.1.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wheel" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/af/17ec9e52446330f60752687c7bc6328a68cb1aefe940f6d919a282b6a720/strip_hints-0.1.13.tar.gz", hash = "sha256:1feaebde61269ba0dea1e7f093df7ff9d4df4980cce7e3c22ed6d86ae43dbd06", size = 30332, upload-time = "2025-02-21T01:33:20.307Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/43/93828236ade737789fc5a85cf2cdc363c4e2694a2afff9e7bb9e7590214e/strip_hints-0.1.13-py3-none-any.whl", hash = "sha256:7ba1b07a193b1cc843fd87f21072202404c25dbc42d3222ac32b2bce4b196c8a", size = 23259, upload-time = "2025-02-21T01:33:18.175Z" },
+]
+
+[[package]]
 name = "tabulate"
 version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4832,6 +4897,15 @@ name = "untokenize"
 version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f7/46/e7cea8159199096e1df52da20a57a6665da80c37fb8aeb848a3e47442c32/untokenize-0.1.1.tar.gz", hash = "sha256:3865dbbbb8efb4bb5eaa72f1be7f3e0be00ea8b7f125c69cbd1f5fda926f37a2", size = 3099, upload-time = "2014-02-08T16:30:40.631Z" }
+
+[[package]]
+name = "uritemplate"
+version = "3.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/da/fa9aca2d866f932f17703b3b5edb7b17114bb261122b6e535ef0d9f618f8/uritemplate-3.0.1.tar.gz", hash = "sha256:5af8ad10cec94f215e3f48112de2022e1d5a37ed427fbd88652fa908f2ab7cae", size = 32806, upload-time = "2019-12-19T22:13:08.286Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/0c/60d82c077998feb631608dca3cc1fe19ac074e772bf0c24cf409b977b815/uritemplate-3.0.1-py2.py3-none-any.whl", hash = "sha256:07620c3f3f8eed1f12600845892b0e036a2420acf513c53f7de0abd911a5894f", size = 15615, upload-time = "2019-12-19T22:13:06.86Z" },
+]
 
 [[package]]
 name = "urllib3"
