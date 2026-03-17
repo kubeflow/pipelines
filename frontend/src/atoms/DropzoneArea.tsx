@@ -37,6 +37,8 @@ interface DropzoneAreaProps {
   style?: React.CSSProperties;
   /** Custom file validator run after accept/MIME filtering but before onDropAccepted. */
   validator?: (file: File) => FileError | FileError[] | null;
+  /** Whether to allow selecting multiple files. Defaults to false. */
+  multiple?: boolean;
   /** Extra attributes forwarded to the hidden <input type="file"> element (e.g. tabIndex). */
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
   children?: React.ReactNode;
@@ -60,6 +62,7 @@ const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((pr
     onDragLeave,
     accept,
     disabled,
+    multiple = false,
     validator,
     id,
     style,
@@ -75,6 +78,7 @@ const DropzoneArea = React.forwardRef<DropzoneAreaHandle, DropzoneAreaProps>((pr
     noClick: true,
     accept,
     disabled,
+    multiple,
     validator,
     onDragEnter: (_e) => onDragEnter?.(),
     onDragLeave: (_e) => onDragLeave?.(),

@@ -757,9 +757,12 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   }
 
   private _onDropRejected(): void {
-    this.setStateSafe({ dropzoneActive: false, file: null, fileName: '' }, () => {
-      this._validate();
-    });
+    this.setStateSafe(
+      { dropzoneActive: false, file: null, fileName: '', pipelineVersionName: '' },
+      () => {
+        this._validate();
+      },
+    );
     this.props.updateSnackbar({
       autoHideDuration: 5000,
       message: PIPELINE_PACKAGE_REJECT_MESSAGE,
