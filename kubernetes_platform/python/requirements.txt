@@ -63,7 +63,7 @@ protobuf==6.33.5
     #   kfp
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.2
+pyasn1==0.6.3
     # via
     #   pyasn1-modules
     #   rsa
