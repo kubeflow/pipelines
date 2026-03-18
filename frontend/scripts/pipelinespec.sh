@@ -13,8 +13,6 @@ curl https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855
 
 
 protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
-       --js_out="import_style=commonjs,binary:src/generated/pipeline_spec" \
-       --grpc-web_out="import_style=commonjs+dts,mode=grpcweb:src/generated/pipeline_spec" \
        --ts_proto_opt="esModuleInterop=true" \
        --ts_proto_out="./src/generated/pipeline_spec" \
        --proto_path="../api/v2alpha1" \
