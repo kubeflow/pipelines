@@ -155,11 +155,13 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: BLOCK_V1_PIPELINES
+                  optional: true
             - name: V1_ALLOWED_NAMESPACES
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: V1_ALLOWED_NAMESPACES
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server

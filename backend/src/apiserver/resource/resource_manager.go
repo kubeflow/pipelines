@@ -1213,6 +1213,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		}
 	}
 
+	if common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
+		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
+		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
+			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
+		}
+	}
+
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {

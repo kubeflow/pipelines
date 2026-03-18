@@ -1770,11 +1770,11 @@ func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			viper.Set("BLOCK_V1_PIPELINES", test.blockV1)
-			viper.Set("V1_ALLOWED_NAMESPACES", test.allowedNamespaces)
+			viper.Set(common.BlockV1Pipelines, test.blockV1)
+			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
 			defer func() {
-				viper.Set("BLOCK_V1_PIPELINES", false)
-				viper.Set("V1_ALLOWED_NAMESPACES", "")
+				viper.Set(common.BlockV1Pipelines, false)
+				viper.Set(common.V1NamespaceWhitelist, "")
 			}()
 
 			store, manager, exp := initWithExperiment(t)
@@ -2554,6 +2554,118 @@ func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestCreateJob_BlocksV1Pipelines(t *testing.T) {
+	tt := []struct {
+		msg               string
+		blockV1           bool
+		allowedNamespaces string
+		namespace         string
+		useV2Spec         bool
+		errorCode         codes.Code
+		errorMsg          string
+	}{
+		{
+			msg:               "BlockV1_NamespaceNotAllowed",
+			blockV1:           true,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         false,
+			errorCode:         codes.InvalidArgument,
+			errorMsg:          "not allowed to run v1 pipelines",
+		},
+		{
+			msg:               "BlockV1_NamespaceAllowed",
+			blockV1:           true,
+			allowedNamespaces: "ns1",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_NamespaceAllowed_MultipleNamespaces",
+			blockV1:           true,
+			allowedNamespaces: "ns1,ns2,ns3",
+			namespace:         "ns2",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_Disabled_AnyNamespaceAllowed",
+			blockV1:           false,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+		{
+			msg:               "BlockV1_V2PipelineNotBlocked",
+			blockV1:           true,
+			allowedNamespaces: "",
+			namespace:         "ns1",
+			useV2Spec:         true,
+		},
+		{
+			msg:               "BlockV1_NamespaceNotInAllowedList",
+			blockV1:           true,
+			allowedNamespaces: "ns2,ns3",
+			namespace:         "ns1",
+			useV2Spec:         false,
+			errorCode:         codes.InvalidArgument,
+			errorMsg:          "Namespace ns1 is not allowed to run v1 pipelines",
+		},
+		{
+			msg:               "BlockV1_CaseInsensitiveNamespaceMatch",
+			blockV1:           true,
+			allowedNamespaces: "NS1",
+			namespace:         "ns1",
+			useV2Spec:         false,
+		},
+	}
+
+	for _, test := range tt {
+		t.Run(test.msg, func(t *testing.T) {
+			viper.Set(common.BlockV1Pipelines, test.blockV1)
+			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			defer func() {
+				viper.Set(common.BlockV1Pipelines, false)
+				viper.Set(common.V1NamespaceWhitelist, "")
+			}()
+
+			store, manager, exp := initWithExperiment(t)
+			defer store.Close()
+
+			job := &model.Job{
+				DisplayName:  "j1",
+				Enabled:      true,
+				ExperimentId: exp.UUID,
+				Namespace:    test.namespace,
+			}
+			if test.useV2Spec {
+				job.PipelineSpec = model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters:   "{\"text\":\"world\"}",
+						PipelineRoot: "job-1-root",
+					},
+				}
+			} else {
+				job.PipelineSpec = model.PipelineSpec{
+					WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+				}
+			}
+
+			_, err := manager.CreateJob(context.Background(), job)
+
+			if test.errorCode != 0 {
+				require.NotNil(t, err)
+				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
+				if test.errorMsg != "" {
+					assert.Contains(t, err.Error(), test.errorMsg)
+				}
+				return
+			}
+			assert.Nil(t, err)
+		})
+	}
 }
 
 // TODO Use table driven to write UT to test CreateJob
