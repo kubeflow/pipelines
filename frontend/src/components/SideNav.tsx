@@ -272,6 +272,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               >
                 <Link id='gettingStartedBtn' to={RoutePage.START} className={commonCss.unstyled}>
                   <Button
+                    color='inherit'
                     className={classes(
                       css.button,
                       page.startsWith(RoutePage.START) && css.active,
@@ -305,6 +306,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           >
             <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
               <Button
+                color='inherit'
                 className={classes(
                   css.button,
                   this._highlightPipelinesButton(page) && css.active,
@@ -342,6 +344,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           >
             <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
               <Button
+                color='inherit'
                 className={classes(
                   css.button,
                   this._highlightExperimentsButton(page) && css.active,
@@ -381,6 +384,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           >
             <Link id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
               <Button
+                color='inherit'
                 className={classes(
                   css.button,
                   this._highlightRunsButton(page) && css.active,
@@ -414,6 +418,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               className={commonCss.unstyled}
             >
               <Button
+                color='inherit'
                 className={classes(
                   css.button,
                   this._highlightRecurringRunsButton(page) && css.active,
@@ -445,6 +450,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           >
             <Link id='artifactsBtn' to={RoutePage.ARTIFACTS} className={commonCss.unstyled}>
               <Button
+                color='inherit'
                 className={classes(
                   css.button,
                   this._highlightArtifactsButton(page) && css.active,
@@ -476,6 +482,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           >
             <Link id='executionsBtn' to={RoutePage.EXECUTIONS} className={commonCss.unstyled}>
               <Button
+                color='inherit'
                 className={classes(
                   css.button,
                   this._highlightExecutionsButton(page) && css.active,
@@ -507,7 +514,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 target='_blank'
                 rel='noopener'
               >
-                <Button className={classes(css.button, collapsed && css.collapsedButton)}>
+                <Button
+                  color='inherit'
+                  className={classes(css.button, collapsed && css.collapsedButton)}
+                >
                   <div className={tailwindcss.sideNavItem}>
                     <JupyterhubIcon style={{ height: 20, width: 20 }} />
                     <span className={classes(collapsed && css.collapsedLabel, css.label)}>
@@ -691,7 +701,7 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
     disableTouchListener={!collapsed}
   >
     <a href={to} className={commonCss.unstyled} target='_blank' rel='noopener noreferrer'>
-      <Button className={classes(css.button, collapsed && css.collapsedButton)}>
+      <Button color='inherit' className={classes(css.button, collapsed && css.collapsedButton)}>
         <div className={tailwindcss.sideNavItem}>
           {icon(css.icon)}
           <span className={classes(collapsed && css.collapsedLabel, css.label)}>{title}</span>

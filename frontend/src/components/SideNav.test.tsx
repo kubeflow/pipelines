@@ -95,6 +95,19 @@ describe('SideNav', () => {
     expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
+  it('renders sidebar nav buttons without primary button styling', async () => {
+    const { renderResult } = renderSideNav(RoutePage.PIPELINES);
+    await waitFor(() => expect(isCollapsed(renderResult.container)).toBe(false));
+
+    const pipelinesButton = renderResult.getByRole('button', { name: 'Pipelines' });
+    const docsButton = renderResult.getByRole('button', { name: 'Documentation' });
+
+    expect(pipelinesButton.className).toContain('MuiButton-textInherit');
+    expect(pipelinesButton.className).not.toContain('MuiButton-textPrimary');
+    expect(docsButton.className).toContain('MuiButton-textInherit');
+    expect(docsButton.className).not.toContain('MuiButton-textPrimary');
+  });
+
   it('renders collapsed state', async () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = narrowWidth;
