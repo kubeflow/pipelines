@@ -195,7 +195,8 @@ class TestConstructExecutorInput(unittest.TestCase):
         task_root = '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp'
         with self.assertRaisesRegex(
                 ValueError,
-                'Input artifacts are not yet supported for local execution.'):
+                'Input artifacts are not yet supported for local execution. '
+                "Got: \\['in_artifact'\\]"):
             executor_input_utils.construct_executor_input(
                 component_spec=component_spec,
                 arguments=arguments,
@@ -223,6 +224,40 @@ class TestConstructExecutorInput(unittest.TestCase):
         actual = executor_input_utils.construct_executor_input(
             component_spec=component_spec,
             arguments={},
+            task_root=task_root,
+            block_input_artifact=True,
+        )
+        expected = pipeline_spec_pb2.ExecutorInput()
+        json_format.ParseDict(
+            {
+                'inputs': {},
+                'outputs': {
+                    'outputFile':
+                        '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json'
+                }
+            }, expected)
+        self.assertEqual(actual, expected)
+
+    def test_does_not_block_none_input_artifact(self):
+        component_spec = pipeline_spec_pb2.ComponentSpec()
+        json_format.ParseDict(
+            {
+                'inputDefinitions': {
+                    'artifacts': {
+                        'in_artifact': {
+                            'artifactType': {
+                                'schemaTitle': 'system.Artifact',
+                                'schemaVersion': '0.0.1'
+                            }
+                        }
+                    }
+                },
+                'executorLabel': 'exec-comp'
+            }, component_spec)
+        task_root = '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp'
+        actual = executor_input_utils.construct_executor_input(
+            component_spec=component_spec,
+            arguments={'in_artifact': None},
             task_root=task_root,
             block_input_artifact=True,
         )
