@@ -224,6 +224,35 @@ describe('NewPipelineVersion', () => {
       expect(getPipelineSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('preserves pipeline version name when a file drop is rejected', async () => {
+      await renderExistingPipeline();
+
+      // Set a custom version name (simulating user editing or pre-fill from pipeline)
+      getInstance().handleChange('pipelineVersionName')({
+        target: { value: 'my-custom-version-name' },
+      });
+      await waitFor(() =>
+        expect(getInstance().state).toHaveProperty('pipelineVersionName', 'my-custom-version-name'),
+      );
+
+      // Simulate a rejected drop (invalid file)
+      getInstance()['_onDropRejected']();
+      await TestUtils.flushPromises();
+
+      // File-related state is reset
+      expect(getInstance().state).toHaveProperty('dropzoneActive', false);
+      expect(getInstance().state).toHaveProperty('file', null);
+      expect(getInstance().state).toHaveProperty('fileName', '');
+
+      // Version name must NOT be cleared
+      expect(getInstance().state).toHaveProperty('pipelineVersionName', 'my-custom-version-name');
+
+      // Snackbar was shown
+      expect(updateSnackbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ open: true, autoHideDuration: 5000 }),
+      );
+    });
+
     it("sends a request to create a version when 'Create' is clicked", async () => {
       await renderExistingPipeline();
 
