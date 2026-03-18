@@ -102,10 +102,10 @@ describe('SideNav', () => {
     const pipelinesButton = renderResult.getByRole('button', { name: 'Pipelines' });
     const docsButton = renderResult.getByRole('button', { name: 'Documentation' });
 
-    expect(pipelinesButton.className).toContain('MuiButton-textInherit');
-    expect(pipelinesButton.className).not.toContain('MuiButton-textPrimary');
-    expect(docsButton.className).toContain('MuiButton-textInherit');
-    expect(docsButton.className).not.toContain('MuiButton-textPrimary');
+    expect(pipelinesButton).toHaveClass('MuiButton-textInherit');
+    expect(pipelinesButton).not.toHaveClass('MuiButton-textPrimary');
+    expect(docsButton).toHaveClass('MuiButton-textInherit');
+    expect(docsButton).not.toHaveClass('MuiButton-textPrimary');
   });
 
   it('renders collapsed state', async () => {
