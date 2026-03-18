@@ -60,6 +60,7 @@ export default defineConfig(({ mode }) => ({
     outDir: 'build',
     assetsDir: 'static',
     sourcemap: true,
+    // TODO(#13018): Remove MLMD path after Phase 2 migration
     commonjsOptions: {
       include: [/node_modules/, /src\/third_party\/mlmd\/generated/],
     },

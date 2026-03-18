@@ -15,8 +15,11 @@
  */
 
 import { Button } from '@mui/material';
-import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
-import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
+import {
+  ComponentSpec,
+  ParameterType_ParameterTypeEnum,
+  PipelineSpec,
+} from 'src/generated/pipeline_spec';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { getStringEnumKey } from 'src/lib/Utils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
