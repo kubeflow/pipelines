@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => ({
     assetsDir: 'static',
     sourcemap: true,
     commonjsOptions: {
-      include: [/node_modules/, /src\/generated/, /src\/third_party\/mlmd\/generated/],
+      include: [/node_modules/, /src\/third_party\/mlmd\/generated/],
     },
   },
 }));
