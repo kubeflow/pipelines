@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { getArtifactTypes, getExecutionTypes, getArtifactCreationTime } from './LineageApi';
 import {
@@ -19,6 +35,7 @@ function buildMockMetadataStoreService(): MetadataStoreServicePromiseClient {
 }
 
 const SAMPLE_TIME_MS = 1_560_300_108_000;
+const DECLARED_OUTPUT_TIME_MS = 1_560_250_000_000;
 const EARLIER_TIME_MS = 1_560_200_000_000;
 
 function buildEvent(type: Event.Type, timeMs: number): Event {
@@ -155,6 +172,16 @@ describe('LineageApi', () => {
     it('returns formatted date of the last OUTPUT event', async () => {
       mockEventsResponse(metadataStoreService, [
         buildEvent(Event.Type.INPUT, EARLIER_TIME_MS),
+        buildEvent(Event.Type.OUTPUT, SAMPLE_TIME_MS),
+      ]);
+
+      const result = await getArtifactCreationTime(1, metadataStoreService);
+      expect(result).toBe(new Date(SAMPLE_TIME_MS).toLocaleString());
+    });
+
+    it('prefers OUTPUT over DECLARED_OUTPUT when both are present', async () => {
+      mockEventsResponse(metadataStoreService, [
+        buildEvent(Event.Type.DECLARED_OUTPUT, DECLARED_OUTPUT_TIME_MS),
         buildEvent(Event.Type.OUTPUT, SAMPLE_TIME_MS),
       ]);
 
