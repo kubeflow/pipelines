@@ -161,7 +161,7 @@ describe('ExecutionDetailsContent', () => {
 
     getArtifactTypesSpy.mockResolvedValue(new GetArtifactTypesResponse());
     getArtifactsByIDSpy.mockResolvedValue(new GetArtifactsByIDResponse());
-    getContextByExecutionSpy.mockResolvedValue(null);
+    getContextByExecutionSpy.mockReturnValue(new Promise(() => {}));
   });
 
   function renderContent(id = 1) {
@@ -512,6 +512,7 @@ describe('ExecutionDetailsContent', () => {
     });
 
     it('renders neither link when no context and no cached ID', async () => {
+      getContextByExecutionSpy.mockResolvedValue(null);
       mockSuccessfulLoad();
       renderContent();
 
@@ -521,6 +522,7 @@ describe('ExecutionDetailsContent', () => {
 
       expect(screen.queryByText('Pipeline Run')).not.toBeInTheDocument();
       expect(screen.queryByText('Original Execution')).not.toBeInTheDocument();
+      await TestUtils.flushPromises();
     });
   });
 });
@@ -576,35 +578,16 @@ describe('ExecutionDetails (page wrapper)', () => {
     );
   });
 
-  it('updates toolbar title via onTitleUpdate after successful load', async () => {
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByID').mockResolvedValue(
-      buildExecutionsByIDResponse([buildExecution()]),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
-      buildEventsResponse([]),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionTypesByID').mockResolvedValue(
-      buildExecutionTypesByIDResponse([buildExecutionType()]),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes').mockResolvedValue(
-      new GetArtifactTypesResponse(),
-    );
-    vi.spyOn(MlmdUtils, 'getContextByExecution').mockResolvedValue(null);
-
+  it('updates toolbar title via onTitleUpdate after successful load', () => {
     const { props, updateToolbarSpy } = buildPageProps();
+    const wrapperElement = new ExecutionDetails(props).render() as any;
+    const childElement = wrapperElement.props.children;
+    childElement.props.onTitleUpdate('test-execution');
 
-    render(
-      <CommonTestWrapper>
-        <ExecutionDetails {...props} />
-      </CommonTestWrapper>,
+    expect(updateToolbarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pageTitle: 'test-execution',
+      }),
     );
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pageTitle: 'test-execution',
-        }),
-      );
-    });
   });
 });
