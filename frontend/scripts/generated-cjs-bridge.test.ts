@@ -24,12 +24,8 @@ describe('isGeneratedCjs', () => {
     expect(isGeneratedCjs('/abs/third_party/mlmd/generated/proto/foo_pb.js')).toBe(true);
   });
 
-  it('matches src/generated JS files', () => {
-    expect(isGeneratedCjs('/abs/src/generated/pipeline_spec/pipeline_spec_pb.js')).toBe(true);
-  });
-
   it('rejects non-.js files in generated paths', () => {
-    expect(isGeneratedCjs('/abs/src/generated/pipeline_spec/pipeline_spec.ts')).toBe(false);
+    expect(isGeneratedCjs('/abs/third_party/mlmd/generated/proto/foo.ts')).toBe(false);
   });
 
   it('rejects JS files outside generated paths', () => {
@@ -41,9 +37,9 @@ describe('isGeneratedCjs', () => {
   });
 
   it('handles Windows-style backslash paths', () => {
-    expect(isGeneratedCjs('C:\\project\\src\\generated\\pipeline_spec\\pipeline_spec_pb.js')).toBe(
-      true,
-    );
+    expect(
+      isGeneratedCjs('C:\\project\\third_party\\mlmd\\generated\\proto\\metadata_store_pb.js'),
+    ).toBe(true);
   });
 });
 
@@ -172,9 +168,6 @@ describe('transformGeneratedCjsToEsm against real generated files', () => {
     'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb.js',
     'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb.js',
     'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb.js',
-    'src/generated/pipeline_spec/pipeline_spec_pb.js',
-    'src/generated/pipeline_spec/google/rpc/status_pb.js',
-    'src/generated/platform_spec/kubernetes_platform/kubernetes_executor_config_pb.js',
   ];
 
   const frontendRoot = path.resolve(__dirname, '..');
