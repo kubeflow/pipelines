@@ -199,12 +199,12 @@ exports[`ExperimentsAndArchive > renders archive page 1`] = `
                 class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
               >
                 <div
-                  aria-controls="mui-12"
+                  aria-controls=":re:"
                   aria-expanded="false"
                   aria-haspopup="listbox"
-                  aria-labelledby="mui-13"
+                  aria-labelledby=":rd:"
                   class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                  id="mui-13"
+                  id=":rd:"
                   role="combobox"
                   tabindex="0"
                 >
@@ -500,12 +500,12 @@ exports[`ExperimentsAndArchive > renders experiments page 1`] = `
               class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
             >
               <div
-                aria-controls="mui-6"
+                aria-controls=":r7:"
                 aria-expanded="false"
                 aria-haspopup="listbox"
-                aria-labelledby="mui-7"
+                aria-labelledby=":r6:"
                 class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                id="mui-7"
+                id=":r6:"
                 role="combobox"
                 tabindex="0"
               >

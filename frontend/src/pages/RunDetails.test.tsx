@@ -1171,7 +1171,6 @@ describe('RunDetails', () => {
           <div
             class="page_f1flacxk"
           >
-            
             <div
               class="f4k0h41"
             >
@@ -1381,7 +1380,6 @@ describe('RunDetails', () => {
                 </button>
               </div>
             </div>
-            
           </div>
         </div>
       `);

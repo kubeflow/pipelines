@@ -127,6 +127,15 @@ function getTestApi() {
   return testApi;
 }
 
+/**
+ * Filters out the ReactDOM.render deprecation warning emitted by @testing-library/react v12
+ * from a console spy's recorded calls. Use when a test spies on console.error and needs to
+ * assert on real errors only. Remove once @testing-library/react is upgraded to v14+.
+ */
+export function filterReactDeprecationWarnings(spy: MockInstance): unknown[][] {
+  return spy.mock.calls.filter((call) => !String(call[0]).includes('ReactDOM.render'));
+}
+
 export function expectWarnings() {
   const testApi = getTestApi();
   const loggerWarningSpy = testApi.spyOn(console, 'warn');
