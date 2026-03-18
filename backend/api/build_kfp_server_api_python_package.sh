@@ -75,10 +75,10 @@ pushd "$DIR"
 python3 setup.py --quiet sdist
 popd
 
-# For v2beta1, replace codegen-generated setup.py/requirements.txt with
-# pyproject.toml so the committed tree stays clean for uv workspace resolution.
+# For v2beta1, replace codegen-generated setup.py with pyproject.toml for uv
+# workspace resolution, but keep requirements.txt for tox compatibility.
 if [[ "$API_VERSION" == "v2beta1" ]]; then
-    rm -f "$DIR/setup.py" "$DIR/requirements.txt"
+    rm -f "$DIR/setup.py"
     cat > "$DIR/pyproject.toml" << PYPROJECT
 [project]
 name = "kfp-server-api"
