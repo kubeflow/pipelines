@@ -271,6 +271,8 @@ class TestConstructExecutorInput(unittest.TestCase):
                 }
             }, expected)
         self.assertEqual(actual, expected)
+        self.assertFalse(actual.inputs.artifacts)
+        self.assertEqual(json_format.MessageToDict(actual.inputs), {})
 
     def test_allow_input_artifact(self):
         component_spec = pipeline_spec_pb2.ComponentSpec()

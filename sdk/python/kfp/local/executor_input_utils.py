@@ -36,10 +36,12 @@ def construct_executor_input(
     input_parameter_keys = list(
         component_spec.input_definitions.parameters.keys())
     # need to also add injected input parameters for f-string
+    # exclude declared input artifact keys because optional artifacts may be
+    # present in arguments with a None value
     input_parameter_keys += [
         k for k, v in arguments.items()
-        if not isinstance(v, dsl.Artifact) and
-        k not in component_spec.input_definitions.artifacts
+        if (not isinstance(v, dsl.Artifact) and
+            k not in component_spec.input_definitions.artifacts)
     ]
     provided_input_artifact_keys = {
         artifact_name
