@@ -264,7 +264,21 @@ function updateToolBar(
   if (runMetadata) {
     const pageTitle = (
       <div className={commonCss.flex}>
-        {statusToIcon(runMetadata.state, runMetadata.created_at)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {statusToIcon(runMetadata.state, runMetadata.created_at)}
+          {runMetadata?.error?.message && (
+            <span style={{
+              backgroundColor: '#ffebee',
+              color: '#c62828',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+            }}>
+              ⚠️ {runMetadata.error.message}
+            </span>
+          )}
+        </div>
         <span style={{ marginLeft: 10 }}>{runMetadata.display_name || 'Run name unknown'}</span>
       </div>
     );
