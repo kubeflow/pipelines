@@ -209,7 +209,10 @@ interface SideNavButtonProps {
 }
 
 const SideNavButton: React.FC<SideNavButtonProps> = ({ children, collapsed, className }) => (
-  <Button color='inherit' className={classes(css.button, className, collapsed && css.collapsedButton)}>
+  <Button
+    color='inherit'
+    className={classes(css.button, className, collapsed && css.collapsedButton)}
+  >
     {children}
   </Button>
 );
@@ -283,7 +286,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 disableTouchListener={!collapsed}
               >
                 <Link id='gettingStartedBtn' to={RoutePage.START} className={commonCss.unstyled}>
-                  <SideNavButton collapsed={collapsed} className={page.startsWith(RoutePage.START) && css.active}>
+                  <SideNavButton
+                    collapsed={collapsed}
+                    className={page.startsWith(RoutePage.START) && css.active}
+                  >
                     <div className={tailwindcss.sideNavItem}>
                       <DescriptionIcon style={{ width: 20, height: 20 }} />
                       <span className={classes(collapsed && css.collapsedLabel, css.label)}>
