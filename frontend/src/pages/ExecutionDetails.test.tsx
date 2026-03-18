@@ -161,7 +161,7 @@ describe('ExecutionDetailsContent', () => {
 
     getArtifactTypesSpy.mockResolvedValue(new GetArtifactTypesResponse());
     getArtifactsByIDSpy.mockResolvedValue(new GetArtifactsByIDResponse());
-    getContextByExecutionSpy.mockResolvedValue(undefined);
+    getContextByExecutionSpy.mockResolvedValue(null);
   });
 
   function renderContent(id = 1) {
@@ -589,7 +589,7 @@ describe('ExecutionDetails (page wrapper)', () => {
     vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes').mockResolvedValue(
       new GetArtifactTypesResponse(),
     );
-    vi.spyOn(MlmdUtils, 'getContextByExecution').mockResolvedValue(undefined);
+    vi.spyOn(MlmdUtils, 'getContextByExecution').mockResolvedValue(null);
 
     const { props, updateToolbarSpy } = buildPageProps();
 
