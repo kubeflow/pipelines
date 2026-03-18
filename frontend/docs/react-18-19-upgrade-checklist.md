@@ -6,7 +6,7 @@
 **Strategy**: Deps-first where possible, bump-last where necessary. Most dependency migrations land on the stable React 17 runtime first; the remaining React 18-coupled testing-library work is intentionally deferred to `#9.5` after the React 18 bump.
 **Canonical source**: This checklist is the canonical execution plan and supersedes earlier draft planning notes.
 
-## Status at a glance (March 12, 2026)
+## Status at a glance (March 18, 2026)
 
 - [x] ~~#1 Prereq warning/test cleanup~~ (`issue`: n/a; `PRs`: [#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), [#12872](https://github.com/kubeflow/pipelines/pull/12872))
 - [x] ~~#2 Add React peer compatibility gate~~ (`issue`: n/a; `PR`: [#12881](https://github.com/kubeflow/pipelines/pull/12881))
@@ -15,7 +15,7 @@
 - [x] ~~#5 react-flow-renderer -> @xyflow/react~~ (`issue`: [#12893](https://github.com/kubeflow/pipelines/issues/12893); `PR`: [#12945](https://github.com/kubeflow/pipelines/pull/12945))
 - [x] ~~#6 Material-UI v4 -> MUI v5~~ (`issue`: [#12894](https://github.com/kubeflow/pipelines/issues/12894); `PR`: [#12925](https://github.com/kubeflow/pipelines/pull/12925))
 - [x] ~~#7 Modernize JSX runtime and test utilities~~ (`issue`: [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PR`: [#13019](https://github.com/kubeflow/pipelines/pull/13019))
-- [ ] #8 Update remaining ecosystem dependencies (`issue`: [#12896](https://github.com/kubeflow/pipelines/issues/12896); `PR`: none yet)
+- [x] ~~#8 Update remaining ecosystem dependencies~~ (`issue`: [#12896](https://github.com/kubeflow/pipelines/issues/12896); `PR`: [#13025](https://github.com/kubeflow/pipelines/pull/13025))
 - [ ] #9 Upgrade React to v18 (`issue`: [#12897](https://github.com/kubeflow/pipelines/issues/12897); `PR`: none yet)
 - [ ] #9.5 Finish React 18-coupled testing-library work (`issue`: [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PR`: none yet)
 - [ ] #10 Stabilize React 18 runtime (`issue`: [#12898](https://github.com/kubeflow/pipelines/issues/12898); `PR`: none yet)
@@ -26,11 +26,11 @@
 - [ ] #15 Update documentation for React 19 stack (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903); `PR`: none yet)
 
 **Current focus**:
-- Start #8 ([#12896](https://github.com/kubeflow/pipelines/issues/12896)). The remaining `#12895` work is now deferred to `#9.5`, after the React 18 bump.
-- Most recent roadmap merges: [#13019](https://github.com/kubeflow/pipelines/pull/13019) for #7 on March 12, 2026, [#12945](https://github.com/kubeflow/pipelines/pull/12945) for #5 on March 10, 2026, and [#12946](https://github.com/kubeflow/pipelines/pull/12946) for #4 on March 9, 2026.
-- No open PRs were found for the remaining work on #8, #9, #9.5, and #10 through #15.
+- Start #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897)): bump `react` and `react-dom` to v18, migrate `ReactDOM.render()` to `createRoot()`, and flip the peer gate. The remaining `#12895` testing-library work is deferred to `#9.5`, after the React 18 bump.
+- Most recent roadmap merges: [#13025](https://github.com/kubeflow/pipelines/pull/13025) for #8 on March 18, 2026, [#13019](https://github.com/kubeflow/pipelines/pull/13019) for #7 on March 12, 2026, and [#12945](https://github.com/kubeflow/pipelines/pull/12945) for #5 on March 10, 2026.
+- No open PRs were found for the remaining work on #9, #9.5, and #10 through #15.
 
-**How to contribute**: Each issue below maps to one independently mergeable PR. As of March 12, 2026, #1 through #7 are complete for the React 17 staging phase. #8 ([#12896](https://github.com/kubeflow/pipelines/issues/12896)) is now the next actionable item, while the remaining React 18-coupled work from [#12895](https://github.com/kubeflow/pipelines/issues/12895) is explicitly deferred to `#9.5` after `#9`. Every PR must pass `npm run test:ci` and `npm run build` before merge.
+**How to contribute**: Each issue below maps to one independently mergeable PR. As of March 18, 2026, #1 through #8 are complete — the entire React 17 staging phase is finished. #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897)) is now the next actionable item, while the remaining React 18-coupled work from [#12895](https://github.com/kubeflow/pipelines/issues/12895) is explicitly deferred to `#9.5` after `#9`. Every PR must pass `npm run test:ci` and `npm run build` before merge.
 
 ---
 
@@ -183,28 +183,26 @@ Capture coverage baseline before and compare after -- coverage must not decrease
 
 ---
 
-## 8. Update remaining ecosystem dependencies ([#12896](https://github.com/kubeflow/pipelines/issues/12896))
+## 8. ~~Update remaining ecosystem dependencies~~ Completed ([#12896](https://github.com/kubeflow/pipelines/issues/12896), [#13025](https://github.com/kubeflow/pipelines/pull/13025))
 
 **Labels**: `area/frontend`, `priority/p2`, `kind/chore`, `good first issue`
 **Depends on**: #7 ([#12895](https://github.com/kubeflow/pipelines/issues/12895))
 
 **Status**:
-Not started. This is now the next start point.
+Completed by [#13025](https://github.com/kubeflow/pipelines/pull/13025), merged on March 18, 2026; issue [#12896](https://github.com/kubeflow/pipelines/issues/12896) is closed. Upgraded `markdown-to-jsx` v6 → v7, `react-dropzone` v5 → v14, and `react-textarea-autosize` 8.3.3 → 8.5.9. Added `src/atoms/DropzoneArea.tsx` to bridge the hook-based v14 API with existing class components. React 17 peer gate now passes with an empty allowlist; previous transitive blockers (`use-composed-ref`, `use-isomorphic-layout-effect`, `use-latest`) are cleared.
 
 **Description**:
 Upgrade remaining deps with React 17-limited peer ranges: `markdown-to-jsx` v6 to v7, `react-dropzone` v5 to v14, and any `re-resizable` residuals. Review and update `package.json` `overrides` and `resolutions` entries -- remove stale ones, add new ones as needed. Drive peer gate allowlist to empty.
 
-**Current peer-gate blockers for React 18 to clear across #8, #9, and #9.5 (as of March 12, 2026):**
+**Remaining peer-gate blockers for React 18 to clear in #9 and #9.5 (as of March 18, 2026):**
 - `react-dom@17.0.2` (`react=17.0.2`) - handled in #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897))
-- `react-textarea-autosize@8.3.3` (`react=^16.8.0 || ^17.0.0`) - handled in #8
 - `@testing-library/react@12.1.5` (`react-dom=<18.0.0`, `react=<18.0.0`) - deferred to #9.5 ([#12895](https://github.com/kubeflow/pipelines/issues/12895))
-- Current transitive blockers still reported by `npm run check:react-peers:18`: `use-composed-ref@1.1.0`, `use-isomorphic-layout-effect@1.1.1`, `use-latest@1.2.0`
 
 **Acceptance Criteria**:
-- [ ] `npm run check:react-peers` passes with empty allowlist
-- [ ] `npm run check:react-peers:18` direct blockers are reduced to only planned `#9` / `#9.5` items
-- [ ] `npm run test:ci && npm run build` pass
-- [ ] Markdown rendering and file upload work identically to pre-migration
+- [x] `npm run check:react-peers` passes with empty allowlist
+- [x] `npm run check:react-peers:18` direct blockers are reduced to only planned `#9` / `#9.5` items
+- [x] `npm run test:ci && npm run build` pass
+- [x] Markdown rendering and file upload work identically to pre-migration
 
 ---
 
@@ -293,12 +291,11 @@ Not started.
 **Description**:
 Run `npm run check:react-peers:19` and upgrade any remaining deps that declare peer ranges excluding React 19. Drive the peer gate to green for React 19.
 
-**Current peer-gate blockers for React 19 (as of March 12, 2026):**
-- `react-ace@10.1.0` (peer ranges currently cap at React 18)
-- `react-dom@17.0.2` - handled in #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897))
-- `react-textarea-autosize@8.3.3` - handled in #8
+**Current peer-gate blockers for React 19 (as of March 18, 2026):**
+- `react-ace@10.1.0` (`react-dom=^0.13.0 || … || ^18.0.0`, `react=^0.13.0 || … || ^18.0.0`) - to clear in #12
+- `react-dom@17.0.2` (`react=17.0.2`) - handled in #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897))
 - `@testing-library/react@12.1.5` (`react-dom=<18.0.0`, `react=<18.0.0`) - deferred to #9.5 ([#12895](https://github.com/kubeflow/pipelines/issues/12895))
-- Current transitive blockers still reported by `npm run check:react-peers:19`: `react-redux@8.1.3`, `use-composed-ref@1.1.0`, `use-isomorphic-layout-effect@1.1.1`, `use-latest@1.2.0`
+- Transitive: `react-redux@8.1.3` (`react-dom=^16.8 || ^17.0 || ^18.0`, `react=^16.8 || ^17.0 || ^18.0`)
 
 **Acceptance Criteria**:
 - [ ] `npm run check:react-peers:19` passes
@@ -380,9 +377,9 @@ Update `AGENTS.md` "Frontend development" section with React 19, MUI v5, @testin
                                               │
                               #7  JSX + Tests [done] (#12895)
                                               │
-                              #8  Ecosystem Deps [next] (#12896)
+                              #8  Ecosystem Deps [done] (#12896)
                                               │
-                              #9  React 18 Core (#12897)
+                              #9  React 18 Core [next] (#12897)
                                               │
                               #9.5 Testing-Library (#12895)
                                               │
@@ -399,6 +396,6 @@ Update `AGENTS.md` "Frontend development" section with React 19, MUI v5, @testin
                               #15 Documentation (#12903)
 ```
 
-**Parallelizable**: The React 17-safe prerequisite tranche (#3 through #7) is complete. As of March 12, 2026, #8 ([#12896](https://github.com/kubeflow/pipelines/issues/12896)) is the next start point, while the remaining React 18-coupled work from [#12895](https://github.com/kubeflow/pipelines/issues/12895) is explicitly deferred to `#9.5` after the React 18 bump in #9.
+**Parallelizable**: The entire React 17 staging phase (#1 through #8) is complete. As of March 18, 2026, #9 ([#12897](https://github.com/kubeflow/pipelines/issues/12897)) is the next start point — the core React 18 bump. The remaining React 18-coupled testing-library work from [#12895](https://github.com/kubeflow/pipelines/issues/12895) is explicitly deferred to `#9.5` after `#9`.
 
-**Good first issues**: #8 ([#12896](https://github.com/kubeflow/pipelines/issues/12896) — ecosystem deps — small, focused package bumps), #15 ([#12903](https://github.com/kubeflow/pipelines/issues/12903) — documentation — no code logic changes).
+**Good first issues**: #15 ([#12903](https://github.com/kubeflow/pipelines/issues/12903) — documentation — no code logic changes).
