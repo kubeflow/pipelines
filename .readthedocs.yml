@@ -8,7 +8,7 @@ build:
     python: "3.9"
     uv: "latest"
   commands:
-    - uv sync --extra docs
+    - uv sync --frozen --extra docs
     - make -C api python
     - make -C kubernetes_platform python
     - uv run sphinx-build -b html docs/sdk $READTHEDOCS_OUTPUT/html
