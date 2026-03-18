@@ -41,7 +41,11 @@ def construct_executor_input(
     ]
     input_artifact_keys = list(
         component_spec.input_definitions.artifacts.keys())
-    if input_artifact_keys and block_input_artifact:
+    provided_input_artifact_keys = [
+        artifact_name for artifact_name in input_artifact_keys
+        if artifact_name in arguments and arguments[artifact_name] is not None
+    ]
+    if provided_input_artifact_keys and block_input_artifact:
         raise ValueError(
             'Input artifacts are not yet supported for local execution.')
 
@@ -60,6 +64,7 @@ def construct_executor_input(
                 dsl_artifact_to_artifact_list(arguments[artifact_name])
             for artifact_name, _ in
             component_spec.input_definitions.artifacts.items()
+            if artifact_name in arguments and arguments[artifact_name] is not None
         },
     )
 
