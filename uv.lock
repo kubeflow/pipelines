@@ -1959,6 +1959,11 @@ lint = [
     { name = "pylint" },
     { name = "yapf" },
 ]
+metadata-writer = [
+    { name = "kubernetes" },
+    { name = "lru-dict" },
+    { name = "pyyaml" },
+]
 sagemaker-dev-tools = [
     { name = "black" },
     { name = "coverage" },
@@ -2019,8 +2024,10 @@ requires-dist = [
     { name = "kfp-workspace", extras = ["lint", "test"], marker = "extra == 'dev'" },
     { name = "kfp-workspace", extras = ["lint", "test", "docs"], marker = "extra == 'ci'" },
     { name = "kubernetes", marker = "extra == 'legacy-compatible-runtime'", specifier = ">=8.0.0,<=31.0.0" },
+    { name = "kubernetes", marker = "extra == 'metadata-writer'", specifier = ">=8.0.0,<=31.0.0" },
     { name = "kubernetes", marker = "extra == 'test'" },
     { name = "lru-dict", marker = "extra == 'legacy-compatible-runtime'", specifier = ">=1.1.7,<2.0.0" },
+    { name = "lru-dict", marker = "extra == 'metadata-writer'", specifier = ">=1.1.7,<2.0.0" },
     { name = "m2r2", marker = "extra == 'docs'" },
     { name = "minio", marker = "extra == 'legacy-compatible-runtime'", specifier = "==5.0.10" },
     { name = "mypy", marker = "extra == 'dev'" },
@@ -2043,6 +2050,7 @@ requires-dist = [
     { name = "python-dateutil", marker = "extra == 'legacy-shared'", specifier = ">=2.5.3" },
     { name = "pyyaml", marker = "extra == 'legacy-compatible-runtime'", specifier = ">=5.3,<7" },
     { name = "pyyaml", marker = "extra == 'legacy-shared'", specifier = ">=5.3,<7" },
+    { name = "pyyaml", marker = "extra == 'metadata-writer'", specifier = ">=5.3,<7" },
     { name = "requests", marker = "extra == 'ci'" },
     { name = "ruamel-yaml", marker = "extra == 'ci'" },
     { name = "setuptools", marker = "extra == 'test'" },
@@ -2063,7 +2071,7 @@ requires-dist = [
     { name = "wheel", marker = "extra == 'test'" },
     { name = "yapf", marker = "extra == 'lint'", specifier = "==0.43.0" },
 ]
-provides-extras = ["lint", "test", "dev", "docs", "ci", "legacy-shared", "backend-v2-test", "backend-v1-client-test", "sagemaker-dev-tools", "sdk-deprecated-runtime", "legacy-compatible-runtime"]
+provides-extras = ["lint", "test", "dev", "docs", "ci", "legacy-shared", "backend-v2-test", "backend-v1-client-test", "sagemaker-dev-tools", "sdk-deprecated-runtime", "legacy-compatible-runtime", "metadata-writer"]
 
 [[package]]
 name = "kubernetes"
