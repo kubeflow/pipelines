@@ -1,0 +1,4 @@
+certifi
+six >= 1.10
+python-dateutil
+urllib3 >= 1.15

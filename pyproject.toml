@@ -52,11 +52,11 @@ test = [
   "kubernetes",
   "nbformat",
   "pip",
-  "pytest==4.6.11",
-  "pytest-cov<3",
+  "pytest>=7.4,<8",
+  "pytest-cov>=4.1",
   "pytest-lazy-fixture",
   "pytest-mock",
-  "pytest-randomly==1.2.3",
+  "pytest-randomly>=3.12",
   "pytest-xdist",
   "setuptools",
   "wheel",
@@ -112,13 +112,13 @@ backend-v2-test = [
 
 # Legacy backend API client test helpers
 backend-v1-client-test = [
-  "pytest-randomly==1.2.3",
+  "pytest-randomly>=3.12",
 ]
 
 # Legacy SageMaker development tools
 sagemaker-dev-tools = [
   "black==19.10b0",
-  "coverage==5.1",
+  "coverage>=5.2.1",
 ]
 
 # Legacy SDK deprecated runtime helpers
