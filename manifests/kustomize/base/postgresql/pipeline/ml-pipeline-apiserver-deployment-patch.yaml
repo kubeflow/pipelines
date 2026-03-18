@@ -35,6 +35,16 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbType
+        - name: BLOCK_V1_PIPELINES
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: BLOCK_V1_PIPELINES
+        - name: V1_ALLOWED_NAMESPACES
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: V1_ALLOWED_NAMESPACES
         # PostgreSQL Config
         - name: DBCONFIG_POSTGRESQLCONFIG_USER
           valueFrom:
