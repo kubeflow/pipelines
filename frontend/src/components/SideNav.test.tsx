@@ -20,7 +20,7 @@ import { MemoryRouter } from 'react-router';
 import { createMemoryHistory } from 'history';
 import { vi } from 'vitest';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage } from './Router';
+import { ExternalLinks, RoutePage } from './Router';
 import { css, SideNav } from './SideNav';
 import { GkeMetadata } from '../lib/GkeMetadata';
 
@@ -101,11 +101,15 @@ describe('SideNav', () => {
 
     const pipelinesButton = renderResult.getByRole('button', { name: 'Pipelines' });
     const docsButton = renderResult.getByRole('button', { name: 'Documentation' });
+    const docsLink = docsButton.closest('a');
 
     expect(pipelinesButton).toHaveClass('MuiButton-textInherit');
     expect(pipelinesButton).not.toHaveClass('MuiButton-textPrimary');
     expect(docsButton).toHaveClass('MuiButton-textInherit');
     expect(docsButton).not.toHaveClass('MuiButton-textPrimary');
+    expect(docsLink).toHaveAttribute('href', ExternalLinks.DOCUMENTATION);
+    expect(docsLink).toHaveAttribute('target', '_blank');
+    expect(docsLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('renders collapsed state', async () => {
