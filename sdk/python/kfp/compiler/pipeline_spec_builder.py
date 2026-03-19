@@ -1642,7 +1642,8 @@ def _rewrite_platform_config_component_input_params(
                 if key == 'componentInputParameter' and isinstance(
                         value, str):
                     if value not in parent_params:
-                        prefixed = 'pipelinechannel--' + value
+                        prefixed = compiler_utils.additional_input_name_for_pipeline_channel(
+                            value)
                         if prefixed in parent_params:
                             result[key] = prefixed
                             continue
