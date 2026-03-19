@@ -185,6 +185,7 @@ describe('RecurringRunDetailsV2FC', () => {
   });
 
   it('shows All runs -> run name when there is no experiment', async () => {
+    fullTestV2RecurringRun.experiment_id = undefined;
     // The run id is in the router match object, defined inside generateProps
     render(
       <CommonTestWrapper>

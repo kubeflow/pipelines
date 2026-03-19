@@ -15,7 +15,7 @@
  */
 
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
-import TestUtils, { filterReactDeprecationWarnings } from 'src/TestUtils';
+import TestUtils from 'src/TestUtils';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
@@ -322,7 +322,7 @@ describe('ExperimentDetails', () => {
         }),
       );
     });
-    expect(filterReactDeprecationWarnings(consoleErrorSpy)[0][0]).toBe(
+    expect(consoleErrorSpy.mock.calls[0][0]).toBe(
       'Error fetching recurring runs for experiment: ' + MOCK_EXPERIMENT.experiment_id,
     );
   });

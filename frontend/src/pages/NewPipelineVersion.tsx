@@ -516,22 +516,24 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
       const pipelineResponse = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
-      this.setState({
-        pipelineId,
-        pipelineName: pipelineResponse.display_name,
-        pipeline: pipelineResponse,
-      });
-      // Suggest a version name based on pipeline name
       const currDate = new Date();
-      this.setState({
-        pipelineVersionName:
-          pipelineResponse.display_name +
-          '-version-at-' +
-          currDate.toISOString().toLowerCase().replace(/:/g, '-'),
-      });
+      this.setState(
+        {
+          pipelineId,
+          pipelineName: pipelineResponse.display_name,
+          pipeline: pipelineResponse,
+          pipelineVersionName:
+            pipelineResponse.display_name +
+            '-version-at-' +
+            currDate.toISOString().toLowerCase().replace(/:/g, '-'),
+        },
+        () => {
+          this._validate();
+        },
+      );
+    } else {
+      this._validate();
     }
-
-    this._validate();
   }
 
   public handleChange = (name: string) => (event: any) => {

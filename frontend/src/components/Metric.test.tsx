@@ -16,7 +16,6 @@
 
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
-import { filterReactDeprecationWarnings } from 'src/TestUtils';
 import Metric from './Metric';
 import { RunMetricFormat } from '../apis/run';
 
@@ -70,7 +69,7 @@ describe('Metric', () => {
         metric={{ format: RunMetricFormat.RAW, number_value: 0.54 }}
       />,
     );
-    expect(filterReactDeprecationWarnings(consoleSpy)).toHaveLength(0);
+    expect(consoleSpy).not.toHaveBeenCalled();
     expect(asFragment()).toMatchSnapshot();
     consoleSpy.mockRestore();
   });
@@ -83,7 +82,7 @@ describe('Metric', () => {
         metric={{ format: RunMetricFormat.RAW, number_value: -0.54 }}
       />,
     );
-    expect(filterReactDeprecationWarnings(consoleSpy).length).toBeGreaterThan(0);
+    expect(consoleSpy).toHaveBeenCalled();
     expect(asFragment()).toMatchSnapshot();
     consoleSpy.mockRestore();
   });
@@ -96,7 +95,7 @@ describe('Metric', () => {
         metric={{ format: RunMetricFormat.RAW, number_value: 2 }}
       />,
     );
-    expect(filterReactDeprecationWarnings(consoleSpy).length).toBeGreaterThan(0);
+    expect(consoleSpy).toHaveBeenCalled();
     expect(asFragment()).toMatchSnapshot();
     consoleSpy.mockRestore();
   });
