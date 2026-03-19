@@ -217,12 +217,12 @@ exports[`CustomTable > renders a collapsed row 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-126"
+            aria-controls=":r50:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-127"
+            aria-labelledby=":r4v:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-127"
+            id=":r4v:"
             role="combobox"
             tabindex="0"
           >
@@ -460,12 +460,12 @@ exports[`CustomTable > renders a collapsed row when selection is disabled 1`] = 
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-130"
+            aria-controls=":r55:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-131"
+            aria-labelledby=":r54:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-131"
+            id=":r54:"
             role="combobox"
             tabindex="0"
           >
@@ -761,12 +761,12 @@ exports[`CustomTable > renders a table with sorting disabled 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-144"
+            aria-controls=":r5n:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-145"
+            aria-labelledby=":r5m:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-145"
+            id=":r5m:"
             role="combobox"
             tabindex="0"
           >
@@ -1026,12 +1026,12 @@ exports[`CustomTable > renders an expanded row 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-134"
+            aria-controls=":r5a:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-135"
+            aria-labelledby=":r59:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-135"
+            id=":r59:"
             role="combobox"
             tabindex="0"
           >
@@ -1320,12 +1320,12 @@ exports[`CustomTable > renders an expanded row with expanded component below it 
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-138"
+            aria-controls=":r5f:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-139"
+            aria-labelledby=":r5e:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-139"
+            id=":r5e:"
             role="combobox"
             tabindex="0"
           >
@@ -1532,12 +1532,12 @@ exports[`CustomTable > renders columns with specified widths 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-25"
+            aria-controls=":r11:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-26"
+            aria-labelledby=":r10:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-26"
+            id=":r10:"
             role="combobox"
             tabindex="0"
           >
@@ -1720,12 +1720,12 @@ exports[`CustomTable > renders empty message on no rows 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-9"
+            aria-controls=":rd:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-10"
+            aria-labelledby=":rc:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-10"
+            id=":rc:"
             role="combobox"
             tabindex="0"
           >
@@ -1985,12 +1985,12 @@ exports[`CustomTable > renders new rows after clicking next page, and enables pr
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-110"
+            aria-controls=":r4c:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-111"
+            aria-labelledby=":r4b:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-111"
+            id=":r4b:"
             role="combobox"
             tabindex="0"
           >
@@ -2306,12 +2306,12 @@ exports[`CustomTable > renders new rows after clicking previous page, and enable
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-114"
+            aria-controls=":r4h:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-115"
+            aria-labelledby=":r4g:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-115"
+            id=":r4g:"
             role="combobox"
             tabindex="0"
           >
@@ -2531,12 +2531,12 @@ exports[`CustomTable > renders some columns with descending sort order on first 
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-21"
+            aria-controls=":rs:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-22"
+            aria-labelledby=":rr:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-22"
+            id=":rr:"
             role="combobox"
             tabindex="0"
           >
@@ -2743,12 +2743,12 @@ exports[`CustomTable > renders some columns with equal widths without rows 1`] =
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-13"
+            aria-controls=":ri:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-14"
+            aria-labelledby=":rh:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-14"
+            id=":rh:"
             role="combobox"
             tabindex="0"
           >
@@ -3060,12 +3060,12 @@ exports[`CustomTable > renders some rows 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-54"
+            aria-controls=":r26:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-55"
+            aria-labelledby=":r25:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-55"
+            id=":r25:"
             role="combobox"
             tabindex="0"
           >
@@ -3242,12 +3242,12 @@ exports[`CustomTable > renders with default filter label 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-1"
+            aria-controls=":r2:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-2"
+            aria-labelledby=":r1:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-2"
+            id=":r1:"
             role="combobox"
             tabindex="0"
           >
@@ -3424,12 +3424,12 @@ exports[`CustomTable > renders with provided filter label 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-3"
+            aria-controls=":r5:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-4"
+            aria-labelledby=":r4:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-4"
+            id=":r4:"
             role="combobox"
             tabindex="0"
           >
@@ -3551,12 +3551,12 @@ exports[`CustomTable > renders without filter box 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-5"
+            aria-controls=":r7:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-6"
+            aria-labelledby=":r6:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-6"
+            id=":r6:"
             role="combobox"
             tabindex="0"
           >
@@ -3733,12 +3733,12 @@ exports[`CustomTable > renders without rows or columns 1`] = `
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-7"
+            aria-controls=":ra:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-8"
+            aria-labelledby=":r9:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-8"
+            id=":r9:"
             role="combobox"
             tabindex="0"
           >
@@ -3969,12 +3969,12 @@ exports[`CustomTable > renders without the checkboxes if disableSelection is tru
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-17"
+            aria-controls=":rn:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-18"
+            aria-labelledby=":rm:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-18"
+            id=":rm:"
             role="combobox"
             tabindex="0"
           >
@@ -4286,12 +4286,12 @@ exports[`CustomTable > updates the filter string in state when the filter box in
           class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
         >
           <div
-            aria-controls="mui-148"
+            aria-controls=":r5s:"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="mui-149"
+            aria-labelledby=":r5r:"
             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-            id="mui-149"
+            id=":r5r:"
             role="combobox"
             tabindex="0"
           >

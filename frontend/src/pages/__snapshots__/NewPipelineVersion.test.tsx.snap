@@ -288,8 +288,8 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
               data-shrink="false"
-              for="mui-30"
-              id="mui-30-label"
+              for=":r2b:"
+              id=":r2b:-label"
             >
               File
               <span
@@ -307,7 +307,7 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
                 aria-invalid="false"
                 class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
                 disabled=""
-                id="mui-30"
+                id=":r2b:"
                 readonly=""
                 required=""
                 type="text"

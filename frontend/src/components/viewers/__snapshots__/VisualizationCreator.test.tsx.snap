@@ -21,7 +21,7 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-11"
+          aria-controls=":ra:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -62,8 +62,8 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-12"
-        id="mui-12-label"
+        for=":rb:"
+        id=":rb:-label"
       >
         Source
       </label>
@@ -73,7 +73,7 @@ exports[`VisualizationCreator > renders an Editor component if a visualization t
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-12"
+          id=":rb:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -138,7 +138,7 @@ exports[`VisualizationCreator > renders component when all parameters in config 
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-7"
+          aria-controls=":r6:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -183,8 +183,8 @@ exports[`VisualizationCreator > renders component when all parameters in config 
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-8"
-        id="mui-8-label"
+        for=":r7:"
+        id=":r7:-label"
       >
         Source
       </label>
@@ -194,7 +194,7 @@ exports[`VisualizationCreator > renders component when all parameters in config 
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-8"
+          id=":r7:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -248,7 +248,7 @@ exports[`VisualizationCreator > renders component when empty config is provided 
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-1"
+          aria-controls=":r0:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -293,8 +293,8 @@ exports[`VisualizationCreator > renders component when empty config is provided 
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-2"
-        id="mui-2-label"
+        for=":r1:"
+        id=":r1:-label"
       >
         Source
       </label>
@@ -304,7 +304,7 @@ exports[`VisualizationCreator > renders component when empty config is provided 
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-2"
+          id=":r1:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -358,7 +358,7 @@ exports[`VisualizationCreator > renders component when isBusy is not provided 1`
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-3"
+          aria-controls=":r2:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -403,8 +403,8 @@ exports[`VisualizationCreator > renders component when isBusy is not provided 1`
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-4"
-        id="mui-4-label"
+        for=":r3:"
+        id=":r3:-label"
       >
         Source
       </label>
@@ -414,7 +414,7 @@ exports[`VisualizationCreator > renders component when isBusy is not provided 1`
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-4"
+          id=":r3:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -468,7 +468,7 @@ exports[`VisualizationCreator > renders component when onGenerate is not provide
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-5"
+          aria-controls=":r4:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -513,8 +513,8 @@ exports[`VisualizationCreator > renders component when onGenerate is not provide
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-6"
-        id="mui-6-label"
+        for=":r5:"
+        id=":r5:-label"
       >
         Source
       </label>
@@ -524,7 +524,7 @@ exports[`VisualizationCreator > renders component when onGenerate is not provide
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-6"
+          id=":r5:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -578,7 +578,7 @@ exports[`VisualizationCreator > renders the custom type when it is allowed 1`] =
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-35"
+          aria-controls=":r12:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -623,8 +623,8 @@ exports[`VisualizationCreator > renders the custom type when it is allowed 1`] =
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-36"
-        id="mui-36-label"
+        for=":r13:"
+        id=":r13:-label"
       >
         Source
       </label>
@@ -634,7 +634,7 @@ exports[`VisualizationCreator > renders the custom type when it is allowed 1`] =
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-36"
+          id=":r13:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -688,7 +688,7 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-29"
+          aria-controls=":rs:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -729,8 +729,8 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-30"
-        id="mui-30-label"
+        for=":rt:"
+        id=":rt:-label"
       >
         Source
       </label>
@@ -740,7 +740,7 @@ exports[`VisualizationCreator > renders the provided arguments 1`] = `
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-30"
+          id=":rt:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -805,7 +805,7 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-33"
+          aria-controls=":r10:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -846,8 +846,8 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-34"
-        id="mui-34-label"
+        for=":r11:"
+        id=":r11:-label"
       >
         Source
       </label>
@@ -857,7 +857,7 @@ exports[`VisualizationCreator > renders the selected visualization type 1`] = `
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-34"
+          id=":r11:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
@@ -922,7 +922,7 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-13"
+          aria-controls=":rc:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -967,8 +967,8 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-14"
-        id="mui-14-label"
+        for=":rd:"
+        id=":rd:-label"
       >
         Source
       </label>
@@ -978,7 +978,7 @@ exports[`VisualizationCreator > renders two Editor components if the CUSTOM visu
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-14"
+          id=":rd:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
