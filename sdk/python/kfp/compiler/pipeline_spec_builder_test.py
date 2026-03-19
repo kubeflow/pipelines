@@ -599,8 +599,10 @@ class TestParallelForWithPlatformConfigInput(unittest.TestCase):
 
             # Also verify the sub-DAG component has the propagated input
             components = pipeline_dict.get('components', {})
+            found_for_loop_component = False
             for comp_name, comp_def in components.items():
-                if 'for-loop' in comp_name.lower() or 'for-loop' in comp_name:
+                if 'for-loop' in comp_name.lower():
+                    found_for_loop_component = True
                     input_params = comp_def.get('inputDefinitions',
                                                 {}).get('parameters', {})
                     self.assertIn(
@@ -610,6 +612,11 @@ class TestParallelForWithPlatformConfigInput(unittest.TestCase):
                         f'"pipelinechannel--secret_name" in its inputs, '
                         f'got: {list(input_params.keys())}',
                     )
+            self.assertTrue(
+                found_for_loop_component,
+                f'Expected to find a for-loop sub-DAG component, '
+                f'got components: {list(components.keys())}',
+            )
 
 
 class TestTaskConfigPassthroughValidation(unittest.TestCase):
