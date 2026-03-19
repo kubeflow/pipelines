@@ -971,6 +971,139 @@ class TestUseSecretAsEnv:
             }
         }
 
+class TestParseK8sParameterInputChannelPropagation:
+    def test_pipeline_param_added_to_channel_inputs(self):
+        """When a PipelineParameterChannel is passed as secret_name,
+        it should be added to the task's _channel_inputs for sub-DAG
+        propagation."""
+
+        @dsl.pipeline
+        def my_pipeline(secret_name: str):
+            task = comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name=secret_name,
+                secret_key_to_env={"key": "VAR"},
+            )
+
+        # The pipeline should compile without error and the platform spec
+        # should reference the componentInputParameter
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            "platforms": {
+                "kubernetes": {
+                    "deploymentSpec": {
+                        "executors": {
+                            "exec-comp": {
+                                "secretAsEnv": [
+                                    {
+                                        "secretNameParameter": {
+                                            "componentInputParameter": "secret_name"
+                                        },
+                                        "keyToEnv": [
+                                            {"secretKey": "key", "envVar": "VAR"}
+                                        ],
+                                        "optional": False,
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_duplicate_pipeline_param_not_added_twice(self):
+        """When the same PipelineParameterChannel is used for two different
+        secret configs on the same task, _channel_inputs should not contain
+        duplicates."""
+
+        @dsl.pipeline
+        def my_pipeline(secret_name: str):
+            task = comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name=secret_name,
+                secret_key_to_env={"key1": "VAR1"},
+            )
+            kubernetes.use_secret_as_volume(
+                task,
+                secret_name=secret_name,
+                mount_path="/mnt/secret",
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            "platforms": {
+                "kubernetes": {
+                    "deploymentSpec": {
+                        "executors": {
+                            "exec-comp": {
+                                "secretAsEnv": [
+                                    {
+                                        "secretNameParameter": {
+                                            "componentInputParameter": "secret_name"
+                                        },
+                                        "keyToEnv": [
+                                            {"secretKey": "key1", "envVar": "VAR1"}
+                                        ],
+                                        "optional": False,
+                                    }
+                                ],
+                                "secretAsVolume": [
+                                    {
+                                        "secretNameParameter": {
+                                            "componentInputParameter": "secret_name"
+                                        },
+                                        "mountPath": "/mnt/secret",
+                                        "optional": False,
+                                    }
+                                ],
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_string_input_does_not_add_channel_inputs(self):
+        """When a literal string is passed as secret_name, _channel_inputs
+        should not be modified (no PipelineParameterChannel to propagate)."""
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name="literal-secret",
+                secret_key_to_env={"key": "VAR"},
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            "platforms": {
+                "kubernetes": {
+                    "deploymentSpec": {
+                        "executors": {
+                            "exec-comp": {
+                                "secretAsEnv": [
+                                    {
+                                        "secretName": "literal-secret",
+                                        "secretNameParameter": {
+                                            "runtimeValue": {
+                                                "constant": "literal-secret"
+                                            }
+                                        },
+                                        "keyToEnv": [
+                                            {"secretKey": "key", "envVar": "VAR"}
+                                        ],
+                                        "optional": False,
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
 @dsl.component
 def comp():
     pass
