@@ -1410,8 +1410,14 @@ def build_spec_by_group(
                     task=subgroup)
                 deployment_config.executors[executor_label].container.CopyFrom(
                     subgroup_container_spec)
+                task_platform_config = subgroup.platform_config
+                if not is_parent_component_root and task_platform_config:
+                    task_platform_config = _rewrite_platform_config_component_input_params(
+                        task_platform_config,
+                        group_component_spec.input_definitions,
+                    )
                 single_task_platform_spec = platform_config_to_platform_spec(
-                    subgroup.platform_config,
+                    task_platform_config,
                     executor_label,
                 )
                 merge_platform_specs(
@@ -1613,6 +1619,42 @@ def modify_task_for_ignore_upstream_failure(
             pipeline_task_spec.inputs.parameters[
                 input_name].task_final_status.producer_task = pipeline_task_spec.dependent_tasks[
                     0]
+
+
+def _rewrite_platform_config_component_input_params(
+    platform_config: dict,
+    parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
+) -> dict:
+    """Rewrites componentInputParameter references in a platform_config dict
+    to match the parent DAG's input names.
+
+    When a task is inside a sub-DAG (e.g. ParallelFor), pipeline-level
+    inputs are propagated with a 'pipelinechannel--' prefix. The
+    KubernetesExecutorConfig may reference the original (unprefixed) name,
+    so this function rewrites those references to the prefixed variant.
+    """
+    parent_params = set(parent_component_inputs.parameters.keys())
+
+    def _rewrite(obj):
+        if isinstance(obj, dict):
+            result = {}
+            for key, value in obj.items():
+                if key == 'componentInputParameter' and isinstance(
+                        value, str):
+                    if value not in parent_params:
+                        prefixed = 'pipelinechannel--' + value
+                        if prefixed in parent_params:
+                            result[key] = prefixed
+                            continue
+                    result[key] = value
+                else:
+                    result[key] = _rewrite(value)
+            return result
+        elif isinstance(obj, list):
+            return [_rewrite(item) for item in obj]
+        return obj
+
+    return _rewrite(platform_config)
 
 
 def platform_config_to_platform_spec(

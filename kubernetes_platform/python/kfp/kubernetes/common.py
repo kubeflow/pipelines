@@ -50,6 +50,14 @@ def parse_k8s_parameter_input(
     if isinstance(input_param, (str, dict)):
         param_spec.runtime_value.constant.CopyFrom(to_protobuf_value(input_param))
     elif isinstance(input_param, pipeline_channel.PipelineParameterChannel):
+        # Add the channel to the task's channel inputs so the compiler
+        # propagates it through sub-DAGs (e.g. ParallelFor "punch the hole").
+        existing_channel_patterns = {
+            ch.pattern for ch in task._channel_inputs
+        }
+        if input_param.pattern not in existing_channel_patterns:
+            task._channel_inputs.append(input_param)
+
         if input_param.task_name is None:
             param_spec.component_input_parameter = input_param.full_name
 
