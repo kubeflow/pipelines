@@ -176,7 +176,7 @@ Upgrade the remaining React 17-limited ecosystem packages and drive the React 17
 The React 18 core bump is now complete. The only remaining React 18 peer-gate exception is `@testing-library/react@12.1.5`, which is intentionally allowlisted until `#9.5`.
 
 **Acceptance Criteria**:
-- [x] `npm run check:react-peers` passes with an empty allowlist
+- [x] `node scripts/check-react-peers.mjs --target 17` passes with an empty allowlist
 - [x] `npm run test:ci && npm run build` pass
 - [x] Markdown rendering and file upload continue to work
 
@@ -279,7 +279,7 @@ Make the React 18.3 state explicit in package metadata, run the full verificatio
 Not started.
 
 **Description**:
-Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and drive the React 19 peer gate to green.
+Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and reduce the peer-gate output to only the expected React core blocker that is resolved in `#13`.
 
 **Current `check:react-peers:19` blockers (verified against `origin/master` on March 18, 2026 ET)**:
 - `@testing-library/react@12.1.5` (`react-dom=<18.0.0`, `react=<18.0.0`) - to clear in `#9.5`
@@ -288,8 +288,8 @@ Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible 
 - Transitive: `react-redux@8.1.3` (`react-dom=^16.8 || ^17.0 || ^18.0`, `react=^16.8 || ^17.0 || ^18.0`)
 
 **Acceptance Criteria**:
-- [ ] `npm run check:react-peers:19` passes
-- [ ] No direct React 19 blockers remain
+- [ ] `npm run check:react-peers:19` is reduced to only the expected `react-dom` blocker for `#13`
+- [ ] No non-core React 19 blockers remain
 - [ ] `npm run test:ci` passes
 
 ---
