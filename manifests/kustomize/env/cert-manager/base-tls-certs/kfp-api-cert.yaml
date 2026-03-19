@@ -17,6 +17,10 @@ spec:
     - metadata-grpc-service.$(kfp-namespace).svc.cluster.local
     # localhost included here because cert is used in KFP pod-to-pod TLS-enabled testing against localhost base URL
     - localhost
+    # added to bypass errors in ci build with replacement of vars with replacements
+    - metadata-grpc-service.kubeflow.svc
+    - metadata-grpc-service.kubeflow.svc.cluster.local
+    - metadata-grpc-service.$(kfp-namespace).svc
   ipAddresses:
     # Necessary for running TLS-enabled cluster locally.
     - 127.0.0.1
