@@ -269,7 +269,7 @@ export class ExecutionDetailsContent extends Component<
   };
 }
 
-function parseEventsByType(
+export function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
 ): Record<Event.Type, Event[]> {
   const events: Record<Event.Type, Event[]> = {
@@ -439,9 +439,9 @@ interface ExecutionReferenceProps {
 }
 
 function ExecutionReference({ execution }: ExecutionReferenceProps) {
-  const { isSuccess, data: context } = useQuery<Context | undefined, Error>({
+  const { isSuccess, data: context } = useQuery<Context | null, Error>({
     queryKey: queryKeys.contextByExecution(execution.getId(), execution.getLastKnownState()),
-    queryFn: () => getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE),
+    queryFn: async () => (await getContextByExecution(execution, KFP_V2_RUN_CONTEXT_TYPE)) ?? null,
     staleTime: Infinity,
   });
 

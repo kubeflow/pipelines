@@ -269,11 +269,16 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
           </span>
         </label>
         <div
-          aria-disabled="true"
-          class=""
           id="dropZone"
+          role="presentation"
           style="position: relative;"
         >
+          <input
+            accept="application/yaml,.yaml,.yml,application/zip,.zip,application/gzip,.tar.gz"
+            style="border: 0px; clip: rect(0px, 0px, 0px, 0px); clip-path: inset(50%); height: 1px; margin: 0px -1px -1px 0px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;"
+            tabindex="-1"
+            type="file"
+          />
           <div
             class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
             data-testid="uploadFileInput"
@@ -283,8 +288,8 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
               data-shrink="false"
-              for="mui-27"
-              id="mui-27-label"
+              for=":r2b:"
+              id=":r2b:-label"
             >
               File
               <span
@@ -302,7 +307,7 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
                 aria-invalid="false"
                 class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
                 disabled=""
-                id="mui-27"
+                id=":r2b:"
                 readonly=""
                 required=""
                 type="text"
@@ -335,15 +340,6 @@ exports[`NewPipelineVersion > creating new pipeline > renders the new pipeline p
               </fieldset>
             </div>
           </div>
-          <input
-            accept=".yaml,.yml,.zip,.tar.gz"
-            autocomplete="off"
-            disabled=""
-            multiple=""
-            style="position: absolute; top: 0px; right: 0px; bottom: 0px; left: 0px; opacity: 0.00001; pointer-events: none;"
-            tabindex="-1"
-            type="file"
-          />
         </div>
       </div>
       <div

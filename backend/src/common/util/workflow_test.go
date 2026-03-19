@@ -247,6 +247,8 @@ func TestToStringForStore(t *testing.T) {
 	assert.Equal(t,
 		normalizeJSONForNullFieldComparison(t, expected),
 		normalizeJSONForNullFieldComparison(t, workflow.ToStringForStore()))
+		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\"},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+		workflow.ToStringForStore())
 }
 
 func TestToStringForSchedule(t *testing.T) {
@@ -289,6 +291,8 @@ func removeNilMapFields(value interface{}) interface{} {
 	default:
 		return value
 	}
+		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\"},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+		workflow.ToStringForSchedule())
 }
 
 func TestWorkflow_OverrideName(t *testing.T) {
