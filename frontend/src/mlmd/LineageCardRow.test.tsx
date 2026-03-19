@@ -94,15 +94,15 @@ describe('LineageCardRow', () => {
     expect(container.querySelector('.form-radio')).toBeNull();
   });
 
-  it('calls setLineageViewTarget when an artifact row is clicked', () => {
+  it('calls setLineageViewTarget once when an artifact radio is clicked', () => {
     const setLineageViewTarget = vi.fn();
     const typedResource = buildArtifactResource('clickable');
 
     const { container } = renderCardRow({ typedResource, setLineageViewTarget });
 
-    const row = container.querySelector('.cardRow');
-    expect(row).not.toBeNull();
-    fireEvent.click(row!);
+    const radio = container.querySelector('.form-radio');
+    expect(radio).not.toBeNull();
+    fireEvent.click(radio!);
     expect(setLineageViewTarget).toHaveBeenCalledTimes(1);
     expect(setLineageViewTarget).toHaveBeenCalledWith(typedResource.resource);
   });
@@ -134,5 +134,21 @@ describe('LineageCardRow', () => {
     expect(() => {
       fireEvent.click(row!);
     }).not.toThrow();
+  });
+
+  it('toggles the hover hint class when hovering the resource link', () => {
+    const { container } = renderCardRow({
+      typedResource: buildArtifactResource('hoverable'),
+    });
+
+    const row = container.querySelector('.cardRow');
+    const link = screen.getByRole('link', { name: 'hoverable' });
+    expect(row).not.toBeNull();
+
+    expect(row).toHaveClass('clickTarget');
+    fireEvent.mouseEnter(link);
+    expect(row).not.toHaveClass('clickTarget');
+    fireEvent.mouseLeave(link);
+    expect(row).toHaveClass('clickTarget');
   });
 });

@@ -179,7 +179,7 @@ describe('LineageApi', () => {
       expect(result).toBe(new Date(SAMPLE_TIME_MS).toLocaleString());
     });
 
-    it('prefers OUTPUT over DECLARED_OUTPUT when both are present', async () => {
+    it('returns the last eligible output event when OUTPUT follows DECLARED_OUTPUT', async () => {
       mockEventsResponse(metadataStoreService, [
         buildEvent(Event.Type.DECLARED_OUTPUT, DECLARED_OUTPUT_TIME_MS),
         buildEvent(Event.Type.OUTPUT, SAMPLE_TIME_MS),
