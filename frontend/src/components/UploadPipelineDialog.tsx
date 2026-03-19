@@ -122,6 +122,7 @@ class UploadPipelineDialog extends React.Component<
   UploadPipelineDialogState
 > {
   static contextType = BuildInfoContext;
+  declare context: React.ContextType<typeof BuildInfoContext>;
   private _dropzoneRef = React.createRef<DropzoneAreaHandle>();
 
   constructor(props: any) {

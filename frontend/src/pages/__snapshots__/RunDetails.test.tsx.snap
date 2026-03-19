@@ -1008,7 +1008,7 @@ exports[`RunDetails > loads the run's outputs in the output tab 1`] = `
                           class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
                         >
                           <div
-                            aria-controls="mui-80"
+                            aria-controls=":r2c:"
                             aria-expanded="false"
                             aria-haspopup="listbox"
                             class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -1971,6 +1971,7 @@ exports[`RunDetails > logs tab > loads and shows logs in side pane 1`] = `
                         >
                           <div
                             class="indicator_fp4eggn"
+                            style="left: -5px; width: 5px; display: block;"
                           />
                           <span
                             style="display: inline-block; min-width: 20px; width: 20px;"

@@ -433,9 +433,15 @@ describe('NewRun', () => {
     tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
 
-    (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
+    await act(async () => {
+      (tree!.instance() as TestNewRun).handleChange('runName')({
+        target: { value: 'run name' },
+      });
+    });
 
-    expect(tree.state()).toHaveProperty('runName', 'run name');
+    await waitFor(() => {
+      expect(tree!.state()).toHaveProperty('runName', 'run name');
+    });
   });
 
   it('reports validation error when missing the run name', async () => {
@@ -447,19 +453,28 @@ describe('NewRun', () => {
     tree = await renderNewRunElement(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
-    (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: '' } });
+    await act(async () => {
+      (tree!.instance() as TestNewRun).handleChange('runName')({ target: { value: '' } });
+    });
 
-    expect(tree.state()).toHaveProperty('errorMessage', 'Run name is required');
+    await waitFor(() => {
+      expect(tree!.state()).toHaveProperty('errorMessage', 'Run name is required');
+    });
   });
 
   it('allows updating the run description', async () => {
     tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
     await TestUtils.flushPromises();
-    (tree.instance() as TestNewRun).handleChange('description')({
-      target: { value: 'run description' },
+
+    await act(async () => {
+      (tree!.instance() as TestNewRun).handleChange('description')({
+        target: { value: 'run description' },
+      });
     });
 
-    expect(tree.state()).toHaveProperty('description', 'run description');
+    await waitFor(() => {
+      expect(tree!.state()).toHaveProperty('description', 'run description');
+    });
   });
 
   it('changes title and form if the new run will recur, based on the radio buttons', async () => {
@@ -1560,12 +1575,21 @@ describe('NewRun', () => {
       props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
-      await TestUtils.flushPromises();
-      expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', false);
+      await act(async () => {
+        (tree!.instance() as TestNewRun).handleChange('runName')({
+          target: { value: 'run name' },
+        });
+      });
+      await waitFor(() => {
+        expect(tree!.find('#startNewRunBtn').props()).toHaveProperty('disabled', false);
+      });
 
-      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: '' } });
-      expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', true);
+      await act(async () => {
+        (tree!.instance() as TestNewRun).handleChange('runName')({ target: { value: '' } });
+      });
+      await waitFor(() => {
+        expect(tree!.find('#startNewRunBtn').props()).toHaveProperty('disabled', true);
+      });
     });
 
     it("sends a request to Start a run when 'Start' is clicked", async () => {
@@ -1690,17 +1714,24 @@ describe('NewRun', () => {
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
+
+      await act(async () => {
+        (tree!.instance() as TestNewRun).handleChange('runName')({
+          target: { value: 'test run name' },
+        });
       });
-      // Fill in the first pipeline parameter
-      (tree.instance() as TestNewRun)._handleParamChange(0, 'test param value');
+      await act(async () => {
+        (tree!.instance() as TestNewRun)._handleParamChange(0, 'test param value');
+      });
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
-      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
-      await TestUtils.flushPromises();
+      await waitFor(() => {
+        expect(tree!.state()).toHaveProperty('runName', 'test run name');
+      });
 
-      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      tree!.find('#startNewRunBtn').hostNodes().simulate('click');
+      await waitFor(() => {
+        expect(startRunSpy).toHaveBeenCalledTimes(1);
+      });
       expect(startRunSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pipeline_spec: {

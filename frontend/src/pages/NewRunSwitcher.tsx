@@ -43,7 +43,7 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: v2RunIsFetching,
     data: v2Run,
   } = useQuery<V2beta1Run, Error>({
-    queryKey: queryKeys.v2RunDetailSingle(existingRunId!),
+    queryKey: queryKeys.v2RunDetailSingle(existingRunId),
     queryFn: () => {
       if (!existingRunId) {
         throw new Error('Run ID is missing');
@@ -60,7 +60,7 @@ function NewRunSwitcher(props: PageProps) {
     isFetching: recurringRunIsFetching,
     data: recurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
-    queryKey: queryKeys.recurringRun(originalRecurringRunId!),
+    queryKey: queryKeys.recurringRun(originalRecurringRunId),
     queryFn: () => {
       if (!originalRecurringRunId) {
         throw new Error('Recurring Run ID is missing');
@@ -93,7 +93,7 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   const { isFetching: pipelineIsFetching, data: pipeline } = useQuery<V2beta1Pipeline, Error>({
-    queryKey: queryKeys.pipeline(pipelineIdFromPipeline!),
+    queryKey: queryKeys.pipeline(pipelineIdFromPipeline),
     queryFn: () => {
       if (!pipelineIdFromPipeline) {
         throw new Error('Pipeline ID is missing');
@@ -112,7 +112,7 @@ function NewRunSwitcher(props: PageProps) {
     V2beta1PipelineVersion,
     Error
   >({
-    queryKey: queryKeys.pipelineVersion(pipelineId!, pipelineVersionId!),
+    queryKey: queryKeys.pipelineVersion(pipelineId, pipelineVersionId),
     queryFn: () => {
       if (!(pipelineId && pipelineVersionId)) {
         throw new Error('Pipeline id or pipeline Version ID is missing');
@@ -127,7 +127,7 @@ function NewRunSwitcher(props: PageProps) {
   const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
 
   const { isFetching: v1TemplateStrIsFetching, data: v1Template } = useQuery<string, Error>({
-    queryKey: queryKeys.v1PipelineVersionTemplate(pipelineId!, pipelineVersionId!),
+    queryKey: queryKeys.v1PipelineVersionTemplate(pipelineId, pipelineVersionId),
     queryFn: async () => {
       if (!(pipelineId && pipelineVersionId)) {
         throw new Error('Pipeline id or pipeline Version ID is missing');
@@ -153,7 +153,7 @@ function NewRunSwitcher(props: PageProps) {
 
   const { isFetching: experimentIsFetching, data: experiment } = useQuery<V2beta1Experiment, Error>(
     {
-      queryKey: queryKeys.experiment(experimentId!),
+      queryKey: queryKeys.experiment(experimentId),
       queryFn: async () => {
         if (!experimentId) {
           throw new Error('Experiment ID is missing');

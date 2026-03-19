@@ -36,16 +36,17 @@ export const queryKeys = {
 
   // --- Run & recurring run detail ---
 
-  v2RunDetail: (runId: string) => ['v2_run_detail', { id: runId }] as const,
+  v2RunDetail: (runId: string | null | undefined) => ['v2_run_detail', { id: runId }] as const,
 
-  v2RunDetailSingle: (runId: string) => ['v2_run_details', runId] as const,
+  v2RunDetailSingle: (runId: string | null | undefined) => ['v2_run_details', runId] as const,
 
   v2RunDetails: (runIds: string[]) => ['v2_run_details', { ids: runIds }] as const,
 
-  v2RecurringRunDetail: (recurringRunId: string) =>
+  v2RecurringRunDetail: (recurringRunId: string | null | undefined) =>
     ['v2_recurring_run_detail', { id: recurringRunId }] as const,
 
-  recurringRun: (recurringRunId: string) => ['recurringRun', recurringRunId] as const,
+  recurringRun: (recurringRunId: string | null | undefined) =>
+    ['recurringRun', recurringRunId] as const,
 
   runDetails: (runIds: string[]) => ['run_details', { ids: runIds }] as const,
 
@@ -69,22 +70,26 @@ export const queryKeys = {
 
   // --- Pipeline & version ---
 
-  pipeline: (pipelineId: string) => ['pipeline', pipelineId] as const,
+  pipeline: (pipelineId: string | null | undefined) => ['pipeline', pipelineId] as const,
 
   // Includes both IDs for correct cache invalidation (version IDs may not be globally unique).
-  pipelineVersion: (pipelineId: string, pipelineVersionId: string) =>
-    ['pipelineVersion', pipelineId, pipelineVersionId] as const,
+  pipelineVersion: (
+    pipelineId: string | null | undefined,
+    pipelineVersionId: string | null | undefined,
+  ) => ['pipelineVersion', pipelineId, pipelineVersionId] as const,
 
   pipelineVersions: (pipelineId: string | null | undefined) =>
     ['pipeline_versions', pipelineId ?? ''] as const,
 
   // Includes both IDs for correct cache invalidation (version IDs may not be globally unique).
-  v1PipelineVersionTemplate: (pipelineId: string, pipelineVersionId: string) =>
-    ['v1PipelineVersionTemplate', pipelineId, pipelineVersionId] as const,
+  v1PipelineVersionTemplate: (
+    pipelineId: string | null | undefined,
+    pipelineVersionId: string | null | undefined,
+  ) => ['v1PipelineVersionTemplate', pipelineId, pipelineVersionId] as const,
 
   // --- Experiment ---
 
-  experiment: (experimentId: string) => ['experiment', experimentId] as const,
+  experiment: (experimentId: string | null | undefined) => ['experiment', experimentId] as const,
 
   runDetailsV2Experiment: (runId: string, experimentId: string | null) =>
     ['RunDetailsV2_experiment', { runId, experimentId }] as const,

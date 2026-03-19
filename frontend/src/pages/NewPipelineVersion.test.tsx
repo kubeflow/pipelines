@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { ImportMethod, NewPipelineVersion } from './NewPipelineVersion';
 import TestUtils from 'src/TestUtils';
@@ -402,19 +402,24 @@ describe('NewPipelineVersion', () => {
     it('creates pipeline from local file in single user mode', async () => {
       await renderNewPipelineVersion('', { buildInfo: { apiServerMultiUser: false } });
 
-      // Set local file, pipeline name, pipeline description and click create
       fireEvent.click(screen.getByLabelText(/Upload a file/i));
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
+      await act(async () => {
+        getInstance().handleChange('pipelineName')({
+          target: { value: 'test pipeline name' },
+        });
+        getInstance().handleChange('pipelineDescription')({
+          target: { value: 'test pipeline description' },
+        });
       });
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-      getInstance()._onDropForTest([file]);
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await act(async () => {
+        getInstance()._onDropForTest([file]);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      });
 
-      await TestUtils.flushPromises();
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalled());
 
       expect(getInstance().state).toHaveProperty('isPrivate', false);
       expect(getInstance().state.importMethod).toBe(ImportMethod.LOCAL);
@@ -434,20 +439,24 @@ describe('NewPipelineVersion', () => {
         buildInfo: { apiServerMultiUser: true },
       });
 
-      // Set local file, pipeline name, pipeline description and click create
       fireEvent.click(screen.getByLabelText(/Upload a file/i));
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
+      await act(async () => {
+        getInstance().handleChange('pipelineName')({
+          target: { value: 'test pipeline name' },
+        });
+        getInstance().handleChange('pipelineDescription')({
+          target: { value: 'test pipeline description' },
+        });
       });
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-      getInstance()._onDropForTest([file]);
+      await act(async () => {
+        getInstance()._onDropForTest([file]);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-
-      await TestUtils.flushPromises();
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalled());
 
       expect(getInstance().state).toHaveProperty('isPrivate', true);
       expect(getInstance().state.importMethod).toBe(ImportMethod.LOCAL);
@@ -467,20 +476,25 @@ describe('NewPipelineVersion', () => {
         buildInfo: { apiServerMultiUser: true },
       });
 
-      // Set local file, pipeline name, pipeline description and click create
       fireEvent.click(screen.getByLabelText(/Upload a file/i));
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
+      await act(async () => {
+        getInstance().handleChange('pipelineName')({
+          target: { value: 'test pipeline name' },
+        });
+        getInstance().handleChange('pipelineDescription')({
+          target: { value: 'test pipeline description' },
+        });
       });
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-      getInstance()._onDropForTest([file]);
-      getInstance().setState({ isPrivate: false });
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await act(async () => {
+        getInstance()._onDropForTest([file]);
+        getInstance().setState({ isPrivate: false });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      });
 
-      await TestUtils.flushPromises();
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalled());
 
       expect(getInstance().state).toHaveProperty('isPrivate', false);
       expect(getInstance().state.importMethod).toBe(ImportMethod.LOCAL);
