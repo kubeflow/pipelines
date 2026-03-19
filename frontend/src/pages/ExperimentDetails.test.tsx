@@ -23,7 +23,7 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
@@ -90,8 +90,14 @@ describe('ExperimentDetails', () => {
         <ExperimentDetails {...(props || generateProps())} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     return utils;
+  }
+
+  async function flushPromisesInAct(): Promise<void> {
+    await act(async () => {
+      await TestUtils.flushPromises();
+    });
   }
 
   async function waitForExperimentLoad(): Promise<void> {
@@ -223,7 +229,7 @@ describe('ExperimentDetails', () => {
     const expandButton = container.querySelector('#expandExperimentDescriptionBtn');
     expect(expandButton).not.toBeNull();
     fireEvent.click(expandButton as HTMLElement);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
       title: 'Experiment description',
@@ -410,7 +416,7 @@ describe('ExperimentDetails', () => {
     expect(refreshAction).toBeDefined();
 
     await refreshAction!.action();
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });

@@ -86,7 +86,13 @@ describe('NewPipelineVersion', () => {
     pipelineVersionRef = React.createRef<TestNewPipelineVersion>();
     const props = { ...generateProps(search), ...propsPatch } as PageProps;
     renderResult = render(<TestNewPipelineVersion ref={pipelineVersionRef} {...props} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
+  }
+
+  async function flushPromisesInAct(): Promise<void> {
+    await act(async () => {
+      await TestUtils.flushPromises();
+    });
   }
 
   beforeEach(() => {
@@ -237,7 +243,7 @@ describe('NewPipelineVersion', () => {
 
       // Simulate a rejected drop (invalid file)
       getInstance()['_onDropRejected']();
-      await TestUtils.flushPromises();
+      await flushPromisesInAct();
 
       // File-related state is reset
       expect(getInstance().state).toHaveProperty('dropzoneActive', false);
@@ -269,7 +275,7 @@ describe('NewPipelineVersion', () => {
         target: { value: 'https://dummy_package_url' },
       });
 
-      await TestUtils.flushPromises();
+      await flushPromisesInAct();
 
       fireEvent.click(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineVersionSpy).toHaveBeenCalledTimes(1));
@@ -324,7 +330,7 @@ describe('NewPipelineVersion', () => {
       getInstance().handleChange('packageUrl')({
         target: { value: 'https://dummy_package_url' },
       });
-      await TestUtils.flushPromises();
+      await flushPromisesInAct();
 
       fireEvent.click(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineSpy).toHaveBeenCalledTimes(1));
@@ -354,7 +360,7 @@ describe('NewPipelineVersion', () => {
       getInstance().handleChange('packageUrl')({
         target: { value: 'https://dummy_package_url' },
       });
-      await TestUtils.flushPromises();
+      await flushPromisesInAct();
       fireEvent.click(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineSpy).toHaveBeenCalledTimes(1));
 
@@ -385,7 +391,7 @@ describe('NewPipelineVersion', () => {
         target: { value: 'https://dummy_package_url' },
       });
       getInstance().setState({ isPrivate: false });
-      await TestUtils.flushPromises();
+      await flushPromisesInAct();
       fireEvent.click(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineSpy).toHaveBeenCalledTimes(1));
 
