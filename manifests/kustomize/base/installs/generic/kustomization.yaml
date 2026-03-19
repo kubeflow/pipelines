@@ -15,12 +15,8 @@ replacements:
     name: pipeline-install-config
     fieldPath: data.defaultPipelineRoot
   targets:
-  # TODO: add one target per place where the placeholder appears
-  # Example target (adjust kind/name/fieldPaths to your actual usage):
   - select:
       kind: ConfigMap
-      name: ml-pipeline
+      name: kfp-launcher
     fieldPaths:
     - data.defaultPipelineRoot
-    options:
-      create: true
