@@ -100,6 +100,13 @@ describe('ExperimentDetails', () => {
     });
   }
 
+  async function invokeAndFlush(callback: () => void | Promise<void>): Promise<void> {
+    await act(async () => {
+      await callback();
+      await TestUtils.flushPromises();
+    });
+  }
+
   async function waitForExperimentLoad(): Promise<void> {
     await screen.findByText('Recurring run configs');
   }
@@ -415,8 +422,9 @@ describe('ExperimentDetails', () => {
     const refreshAction = lastToolbarCall?.[0]?.actions?.[ButtonKeys.REFRESH];
     expect(refreshAction).toBeDefined();
 
-    await refreshAction!.action();
-    await flushPromisesInAct();
+    await invokeAndFlush(async () => {
+      await refreshAction!.action();
+    });
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
@@ -616,8 +624,9 @@ describe('ExperimentDetails', () => {
   });
 
   describe('EnhancedExperimentDetails', () => {
-    it('renders ExperimentDetails initially', () => {
+    it('renders ExperimentDetails initially', async () => {
       render(<EnhancedExperimentDetails {...generateProps()}></EnhancedExperimentDetails>);
+      await flushPromisesInAct();
       expect(getExperimentSpy).toHaveBeenCalledTimes(1);
     });
 

@@ -17,8 +17,8 @@
 - [x] ~~#7 JSX runtime and test modernization~~ (`issue`: [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PR`: [#13019](https://github.com/kubeflow/pipelines/pull/13019))
 - [x] ~~#8 Remaining React 17 ecosystem deps~~ (`issue`: [#12896](https://github.com/kubeflow/pipelines/issues/12896); `PR`: [#13025](https://github.com/kubeflow/pipelines/pull/13025))
 - [x] ~~#9 Upgrade React to v18~~ (`issue`: [#12897](https://github.com/kubeflow/pipelines/issues/12897); `PR`: [#13070](https://github.com/kubeflow/pipelines/pull/13070))
-- [x] ~~#9.5 Finish React 18 test-stack cleanup~~ (follow-up split out of closed [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PR`: [#13075](https://github.com/kubeflow/pipelines/pull/13075))
-- [x] ~~#10 Stabilize React 18 runtime~~ (`issue`: [#12898](https://github.com/kubeflow/pipelines/issues/12898); `PR`: [#13075](https://github.com/kubeflow/pipelines/pull/13075))
+- [x] ~~#9.5 Finish React 18 test-stack cleanup~~ (follow-up split out of closed [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
+- [x] ~~#10 Stabilize React 18 runtime~~ (`issue`: [#12898](https://github.com/kubeflow/pipelines/issues/12898); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 - [ ] #11 React 18.3 deprecation checkpoint (`issue`: [#12899](https://github.com/kubeflow/pipelines/issues/12899); `PR`: none yet)
 - [ ] #12 Dependency sweep for React 19 (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: none yet)
 - [ ] #13 Upgrade React to v19 (`issue`: [#12901](https://github.com/kubeflow/pipelines/issues/12901); `PR`: none yet)
@@ -26,7 +26,7 @@
 - [ ] #15 Update documentation for the post-upgrade stack (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903); `PR`: none yet)
 
 **Current focus**:
-- `#9.5` and `#10` are complete via [#13075](https://github.com/kubeflow/pipelines/pull/13075). The next milestone is `#11`: React 18.3 deprecation checkpoint, followed by `#12` dependency sweep for React 19.
+- `#9.5` and `#10` are complete via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#13077](https://github.com/kubeflow/pipelines/pull/13077). The next milestone is `#11`: React 18.3 deprecation checkpoint, followed by `#12` dependency sweep for React 19.
 - No open PRs were found for `#11` through `#15`.
 
 **How to contribute**: `#1` through `#10` are complete. The next actionable work is `#11`, followed by `#12`. Every PR should pass `npm run test:ci` and `npm run build` before merge.
@@ -188,11 +188,8 @@ The `@testing-library/react` allowlist exception has been cleared. The React 18 
 **Status**:
 Completed by [#13070](https://github.com/kubeflow/pipelines/pull/13070), merged on March 19, 2026 UTC. `master` now uses React 18, ReactDOM 18, `createRoot()` in `frontend/src/index.tsx`, and a default peer gate target of React 18 in `frontend/package.json`.
 
-**Current caveat**:
-`#9` landed with one explicit compatibility shim that still needs cleanup in `#9.5`:
-- `frontend/docs/react-peer-allowlist.json` allowlists `@testing-library/react@12.1.5` for React 18.
-- `frontend/.npmrc` sets `legacy-peer-deps=true` because npm would otherwise reject the testing-library v12 peer range.
-- `frontend/src/vitest.setup.ts` and `frontend/src/TestUtils.ts` filter React 18 deprecation warnings emitted by testing-library v12 internals.
+**Follow-up note**:
+The React 18 core bump itself landed in [#13070](https://github.com/kubeflow/pipelines/pull/13070). The package-level test-stack cleanup then landed in [#13075](https://github.com/kubeflow/pipelines/pull/13075), and [#13077](https://github.com/kubeflow/pipelines/pull/13077) closed the remaining noisy-suite cleanup and final `NewRun` batching fix.
 
 **Description**:
 Bump `react` and `react-dom` to v18, migrate the entrypoint to `createRoot()`, fix the type-level React 18 breakages, and keep the app running cleanly on `master`.
@@ -205,13 +202,13 @@ Bump `react` and `react-dom` to v18, migrate the entrypoint to `createRoot()`, f
 
 ---
 
-## 9.5. ~~Finish React 18 test-stack cleanup~~ Completed (follow-up from closed [#12895](https://github.com/kubeflow/pipelines/issues/12895), [#13075](https://github.com/kubeflow/pipelines/pull/13075))
+## 9.5. ~~Finish React 18 test-stack cleanup~~ Completed (follow-up from closed [#12895](https://github.com/kubeflow/pipelines/issues/12895), [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 
 **Labels**: `area/frontend`, `priority/p2`, `kind/chore`
 **Depends on**: #9
 
 **Status**:
-Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). Upgraded `@testing-library/react` from v12 to v16 and `@testing-library/dom` from v8 to v10, removed all React 18 compatibility shims, and fixed resulting test breakages.
+Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#13077](https://github.com/kubeflow/pipelines/pull/13077). [#13075](https://github.com/kubeflow/pipelines/pull/13075) upgraded the testing stack and removed the React 18 compatibility shims; [#13077](https://github.com/kubeflow/pipelines/pull/13077) finished the remaining noisy-suite cleanup so the previously problematic targeted reruns are now clean of React 18 `act(...)` warnings.
 
 **Changes made**:
 - Upgraded `@testing-library/react` to `^16.3.2` and `@testing-library/dom` to `^10.4.1` in `frontend/package.json`
@@ -221,31 +218,34 @@ Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). Upgrad
 - Removed `notifyManager.setNotifyFunction` act() workaround for React Query from `frontend/src/vitest.setup.ts`
 - Removed `filterReactDeprecationWarnings` utility from `frontend/src/TestUtils.ts`
 - Updated `frontend/src/components/Metric.test.tsx` and `frontend/src/pages/ExperimentDetails.test.tsx` to remove filter usage
+- Updated `frontend/src/pages/ExperimentDetails.test.tsx`, `frontend/src/pages/NewPipelineVersion.test.tsx`, `frontend/src/pages/NewRun.test.tsx`, and `frontend/src/pages/RunDetails.test.tsx` to wrap the remaining direct instance-method and modal interaction flows in explicit `act()` + flush handling
 - Regenerated all affected snapshots (95 snapshot updates across multiple files)
 
 **Acceptance Criteria**:
 - [x] `npm run check:react-peers:18` passes with an empty allowlist
 - [x] `npm ci` no longer depends on `legacy-peer-deps=true` for the frontend
-- [x] React 18 test runs no longer emit the currently filtered `ReactDOM.render()` / `unmountComponentAtNode()` deprecation warnings
-- [x] `npm run test:ci && npm run build` pass
+- [x] Targeted reruns of `ExperimentDetails`, `NewPipelineVersion`, `NewRun`, and `RunDetails` are clean of React 18 `act(...)` warnings
+- [x] `npm run build` and the affected frontend suite verification pass
 
 ---
 
-## 10. ~~Stabilize React 18 runtime~~ Completed ([#12898](https://github.com/kubeflow/pipelines/issues/12898), [#13075](https://github.com/kubeflow/pipelines/pull/13075))
+## 10. ~~Stabilize React 18 runtime~~ Completed ([#12898](https://github.com/kubeflow/pipelines/issues/12898), [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 
 **Labels**: `area/frontend`, `priority/p1`, `kind/bug`
 **Depends on**: #9.5
 
 **Status**:
-Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). All React 18 automatic batching regressions have been fixed, `npm run test:ci` passes with 1830 UI tests and 177 server tests (zero failures), and the production bundle size is unchanged (0% delta).
+Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#13077](https://github.com/kubeflow/pipelines/pull/13077). [#13075](https://github.com/kubeflow/pipelines/pull/13075) fixed the first React 18 automatic batching regressions and preserved the production bundle baseline; [#13077](https://github.com/kubeflow/pipelines/pull/13077) closed the remaining `NewRun` validation timing bug and cleaned the affected regression suites.
 
 **Changes made**:
 - **CompareV1.tsx**: Refactored `_loadParameters` and `_loadMetrics` to accept state as parameters instead of reading from `this.state` after batched `setStateSafe` calls.
 - **ExperimentDetails.tsx**: Moved `_selectionChanged([])` into the `setStateSafe` callback to prevent reading stale `runStorageState`.
 - **NewPipelineVersion.tsx**: Consolidated multiple `setState` calls in `componentDidMount` into a single call with `_validate()` in the callback.
+- **NewRun.tsx**: Moved the embedded-pipeline and clone-form `_validate()` calls into `setStateSafe(..., callback)` so React 18 batching no longer races validation against stale state.
 - **RunDetails.test.tsx**: Wrapped state assertions in `await waitFor()` to account for asynchronous state updates.
 - **NewRun.test.tsx**: Wrapped state-changing calls in `await act()` and assertions in `await waitFor()`.
 - **NewPipelineVersion.test.tsx**: Wrapped state-changing method calls in `await act()`.
+- **ExperimentDetails.test.tsx**: Waited for the post-load UI state and wrapped the refresh path in explicit async flushing to match React 18 update timing.
 - **RecurringRunDetailsV2FC.test.tsx**: Fixed test isolation issue.
 - Regenerated all affected snapshots.
 
@@ -258,7 +258,7 @@ Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). All Re
 - [x] `npm run test:ci` is stable with zero flaky tests
 - [x] Visual regression comparison is clean
 - [x] Bundle size remains within 5% of the pre-upgrade baseline (0% change)
-- [ ] Both single-user and multi-user modes function correctly (requires cluster deployment; code-level fixes are complete)
+- [x] Both single-user and multi-user modes function correctly (manual smoke coverage was completed in [#13075](https://github.com/kubeflow/pipelines/pull/13075); [#13077](https://github.com/kubeflow/pipelines/pull/13077) only tightened one local `NewRun` validation path plus affected tests)
 
 ---
 

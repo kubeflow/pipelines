@@ -191,6 +191,69 @@ async function flushPromisesInAct(): Promise<void> {
   });
 }
 
+async function invokeAndFlush(callback: () => void): Promise<void> {
+  await act(async () => {
+    callback();
+    await TestUtils.flushPromises();
+  });
+}
+
+async function clickAndFlush(element: HTMLElement): Promise<void> {
+  await invokeAndFlush(() => {
+    fireEvent.click(element);
+  });
+}
+
+async function simulateAndFlush(
+  wrapper: DomWrapper,
+  eventName: 'click' | 'change',
+  eventData?: any,
+): Promise<void> {
+  await invokeAndFlush(() => {
+    wrapper.simulate(eventName, eventData);
+  });
+}
+
+async function setStateAndFlush(
+  wrapper: NewRunWrapper,
+  state: Partial<NewRunState>,
+): Promise<void> {
+  await invokeAndFlush(() => {
+    wrapper.instance().setState(state);
+  });
+}
+
+async function updateFieldAndFlush(
+  instance: TestNewRun,
+  field: string,
+  value: string,
+): Promise<void> {
+  await invokeAndFlush(() => {
+    instance.handleChange(field)({
+      target: { value },
+    } as React.ChangeEvent<HTMLInputElement>);
+  });
+}
+
+async function updateRecurringRunStateAndFlush(
+  instance: TestNewRun,
+  isRecurring: boolean,
+): Promise<void> {
+  await invokeAndFlush(() => {
+    instance._updateRecurringRunState(isRecurring);
+  });
+}
+
+async function updateParamAndFlush(
+  instance: TestNewRun,
+  index: number,
+  value: string,
+): Promise<void> {
+  await invokeAndFlush(() => {
+    instance._handleParamChange(index, value);
+  });
+}
+
 describe('NewRun', () => {
   let tree: NewRunWrapper | undefined;
 
@@ -489,8 +552,7 @@ describe('NewRun', () => {
     tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
     await flushPromisesInAct();
 
-    (tree.instance() as TestNewRun)._updateRecurringRunState(true);
-    await flushPromisesInAct();
+    await updateRecurringRunStateAndFlush(tree.instance() as TestNewRun, true);
 
     expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
   });
@@ -502,8 +564,7 @@ describe('NewRun', () => {
     tree = await renderNewRunElement(<TestNewRun {...props} />);
     await flushPromisesInAct();
 
-    (tree.instance() as TestNewRun)._updateRecurringRunState(false);
-    await flushPromisesInAct();
+    await updateRecurringRunStateAndFlush(tree.instance() as TestNewRun, false);
 
     expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
   });
@@ -683,7 +744,7 @@ describe('NewRun', () => {
     await flushPromisesInAct();
 
     const pipeline = newMockPipelineWithParameters();
-    tree.setState({ parameters: pipeline.parameters });
+    await setStateAndFlush(tree, { parameters: pipeline.parameters });
 
     // Ensure that at least one of the provided parameters has a missing value.
     expect((pipeline.parameters || []).some((parameter) => !parameter.value)).toBe(true);
@@ -698,7 +759,7 @@ describe('NewRun', () => {
     (pipeline.parameters || []).forEach((parameter) => {
       parameter.value = 'I am not set';
     });
-    tree.setState({ parameters: pipeline.parameters });
+    await setStateAndFlush(tree, { parameters: pipeline.parameters });
 
     // Ensure all provided parameters have valid values.
     expect((pipeline.parameters || []).every((parameter) => !!parameter.value)).toBe(true);
@@ -710,8 +771,7 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
       await flushPromisesInAct();
 
-      tree.find('#choosePipelineBtn').at(0).simulate('click');
-      await flushPromisesInAct();
+      await simulateAndFlush(tree.find('#choosePipelineBtn').at(0), 'click');
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
     }, 20000);
 
@@ -719,10 +779,10 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
       await flushPromisesInAct();
 
-      tree.find('#choosePipelineBtn').at(0).simulate('click');
+      await simulateAndFlush(tree.find('#choosePipelineBtn').at(0), 'click');
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
 
-      tree.find('#cancelPipelineSelectionBtn').at(0).simulate('click');
+      await simulateAndFlush(tree.find('#cancelPipelineSelectionBtn').at(0), 'click');
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
     });
 
@@ -794,21 +854,23 @@ describe('NewRun', () => {
       expect(chooseVersionBtn.disabled).toEqual(true);
 
       const choosePipelineBtn = screen.getByRole('button', { name: 'Choose pipeline' });
-      fireEvent.click(choosePipelineBtn); // Open pipeline selector
+      await clickAndFlush(choosePipelineBtn); // Open pipeline selector
 
       const uploadPipelineBtn = screen.getByText('Upload pipeline');
-      fireEvent.click(uploadPipelineBtn); // Open upload pipeline dialog
+      await clickAndFlush(uploadPipelineBtn); // Open upload pipeline dialog
 
       // mock drop file from local.
       const dropZone = screen.getByTestId('upload-pipeline-dropzone');
       const file = new File(['file contents'], 'test-pipeline.yaml', { type: 'text/yaml' });
-      fireEvent.drop(dropZone, {
-        dataTransfer: { files: [file], types: ['Files'] },
+      await invokeAndFlush(() => {
+        fireEvent.drop(dropZone, {
+          dataTransfer: { files: [file], types: ['Files'] },
+        });
       });
 
       const uploadBtn = await screen.findByText('Upload');
       expect(uploadBtn.closest('button')?.disabled).toEqual(false);
-      fireEvent.click(uploadBtn);
+      await clickAndFlush(uploadBtn as HTMLElement);
 
       await waitFor(() => {
         expect(uploadPipelineSpy).toHaveBeenCalled();
@@ -862,10 +924,10 @@ describe('NewRun', () => {
       expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
 
       const choosePipelineBtn = screen.getAllByText('Choose')[0];
-      fireEvent.click(choosePipelineBtn); // Open pipeline selector
+      await clickAndFlush(choosePipelineBtn); // Open pipeline selector
 
       const cancelBtn = screen.getAllByText('Cancel')[0];
-      fireEvent.click(cancelBtn);
+      await clickAndFlush(cancelBtn as HTMLElement);
 
       // Choose button is still enabled after clicking Cancel in selector
       expect(chooseVersionBtn.closest('button')?.disabled).toEqual(false);
@@ -987,8 +1049,7 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
       await flushPromisesInAct();
 
-      tree.find('#chooseExperimentBtn').at(0).simulate('click');
-      await flushPromisesInAct();
+      await simulateAndFlush(tree.find('#chooseExperimentBtn').at(0), 'click');
       expect(tree.state('experimentSelectorOpen')).toBe(true);
       expect(listExperimentsSpy).toHaveBeenCalledWith(
         '',
@@ -1016,8 +1077,7 @@ describe('NewRun', () => {
       );
       await flushPromisesInAct();
 
-      tree.find('#chooseExperimentBtn').at(0).simulate('click');
-      await flushPromisesInAct();
+      await simulateAndFlush(tree.find('#chooseExperimentBtn').at(0), 'click');
       expect(listExperimentsSpy).toHaveBeenCalledWith(
         '',
         10,
@@ -1042,10 +1102,10 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...(generateProps() as any)} />);
       await flushPromisesInAct();
 
-      tree.find('#chooseExperimentBtn').at(0).simulate('click');
+      await simulateAndFlush(tree.find('#chooseExperimentBtn').at(0), 'click');
       expect(tree.state('experimentSelectorOpen')).toBe(true);
 
-      tree.find('#cancelExperimentSelectionBtn').at(0).simulate('click');
+      await simulateAndFlush(tree.find('#cancelExperimentSelectionBtn').at(0), 'click');
       expect(tree.state('experimentSelectorOpen')).toBe(false);
     });
 
@@ -1571,8 +1631,7 @@ describe('NewRun', () => {
       props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'run name');
 
       expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', false);
     });
@@ -1609,18 +1668,19 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      (tree.instance() as TestNewRun).handleChange('description')({
-        target: { value: 'test run description' },
-      });
-      (tree.instance() as TestNewRun).handleChange('serviceAccount')({
-        target: { value: 'service-account-name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
+      await updateFieldAndFlush(
+        tree.instance() as TestNewRun,
+        'description',
+        'test run description',
+      );
+      await updateFieldAndFlush(
+        tree.instance() as TestNewRun,
+        'serviceAccount',
+        'service-account-name',
+      );
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn').hostNodes(), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -1661,21 +1721,21 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      tree.setState({ parameters: pipeline.parameters });
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
+      await setStateAndFlush(tree, { parameters: pipeline.parameters });
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
+      await updateFieldAndFlush(
+        tree.instance() as TestNewRun,
+        'description',
+        'test run description',
+      );
+
+      await simulateAndFlush(tree.find('input#newRunPipelineParam0'), 'change', {
+        target: { value: '{"test2": "value2"}' },
       });
-      (tree.instance() as TestNewRun).handleChange('description')({
-        target: { value: 'test run description' },
-      });
 
-      tree
-        .find('input#newRunPipelineParam0')
-        .simulate('change', { target: { value: '{"test2": "value2"}' } });
+      await clickAndFlush(screen.getByRole('button', { name: 'Open Json Editor' }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Open Json Editor' }));
-
-      tree.find('BusyButton#startNewRunBtn').simulate('click');
+      await simulateAndFlush(tree.find('BusyButton#startNewRunBtn'), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -1722,20 +1782,14 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      await act(async () => {
-        (tree!.instance() as TestNewRun).handleChange('runName')({
-          target: { value: 'test run name' },
-        });
-      });
-      await act(async () => {
-        (tree!.instance() as TestNewRun)._handleParamChange(0, 'test param value');
-      });
+      await updateFieldAndFlush(tree!.instance() as TestNewRun, 'runName', 'test run name');
+      await updateParamAndFlush(tree!.instance() as TestNewRun, 0, 'test param value');
 
       await waitFor(() => {
         expect(tree!.state()).toHaveProperty('runName', 'test run name');
       });
 
-      tree!.find('#startNewRunBtn').hostNodes().simulate('click');
+      await simulateAndFlush(tree!.find('#startNewRunBtn').hostNodes(), 'click');
       await waitFor(() => {
         expect(startRunSpy).toHaveBeenCalledTimes(1);
       });
@@ -1768,8 +1822,7 @@ describe('NewRun', () => {
         expect(tree!.find('#startNewRunBtn').props()).toHaveProperty('disabled', false);
       });
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
-      await flushPromisesInAct();
+      await simulateAndFlush(tree.find('#startNewRunBtn').hostNodes(), 'click');
       expect(startRunSpy).toHaveBeenCalledTimes(1);
       expect(startRunSpy).toHaveBeenLastCalledWith({
         description: '',
@@ -1899,7 +1952,7 @@ describe('NewRun', () => {
       });
 
       const startNewRunBtn = screen.getByText('Start');
-      fireEvent.click(startNewRunBtn);
+      await clickAndFlush(startNewRunBtn as HTMLElement);
 
       expect(startRunSpy).toHaveBeenCalledTimes(1);
       expect(startRunSpy).toHaveBeenLastCalledWith(
@@ -1920,16 +1973,25 @@ describe('NewRun', () => {
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}` +
         `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}` +
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
+      let resolveStartRun: ((value: { id: string }) => void) | undefined;
+      startRunSpy.mockImplementationOnce(
+        () =>
+          new Promise<{ id: string }>((resolve) => {
+            resolveStartRun = resolve;
+          }) as any,
+      );
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      await act(async () => {
+        tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      });
 
       expect(tree.state('isBeingStarted')).toBe(true);
+
+      resolveStartRun?.({ id: 'new-run-id' });
+      await flushPromisesInAct();
     });
 
     it('navigates to the ExperimentDetails page upon successful start if there was an experiment', async () => {
@@ -1940,12 +2002,9 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn').hostNodes(), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -1967,12 +2026,9 @@ describe('NewRun', () => {
       props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn').hostNodes(), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -1993,12 +2049,9 @@ describe('NewRun', () => {
       TestUtils.makeErrorResponseOnce(startRunSpy, 'test error message');
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn').hostNodes(), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -2016,15 +2069,11 @@ describe('NewRun', () => {
       props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
-      tree.setState({ errorMessage: '' });
-      await flushPromisesInAct();
+      await setStateAndFlush(tree, { errorMessage: '' });
 
-      tree.find('#startNewRunBtn').simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn'), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -2047,12 +2096,9 @@ describe('NewRun', () => {
       TestUtils.makeErrorResponseOnce(startRunSpy, 'test error message');
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn').hostNodes(), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -2069,12 +2115,9 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
-      tree.find('#startNewRunBtn').hostNodes().simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn').hostNodes(), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -2121,12 +2164,11 @@ describe('NewRun', () => {
       const instance = tree.instance() as TestNewRun;
       await flushPromisesInAct();
 
-      instance.handleChange('runName')({ target: { value: 'test run name' } });
-      instance.handleChange('description')({ target: { value: 'test run description' } });
-      instance.handleChange('serviceAccount')({ target: { value: 'service-account-name' } });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(instance, 'runName', 'test run name');
+      await updateFieldAndFlush(instance, 'description', 'test run description');
+      await updateFieldAndFlush(instance, 'serviceAccount', 'service-account-name');
 
-      tree.find('#startNewRunBtn').at(0).simulate('click');
+      await simulateAndFlush(tree.find('#startNewRunBtn').at(0), 'click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
@@ -2184,7 +2226,7 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      tree.setState({
+      await setStateAndFlush(tree, {
         trigger: {
           periodic_schedule: {
             end_time: new Date(2018, 4, 1),
@@ -2192,10 +2234,7 @@ describe('NewRun', () => {
           },
         },
       });
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
       expect(tree.state('errorMessage')).toBe(
         'End date/time cannot be earlier than start date/time',
@@ -2211,7 +2250,7 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      tree.setState({
+      await setStateAndFlush(tree, {
         trigger: {
           cron_schedule: {
             end_time: new Date(2018, 4, 1),
@@ -2219,10 +2258,7 @@ describe('NewRun', () => {
           },
         },
       });
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
       expect(tree.state('errorMessage')).toBe(
         'End date/time cannot be earlier than start date/time',
@@ -2238,7 +2274,7 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      tree.setState({
+      await setStateAndFlush(tree, {
         maxConcurrentRuns: '-1',
         trigger: {
           periodic_schedule: {
@@ -2246,10 +2282,7 @@ describe('NewRun', () => {
           },
         },
       });
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
       expect(tree.state('errorMessage')).toBe(
         'For triggered runs, maximum concurrent runs must be a positive number',
@@ -2265,7 +2298,7 @@ describe('NewRun', () => {
         `&${QUERY_PARAMS.pipelineVersionId}=${MOCK_PIPELINE_VERSION.id}`;
 
       tree = await renderNewRunElement(<TestNewRun {...props} />);
-      tree.setState({
+      await setStateAndFlush(tree, {
         maxConcurrentRuns: 'not a number',
         trigger: {
           periodic_schedule: {
@@ -2273,10 +2306,7 @@ describe('NewRun', () => {
           },
         },
       });
-      (tree.instance() as TestNewRun).handleChange('runName')({
-        target: { value: 'test run name' },
-      });
-      await flushPromisesInAct();
+      await updateFieldAndFlush(tree.instance() as TestNewRun, 'runName', 'test run name');
 
       expect(tree.state('errorMessage')).toBe(
         'For triggered runs, maximum concurrent runs must be a positive number',
