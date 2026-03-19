@@ -7,3 +7,15 @@ resources:
 - ../../../cache-deployer
 - pipeline-install-config.yaml
 - postgres-secret-extended.yaml
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: data.defaultPipelineRoot
+  targets:
+  - select:
+      kind: ConfigMap
+      name: kfp-launcher
+    fieldPaths:
+    - data.defaultPipelineRoot
