@@ -798,14 +798,15 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
     this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
-    this.setStateSafe({
-      experiment,
-      experimentName,
-      isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
-      isRecurringRun,
-    });
-
-    this._validate();
+    this.setStateSafe(
+      {
+        experiment,
+        experimentName,
+        isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
+        isRecurringRun,
+      },
+      () => this._validate(),
+    );
   }
 
   public handleChange = (name: string) => (event: any) => {
