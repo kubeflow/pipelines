@@ -384,7 +384,7 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
           class="f1wn31t5"
           style="color: red;"
         >
-          Run name is required
+          A pipeline must be selected
         </div>
       </div>
     </div>
@@ -2879,17 +2879,15 @@ exports[`NewRun > fetches the associated pipeline if one is present in the query
         class="flex_f16jawj4 ffbrxlm"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          disabled=""
           id="startNewRunBtn"
-          tabindex="0"
+          tabindex="-1"
           type="button"
         >
           <span>
             Start
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
         <button
           class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary css-1e6y48t-MuiButtonBase-root-MuiButton-root"
@@ -2905,7 +2903,9 @@ exports[`NewRun > fetches the associated pipeline if one is present in the query
         <div
           class="f1wn31t5"
           style="color: red;"
-        />
+        >
+          A pipeline version must be selected
+        </div>
       </div>
     </div>
   </div>

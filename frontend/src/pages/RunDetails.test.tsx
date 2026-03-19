@@ -1000,12 +1000,11 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
   });
 
   it('dismisses node message banner if node loses message after refresh', async () => {
@@ -1027,12 +1026,11 @@ describe('RunDetails', () => {
     clickGraphNode('node1');
     fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step is in Succeeded state with this message: some node message',
+      );
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
-      'phaseMessage',
-      'This step is in Succeeded state with this message: some node message',
-    );
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
@@ -1042,9 +1040,8 @@ describe('RunDetails', () => {
       await runDetailsRef?.current?.refresh();
     });
     await waitFor(() => {
-      expect(getRunDetailsState()?.selectedNodeDetails).toBeTruthy();
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
     });
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('phaseMessage', undefined);
   });
 
   [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach((unfinishedStatus) => {

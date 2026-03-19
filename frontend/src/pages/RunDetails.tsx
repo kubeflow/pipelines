@@ -753,6 +753,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       this.showPageError('Error: Unable to enable custom visualizations.', err);
     }
 
+    let workflow: Workflow | undefined;
     try {
       const runDetail = await Apis.runServiceApi.getRun(runId);
 
@@ -790,7 +791,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           console.error(`Failed to decode compressedNodes: ${err}`);
         }
       }
-      const workflow = jsonWorkflow as Workflow;
+      workflow = jsonWorkflow as Workflow;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -919,7 +920,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     // Make sure logs and artifacts in the side panel are refreshed when
     // the user hits "Refresh", either in the top toolbar or in an error banner.
-    await this._loadSidePaneTab(this.state.sidepanelSelectedTab);
+    // Pass workflow explicitly to avoid React 18 batching: setState above hasn't flushed yet,
+    // so this.state.workflow would still be stale.
+    await this._loadSidePaneTab(this.state.sidepanelSelectedTab, workflow);
 
     // Load all run's outputs
     await this._loadAllOutputs();
@@ -1012,8 +1015,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     );
   }
 
-  private async _loadSidePaneTab(tab: SidePanelTab): Promise<void> {
-    const workflow = this.state.workflow;
+  private async _loadSidePaneTab(tab: SidePanelTab, workflowOverride?: Workflow): Promise<void> {
+    const workflow = workflowOverride ?? this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
 
     let sidepanelBannerMode: Mode = 'warning';
