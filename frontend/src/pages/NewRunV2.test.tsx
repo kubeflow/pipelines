@@ -276,6 +276,7 @@ describe('NewRunV2', () => {
   }
 
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(Apis.pipelineServiceApi, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
     vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);
     vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersionTemplate').mockResolvedValue({
@@ -284,7 +285,6 @@ describe('NewRunV2', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
     vi.restoreAllMocks();
   });
 

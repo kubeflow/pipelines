@@ -23,7 +23,7 @@ import { Apis } from 'src/lib/Apis';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
-import { PageProps } from './Page';
+import { PageProps } from 'src/pages/Page';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { vi } from 'vitest';
 

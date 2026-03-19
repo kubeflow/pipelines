@@ -187,6 +187,40 @@ describe('RunDetailsRouter', () => {
     expect(getPipelineVersionSpy).not.toHaveBeenCalled();
   });
 
+  it('prefers inline pipeline_spec over pipeline version template when both are present', async () => {
+    const v2Run: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    getRunSpy.mockResolvedValue(v2Run);
+    getPipelineVersionSpy.mockResolvedValue({
+      pipeline_id: TEST_PIPELINE_ID,
+      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      pipeline_spec: {
+        apiVersion: 'argoproj.io/v1alpha1',
+        kind: 'Workflow',
+        metadata: { name: 'from-version' },
+        spec: { arguments: { parameters: [{ name: 'output' }] } },
+      },
+    } as V2beta1PipelineVersion);
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+        TEST_PIPELINE_ID,
+        TEST_PIPELINE_VERSION_ID,
+      );
+      expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
+    });
+  });
+
   it('renders EnhancedRunDetails when getRun fails', async () => {
     getRunSpy.mockRejectedValue(new Error('Not found'));
 
