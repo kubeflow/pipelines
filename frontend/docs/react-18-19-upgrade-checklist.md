@@ -292,7 +292,7 @@ Make the React 18.3 state explicit in package metadata, run the full verificatio
 Not started.
 
 **Description**:
-Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and drive the React 19 peer gate to green.
+Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and reduce the peer-gate output to only the expected React core blocker that is resolved in `#13`.
 
 **Current `check:react-peers:19` blockers (verified on March 19, 2026 ET)**:
 - ~~`@testing-library/react@12.1.5`~~ - cleared in `#9.5` (upgraded to v16)
@@ -301,8 +301,8 @@ Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible 
 - Transitive: `react-redux@8.1.3` (`react-dom=^16.8 || ^17.0 || ^18.0`, `react=^16.8 || ^17.0 || ^18.0`)
 
 **Acceptance Criteria**:
-- [ ] `npm run check:react-peers:19` passes
-- [ ] No direct React 19 blockers remain
+- [ ] `npm run check:react-peers:19` is reduced to only the expected `react-dom` blocker for `#13`
+- [ ] No non-core React 19 blockers remain
 - [ ] `npm run test:ci` passes
 
 ---
