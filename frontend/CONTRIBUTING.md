@@ -316,7 +316,7 @@ Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protob
 Compile pipeline_spec.proto to Typed classes in TypeScript,
 so it can convert a payload stream to a PipelineSpec object during runtime.
 
-You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
+You can check out the generated TypeScript outputs like `pipeline_spec.ts` and `google/rpc/status.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
 
 The plugin tool for conversion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use
 [protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing.

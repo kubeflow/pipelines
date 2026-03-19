@@ -16,8 +16,13 @@
 
 import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
-import Dropzone from 'react-dropzone';
-import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
+import DropzoneArea, { DropzoneAreaHandle } from 'src/atoms/DropzoneArea';
+import {
+  DocumentationCompilePipeline,
+  PIPELINE_PACKAGE_ACCEPT,
+  PIPELINE_PACKAGE_REJECT_MESSAGE,
+  pipelinePackageValidator,
+} from 'src/components/UploadPipelineDialog';
 import { classes, stylesheet } from 'typestyle';
 import BusyButton from 'src/atoms/BusyButton';
 import Input from 'src/atoms/Input';
@@ -116,7 +121,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props)
 };
 
 export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelineVersionState> {
-  private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
+  private _dropzoneRef = React.createRef<DropzoneAreaHandle>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineVersionDisplayNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
@@ -399,17 +404,18 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
             />
-            <Dropzone
+            <DropzoneArea
               id='dropZone'
-              disableClick={true}
               onDrop={this._onDrop.bind(this)}
+              onDropRejected={this._onDropRejected.bind(this)}
               onDragEnter={this._onDropzoneDragEnter.bind(this)}
               onDragLeave={this._onDropzoneDragLeave.bind(this)}
+              accept={PIPELINE_PACKAGE_ACCEPT}
+              validator={pipelinePackageValidator}
+              disabled={importMethod === ImportMethod.URL}
               style={{ position: 'relative' }}
               ref={this._dropzoneRef}
               inputProps={{ tabIndex: -1 }}
-              accept='.yaml,.yml,.zip,.tar.gz'
-              disabled={importMethod === ImportMethod.URL}
             >
               {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
               <Input
@@ -441,7 +447,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                   },
                 }}
               />
-            </Dropzone>
+            </DropzoneArea>
           </div>
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
@@ -572,9 +578,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     );
   }
 
-  // To call _onDrop from test, so make a protected method
   protected _onDropForTest(files: File[]): void {
-    this._onDrop(files);
+    if (files.length) {
+      this._onDrop(files);
+    }
   }
 
   private async _create(): Promise<void> {
@@ -747,6 +754,17 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         this._validate();
       },
     );
+  }
+
+  private _onDropRejected(): void {
+    this.setStateSafe({ dropzoneActive: false, file: null, fileName: '' }, () => {
+      this._validate();
+    });
+    this.props.updateSnackbar({
+      autoHideDuration: 5000,
+      message: PIPELINE_PACKAGE_REJECT_MESSAGE,
+      open: true,
+    });
   }
 }
 

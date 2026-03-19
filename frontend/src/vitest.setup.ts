@@ -1,8 +1,38 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { act, cleanup } from '@testing-library/react';
+import { notifyManager } from '@tanstack/react-query';
 
 process.env.TZ = 'UTC';
+
+// @testing-library/react v12 uses the legacy ReactDOM.render() / unmountComponentAtNode()
+// APIs internally, which trigger deprecation warnings on React 18. Suppress them in
+// console.error globally until @testing-library/react is upgraded to v14+.
+{
+  const SUPPRESSED_REACT18_WARNINGS = [
+    'ReactDOM.render is no longer supported in React 18',
+    'unmountComponentAtNode is deprecated',
+  ];
+  const originalConsoleError = console.error;
+  console.error = function filteredConsoleError(...args: unknown[]) {
+    if (
+      typeof args[0] === 'string' &&
+      SUPPRESSED_REACT18_WARNINGS.some((warning) => args[0].includes(warning))
+    ) {
+      return;
+    }
+    return originalConsoleError.apply(console, args);
+  };
+}
+
+// React Query v4 schedules state-update notifications via microtasks.
+// With React 18 + @testing-library/react v12, these updates are not flushed
+// within act() automatically. Wrapping with act() ensures React processes
+// all pending state updates synchronously during tests.
+// Remove once @testing-library/react is upgraded to v14+.
+notifyManager.setNotifyFunction((callback) => {
+  act(callback);
+});
 
 // @xyflow/react uses DOMMatrixReadOnly which jsdom does not implement.
 if (!globalThis.DOMMatrixReadOnly) {

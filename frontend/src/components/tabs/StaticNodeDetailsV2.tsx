@@ -15,8 +15,11 @@
  */
 
 import { Button } from '@mui/material';
-import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
-import { ParameterType } from 'src/generated/pipeline_spec/pipeline_spec_pb';
+import {
+  ComponentSpec,
+  ParameterType_ParameterTypeEnum,
+  PipelineSpec,
+} from 'src/generated/pipeline_spec';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { getStringEnumKey } from 'src/lib/Utils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
@@ -262,7 +265,7 @@ function getInputParameters(componentSpec: ComponentSpec) {
   const inputParameters: Array<KeyValue<string>> = Object.keys(parameters).map((key) => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
-    return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
+    return [key, getStringEnumKey(ParameterType_ParameterTypeEnum, type)];
   });
   return inputParameters;
 }
@@ -276,7 +279,7 @@ function getOutputParameters(componentSpec: ComponentSpec) {
   const outputParameters: Array<KeyValue<string>> = Object.keys(parameters).map((key) => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
-    return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
+    return [key, getStringEnumKey(ParameterType_ParameterTypeEnum, type)];
   });
   return outputParameters;
 }
