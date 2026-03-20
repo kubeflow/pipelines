@@ -36,3 +36,46 @@ patches:
       version: v1
       kind: Role
       name: ml-pipeline
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: kfp-cert-manager-params
+  literals:
+  - namespace=kubeflow
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-cert-manager-params
+    fieldPath: data.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.0.clientConfig.service.namespace
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.0.clientConfig.service.namespace
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: Certificate
+      name: kfp-api-webhook-cert
+    fieldPaths:
+    - spec.dnsNames.1
+    - spec.dnsNames.2
+    - spec.dnsNames.3
+    options:
+      delimiter: .
+      index: 1
