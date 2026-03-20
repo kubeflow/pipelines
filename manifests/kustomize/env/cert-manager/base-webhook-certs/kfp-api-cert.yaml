@@ -3,10 +3,11 @@ kind: Certificate
 metadata:
   name: kfp-api-webhook-cert
 spec:
-  commonName: kfp-api-webhook-cert
-  isCA: true
+  commonName: ml-pipeline.kubeflow.svc
   dnsNames:
   - ml-pipeline
+  - ml-pipeline.kubeflow.svc
+  - ml-pipeline.kubeflow.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: kfp-api-webhook-selfsigned-issuer
