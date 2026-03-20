@@ -289,7 +289,7 @@ Make the React 18.3 state explicit in package metadata, run the full verificatio
 **Depends on**: #11
 
 **Status**:
-Completed in this branch. `npm run check:react-peers:19` now passes with a single allowlisted React core blocker that remains until `#13`.
+Completed via [#13082](https://github.com/kubeflow/pipelines/pull/13082). `npm run check:react-peers:19` now passes with a single allowlisted React core blocker that remains until `#13`.
 
 **Description**:
 Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and allowlist the expected React core blocker that is resolved in `#13`.
