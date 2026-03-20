@@ -217,7 +217,8 @@ spec:
             'dns_names': [
                 f'ds-pipeline-{self.dspa_name}',
                 f'ds-pipeline-{self.dspa_name}.{self.deployment_namespace}',
-                f'ds-pipeline-{self.dspa_name}.{self.deployment_namespace}.svc.cluster.local'
+                f'ds-pipeline-{self.dspa_name}.{self.deployment_namespace}.svc.cluster.local',
+                'localhost'
             ],
             'namespace': self.deployment_namespace
         }, {

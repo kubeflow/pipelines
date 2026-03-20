@@ -10,6 +10,7 @@ from enum import Enum
 import os
 import subprocess
 import tempfile
+import threading
 from typing import List, Union
 
 
@@ -69,16 +70,33 @@ class K8sDeploymentManager:
                 universal_newlines=True,
                 env=env)
 
-            # Iterate over the process's stdout line by line in real time
             output_lines = []
-            for line in process.stdout:
-                print(
-                    line, end='',
-                    flush=True)  # Use flush=True to ensure immediate printing
-                output_lines.append(line.rstrip())
 
-            # Wait for the process to finish and get the return code
-            return_code = process.wait(timeout=timeout)
+            # Stream output in a background thread so wait(timeout=...) is
+            # always enforced even for quiet or hung commands.
+            def stream_output():
+                if not process.stdout:
+                    return
+                for line in process.stdout:
+                    print(line, end='', flush=True)
+                    output_lines.append(line.rstrip())
+
+            output_thread = threading.Thread(target=stream_output, daemon=True)
+            output_thread.start()
+
+            try:
+                return_code = process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired as timeout_error:
+                if process.poll() is None:
+                    process.kill()
+                process.wait()
+                output_thread.join(timeout=5)
+                raise subprocess.TimeoutExpired(
+                    cmd,
+                    timeout_error.timeout,
+                    output='\n'.join(output_lines)) from timeout_error
+
+            output_thread.join(timeout=5)
 
             # Create a mock CompletedProcess for compatibility
             result = subprocess.CompletedProcess(

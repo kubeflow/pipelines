@@ -209,6 +209,10 @@ export API_TOKEN=$(oc create token "$DEPLOYMENT_NAME" --namespace "$NAMESPACE" -
 
 #################### TESTS #######################
 # Run Tests
+if [[ "$TEST_LABEL" == *"Upgrade"* ]]; then
+  TEST_DIRECTORY="v2/api"
+fi
+
 # Traverse up directories until we find a directory containing $TEST_DIRECTORY
 current_dir="$(pwd)"
 found_test_dir=""

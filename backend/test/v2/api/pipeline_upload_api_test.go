@@ -114,10 +114,19 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "Pipeline
 
 	/* Negative scenarios of uploading a pipeline  */
 	Context("Upload an invalid pipeline spec and verify the error in the response >", func() {
+		expectedErrorMessage := "Failed to upload pipeline"
+		if *config.UploadPipelinesWithKubernetes {
+			expectedErrorMessage = "Failed to parse pipeline version"
+		}
+
 		for _, fileName := range invalidPipelineFiles {
 			filePath := filepath.Join(pipelineFilesRootDir, pipelineDir, fileName)
 			It(fmt.Sprintf("Upload a %s pipeline and verify the failure", fileName), func() {
-				uploadPipelineAndVerifyFailure(filePath, &testContext.Pipeline.PipelineGeneratedName, nil, "Failed to upload pipeline")
+				errMsg := expectedErrorMessage
+				if *config.UploadPipelinesWithKubernetes && (fileName == "empty_zip.zip" || fileName == "wrong_format.png") {
+					errMsg = "Failed to read pipeline spec file"
+				}
+				uploadPipelineAndVerifyFailure(filePath, &testContext.Pipeline.PipelineGeneratedName, nil, errMsg)
 			})
 		}
 
@@ -149,7 +158,11 @@ var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "
 			parameters := uploadparams.NewUploadPipelineVersionParams()
 			fakePipelineID := "12345"
 			parameters.Pipelineid = &fakePipelineID
-			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
+			expectedErrMsg := "Failed to upload pipeline version"
+			if *config.UploadPipelinesWithKubernetes {
+				expectedErrMsg = "not found"
+			}
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, expectedErrMsg)
 		})
 	})
 
@@ -210,6 +223,9 @@ func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipe
 	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, createdPipeline)
 
 	createdPipelineFromDB := testutil.GetPipeline(pipelineClient, createdPipeline.PipelineID)
+	// Normalize CreatedAt to UTC to avoid timezone location mismatch in deep comparison
+	createdPipelineFromDB.CreatedAt = strfmt.DateTime(time.Time(createdPipelineFromDB.CreatedAt).UTC())
+	createdPipeline.CreatedAt = strfmt.DateTime(time.Time(createdPipeline.CreatedAt).UTC())
 	Expect(createdPipelineFromDB).To(Equal(*createdPipeline))
 	matcher.MatchPipelines(&createdPipelineFromDB, testContext.Pipeline.ExpectedPipeline)
 

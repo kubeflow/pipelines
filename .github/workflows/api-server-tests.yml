@@ -217,6 +217,7 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
