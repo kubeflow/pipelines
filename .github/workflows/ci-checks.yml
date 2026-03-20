@@ -1,4 +1,4 @@
-# This workflow checks if all CI checks have passed by polling every 5 minutes for a total of 8 attempts.
+# This workflow checks if all CI checks have passed by polling every 5 minutes.
 name: CI Check
 
 on:
@@ -11,11 +11,7 @@ jobs:
     permissions:
       checks: read
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v6
-
       - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
-        id: label_check
         run: |
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
             echo "Label 'needs-ok-to-test' found. Skipping the workflow."
@@ -41,13 +37,3 @@ jobs:
           checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Save PR payload
-        shell: bash
-        run: |
-          mkdir -p ./pr
-          echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
-          echo ${{ github.event.action }} >> ./pr/event_action
-      - uses: actions/upload-artifact@v7
-        with:
-          name: pr
-          path: pr/
