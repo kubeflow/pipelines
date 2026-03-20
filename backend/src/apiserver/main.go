@@ -87,6 +87,20 @@ var (
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
 
+// HTTPRouterDeps holds the HTTP handler functions needed to build the
+// top-level HTTP router. Using a struct of http.HandlerFunc values
+// allows tests to supply lightweight stubs without constructing real
+// server instances.
+type HTTPRouterDeps struct {
+	UploadPipelineV1        http.HandlerFunc
+	UploadPipelineVersionV1 http.HandlerFunc
+	UploadPipeline          http.HandlerFunc
+	UploadPipelineVersion   http.HandlerFunc
+	ReadRunLogV1            http.HandlerFunc
+	ReadArtifactV1          http.HandlerFunc
+	ReadArtifact            http.HandlerFunc
+}
+
 func initCerts() (*tls.Config, error) {
 	switch {
 	case *tlsCertPath == "" && *tlsCertKeyPath == "":
@@ -411,41 +425,21 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
 
-	// Create a top level mux to include both pipeline upload server and gRPC servers.
-	topMux := mux.NewRouter()
-
-	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
-	// accept pipeline url for importing.
-	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
 	sharedPipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
-	// API v1beta1
-	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", sharedPipelineUploadServer.UploadPipelineV1)
-	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", sharedPipelineUploadServer.UploadPipelineVersionV1)
-	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`}`)
-	})
-	// API v2beta1
-	topMux.HandleFunc("/apis/v2beta1/pipelines/upload", sharedPipelineUploadServer.UploadPipeline)
-	topMux.HandleFunc("/apis/v2beta1/pipelines/upload_version", sharedPipelineUploadServer.UploadPipelineVersion)
-	topMux.HandleFunc("/apis/v2beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`, "pipeline_store": "`+pipelineStore+`"}`)
-	})
-
-	// log streaming is provided via HTTP.
 	runLogServer := server.NewRunLogServer(resourceManager)
-	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLogV1)
-
-	// Artifact reading endpoints (implemented with streaming for memory efficiency)
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
-	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifactV1).Methods(http.MethodGet)
-	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifact).Methods(http.MethodGet)
 
-	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(runtimeMux))
+	handlerDeps := HTTPRouterDeps{
+		UploadPipelineV1:        sharedPipelineUploadServer.UploadPipelineV1,
+		UploadPipelineVersionV1: sharedPipelineUploadServer.UploadPipelineVersionV1,
+		UploadPipeline:          sharedPipelineUploadServer.UploadPipeline,
+		UploadPipelineVersion:   sharedPipelineUploadServer.UploadPipelineVersion,
+		ReadRunLogV1:            runLogServer.ReadRunLogV1,
+		ReadArtifactV1:          runArtifactServer.ReadArtifactV1,
+		ReadArtifact:            runArtifactServer.ReadArtifact,
+	}
 
-	// Register a handler for Prometheus to poll.
-	topMux.Handle("/metrics", promhttp.Handler())
+	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore, *collectMetricsFlag)
 
 	if tlsCfg != nil {
 		glog.Info("Starting Https Proxy")
@@ -465,6 +459,46 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	}
 
 	glog.Info("Http Proxy started")
+}
+
+// buildHTTPRouter constructs the top-level HTTP router with all API routes
+// registered. It does not start a listener, making it testable in isolation.
+func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string, collectMetrics bool) *mux.Router {
+	topMux := mux.NewRouter()
+
+	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
+	// accept pipeline url for importing.
+	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
+	// API v1beta1
+	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", handlerDeps.UploadPipelineV1)
+	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", handlerDeps.UploadPipelineVersionV1)
+	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`}`)
+	})
+	// API v2beta1
+	topMux.HandleFunc("/apis/v2beta1/pipelines/upload", handlerDeps.UploadPipeline)
+	topMux.HandleFunc("/apis/v2beta1/pipelines/upload_version", handlerDeps.UploadPipelineVersion)
+	topMux.HandleFunc("/apis/v2beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`, "pipeline_store": "`+pipelineStore+`"}`)
+	})
+
+	// log streaming is provided via HTTP.
+	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", handlerDeps.ReadRunLogV1)
+
+	// Artifact reading endpoints (implemented with streaming for memory efficiency)
+	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifactV1).Methods(http.MethodGet)
+	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifact).Methods(http.MethodGet)
+
+	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(grpcGatewayHandler))
+
+	// Register a handler for Prometheus to poll.
+	if collectMetrics {
+		topMux.Handle("/metrics", promhttp.Handler())
+	}
+
+	return topMux
 }
 
 func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *sync.WaitGroup) (*http.Server, error) {

@@ -35,6 +35,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/spf13/viper"
@@ -654,4 +655,187 @@ func TestClearTagsMiddleware_BodyPreserved(t *testing.T) {
 	handler.ServeHTTP(httptest.NewRecorder(), req)
 
 	assert.Equal(t, original, string(capturedBody))
+}
+
+func noOpHandler(w http.ResponseWriter, r *http.Request) {}
+
+func newNoOpHTTPRouterDeps() HTTPRouterDeps {
+	return HTTPRouterDeps{
+		UploadPipelineV1:        noOpHandler,
+		UploadPipelineVersionV1: noOpHandler,
+		UploadPipeline:          noOpHandler,
+		UploadPipelineVersion:   noOpHandler,
+		ReadRunLogV1:            noOpHandler,
+		ReadArtifactV1:          noOpHandler,
+		ReadArtifact:            noOpHandler,
+	}
+}
+
+// collectRegisteredRoutes walks a mux.Router and returns a map of
+// path template to HTTP methods (nil means all methods accepted).
+func collectRegisteredRoutes(t *testing.T, router *mux.Router) map[string][]string {
+	t.Helper()
+	registeredRoutes := make(map[string][]string)
+	err := router.Walk(func(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
+		pathTemplate, err := route.GetPathTemplate()
+		if err != nil {
+			return nil // skip routes without path templates
+		}
+		methods, _ := route.GetMethods()
+		registeredRoutes[pathTemplate] = methods
+		return nil
+	})
+	require.NoError(t, err)
+	return registeredRoutes
+}
+
+func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", true)
+	registeredRoutes := collectRegisteredRoutes(t, router)
+
+	expectedRoutes := []struct {
+		path            string
+		expectedMethods []string
+	}{
+		{"/apis/v1beta1/pipelines/upload", nil},
+		{"/apis/v1beta1/pipelines/upload_version", nil},
+		{"/apis/v1beta1/healthz", nil},
+		{"/apis/v2beta1/pipelines/upload", nil},
+		{"/apis/v2beta1/pipelines/upload_version", nil},
+		{"/apis/v2beta1/healthz", nil},
+		{"/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", nil},
+		{"/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
+		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
+		{"/metrics", nil},
+	}
+
+	for _, expectedRoute := range expectedRoutes {
+		t.Run(expectedRoute.path, func(t *testing.T) {
+			methods, exists := registeredRoutes[expectedRoute.path]
+			assert.True(t, exists, "route %s should be registered", expectedRoute.path)
+			if expectedRoute.expectedMethods != nil {
+				assert.Equal(t, expectedRoute.expectedMethods, methods)
+			}
+		})
+	}
+}
+
+func TestBuildHTTPRouter_MetricsDisabled(t *testing.T) {
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", false)
+	registeredRoutes := collectRegisteredRoutes(t, router)
+
+	_, hasMetrics := registeredRoutes["/metrics"]
+	assert.False(t, hasMetrics, "/metrics should not be registered when collectMetrics is false")
+}
+
+func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
+	tests := []struct {
+		name          string
+		path          string
+		pipelineStore string
+		wantContains  []string
+	}{
+		{
+			name: "v1beta1 healthz",
+			path: "/apis/v1beta1/healthz",
+			wantContains: []string{
+				"commit_sha", "tag_name", "multi_user",
+			},
+		},
+		{
+			name:          "v2beta1 healthz with database store",
+			path:          "/apis/v2beta1/healthz",
+			pipelineStore: "database",
+			wantContains: []string{
+				"commit_sha", "tag_name", "multi_user",
+				`"pipeline_store": "database"`,
+			},
+		},
+		{
+			name:          "v2beta1 healthz with kubernetes store",
+			path:          "/apis/v2beta1/healthz",
+			pipelineStore: "kubernetes",
+			wantContains: []string{
+				`"pipeline_store": "kubernetes"`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pipelineStore := tt.pipelineStore
+			if pipelineStore == "" {
+				pipelineStore = "database"
+			}
+			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore, true)
+
+			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+
+			assert.Equal(t, http.StatusOK, recorder.Code)
+			responseBody := recorder.Body.String()
+			for _, substring := range tt.wantContains {
+				assert.Contains(t, responseBody, substring)
+			}
+		})
+	}
+}
+
+func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		field  string
+	}{
+		{"v1beta1 upload pipeline", http.MethodPost, "/apis/v1beta1/pipelines/upload", "UploadPipelineV1"},
+		{"v2beta1 upload pipeline version", http.MethodPost, "/apis/v2beta1/pipelines/upload_version", "UploadPipelineVersion"},
+		{"v1alpha1 run log", http.MethodGet, "/apis/v1alpha1/runs/run-123/nodes/node-456/log", "ReadRunLogV1"},
+		{"v2beta1 artifact read", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/artifacts/my-artifact:read", "ReadArtifact"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handlerCalled := false
+			instrumentedHandler := func(w http.ResponseWriter, r *http.Request) {
+				handlerCalled = true
+				w.WriteHeader(http.StatusOK)
+			}
+
+			handlerDeps := newNoOpHTTPRouterDeps()
+			switch tt.field {
+			case "UploadPipelineV1":
+				handlerDeps.UploadPipelineV1 = instrumentedHandler
+			case "UploadPipelineVersion":
+				handlerDeps.UploadPipelineVersion = instrumentedHandler
+			case "ReadRunLogV1":
+				handlerDeps.ReadRunLogV1 = instrumentedHandler
+			case "ReadArtifact":
+				handlerDeps.ReadArtifact = instrumentedHandler
+			}
+
+			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database", true)
+
+			request := httptest.NewRequest(tt.method, tt.path, nil)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+
+			assert.True(t, handlerCalled, "handler for %s should have been called", tt.path)
+		})
+	}
+}
+
+func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
+	gatewayHandlerCalled := false
+	gatewayHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gatewayHandlerCalled = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database", true)
+
+	request := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/experiments", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	assert.True(t, gatewayHandlerCalled, "requests to /apis/ paths not matching explicit routes should reach the gRPC gateway handler")
 }
