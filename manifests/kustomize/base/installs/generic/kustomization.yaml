@@ -17,8 +17,29 @@ vars:
     kind: Deployment
     name: ml-pipeline
 - fieldref:
+    fieldPath: data.appName
+  name: kfp-app-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+- fieldref:
+    fieldPath: data.appVersion
+  name: kfp-app-version
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+- fieldref:
     fieldPath: data.bucketName
   name: kfp-artifact-bucket-name
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pipeline-install-config
+- fieldref:
+    fieldPath: data.defaultPipelineRoot
+  name: kfp-default-pipeline-root
   objref:
     apiVersion: v1
     kind: ConfigMap
