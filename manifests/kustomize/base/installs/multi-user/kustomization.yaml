@@ -16,6 +16,7 @@ resources:
 - metadata-writer
 - istio-authorization-config.yaml
 - virtual-service.yaml
+
 patches:
 - path: api-service/deployment-patch.yaml
 - path: pipelines-ui/deployment-patch.yaml
@@ -26,8 +27,29 @@ patches:
 - path: metadata-writer/deployment-patch.yaml
 - path: cache/deployment-patch.yaml
 
-configurations:
-- params.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: kfp-multi-user-params
+  literals:
+  - namespace=kubeflow
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-multi-user-params
+    fieldPath: data.namespace
+  targets:
+  - select:
+      kind: VirtualService
+      name: ml-pipeline-ui
+    fieldPaths:
+    - spec.http.0.route.0.destination.host
+    options:
+      delimiter: .
+      index: 1
+
 labels:
 - includeSelectors: true
   pairs:
