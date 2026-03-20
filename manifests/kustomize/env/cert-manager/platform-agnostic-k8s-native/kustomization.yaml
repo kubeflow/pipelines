@@ -13,6 +13,8 @@ namespace: kubeflow
 
 
 replacements:
+# cert-manager.io/inject-ca-from must be namespace/name of the Certificate; annotation
+# keys with dots require bracket notation in fieldPaths (not metadata.annotations.cert-manager.io/...).
 - source:
     kind: Certificate
     name: kfp-api-webhook-cert
@@ -22,7 +24,15 @@ replacements:
       kind: ValidatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 0
@@ -36,11 +46,37 @@ replacements:
       kind: ValidatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 1
-      
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 1
+
+# Webhooks are included in this overlay, not under base/installs/generic; substitute
+# NAMESPACE_PLACEHOLDER using the apiserver deployment namespace.
+- source:
+    kind: Deployment
+    name: ml-pipeline
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.*.clientConfig.service.namespace
+  - select:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.*.clientConfig.service.namespace
+
 patches:
   - path: patches/deployment.yaml
     target:

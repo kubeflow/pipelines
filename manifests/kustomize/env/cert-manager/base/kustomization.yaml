@@ -24,7 +24,7 @@ replacements:
       kind: MutatingWebhookConfiguration
       name: cache-webhook-kubeflow
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 0
@@ -38,7 +38,7 @@ replacements:
       kind: MutatingWebhookConfiguration
       name: cache-webhook-kubeflow
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 1

@@ -22,7 +22,7 @@ replacements:
       kind: ValidatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 0
@@ -30,7 +30,7 @@ replacements:
       kind: MutatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 0
@@ -44,7 +44,7 @@ replacements:
       kind: ValidatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 1
@@ -52,11 +52,27 @@ replacements:
       kind: MutatingWebhookConfiguration
       name: pipelineversions.pipelines.kubeflow.org
     fieldPaths:
-    - metadata.annotations.cert-manager.io/inject-ca-from
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
     options:
       delimiter: /
       index: 1
-      
+
+- source:
+    kind: Deployment
+    name: ml-pipeline
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.*.clientConfig.service.namespace
+  - select:
+      kind: ValidatingWebhookConfiguration
+      name: pipelineversions.pipelines.kubeflow.org
+    fieldPaths:
+    - webhooks.*.clientConfig.service.namespace
+
 patches:
   - path: patches/deployment.yaml
     target:
