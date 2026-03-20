@@ -51,7 +51,10 @@ class TestV2beta1ListPipelinesResponse(unittest.TestCase):
                                 {
                                     'key' : None
                                     }
-                                ], ), )
+                                ], ), 
+                        tags = {
+                            'key' : '0'
+                            }, )
                     ], 
                 total_size = 56, 
                 next_page_token = '0'

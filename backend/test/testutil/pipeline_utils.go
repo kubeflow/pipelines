@@ -119,6 +119,7 @@ func GetPipeline(client *api_server.PipelineClient, pipelineID string) model.V2b
 		CreatedAt:   pipeline.CreatedAt,
 		Namespace:   pipeline.Namespace,
 		Name:        pipeline.Name,
+		Tags:        pipeline.Tags,
 	}
 }
 

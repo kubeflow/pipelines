@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -24,9 +25,13 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -411,3 +416,93 @@ func TestRegisterHTTPHandlerFromEndpoint(t *testing.T) {
 
 func int64Ptr(v int64) *int64 { return &v }
 func boolPtr(v bool) *bool    { return &v }
+
+func TestClearTagsMiddleware(t *testing.T) {
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Got-Clear-Tags", r.Header.Get(common.ClearTagsMetadataKey))
+		body, _ := io.ReadAll(r.Body)
+		w.Header().Set("X-Body", string(body))
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := clearTagsMiddleware(downstream)
+
+	tests := []struct {
+		name       string
+		method     string
+		body       string
+		wantHeader string
+	}{
+		{
+			name:       "PUT with empty tags sets header",
+			method:     http.MethodPut,
+			body:       `{"tags":{}}`,
+			wantHeader: "true",
+		},
+		{
+			name:       "PUT with non-empty tags does not set header",
+			method:     http.MethodPut,
+			body:       `{"tags":{"k":"v"}}`,
+			wantHeader: "",
+		},
+		{
+			name:       "PUT without tags does not set header",
+			method:     http.MethodPut,
+			body:       `{"display_name":"foo"}`,
+			wantHeader: "",
+		},
+		{
+			name:       "GET request is ignored",
+			method:     http.MethodGet,
+			body:       "",
+			wantHeader: "",
+		},
+		{
+			name:       "POST request is ignored",
+			method:     http.MethodPost,
+			body:       `{"tags":{}}`,
+			wantHeader: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var bodyReader io.Reader
+			if tt.body != "" {
+				bodyReader = strings.NewReader(tt.body)
+			}
+			req := httptest.NewRequest(tt.method, "/apis/v2beta1/pipelines/some-id", bodyReader)
+			rr := httptest.NewRecorder()
+
+			handler.ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.wantHeader, rr.Header().Get("X-Got-Clear-Tags"))
+			if tt.body != "" {
+				assert.Equal(t, tt.body, rr.Header().Get("X-Body"))
+			}
+		})
+	}
+}
+
+func TestGrpcCustomMatcher_ClearTags(t *testing.T) {
+	key, ok := grpcCustomMatcher(common.ClearTagsMetadataKey)
+	assert.True(t, ok)
+	assert.Equal(t, common.ClearTagsMetadataKey, key)
+
+	key, ok = grpcCustomMatcher("X-CLEAR-TAGS")
+	assert.True(t, ok)
+	assert.Equal(t, common.ClearTagsMetadataKey, key)
+}
+
+func TestClearTagsMiddleware_BodyPreserved(t *testing.T) {
+	original := `{"tags":{},"display_name":"test"}`
+	var capturedBody []byte
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := clearTagsMiddleware(downstream)
+
+	req := httptest.NewRequest(http.MethodPut, "/test", bytes.NewBufferString(original))
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.Equal(t, original, string(capturedBody))
+}

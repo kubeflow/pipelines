@@ -15,8 +15,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -249,7 +251,47 @@ func grpcCustomMatcher(key string) (string, bool) {
 	if strings.EqualFold(key, common.GetKubeflowUserIDHeader()) {
 		return strings.ToLower(key), true
 	}
+	if strings.EqualFold(key, common.ClearTagsMetadataKey) {
+		return common.ClearTagsMetadataKey, true
+	}
 	return strings.ToLower(key), false
+}
+
+// clearTagsMiddleware inspects PUT/PATCH JSON request bodies on pipeline update
+// paths and sets the x-clear-tags header when the "tags" field is an empty map
+// ("tags":{}). This is needed because protobuf binary encoding cannot
+// distinguish an empty map from nil, so the clear-tags intent is lost during
+// the HTTP→gRPC proxy roundtrip.
+//
+// Scoped to pipeline and pipeline version update paths to avoid interfering
+// with other endpoints that may have a top-level "tags" field.
+func clearTagsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if (r.Method == http.MethodPut || r.Method == http.MethodPatch) && r.Body != nil &&
+			isPipelineUpdatePath(r.URL.Path) {
+			body, err := io.ReadAll(r.Body)
+			r.Body.Close()
+			if err == nil {
+				var raw map[string]json.RawMessage
+				if json.Unmarshal(body, &raw) == nil {
+					if tagsVal, hasTags := raw["tags"]; hasTags && string(tagsVal) == "{}" {
+						r.Header.Set(common.ClearTagsMetadataKey, "true")
+					}
+				}
+			}
+			r.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// isPipelineUpdatePath returns true if the URL path matches a pipeline or
+// pipeline version update endpoint (v2beta1 only, since v1beta1 does not
+// support tags).
+func isPipelineUpdatePath(path string) bool {
+	// v2beta1 UpdatePipeline:        PATCH /apis/v2beta1/pipelines/{pipeline_id}
+	// v2beta1 UpdatePipelineVersion: PATCH /apis/v2beta1/pipelines/{pipeline_id}/versions/{version_id}
+	return strings.HasPrefix(path, "/apis/v2beta1/pipelines/")
 }
 
 func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Config) {
@@ -400,7 +442,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifactV1).Methods(http.MethodGet)
 	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", runArtifactServer.ReadArtifact).Methods(http.MethodGet)
 
-	topMux.PathPrefix("/apis/").Handler(runtimeMux)
+	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(runtimeMux))
 
 	// Register a handler for Prometheus to poll.
 	topMux.Handle("/metrics", promhttp.Handler())
