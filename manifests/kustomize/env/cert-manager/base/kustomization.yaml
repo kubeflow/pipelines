@@ -7,8 +7,51 @@ resources:
 - cache-cert.yaml
 - cache-webhook-config.yaml
 
-configurations:
-- params.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: kfp-cert-manager-cache-params
+  literals:
+  - namespace=kubeflow
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-cert-manager-cache-params
+    fieldPath: data.namespace
+  targets:
+  - select:
+      kind: Certificate
+      name: kfp-cache-cert
+    fieldPaths:
+    - spec.dnsNames.1
+    - spec.dnsNames.2
+    options:
+      delimiter: .
+      index: 1
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - webhooks.0.name
+    options:
+      delimiter: .
+      index: 1
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - webhooks.0.clientConfig.service.namespace
+
 labels:
 - includeSelectors: true
   pairs:
