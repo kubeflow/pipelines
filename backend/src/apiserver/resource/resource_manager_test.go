@@ -2294,9 +2294,9 @@ func TestRetryRun_PreservesRunFields(t *testing.T) {
 	assert.Equal(t, originalRun.DisplayName, retriedRun.DisplayName)
 	assert.Equal(t, originalRun.ExperimentId, retriedRun.ExperimentId)
 	// FinishedAtInSec must be reset to 0 on retry
-	assert.Equal(t, int64(0), retriedRun.RunDetails.FinishedAtInSec)
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
 	// State must be updated to Running
-	assert.Equal(t, model.RuntimeStateRunning, retriedRun.RunDetails.State)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
 }
 
 func TestRetryRun_RunNotExist(t *testing.T) {
