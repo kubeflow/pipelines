@@ -107,6 +107,9 @@ async function executeActions(page, actions) {
         case 'waitForSelector':
           await page.waitForSelector(action.selector, { timeout });
           break;
+        case 'waitForFunction':
+          await page.waitForFunction(action.expression, undefined, { timeout });
+          break;
         case 'scrollIntoView':
           await page.locator(action.selector).first().scrollIntoViewIfNeeded({ timeout });
           break;
@@ -175,9 +178,18 @@ const PAGES = [
     waitFor: '#root',
     actions: [
       {
-        type: 'click',
-        selector: '[role="tab"]:has-text("Visualizations"), button:has-text("Visualizations")',
-        optional: true,
+        type: 'waitForFunction',
+        expression: `() => {
+          const legacyNodes = document.querySelectorAll('.graphNode');
+          if (legacyNodes.length > 0) {
+            return true;
+          }
+          const flowNodes = Array.from(document.querySelectorAll('.react-flow__node'));
+          return (
+            flowNodes.length >= 4 &&
+            flowNodes.every((node) => getComputedStyle(node).visibility !== 'hidden')
+          );
+        }`,
       },
       { type: 'waitForTimeout', ms: 1000, optional: true },
     ],
@@ -187,6 +199,20 @@ const PAGES = [
     path: '/#/runs/details/{seed.runId}',
     waitFor: '#root',
     actions: [
+      {
+        type: 'waitForFunction',
+        expression: `() => {
+          const legacyNodes = document.querySelectorAll('.graphNode');
+          if (legacyNodes.length > 0) {
+            return true;
+          }
+          const flowNodes = Array.from(document.querySelectorAll('.react-flow__node'));
+          return (
+            flowNodes.length >= 4 &&
+            flowNodes.every((node) => getComputedStyle(node).visibility !== 'hidden')
+          );
+        }`,
+      },
       {
         type: 'click',
         selector: '[role="tab"]:has-text("Graph"), button:has-text("Graph")',
