@@ -23,6 +23,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -690,7 +691,7 @@ func collectRegisteredRoutes(t *testing.T, router *mux.Router) map[string][]stri
 }
 
 func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", true)
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")
 	registeredRoutes := collectRegisteredRoutes(t, router)
 
 	expectedRoutes := []struct {
@@ -720,12 +721,12 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 	}
 }
 
-func TestBuildHTTPRouter_MetricsDisabled(t *testing.T) {
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database", false)
+func TestBuildHTTPRouter_MetricsRegistered(t *testing.T) {
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")
 	registeredRoutes := collectRegisteredRoutes(t, router)
 
 	_, hasMetrics := registeredRoutes["/metrics"]
-	assert.False(t, hasMetrics, "/metrics should not be registered when collectMetrics is false")
+	assert.True(t, hasMetrics, "/metrics should always be registered for Prometheus scraping")
 }
 
 func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
@@ -733,49 +734,65 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 		name          string
 		path          string
 		pipelineStore string
-		wantContains  []string
+		commitSHA     string
+		tagName       string
+		multiUser     bool
+		wantV2Store   bool
 	}{
 		{
-			name: "v1beta1 healthz",
-			path: "/apis/v1beta1/healthz",
-			wantContains: []string{
-				"commit_sha", "tag_name", "multi_user",
-			},
+			name:      "v1beta1 healthz",
+			path:      "/apis/v1beta1/healthz",
+			commitSHA: `sha-"v1"`,
+			tagName:   "tag-v1\nline",
+			multiUser: true,
 		},
 		{
 			name:          "v2beta1 healthz with database store",
 			path:          "/apis/v2beta1/healthz",
 			pipelineStore: "database",
-			wantContains: []string{
-				"commit_sha", "tag_name", "multi_user",
-				`"pipeline_store": "database"`,
-			},
+			commitSHA:     `sha-"db"`,
+			tagName:       `tag-"db"`,
+			multiUser:     false,
+			wantV2Store:   true,
 		},
 		{
 			name:          "v2beta1 healthz with kubernetes store",
 			path:          "/apis/v2beta1/healthz",
 			pipelineStore: "kubernetes",
-			wantContains: []string{
-				`"pipeline_store": "kubernetes"`,
-			},
+			commitSHA:     `sha-"k8s"`,
+			tagName:       `tag-"k8s"`,
+			multiUser:     true,
+			wantV2Store:   true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			viper.Set("COMMIT_SHA", tt.commitSHA)
+			viper.Set("TAG_NAME", tt.tagName)
+			viper.Set(common.MultiUserMode, fmt.Sprintf("%t", tt.multiUser))
+
 			pipelineStore := tt.pipelineStore
 			if pipelineStore == "" {
 				pipelineStore = "database"
 			}
-			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore, true)
+			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), pipelineStore)
 
 			request := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, request)
 
 			assert.Equal(t, http.StatusOK, recorder.Code)
-			responseBody := recorder.Body.String()
-			for _, substring := range tt.wantContains {
-				assert.Contains(t, responseBody, substring)
+			var responseBody map[string]any
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &responseBody))
+			assert.Equal(t, tt.commitSHA, responseBody["commit_sha"])
+			assert.Equal(t, tt.tagName, responseBody["tag_name"])
+			assert.Equal(t, tt.multiUser, responseBody["multi_user"])
+			pipelineStoreValue, hasPipelineStore := responseBody["pipeline_store"]
+			assert.Equal(t, tt.wantV2Store, hasPipelineStore)
+			if tt.wantV2Store {
+				assert.Equal(t, tt.pipelineStore, pipelineStoreValue)
 			}
 		})
 	}
@@ -813,7 +830,7 @@ func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
 				handlerDeps.ReadArtifact = instrumentedHandler
 			}
 
-			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database", true)
+			router := buildHTTPRouter(handlerDeps, http.HandlerFunc(noOpHandler), "database")
 
 			request := httptest.NewRequest(tt.method, tt.path, nil)
 			recorder := httptest.NewRecorder()
@@ -831,7 +848,7 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database", true)
+	router := buildHTTPRouter(newNoOpHTTPRouterDeps(), gatewayHandler, "database")
 
 	request := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/experiments", nil)
 	recorder := httptest.NewRecorder()

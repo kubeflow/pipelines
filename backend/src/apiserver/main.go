@@ -439,7 +439,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 		ReadArtifact:            runArtifactServer.ReadArtifact,
 	}
 
-	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore, *collectMetricsFlag)
+	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore)
 
 	if tlsCfg != nil {
 		glog.Info("Starting Https Proxy")
@@ -461,9 +461,37 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	glog.Info("Http Proxy started")
 }
 
+type healthzResponse struct {
+	CommitSHA     string `json:"commit_sha"`
+	TagName       string `json:"tag_name"`
+	MultiUser     bool   `json:"multi_user"`
+	PipelineStore string `json:"pipeline_store,omitempty"`
+}
+
+func writeJSONResponse(w http.ResponseWriter, payload any) {
+	var responseBody bytes.Buffer
+	if err := json.NewEncoder(&responseBody).Encode(payload); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(responseBody.Bytes()); err != nil {
+		glog.Errorf("Failed to write JSON response: %v", err)
+	}
+}
+
+func newHealthzResponse(pipelineStore string) healthzResponse {
+	return healthzResponse{
+		CommitSHA:     common.GetStringConfigWithDefault("COMMIT_SHA", "unknown"),
+		TagName:       common.GetStringConfigWithDefault("TAG_NAME", "unknown"),
+		MultiUser:     common.IsMultiUserMode(),
+		PipelineStore: pipelineStore,
+	}
+}
+
 // buildHTTPRouter constructs the top-level HTTP router with all API routes
 // registered. It does not start a listener, making it testable in isolation.
-func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string, collectMetrics bool) *mux.Router {
+func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string) *mux.Router {
 	topMux := mux.NewRouter()
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
@@ -473,15 +501,13 @@ func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", handlerDeps.UploadPipelineV1)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", handlerDeps.UploadPipelineVersionV1)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`}`)
+		writeJSONResponse(w, newHealthzResponse(""))
 	})
 	// API v2beta1
 	topMux.HandleFunc("/apis/v2beta1/pipelines/upload", handlerDeps.UploadPipeline)
 	topMux.HandleFunc("/apis/v2beta1/pipelines/upload_version", handlerDeps.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v2beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`", "multi_user":`+strconv.FormatBool(common.IsMultiUserMode())+`, "pipeline_store": "`+pipelineStore+`"}`)
+		writeJSONResponse(w, newHealthzResponse(pipelineStore))
 	})
 
 	// log streaming is provided via HTTP.
@@ -494,9 +520,7 @@ func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler
 	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(grpcGatewayHandler))
 
 	// Register a handler for Prometheus to poll.
-	if collectMetrics {
-		topMux.Handle("/metrics", promhttp.Handler())
-	}
+	topMux.Handle("/metrics", promhttp.Handler())
 
 	return topMux
 }
