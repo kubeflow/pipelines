@@ -5,7 +5,29 @@ resources:
 - ./kfp-api-cert-issuer.yaml
 - ./kfp-api-cert.yaml
 
-configurations:
-- params.yaml
-
 namespace: kubeflow
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: kfp-cert-manager-tls-params
+  literals:
+  - namespace=kubeflow
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-cert-manager-tls-params
+    fieldPath: data.namespace
+  targets:
+  - select:
+      kind: Certificate
+      name: kfp-api-tls-cert
+    fieldPaths:
+    - spec.dnsNames.2
+    - spec.dnsNames.8
+    - spec.dnsNames.12
+    options:
+      delimiter: .
+      index: 1
