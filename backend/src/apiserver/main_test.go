@@ -414,6 +414,155 @@ func TestRegisterHTTPHandlerFromEndpoint(t *testing.T) {
 	})
 }
 
+func TestResolveWebhookTLSPaths(t *testing.T) {
+	allFilesExist := func(string) bool { return true }
+	noFilesExist := func(string) bool { return false }
+
+	t.Run("webhook-specific paths used when both are set and files exist", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/webhook/cert.pem", certPath)
+		assert.Equal(t, "/webhook/key.pem", keyPath)
+	})
+
+	t.Run("webhook paths set but files missing returns error", func(t *testing.T) {
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"/server/cert.pem", "/server/key.pem",
+			noFilesExist,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+		assert.Contains(t, err.Error(), "webhook TLS certificate/key paths are set but files do not exist")
+	})
+
+	t.Run("falls back to server paths when webhook paths are empty", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/server/cert.pem", certPath)
+		assert.Equal(t, "/server/key.pem", keyPath)
+	})
+
+	t.Run("server paths set but files missing returns error", func(t *testing.T) {
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			noFilesExist,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+		assert.Contains(t, err.Error(), "API server TLS certificate/key paths are set but files do not exist")
+	})
+
+	t.Run("no TLS paths configured returns useTLS false", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"", "",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.False(t, useTLS)
+		assert.Empty(t, certPath)
+		assert.Empty(t, keyPath)
+	})
+
+	t.Run("webhook cert missing but key exists checks both", func(t *testing.T) {
+		fileExistsOnlyKey := func(path string) bool {
+			return path == "/webhook/key.pem"
+		}
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"", "",
+			fileExistsOnlyKey,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+
+	t.Run("server cert exists but key missing returns error", func(t *testing.T) {
+		fileExistsOnlyCert := func(path string) bool {
+			return path == "/server/cert.pem"
+		}
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			fileExistsOnlyCert,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+
+	t.Run("only webhook cert path set (no key) falls through to server paths", func(t *testing.T) {
+		// When only one of the webhook paths is set, it doesn't match the
+		// "both set" condition, so it falls through to server path logic.
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/server/cert.pem", certPath)
+		assert.Equal(t, "/server/key.pem", keyPath)
+	})
+
+	t.Run("only server cert path set (no key) returns no TLS", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.False(t, useTLS)
+		assert.Empty(t, certPath)
+		assert.Empty(t, keyPath)
+	})
+
+	t.Run("uses real temp files to verify file existence check", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		require.NoError(t, os.WriteFile(certFile, []byte("cert"), 0600))
+		require.NoError(t, os.WriteFile(keyFile, []byte("key"), 0600))
+
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			certFile, keyFile,
+			"", "",
+			common.FileExists,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, certFile, certPath)
+		assert.Equal(t, keyFile, keyPath)
+	})
+
+	t.Run("real temp files only cert exists returns error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		require.NoError(t, os.WriteFile(certFile, []byte("cert"), 0600))
+		// keyFile intentionally not created
+
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			certFile, keyFile,
+			"", "",
+			common.FileExists,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+}
+
 func int64Ptr(v int64) *int64 { return &v }
 func boolPtr(v bool) *bool    { return &v }
 
