@@ -3,7 +3,7 @@
 **Tracking Issue**: React 18/19 Frontend Upgrade - Modernize Kubeflow Pipelines UI
 **Repository**: [kubeflow/pipelines](https://github.com/kubeflow/pipelines)
 
-**Strategy**: Deps-first where possible, bump-last where necessary. The React 17 staging work is complete, the React 18 core bump is now on `master`, and the remaining near-term work is cleanup around the test stack before moving deeper into React 18 stabilization and React 19.
+**Strategy**: Deps-first where possible, bump-last where necessary. The React 18 rollout is now complete on `master`; the remaining near-term work is React 19 preparation, starting with the dependency sweep in `#12`.
 **Canonical source**: This checklist is the canonical execution plan and supersedes earlier draft planning notes.
 
 ## Status at a glance (updated March 19, 2026 ET)
@@ -19,17 +19,17 @@
 - [x] ~~#9 Upgrade React to v18~~ (`issue`: [#12897](https://github.com/kubeflow/pipelines/issues/12897); `PR`: [#13070](https://github.com/kubeflow/pipelines/pull/13070))
 - [x] ~~#9.5 Finish React 18 test-stack cleanup~~ (follow-up split out of closed [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 - [x] ~~#10 Stabilize React 18 runtime~~ (`issue`: [#12898](https://github.com/kubeflow/pipelines/issues/12898); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
-- [ ] #11 React 18.3 deprecation checkpoint (`issue`: [#12899](https://github.com/kubeflow/pipelines/issues/12899); `PR`: none yet)
+- [x] ~~#11 React 18.3 deprecation checkpoint~~ (`issue`: [#12899](https://github.com/kubeflow/pipelines/issues/12899); `PR`: [#13080](https://github.com/kubeflow/pipelines/pull/13080))
 - [ ] #12 Dependency sweep for React 19 (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: none yet)
 - [ ] #13 Upgrade React to v19 (`issue`: [#12901](https://github.com/kubeflow/pipelines/issues/12901); `PR`: none yet)
 - [ ] #14 Enable StrictMode in dev/test (`issue`: [#12902](https://github.com/kubeflow/pipelines/issues/12902); `PR`: none yet)
 - [ ] #15 Update documentation for the post-upgrade stack (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903); `PR`: none yet)
 
 **Current focus**:
-- `#9.5` and `#10` are complete via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#13077](https://github.com/kubeflow/pipelines/pull/13077). The next milestone is `#11`: React 18.3 deprecation checkpoint, followed by `#12` dependency sweep for React 19.
-- No open PRs were found for `#11` through `#15`.
+- `#11` is complete via [#13080](https://github.com/kubeflow/pipelines/pull/13080). The next milestone is `#12`: dependency sweep for React 19, followed by `#13` for the React 19 core bump.
+- No open PRs were found for `#12` through `#15`.
 
-**How to contribute**: `#1` through `#10` are complete. The next actionable work is `#11`, followed by `#12`. Every PR should pass `npm run test:ci` and `npm run build` before merge.
+**How to contribute**: `#1` through `#11` are complete. The next actionable work is `#12`, followed by `#13`. Every PR should pass `npm run test:ci` and `npm run build` before merge.
 
 ---
 
@@ -262,24 +262,24 @@ Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#1
 
 ---
 
-## 11. React 18.3 deprecation checkpoint ([#12899](https://github.com/kubeflow/pipelines/issues/12899))
+## 11. ~~React 18.3 deprecation checkpoint~~ Completed ([#12899](https://github.com/kubeflow/pipelines/issues/12899), [#13080](https://github.com/kubeflow/pipelines/pull/13080))
 
 **Labels**: `area/frontend`, `priority/p2`, `kind/chore`
 **Depends on**: #10
 
 **Status**:
-Not started as an explicit audit step.
+Completed by [#13080](https://github.com/kubeflow/pipelines/pull/13080), merged on March 19, 2026 UTC. `frontend/package.json` now pins `react`, `react-dom`, `@types/react`, and `@types/react-dom` to `^18.3.0`, and the React 19 deprecation audit reported no React-specific warnings. Issue [#12899](https://github.com/kubeflow/pipelines/issues/12899) was closed on March 19, 2026.
 
 **Current note**:
-The current lockfile already resolves `react-dom@18.3.1` under the `^18.2.0` range in `package.json`, so this item is now less about the first 18.3 install and more about explicitly auditing, documenting, and clearing any React 19 deprecation warnings before the React 19 bump.
+The React 18.3 state is now explicit in package metadata. The audit run for [#13080](https://github.com/kubeflow/pipelines/pull/13080) found no React deprecation warnings in browser-console or test output; the only deprecation observed was Node's unrelated `util._extend` (`DEP0060`).
 
 **Description**:
 Make the React 18.3 state explicit in package metadata, run the full verification suite, document all React 19 deprecation warnings, and either fix or track them before proceeding.
 
 **Acceptance Criteria**:
-- [ ] All React 19 deprecation warnings are documented
-- [ ] Warnings are addressed or tracked before `#13`
-- [ ] `npm run test:ci` passes
+- [x] All React 19 deprecation warnings are documented
+- [x] Warnings are addressed or tracked before `#13`
+- [x] `npm run test:ci` passes
 
 ---
 
@@ -295,7 +295,6 @@ Not started.
 Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and reduce the peer-gate output to only the expected React core blocker that is resolved in `#13`.
 
 **Current `check:react-peers:19` blockers (verified on March 19, 2026 ET)**:
-- ~~`@testing-library/react@12.1.5`~~ - cleared in `#9.5` (upgraded to v16)
 - `react-ace@10.1.0` (`react-dom=... || ^18.0.0`, `react=... || ^18.0.0`) - to clear in `#12`
 - `react-dom@18.3.1` (`react=^18.3.1`) - expected until `#13`
 - Transitive: `react-redux@8.1.3` (`react-dom=^16.8 || ^17.0 || ^18.0`, `react=^16.8 || ^17.0 || ^18.0`)
@@ -394,9 +393,9 @@ The final state should reflect the post-upgrade stack without leaving references
                    |
                    #10 React 18 Stabilization [done]
                    |
-                   #11 React 18.3 Checkpoint [next]
+                   #11 React 18.3 Checkpoint [done]
                    |
-                   #12 React 19 Dependency Sweep
+                   #12 React 19 Dependency Sweep [next]
                    |
                    #13 React 19 Core
                    |
@@ -406,4 +405,4 @@ The final state should reflect the post-upgrade stack without leaving references
 ```
 
 **Parallelizable**:
-`#1` through `#10` are complete. The practical next start point is `#11`, followed by `#12`. `#15` remains a good first issue once the stack stops moving.
+`#1` through `#11` are complete. The practical next start point is `#12`, followed by `#13`. `#15` remains a good first issue once the stack stops moving.
