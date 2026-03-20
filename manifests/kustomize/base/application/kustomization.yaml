@@ -1,4 +1,33 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 resources:
 - application.yaml
+
+configMapGenerator:
+- name: kfp-application-params
+  literals:
+  - appName=kubeflow-pipelines
+  - appVersion=unknown
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-application-params
+    fieldPath: data.appName
+  targets:
+  - select:
+      kind: Application
+      name: kubeflow-pipelines
+    fieldPaths:
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: kfp-application-params
+    fieldPath: data.appVersion
+  targets:
+  - select:
+      kind: Application
+      name: kubeflow-pipelines
+    fieldPaths:
+    - spec.descriptor.version
