@@ -8,21 +8,24 @@ resources:
 - ../base
 - namespace.yaml
 
-# NOTE: var name must be unique globally to allow composition of multiple kustomize
-# packages. Therefore, we added prefix `kfp-dev-` to distinguish it from
-# others.
-    # ml-pipeline sa's metadata.namespace will be first transformed by namespace field in kustomization.yaml
-    # so that we only need to change kustomization.yaml's namespace field for namespace customization.
-vars:
-- fieldref:
-    fieldPath: metadata.namespace
-  name: kfp-dev-namespace
-  objref:
-    apiVersion: v1
-    kind: ServiceAccount
-    name: ml-pipeline
-configurations:
-- params.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: kfp-dev-params
+  literals:
+  - namespace=kubeflow
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-dev-params
+    fieldPath: data.namespace
+  targets:
+  - select:
+      kind: Namespace
+    fieldPaths:
+    - metadata.name
 
 # Pass proper arguments to cache-server to use cert-manager certificate
 # Delete the cache deployer as we use the cert-manager instead 
