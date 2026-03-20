@@ -22,6 +22,6 @@ webhooks:
     clientConfig:
       service:
         name: ml-pipeline
-        namespace: $(kfp-namespace)
+        namespace: kubeflow
         path: /webhooks/mutate-pipelineversion
         port: 8443
