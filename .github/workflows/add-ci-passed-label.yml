@@ -1,6 +1,6 @@
-# This workflow removes a stale 'ci-passed' label whenever a PR is updated,
-# then adds it back only after the 'CI Check' workflow completes successfully
-# for a label-eligible PR.
+# This workflow removes a stale 'ci-passed' label whenever a PR is updated
+# or its eligibility labels change, then adds it back only after the
+# 'CI Check' workflow completes successfully for a label-eligible PR.
 name: Add CI Passed Label
 
 on:
@@ -8,6 +8,8 @@ on:
     types:
       - synchronize
       - reopened
+      - labeled
+      - unlabeled
   workflow_run:
     workflows: ["CI Check"]
     types:
@@ -40,26 +42,27 @@ jobs:
               return;
             }
 
-            const pr = context.payload.workflow_run.pull_requests?.[0];
-            if (!pr) {
-              core.info("No pull request was attached to this workflow run.");
+            const headRepositoryOwner = context.payload.workflow_run.head_repository?.owner?.login;
+            const headBranch = context.payload.workflow_run.head_branch;
+            const runHeadSha = context.payload.workflow_run.head_sha;
+            if (!headRepositoryOwner || !headBranch || !runHeadSha) {
+              core.info("workflow_run is missing head repository, branch, or SHA metadata.");
               core.setOutput("eligible", "false");
               return;
             }
 
-            const { data: pullRequest } = await github.rest.pulls.get({
+            const { data: pullRequests } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: pr.number,
+              state: "open",
+              head: `${headRepositoryOwner}:${headBranch}`,
             });
 
-            const runHeadSha = context.payload.workflow_run.head_sha;
-            const prHeadSha = pullRequest.head.sha;
-            if (runHeadSha !== prHeadSha) {
+            const pullRequest = pullRequests.find((candidate) => candidate.head.sha === runHeadSha);
+            if (!pullRequest) {
               core.info(
-                `Skipping: workflow_run head SHA ${runHeadSha} does not match PR #${pr.number} head SHA ${prHeadSha}.`
+                `No open pull request matched ${headRepositoryOwner}:${headBranch} at ${runHeadSha}.`
               );
-              core.setOutput("pr_number", String(pr.number));
               core.setOutput("eligible", "false");
               return;
             }
@@ -67,8 +70,8 @@ jobs:
             const labels = new Set(pullRequest.labels.map((label) => label.name));
             const eligible = labels.has("ok-to-test") && !labels.has("needs-ok-to-test");
 
-            core.info(`PR #${pr.number} labels: ${Array.from(labels).join(", ")}`);
-            core.setOutput("pr_number", String(pr.number));
+            core.info(`PR #${pullRequest.number} labels: ${Array.from(labels).join(", ")}`);
+            core.setOutput("pr_number", String(pullRequest.number));
             core.setOutput("eligible", eligible ? "true" : "false");
 
   reset_ci_passed_label:
@@ -79,7 +82,23 @@ jobs:
       - name: Remove existing 'ci-passed' label
         run: |
           pr_number=${{ github.event.pull_request.number }}
-          echo "Checking for stale 'ci-passed' label on PR #${pr_number}"
+          event_action="${{ github.event.action }}"
+          has_ok_to_test="${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}"
+          has_needs_ok_to_test="${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}"
+
+          should_remove="false"
+          if [[ "${event_action}" == "synchronize" || "${event_action}" == "reopened" ]]; then
+            should_remove="true"
+          elif [[ "${has_ok_to_test}" != "true" || "${has_needs_ok_to_test}" == "true" ]]; then
+            should_remove="true"
+          fi
+
+          if [[ "${should_remove}" != "true" ]]; then
+            echo "PR #${pr_number} is still label-eligible after ${event_action}; leaving 'ci-passed' unchanged."
+            exit 0
+          fi
+
+          echo "Checking for stale 'ci-passed' label on PR #${pr_number} after ${event_action}"
           labels=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
 
           if echo "${labels}" | grep -qx 'ci-passed'; then
