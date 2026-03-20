@@ -359,7 +359,7 @@ function NewRunV2(props: NewRunV2Props) {
     },
   });
 
-  const startRun = () => {
+  const startRun = async () => {
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
@@ -398,64 +398,48 @@ function NewRunV2(props: NewRunV2Props) {
     );
     setIsStartingNewRun(true);
 
-    const runCreation = () =>
-      newRunMutation.mutate(newRun, {
-        onSuccess: (data) => {
-          setIsStartingNewRun(false);
-          if (data.run_id) {
-            props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
-          } else {
-            props.history.push(RoutePage.RUNS);
-          }
+    try {
+      if (isRecurringRun) {
+        const data = await newRecurringRunMutation.mutateAsync(newRecurringRun);
+        setIsStartingNewRun(false);
+        if (data.recurring_run_id) {
+          props.history.push(
+            RoutePage.RECURRING_RUN_DETAILS.replace(
+              ':' + RouteParams.recurringRunId,
+              data.recurring_run_id,
+            ),
+          );
+        } else {
+          props.history.push(RoutePage.RECURRING_RUNS);
+        }
 
-          props.updateSnackbar({
-            message: `Successfully started new Run: ${data.display_name}`,
-            open: true,
-          });
-        },
-        onError: async (error) => {
-          const errorMessage = await errorToMessage(error);
-          props.updateDialog({
-            buttons: [{ text: 'Dismiss' }],
-            onClose: () => setIsStartingNewRun(false),
-            content: errorMessage,
-            title: 'Run creation failed',
-          });
-        },
+        props.updateSnackbar({
+          message: `Successfully started new recurring Run: ${data.display_name}`,
+          open: true,
+        });
+      } else {
+        const data = await newRunMutation.mutateAsync(newRun);
+        setIsStartingNewRun(false);
+        if (data.run_id) {
+          props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
+        } else {
+          props.history.push(RoutePage.RUNS);
+        }
+
+        props.updateSnackbar({
+          message: `Successfully started new Run: ${data.display_name}`,
+          open: true,
+        });
+      }
+    } catch (error) {
+      const errorMessage = await errorToMessage(error);
+      props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        onClose: () => setIsStartingNewRun(false),
+        content: errorMessage,
+        title: isRecurringRun ? 'Recurring run creation failed' : 'Run creation failed',
       });
-
-    const recurringRunCreation = () =>
-      newRecurringRunMutation.mutate(newRecurringRun, {
-        onSuccess: (data) => {
-          setIsStartingNewRun(false);
-          if (data.recurring_run_id) {
-            props.history.push(
-              RoutePage.RECURRING_RUN_DETAILS.replace(
-                ':' + RouteParams.recurringRunId,
-                data.recurring_run_id,
-              ),
-            );
-          } else {
-            props.history.push(RoutePage.RECURRING_RUNS);
-          }
-
-          props.updateSnackbar({
-            message: `Successfully started new recurring Run: ${data.display_name}`,
-            open: true,
-          });
-        },
-        onError: async (error) => {
-          const errorMessage = await errorToMessage(error);
-          props.updateDialog({
-            buttons: [{ text: 'Dismiss' }],
-            onClose: () => setIsStartingNewRun(false),
-            content: errorMessage,
-            title: 'Recurring run creation failed',
-          });
-        },
-      });
-
-    isRecurringRun ? recurringRunCreation() : runCreation();
+    }
   };
 
   return (

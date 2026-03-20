@@ -102,7 +102,7 @@ function NewRunSwitcher(props: PageProps) {
     },
     enabled: !!pipelineIdFromPipeline,
     staleTime: Infinity,
-    cacheTime: 0, // v5: renamed to gcTime
+    gcTime: 0,
   });
 
   const pipelineId = pipelineIdFromPipeline || pipelineIdFromRunOrRecurringRun;
@@ -121,7 +121,7 @@ function NewRunSwitcher(props: PageProps) {
     },
     enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: Infinity,
-    cacheTime: 0, // v5: renamed to gcTime
+    gcTime: 0,
   });
   const pipelineSpecInVersion = pipelineVersion?.pipeline_spec;
   const templateStrFromSpec = pipelineSpecInVersion ? JsYaml.safeDump(pipelineSpecInVersion) : '';
@@ -147,7 +147,7 @@ function NewRunSwitcher(props: PageProps) {
     // (Previously enabled: !!pipelineId || !!pipelineVersionId would run with only one ID and then throw.)
     enabled: !!pipelineId && !!pipelineVersionId,
     staleTime: Infinity,
-    cacheTime: 0, // v5: renamed to gcTime
+    gcTime: 0,
   });
   const v1TemplateStr = v1Template || '';
 

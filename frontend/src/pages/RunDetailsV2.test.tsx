@@ -23,7 +23,7 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/Api';
 import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
-import { expectErrors, mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
   Context,
@@ -134,7 +134,6 @@ describe('RunDetailsV2', () => {
   });
 
   it('Shows error banner when disconnected from MLMD', async () => {
-    const assertErrors = expectErrors();
     vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
       new Error('Not connected to MLMD'),
     );
@@ -159,7 +158,6 @@ describe('RunDetailsV2', () => {
         }),
       ),
     );
-    assertErrors();
   });
 
   it('Shows no banner when connected from MLMD', async () => {

@@ -59,7 +59,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
 
     enabled: !!recurringRunId,
     staleTime: 0,
-    cacheTime: 0, // v5: renamed to gcTime
+    gcTime: 0,
   });
 
   const experimentId = recurringRun?.experiment_id;
