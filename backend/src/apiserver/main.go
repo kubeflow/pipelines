@@ -445,44 +445,58 @@ func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *
 
 	go func() {
 		defer wg.Done()
-		var resolvedTLSCertPath string
-		var resolvedTLSKeyPath string
-
-		// Use webhook TLS key/cert if specified.
-		if *webhookTLSCertPath != "" && *webhookTLSKeyPath != "" {
-			if !common.FileExists(*webhookTLSCertPath) || !common.FileExists(*webhookTLSKeyPath) {
-				glog.Fatalf("Webhook TLS certificate/key paths are set but files do not exist")
-				return
-			} else {
-				resolvedTLSCertPath = *webhookTLSCertPath
-				resolvedTLSKeyPath = *webhookTLSKeyPath
-			}
-		} else {
-			// If a webhook TLS key/cert are not specified, default to API server's TLS key/cert if specified.
-			if *tlsCertPath != "" && *tlsCertKeyPath != "" {
-				if !common.FileExists(*tlsCertPath) || !common.FileExists(*tlsCertKeyPath) {
-					glog.Fatalf("API server TLS certificate/key paths are set but files do not exist")
-					return
-				}
-				resolvedTLSCertPath = *tlsCertPath
-				resolvedTLSKeyPath = *tlsCertKeyPath
-			} else {
-				glog.Warning("TLS certificate/key paths are not set. Starting webhook server without TLS.")
-				err = webhookServer.ListenAndServe()
-				if err != nil && !errors.Is(err, http.ErrServerClosed) {
-					glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
-				}
-				return
-			}
+		certPath, keyPath, useTLS, resolveErr := resolveWebhookTLSPaths(
+			*webhookTLSCertPath, *webhookTLSKeyPath,
+			*tlsCertPath, *tlsCertKeyPath,
+			common.FileExists,
+		)
+		if resolveErr != nil {
+			glog.Fatalf("Failed to resolve webhook TLS paths: %v", resolveErr)
+			return
 		}
+
+		if !useTLS {
+			glog.Warning("TLS certificate/key paths are not set. Starting webhook server without TLS.")
+			err = webhookServer.ListenAndServe()
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
+			}
+			return
+		}
+
 		glog.Info("Starting the Kubernetes webhook with TLS")
-		err := webhookServer.ListenAndServeTLS(resolvedTLSCertPath, resolvedTLSKeyPath)
+		err := webhookServer.ListenAndServeTLS(certPath, keyPath)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			glog.Fatalf("Failed to start the Kubernetes webhook with TLS: %v", err)
 		}
 	}()
 
 	return webhookServer, nil
+}
+
+// resolveWebhookTLSPaths determines which TLS certificate and key paths to use for the
+// webhook server. It checks webhook-specific paths first, then falls back to the API server's
+// TLS paths. Returns the resolved cert/key paths, whether TLS should be used, and any error.
+// The fileExists parameter allows injecting a file-existence checker for testability.
+func resolveWebhookTLSPaths(webhookCert, webhookKey, serverCert, serverKey string, fileExists func(string) bool) (certPath, keyPath string, useTLS bool, err error) {
+	// Use webhook-specific TLS cert/key if both are specified.
+	if webhookCert != "" && webhookKey != "" {
+		if !fileExists(webhookCert) || !fileExists(webhookKey) {
+			return "", "", false, fmt.Errorf("webhook TLS certificate/key paths are set but files do not exist (cert: %q, key: %q)", webhookCert, webhookKey)
+		}
+		return webhookCert, webhookKey, true, nil
+	}
+
+	// Fall back to the API server's TLS cert/key if both are specified.
+	if serverCert != "" && serverKey != "" {
+		if !fileExists(serverCert) || !fileExists(serverKey) {
+			return "", "", false, fmt.Errorf("API server TLS certificate/key paths are set but files do not exist (cert: %q, key: %q)", serverCert, serverKey)
+		}
+		return serverCert, serverKey, true, nil
+	}
+
+	// No TLS paths configured at all.
+	return "", "", false, nil
 }
 
 func registerHTTPHandlerFromEndpoint(ctx context.Context, handler RegisterHttpHandlerFromEndpoint, serviceName string, mux *runtime.ServeMux, tlsCfg *tls.Config) error {
