@@ -116,7 +116,8 @@ describe('DynamicFlow', () => {
       const preprocessExecution = new Execution()
         .setId(3)
         .setLastKnownState(Execution.State.COMPLETE);
-      preprocessExecution.getCustomPropertiesMap()
+      preprocessExecution
+        .getCustomPropertiesMap()
         .set(TASK_NAME_KEY, new Value().setStringValue('preprocess'))
         .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
 
