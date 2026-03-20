@@ -39,11 +39,12 @@ jobs:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.34.0" ]
-        pod_to_pod_tls_enabled: [ true, false ]
+        pod_to_pod_tls_enabled: [ "true", "false" ]
         exclude:
           # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
           - pipeline_store: "kubernetes"
-            pod_to_pod_tls_enabled: true
+            pod_to_pod_tls_enabled: "true"
+      fail-fast: false
 
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
@@ -80,7 +81,7 @@ jobs:
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
-        if: ${{ matrix.pod_to_pod_tls_enabled }}
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true' }}
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
@@ -88,7 +89,10 @@ jobs:
       - name: Forward MLMD port
         id: forward-mlmd-port
         if: ${{ steps.deploy.outcome == 'success' }}
-        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        run: |
+          MLMD_SERVICE="${{ steps.deploy.outputs.mlmd_service_name }}"
+          echo "🔗 Forwarding MLMD port for service: $MLMD_SERVICE"
+          kubectl -n kubeflow port-forward svc/$MLMD_SERVICE 8080:8080 &
         continue-on-error: true
 
       - name: API integration tests v2

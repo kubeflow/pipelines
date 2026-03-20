@@ -69,20 +69,21 @@ jobs:
       matrix:
         k8s_version: [ "v1.34.0" ]
         cache_enabled: [ "true", "false" ]
-        proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "database" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        pod_to_pod_tls_enabled: [ "true" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.6.7"
+            pod_to_pod_tls_enabled: "true"
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.5.14"
-          - k8s_version: "v1.34.0"
+            pod_to_pod_tls_enabled: "false"
+          - k8s_version: "v1.31.0"
             cache_enabled: "true"
-            pod_to_pod_tls_enabled: "true"
+            pod_to_pod_tls_enabled: "false"
+          - k8s_version: "v1.34.0"
+            proxy: "true"
+            pod_to_pod_tls_enabled: "false"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
 
@@ -110,12 +111,13 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          skip_operator_deployment: 'false'
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          kubectl get configmap openshift-service-ca.crt -n kubeflow -o jsonpath='{.data.service-ca\.crt}' > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
       - name: Configure Input Variables
@@ -143,8 +145,6 @@ jobs:
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
 
-
-
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         if: ${{ steps.configure.outcome == 'success' }}
@@ -158,10 +158,13 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_argoVersion=${{ matrix.argo_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}"
+          report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_pipelineStore=${{ matrix.pipeline_store }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}_podToPodTlsEnabled=${{ matrix.pod_to_pod_tls_enabled }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
-
+          # Deployment metadata from deploy action
+          deployment_name: ${{ steps.deploy.outputs.deployment_name }}
+          deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}
 
   api-test-k8s-native:
     needs: build
@@ -171,18 +174,16 @@ jobs:
         k8s_version: [ "v1.34.0", "v1.29.2" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "kubernetes" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        pod_to_pod_tls_enabled: [ "true" ]
         include:
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
-            # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
-            pipeline_store: "database"
-            pod_to_pod_tls_enabled: "true"
+            pipeline_store: "kubernetes"
+            pod_to_pod_tls_enabled: "false"
             uploadPipelinesWithKubernetesClient: "false"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
-    name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
+    name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} podToPodTlsEnabled=${{ matrix.pod_to_pod_tls_enabled }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
 
     steps:
       - name: Checkout code
@@ -206,6 +207,8 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          skip_operator_deployment: 'false'
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -214,14 +217,18 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}"
-
-
+          tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}_pipelineStore=${{ matrix.pipeline_store}}_podToPodTlsEnabled=${{ matrix.pod_to_pod_tls_enabled }}"
+          # Deployment metadata from deploy action
+          deployment_name: ${{ steps.deploy.outputs.deployment_name }}
+          deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}
 
   api-test-multi-user:
     needs: build
@@ -272,3 +279,7 @@ jobs:
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}
           report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          # Deployment metadata from deploy action
+          deployment_name: ${{ steps.deploy.outputs.deployment_name }}
+          deployment_service_account_name: ${{ steps.deploy.outputs.service_account_name }}
+          deployment_mode: ${{ steps.deploy.outputs.deployment_mode }}

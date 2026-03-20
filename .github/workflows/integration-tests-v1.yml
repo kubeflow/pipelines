@@ -68,16 +68,20 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: 'false'
 
-      - name: Forward MySQL port
-        id: forward-mysql-port
+      - name: Forward database port
+        id: forward-db-port
         if: ${{ steps.deploy.outcome == 'success' }}
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
+        run: |
+          DATABASE_NAME="${{ steps.deploy.outputs.database_name }}"
+          echo "🔗 Forwarding database port for: $DATABASE_NAME"
+          ./.github/resources/scripts/forward-port.sh "kubeflow" "$DATABASE_NAME" 3306 3306
         continue-on-error: true
 
       - name: Initialization tests v1
         id: initialization-tests
-        if: ${{ steps.forward-mysql-port.outcome == 'success' }}
+        if: ${{ steps.forward-db-port.outcome == 'success' }}
         working-directory: ./backend/test/initialization
         run: go test -v ./... -namespace=kubeflow -args -runIntegrationTests=true
         env:
@@ -86,7 +90,7 @@ jobs:
 
       - name: API integration tests v1
         id: integration-tests
-        if: ${{ steps.forward-mysql-port.outcome == 'success' }}
+        if: ${{ steps.forward-db-port.outcome == 'success' }}
         working-directory: ./backend/test/integration
         run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
         env:
@@ -94,7 +98,7 @@ jobs:
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
+        if: ${{ steps.forward-db-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
