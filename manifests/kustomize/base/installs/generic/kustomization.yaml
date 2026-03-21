@@ -20,5 +20,3 @@ replacements:
       name: kfp-launcher
     fieldPaths:
     - data.defaultPipelineRoot
-    options:
-      create: true
