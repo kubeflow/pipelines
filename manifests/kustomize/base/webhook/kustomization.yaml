@@ -6,6 +6,9 @@ resources:
 - pipelineversion-validating-webhook-config.yaml
 - pipelineversion-mutating-webhook-config.yaml
 
+generatorOptions:
+  disableNameSuffixHash: true
+
 configMapGenerator:
 - name: kfp-webhook-params
   literals:
