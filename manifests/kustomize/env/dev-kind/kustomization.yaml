@@ -168,33 +168,6 @@ patches:
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
-      name: default-allow-same-namespace
-      namespace: kubeflow
-    spec:
-      podSelector: {}
-      ingress:
-      - from:
-        - podSelector: {}
-      - from:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-        ports:
-        - port: 3000
-          protocol: TCP
-        - port: 3306
-          protocol: TCP
-        - port: 8080
-          protocol: TCP
-        - port: 9000
-          protocol: TCP
-        - port: 8888
-          protocol: TCP
-      policyTypes:
-      - Ingress
-- patch: |-
-    apiVersion: networking.k8s.io/v1
-    kind: NetworkPolicy
-    metadata:
       name: seaweedfs
       namespace: kubeflow
     spec:
@@ -228,3 +201,29 @@ patches:
           - seaweedfs
       policyTypes:
       - Ingress
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: kfp-dev-kind-params
+  literals:
+  - namespace=kubeflow
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-dev-kind-params
+    fieldPath: data.namespace
+  targets:
+  - select:
+      kind: Certificate
+      name: kfp-api-webhook-cert
+    fieldPaths:
+    - spec.dnsNames.1
+    - spec.dnsNames.2
+    - spec.dnsNames.4
+    - spec.dnsNames.5
+    options:
+      delimiter: .
+      index: 1
