@@ -8,28 +8,3 @@ resources:
 # !!! If you want to customize the namespace,
 # please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
-
-generatorOptions:
-  disableNameSuffixHash: true
-
-configMapGenerator:
-- name: kfp-cert-manager-webhook-params
-  literals:
-  - namespace=kubeflow
-
-replacements:
-- source:
-    kind: ConfigMap
-    name: kfp-cert-manager-webhook-params
-    fieldPath: data.namespace
-  targets:
-  - select:
-      kind: Certificate
-      name: kfp-api-webhook-cert
-    fieldPaths:
-    - spec.dnsNames.1
-    - spec.dnsNames.2
-    - spec.dnsNames.3
-    options:
-      delimiter: .
-      index: 1
