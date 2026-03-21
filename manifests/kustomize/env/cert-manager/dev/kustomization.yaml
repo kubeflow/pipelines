@@ -8,19 +8,11 @@ resources:
 - ../base
 - namespace.yaml
 
-generatorOptions:
-  disableNameSuffixHash: true
-
-configMapGenerator:
-- name: kfp-dev-params
-  literals:
-  - namespace=kubeflow
-
 replacements:
 - source:
     kind: ConfigMap
-    name: kfp-dev-params
-    fieldPath: data.namespace
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
   targets:
   - select:
       kind: Namespace
