@@ -304,6 +304,38 @@ describe('RecurringRunDetailsV2FC', () => {
     assertErrors();
   });
 
+  it('refresh retries the recurring run query', async () => {
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => {
+      expect(getRecurringRunSpy).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+      expect(screen.getByText('Every 1 hours')).toBeInTheDocument();
+    });
+
+    const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions.refresh.action as
+      | (() => Promise<void>)
+      | undefined;
+    expect(refreshAction).toBeDefined();
+    const refreshCallCount = getRecurringRunSpy.mock.calls.length;
+
+    await refreshAction?.();
+
+    await waitFor(() => {
+      expect(getRecurringRunSpy.mock.calls.length).toBeGreaterThan(refreshCallCount);
+    });
+
+    screen.getByText('Enabled');
+    screen.getByText('Yes');
+    screen.getByText('Trigger');
+    screen.getByText('Every 1 hours');
+  });
+
   it('shows top bar buttons', async () => {
     render(
       <CommonTestWrapper>
@@ -312,7 +344,10 @@ describe('RecurringRunDetailsV2FC', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
+      expect(updateToolbarSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           actions: expect.objectContaining({
             cloneRecurringRun: expect.objectContaining({ title: 'Clone recurring run' }),
@@ -321,6 +356,7 @@ describe('RecurringRunDetailsV2FC', () => {
             disableRecurringRun: expect.objectContaining({ title: 'Disable', disabled: false }),
             deleteRun: expect.objectContaining({ title: 'Delete' }),
           }),
+          pageTitle: fullTestV2RecurringRun.display_name,
         }),
       );
     });

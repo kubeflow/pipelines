@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-01-20
+- Last updated: 2026-03-21
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 16)
 
 ### Maintenance (agents and contributors)
@@ -388,6 +388,27 @@ For full integration testing against a real KFP deployment:
 - **Storybook** for component development
 - **Tailwind CSS** for utility-first styling
 
+### React effect discipline
+
+- Treat `useEffect` as an escape hatch. In `frontend/src`, keep it only for external synchronization:
+  queries without a better library abstraction, timers, subscriptions, browser APIs, DOM APIs,
+  storage, or third-party widgets.
+- Do not use `useEffect` to derive UI state from props, query data, or other React state.
+  Prefer render-time derivation, helper functions, or `useMemo` for expensive pure calculations.
+- Do not put user-action logic into effects.
+  Navigation, snackbars, dialogs, banner updates, and create/update/delete success handling should
+  live in event handlers or mutation callbacks.
+- Avoid effect chains where one effect sets state that triggers another.
+  If a page needs several coupled state transitions, prefer a reducer or a single explicit update path.
+- Preserve user-controlled state across refreshes and refetches.
+  Query refreshes must not silently reset selected runs, selected artifacts, typed names, or toggles
+  unless that reset is an explicit product requirement.
+- Treat `eslint-disable react-hooks/exhaustive-deps` as a code smell.
+  Only keep it when the invariant is documented in code and covered by a targeted test.
+- During reviews, classify each new or changed effect as one of:
+  `external sync`, `derived state`, `event-driven`, `state reset`, or `effect chain`.
+  Anything except `external sync` requires explicit justification in the diff or review notes.
+
 ### Essential commands (frontend)
 
 - `npm start` - Start Vite dev server with hot reload (port 3000)
@@ -434,6 +455,15 @@ The frontend includes several generated code components:
 - **Stability loop**: `npm run test:ui:coverage:loop` (Vitest coverage with capped workers)
 - **CI pipeline**: `npm run test:ci` (format check + lint + typecheck + Vitest UI coverage + Jest coverage)
 - **Snapshot tests**: Auto-update with `npm test -u` or `npm run test:ui -- -u` (Vitest)
+
+### Effect-focused frontend verification
+
+When changing an effect-heavy frontend component, add or run the smallest relevant regression test:
+
+- mutation success runs exactly once even if related async work resolves later
+- refresh/refetch does not overwrite user selection or form edits unless intended
+- error banners and dialogs clear after a successful retry or recovery path
+- mount-time logic does not emit parent callbacks unless the component contract explicitly requires it
 
 ## CI/CD (GitHub Actions)
 

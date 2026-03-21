@@ -37,6 +37,7 @@ describe('CompareV2', () => {
   const MOCK_RUN_2_ID = 'mock-run-2-id';
   const MOCK_RUN_3_ID = 'mock-run-3-id';
   const updateBannerSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
   const getBodyText = (): string => (document.body.textContent || '').replace(/\s+/g, ' ').trim();
 
   function generateProps(): PageProps {
@@ -50,7 +51,7 @@ describe('CompareV2', () => {
       updateBanner: updateBannerSpy,
       updateDialog: () => null,
       updateSnackbar: () => null,
-      updateToolbar: () => null,
+      updateToolbar: updateToolbarSpy,
     };
     return pageProps;
   }
@@ -58,6 +59,7 @@ describe('CompareV2', () => {
   let runs: V2beta1Run[] = [];
 
   beforeEach(() => {
+    vi.clearAllMocks();
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id) || newMockRun(id));
 
@@ -186,6 +188,18 @@ describe('CompareV2', () => {
       throw new Error('Header checkbox not found in run list.');
     }
     return headerCheckbox;
+  }
+
+  function getRunRow(id: string): HTMLElement {
+    const runListContainer = getRunListContainer();
+    const runRows = Array.from(
+      runListContainer.querySelectorAll('[data-testid="table-row"]'),
+    ) as HTMLElement[];
+    const runRow = runRows.find(row => row.textContent?.includes(`test run ${id}`));
+    if (!runRow) {
+      throw new Error(`Run row not found for ${id}`);
+    }
+    return runRow;
   }
 
   async function waitForRunCheckboxes(expectedCount: number): Promise<HTMLElement[]> {
@@ -468,6 +482,57 @@ describe('CompareV2', () => {
     // Uncheck all run checkboxes.
     fireEvent.click(headerCheckbox);
     await waitForRunCheckboxes(0);
+  });
+
+  it('updates the selected run count when a single run is toggled', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitForRunCheckboxes(3);
+    fireEvent.click(getRunRow(MOCK_RUN_2_ID));
+    await TestUtils.flushPromises();
+
+    await waitForRunCheckboxes(2);
+    expect(getHeaderCheckbox()).not.toBeChecked();
+  });
+
+  it('reinitializes selection to the new runlist after a route change', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => ({ ...runs.find(r => r.run_id === id)! }));
+
+    const renderResult = render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitForRunCheckboxes(3);
+    fireEvent.click(getRunRow(MOCK_RUN_2_ID));
+    await TestUtils.flushPromises();
+    await waitForRunCheckboxes(2);
+
+    const nextProps = generateProps();
+    nextProps.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`;
+    renderResult.rerender(
+      <CommonTestWrapper>
+        <CompareV2 {...nextProps} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitForRunCheckboxes(2);
+    expect(getRunRow(MOCK_RUN_2_ID)).toHaveAttribute('aria-checked', 'true');
+    expect(getRunRow(MOCK_RUN_3_ID)).toHaveAttribute('aria-checked', 'true');
   });
 
   it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
