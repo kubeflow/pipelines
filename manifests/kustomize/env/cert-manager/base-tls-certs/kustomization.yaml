@@ -25,9 +25,12 @@ replacements:
       kind: Certificate
       name: kfp-api-tls-cert
     fieldPaths:
+    - spec.dnsNames.1
     - spec.dnsNames.2
+    - spec.dnsNames.3
     - spec.dnsNames.8
-    - spec.dnsNames.12
+    - spec.dnsNames.9
+    - spec.dnsNames.10
     options:
       delimiter: .
       index: 1
