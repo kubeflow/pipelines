@@ -26,6 +26,41 @@ replacements:
       kind: Namespace
     fieldPaths:
     - metadata.name
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: Certificate
+      name: kfp-cache-cert
+    fieldPaths:
+    - spec.dnsNames.1
+    - spec.dnsNames.2
+    options:
+      delimiter: .
+      index: 1
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - webhooks.0.name
+    options:
+      delimiter: .
+      index: 1
+  - select:
+      kind: MutatingWebhookConfiguration
+      name: cache-webhook-kubeflow
+    fieldPaths:
+    - webhooks.0.clientConfig.service.namespace
 
 # Pass proper arguments to cache-server to use cert-manager certificate
 # Delete the cache deployer as we use the cert-manager instead 
