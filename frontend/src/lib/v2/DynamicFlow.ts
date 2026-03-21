@@ -28,6 +28,7 @@ import {
   getIterationIdFromNodeKey,
   getTaskKeyFromNodeKey,
   getTaskNodeKey,
+  isTaskNode,
   NodeTypeNames,
   PipelineFlowElement,
   TaskType,
@@ -35,6 +36,7 @@ import {
 import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
+import { V2beta1PipelineTaskDetail } from 'src/apisv2beta1/run';
 
 export const TASK_NAME_KEY = 'task_name';
 export const PARENT_DAG_ID_KEY = 'parent_dag_id';
@@ -220,10 +222,11 @@ export function updateFlowElementsState(
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],
+  taskDetails?: V2beta1PipelineTaskDetail[],
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
-  if (executionLayers.length < layers.length) {
-    // This Sub DAG is not executed yet. There is no runtime information to update.
+  if (executionLayers.length < layers.length && !taskDetails?.length) {
+    // This Sub DAG is not executed yet and there are no API task details to fall back on.
     return elems;
   }
 
@@ -269,13 +272,19 @@ export function updateFlowElementsState(
         getTaskLabelByPipelineFlowElement(elem),
         executionLayers,
       );
-      if (executions) {
+      if (executions && executions.length > 0) {
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
         // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
         (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
           executions[0],
         );
+      } else if (taskDetails) {
+        const taskLabel = getTaskLabelByPipelineFlowElement(elem);
+        const taskDetail = taskDetails.find((td) => td.display_name === taskLabel);
+        if (taskDetail?.error) {
+          (updatedElem.data as ExecutionFlowElementData).state = Execution.State.FAILED;
+        }
       }
     } else if (NodeTypeNames.ARTIFACT === elem.type) {
       let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
@@ -308,6 +317,45 @@ export function updateFlowElementsState(
     flowGraph.push(updatedElem);
   }
   return flowGraph;
+}
+
+const TERMINAL_MLMD_STATES = new Set([
+  Execution.State.COMPLETE,
+  Execution.State.FAILED,
+  Execution.State.CACHED,
+  Execution.State.CANCELED,
+]);
+
+export function applyTaskFailureStates(
+  elems: PipelineFlowElement[],
+  taskDetails: V2beta1PipelineTaskDetail[],
+): PipelineFlowElement[] {
+  return elems.map((elem) => {
+    if (NodeTypeNames.EXECUTION !== elem.type && NodeTypeNames.SUB_DAG !== elem.type) {
+      return elem;
+    }
+    if (!isTaskNode(elem.id)) {
+      return elem;
+    }
+    const taskLabel = getTaskKeyFromNodeKey(elem.id);
+    const taskDetail = taskDetails.find((td) => td.display_name === taskLabel);
+    if (!taskDetail?.error) {
+      return elem;
+    }
+    const currentState =
+      (elem.data as ExecutionFlowElementData)?.state ?? (elem.data as SubDagFlowElementData)?.state;
+    if (
+      currentState !== undefined &&
+      currentState !== null &&
+      TERMINAL_MLMD_STATES.has(currentState)
+    ) {
+      return elem;
+    }
+    const updatedElem = Object.assign({}, elem, {
+      data: Object.assign({}, elem.data, { state: Execution.State.FAILED }),
+    });
+    return updatedElem;
+  }) as PipelineFlowElement[];
 }
 
 function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {

@@ -17,11 +17,11 @@
 import { Button } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
-// import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import {
   KubernetesExecutorConfig,
   PvcMount,
 } from 'src/generated/platform_spec/kubernetes_platform';
+import { V2beta1PipelineTaskDetail } from 'src/apisv2beta1/run';
 import { useQuery } from '@tanstack/react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
@@ -88,6 +88,7 @@ interface RuntimeNodeDetailsV2Props {
   element?: PipelineFlowElement | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
+  taskDetail?: V2beta1PipelineTaskDetail;
 }
 
 export function RuntimeNodeDetailsV2({
@@ -98,6 +99,7 @@ export function RuntimeNodeDetailsV2({
   element,
   elementMlmdInfo,
   namespace,
+  taskDetail,
 }: RuntimeNodeDetailsV2Props) {
   if (!element) {
     return NODE_INFO_UNKNOWN;
@@ -113,6 +115,7 @@ export function RuntimeNodeDetailsV2({
           execution={elementMlmdInfo?.execution}
           layers={layers}
           namespace={namespace}
+          taskDetail={taskDetail}
         ></TaskNodeDetail>
       );
     } else if (NodeTypeNames.ARTIFACT === element.type) {
@@ -145,6 +148,7 @@ interface TaskNodeDetailProps {
   execution?: Execution;
   layers: string[];
   namespace: string | undefined;
+  taskDetail?: V2beta1PipelineTaskDetail;
 }
 
 function TaskNodeDetail({
@@ -154,6 +158,7 @@ function TaskNodeDetail({
   execution,
   layers,
   namespace,
+  taskDetail,
 }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>({
     queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
@@ -174,6 +179,15 @@ function TaskNodeDetail({
 
   return (
     <div className={commonCss.page}>
+      {taskDetail?.error && (
+        <React.Fragment>
+          <Banner
+            message='Task failed'
+            additionalInfo={taskDetail.error.message || 'Unknown error'}
+            mode='error'
+          />
+        </React.Fragment>
+      )}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}

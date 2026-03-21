@@ -31,11 +31,17 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
+  applyTaskFailureStates,
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import {
+  convertFlowElements,
+  getNodeName,
+  PipelineFlowElement,
+  getTaskKeyFromNodeKey,
+} from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -140,7 +146,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       data.executions,
       data.events,
       data.artifacts,
+      run?.run_details?.task_details,
     );
+  }
+  // Always apply task failure states from the API as a final pass.
+  // This is resilient to MLMD query failures or missing executions
+  // (e.g. ImagePullBackOff where MLMD records are never created).
+  if (run?.run_details?.task_details) {
+    dynamicFlowElements = applyTaskFailureStates(dynamicFlowElements, run.run_details.task_details);
   }
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
@@ -214,6 +227,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                   element={selectedNode}
                   elementMlmdInfo={selectedNodeMlmdInfo}
                   namespace={namespace}
+                  taskDetail={
+                    selectedNode?.id && selectedNode.id.startsWith('task.')
+                      ? run?.run_details?.task_details?.find(
+                          (td) => td.display_name === getTaskKeyFromNodeKey(selectedNode.id),
+                        )
+                      : undefined
+                  }
                 ></RuntimeNodeDetailsV2>
               </SidePanel>
             </div>
