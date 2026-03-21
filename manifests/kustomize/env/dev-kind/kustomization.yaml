@@ -202,19 +202,11 @@ patches:
       policyTypes:
       - Ingress
 
-generatorOptions:
-  disableNameSuffixHash: true
-
-configMapGenerator:
-- name: kfp-dev-kind-params
-  literals:
-  - namespace=kubeflow
-
 replacements:
 - source:
     kind: ConfigMap
-    name: kfp-dev-kind-params
-    fieldPath: data.namespace
+    name: pipeline-install-config 
+    fieldPath: metadata.namespace
   targets:
   - select:
       kind: Certificate
