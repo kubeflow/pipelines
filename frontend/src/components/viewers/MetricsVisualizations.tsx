@@ -810,7 +810,7 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
       key,
       value: JSON.stringify(getMetadataValue(customProperties.get(key))),
     }))
-    .filter((metric) => metric.key !== 'display_name');
+    .filter((metric) => metric.key !== 'display_name' && metric.key !== 'store_session_info');
 
   if (data.length === 0) {
     return null;
