@@ -35,7 +35,7 @@ type Task struct {
 	FinishedTimestamp       int64            `gorm:"column:FinishedTimestamp; default:0;"`
 	Fingerprint             string           `gorm:"column:Fingerprint; not null;"`
 	Name                    string           `gorm:"column:Name; default:null"`
-	ParentTaskId            string           `gorm:"column:ParentTaskUUID; default:null"`
+	ParentTaskId            string           `gorm:"column:ParentTaskUUID; default:null"` //nolint:staticcheck // Pre-existing field name
 	State                   RuntimeState     `gorm:"column:State; default:null;"`
 	StateHistoryString      LargeText        `gorm:"column:StateHistory; default:null;"`
 	MLMDInputs              LargeText        `gorm:"column:MLMDInputs; default:null;"`
