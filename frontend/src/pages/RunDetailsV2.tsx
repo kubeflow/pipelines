@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { MouseEvent as ReactMouseEvent, useEffect, useState } from 'react';
+import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
@@ -90,10 +90,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
   const run = props.run;
   const pipelineJobStr = props.pipeline_job;
-  const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
-  const elements = convertFlowElements(pipelineSpec);
+  const pipelineSpec = useMemo(
+    () => WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
+    [pipelineJobStr],
+  );
+  const initialElements = useMemo(() => convertFlowElements(pipelineSpec), [pipelineSpec]);
 
-  const [flowElements, setFlowElements] = useState(elements);
+  const [flowElements, setFlowElements] = useState(initialElements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
@@ -130,17 +133,24 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     }
   }, [isError, isSuccess, error, updateBanner]);
 
-  const layerChange = (layers: string[]) => {
-    setSelectedNode(null);
-    setLayers(layers);
-    setFlowElements(
-      convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
-    ); // render elements in the sub-layer.
-  };
+  const layerChange = useCallback(
+    (layers: string[]) => {
+      setSelectedNode(null);
+      setLayers(layers);
+      setFlowElements(
+        convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
+      ); // render elements in the sub-layer.
+    },
+    [data, pipelineSpec],
+  );
 
-  let dynamicFlowElements = flowElements;
-  if (isSuccess && data) {
-    dynamicFlowElements = updateFlowElementsState(
+  const dynamicFlowElements = useMemo(() => {
+    if (!isSuccess || !data) {
+      return flowElements;
+    }
+
+    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
+    return updateFlowElementsState(
       layers,
       flowElements,
       data.executions,
@@ -155,6 +165,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   if (run?.run_details?.task_details) {
     dynamicFlowElements = applyTaskFailureStates(dynamicFlowElements, run.run_details.task_details);
   }
+  }, [data, flowElements, isSuccess, layers]);
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);

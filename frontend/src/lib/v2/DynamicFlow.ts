@@ -27,6 +27,7 @@ import {
   getArtifactNodeKey,
   getIterationIdFromNodeKey,
   getTaskKeyFromNodeKey,
+  isNode,
   getTaskNodeKey,
   isTaskNode,
   NodeTypeNames,
@@ -249,7 +250,7 @@ export function updateFlowElementsState(
     );
 
     for (let elem of elems) {
-      let updatedElem = Object.assign({}, elem);
+      const updatedElem = cloneFlowElement(elem);
       const iterationId = Number(getIterationIdFromNodeKey(updatedElem.id));
       const matchedExecs = executions?.filter((exec) => {
         const customProperties = exec.getCustomPropertiesMap();
@@ -265,7 +266,7 @@ export function updateFlowElementsState(
     return flowGraph;
   }
   for (let elem of elems) {
-    let updatedElem = Object.assign({}, elem);
+    const updatedElem = cloneFlowElement(elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
       const executions = getExecutionsUnderDAG(
         taskNameToExecution,
@@ -356,6 +357,31 @@ export function applyTaskFailureStates(
     });
     return updatedElem;
   }) as PipelineFlowElement[];
+function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
+  if (isNode(elem)) {
+    const {
+      data,
+      dragging: _dragging,
+      hidden: _hidden,
+      position,
+      resizing: _resizing,
+      selected: _selected,
+      ...rest
+    } = elem;
+
+    return {
+      ...rest,
+      data: data ? { ...data } : data,
+      position: { ...position },
+    };
+  }
+
+  return {
+    id: elem.id,
+    markerEnd: elem.markerEnd,
+    source: elem.source,
+    target: elem.target,
+  };
 }
 
 function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {

@@ -25,6 +25,7 @@ import { Api } from 'src/mlmd/Api';
 import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
 import { expectErrors, mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import {
   Context,
   GetContextByTypeAndNameRequest,
@@ -131,6 +132,29 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
+  });
+
+  it('keeps runtime flow elements stable across same-props rerenders', async () => {
+    const updateFlowElementsStateSpy = vi.spyOn(DynamicFlow, 'updateFlowElementsState');
+    const props = generateProps();
+
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props}></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(updateFlowElementsStateSpy).toHaveBeenCalled());
+    const callCountAfterLoad = updateFlowElementsStateSpy.mock.calls.length;
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props}></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await act(async () => {});
+    expect(updateFlowElementsStateSpy).toHaveBeenCalledTimes(callCountAfterLoad);
   });
 
   it('Shows error banner when disconnected from MLMD', async () => {

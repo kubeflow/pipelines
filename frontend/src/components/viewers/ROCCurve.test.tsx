@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { PlotType } from './Viewer';
-import ROCCurve, { findNearestDisplayPoint } from './ROCCurve';
+import ROCCurve, { findNearestDisplayPoint, lineColors } from './ROCCurve';
 
 describe('ROCCurve', () => {
   const data = [
@@ -77,6 +77,26 @@ describe('ROCCurve', () => {
     expect(screen.getByText('Series #1')).toBeInTheDocument();
     expect(screen.getByText('Series #2')).toBeInTheDocument();
     expect(screen.getByText('Series #3')).toBeInTheDocument();
+  });
+
+  it('highlights the hovered legend series', () => {
+    const config = { data, type: PlotType.ROC };
+    const { container } = render(
+      <ROCCurve configs={[config, config]} disableAnimation={true} forceLegend={true} />,
+    );
+    const getSecondSeriesLine = () =>
+      container.querySelector(
+        `.recharts-line-curve[stroke="${lineColors[1]}"]`,
+      ) as SVGPathElement | null;
+    expect(getSecondSeriesLine()).not.toBeNull();
+    expect(getSecondSeriesLine()?.getAttribute('stroke-width')).toBe('2');
+
+    const secondSeriesLegendItem = screen.getByText('Series #2').parentElement as HTMLElement;
+    fireEvent.mouseEnter(secondSeriesLegendItem);
+    expect(getSecondSeriesLine()?.getAttribute('stroke-width')).toBe('4');
+
+    fireEvent.mouseLeave(secondSeriesLegendItem);
+    expect(getSecondSeriesLine()?.getAttribute('stroke-width')).toBe('2');
   });
 
   it('returns friendly display name', () => {

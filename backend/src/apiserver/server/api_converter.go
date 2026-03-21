@@ -159,6 +159,7 @@ func toApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment 
 // Supports both v1beta1 abd v2beta1 API.
 func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 	var name, displayName, namespace, description string
+	var tags map[string]string
 
 	switch apiPipeline := p.(type) {
 	case *apiv1beta1.Pipeline:
@@ -171,6 +172,7 @@ func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 		name = apiPipeline.GetName()
 		displayName = apiPipeline.GetDisplayName()
 		description = apiPipeline.GetDescription()
+		tags = apiPipeline.GetTags()
 	default:
 		return nil, util.NewUnknownApiVersionError("Pipeline", p)
 	}
@@ -192,6 +194,7 @@ func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 		Namespace:   namespace,
 		Description: model.LargeText(description),
 		Status:      model.PipelineCreating,
+		Tags:        tags,
 	}
 
 	if err := validation.ValidateModel(pipeline); err != nil {
@@ -320,6 +323,7 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 		Description: string(pipeline.Description),
 		CreatedAt:   timestamppb.New(time.Unix(pipeline.CreatedAtInSec, 0)),
 		Namespace:   pipeline.Namespace,
+		Tags:        pipeline.Tags,
 	}
 }
 
@@ -386,6 +390,12 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 	if displayName == "" {
 		displayName = name
 	}
+	// Extract tags if present (v2beta1 only)
+	var tags map[string]string
+	if apiPv, ok := p.(*apiv2beta1.PipelineVersion); ok {
+		tags = apiPv.GetTags()
+	}
+
 	pv := &model.PipelineVersion{
 		Name:            name,
 		DisplayName:     displayName,
@@ -394,6 +404,7 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		CodeSourceUrl:   codeUrl,
 		Description:     model.LargeText(description),
 		Status:          model.PipelineVersionCreating,
+		Tags:            tags,
 	}
 	if err := validation.ValidateModel(pv); err != nil {
 		return nil, util.NewInternalServerError(
@@ -486,6 +497,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 		DisplayName:       pv.DisplayName,
 		Description:       string(pv.Description),
 		CreatedAt:         timestamppb.New(time.Unix(pv.CreatedAtInSec, 0)),
+		Tags:              pv.Tags,
 	}
 
 	// Infer pipeline url
