@@ -4,6 +4,9 @@ kind: Kustomization
 resources:
 - application.yaml
 
+generatorOptions:
+  disableNameSuffixHash: true
+
 configMapGenerator:
 - name: kfp-application-params
   literals:
@@ -18,7 +21,6 @@ replacements:
   targets:
   - select:
       kind: Application
-      name: kubeflow-pipelines
     fieldPaths:
     - metadata.name
 - source:
@@ -28,6 +30,5 @@ replacements:
   targets:
   - select:
       kind: Application
-      name: kubeflow-pipelines
     fieldPaths:
     - spec.descriptor.version
