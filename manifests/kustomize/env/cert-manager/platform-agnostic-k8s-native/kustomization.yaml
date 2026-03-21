@@ -37,19 +37,12 @@ patches:
       kind: Role
       name: ml-pipeline
 
-generatorOptions:
-  disableNameSuffixHash: true
-
-configMapGenerator:
-- name: kfp-cert-manager-params
-  literals:
-  - namespace=kubeflow
 
 replacements:
 - source:
     kind: ConfigMap
-    name: kfp-cert-manager-params
-    fieldPath: data.namespace
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
   targets:
   - select:
       kind: MutatingWebhookConfiguration
