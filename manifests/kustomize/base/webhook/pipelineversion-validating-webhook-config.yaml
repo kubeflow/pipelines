@@ -22,6 +22,6 @@ webhooks:
     clientConfig:
       service:
         name: ml-pipeline
-        namespace: $(kfp-namespace) 
+        namespace: $(kfp-namespace)
         path: /webhooks/validate-pipelineversion
         port: 8443
