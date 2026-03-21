@@ -145,27 +145,29 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
 
   const dynamicFlowElements = useMemo(() => {
-    if (!isSuccess || !data) {
-      return flowElements;
+    let elements = flowElements;
+
+    if (isSuccess && data) {
+      // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
+      elements = updateFlowElementsState(
+        layers,
+        flowElements,
+        data.executions,
+        data.events,
+        data.artifacts,
+        run?.run_details?.task_details,
+      );
     }
 
-    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
-    return updateFlowElementsState(
-      layers,
-      flowElements,
-      data.executions,
-      data.events,
-      data.artifacts,
-      run?.run_details?.task_details,
-    );
-  }
-  // Always apply task failure states from the API as a final pass.
-  // This is resilient to MLMD query failures or missing executions
-  // (e.g. ImagePullBackOff where MLMD records are never created).
-  if (run?.run_details?.task_details) {
-    dynamicFlowElements = applyTaskFailureStates(dynamicFlowElements, run.run_details.task_details);
-  }
-  }, [data, flowElements, isSuccess, layers]);
+    // Always apply task failure states from the API as a final pass.
+    // This is resilient to MLMD query failures or missing executions
+    // (e.g. ImagePullBackOff where MLMD records are never created).
+    if (run?.run_details?.task_details) {
+      elements = applyTaskFailureStates(elements, run.run_details.task_details);
+    }
+
+    return elements;
+  }, [data, flowElements, isSuccess, layers, run?.run_details?.task_details]);
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);

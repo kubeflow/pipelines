@@ -357,6 +357,8 @@ export function applyTaskFailureStates(
     });
     return updatedElem;
   }) as PipelineFlowElement[];
+}
+
 function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
   if (isNode(elem)) {
     const {
