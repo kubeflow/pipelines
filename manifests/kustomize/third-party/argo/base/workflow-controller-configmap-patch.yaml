@@ -17,7 +17,7 @@ data:
     archiveLogs: true
     s3:
       endpoint: "seaweedfs.$(kfp-namespace).svc:9000"
-      bucket: "mlpipeline"
+      bucket: "$(kfp-artifact-bucket-name)" 
       # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
       # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
       # pod.name. Can also use strftime formating of workflow.creationTimestamp so that workflow

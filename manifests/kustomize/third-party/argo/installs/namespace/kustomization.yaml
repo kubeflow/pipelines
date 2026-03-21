@@ -6,6 +6,8 @@ kind: Kustomization
 # * this does not include argo server.
 # * this separates cluster-scoped resources to its own folder.
 
+namespace: kubeflow
+
 resources:
 - ../../base
 - https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.7.3
@@ -16,3 +18,40 @@ patches:
     kind: Deployment
     name: workflow-controller
     version: v1
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: kfp-argo-artifact-params
+  literals:
+  - bucketName=mlpipeline
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: kfp-argo-artifact-params
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    fieldPaths:
+    - data.artifactRepository
+    options:
+      delimiter: .
+      index: 1
+
+- source:
+    kind: ConfigMap
+    name: kfp-argo-artifact-params
+    fieldPath: data.bucketName
+  targets:
+  - select:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    fieldPaths:
+    - data.artifactRepository
+    options:
+      delimiter: '"'
+      index: 3
