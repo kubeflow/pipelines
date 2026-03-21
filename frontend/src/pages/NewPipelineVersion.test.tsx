@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { ImportMethod, NewPipelineVersion } from './NewPipelineVersion';
 import TestUtils from 'src/TestUtils';
@@ -79,6 +79,43 @@ describe('NewPipelineVersion', () => {
     return pipelineVersionRef.current;
   }
 
+  async function clickAndFlush(element: HTMLElement): Promise<void> {
+    await act(async () => {
+      fireEvent.click(element);
+      await TestUtils.flushPromises();
+    });
+  }
+
+  async function setStateAndFlush(state: Partial<TestNewPipelineVersion['state']>): Promise<void> {
+    await act(async () => {
+      getInstance().setState(state);
+      await TestUtils.flushPromises();
+    });
+  }
+
+  async function updateFieldAndFlush(field: string, value: string): Promise<void> {
+    await act(async () => {
+      getInstance().handleChange(field)({
+        target: { value },
+      } as React.ChangeEvent<HTMLInputElement>);
+      await TestUtils.flushPromises();
+    });
+  }
+
+  async function rejectDropAndFlush(): Promise<void> {
+    await act(async () => {
+      getInstance()['_onDropRejected']();
+      await TestUtils.flushPromises();
+    });
+  }
+
+  async function dropFilesAndFlush(files: File[]): Promise<void> {
+    await act(async () => {
+      getInstance()._onDropForTest(files);
+      await TestUtils.flushPromises();
+    });
+  }
+
   async function renderNewPipelineVersion(
     search: string = '',
     propsPatch: Partial<PageProps & { buildInfo?: any; namespace?: string }> = {},
@@ -86,7 +123,13 @@ describe('NewPipelineVersion', () => {
     pipelineVersionRef = React.createRef<TestNewPipelineVersion>();
     const props = { ...generateProps(search), ...propsPatch } as PageProps;
     renderResult = render(<TestNewPipelineVersion ref={pipelineVersionRef} {...props} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
+  }
+
+  async function flushPromisesInAct(): Promise<void> {
+    await act(async () => {
+      await TestUtils.flushPromises();
+    });
   }
 
   beforeEach(() => {
@@ -172,9 +215,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating pipeline version name', async () => {
       await renderExistingPipeline();
 
-      getInstance().handleChange('pipelineVersionName')({
-        target: { value: 'version name' },
-      });
+      await updateFieldAndFlush('pipelineVersionName', 'version name');
 
       await waitFor(() =>
         expect(getInstance().state).toHaveProperty('pipelineVersionName', 'version name'),
@@ -185,9 +226,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating pipeline version description', async () => {
       await renderExistingPipeline();
 
-      getInstance().handleChange('pipelineVersionDescription')({
-        target: { value: 'some description' },
-      });
+      await updateFieldAndFlush('pipelineVersionDescription', 'some description');
 
       await waitFor(() =>
         expect(getInstance().state).toHaveProperty(
@@ -201,9 +240,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating package url', async () => {
       await renderExistingPipeline();
 
-      getInstance().handleChange('packageUrl')({
-        target: { value: 'https://dummy' },
-      });
+      await updateFieldAndFlush('packageUrl', 'https://dummy');
 
       await waitFor(() =>
         expect(getInstance().state).toHaveProperty('packageUrl', 'https://dummy'),
@@ -214,9 +251,7 @@ describe('NewPipelineVersion', () => {
     it('allows updating code source', async () => {
       await renderExistingPipeline();
 
-      getInstance().handleChange('codeSourceUrl')({
-        target: { value: 'https://dummy' },
-      });
+      await updateFieldAndFlush('codeSourceUrl', 'https://dummy');
 
       await waitFor(() =>
         expect(getInstance().state).toHaveProperty('codeSourceUrl', 'https://dummy'),
@@ -224,25 +259,41 @@ describe('NewPipelineVersion', () => {
       expect(getPipelineSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('preserves pipeline version name when a file drop is rejected', async () => {
+      await renderExistingPipeline();
+
+      // Set a custom version name (simulating user editing or pre-fill from pipeline)
+      await updateFieldAndFlush('pipelineVersionName', 'my-custom-version-name');
+      await waitFor(() =>
+        expect(getInstance().state).toHaveProperty('pipelineVersionName', 'my-custom-version-name'),
+      );
+
+      // Simulate a rejected drop (invalid file)
+      await rejectDropAndFlush();
+
+      // File-related state is reset
+      expect(getInstance().state).toHaveProperty('dropzoneActive', false);
+      expect(getInstance().state).toHaveProperty('file', null);
+      expect(getInstance().state).toHaveProperty('fileName', '');
+
+      // Version name must NOT be cleared
+      expect(getInstance().state).toHaveProperty('pipelineVersionName', 'my-custom-version-name');
+
+      // Snackbar was shown
+      expect(updateSnackbarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ open: true, autoHideDuration: 5000 }),
+      );
+    });
+
     it("sends a request to create a version when 'Create' is clicked", async () => {
       await renderExistingPipeline();
 
-      getInstance().handleChange('pipelineVersionName')({
-        target: { value: 'test version name' },
-      });
-      getInstance().handleChange('pipelineVersionDisplayName')({
-        target: { value: 'test version display name' },
-      });
-      getInstance().handleChange('pipelineVersionDescription')({
-        target: { value: 'some description' },
-      });
-      getInstance().handleChange('packageUrl')({
-        target: { value: 'https://dummy_package_url' },
-      });
+      await updateFieldAndFlush('pipelineVersionName', 'test version name');
+      await updateFieldAndFlush('pipelineVersionDisplayName', 'test version display name');
+      await updateFieldAndFlush('pipelineVersionDescription', 'some description');
+      await updateFieldAndFlush('packageUrl', 'https://dummy_package_url');
 
-      await TestUtils.flushPromises();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await clickAndFlush(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineVersionSpy).toHaveBeenCalledTimes(1));
 
       expect(createPipelineVersionSpy).toHaveBeenLastCalledWith('original-run-pipeline-id', {
@@ -275,29 +326,22 @@ describe('NewPipelineVersion', () => {
       expect(getInstance().state.importMethod).toBe(ImportMethod.URL);
 
       // Click to import by local
-      fireEvent.click(screen.getByLabelText(/Upload a file/i));
+      await clickAndFlush(screen.getByLabelText(/Upload a file/i));
       await waitFor(() => expect(getInstance().state.importMethod).toBe(ImportMethod.LOCAL));
 
       // Click back to URL
-      fireEvent.click(screen.getByLabelText(/Import by url/i));
+      await clickAndFlush(screen.getByLabelText(/Import by url/i));
       await waitFor(() => expect(getInstance().state.importMethod).toBe(ImportMethod.URL));
     });
 
     it('creates pipeline from url in single user mode', async () => {
       await renderNewPipelineVersion('', { buildInfo: { apiServerMultiUser: false } });
 
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
-      });
-      getInstance().handleChange('packageUrl')({
-        target: { value: 'https://dummy_package_url' },
-      });
-      await TestUtils.flushPromises();
+      await updateFieldAndFlush('pipelineName', 'test pipeline name');
+      await updateFieldAndFlush('pipelineDescription', 'test pipeline description');
+      await updateFieldAndFlush('packageUrl', 'https://dummy_package_url');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await clickAndFlush(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineSpy).toHaveBeenCalledTimes(1));
 
       expect(getInstance().state).toHaveProperty('isPrivate', false);
@@ -316,17 +360,10 @@ describe('NewPipelineVersion', () => {
         buildInfo: { apiServerMultiUser: true },
       });
 
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
-      });
-      getInstance().handleChange('packageUrl')({
-        target: { value: 'https://dummy_package_url' },
-      });
-      await TestUtils.flushPromises();
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await updateFieldAndFlush('pipelineName', 'test pipeline name');
+      await updateFieldAndFlush('pipelineDescription', 'test pipeline description');
+      await updateFieldAndFlush('packageUrl', 'https://dummy_package_url');
+      await clickAndFlush(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineSpy).toHaveBeenCalledTimes(1));
 
       expect(getInstance().state).toHaveProperty('isPrivate', true);
@@ -346,18 +383,11 @@ describe('NewPipelineVersion', () => {
         buildInfo: { apiServerMultiUser: true },
       });
 
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
-      });
-      getInstance().handleChange('packageUrl')({
-        target: { value: 'https://dummy_package_url' },
-      });
-      getInstance().setState({ isPrivate: false });
-      await TestUtils.flushPromises();
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await updateFieldAndFlush('pipelineName', 'test pipeline name');
+      await updateFieldAndFlush('pipelineDescription', 'test pipeline description');
+      await updateFieldAndFlush('packageUrl', 'https://dummy_package_url');
+      await setStateAndFlush({ isPrivate: false });
+      await clickAndFlush(screen.getByRole('button', { name: 'Create' }));
       await waitFor(() => expect(createPipelineSpy).toHaveBeenCalledTimes(1));
 
       expect(getInstance().state).toHaveProperty('isPrivate', false);
@@ -373,19 +403,14 @@ describe('NewPipelineVersion', () => {
     it('creates pipeline from local file in single user mode', async () => {
       await renderNewPipelineVersion('', { buildInfo: { apiServerMultiUser: false } });
 
-      // Set local file, pipeline name, pipeline description and click create
-      fireEvent.click(screen.getByLabelText(/Upload a file/i));
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
-      });
+      await clickAndFlush(screen.getByLabelText(/Upload a file/i));
+      await updateFieldAndFlush('pipelineName', 'test pipeline name');
+      await updateFieldAndFlush('pipelineDescription', 'test pipeline description');
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-      getInstance()._onDropForTest([file]);
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await dropFilesAndFlush([file]);
+      await clickAndFlush(screen.getByRole('button', { name: 'Create' }));
 
-      await TestUtils.flushPromises();
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalled());
 
       expect(getInstance().state).toHaveProperty('isPrivate', false);
       expect(getInstance().state.importMethod).toBe(ImportMethod.LOCAL);
@@ -405,20 +430,14 @@ describe('NewPipelineVersion', () => {
         buildInfo: { apiServerMultiUser: true },
       });
 
-      // Set local file, pipeline name, pipeline description and click create
-      fireEvent.click(screen.getByLabelText(/Upload a file/i));
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
-      });
+      await clickAndFlush(screen.getByLabelText(/Upload a file/i));
+      await updateFieldAndFlush('pipelineName', 'test pipeline name');
+      await updateFieldAndFlush('pipelineDescription', 'test pipeline description');
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-      getInstance()._onDropForTest([file]);
+      await dropFilesAndFlush([file]);
+      await clickAndFlush(screen.getByRole('button', { name: 'Create' }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-
-      await TestUtils.flushPromises();
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalled());
 
       expect(getInstance().state).toHaveProperty('isPrivate', true);
       expect(getInstance().state.importMethod).toBe(ImportMethod.LOCAL);
@@ -438,20 +457,15 @@ describe('NewPipelineVersion', () => {
         buildInfo: { apiServerMultiUser: true },
       });
 
-      // Set local file, pipeline name, pipeline description and click create
-      fireEvent.click(screen.getByLabelText(/Upload a file/i));
-      getInstance().handleChange('pipelineName')({
-        target: { value: 'test pipeline name' },
-      });
-      getInstance().handleChange('pipelineDescription')({
-        target: { value: 'test pipeline description' },
-      });
+      await clickAndFlush(screen.getByLabelText(/Upload a file/i));
+      await updateFieldAndFlush('pipelineName', 'test pipeline name');
+      await updateFieldAndFlush('pipelineDescription', 'test pipeline description');
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-      getInstance()._onDropForTest([file]);
-      getInstance().setState({ isPrivate: false });
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await dropFilesAndFlush([file]);
+      await setStateAndFlush({ isPrivate: false });
+      await clickAndFlush(screen.getByRole('button', { name: 'Create' }));
 
-      await TestUtils.flushPromises();
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalled());
 
       expect(getInstance().state).toHaveProperty('isPrivate', false);
       expect(getInstance().state.importMethod).toBe(ImportMethod.LOCAL);

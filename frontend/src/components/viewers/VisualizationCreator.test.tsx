@@ -22,8 +22,20 @@ import VisualizationCreator, { VisualizationCreatorConfig } from './Visualizatio
 import { ApiVisualizationType } from '../../apis/visualization';
 
 vi.mock('../Editor', () => ({
-  default: ({ placeholder }: { placeholder?: string }) => (
-    <div data-testid='editor' data-placeholder={placeholder || ''} />
+  default: ({
+    mode,
+    onChange,
+    placeholder,
+  }: {
+    mode?: string;
+    onChange?: (value: string) => void;
+    placeholder?: string;
+  }) => (
+    <div
+      data-testid='editor'
+      data-placeholder={placeholder || ''}
+      onClick={() => onChange?.(mode === 'json' ? '{"key":"mock-arg"}' : 'print("mock code")')}
+    />
   ),
 }));
 
@@ -283,6 +295,35 @@ describe('VisualizationCreator', () => {
     };
     const { asFragment } = render(<VisualizationCreator configs={[config]} />);
     expect(asFragment()).toMatchSnapshot();
+  });
+
+  it('wires editor interactions into custom visualization generation', () => {
+    const onGenerate = vi.fn();
+    const config: VisualizationCreatorConfig = {
+      allowCustomVisualizations: true,
+      isBusy: false,
+      onGenerate,
+      type: PlotType.VISUALIZATION_CREATOR,
+    };
+    const wrapper = renderVisualizationCreator([config]);
+    wrapper.setState({ selectedType: ApiVisualizationType.CUSTOM });
+
+    fireEvent.change(screen.getByPlaceholderText('File path or path pattern of data within GCS.'), {
+      target: { value: 'gs://ml-pipeline/data.csv' },
+    });
+    const [codeEditor, argumentsEditor] = screen.getAllByTestId('editor');
+    fireEvent.click(codeEditor);
+    fireEvent.click(argumentsEditor);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Visualization' }));
+
+    expect(onGenerate).toHaveBeenCalledTimes(1);
+    const [serializedArguments, source, type] = onGenerate.mock.calls[0];
+    expect(JSON.parse(serializedArguments)).toEqual({
+      code: ['print("mock code")'],
+      key: 'mock-arg',
+    });
+    expect(source).toBe('gs://ml-pipeline/data.csv');
+    expect(type).toBe(ApiVisualizationType.CUSTOM);
   });
 
   it('disables all select and input fields when busy', () => {

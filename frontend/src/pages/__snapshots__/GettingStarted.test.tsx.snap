@@ -46,7 +46,8 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
           >
             Data passing in Python components
           </a>
-           
+          
+
           <ul>
             <li>
               Shows how to pass data between Python components. 
@@ -68,7 +69,8 @@ exports[`GettingStarted page > initially renders documentation 1`] = `
           >
             DSL - Control structures
           </a>
-           
+          
+
           <ul>
             <li>
               Shows how to use conditional execution and exit handlers. 

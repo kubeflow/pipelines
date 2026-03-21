@@ -29,7 +29,7 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
         tabindex="-1"
       >
         <div
-          aria-labelledby="mui-1"
+          aria-labelledby=":r0:"
           class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation24 MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm css-1t1j96h-MuiPaper-root-MuiDialog-paper"
           id="pipelineSelectorDialog"
           role="dialog"
@@ -413,12 +413,12 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="mui-7"
+                        aria-controls=":r8:"
                         aria-expanded="false"
                         aria-haspopup="listbox"
-                        aria-labelledby="mui-8"
+                        aria-labelledby=":r7:"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                        id="mui-8"
+                        id=":r7:"
                         role="combobox"
                         tabindex="0"
                       >
@@ -602,7 +602,7 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
         tabindex="-1"
       >
         <div
-          aria-labelledby="mui-11"
+          aria-labelledby=":rb:"
           class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation24 MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm css-1t1j96h-MuiPaper-root-MuiDialog-paper"
           id="pipelineSelectorDialog"
           role="dialog"
@@ -947,12 +947,12 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                       class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                     >
                       <div
-                        aria-controls="mui-15"
+                        aria-controls=":rh:"
                         aria-expanded="false"
                         aria-haspopup="listbox"
-                        aria-labelledby="mui-16"
+                        aria-labelledby=":rg:"
                         class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                        id="mui-16"
+                        id=":rg:"
                         role="combobox"
                         tabindex="0"
                       >

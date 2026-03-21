@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { expectErrors } from 'src/TestUtils';
@@ -185,6 +185,7 @@ describe('RecurringRunDetailsV2FC', () => {
   });
 
   it('shows All runs -> run name when there is no experiment', async () => {
+    fullTestV2RecurringRun.experiment_id = undefined;
     // The run id is in the router match object, defined inside generateProps
     render(
       <CommonTestWrapper>
@@ -273,6 +274,12 @@ describe('RecurringRunDetailsV2FC', () => {
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
     });
+    // V2FC processes errors through a multi-step async chain:
+    // useQuery error → useEffect → async errorToMessage → setState → useEffect → updateBanner.
+    // Each step produces microtasks that need flushing under React 18 + testing-library v12.
+    for (let i = 0; i < 3; i++) {
+      await act(() => TestUtils.flushPromises());
+    }
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -297,6 +304,10 @@ describe('RecurringRunDetailsV2FC', () => {
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
     });
+    // V2FC processes errors through a multi-step async chain (see comment above).
+    for (let i = 0; i < 3; i++) {
+      await act(() => TestUtils.flushPromises());
+    }
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({

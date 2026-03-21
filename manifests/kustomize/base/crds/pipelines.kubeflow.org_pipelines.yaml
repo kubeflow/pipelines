@@ -43,6 +43,10 @@ spec:
                 type: string
               displayName:
                 type: string
+              tags:
+                additionalProperties:
+                  type: string
+                type: object
             type: object
         type: object
     served: true

@@ -20,7 +20,8 @@ import type { Plugin } from 'vite';
  * Paths that contain generated CJS protobuf files. If new generated
  * directories are added, extend this list.
  */
-const GENERATED_CJS_PATH_MARKERS = ['third_party/mlmd/generated', '/src/generated/'] as const;
+// TODO(#13018): Remove plugin after MLMD Phase 2 migration
+const GENERATED_CJS_PATH_MARKERS = ['third_party/mlmd/generated'] as const;
 
 export function isGeneratedCjs(id: string): boolean {
   const cleanId = id.split(/[?#]/)[0].replace(/\\/g, '/');
