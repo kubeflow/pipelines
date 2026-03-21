@@ -1635,13 +1635,14 @@ var podLifecycleFailurePatterns = []string{
 	"CrashLoopBackOff",
 	"OOMKilled",
 	"DeadlineExceeded",
-	"Error",
-	"Failed",
 	"exceeded its deadline",
 	"ContainerCannotRun",
 	"InvalidImageName",
 	"CreateContainerConfigError",
+	"CreateContainerError",
 	"RunContainerError",
+	"PreStartHookError",
+	"PostStartHookError",
 	"ContainerStatusUnknown",
 }
 

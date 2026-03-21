@@ -239,6 +239,9 @@ export function updateFlowElementsState(
     executionIdToExectuion,
     artifactIdToArtifact,
   );
+  const taskDetailsByName = taskDetails
+    ? new Map(taskDetails.map((td) => [td.display_name, td]))
+    : undefined;
 
   let flowGraph: PipelineFlowElement[] = [];
 
@@ -280,9 +283,9 @@ export function updateFlowElementsState(
         (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
           executions[0],
         );
-      } else if (taskDetails) {
+      } else if (taskDetailsByName) {
         const taskLabel = getTaskLabelByPipelineFlowElement(elem);
-        const taskDetail = taskDetails.find((td) => td.display_name === taskLabel);
+        const taskDetail = taskDetailsByName.get(taskLabel);
         if (taskDetail?.error) {
           (updatedElem.data as ExecutionFlowElementData).state = Execution.State.FAILED;
         }
@@ -331,6 +334,8 @@ export function applyTaskFailureStates(
   elems: PipelineFlowElement[],
   taskDetails: V2beta1PipelineTaskDetail[],
 ): PipelineFlowElement[] {
+  const taskDetailsByName = new Map(taskDetails.map((td) => [td.display_name, td]));
+
   return elems.map((elem) => {
     if (NodeTypeNames.EXECUTION !== elem.type && NodeTypeNames.SUB_DAG !== elem.type) {
       return elem;
@@ -339,7 +344,7 @@ export function applyTaskFailureStates(
       return elem;
     }
     const taskLabel = getTaskKeyFromNodeKey(elem.id);
-    const taskDetail = taskDetails.find((td) => td.display_name === taskLabel);
+    const taskDetail = taskDetailsByName.get(taskLabel);
     if (!taskDetail?.error) {
       return elem;
     }

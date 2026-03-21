@@ -823,6 +823,9 @@ func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 		for _, childID := range node.Children {
 			if childNode, ok := w.Status.Nodes[childID]; ok {
 				childPodNames = append(childPodNames, RetrievePodName(*w.Workflow, childNode))
+			} else {
+				// Fallback: preserve the original child ID when node status is partial or offloaded.
+				childPodNames = append(childPodNames, childID)
 			}
 		}
 		rev[id] = NodeStatus{
