@@ -27,19 +27,12 @@ patches:
 - path: metadata-writer/deployment-patch.yaml
 - path: cache/deployment-patch.yaml
 
-generatorOptions:
-  disableNameSuffixHash: true
-
-configMapGenerator:
-- name: kfp-multi-user-params
-  literals:
-  - namespace=kubeflow
 
 replacements:
 - source:
     kind: ConfigMap
-    name: kfp-multi-user-params
-    fieldPath: data.namespace
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
   targets:
   - select:
       kind: VirtualService
