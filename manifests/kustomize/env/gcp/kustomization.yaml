@@ -33,3 +33,24 @@ labels:
 - includeSelectors: true
   pairs:
     application-crd-id: kubeflow-pipelines
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: data.appName
+  targets:
+  - select:
+      kind: Application
+    fieldPaths:
+    - metadata.name
+
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: data.appVersion
+  targets:
+  - select:
+      kind: Application
+    fieldPaths:
+    - spec.descriptor.version
