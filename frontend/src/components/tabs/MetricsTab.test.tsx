@@ -339,6 +339,35 @@ describe('MetricsTab with Scalar Metrics', () => {
     await waitFor(() => getByText('int'));
     await waitFor(() => getByText('struct'));
   });
+
+  it('does not show store_session_info in Scalar Metrics', async () => {
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifact = buildMetricsArtifact();
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('a', new Value().setDoubleValue(100));
+    artifact
+      .getCustomPropertiesMap()
+      .set(
+        'store_session_info',
+        new Value().setStringValue(
+          '{"Provider":"minio","Params":{"accessKeyKey":"accesskey","disableSSL":"true","endpoint":"seaweedfs.kubeflow:9000","fromEnv":"false","region":"minio","secretKeyKey":"secretkey","secretName":"mlpipeline-minio-artifact"}}',
+        ),
+      );
+    const linkedArtifact = { event: new Event(), artifact: artifact };
+    vi.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution').mockResolvedValueOnce([
+      linkedArtifact,
+    ]);
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([buildMetricsArtifactType()]);
+    const { getByText, queryByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution} namespace={namespace}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    getByText('Metrics is loading.');
+    await waitFor(() => getByText('Scalar Metrics: metrics'));
+    await waitFor(() => getByText('a'));
+    expect(queryByText('store_session_info')).toBeNull();
+  });
 });
 
 describe('MetricsTab with V1 metrics', () => {
