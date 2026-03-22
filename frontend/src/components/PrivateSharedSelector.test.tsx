@@ -32,9 +32,10 @@ describe('PrivateSharedSelector', () => {
   });
 
   it('it changes checked input on click', async () => {
+    const props = generateProps();
     render(
       <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
-        <PrivateSharedSelector {...generateProps()} />
+        <PrivateSharedSelector {...props} />
       </BuildInfoContext.Provider>,
     );
 
@@ -47,5 +48,6 @@ describe('PrivateSharedSelector', () => {
 
     expect(privateInput.checked).toBe(false);
     expect(sharedInput.checked).toBe(true);
+    expect(props.onChange).toHaveBeenCalledWith(false);
   });
 });
