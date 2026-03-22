@@ -3,10 +3,10 @@
 **Tracking Issue**: React 18/19 Frontend Upgrade - Modernize Kubeflow Pipelines UI
 **Repository**: [kubeflow/pipelines](https://github.com/kubeflow/pipelines)
 
-**Strategy**: Deps-first where possible, bump-last where necessary. The React 18 rollout is now complete on `master`; the remaining near-term work is React 19 preparation, starting with the dependency sweep in `#12`.
+**Strategy**: Deps-first where possible, bump-last where necessary. The React 18 rollout and React 19 dependency sweep are now complete on `master`; the remaining near-term work is the React 19 core bump in `#13`, followed by `#14` StrictMode and `#15` docs.
 **Canonical source**: This checklist is the canonical execution plan and supersedes earlier draft planning notes.
 
-## Status at a glance (updated March 19, 2026 ET)
+## Status at a glance (updated March 20, 2026 ET)
 
 - [x] ~~#1 Prereq warning/test cleanup~~ (`PRs`: [#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), [#12872](https://github.com/kubeflow/pipelines/pull/12872))
 - [x] ~~#2 Add React peer compatibility gate~~ (`PR`: [#12881](https://github.com/kubeflow/pipelines/pull/12881))
@@ -20,16 +20,16 @@
 - [x] ~~#9.5 Finish React 18 test-stack cleanup~~ (follow-up split out of closed [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 - [x] ~~#10 Stabilize React 18 runtime~~ (`issue`: [#12898](https://github.com/kubeflow/pipelines/issues/12898); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 - [x] ~~#11 React 18.3 deprecation checkpoint~~ (`issue`: [#12899](https://github.com/kubeflow/pipelines/issues/12899); `PR`: [#13080](https://github.com/kubeflow/pipelines/pull/13080))
-- [ ] #12 Dependency sweep for React 19 (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: none yet)
+- [x] ~~#12 Dependency sweep for React 19~~ (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: [#13082](https://github.com/kubeflow/pipelines/pull/13082))
 - [ ] #13 Upgrade React to v19 (`issue`: [#12901](https://github.com/kubeflow/pipelines/issues/12901); `PR`: none yet)
 - [ ] #14 Enable StrictMode in dev/test (`issue`: [#12902](https://github.com/kubeflow/pipelines/issues/12902); `PR`: none yet)
 - [ ] #15 Update documentation for the post-upgrade stack (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903); `PR`: none yet)
 
 **Current focus**:
-- `#11` is complete via [#13080](https://github.com/kubeflow/pipelines/pull/13080). The next milestone is `#12`: dependency sweep for React 19, followed by `#13` for the React 19 core bump.
-- No open PRs were found for `#12` through `#15`.
+- `#12` is complete via [#13082](https://github.com/kubeflow/pipelines/pull/13082). The next milestone is `#13`: the React 19 core bump, followed by `#14` for StrictMode enablement.
+- No open PRs were found for `#13` through `#15`.
 
-**How to contribute**: `#1` through `#11` are complete. The next actionable work is `#12`, followed by `#13`. Every PR should pass `npm run test:ci` and `npm run build` before merge.
+**How to contribute**: `#1` through `#12` are complete. The next actionable work is `#13`, followed by `#14`. Every PR should pass `npm run test:ci` and `npm run build` before merge.
 
 ---
 
@@ -289,7 +289,7 @@ Make the React 18.3 state explicit in package metadata, run the full verificatio
 **Depends on**: #11
 
 **Status**:
-Completed via [#13082](https://github.com/kubeflow/pipelines/pull/13082). `npm run check:react-peers:19` now passes with a single allowlisted React core blocker that remains until `#13`.
+Completed via [#13082](https://github.com/kubeflow/pipelines/pull/13082), merged on March 20, 2026 UTC. `npm run check:react-peers:19` now passes with a single allowlisted React core blocker that remains until `#13`. Issue [#12900](https://github.com/kubeflow/pipelines/issues/12900) was closed on March 20, 2026.
 
 **Description**:
 Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and allowlist the expected React core blocker that is resolved in `#13`.
@@ -314,6 +314,9 @@ Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible 
 **Status**:
 Not started.
 
+**Current note**:
+The React 19 peer gate is already green except for the intentional allowlist entry introduced in [#13082](https://github.com/kubeflow/pipelines/pull/13082): `react-dom@18.3.1::react=^18.3.1`. `#13` should remove that last allowlisted core mismatch by upgrading the React runtime itself.
+
 **Description**:
 Bump `react`, `react-dom`, `@types/react`, and `@types/react-dom` to v19, then handle the small set of React 19-specific source changes still visible in the repo today. Known examples include the `forwardRef`-based test mocks still present in:
 - `frontend/src/pages/RecurringRunList.test.tsx`
@@ -327,7 +330,7 @@ Regenerate and review the affected snapshots after the bump.
 - [ ] `npm run test:ci && npm run build` pass
 - [ ] `npm install` completes without peer-dependency warnings
 - [ ] Manual smoke testing shows zero new console warnings or deprecation messages
-- [ ] `npm run check:react-peers:19` passes
+- [ ] `npm run check:react-peers:19` passes with an empty allowlist
 
 ---
 
@@ -395,9 +398,9 @@ The final state should reflect the post-upgrade stack without leaving references
                    |
                    #11 React 18.3 Checkpoint [done]
                    |
-                   #12 React 19 Dependency Sweep [next]
+                   #12 React 19 Dependency Sweep [done]
                    |
-                   #13 React 19 Core
+                   #13 React 19 Core [next]
                    |
                    #14 StrictMode
                    |
@@ -405,4 +408,4 @@ The final state should reflect the post-upgrade stack without leaving references
 ```
 
 **Parallelizable**:
-`#1` through `#11` are complete. The practical next start point is `#12`, followed by `#13`. `#15` remains a good first issue once the stack stops moving.
+`#1` through `#12` are complete. The practical next start point is `#13`, followed by `#14`. `#15` remains a good first issue once the stack stops moving.
