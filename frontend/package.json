@@ -75,7 +75,7 @@
     "build:protos": "cd .. && node frontend/scripts/gen_grpc_web_protos.js",
     "build:platform-spec:kubernetes-platform": "bash ./scripts/k8splatformspec.sh",
     "build:pipeline-spec": "bash ./scripts/pipelinespec.sh",
-    "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" -f Dockerfile ..",
+    "docker": "COMMIT_HASH=$(git rev-parse HEAD); NODE_VERSION=$(tr -d 'v' < .nvmrc); docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg NODE_VERSION=${NODE_VERSION} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"$(date -u)\" -f Dockerfile ..",
     "format": "prettier --write './**/*.{ts,tsx}'",
     "format:check": "prettier --check './**/*.{ts,tsx}' || node ./scripts/check-format-error-info.js",
     "check:react-peers": "node scripts/check-react-peers.mjs --target 18",

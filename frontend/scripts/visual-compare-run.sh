@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 DEFAULT_BASE_COMMIT="dbc2319f4"
-DEFAULT_NODE_VERSION="${DEFAULT_NODE_VERSION:-22.19.0}"
+DEFAULT_NODE_VERSION="${DEFAULT_NODE_VERSION:-$(tr -d '\r\n' < "$ROOT/frontend/.nvmrc")}"
 BASE_COMMIT="${1:-$DEFAULT_BASE_COMMIT}"
 if [[ -z "$BASE_COMMIT" ]]; then
   echo "Usage: $0 <base-commit>"
@@ -17,7 +18,6 @@ if [[ -z "$BASE_COMMIT" ]]; then
   exit 1
 fi
 
-ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 BASE_WORKTREE="${BASE_WORKTREE:-$ROOT/../pipelines-vite-baseline}"
 BASE_PORT="${BASE_PORT:-3010}"
 CURRENT_PORT="${CURRENT_PORT:-3020}"
@@ -38,7 +38,7 @@ trap cleanup EXIT INT TERM
 resolve_node_version() {
   local dir="$1"
   if [[ -f "$dir/frontend/.nvmrc" ]]; then
-    cat "$dir/frontend/.nvmrc"
+    tr -d '\r\n' < "$dir/frontend/.nvmrc"
   else
     echo "$DEFAULT_NODE_VERSION"
   fi

@@ -1,5 +1,7 @@
+# Pass NODE_VERSION from frontend/.nvmrc when building this image.
+ARG NODE_VERSION
 ARG BASE_IMAGE=alpine
-FROM node:24.14.0-slim AS build
+FROM node:${NODE_VERSION}-slim AS build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}
@@ -24,7 +26,7 @@ RUN mkdir -p ./server/dist && \
     echo ${DATE} > ./server/dist/BUILD_DATE && \
     echo ${TAG_NAME} > ./server/dist/TAG_NAME
 
-FROM node:24.14.0-${BASE_IMAGE}
+FROM node:${NODE_VERSION}-${BASE_IMAGE}
 
 COPY --from=build ./src/frontend/server /server
 COPY --from=build ./src/frontend/build /client
