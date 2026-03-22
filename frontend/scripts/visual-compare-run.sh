@@ -2,8 +2,14 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+
+normalize_node_version() {
+  printf '%s\n' "${1#v}"
+}
+
 DEFAULT_BASE_COMMIT="dbc2319f4"
 DEFAULT_NODE_VERSION="${DEFAULT_NODE_VERSION:-$(tr -d '\r\n' < "$ROOT/frontend/.nvmrc")}"
+DEFAULT_NODE_VERSION="$(normalize_node_version "$DEFAULT_NODE_VERSION")"
 BASE_COMMIT="${1:-$DEFAULT_BASE_COMMIT}"
 if [[ -z "$BASE_COMMIT" ]]; then
   echo "Usage: $0 <base-commit>"
@@ -38,7 +44,7 @@ trap cleanup EXIT INT TERM
 resolve_node_version() {
   local dir="$1"
   if [[ -f "$dir/frontend/.nvmrc" ]]; then
-    tr -d '\r\n' < "$dir/frontend/.nvmrc"
+    normalize_node_version "$(tr -d '\r\n' < "$dir/frontend/.nvmrc")"
   else
     echo "$DEFAULT_NODE_VERSION"
   fi

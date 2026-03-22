@@ -74,7 +74,7 @@ jobs:
 
       - name: Read frontend Node version
         id: frontend_node
-        run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
 
       - name: Create Artifacts Path Directory
         id: configure
