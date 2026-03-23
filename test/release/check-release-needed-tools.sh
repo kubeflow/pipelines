@@ -16,13 +16,18 @@
 
 set -e
 
+normalize_node_version() {
+  printf '%s\n' "${1#v}"
+}
+
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-REQUIRED_NODE_VERSION="$(tr -d '\r\n' < "${ROOT_DIR}/frontend/.nvmrc")"
+REQUIRED_NODE_VERSION="$(normalize_node_version "$(tr -d '\r\n' < "${ROOT_DIR}/frontend/.nvmrc")")"
 
 echo "The following tools are needed when releasing KFP:"
 echo "node==${REQUIRED_NODE_VERSION}"
 which node >/dev/null || (echo "node not found in PATH, recommend install via https://github.com/nvm-sh/nvm#installing-and-updating" && exit 1)
-test "$(node -v)" = "${REQUIRED_NODE_VERSION}" || (echo "node version should match ${REQUIRED_NODE_VERSION}" && exit 1)
+ACTUAL_NODE_VERSION="$(normalize_node_version "$(node -v)")"
+test "${ACTUAL_NODE_VERSION}" = "${REQUIRED_NODE_VERSION}" || (echo "node version should match ${REQUIRED_NODE_VERSION}" && exit 1)
 echo "jq>=1.6"
 which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
 echo "yq>=3.3 <4.0"
