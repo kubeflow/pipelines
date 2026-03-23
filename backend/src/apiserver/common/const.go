@@ -96,10 +96,4 @@ const (
 	DefaultPodRuntimeTimeoutValue      time.Duration = 3600 * time.Second
 	DefaultPodNodeFailureTimeoutValue  time.Duration = 3600 * time.Second
 )
-
-// ClearTagsMetadataKey is the gRPC metadata key set by the HTTP middleware
-// when the client sends an empty tags map ("tags":{}) to signal that all
-// tags should be removed. Protobuf binary encoding cannot distinguish an
-// empty map from nil, so this header preserves the intent across the
-// HTTP→gRPC proxy roundtrip.
-const ClearTagsMetadataKey = "x-clear-tags"
+
