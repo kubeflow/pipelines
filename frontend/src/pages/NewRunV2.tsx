@@ -360,6 +360,8 @@ function NewRunV2(props: NewRunV2Props) {
   });
 
   const startRun = async () => {
+    const submittedIsRecurringRun = isRecurringRun;
+
     let newRun: V2beta1Run = {
       description: runDescription,
       display_name: runName,
@@ -382,7 +384,7 @@ function NewRunV2(props: NewRunV2Props) {
 
     let newRecurringRun: V2beta1RecurringRun = Object.assign(
       newRun,
-      isRecurringRun
+      submittedIsRecurringRun
         ? {
             max_concurrency: maxConcurrentRuns || '1',
             no_catchup: !needCatchup,
@@ -399,7 +401,7 @@ function NewRunV2(props: NewRunV2Props) {
     setIsStartingNewRun(true);
 
     try {
-      if (isRecurringRun) {
+      if (submittedIsRecurringRun) {
         const data = await newRecurringRunMutation.mutateAsync(newRecurringRun);
         setIsStartingNewRun(false);
         if (data.recurring_run_id) {
@@ -437,7 +439,7 @@ function NewRunV2(props: NewRunV2Props) {
         buttons: [{ text: 'Dismiss' }],
         onClose: () => setIsStartingNewRun(false),
         content: errorMessage,
-        title: isRecurringRun ? 'Recurring run creation failed' : 'Run creation failed',
+        title: submittedIsRecurringRun ? 'Recurring run creation failed' : 'Run creation failed',
       });
     }
   };

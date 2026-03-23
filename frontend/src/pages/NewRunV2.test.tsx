@@ -1298,6 +1298,64 @@ describe('NewRunV2', () => {
     });
   });
 
+  describe('error dialog uses the submitted run type', () => {
+    it('shows "Recurring run creation failed" even if user flips radio to one-off before rejection', async () => {
+      let rejectRecurringRun!: (reason: unknown) => void;
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockReturnValue(
+        new Promise((_resolve, reject) => {
+          rejectRecurringRun = reject;
+        }),
+      );
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const startButton = await screen.findByText('Start');
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+      fireEvent.click(startButton);
+
+      await waitFor(() => {
+        expect(createRecurringRunSpy).toHaveBeenCalled();
+      });
+
+      // Flip to one-off while the recurring run request is still in flight
+      const oneOffSwitcher = screen.getByLabelText('One-off');
+      fireEvent.click(oneOffSwitcher);
+
+      // Now reject the in-flight recurring run request
+      rejectRecurringRun(new Error('simulated failure'));
+
+      await waitFor(() => {
+        expect(updateDialogSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Recurring run creation failed',
+          }),
+        );
+      });
+    });
+  });
+
   describe('"Always Use Latest" checkbox functionality', () => {
     it('should be disabled when no pipeline is selected', async () => {
       render(
