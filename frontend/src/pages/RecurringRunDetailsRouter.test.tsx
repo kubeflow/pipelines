@@ -111,6 +111,47 @@ describe('RecurringRunDetailsRouter', () => {
     });
   });
 
+  it('prefers inline recurring run pipeline_spec over pipeline version template', async () => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+    const recurringRun: V2beta1RecurringRun = {
+      recurring_run_id: TEST_RECURRING_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      pipeline_version_reference: {
+        pipeline_id: TEST_PIPELINE_ID,
+        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      },
+    };
+    const pipelineVersion: V2beta1PipelineVersion = {
+      pipeline_id: TEST_PIPELINE_ID,
+      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+      pipeline_spec: {
+        apiVersion: 'argoproj.io/v1alpha1',
+        kind: 'Workflow',
+        metadata: { name: 'from-version' },
+        spec: { arguments: { parameters: [{ name: 'output' }] } },
+      },
+    };
+
+    getRecurringRunSpy.mockResolvedValue(recurringRun);
+    getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
+
+    render(
+      <CommonTestWrapper>
+        <RecurringRunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+        TEST_PIPELINE_ID,
+        TEST_PIPELINE_VERSION_ID,
+      );
+      expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
+    });
+  });
+
   it('renders RecurringRunDetailsV2FC when FUNCTIONAL_COMPONENT flag is enabled', async () => {
     // Enables both V2_ALPHA (required by isPipelineSpec) and FUNCTIONAL_COMPONENT (router branch).
     vi.spyOn(features, 'isFeatureEnabled').mockImplementation(

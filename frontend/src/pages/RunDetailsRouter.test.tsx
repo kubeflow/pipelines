@@ -234,9 +234,11 @@ describe('RunDetailsRouter', () => {
       expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID);
     });
 
-    const element = screen.getByTestId('enhanced-run-details');
-    expect(element).toBeInTheDocument();
-    expect(element.dataset.isLoading).toBe('false');
+    await waitFor(() => {
+      const element = screen.getByTestId('enhanced-run-details');
+      expect(element).toBeInTheDocument();
+      expect(element.dataset.isLoading).toBe('false');
+    });
   });
 
   it('fetches template from pipeline version when run has no inline spec', async () => {
