@@ -77,28 +77,24 @@ jobs:
   reset_ci_passed_label:
     name: Reset stale 'ci-passed' label
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_target'
+    # Only run on pull_request_target events that can actually affect ci-passed:
+    #   - synchronize/reopened: new commits invalidate previous CI results
+    #   - labeled with 'needs-ok-to-test': PR became ineligible
+    #   - unlabeled with 'ok-to-test': PR became ineligible
+    # This avoids spinning up a runner for unrelated label changes.
+    if: >
+      github.event_name == 'pull_request_target' &&
+      (
+        github.event.action == 'synchronize' ||
+        github.event.action == 'reopened' ||
+        (github.event.action == 'labeled' && github.event.label.name == 'needs-ok-to-test') ||
+        (github.event.action == 'unlabeled' && github.event.label.name == 'ok-to-test')
+      )
     steps:
       - name: Remove existing 'ci-passed' label
         run: |
           pr_number=${{ github.event.pull_request.number }}
-          event_action="${{ github.event.action }}"
-          has_ok_to_test="${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}"
-          has_needs_ok_to_test="${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}"
-
-          should_remove="false"
-          if [[ "${event_action}" == "synchronize" || "${event_action}" == "reopened" ]]; then
-            should_remove="true"
-          elif [[ "${has_ok_to_test}" != "true" || "${has_needs_ok_to_test}" == "true" ]]; then
-            should_remove="true"
-          fi
-
-          if [[ "${should_remove}" != "true" ]]; then
-            echo "PR #${pr_number} is still label-eligible after ${event_action}; leaving 'ci-passed' unchanged."
-            exit 0
-          fi
-
-          echo "Checking for stale 'ci-passed' label on PR #${pr_number} after ${event_action}"
+          echo "Checking for stale 'ci-passed' label on PR #${pr_number} after ${{ github.event.action }}"
           labels=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
 
           if echo "${labels}" | grep -qx 'ci-passed'; then
