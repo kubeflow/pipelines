@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import portableFetch from 'portable-fetch';
 import {
   Configuration as ExperimentConfiguration,
   ExperimentServiceApi,
@@ -91,7 +90,7 @@ let customVisualizationsAllowed: boolean;
 // For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
 // Refrence: https://github.com/github/fetch#sending-cookies
 const crossBrowserFetch: FetchAPI = (url, init) =>
-  portableFetch(url, { credentials: 'same-origin', ...init });
+  fetch(url, { credentials: 'same-origin', ...init });
 
 export class Apis {
   public static async areCustomVisualizationsAllowed(): Promise<boolean> {
