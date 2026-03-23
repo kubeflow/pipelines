@@ -134,6 +134,7 @@ export function RuntimeNodeDetailsV2({
           layers={layers}
           onLayerChange={onLayerChange}
           namespace={namespace}
+          taskDetail={taskDetail}
         />
       );
     }
@@ -499,6 +500,7 @@ interface SubDAGNodeDetailProps {
   layers: string[];
   onLayerChange: (layers: string[]) => void;
   namespace: string | undefined;
+  taskDetail?: V2beta1PipelineTaskDetail;
 }
 
 function SubDAGNodeDetail({
@@ -507,6 +509,7 @@ function SubDAGNodeDetail({
   layers,
   onLayerChange,
   namespace,
+  taskDetail,
 }: SubDAGNodeDetailProps) {
   const taskKey = getTaskKeyFromNodeKey(element.id);
   // const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
@@ -523,6 +526,15 @@ function SubDAGNodeDetail({
   return (
     <div>
       <div className={commonCss.page}>
+        {taskDetail?.error && (
+          <React.Fragment>
+            <Banner
+              message='Task failed'
+              additionalInfo={taskDetail.error.message || 'Unknown error'}
+              mode='error'
+            />
+          </React.Fragment>
+        )}
         <div className={padding(20, 'blr')}>
           <Button variant='contained' onClick={onSubDagOpenClick}>
             Open Sub-DAG

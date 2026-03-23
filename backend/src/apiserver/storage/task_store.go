@@ -134,8 +134,10 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"StateHistory":      stateHistoryString,
 				"MLMDInputs":        newTask.MLMDInputs,
 				"MLMDOutputs":       newTask.MLMDOutputs,
-				"ChildrenPods":      childrenPodsString,
-				"Payload":           newTask.ToString(),
+				"ChildrenPods":            childrenPodsString,
+				"LifecycleFailureReason":  newTask.LifecycleFailureReason,
+				"LifecycleFailureMessage": newTask.LifecycleFailureMessage,
+				"Payload":                 newTask.ToString(),
 			},
 		).
 		ToSql()
