@@ -1866,6 +1866,64 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             .parameters['message'].runtime_value.constant.string_value,
             'Second exit task.')
 
+    def test_task_after_exit_handler_group(self):
+
+        @dsl.pipeline(name='pipeline-after-exit-handler-group')
+        def my_pipeline():
+            exit_task = print_op(message='Exit task.')
+
+            with dsl.ExitHandler(exit_task) as exit_group:
+                print_op(message='Inside exit handler.')
+
+            print_op(message='After exit handler.').after(exit_group)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        self.assertEqual(
+            list(pipeline_spec.root.dag.tasks['print-op-3'].dependent_tasks),
+            ['exit-handler-1'])
+
+    def test_tasks_after_multiple_exit_handler_groups(self):
+
+        @dsl.pipeline(name='pipeline-after-multiple-exit-handler-groups')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task) as first_exit_group:
+                print_op(message='Inside first exit handler.')
+
+            after_first = print_op(message='After first exit handler.').after(
+                first_exit_group)
+
+            second_exit_task = print_op(message='Second exit task.')
+
+            with dsl.ExitHandler(second_exit_task) as second_exit_group:
+                print_op(message='Inside second exit handler.').after(
+                    after_first)
+
+            print_op(message='After second exit handler.').after(
+                second_exit_group)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        self.assertEqual(
+            list(pipeline_spec.root.dag.tasks['print-op-3'].dependent_tasks),
+            ['exit-handler-1'])
+        self.assertEqual(
+            list(pipeline_spec.root.dag.tasks['exit-handler-2'].dependent_tasks),
+            ['print-op-3'])
+        self.assertEqual(
+            list(pipeline_spec.root.dag.tasks['print-op-6'].dependent_tasks),
+            ['exit-handler-2'])
+
     def test_nested_unsupported(self):
 
         with self.assertRaisesRegex(
