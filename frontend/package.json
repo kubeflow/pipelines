@@ -30,7 +30,7 @@
     "lodash.isfunction": "^3.0.9",
     "markdown-to-jsx": "^7.0.0",
     "pako": "^2.0.4",
-    "portable-fetch": "^3.0.0",
+
     "proto3-json-serializer": "^0.1.6",
     "protobufjs": "~6.11.4",
     "re-resizable": "^6.11.2",
