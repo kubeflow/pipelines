@@ -546,21 +546,21 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envKey:   DefaultPodProvisioningTimeout,
 			envValue: "1800s",
 			getter:   func() interface{} { return GetDefaultPodProvisioningTimeout() },
-			expected: "1800s",
+			expected: 1800 * time.Second,
 		},
 		{
 			name:     "GetDefaultPodRuntimeTimeout with custom value",
 			envKey:   DefaultPodRuntimeTimeout,
 			envValue: "7200s",
 			getter:   func() interface{} { return GetDefaultPodRuntimeTimeout() },
-			expected: "7200s",
+			expected: 7200 * time.Second,
 		},
 		{
 			name:     "GetDefaultPodNodeFailureTimeout with custom value",
 			envKey:   DefaultPodNodeFailureTimeout,
 			envValue: "900s",
 			getter:   func() interface{} { return GetDefaultPodNodeFailureTimeout() },
-			expected: "900s",
+			expected: 900 * time.Second,
 		},
 	}
 

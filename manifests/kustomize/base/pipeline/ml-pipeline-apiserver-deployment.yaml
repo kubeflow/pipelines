@@ -151,11 +151,23 @@ spec:
                   key: defaultSecurityContextRunAsNonRoot
                   optional: true
             - name: DEFAULT_POD_PROVISIONING_TIMEOUT
-              value: "3600s"
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultPodProvisioningTimeout
+                  optional: true
             - name: DEFAULT_POD_RUNTIME_TIMEOUT
-              value: "3600s"
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultPodRuntimeTimeout
+                  optional: true
             - name: DEFAULT_POD_NODE_FAILURE_TIMEOUT
-              value: "3600s"
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultPodNodeFailureTimeout
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server

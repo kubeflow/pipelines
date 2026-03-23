@@ -44,9 +44,9 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
-	DefaultPodProvisioningTimeout string = "DEFAULT_POD_PROVISIONING_TIMEOUT"
-	DefaultPodRuntimeTimeout      string = "DEFAULT_POD_RUNTIME_TIMEOUT"
-	DefaultPodNodeFailureTimeout  string = "DEFAULT_POD_NODE_FAILURE_TIMEOUT"
+	DefaultPodProvisioningTimeout           string = "DEFAULT_POD_PROVISIONING_TIMEOUT"
+	DefaultPodRuntimeTimeout                string = "DEFAULT_POD_RUNTIME_TIMEOUT"
+	DefaultPodNodeFailureTimeout            string = "DEFAULT_POD_NODE_FAILURE_TIMEOUT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -191,14 +191,21 @@ func GetDefaultSecurityContextRunAsNonRoot() string {
 	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
 }
 
-func GetDefaultPodProvisioningTimeout() string {
-	return GetStringConfigWithDefault(DefaultPodProvisioningTimeout, DefaultPodProvisioningTimeoutValue)
+func GetDurationConfigWithDefault(configName string, value time.Duration) time.Duration {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetDuration(configName)
 }
 
-func GetDefaultPodRuntimeTimeout() string {
-	return GetStringConfigWithDefault(DefaultPodRuntimeTimeout, DefaultPodRuntimeTimeoutValue)
+func GetDefaultPodProvisioningTimeout() time.Duration {
+	return GetDurationConfigWithDefault(DefaultPodProvisioningTimeout, DefaultPodProvisioningTimeoutValue)
 }
 
-func GetDefaultPodNodeFailureTimeout() string {
-	return GetStringConfigWithDefault(DefaultPodNodeFailureTimeout, DefaultPodNodeFailureTimeoutValue)
+func GetDefaultPodRuntimeTimeout() time.Duration {
+	return GetDurationConfigWithDefault(DefaultPodRuntimeTimeout, DefaultPodRuntimeTimeoutValue)
+}
+
+func GetDefaultPodNodeFailureTimeout() time.Duration {
+	return GetDurationConfigWithDefault(DefaultPodNodeFailureTimeout, DefaultPodNodeFailureTimeoutValue)
 }

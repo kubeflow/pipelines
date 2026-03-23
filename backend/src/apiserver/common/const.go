@@ -14,6 +14,8 @@
 
 package common
 
+import "time"
+
 const (
 	RbacKubeflowGroup    = "kubeflow.org"
 	RbacPipelinesGroup   = "pipelines.kubeflow.org"
@@ -90,7 +92,7 @@ const (
 const ClearTagsMetadataKey = "x-clear-tags"
 
 const (
-	DefaultPodProvisioningTimeoutValue string = "3600s"
-	DefaultPodRuntimeTimeoutValue      string = "3600s"
-	DefaultPodNodeFailureTimeoutValue  string = "3600s"
+	DefaultPodProvisioningTimeoutValue time.Duration = 3600 * time.Second
+	DefaultPodRuntimeTimeoutValue      time.Duration = 3600 * time.Second
+	DefaultPodNodeFailureTimeoutValue  time.Duration = 3600 * time.Second
 )
