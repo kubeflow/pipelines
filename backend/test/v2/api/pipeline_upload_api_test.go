@@ -229,7 +229,8 @@ var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.P
 			uploadPipelineVersionAndVerify(helloWorldPipelineSpecFilePath, parameters, expectedPipelineVersion)
 
 			// Verify tags via ListPipelineVersions
-			versions := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(len(versions)).To(BeNumerically(">=", 2))
 
 			var foundTaggedVersion bool
@@ -470,7 +471,14 @@ func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipe
 	// Validate the created pipeline spec (by API server) matches the input file
 	expectedPipelineSpec := testutil.ParseFileToSpecs(pipelineFilePath, true, nil)
 	logger.Log("Verifying that the generated pipeline spec matches the input yaml file")
-	versions := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+	versions, err := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+	if len(versions) == 0 || err != nil {
+		Eventually(func() int {
+			versions, err = testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			return len(versions)
+		}, 30*time.Second, 10*time.Second).Should(BeNumerically(">", 0))
+	}
+	Expect(err).NotTo(HaveOccurred())
 	Expect(versions).Should(HaveLen(1), "Expected to find only one pipeline version after pipeline upload")
 	actualPipelineSpec := versions[0].PipelineSpec.(map[string]interface{})
 	matcher.MatchPipelineSpecs(actualPipelineSpec, expectedPipelineSpec)

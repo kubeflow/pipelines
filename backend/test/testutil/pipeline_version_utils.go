@@ -101,10 +101,10 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, pipelineID str
 // GetSortedPipelineVersionsByCreatedAt - Get a list of pipeline upload version for a specific pipeline, and sort the list by CreatedAt before returning it
 //
 // sortBy - ASC or DESC, If nil, then the default will be DESC
-func GetSortedPipelineVersionsByCreatedAt(client *api_server.PipelineClient, pipelineID string, sortBy *string) []*pipeline_model.V2beta1PipelineVersion {
+func GetSortedPipelineVersionsByCreatedAt(client *api_server.PipelineClient, pipelineID string, sortBy *string) ([]*pipeline_model.V2beta1PipelineVersion, error) {
 	versions, _, _, err := ListPipelineVersions(client, pipelineID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	sort.Slice(versions, func(i, j int) bool {
 		versionTime1 := time.Time(versions[i].CreatedAt).UTC()
@@ -115,5 +115,5 @@ func GetSortedPipelineVersionsByCreatedAt(client *api_server.PipelineClient, pip
 			return versionTime1.After(versionTime2)
 		}
 	})
-	return versions
+	return versions, nil
 }

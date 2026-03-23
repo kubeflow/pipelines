@@ -799,7 +799,8 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(versions).Should(HaveLen(1))
 
 			filter := fmt.Sprintf(`{"predicates":[{"key":"pipeline_version_id","operation":"EQUALS","string_value":"%s"}]}`, versions[0].PipelineVersionID)
@@ -1362,7 +1363,8 @@ var _ = Describe("Create Pipeline API Tests >", Label(constants.POSITIVE, consta
 				Expect(createdPipeline.PipelineID).NotTo(BeEmpty())
 				testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, toUploadModel(createdPipeline))
 
-				versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+				versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+				Expect(err).NotTo(HaveOccurred())
 				Expect(versions).Should(HaveLen(1))
 				actualPipelineSpec := versions[0].PipelineSpec.(map[string]interface{})
 				matcher.MatchPipelineSpecs(actualPipelineSpec, inputFileContent)
@@ -1472,7 +1474,8 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(versions).Should(HaveLen(1))
 
 			retrievedVersion, err := pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
@@ -1489,7 +1492,8 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(versions).Should(HaveLen(1))
 
 			retrievedVersion, err := pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
@@ -1577,7 +1581,8 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			Expect(err).NotTo(HaveOccurred())
 
 			// List versions
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(len(versions)).To(BeNumerically(">=", 2))
 
 			// Find the tagged version and verify tags
@@ -1598,7 +1603,8 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(versions).Should(HaveLen(1))
 			Expect(versions[0].Tags).To(BeEmpty(), "Version created without tags should have empty tags")
 		})
@@ -1691,7 +1697,8 @@ var _ = Describe("Create Pipeline Version API Tests >", Label(constants.POSITIVE
 			}
 
 			// Verify all 4 versions exist (1 from upload + 3 created)
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(len(versions)).To(Equal(4), "Should have 4 versions total")
 		})
 	})
@@ -1765,18 +1772,20 @@ var _ = Describe("Delete Pipeline API Tests >", Label(constants.POSITIVE, consta
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			// Get the pipeline version
-			versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versions, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(versions).Should(HaveLen(1))
 
 			// Delete the version
-			err := pipelineClient.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{
+			err = pipelineClient.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{
 				PipelineID:        createdPipeline.PipelineID,
 				PipelineVersionID: versions[0].PipelineVersionID,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify version is gone
-			versionsAfterDelete := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			versionsAfterDelete, err := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(versionsAfterDelete).Should(HaveLen(0))
 		})
 

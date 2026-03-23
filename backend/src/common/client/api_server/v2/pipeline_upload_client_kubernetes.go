@@ -17,6 +17,7 @@ package api_server_v2
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -74,6 +75,19 @@ func deriveNameDisplayAndDescription(providedName, providedDisplayName, provided
 	}
 
 	return name, displayName, description
+}
+
+func parseTagsJSONString(rawTags *string) (map[string]string, error) {
+	if rawTags == nil || *rawTags == "" {
+		return nil, nil
+	}
+
+	var tags map[string]string
+	if err := json.Unmarshal([]byte(*rawTags), &tags); err != nil {
+		return nil, err
+	}
+
+	return tags, nil
 }
 
 func NewPipelineUploadClientKubernetes(clientConfig clientcmd.ClientConfig, namespace string) (
@@ -136,12 +150,19 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 		parameters.Description,
 		path.Base(parameters.Uploadfile.Name()),
 	)
+	tags, err := parseTagsJSONString(parameters.Tags)
+	if err != nil {
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to parse pipeline tags. Params: '%v'", parameters),
+			"Failed to upload pipeline")
+	}
 
 	pipelineModel := apimodel.Pipeline{
 		Name:        name,
 		Namespace:   c.namespace,
 		DisplayName: displayName,
 		Description: apimodel.LargeText(description),
+		Tags:        tags,
 	}
 	pipeline := k8sapi.FromPipelineModel(pipelineModel)
 
@@ -183,6 +204,7 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 		Name:        pipeline.Name,
 		PipelineID:  string(pipeline.ObjectMeta.UID),
 		Namespace:   pipeline.Namespace,
+		Tags:        pipelineModel.Tags,
 	}
 
 	return rv, nil
@@ -246,6 +268,12 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 		parameters.Description,
 		path.Base(filePath),
 	)
+	tags, err := parseTagsJSONString(parameters.Tags)
+	if err != nil {
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to parse pipeline version tags. Params: '%v'", parameters),
+			"Failed to upload pipeline version")
+	}
 
 	modelPipelineVersion := apimodel.PipelineVersion{
 		Name:         name,
@@ -253,6 +281,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 		DisplayName:  displayName,
 		Description:  apimodel.LargeText(description),
 		PipelineId:   modelPipeline.UUID,
+		Tags:         tags,
 	}
 
 	pipelineVersion, err := k8sapi.FromPipelineVersionModel(*modelPipeline, modelPipelineVersion)
@@ -285,6 +314,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 		PipelineVersionID: pipelineVersionModel.UUID,
 		PipelineSpec:      nil,
 		CodeSourceURL:     pipelineVersionModel.CodeSourceUrl,
+		Tags:              pipelineVersionModel.Tags,
 	}
 
 	// Handles the case where there is a platform spec in the pipeline spec.

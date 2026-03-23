@@ -15,6 +15,7 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 from typing import Any, Dict, List
 
 import yaml
@@ -89,8 +90,22 @@ spec:
   selfSigned: {}
 """
 
-        self._apply_yaml_content(issuer_yaml, 'service-ca-issuer')
-        print('✅ Service CA issuer created successfully')
+        # Retry applying the ClusterIssuer because the cert-manager webhook
+        # may not be serving yet even after the pod is Ready.
+        max_retries = 12
+        for attempt in range(1, max_retries + 1):
+            try:
+                self._apply_yaml_content(issuer_yaml, 'service-ca-issuer')
+                print('✅ Service CA issuer created successfully')
+                break
+            except Exception:
+                if attempt == max_retries:
+                    raise
+                print(
+                    f'⏳ cert-manager webhook not ready yet, retrying in 10s '
+                    f'(attempt {attempt}/{max_retries})...'
+                )
+                time.sleep(10)
 
     def _create_service_ca_certificate(self):
         """Create the root service CA certificate."""

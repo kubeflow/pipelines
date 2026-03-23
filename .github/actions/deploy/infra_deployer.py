@@ -62,6 +62,23 @@ class InfraDeployer:
                 resource_type=ResourceType.DEPLOYMENT)
             raise RuntimeError('Cert-manager deployment failed')
 
+        # Wait for the cert-manager webhook to be ready to accept requests
+        print('⏳ Waiting for cert-manager webhook to be ready...')
+        webhook_ready = self.deployment_manager.wait_for_resource(
+            resource_type=ResourceType.DEPLOYMENT,
+            resource_name='cert-manager-webhook',
+            namespace=cert_manager_namespace,
+            condition=WaitCondition.AVAILABLE,
+            timeout='120s',
+            description='cert-manager-webhook deployment')
+
+        if not webhook_ready:
+            self.deployment_manager.debug_deployment_failure(
+                namespace=cert_manager_namespace,
+                deployment_name='cert-manager-webhook',
+                resource_type=ResourceType.DEPLOYMENT)
+            raise RuntimeError('Cert-manager webhook deployment failed')
+
         print('✅ Cert-manager deployed successfully')
 
     def apply_webhooks(self):
