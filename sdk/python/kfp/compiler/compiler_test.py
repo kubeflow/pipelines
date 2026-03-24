@@ -1896,17 +1896,17 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             with dsl.ExitHandler(first_exit_task) as first_exit_group:
                 print_op(message='Inside first exit handler.')
 
-            after_first = print_op(message='After first exit handler.').after(
-                first_exit_group)
+            after_first = print_op(
+                message='After first exit handler.').after(first_exit_group)
 
             second_exit_task = print_op(message='Second exit task.')
 
             with dsl.ExitHandler(second_exit_task) as second_exit_group:
-                print_op(message='Inside second exit handler.').after(
-                    after_first)
+                print_op(
+                    message='Inside second exit handler.').after(after_first)
 
-            print_op(message='After second exit handler.').after(
-                second_exit_group)
+            print_op(
+                message='After second exit handler.').after(second_exit_group)
 
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
@@ -1918,7 +1918,8 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             list(pipeline_spec.root.dag.tasks['print-op-3'].dependent_tasks),
             ['exit-handler-1'])
         self.assertEqual(
-            list(pipeline_spec.root.dag.tasks['exit-handler-2'].dependent_tasks),
+            list(
+                pipeline_spec.root.dag.tasks['exit-handler-2'].dependent_tasks),
             ['print-op-3'])
         self.assertEqual(
             list(pipeline_spec.root.dag.tasks['print-op-6'].dependent_tasks),
