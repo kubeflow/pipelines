@@ -398,7 +398,7 @@ func TestCreatePipeline(t *testing.T) {
 			model:    createPipeline("complex", "", "user1"),
 		},
 		{
-			msg:       "InvalidTemplate",
+			msg:       "InvalidYAML",
 			template:  "I am invalid yaml",
 			model:     createPipeline("InvalidYAML", "", "user1"),
 			errorCode: codes.InvalidArgument,
@@ -415,7 +415,7 @@ func TestCreatePipeline(t *testing.T) {
 		{
 			msg:      "V2PipelineSpec",
 			template: v2SpecHelloWorld,
-			name:     "v2spec",
+			name:     "v2 spec",
 			model:    createPipeline("v2 spec", "", "user1"),
 		},
 	}
@@ -561,10 +561,10 @@ func TestCreatePipelineVersion(t *testing.T) {
 			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
 			// Create a pipeline before versions.
-			p0 := createPipelineV1("my_pipeline")
+			p0 := createPipelineV1("my-pipeline")
 			pv0 := createPipelineVersion(
 				"",
-				"my_pipeline",
+				"my-pipeline",
 				"",
 				"",
 				testWorkflow.ToStringForStore(),
@@ -589,7 +589,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 			if test.model == nil {
 				pv = createPipelineVersion(
 					pipeline.UUID,
-					"my_pipeline_version_name",
+					"my-pipeline-version-name",
 					"",
 					"",
 					test.template,
@@ -706,12 +706,12 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 		{
 			"Valid - pipeline v2",
 			&model.Pipeline{
-				Name:        "pipeline v2",
+				Name:        "pipeline-v2",
 				Description: model.LargeText("pipeline two"),
 				Namespace:   "user1",
 			},
 			&model.PipelineVersion{
-				Name:            "pipeline v2 version 1",
+				Name:            "pipeline-v2-version-1",
 				Description:     model.LargeText("pipeline v2 version description"),
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
 				PipelineSpec:    model.LargeText(v2SpecHelloWorld),
@@ -720,8 +720,8 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			&model.Pipeline{
 				UUID:           DefaultFakePipelineIdTwo,
 				CreatedAtInSec: 1,
-				Name:           "pipeline v2",
-				DisplayName:    "pipeline v2",
+				Name:           "pipeline-v2",
+				DisplayName:    "pipeline-v2",
 				Description:    model.LargeText("pipeline two"),
 				Namespace:      "user1",
 				Status:         model.PipelineReady,
@@ -729,8 +729,8 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			&model.PipelineVersion{
 				UUID:            DefaultFakePipelineIdTwo,
 				CreatedAtInSec:  2,
-				Name:            "pipeline v2 version 1",
-				DisplayName:     "pipeline v2 version 1",
+				Name:            "pipeline-v2-version-1",
+				DisplayName:     "pipeline-v2-version-1",
 				Description:     model.LargeText("pipeline v2 version description"),
 				PipelineId:      DefaultFakePipelineIdTwo,
 				Status:          model.PipelineVersionReady,
@@ -745,13 +745,13 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 		{
 			"Valid - pipeline v2 (with name and display name)",
 			&model.Pipeline{
-				Name:        "pipeline v2",
+				Name:        "pipeline-v2",
 				DisplayName: "pipeline v2 display name",
 				Description: model.LargeText("pipeline two"),
 				Namespace:   "user1",
 			},
 			&model.PipelineVersion{
-				Name:            "pipeline v2 version 1",
+				Name:            "pipeline-v2-version-1",
 				DisplayName:     "pipeline v2 version 1 display name",
 				Description:     model.LargeText("pipeline v2 version description"),
 				CodeSourceUrl:   "gs://my-bucket/pipeline_v2.py",
@@ -761,7 +761,7 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			&model.Pipeline{
 				UUID:           DefaultFakePipelineIdTwo,
 				CreatedAtInSec: 1,
-				Name:           "pipeline v2",
+				Name:           "pipeline-v2",
 				DisplayName:    "pipeline v2 display name",
 				Description:    model.LargeText("pipeline two"),
 				Namespace:      "user1",
@@ -770,7 +770,7 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			&model.PipelineVersion{
 				UUID:            DefaultFakePipelineIdTwo,
 				CreatedAtInSec:  2,
-				Name:            "pipeline v2 version 1",
+				Name:            "pipeline-v2-version-1",
 				DisplayName:     "pipeline v2 version 1 display name",
 				Description:     model.LargeText("pipeline v2 version description"),
 				PipelineId:      DefaultFakePipelineIdTwo,
@@ -820,6 +820,22 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			},
 			false,
 			"",
+		},
+		{
+			"Invalid - uppercase pipeline name (v2)",
+			&model.Pipeline{
+				Name:        "My-Pipeline",
+				Description: model.LargeText("invalid pipeline"),
+				Namespace:   "user1",
+			},
+			&model.PipelineVersion{
+				Name:         "my-version",
+				PipelineSpec: model.LargeText(v2SpecHelloWorld),
+			},
+			nil,
+			nil,
+			true,
+			"pipeline's name must contain only lowercase alphanumeric characters or '-' and must start with alphanumeric characters",
 		},
 	}
 	for _, tt := range tests {
@@ -1022,7 +1038,7 @@ func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
+	p, _ := manager.CreatePipeline(createPipelineV1("new-pipeline"))
 	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), p.UUID)
 	pv := &model.PipelineVersion{
 		PipelineId:      p.UUID,
@@ -1044,7 +1060,7 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
+	p, _ := manager.CreatePipeline(createPipelineV1("new-pipeline"))
 	pv := &model.PipelineVersion{
 		UUID:            "1000",
 		PipelineId:      p.UUID,
@@ -1073,7 +1089,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
+	p, _ := manager.CreatePipeline(createPipelineV1("new-pipeline"))
 	pv := &model.PipelineVersion{
 		PipelineId:      p.UUID,
 		Name:            "new_version",
@@ -1514,7 +1530,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	// Verify the latest version
 	pvLatestTeplate, err := manager.GetPipelineLatestTemplate(DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
+	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
 }
 
 // Tests DeletePipelineVersion (NotFound)

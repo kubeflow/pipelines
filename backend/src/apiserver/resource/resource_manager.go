@@ -456,6 +456,13 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 		p.Name = pv.Name
 	}
 
+	// Validate user-provided pipeline name for v2 pipelines
+	if tmpl.IsV2() {
+		if err := common.ValidatePipelineName(p.Name); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	if pv.DisplayName == "" {
 		pv.DisplayName = pv.Name
 	}
