@@ -696,12 +696,28 @@ def _resolve_dependency_name_to_group_or_task(
     pipeline: pipeline_context.Pipeline,
     group_name_to_group: Mapping[str, tasks_group.TasksGroup],
 ) -> GroupOrTaskType:
-    """Resolves a recorded dependency name to its task or group object."""
-    if dependency_name in pipeline.tasks:
+    """Resolves a recorded dependency name to its task or group object.
+
+    Raises:
+        ValueError: If the dependency name does not correspond to a task or
+            group in the pipeline, or if it ambiguously refers to both.
+    """
+    is_task = dependency_name in pipeline.tasks
+    is_group = dependency_name in group_name_to_group
+
+    if is_task and is_group:
+        raise ValueError(
+            f'Ambiguous dependency name "{dependency_name}". It matches both '
+            'a task and a group in the pipeline. Please rename either the '
+            'task or the group so that dependency names are unambiguous.')
+
+    if is_task:
         return pipeline.tasks[dependency_name]
-    if dependency_name in group_name_to_group:
+    if is_group:
         return group_name_to_group[dependency_name]
-    raise ValueError(dependency_name + ' does not exist.')
+    raise ValueError(
+        f'Dependency "{dependency_name}" does not exist as either a task or '
+        'a group in the pipeline.')
 
 
 def get_dependencies(
@@ -735,6 +751,8 @@ def get_dependencies(
     Raises:
         InvalidTopologyException: if a task depends on a task inside a
             condition or loop group.
+        ValueError: if a dependency refers to an unknown task or task group,
+            or if the dependency name ambiguously refers to both.
     """
     dependencies = collections.defaultdict(set)
     for task in pipeline.tasks.values():
