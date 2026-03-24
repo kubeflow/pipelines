@@ -9,7 +9,7 @@
     "sourceMap": true,
     "allowJs": true,
     "resolveJsonModule": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "moduleResolution": "node",
     "noImplicitReturns": true,
     "noImplicitThis": true,

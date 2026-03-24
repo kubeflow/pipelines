@@ -350,8 +350,8 @@ export default (app: express.Application) => {
     if (runDetail) {
       runDetail.run!.storage_state =
         req.params.method === 'archive'
-          ? ApiRunStorageState.ARCHIVED
-          : ApiRunStorageState.AVAILABLE;
+          ? ApiRunStorageState.STORAGESTATE_ARCHIVED
+          : ApiRunStorageState.STORAGESTATE_AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);
@@ -403,7 +403,7 @@ export default (app: express.Application) => {
             } else {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
-          case PredicateOp.NOTEQUALS:
+          case PredicateOp.NOT_EQUALS:
             if (p.key === 'name') {
               return (
                 r.name && r.name.toLocaleLowerCase() !== (p.string_value || '').toLocaleLowerCase()
@@ -413,7 +413,7 @@ export default (app: express.Application) => {
             } else {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
-          case PredicateOp.ISSUBSTRING:
+          case PredicateOp.IS_SUBSTRING:
             if (p.key !== 'name') {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
@@ -421,15 +421,13 @@ export default (app: express.Application) => {
               r.name &&
               r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase())
             );
-          case PredicateOp.NOTEQUALS:
+          case PredicateOp.GREATER_THAN:
           // Fall through
-          case PredicateOp.GREATERTHAN:
+          case PredicateOp.GREATER_THAN_EQUALS:
           // Fall through
-          case PredicateOp.GREATERTHANEQUALS:
+          case PredicateOp.LESS_THAN:
           // Fall through
-          case PredicateOp.LESSTHAN:
-          // Fall through
-          case PredicateOp.LESSTHANEQUALS:
+          case PredicateOp.LESS_THAN_EQUALS:
             // Fall through
             throw new Error(`Op: ${p.op} is not yet supported by the mock API server`);
           default:

@@ -321,12 +321,12 @@ exports[`PipelineVersionList > calls Apis to list pipeline versions, sorted by c
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-37"
+              aria-controls=":r1b:"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby="mui-38"
+              aria-labelledby=":r1a:"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id="mui-38"
+              id=":r1a:"
               role="combobox"
               tabindex="0"
             >
@@ -786,12 +786,12 @@ exports[`PipelineVersionList > calls Apis to list pipeline versions, sorted by p
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-46"
+              aria-controls=":r1l:"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby="mui-47"
+              aria-labelledby=":r1k:"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id="mui-47"
+              id=":r1k:"
               role="combobox"
               tabindex="0"
             >
@@ -1108,12 +1108,12 @@ exports[`PipelineVersionList > renders a list of one pipeline version 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-9"
+              aria-controls=":rb:"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby="mui-10"
+              aria-labelledby=":ra:"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id="mui-10"
+              id=":ra:"
               role="combobox"
               tabindex="0"
             >
@@ -1432,12 +1432,12 @@ exports[`PipelineVersionList > renders a list of one pipeline version with descr
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-16"
+              aria-controls=":rj:"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby="mui-17"
+              aria-labelledby=":ri:"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id="mui-17"
+              id=":ri:"
               role="combobox"
               tabindex="0"
             >
@@ -1754,12 +1754,12 @@ exports[`PipelineVersionList > renders a list of one pipeline version with error
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-30"
+              aria-controls=":r13:"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby="mui-31"
+              aria-labelledby=":r12:"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id="mui-31"
+              id=":r12:"
               role="combobox"
               tabindex="0"
             >
@@ -2076,12 +2076,12 @@ exports[`PipelineVersionList > renders a list of one pipeline version without cr
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-23"
+              aria-controls=":rr:"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby="mui-24"
+              aria-labelledby=":rq:"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id="mui-24"
+              id=":rq:"
               role="combobox"
               tabindex="0"
             >
@@ -2333,12 +2333,12 @@ exports[`PipelineVersionList > renders an empty list with empty state message 1`
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-4"
+              aria-controls=":r5:"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby="mui-5"
+              aria-labelledby=":r4:"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id="mui-5"
+              id=":r4:"
               role="combobox"
               tabindex="0"
             >

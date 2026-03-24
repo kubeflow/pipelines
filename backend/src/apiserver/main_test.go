@@ -15,20 +15,27 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -320,5 +327,331 @@ func generateSelfSignedCert(t *testing.T, certPath, keyPath string) {
 	require.NoError(t, err)
 }
 
+// Subtests must not run in parallel: they mutate package-level flags.
+func TestInitConfig(t *testing.T) {
+	t.Run("success with valid config file", func(t *testing.T) {
+		viper.Reset()
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, "config.json")
+		require.NoError(t, os.WriteFile(configFile, []byte(`{}`), 0600))
+
+		originalConfigPath := *configPath
+		*configPath = tempDir
+		t.Cleanup(func() {
+			*configPath = originalConfigPath
+			viper.Reset()
+		})
+
+		err := initConfig()
+		assert.NoError(t, err)
+	})
+
+	t.Run("error with missing config file", func(t *testing.T) {
+		viper.Reset()
+		originalConfigPath := *configPath
+		*configPath = "/nonexistent/path"
+		t.Cleanup(func() {
+			*configPath = originalConfigPath
+			viper.Reset()
+		})
+
+		err := initConfig()
+		assert.Error(t, err)
+		var configNotFound viper.ConfigFileNotFoundError
+		assert.ErrorAs(t, err, &configNotFound)
+	})
+}
+
+// Subtests must not run in parallel: they mutate package-level flags.
+func TestRegisterHTTPHandlerFromEndpoint(t *testing.T) {
+	t.Run("success without TLS", func(t *testing.T) {
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			return nil
+		}
+		serveMux := runtime.NewServeMux()
+
+		err := registerHTTPHandlerFromEndpoint(context.Background(), handler, "TestService", serveMux, nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("success with TLS", func(t *testing.T) {
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			return nil
+		}
+		serveMux := runtime.NewServeMux()
+		tlsCfg := &tls.Config{}
+
+		err := registerHTTPHandlerFromEndpoint(context.Background(), handler, "TestService", serveMux, tlsCfg)
+		assert.NoError(t, err)
+	})
+
+	t.Run("handler returns error", func(t *testing.T) {
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			return fmt.Errorf("registration failed")
+		}
+		serveMux := runtime.NewServeMux()
+
+		err := registerHTTPHandlerFromEndpoint(context.Background(), handler, "FailService", serveMux, nil)
+		assert.ErrorContains(t, err, "failed to register FailService handler")
+		assert.ErrorContains(t, err, "registration failed")
+	})
+
+	t.Run("uses configured RPC port in endpoint", func(t *testing.T) {
+		originalPort := *rpcPortFlag
+		*rpcPortFlag = ":9999"
+		t.Cleanup(func() { *rpcPortFlag = originalPort })
+
+		var capturedEndpoint string
+		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
+			capturedEndpoint = endpoint
+			return nil
+		}
+		serveMux := runtime.NewServeMux()
+
+		err := registerHTTPHandlerFromEndpoint(context.Background(), handler, "TestService", serveMux, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "localhost:9999", capturedEndpoint)
+	})
+}
+
+func TestResolveWebhookTLSPaths(t *testing.T) {
+	allFilesExist := func(string) bool { return true }
+	noFilesExist := func(string) bool { return false }
+
+	t.Run("webhook-specific paths used when both are set and files exist", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/webhook/cert.pem", certPath)
+		assert.Equal(t, "/webhook/key.pem", keyPath)
+	})
+
+	t.Run("webhook paths set but files missing returns error", func(t *testing.T) {
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"/server/cert.pem", "/server/key.pem",
+			noFilesExist,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+		assert.Contains(t, err.Error(), "webhook TLS certificate/key paths are set but files do not exist")
+	})
+
+	t.Run("falls back to server paths when webhook paths are empty", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/server/cert.pem", certPath)
+		assert.Equal(t, "/server/key.pem", keyPath)
+	})
+
+	t.Run("server paths set but files missing returns error", func(t *testing.T) {
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			noFilesExist,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+		assert.Contains(t, err.Error(), "API server TLS certificate/key paths are set but files do not exist")
+	})
+
+	t.Run("no TLS paths configured returns useTLS false", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"", "",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.False(t, useTLS)
+		assert.Empty(t, certPath)
+		assert.Empty(t, keyPath)
+	})
+
+	t.Run("webhook cert missing but key exists checks both", func(t *testing.T) {
+		fileExistsOnlyKey := func(path string) bool {
+			return path == "/webhook/key.pem"
+		}
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "/webhook/key.pem",
+			"", "",
+			fileExistsOnlyKey,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+
+	t.Run("server cert exists but key missing returns error", func(t *testing.T) {
+		fileExistsOnlyCert := func(path string) bool {
+			return path == "/server/cert.pem"
+		}
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "/server/key.pem",
+			fileExistsOnlyCert,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+
+	t.Run("only webhook cert path set (no key) falls through to server paths", func(t *testing.T) {
+		// When only one of the webhook paths is set, it doesn't match the
+		// "both set" condition, so it falls through to server path logic.
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"/webhook/cert.pem", "",
+			"/server/cert.pem", "/server/key.pem",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, "/server/cert.pem", certPath)
+		assert.Equal(t, "/server/key.pem", keyPath)
+	})
+
+	t.Run("only server cert path set (no key) returns no TLS", func(t *testing.T) {
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			"", "",
+			"/server/cert.pem", "",
+			allFilesExist,
+		)
+		assert.NoError(t, err)
+		assert.False(t, useTLS)
+		assert.Empty(t, certPath)
+		assert.Empty(t, keyPath)
+	})
+
+	t.Run("uses real temp files to verify file existence check", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		require.NoError(t, os.WriteFile(certFile, []byte("cert"), 0600))
+		require.NoError(t, os.WriteFile(keyFile, []byte("key"), 0600))
+
+		certPath, keyPath, useTLS, err := resolveWebhookTLSPaths(
+			certFile, keyFile,
+			"", "",
+			common.FileExists,
+		)
+		assert.NoError(t, err)
+		assert.True(t, useTLS)
+		assert.Equal(t, certFile, certPath)
+		assert.Equal(t, keyFile, keyPath)
+	})
+
+	t.Run("real temp files only cert exists returns error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		certFile := filepath.Join(tempDir, "cert.pem")
+		keyFile := filepath.Join(tempDir, "key.pem")
+		require.NoError(t, os.WriteFile(certFile, []byte("cert"), 0600))
+		// keyFile intentionally not created
+
+		_, _, useTLS, err := resolveWebhookTLSPaths(
+			certFile, keyFile,
+			"", "",
+			common.FileExists,
+		)
+		assert.Error(t, err)
+		assert.False(t, useTLS)
+	})
+}
+
 func int64Ptr(v int64) *int64 { return &v }
 func boolPtr(v bool) *bool    { return &v }
+
+func TestClearTagsMiddleware(t *testing.T) {
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Got-Clear-Tags", r.Header.Get(common.ClearTagsMetadataKey))
+		body, _ := io.ReadAll(r.Body)
+		w.Header().Set("X-Body", string(body))
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := clearTagsMiddleware(downstream)
+
+	tests := []struct {
+		name       string
+		method     string
+		body       string
+		wantHeader string
+	}{
+		{
+			name:       "PUT with empty tags sets header",
+			method:     http.MethodPut,
+			body:       `{"tags":{}}`,
+			wantHeader: "true",
+		},
+		{
+			name:       "PUT with non-empty tags does not set header",
+			method:     http.MethodPut,
+			body:       `{"tags":{"k":"v"}}`,
+			wantHeader: "",
+		},
+		{
+			name:       "PUT without tags does not set header",
+			method:     http.MethodPut,
+			body:       `{"display_name":"foo"}`,
+			wantHeader: "",
+		},
+		{
+			name:       "GET request is ignored",
+			method:     http.MethodGet,
+			body:       "",
+			wantHeader: "",
+		},
+		{
+			name:       "POST request is ignored",
+			method:     http.MethodPost,
+			body:       `{"tags":{}}`,
+			wantHeader: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var bodyReader io.Reader
+			if tt.body != "" {
+				bodyReader = strings.NewReader(tt.body)
+			}
+			req := httptest.NewRequest(tt.method, "/apis/v2beta1/pipelines/some-id", bodyReader)
+			rr := httptest.NewRecorder()
+
+			handler.ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.wantHeader, rr.Header().Get("X-Got-Clear-Tags"))
+			if tt.body != "" {
+				assert.Equal(t, tt.body, rr.Header().Get("X-Body"))
+			}
+		})
+	}
+}
+
+func TestGrpcCustomMatcher_ClearTags(t *testing.T) {
+	key, ok := grpcCustomMatcher(common.ClearTagsMetadataKey)
+	assert.True(t, ok)
+	assert.Equal(t, common.ClearTagsMetadataKey, key)
+
+	key, ok = grpcCustomMatcher("X-CLEAR-TAGS")
+	assert.True(t, ok)
+	assert.Equal(t, common.ClearTagsMetadataKey, key)
+}
+
+func TestClearTagsMiddleware_BodyPreserved(t *testing.T) {
+	original := `{"tags":{},"display_name":"test"}`
+	var capturedBody []byte
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := clearTagsMiddleware(downstream)
+
+	req := httptest.NewRequest(http.MethodPut, "/test", bytes.NewBufferString(original))
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.Equal(t, original, string(capturedBody))
+}

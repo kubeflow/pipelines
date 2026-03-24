@@ -16,7 +16,7 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import TestUtils, { expectErrors } from 'src/TestUtils';
+import TestUtils from 'src/TestUtils';
 import { NewExperimentFC } from './NewExperimentFC';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
@@ -258,7 +258,6 @@ describe('NewExperiment', () => {
   });
 
   it('shows error dialog when experiment creation fails', async () => {
-    const assertErrors = expectErrors();
     TestUtils.makeErrorResponseOnce(createExperimentSpy, 'There was something wrong!');
     render(
       <CommonTestWrapper>
@@ -282,7 +281,6 @@ describe('NewExperiment', () => {
         title: 'Experiment creation failed',
       }),
     );
-    assertErrors();
   });
 
   it('navigates to experiment list page upon cancellation', () => {

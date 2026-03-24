@@ -127,7 +127,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     },
   });
 
-  const createExperiment = () => {
+  const createExperiment = async () => {
     let newExperiment: V2beta1Experiment = {
       display_name: experimentName,
       description: description,
@@ -135,15 +135,13 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     };
     setIsBeingCreated(true);
 
-    newExperimentMutation.mutate(newExperiment, {
-      onSuccess: (response) => {
-        setExperimentResponse(response);
-        setErrMsgFromApi(undefined);
-      },
-      onError: async (err) => {
-        setErrMsgFromApi(await errorToMessage(err));
-      },
-    });
+    try {
+      const response = await newExperimentMutation.mutateAsync(newExperiment);
+      setExperimentResponse(response);
+      setErrMsgFromApi(undefined);
+    } catch (err) {
+      setErrMsgFromApi(await errorToMessage(err));
+    }
   };
 
   const onCancel = () =>

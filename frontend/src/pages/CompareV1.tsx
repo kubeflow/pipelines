@@ -267,8 +267,8 @@ class CompareV1 extends Page<{}, CompareState> {
       selectedIds,
       workflowObjects,
     });
-    this._loadParameters(selectedIds);
-    this._loadMetrics(selectedIds);
+    this._loadParameters(selectedIds, runs, workflowObjects);
+    this._loadMetrics(selectedIds, runs);
 
     const outputPathsList = workflowObjects.map((workflow) =>
       WorkflowParser.loadAllOutputPaths(workflow),
@@ -321,8 +321,13 @@ class CompareV1 extends Page<{}, CompareState> {
     this.setStateSafe({ collapseSections });
   }
 
-  private _loadParameters(selectedIds: string[]): void {
-    const { runs, workflowObjects } = this.state;
+  private _loadParameters(
+    selectedIds: string[],
+    runsOverride?: ApiRunDetail[],
+    workflowsOverride?: Workflow[],
+  ): void {
+    const runs = runsOverride ?? this.state.runs;
+    const workflowObjects = workflowsOverride ?? this.state.workflowObjects;
 
     const selectedIndices = selectedIds.map((id) => runs.findIndex((r) => r.run!.id === id));
     const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1);
@@ -333,8 +338,8 @@ class CompareV1 extends Page<{}, CompareState> {
     this.setStateSafe({ paramsCompareProps });
   }
 
-  private _loadMetrics(selectedIds: string[]): void {
-    const { runs } = this.state;
+  private _loadMetrics(selectedIds: string[], runsOverride?: ApiRunDetail[]): void {
+    const runs = runsOverride ?? this.state.runs;
 
     const selectedIndices = selectedIds.map((id) => runs.findIndex((r) => r.run!.id === id));
     const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1).map((r) => r.run!);

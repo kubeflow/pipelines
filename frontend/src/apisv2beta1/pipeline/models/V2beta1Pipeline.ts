@@ -71,6 +71,20 @@ export interface V2beta1Pipeline {
    * @memberof V2beta1Pipeline
    */
   error?: GooglerpcStatus;
+  /**
+   * Optional. User-defined tags as key-value pairs associated with the pipeline.
+   * Tags can be used to label and categorize pipelines.
+   * Constraints:
+   *   - Maximum 20 tags per pipeline.
+   *   - Both key and value are limited to 63 characters.
+   *   - Keys cannot be empty and must not contain the '.' character.
+   * Tags can be filtered on when listing pipelines using the filter parameter
+   * with keys prefixed by "tags."
+   * (e.g., filter predicate key "tags.team" with string_value "ml-ops").
+   * @type {{ [key: string]: string; }}
+   * @memberof V2beta1Pipeline
+   */
+  tags?: { [key: string]: string };
 }
 
 /**
@@ -99,6 +113,7 @@ export function V2beta1PipelineFromJSONTyped(
     created_at: json['created_at'] == null ? undefined : new Date(json['created_at']),
     namespace: json['namespace'] == null ? undefined : json['namespace'],
     error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    tags: json['tags'] == null ? undefined : json['tags'],
   };
 }
 
@@ -123,5 +138,6 @@ export function V2beta1PipelineToJSONTyped(
       value['created_at'] == null ? value['created_at'] : value['created_at'].toISOString(),
     namespace: value['namespace'],
     error: GooglerpcStatusToJSON(value['error']),
+    tags: value['tags'],
   };
 }

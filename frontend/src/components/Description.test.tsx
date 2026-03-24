@@ -86,10 +86,26 @@ Paragraph 2
       expect(asFragment()).toMatchSnapshot();
     });
 
-    it('renders markdown list as pure text', () => {
+    it('renders markdown list as pure text with visible bullet markers', () => {
       const description = `
 * abc
 * def`;
+      const { asFragment } = render(<Description description={description} forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('renders emphasis text as <em>', () => {
+      const { asFragment } = render(<Description description='*abc*' forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('renders strong text as <strong>', () => {
+      const { asFragment } = render(<Description description='**abc**' forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('renders list markers as visible bullets while preserving emphasis', () => {
+      const description = `* item one\n- item two\n+ item three`;
       const { asFragment } = render(<Description description={description} forceInline={true} />);
       expect(asFragment()).toMatchSnapshot();
     });

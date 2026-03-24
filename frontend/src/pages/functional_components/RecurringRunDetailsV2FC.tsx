@@ -59,13 +59,16 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
 
     enabled: !!recurringRunId,
     staleTime: 0,
-    cacheTime: 0, // v5: renamed to gcTime
+    gcTime: 0,
   });
 
-  const experimentId = recurringRun?.experiment_id!;
+  const experimentId = recurringRun?.experiment_id;
   const { data: experiment, error: getExperimentError } = useQuery<V2beta1Experiment, Error>({
     queryKey: queryKeys.experiment(experimentId),
     queryFn: async () => {
+      if (!experimentId) {
+        throw new Error('Experiment ID is missing');
+      }
       return await Apis.experimentServiceApiV2.getExperiment(experimentId);
     },
 
