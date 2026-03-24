@@ -421,6 +421,7 @@ For full integration testing against a real KFP deployment:
 - `npm run test -u` - Update Vitest snapshots
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript typecheck (`tsc --noEmit`)
+- `npm run typecheck:mock-backend` - Typecheck mock-backend against generated API types
 - `npm run check:react-peers` - Enforce lockfile React peer compatibility for current target (React 17 today)
 - `npm run check:react-peers:18` - Preview lockfile React peer compatibility against React 18
 - `npm run check:react-peers:19` - Preview lockfile React peer compatibility against React 19
