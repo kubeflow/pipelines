@@ -114,3 +114,15 @@ data:
   defaultSecurityContextRunAsUser: ""
   defaultSecurityContextRunAsGroup: ""
   defaultSecurityContextRunAsNonRoot: ""
+  ## defaultPodProvisioningTimeout: Maximum time to wait for a pod to be
+  ## scheduled and reach the Running state. Leave empty to use the default (1h).
+  ## Accepts Go duration strings, e.g. "30m", "1h30m".
+  defaultPodProvisioningTimeout: ""
+  ## defaultPodRuntimeTimeout: Maximum wall-clock time allowed for a pod to
+  ## run after it has started. Leave empty to use the default (1h).
+  ## Accepts Go duration strings, e.g. "2h", "90m".
+  defaultPodRuntimeTimeout: ""
+  ## defaultPodNodeFailureTimeout: Time to wait before marking a pod as failed
+  ## after its node becomes unreachable. Leave empty to use the default (1h).
+  ## Accepts Go duration strings, e.g. "30m", "2h".
+  defaultPodNodeFailureTimeout: ""

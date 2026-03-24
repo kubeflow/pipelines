@@ -295,6 +295,59 @@ func TestGetDurationConfig_WhenSet(t *testing.T) {
 	assert.Equal(t, 5*time.Second, result)
 }
 
+func TestGetDurationConfigWithDefault(t *testing.T) {
+	tests := []struct {
+		name          string
+		setEnv        bool
+		envValue      string
+		defaultValue  time.Duration
+		expectedValue time.Duration
+	}{
+		{
+			name:          "returns default when config not set",
+			setEnv:        false,
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns default when env var is empty string",
+			setEnv:        true,
+			envValue:      "",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+		{
+			name:          "returns parsed duration when env var is valid",
+			setEnv:        true,
+			envValue:      "30m",
+			defaultValue:  time.Hour,
+			expectedValue: 30 * time.Minute,
+		},
+		{
+			name:          "returns default when env var is an invalid duration string",
+			setEnv:        true,
+			envValue:      "notaduration",
+			defaultValue:  time.Hour,
+			expectedValue: time.Hour,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			viper.Reset()
+
+			if testCase.setEnv {
+				t.Setenv("TEST_DURATION_CONFIG", testCase.envValue)
+				viper.AutomaticEnv()
+				viper.AllowEmptyEnv(true)
+			}
+
+			result := GetDurationConfigWithDefault("TEST_DURATION_CONFIG", testCase.defaultValue)
+			assert.Equal(t, testCase.expectedValue, result)
+		})
+	}
+}
+
 func TestConfigWrapperDefaults(t *testing.T) {
 	tests := []struct {
 		name     string

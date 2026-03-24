@@ -96,4 +96,3 @@ const (
 	DefaultPodRuntimeTimeoutValue      time.Duration = 3600 * time.Second
 	DefaultPodNodeFailureTimeoutValue  time.Duration = 3600 * time.Second
 )
-

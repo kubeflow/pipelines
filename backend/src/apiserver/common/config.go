@@ -195,7 +195,16 @@ func GetDurationConfigWithDefault(configName string, value time.Duration) time.D
 	if !viper.IsSet(configName) {
 		return value
 	}
-	return viper.GetDuration(configName)
+	raw := viper.GetString(configName)
+	if raw == "" {
+		return value
+	}
+	parsedDuration := viper.GetDuration(configName)
+	if parsedDuration <= 0 {
+		glog.Warningf("Config %s has invalid duration value %q, using default %v", configName, raw, value)
+		return value
+	}
+	return parsedDuration
 }
 
 func GetDefaultPodProvisioningTimeout() time.Duration {
