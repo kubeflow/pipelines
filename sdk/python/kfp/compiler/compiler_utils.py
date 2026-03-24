@@ -696,11 +696,13 @@ def _resolve_dependency_name_to_group_or_task(
     pipeline: pipeline_context.Pipeline,
     group_name_to_group: Mapping[str, tasks_group.TasksGroup],
 ) -> GroupOrTaskType:
-    """Resolves a recorded dependency name to its task or group object.
+    """Resolves a recorded dependency name to its task or supported group
+    object.
 
     Raises:
         ValueError: If the dependency name does not correspond to a task or
-            group in the pipeline, or if it ambiguously refers to both.
+            supported group in the pipeline, if it refers to an unsupported
+            task group, or if it ambiguously refers to both.
     """
     is_task = dependency_name in pipeline.tasks
     is_group = dependency_name in group_name_to_group
@@ -714,7 +716,14 @@ def _resolve_dependency_name_to_group_or_task(
     if is_task:
         return pipeline.tasks[dependency_name]
     if is_group:
-        return group_name_to_group[dependency_name]
+        group = group_name_to_group[dependency_name]
+        if not isinstance(group, tasks_group.ExitHandler):
+            raise ValueError(
+                f'".after()" on task group "{dependency_name}" of type '
+                f'dsl.{group.__class__.__name__} is not supported. Only '
+                'dsl.ExitHandler groups can be used as .after() '
+                'dependencies.')
+        return group
     raise ValueError(
         f'Dependency "{dependency_name}" does not exist as either a task or '
         'a group in the pipeline.')
@@ -752,18 +761,19 @@ def get_dependencies(
         InvalidTopologyException: if a task depends on a task inside a
             condition or loop group.
         ValueError: if a dependency refers to an unknown task or task group,
-            or if the dependency name ambiguously refers to both.
+            if it refers to an unsupported task group, or if the dependency
+            name ambiguously refers to both.
     """
     dependencies = collections.defaultdict(set)
     for task in pipeline.tasks.values():
-        upstream_tasks_or_groups: Set[GroupOrTaskType] = set()
+        upstream_dependencies: Set[GroupOrTaskType] = set()
         task_condition_inputs = list(condition_channels[task.name])
         all_channels = task.channel_inputs + task_condition_inputs
-        upstream_tasks_or_groups.update(
+        upstream_dependencies.update(
             {channel.task for channel in all_channels if channel.task})
         # .after() records dependency names, which may refer to either
-        # PipelineTasks or TasksGroups such as dsl.ExitHandler.
-        upstream_tasks_or_groups.update({
+        # PipelineTasks or supported TasksGroups such as dsl.ExitHandler.
+        upstream_dependencies.update({
             _resolve_dependency_name_to_group_or_task(
                 dependency_name=after_task,
                 pipeline=pipeline,
@@ -771,7 +781,7 @@ def get_dependencies(
             ) for after_task in task.dependent_tasks
         })
 
-        for upstream_task in upstream_tasks_or_groups:
+        for upstream_task in upstream_dependencies:
 
             upstream_names, downstream_names = _get_uncommon_ancestors(
                 task_name_to_parent_groups=task_name_to_parent_groups,

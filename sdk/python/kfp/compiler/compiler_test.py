@@ -1925,6 +1925,79 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             list(pipeline_spec.root.dag.tasks['print-op-6'].dependent_tasks),
             ['exit-handler-2'])
 
+    def test_task_after_non_exit_handler_group_raises_early(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'"\.after\(\)" on task group "condition-[0-9]+" of type dsl\.If is not supported\. Only dsl\.ExitHandler groups can be used as \.after\(\) dependencies\.'
+        ):
+
+            @dsl.pipeline(name='pipeline-after-if-group')
+            def my_pipeline(flag: str = 'foo'):
+                with dsl.If(flag == 'foo') as if_group:
+                    print_op(message='Inside condition.')
+
+                print_op(message='After condition.').after(if_group)
+
+    def test_task_after_task_inside_exit_handler_is_still_invalid(self):
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Illegal task dependency across DSL context managers\. A downstream task cannot depend on an upstream task within a dsl\.ExitHandler context unless the downstream is within that context too\. Found task print-op-3 which depends on upstream task print-op-2 within an uncommon dsl\.ExitHandler context\.'
+        ):
+
+            @dsl.pipeline(name='pipeline-after-task-inside-exit-handler')
+            def my_pipeline():
+                exit_task = print_op(message='Exit task.')
+
+                with dsl.ExitHandler(exit_task):
+                    inner_task = print_op(message='Inside exit handler.')
+
+                print_op(message='After exit handler.').after(inner_task)
+
+    def test_task_after_exit_handler_group_can_use_task_final_status(self):
+
+        @dsl.component
+        def cancel_handler(status: PipelineTaskFinalStatus):
+            print(status)
+
+        @dsl.pipeline(
+            name='pipeline-after-exit-handler-group-with-task-final-status')
+        def my_pipeline():
+            exit_task = print_op(message='Exit task.')
+
+            with dsl.ExitHandler(exit_task) as exit_group:
+                print_op(message='Inside exit handler.')
+
+            cancel_handler().after(exit_group).ignore_upstream_failure()
+
+        cancel_handler_task = my_pipeline.pipeline_spec.root.dag.tasks[
+            'cancel-handler']
+        self.assertEqual(
+            list(cancel_handler_task.dependent_tasks), ['exit-handler-1'])
+        self.assertEqual(cancel_handler_task.trigger_policy.strategy, 2)
+        self.assertEqual(
+            cancel_handler_task.inputs.parameters['status'].task_final_status
+            .producer_task, 'exit-handler-1')
+
+    def test_task_after_exit_handler_group_raises_on_unknown_dependency(self):
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Dependency "missing-task" does not exist as either a task or a group in the pipeline\.'
+        ):
+
+            @dsl.pipeline(
+                name='pipeline-after-exit-handler-group-with-unknown-dependency'
+            )
+            def my_pipeline():
+                downstream = print_op(message='Downstream task.')
+                # Cover the compiler validation path that public .after()
+                # input validation now prevents.
+                downstream._task_spec.dependent_tasks.append('missing-task')
+
+            my_pipeline.pipeline_spec
+
     def test_task_after_exit_handler_group_raises_on_ambiguous_name(self):
 
         @dsl.component
