@@ -25,6 +25,7 @@ import { Apis, ListRequest } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
+import { isReservedArtifactProperty } from 'src/lib/ReservedArtifactProperties';
 import {
   filterArtifactsByType,
   filterLinkedArtifactsByType,
@@ -806,11 +807,12 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
   const name = customProperties.get('display_name')?.getStringValue();
   const data = customProperties
     .getEntryList()
-    .filter(([key]) => key !== 'display_name' && key !== 'store_session_info')
     .map(([key]) => ({
       key,
       value: JSON.stringify(getMetadataValue(customProperties.get(key))),
-    }));
+    }))
+    .filter((metric) => metric.key !== 'display_name')
+    .filter((metric) => !isReservedArtifactProperty(metric.key));
 
   if (data.length === 0) {
     return null;
