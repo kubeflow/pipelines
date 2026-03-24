@@ -16,6 +16,7 @@
 import os
 import tempfile
 import unittest
+from typing import Tuple
 
 from absl.testing import parameterized
 from google.protobuf import json_format
@@ -555,10 +556,108 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
                 pipeline_func=pipe, package_path=package_path)
 
 
+class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
+
+    def test_parallelfor_platform_config_pipeline_input_gets_surfaced(self):
+
+        @dsl.component(base_image='python:3.11')
+        def comp():
+            print('hello')
+
+        @dsl.pipeline
+        def pipe(secret_name: str):
+            with dsl.ParallelFor(items=[1, 2], parallelism=1):
+                task = comp()
+                kubernetes.use_secret_as_env(
+                    task,
+                    secret_name=secret_name,
+                    secret_key_to_env={'password': 'PASSWORD'},
+                )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipe, package_path=package_path)
+            pipeline_spec, platform_spec = pipeline_docs_from_file(package_path)
+
+        loop_component = pipeline_spec.components['comp-for-loop-2']
+        self.assertIn('pipelinechannel--secret_name',
+                      loop_component.input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['for-loop-2'].inputs.parameters[
+                'pipelinechannel--secret_name'].component_input_parameter,
+            'secret_name',
+        )
+        self.assertEqual(
+            platform_spec.platforms['kubernetes'].deployment_spec.executors[
+                'exec-comp'].fields['secretAsEnv'].list_value.values[0]
+            .struct_value.fields['secretNameParameter'].struct_value.fields[
+                'componentInputParameter'].string_value,
+            'pipelinechannel--secret_name',
+        )
+
+    def test_parallelfor_platform_config_outer_task_output_gets_surfaced(self):
+
+        @dsl.component(base_image='python:3.11')
+        def emit_secret_name() -> str:
+            return 'secret'
+
+        @dsl.component(base_image='python:3.11')
+        def comp():
+            print('hello')
+
+        @dsl.pipeline
+        def pipe():
+            secret_name_task = emit_secret_name()
+            with dsl.ParallelFor(items=[1, 2], parallelism=1):
+                task = comp()
+                kubernetes.use_secret_as_env(
+                    task,
+                    secret_name=secret_name_task.output,
+                    secret_key_to_env={'password': 'PASSWORD'},
+                )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipe, package_path=package_path)
+            pipeline_spec, platform_spec = pipeline_docs_from_file(package_path)
+
+        loop_component = pipeline_spec.components['comp-for-loop-2']
+        self.assertIn('pipelinechannel--emit-secret-name-Output',
+                      loop_component.input_definitions.parameters)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['for-loop-2'].inputs.parameters[
+                'pipelinechannel--emit-secret-name-Output']
+            .task_output_parameter.producer_task,
+            'emit-secret-name',
+        )
+        secret_name_parameter = (
+            platform_spec.platforms['kubernetes'].deployment_spec.executors[
+                'exec-comp'].fields['secretAsEnv'].list_value.values[0]
+            .struct_value.fields['secretNameParameter'].struct_value.fields)
+        self.assertEqual(
+            secret_name_parameter['componentInputParameter'].string_value,
+            'pipelinechannel--emit-secret-name-Output',
+        )
+        self.assertNotIn('taskOutputParameter', secret_name_parameter)
+
+
 def pipeline_spec_from_file(filepath: str) -> str:
     with open(filepath, 'r') as f:
         dictionary = yaml.safe_load(f)
     return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
+
+
+def pipeline_docs_from_file(
+        filepath: str
+) -> Tuple[pipeline_spec_pb2.PipelineSpec, pipeline_spec_pb2.PlatformSpec]:
+    with open(filepath, 'r') as f:
+        pipeline_doc, platform_doc = list(yaml.safe_load_all(f))
+    return (
+        json_format.ParseDict(pipeline_doc, pipeline_spec_pb2.PipelineSpec()),
+        json_format.ParseDict(platform_doc, pipeline_spec_pb2.PlatformSpec()),
+    )
 
 
 if __name__ == '__main__':

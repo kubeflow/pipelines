@@ -1413,6 +1413,8 @@ def build_spec_by_group(
                 single_task_platform_spec = platform_config_to_platform_spec(
                     subgroup.platform_config,
                     executor_label,
+                    parent_component_inputs=group_component_spec.input_definitions,
+                    tasks_in_current_dag=tasks_in_current_dag,
                 )
                 merge_platform_specs(
                     platform_spec,
@@ -1618,9 +1620,17 @@ def modify_task_for_ignore_upstream_failure(
 def platform_config_to_platform_spec(
     platform_config: dict,
     executor_label: str,
+    parent_component_inputs: Optional[
+        pipeline_spec_pb2.ComponentInputsSpec] = None,
+    tasks_in_current_dag: Optional[List[str]] = None,
 ) -> pipeline_spec_pb2.PlatformSpec:
     """Converts a single task's pipeline_task.platform_config dictionary to a
     PlatformSpec message using the executor_label for the task."""
+    rewritten_platform_config = _rewrite_platform_config_input_references(
+        platform_config=platform_config,
+        parent_component_inputs=parent_component_inputs,
+        tasks_in_current_dag=tasks_in_current_dag,
+    )
     platform_spec_msg = pipeline_spec_pb2.PlatformSpec()
     json_format.ParseDict(
         {
@@ -1631,10 +1641,66 @@ def platform_config_to_platform_spec(
                             executor_label: config
                         }
                     }
-                } for platform_key, config in platform_config.items()
+                } for platform_key, config in rewritten_platform_config.items()
             }
         }, platform_spec_msg)
     return platform_spec_msg
+
+
+def _rewrite_platform_config_input_references(
+    platform_config: dict,
+    parent_component_inputs: Optional[pipeline_spec_pb2.ComponentInputsSpec],
+    tasks_in_current_dag: Optional[List[str]],
+) -> dict:
+    """Rewrites platform config input references for sub-DAG boundaries."""
+    if parent_component_inputs is None:
+        return copy.deepcopy(platform_config)
+
+    tasks_in_current_dag = tasks_in_current_dag or []
+
+    def _rewrite(data: Any) -> Any:
+        if isinstance(data, list):
+            return [_rewrite(item) for item in data]
+
+        if not isinstance(data, dict):
+            return data
+
+        rewritten_dict = {
+            key: _rewrite(value) for key, value in data.items()
+        }
+
+        component_input_parameter = rewritten_dict.get(
+            'componentInputParameter')
+        if component_input_parameter is not None:
+            rewritten_component_input_parameter = component_input_parameter
+            if (rewritten_component_input_parameter not in
+                    parent_component_inputs.parameters):
+                rewritten_component_input_parameter = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        rewritten_component_input_parameter))
+            if (rewritten_component_input_parameter in
+                    parent_component_inputs.parameters):
+                rewritten_dict['componentInputParameter'] = (
+                    rewritten_component_input_parameter)
+
+        task_output_parameter = rewritten_dict.get('taskOutputParameter')
+        if task_output_parameter is not None:
+            producer_task = task_output_parameter.get('producerTask')
+            output_parameter_key = task_output_parameter.get('outputParameterKey')
+            if (producer_task is not None and output_parameter_key is not None and
+                    producer_task not in tasks_in_current_dag):
+                component_input_parameter = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        f'{producer_task}-{output_parameter_key}'))
+                assert component_input_parameter in parent_component_inputs.parameters, \
+                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                rewritten_dict.pop('taskOutputParameter')
+                rewritten_dict['componentInputParameter'] = (
+                    component_input_parameter)
+
+        return rewritten_dict
+
+    return _rewrite(platform_config)
 
 
 def merge_platform_specs(
@@ -1706,6 +1772,8 @@ def build_exit_handler_groups_recursively(
                 single_task_platform_spec = platform_config_to_platform_spec(
                     exit_task.platform_config,
                     executor_label,
+                    parent_component_inputs=pipeline_spec.root.input_definitions,
+                    tasks_in_current_dag=list(pipeline.tasks.keys()),
                 )
                 merge_platform_specs(
                     platform_spec,

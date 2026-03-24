@@ -41,6 +41,16 @@ def get_existing_kubernetes_config_as_message(
     return json_format.ParseDict(cur_k8_config_dict, k8_config_msg)
 
 
+def ensure_channel_input(task: PipelineTask,
+                         channel: pipeline_channel.PipelineChannel) -> None:
+    """Adds a channel to the task's tracked inputs if it is not already present."""
+    existing_channel_patterns = {
+        existing_channel.pattern for existing_channel in task.channel_inputs
+    }
+    if channel.pattern not in existing_channel_patterns:
+        task._channel_inputs.append(channel)
+
+
 def parse_k8s_parameter_input(
         input_param: Union[pipeline_channel.PipelineParameterChannel, str, dict],
         task: PipelineTask,
@@ -50,6 +60,7 @@ def parse_k8s_parameter_input(
     if isinstance(input_param, (str, dict)):
         param_spec.runtime_value.constant.CopyFrom(to_protobuf_value(input_param))
     elif isinstance(input_param, pipeline_channel.PipelineParameterChannel):
+        ensure_channel_input(task, input_param)
         if input_param.task_name is None:
             param_spec.component_input_parameter = input_param.full_name
 
