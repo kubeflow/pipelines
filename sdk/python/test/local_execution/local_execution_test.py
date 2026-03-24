@@ -63,6 +63,8 @@ from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artif
     my_pipeline as pipeline_with_parallelfor_list_artifacts
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism import \
     my_pipeline as pipeline_with_parallelfor_parallelism
+from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_pipeline_param import \
+    my_pipeline as pipeline_with_parallelfor_pipeline_param
 from test_data.sdk_compiled_pipelines.valid.sequential_v1 import sequential
 
 
@@ -193,6 +195,15 @@ pipeline_func_data = [
         name='Pipeline with Loops',
         pipeline_func=pipeline_with_loops,
         pipeline_func_args={'loop_parameter': ['item1', 'item2', 'item3']},
+        expected_output=None,
+    ),
+    TestData(
+        name='Pipeline with ParallelFor Pipeline Param',
+        pipeline_func=pipeline_with_parallelfor_pipeline_param,
+        pipeline_func_args={
+            'prefix': 'test-prefix',
+            'loop_parameter': ['a', 'b'],
+        },
         expected_output=None,
     ),
 ]
