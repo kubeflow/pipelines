@@ -1652,7 +1652,7 @@ def _rewrite_platform_config_input_references(
     platform_config: dict,
     parent_component_inputs: Optional[pipeline_spec_pb2.ComponentInputsSpec],
     tasks_in_current_dag: Optional[List[str]],
-) -> dict:
+) -> Dict[str, Any]:
     """Rewrites platform config input references for sub-DAG boundaries.
 
     When a task is inside a sub-DAG (e.g. ParallelFor), pipeline-level
