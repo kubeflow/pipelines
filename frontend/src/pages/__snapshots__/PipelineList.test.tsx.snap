@@ -251,7 +251,7 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
               class="cell_fy8nr2z"
               style="width: 20%;"
             >
-              9/22/2018, 11:05:48 AM
+              22/9/2018, 11:05:48 am
             </div>
           </div>
         </div>
@@ -271,12 +271,12 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":rb:"
+              aria-controls="_r_b_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":ra:"
+              aria-labelledby="_r_a_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":ra:"
+              id="_r_a_"
               role="combobox"
               tabindex="0"
             >
@@ -613,12 +613,12 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":rp:"
+              aria-controls="_r_p_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":ro:"
+              aria-labelledby="_r_o_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":ro:"
+              id="_r_o_"
               role="combobox"
               tabindex="0"
             >
@@ -937,7 +937,7 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
               class="cell_fy8nr2z"
               style="width: 20%;"
             >
-              9/22/2018, 11:05:48 AM
+              22/9/2018, 11:05:48 am
             </div>
           </div>
         </div>
@@ -957,12 +957,12 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":r10:"
+              aria-controls="_r_10_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":rv:"
+              aria-labelledby="_r_v_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":rv:"
+              id="_r_v_"
               role="combobox"
               tabindex="0"
             >
@@ -1299,12 +1299,12 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":ri:"
+              aria-controls="_r_i_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":rh:"
+              aria-labelledby="_r_h_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":rh:"
+              id="_r_h_"
               role="combobox"
               tabindex="0"
             >
@@ -1561,12 +1561,12 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls=":r5:"
+              aria-controls="_r_5_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r4:"
+              aria-labelledby="_r_4_"
               class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              id=":r4:"
+              id="_r_4_"
               role="combobox"
               tabindex="0"
             >

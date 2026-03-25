@@ -128,8 +128,8 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":rls:"
-          id=":rls:-label"
+          for="_r_ls_"
+          id="_r_ls_-label"
         >
           Experiment
           <span
@@ -146,7 +146,7 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":rls:"
+            id="_r_ls_"
             readonly=""
             required=""
             type="text"
@@ -214,8 +214,8 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":rlu:"
-          id=":rlu:-label"
+          for="_r_lu_"
+          id="_r_lu_-label"
         >
           Service Account
         </label>
@@ -225,7 +225,7 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":rlu:"
+            id="_r_lu_"
             type="text"
             value=""
           />
@@ -259,7 +259,6 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -307,7 +306,6 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -413,8 +411,8 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r5g:"
-          id=":r5g:-label"
+          for="_r_5g_"
+          id="_r_5g_-label"
         >
           Pipeline
           <span
@@ -431,7 +429,7 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r5g:"
+            id="_r_5g_"
             readonly=""
             required=""
             type="text"
@@ -476,8 +474,8 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r5h:"
-          id=":r5h:-label"
+          for="_r_5h_"
+          id="_r_5h_-label"
         >
           Pipeline Version
           <span
@@ -494,7 +492,7 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r5h:"
+            id="_r_5h_"
             readonly=""
             required=""
             type="text"
@@ -627,8 +625,8 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r5o:"
-          id=":r5o:-label"
+          for="_r_5o_"
+          id="_r_5o_-label"
         >
           Experiment
           <span
@@ -645,7 +643,7 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r5o:"
+            id="_r_5o_"
             readonly=""
             required=""
             type="text"
@@ -713,8 +711,8 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r5q:"
-          id=":r5q:-label"
+          for="_r_5q_"
+          id="_r_5q_-label"
         >
           Service Account
         </label>
@@ -724,7 +722,7 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":r5q:"
+            id="_r_5q_"
             type="text"
             value=""
           />
@@ -758,7 +756,6 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -806,7 +803,6 @@ exports[`NewRun > changes the exit button's text if query params indicate this i
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -912,8 +908,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r2d:"
-          id=":r2d:-label"
+          for="_r_2d_"
+          id="_r_2d_-label"
         >
           Pipeline
           <span
@@ -930,7 +926,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r2d:"
+            id="_r_2d_"
             readonly=""
             required=""
             type="text"
@@ -975,8 +971,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r2e:"
-          id=":r2e:-label"
+          for="_r_2e_"
+          id="_r_2e_-label"
         >
           Pipeline Version
           <span
@@ -993,7 +989,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r2e:"
+            id="_r_2e_"
             readonly=""
             required=""
             type="text"
@@ -1126,8 +1122,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r2l:"
-          id=":r2l:-label"
+          for="_r_2l_"
+          id="_r_2l_-label"
         >
           Experiment
           <span
@@ -1144,7 +1140,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r2l:"
+            id="_r_2l_"
             readonly=""
             required=""
             type="text"
@@ -1212,8 +1208,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r2n:"
-          id=":r2n:-label"
+          for="_r_2n_"
+          id="_r_2n_-label"
         >
           Service Account
         </label>
@@ -1223,7 +1219,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":r2n:"
+            id="_r_2n_"
             type="text"
             value=""
           />
@@ -1257,7 +1253,6 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -1305,7 +1300,6 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -1360,8 +1354,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":r2o:"
-            id=":r2o:-label"
+            for="_r_2o_"
+            id="_r_2o_-label"
           >
             Trigger type
             <span
@@ -1375,12 +1369,12 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              aria-controls=":r2p:"
+              aria-controls="_r_2p_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":r2o:-label :r2o:"
+              aria-labelledby="_r_2o_-label _r_2o_"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":r2o:"
+              id="_r_2o_"
               role="combobox"
               tabindex="0"
             >
@@ -1428,8 +1422,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
               data-shrink="true"
-              for=":r2q:"
-              id=":r2q:-label"
+              for="_r_2q_"
+              id="_r_2q_-label"
             >
               Maximum concurrent runs
               <span
@@ -1445,7 +1439,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
               <input
                 aria-invalid="false"
                 class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                id=":r2q:"
+                id="_r_2q_"
                 required=""
                 type="text"
                 value="10"
@@ -1508,8 +1502,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":r2r:"
-                id=":r2r:-label"
+                for="_r_2r_"
+                id="_r_2r_-label"
               >
                 Start date
               </label>
@@ -1519,7 +1513,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":r2r:"
+                  id="_r_2r_"
                   type="date"
                   value="2026-01-17"
                 />
@@ -1548,8 +1542,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":r2s:"
-                id=":r2s:-label"
+                for="_r_2s_"
+                id="_r_2s_-label"
               >
                 Start time
               </label>
@@ -1559,7 +1553,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":r2s:"
+                  id="_r_2s_"
                   type="time"
                   value="23:58"
                 />
@@ -1627,8 +1621,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":r2t:"
-                id=":r2t:-label"
+                for="_r_2t_"
+                id="_r_2t_-label"
               >
                 End date
               </label>
@@ -1638,7 +1632,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":r2t:"
+                  id="_r_2t_"
                   type="date"
                   value="2026-01-24"
                 />
@@ -1667,8 +1661,8 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":r2u:"
-                id=":r2u:-label"
+                for="_r_2u_"
+                id="_r_2u_-label"
               >
                 End time
               </label>
@@ -1678,7 +1672,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":r2u:"
+                  id="_r_2u_"
                   type="time"
                   value="23:58"
                 />
@@ -1781,7 +1775,7 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
                   <input
                     aria-invalid="false"
                     class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                    id=":r30:"
+                    id="_r_30_"
                     min="1"
                     required=""
                     type="number"
@@ -1816,12 +1810,12 @@ exports[`NewRun > changes title and form if the new run will recur, based on the
                 class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
               >
                 <div
-                  aria-controls=":r32:"
+                  aria-controls="_r_32_"
                   aria-expanded="false"
                   aria-haspopup="listbox"
-                  aria-labelledby=":r31:"
+                  aria-labelledby="_r_31_"
                   class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":r31:"
+                  id="_r_31_"
                   role="combobox"
                   tabindex="0"
                 >
@@ -1933,8 +1927,8 @@ exports[`NewRun > changes title and form to default state if the new run is a on
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r33:"
-          id=":r33:-label"
+          for="_r_33_"
+          id="_r_33_-label"
         >
           Pipeline
           <span
@@ -1951,7 +1945,7 @@ exports[`NewRun > changes title and form to default state if the new run is a on
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r33:"
+            id="_r_33_"
             readonly=""
             required=""
             type="text"
@@ -1996,8 +1990,8 @@ exports[`NewRun > changes title and form to default state if the new run is a on
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r34:"
-          id=":r34:-label"
+          for="_r_34_"
+          id="_r_34_-label"
         >
           Pipeline Version
           <span
@@ -2014,7 +2008,7 @@ exports[`NewRun > changes title and form to default state if the new run is a on
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r34:"
+            id="_r_34_"
             readonly=""
             required=""
             type="text"
@@ -2147,8 +2141,8 @@ exports[`NewRun > changes title and form to default state if the new run is a on
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r3b:"
-          id=":r3b:-label"
+          for="_r_3b_"
+          id="_r_3b_-label"
         >
           Experiment
           <span
@@ -2165,7 +2159,7 @@ exports[`NewRun > changes title and form to default state if the new run is a on
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r3b:"
+            id="_r_3b_"
             readonly=""
             required=""
             type="text"
@@ -2233,8 +2227,8 @@ exports[`NewRun > changes title and form to default state if the new run is a on
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r3d:"
-          id=":r3d:-label"
+          for="_r_3d_"
+          id="_r_3d_-label"
         >
           Service Account
         </label>
@@ -2244,7 +2238,7 @@ exports[`NewRun > changes title and form to default state if the new run is a on
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":r3d:"
+            id="_r_3d_"
             type="text"
             value=""
           />
@@ -2278,7 +2272,6 @@ exports[`NewRun > changes title and form to default state if the new run is a on
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -2326,7 +2319,6 @@ exports[`NewRun > changes title and form to default state if the new run is a on
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -2432,8 +2424,8 @@ exports[`NewRun > renders the new run page 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r0:"
-          id=":r0:-label"
+          for="_r_0_"
+          id="_r_0_-label"
         >
           Pipeline
           <span
@@ -2450,7 +2442,7 @@ exports[`NewRun > renders the new run page 1`] = `
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r0:"
+            id="_r_0_"
             readonly=""
             required=""
             type="text"
@@ -2495,8 +2487,8 @@ exports[`NewRun > renders the new run page 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r1:"
-          id=":r1:-label"
+          for="_r_1_"
+          id="_r_1_-label"
         >
           Pipeline Version
           <span
@@ -2513,7 +2505,7 @@ exports[`NewRun > renders the new run page 1`] = `
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r1:"
+            id="_r_1_"
             readonly=""
             required=""
             type="text"
@@ -2646,8 +2638,8 @@ exports[`NewRun > renders the new run page 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r8:"
-          id=":r8:-label"
+          for="_r_8_"
+          id="_r_8_-label"
         >
           Experiment
           <span
@@ -2664,7 +2656,7 @@ exports[`NewRun > renders the new run page 1`] = `
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r8:"
+            id="_r_8_"
             readonly=""
             required=""
             type="text"
@@ -2732,8 +2724,8 @@ exports[`NewRun > renders the new run page 1`] = `
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":ra:"
-          id=":ra:-label"
+          for="_r_a_"
+          id="_r_a_-label"
         >
           Service Account
         </label>
@@ -2743,7 +2735,7 @@ exports[`NewRun > renders the new run page 1`] = `
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":ra:"
+            id="_r_a_"
             type="text"
             value=""
           />
@@ -2777,7 +2769,6 @@ exports[`NewRun > renders the new run page 1`] = `
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -2825,7 +2816,6 @@ exports[`NewRun > renders the new run page 1`] = `
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -2931,8 +2921,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":ruj:"
-          id=":ruj:-label"
+          for="_r_uj_"
+          id="_r_uj_-label"
         >
           Pipeline
           <span
@@ -2949,7 +2939,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":ruj:"
+            id="_r_uj_"
             readonly=""
             required=""
             type="text"
@@ -2994,8 +2984,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":ruk:"
-          id=":ruk:-label"
+          for="_r_uk_"
+          id="_r_uk_-label"
         >
           Pipeline Version
           <span
@@ -3012,7 +3002,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":ruk:"
+            id="_r_uk_"
             readonly=""
             required=""
             type="text"
@@ -3145,8 +3135,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":rur:"
-          id=":rur:-label"
+          for="_r_ur_"
+          id="_r_ur_-label"
         >
           Experiment
           <span
@@ -3163,7 +3153,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":rur:"
+            id="_r_ur_"
             readonly=""
             required=""
             type="text"
@@ -3231,8 +3221,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":rut:"
-          id=":rut:-label"
+          for="_r_ut_"
+          id="_r_ut_-label"
         >
           Service Account
         </label>
@@ -3242,7 +3232,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":rut:"
+            id="_r_ut_"
             type="text"
             value=""
           />
@@ -3276,7 +3266,6 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -3324,7 +3313,6 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -3379,8 +3367,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
           <label
             class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for=":ruu:"
-            id=":ruu:-label"
+            for="_r_uu_"
+            id="_r_uu_-label"
           >
             Trigger type
             <span
@@ -3394,12 +3382,12 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              aria-controls=":ruv:"
+              aria-controls="_r_uv_"
               aria-expanded="false"
               aria-haspopup="listbox"
-              aria-labelledby=":ruu:-label :ruu:"
+              aria-labelledby="_r_uu_-label _r_uu_"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-              id=":ruu:"
+              id="_r_uu_"
               role="combobox"
               tabindex="0"
             >
@@ -3447,8 +3435,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
               data-shrink="true"
-              for=":rv0:"
-              id=":rv0:-label"
+              for="_r_v0_"
+              id="_r_v0_-label"
             >
               Maximum concurrent runs
               <span
@@ -3464,7 +3452,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
               <input
                 aria-invalid="false"
                 class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                id=":rv0:"
+                id="_r_v0_"
                 required=""
                 type="text"
                 value="10"
@@ -3527,8 +3515,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":rv1:"
-                id=":rv1:-label"
+                for="_r_v1_"
+                id="_r_v1_-label"
               >
                 Start date
               </label>
@@ -3538,7 +3526,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":rv1:"
+                  id="_r_v1_"
                   type="date"
                   value="2026-01-17"
                 />
@@ -3567,8 +3555,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":rv2:"
-                id=":rv2:-label"
+                for="_r_v2_"
+                id="_r_v2_-label"
               >
                 Start time
               </label>
@@ -3578,7 +3566,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":rv2:"
+                  id="_r_v2_"
                   type="time"
                   value="23:58"
                 />
@@ -3646,8 +3634,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":rv3:"
-                id=":rv3:-label"
+                for="_r_v3_"
+                id="_r_v3_-label"
               >
                 End date
               </label>
@@ -3657,7 +3645,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":rv3:"
+                  id="_r_v3_"
                   type="date"
                   value="2026-01-24"
                 />
@@ -3686,8 +3674,8 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
               <label
                 class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
-                for=":rv4:"
-                id=":rv4:-label"
+                for="_r_v4_"
+                id="_r_v4_-label"
               >
                 End time
               </label>
@@ -3697,7 +3685,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
                 <input
                   aria-invalid="false"
                   class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":rv4:"
+                  id="_r_v4_"
                   type="time"
                   value="23:58"
                 />
@@ -3800,7 +3788,7 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
                   <input
                     aria-invalid="false"
                     class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-                    id=":rv6:"
+                    id="_r_v6_"
                     min="1"
                     required=""
                     type="number"
@@ -3835,12 +3823,12 @@ exports[`NewRun > starting a new recurring run > includes additional trigger inp
                 class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
               >
                 <div
-                  aria-controls=":rv8:"
+                  aria-controls="_r_v8_"
                   aria-expanded="false"
                   aria-haspopup="listbox"
-                  aria-labelledby=":rv7:"
+                  aria-labelledby="_r_v7_"
                   class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
-                  id=":rv7:"
+                  id="_r_v7_"
                   role="combobox"
                   tabindex="0"
                 >
@@ -3952,8 +3940,8 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r4f:"
-          id=":r4f:-label"
+          for="_r_4f_"
+          id="_r_4f_-label"
         >
           Pipeline
           <span
@@ -3970,7 +3958,7 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r4f:"
+            id="_r_4f_"
             readonly=""
             required=""
             type="text"
@@ -4015,8 +4003,8 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r4g:"
-          id=":r4g:-label"
+          for="_r_4g_"
+          id="_r_4g_-label"
         >
           Pipeline Version
           <span
@@ -4033,7 +4021,7 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r4g:"
+            id="_r_4g_"
             readonly=""
             required=""
             type="text"
@@ -4166,8 +4154,8 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
-          for=":r4n:"
-          id=":r4n:-label"
+          for="_r_4n_"
+          id="_r_4n_-label"
         >
           Experiment
           <span
@@ -4184,7 +4172,7 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled nonEditableInput_f1ej2mlj MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
-            id=":r4n:"
+            id="_r_4n_"
             readonly=""
             required=""
             type="text"
@@ -4252,8 +4240,8 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
         <label
           class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="false"
-          for=":r4p:"
-          id=":r4p:-label"
+          for="_r_4p_"
+          id="_r_4p_-label"
         >
           Service Account
         </label>
@@ -4263,7 +4251,7 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
           <input
             aria-invalid="false"
             class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-            id=":r4p:"
+            id="_r_4p_"
             type="text"
             value=""
           />
@@ -4297,7 +4285,6 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
             checked=""
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
@@ -4345,7 +4332,6 @@ exports[`NewRun > updates the run's state with the associated experiment if one 
           <input
             class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
             type="radio"
-            value=""
           />
           <span
             class="css-19y5vkv-MuiRadioButtonIcon-root"
