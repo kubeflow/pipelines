@@ -253,7 +253,7 @@ func (s *JobServerV1) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsReques
 		if s.options.CollectMetrics {
 			jobServerRequestErrors.WithLabelValues("list").Inc()
 		}
-		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
+		return nil, util.Wrap(err, "Failed to list v1beta1 recurring runs/jobs: validating filter failed")
 	}
 	namespace := ""
 	experimentId := ""
