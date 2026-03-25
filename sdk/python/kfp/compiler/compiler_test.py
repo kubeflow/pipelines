@@ -757,7 +757,7 @@ implementation:
 
         @dsl.component(base_image='python:3.11')
         def example_component(secret_name: str):
-            print(secret_name)
+            print('using secret')
 
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline(my_secret_name: str):
@@ -786,6 +786,54 @@ implementation:
             ['executors']['exec-example-component']['secretAsEnv'][0]
             ['secretNameParameter']['componentInputParameter'],
             'pipelinechannel--my_secret_name',
+        )
+
+    def test_compile_parallelfor_use_secret_as_env_with_upstream_task_output(
+            self):
+
+        @dsl.component(base_image='python:3.11')
+        def produce_secret_name() -> str:
+            return 'secret-name'
+
+        @dsl.component(base_image='python:3.11')
+        def example_component():
+            print('using secret')
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline():
+            secret_name_task = produce_secret_name()
+            with dsl.ParallelFor(items=[1, 2], parallelism=1):
+                task = example_component()
+                kubernetes.use_secret_as_env(
+                    task,
+                    secret_name=secret_name_task.output,
+                    secret_key_to_env={'MY_SECRET_KEY': 'MY_SECRET_KEY'},
+                )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            with open(output_yaml) as f:
+                pipeline_spec, platform_spec = yaml.safe_load_all(f)
+
+        self.assertEqual(
+            pipeline_spec['root']['dag']['tasks']['for-loop-2']['inputs']
+            ['parameters']['pipelinechannel--produce-secret-name-Output']
+            ['taskOutputParameter']['producerTask'],
+            'produce-secret-name',
+        )
+        self.assertEqual(
+            pipeline_spec['components']['comp-for-loop-2']['inputDefinitions']
+            ['parameters']['pipelinechannel--produce-secret-name-Output']
+            ['parameterType'],
+            'STRING',
+        )
+        self.assertEqual(
+            platform_spec['platforms']['kubernetes']['deploymentSpec']
+            ['executors']['exec-example-component']['secretAsEnv'][0]
+            ['secretNameParameter']['componentInputParameter'],
+            'pipelinechannel--produce-secret-name-Output',
         )
 
     def test_compile_parallelfor_use_secret_as_env_with_platform_only_input(

@@ -1212,8 +1212,8 @@ def _find_task_input_channel_for_task_config(
     for channel in task.channel_inputs:
         if channel.task_name != producer_task_name or channel.name != output_name:
             continue
-        channel_is_artifact = isinstance(channel,
-                                         pipeline_channel.PipelineArtifactChannel)
+        channel_is_artifact = isinstance(
+            channel, pipeline_channel.PipelineArtifactChannel)
         if channel_is_artifact == artifact_channel:
             return channel
     return None
@@ -1260,11 +1260,10 @@ def _update_platform_config_references_for_task(
                 injected_input_name = (
                     compiler_utils.additional_input_name_for_pipeline_channel(
                         component_input_parameter))
-                if (
-                    component_input_parameter
-                    not in parent_component_inputs.parameters
-                    and injected_input_name in parent_component_inputs.parameters
-                ):
+                if (component_input_parameter
+                        not in parent_component_inputs.parameters and
+                        injected_input_name
+                        in parent_component_inputs.parameters):
                     spec['componentInputParameter'] = injected_input_name
 
             component_input_artifact = spec.get('componentInputArtifact')
@@ -1272,11 +1271,10 @@ def _update_platform_config_references_for_task(
                 injected_input_name = (
                     compiler_utils.additional_input_name_for_pipeline_channel(
                         component_input_artifact))
-                if (
-                    component_input_artifact
-                    not in parent_component_inputs.artifacts
-                    and injected_input_name in parent_component_inputs.artifacts
-                ):
+                if (component_input_artifact
+                        not in parent_component_inputs.artifacts and
+                        injected_input_name
+                        in parent_component_inputs.artifacts):
                     spec['componentInputArtifact'] = injected_input_name
 
             task_output_parameter = spec.get('taskOutputParameter')
@@ -1293,11 +1291,12 @@ def _update_platform_config_references_for_task(
                     )
                     if channel is not None:
                         injected_input_name = (
-                            compiler_utils.additional_input_name_for_pipeline_channel(
-                                channel))
+                            compiler_utils.
+                            additional_input_name_for_pipeline_channel(channel))
                         if injected_input_name in parent_component_inputs.parameters:
                             spec.pop('taskOutputParameter')
-                            spec['componentInputParameter'] = injected_input_name
+                            spec[
+                                'componentInputParameter'] = injected_input_name
 
             task_output_artifact = spec.get('taskOutputArtifact')
             if task_output_artifact is not None:
@@ -1313,8 +1312,8 @@ def _update_platform_config_references_for_task(
                     )
                     if channel is not None:
                         injected_input_name = (
-                            compiler_utils.additional_input_name_for_pipeline_channel(
-                                channel))
+                            compiler_utils.
+                            additional_input_name_for_pipeline_channel(channel))
                         if injected_input_name in parent_component_inputs.artifacts:
                             spec.pop('taskOutputArtifact')
                             spec['componentInputArtifact'] = injected_input_name
