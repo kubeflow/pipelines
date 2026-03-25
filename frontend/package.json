@@ -86,6 +86,7 @@
     "lint:ui": "eslint --ext js,ts,tsx src --max-warnings=0",
     "lint:server": "eslint --ext ts server --max-warnings=0",
     "typecheck": "tsc --noEmit",
+    "typecheck:mock-backend": "tsc --noEmit -p mock-backend/tsconfig.json",
     "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' --project mock-backend/tsconfig.json -r tsconfig-paths/register mock-backend/mock-api-server.ts 3001",
     "mock:server": "node server/dist/server.js build",
     "mock:server:inspect": "node inspect server/dist/server.js build",
@@ -110,7 +111,7 @@
     "visual:diff": "node scripts/visual-compare.mjs diff --baseline-dir .visual/baseline --current-dir .visual/current --diff-dir .visual/diff --report .visual/report.html",
     "test:server:coverage": "cd ./server && npm test -- --coverage && cd ..",
     "test:coverage": "npm run test:ui:coverage && npm run test:server:coverage",
-    "test:ci": "export CI=true && npm run format:check && npm run lint && npm run typecheck && npm run check:react-peers && npm run test:coverage",
+    "test:ci": "export CI=true && npm run format:check && npm run lint && npm run typecheck && npm run typecheck:mock-backend && npm run check:react-peers && npm run test:coverage",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build"
   },
