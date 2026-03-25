@@ -47,22 +47,6 @@ def get_existing_kubernetes_config_as_message(
     return json_format.ParseDict(cur_k8_config_dict, k8_config_msg)
 
 
-def ensure_channel_input(task: PipelineTask,
-                         channel: pipeline_channel.PipelineChannel) -> None:
-    """Adds a channel to the task's tracked inputs if not already present.
-
-    This ensures the compiler propagates the channel through sub-DAG
-    boundaries (e.g. ParallelFor) even when the channel is only
-    referenced from Kubernetes platform config and not from normal
-    task arguments.
-    """
-    existing_channel_patterns = {
-        existing.pattern for existing in task._channel_inputs
-    }
-    if channel.pattern not in existing_channel_patterns:
-        task._channel_inputs.append(channel)
-
-
 def parse_k8s_parameter_input(
     input_param: Union[pipeline_channel.PipelineParameterChannel, str, dict],
     task: PipelineTask,

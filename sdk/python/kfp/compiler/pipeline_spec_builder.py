@@ -1698,6 +1698,12 @@ def _rewrite_platform_config_input_references(
                 if surfaced_name in parent_component_inputs.parameters:
                     rewritten.pop('taskOutputParameter')
                     rewritten['componentInputParameter'] = surfaced_name
+                else:
+                    raise compiler_utils.InvalidTopologyException(
+                        'Failed to rewrite cross-DAG platform config reference '
+                        f'for task output {producer_task}.{output_key}. '
+                        f'Expected surfaced input {surfaced_name!r} in parent '
+                        'component inputs, but it was not found.')
 
         return rewritten
 

@@ -88,7 +88,7 @@ def mount_pvc(
     pvc_mount.pvc_name_parameter.CopyFrom(pvc_name_parameter)
 
     # deprecated: for backwards compatibility
-    pvc_name_from_task = _assign_pvc_name_to_msg(task, pvc_mount, pvc_name)
+    pvc_name_from_task = _assign_pvc_name_to_msg(pvc_mount, pvc_name)
 
     if pvc_name_from_task:
         task.after(pvc_name.task)
@@ -109,11 +109,8 @@ def DeletePVC(pvc_name: str):
     return dsl.ContainerSpec(image='argostub/deletepvc')
 
 
-def _assign_pvc_name_to_msg(
-    task: PipelineTask,
-    msg: message.Message,
-    pvc_name: Union[str, 'PipelineChannel'],
-) -> bool:
+def _assign_pvc_name_to_msg(msg: message.Message,
+                            pvc_name: Union[str, 'PipelineChannel']) -> bool:
     """Assigns pvc_name to the msg's pvc_reference oneof.
 
     Returns True if pvc_name is an upstream task output; otherwise, False.
@@ -122,7 +119,6 @@ def _assign_pvc_name_to_msg(
         msg.constant = pvc_name
         return False
     elif hasattr(pvc_name, 'task_name'):
-        common.ensure_channel_input(task=task, channel=pvc_name)
         if pvc_name.task_name is None:
             msg.component_input_parameter = pvc_name.name
             return False

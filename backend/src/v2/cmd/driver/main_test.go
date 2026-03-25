@@ -93,7 +93,8 @@ func Test_handleExecutionDAG(t *testing.T) {
 	execution := &driver.Execution{}
 
 	executionPaths := &ExecutionPaths{
-		Condition: "condition.txt",
+		IterationCount: "iteration_count.txt",
+		Condition:      "condition.txt",
 	}
 
 	err := handleExecution(execution, DAG, executionPaths)
@@ -102,6 +103,7 @@ func Test_handleExecutionDAG(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
+	verifyFileContent(t, executionPaths.IterationCount, "0")
 	verifyFileContent(t, executionPaths.Condition, "nil")
 
 	cleanup(t, executionPaths)
