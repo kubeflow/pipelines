@@ -156,6 +156,11 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 			fmt.Sprintf("Failed to parse pipeline tags. Params: '%v'", parameters),
 			"Failed to upload pipeline")
 	}
+	if err := common.ValidateTags(tags); err != nil {
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to validate pipeline tags. Params: '%v'", parameters),
+			"Failed to upload pipeline")
+	}
 
 	pipelineModel := apimodel.Pipeline{
 		Name:        name,
@@ -272,6 +277,11 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to parse pipeline version tags. Params: '%v'", parameters),
+			"Failed to upload pipeline version")
+	}
+	if err := common.ValidateTags(tags); err != nil {
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to validate pipeline version tags. Params: '%v'", parameters),
 			"Failed to upload pipeline version")
 	}
 

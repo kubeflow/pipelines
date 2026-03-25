@@ -112,7 +112,8 @@ var _ = Describe("Verify Pipeline Upload with Tags >", Label(constants.POSITIVE,
 			tagsJSON, err := testutil.TagsMapToJSONStringPtr(emptyTags)
 			Expect(err).NotTo(HaveOccurred())
 			testContext.Pipeline.UploadParams.Tags = tagsJSON
-			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			Expect(createdPipeline.Tags).To(BeEmpty(), "Pipeline uploaded with empty tags should have empty tags")
 		})
 
 		It(fmt.Sprintf("Upload %s pipeline without tags and verify no tags are returned", helloWorldPipelineFileName), func() {
@@ -306,7 +307,11 @@ var _ = Describe("Verify Pipeline Upload Version with Tags Failure >", Label("Ne
 			Expect(err).NotTo(HaveOccurred())
 			parameters.Tags = tagsJSON
 
-			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
+			expectedErrMsg := "Failed to upload pipeline version"
+			if *config.UploadPipelinesWithKubernetes {
+				expectedErrMsg = "Failed to validate pipeline version tags"
+			}
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, expectedErrMsg)
 		})
 
 		It("Upload a pipeline version with tag value exceeding 63 characters", func() {
@@ -323,7 +328,11 @@ var _ = Describe("Verify Pipeline Upload Version with Tags Failure >", Label("Ne
 			Expect(err).NotTo(HaveOccurred())
 			parameters.Tags = tagsJSON
 
-			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
+			expectedErrMsg := "Failed to upload pipeline version"
+			if *config.UploadPipelinesWithKubernetes {
+				expectedErrMsg = "Failed to validate pipeline version tags"
+			}
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, expectedErrMsg)
 		})
 
 		It("Upload a pipeline version with invalid tags JSON format", func() {
@@ -337,7 +346,11 @@ var _ = Describe("Verify Pipeline Upload Version with Tags Failure >", Label("Ne
 			invalidJSON := "not-valid-json"
 			parameters.SetTags(&invalidJSON)
 
-			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
+			expectedErrMsg := "Failed to upload pipeline version"
+			if *config.UploadPipelinesWithKubernetes {
+				expectedErrMsg = "Failed to parse pipeline version tags"
+			}
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, expectedErrMsg)
 		})
 	})
 })
@@ -465,6 +478,13 @@ func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipe
 	// Normalize CreatedAt to UTC to avoid timezone location mismatch in deep comparison
 	createdPipelineFromDB.CreatedAt = strfmt.DateTime(time.Time(createdPipelineFromDB.CreatedAt).UTC())
 	createdPipeline.CreatedAt = strfmt.DateTime(time.Time(createdPipeline.CreatedAt).UTC())
+	// Normalize empty tag maps to nil for stable comparisons across storage backends.
+	if len(createdPipelineFromDB.Tags) == 0 {
+		createdPipelineFromDB.Tags = nil
+	}
+	if len(createdPipeline.Tags) == 0 {
+		createdPipeline.Tags = nil
+	}
 	Expect(createdPipelineFromDB).To(Equal(*createdPipeline))
 	matcher.MatchPipelines(&createdPipelineFromDB, testContext.Pipeline.ExpectedPipeline)
 

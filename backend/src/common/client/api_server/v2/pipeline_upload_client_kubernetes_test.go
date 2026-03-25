@@ -144,6 +144,45 @@ func TestUploadPipelineVersionKubernetesClient_InvalidTagsReturnsError(t *testin
 	}
 }
 
+func TestUploadPipelineVersionKubernetesClient_InvalidTagValueLengthReturnsError(t *testing.T) {
+	pipelineID := "pipeline-id"
+	namespace := "kubeflow"
+	pipeline := &k8sapi.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pipeline",
+			Namespace: namespace,
+			UID:       types.UID(pipelineID),
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipeline).
+		Build()
+	client := &PipelineUploadClientKubernetes{ctrlClient: fakeClient, namespace: namespace}
+
+	specPath := writePipelineSpecFile(t)
+	rawTags := `{"team":"this-value-is-way-too-long-for-tags-and-exceeds-the-sixty-three-char-limit"}`
+	versionName := "tagged-version"
+	params := params.NewUploadPipelineVersionParams()
+	params.Pipelineid = &pipelineID
+	params.SetName(&versionName)
+	params.SetTags(&rawTags)
+
+	_, err := client.UploadPipelineVersion(specPath, params)
+	if err == nil {
+		t.Fatalf("expected UploadPipelineVersion() to fail for tag value longer than 63 characters")
+	}
+
+	var versions k8sapi.PipelineVersionList
+	if err := fakeClient.List(context.Background(), &versions, &ctrlclient.ListOptions{Namespace: namespace}); err != nil {
+		t.Fatalf("failed to list pipeline versions: %v", err)
+	}
+	if len(versions.Items) != 0 {
+		t.Fatalf("expected no pipeline versions on invalid tag value length, got %d", len(versions.Items))
+	}
+}
+
 func writePipelineSpecFile(t *testing.T) string {
 	t.Helper()
 
