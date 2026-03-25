@@ -1189,6 +1189,147 @@ def build_task_spec_for_exit_task(
     return pipeline_task_spec
 
 
+def _find_task_input_channel_for_task_config(
+    task: pipeline_task.PipelineTask,
+    producer_task_name: str,
+    output_name: str,
+    artifact_channel: bool,
+) -> Optional[pipeline_channel.PipelineChannel]:
+    """Finds a task channel that matches a platform-config task reference.
+
+    Args:
+        task: Task whose registered input channels should be searched.
+        producer_task_name: Producer task name referenced by the task config.
+        output_name: Output parameter or artifact key referenced by the task
+            config.
+        artifact_channel: Whether the referenced output is expected to be an
+            artifact channel instead of a parameter channel.
+
+    Returns:
+        The matching pipeline channel if one is registered on the task,
+        otherwise ``None``.
+    """
+    for channel in task.channel_inputs:
+        if channel.task_name != producer_task_name or channel.name != output_name:
+            continue
+        channel_is_artifact = isinstance(channel,
+                                         pipeline_channel.PipelineArtifactChannel)
+        if channel_is_artifact == artifact_channel:
+            return channel
+    return None
+
+
+def _update_platform_config_references_for_task(
+    task: pipeline_task.PipelineTask,
+    parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
+    tasks_in_current_dag: List[str],
+) -> dict:
+    """Rewrites platform config inputs to match the current component scope.
+
+    Args:
+        task: Task whose platform config is being compiled.
+        parent_component_inputs: Input definitions for the task's enclosing
+            component.
+        tasks_in_current_dag: Sanitized task names that remain addressable
+            directly from the current DAG without being surfaced through
+            component inputs.
+
+    Returns:
+        A copied platform-config dictionary with cross-DAG parameter and
+        artifact references rewritten to the injected component input names
+        available in the current scope.
+    """
+    platform_config = copy.deepcopy(task.platform_config)
+
+    def _update_spec(spec: Any) -> None:
+        """Recursively rewrites nested task-config input references in place.
+
+        Args:
+            spec: Nested task-config structure composed of dictionaries, lists,
+                and scalar values.
+
+        The traversal updates ``componentInputParameter`` and
+        ``componentInputArtifact`` entries when the current scope only exposes
+        the compiler-injected input name, and rewrites ``taskOutputParameter``
+        and ``taskOutputArtifact`` references that cross DAG boundaries to the
+        corresponding component input reference.
+        """
+        if isinstance(spec, dict):
+            component_input_parameter = spec.get('componentInputParameter')
+            if component_input_parameter is not None:
+                injected_input_name = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        component_input_parameter))
+                if (
+                    component_input_parameter
+                    not in parent_component_inputs.parameters
+                    and injected_input_name in parent_component_inputs.parameters
+                ):
+                    spec['componentInputParameter'] = injected_input_name
+
+            component_input_artifact = spec.get('componentInputArtifact')
+            if component_input_artifact is not None:
+                injected_input_name = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        component_input_artifact))
+                if (
+                    component_input_artifact
+                    not in parent_component_inputs.artifacts
+                    and injected_input_name in parent_component_inputs.artifacts
+                ):
+                    spec['componentInputArtifact'] = injected_input_name
+
+            task_output_parameter = spec.get('taskOutputParameter')
+            if task_output_parameter is not None:
+                producer_task_name = task_output_parameter.get('producerTask')
+                output_parameter_key = task_output_parameter.get(
+                    'outputParameterKey')
+                if producer_task_name not in tasks_in_current_dag:
+                    channel = _find_task_input_channel_for_task_config(
+                        task=task,
+                        producer_task_name=producer_task_name,
+                        output_name=output_parameter_key,
+                        artifact_channel=False,
+                    )
+                    if channel is not None:
+                        injected_input_name = (
+                            compiler_utils.additional_input_name_for_pipeline_channel(
+                                channel))
+                        if injected_input_name in parent_component_inputs.parameters:
+                            spec.pop('taskOutputParameter')
+                            spec['componentInputParameter'] = injected_input_name
+
+            task_output_artifact = spec.get('taskOutputArtifact')
+            if task_output_artifact is not None:
+                producer_task_name = task_output_artifact.get('producerTask')
+                output_artifact_key = task_output_artifact.get(
+                    'outputArtifactKey')
+                if producer_task_name not in tasks_in_current_dag:
+                    channel = _find_task_input_channel_for_task_config(
+                        task=task,
+                        producer_task_name=producer_task_name,
+                        output_name=output_artifact_key,
+                        artifact_channel=True,
+                    )
+                    if channel is not None:
+                        injected_input_name = (
+                            compiler_utils.additional_input_name_for_pipeline_channel(
+                                channel))
+                        if injected_input_name in parent_component_inputs.artifacts:
+                            spec.pop('taskOutputArtifact')
+                            spec['componentInputArtifact'] = injected_input_name
+
+            for nested_spec in spec.values():
+                _update_spec(nested_spec)
+
+        elif isinstance(spec, list):
+            for item in spec:
+                _update_spec(item)
+
+    _update_spec(platform_config)
+    return platform_config
+
+
 def build_task_spec_for_group(
     group: tasks_group.TasksGroup,
     pipeline_channels: List[pipeline_channel.PipelineChannel],
@@ -1411,7 +1552,12 @@ def build_spec_by_group(
                 deployment_config.executors[executor_label].container.CopyFrom(
                     subgroup_container_spec)
                 single_task_platform_spec = platform_config_to_platform_spec(
-                    subgroup.platform_config,
+                    _update_platform_config_references_for_task(
+                        task=subgroup,
+                        parent_component_inputs=(
+                            group_component_spec.input_definitions),
+                        tasks_in_current_dag=tasks_in_current_dag,
+                    ),
                     executor_label,
                 )
                 merge_platform_specs(
@@ -1704,7 +1850,12 @@ def build_exit_handler_groups_recursively(
                 deployment_config.executors[executor_label].container.CopyFrom(
                     exit_task_container_spec)
                 single_task_platform_spec = platform_config_to_platform_spec(
-                    exit_task.platform_config,
+                    _update_platform_config_references_for_task(
+                        task=exit_task,
+                        parent_component_inputs=(
+                            pipeline_spec.root.input_definitions),
+                        tasks_in_current_dag=[],
+                    ),
                     executor_label,
                 )
                 merge_platform_specs(

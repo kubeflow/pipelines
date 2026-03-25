@@ -50,6 +50,8 @@ def parse_k8s_parameter_input(
     if isinstance(input_param, (str, dict)):
         param_spec.runtime_value.constant.CopyFrom(to_protobuf_value(input_param))
     elif isinstance(input_param, pipeline_channel.PipelineParameterChannel):
+        task._register_pipeline_channels([input_param])
+
         if input_param.task_name is None:
             param_spec.component_input_parameter = input_param.full_name
 
