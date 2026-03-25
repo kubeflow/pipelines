@@ -113,3 +113,6 @@ bin/
 frontend/scripts/ui-smoke-test/node_modules/
 .npm-cache/
 .npm/
+
+# Generated code-tree knowledge graph artifacts (rebuilt on session start)
+docs/code-tree/
