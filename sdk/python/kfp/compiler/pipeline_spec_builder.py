@@ -1413,7 +1413,8 @@ def build_spec_by_group(
                 single_task_platform_spec = platform_config_to_platform_spec(
                     subgroup.platform_config,
                     executor_label,
-                    parent_component_inputs=group_component_spec.input_definitions,
+                    parent_component_inputs=group_component_spec
+                    .input_definitions,
                     tasks_in_current_dag=tasks_in_current_dag,
                 )
                 merge_platform_specs(
@@ -1772,8 +1773,10 @@ def build_exit_handler_groups_recursively(
                 single_task_platform_spec = platform_config_to_platform_spec(
                     exit_task.platform_config,
                     executor_label,
-                    parent_component_inputs=pipeline_spec.root.input_definitions,
-                    tasks_in_current_dag=list(pipeline_spec.root.dag.tasks.keys()),
+                    parent_component_inputs=pipeline_spec.root
+                    .input_definitions,
+                    tasks_in_current_dag=list(
+                        pipeline_spec.root.dag.tasks.keys()),
                 )
                 merge_platform_specs(
                     platform_spec,
