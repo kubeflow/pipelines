@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
@@ -64,6 +65,25 @@ type token struct {
 	Filter *filter.Filter
 }
 
+// identifierPattern matches valid SQL identifier names: start with a letter,
+// followed by letters, digits, or underscores, max 128 characters.
+// Used to validate pageToken fields before they are used in SQL queries.
+var identifierPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]{0,127}$`)
+
+// validateIdentifierName validates that a field name or table name only contains
+// safe characters to prevent SQL injection through pageToken parameters.
+func validateIdentifierName(name, fieldType string) error {
+	if name == "" {
+		return nil // empty names are handled elsewhere
+	}
+	if !identifierPattern.MatchString(name) {
+		return util.NewInvalidInputError(
+			"Invalid %s: %q. Field names must start with a letter and contain only letters, numbers, and underscores (max 128 characters)",
+			fieldType, name)
+	}
+	return nil
+}
+
 func (t *token) unmarshal(pageToken string) error {
 	errorF := func(err error) error {
 		return util.NewInvalidInputErrorWithDetails(err, "Invalid package token")
@@ -75,6 +95,31 @@ func (t *token) unmarshal(pageToken string) error {
 
 	if err = json.Unmarshal(b, t); err != nil {
 		return errorF(err)
+	}
+
+	// Validate all identifier fields to prevent SQL injection attacks.
+	// pageToken fields are used to construct SQL queries; unvalidated field names
+	// allow injection of arbitrary SQL through the pageToken parameter.
+	if err := validateIdentifierName(t.KeyFieldName, "key field name"); err != nil {
+		return err
+	}
+	if err := validateIdentifierName(t.SortByFieldName, "sort field name"); err != nil {
+		return err
+	}
+	if err := validateIdentifierName(t.ModelName, "model name"); err != nil {
+		return err
+	}
+	if t.KeyFieldPrefix != "" {
+		prefix := strings.TrimSuffix(t.KeyFieldPrefix, ".")
+		if err := validateIdentifierName(prefix, "key field prefix"); err != nil {
+			return err
+		}
+	}
+	if t.SortByFieldPrefix != "" {
+		prefix := strings.TrimSuffix(t.SortByFieldPrefix, ".")
+		if err := validateIdentifierName(prefix, "sort field prefix"); err != nil {
+			return err
+		}
 	}
 
 	return nil
