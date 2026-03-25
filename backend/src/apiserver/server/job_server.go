@@ -65,20 +65,19 @@ var (
 		Help: "The total number of EnableJob requests",
 	})
 
-	// TODO(jingzhang36): error count and success count.
-
 	jobCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "job_server_job_count",
 		Help: "The current number of jobs in Kubeflow Pipelines instance",
 	})
 
-	jobServerRequestErrors = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "job_server_request_errors",
-		Help: "Total number of failed requests in the job server, labeled by operation",
-	}, []string{"operation"})
+	jobServerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "job_server_requests_total",
+		Help: "Total number of requests in the job server, labeled by operation and result",
+	}, []string{"operation", "result"})
+
 	jobServerRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "job_server_request_duration",
-		Help:    "Latency of requests in the job server, labeled by operation",
+		Name:    "job_server_request_duration_seconds",
+		Help:    "Latency of requests in the job server in seconds, labeled by operation",
 		Buckets: prometheus.DefBuckets,
 	}, []string{"operation"})
 )
@@ -103,6 +102,17 @@ type JobServer struct {
 type JobServerV1 struct {
 	*BaseJobServer
 	apiv1beta1.UnimplementedJobServiceServer
+}
+
+func (s *BaseJobServer) recordMetrics(operation string, start time.Time, err *error) func() {
+	return func() {
+		result := "success"
+		if *err != nil {
+			result = "error"
+		}
+		jobServerRequests.WithLabelValues(operation, result).Inc()
+		jobServerRequestDuration.WithLabelValues(operation).Observe(time.Since(start).Seconds())
+	}
 }
 
 func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
@@ -131,13 +141,10 @@ func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.J
 	return s.resourceManager.CreateJob(ctx, job)
 }
 
-func (s *JobServerV1) CreateJob(ctx context.Context, request *apiv1beta1.CreateJobRequest) (*apiv1beta1.Job, error) {
+func (s *JobServerV1) CreateJob(ctx context.Context, request *apiv1beta1.CreateJobRequest) (_ *apiv1beta1.Job, err error) {
 	if s.options.CollectMetrics {
 		createJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("create").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("create", time.Now(), &err)()
 	}
 
 	modelJob, err := toModelJob(request.GetJob())
@@ -159,9 +166,6 @@ func (s *JobServerV1) CreateJob(ctx context.Context, request *apiv1beta1.CreateJ
 
 	newJob, err := s.createJob(ctx, modelJob)
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("create").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to create a recurring run")
 	}
 
@@ -179,20 +183,14 @@ func (s *BaseJobServer) getJob(ctx context.Context, jobId string) (*model.Job, e
 	return s.resourceManager.GetJob(jobId)
 }
 
-func (s *JobServerV1) GetJob(ctx context.Context, request *apiv1beta1.GetJobRequest) (*apiv1beta1.Job, error) {
+func (s *JobServerV1) GetJob(ctx context.Context, request *apiv1beta1.GetJobRequest) (_ *apiv1beta1.Job, err error) {
 	if s.options.CollectMetrics {
 		getJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("get").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("get", time.Now(), &err)()
 	}
 
 	recurringRun, err := s.getJob(ctx, request.GetId())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("get").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to fetch a v1beta1 recurring run")
 	}
 
@@ -239,21 +237,15 @@ func (s *BaseJobServer) listJobs(ctx context.Context, pageToken string, pageSize
 	return jobs, totalSize, token, nil
 }
 
-func (s *JobServerV1) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsRequest) (*apiv1beta1.ListJobsResponse, error) {
+func (s *JobServerV1) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsRequest) (_ *apiv1beta1.ListJobsResponse, err error) {
 	if s.options.CollectMetrics {
 		listJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("list").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("list", time.Now(), &err)()
 	}
 
 	filterContext, err := validateFilterV1(r.GetResourceReferenceKey())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("list").Inc()
-		}
-		return nil, util.Wrap(err, "Failed to list v1beta1 recurring runs/jobs: validating filter failed")
+		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
 	}
 	namespace := ""
 	experimentId := ""
@@ -269,17 +261,11 @@ func (s *JobServerV1) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsReques
 
 	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v1beta1")
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("list").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to list jobs due to error parsing the listing options")
 	}
 
 	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, namespace, experimentId)
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("list").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to list jobs")
 	}
 	apiJobs := toApiJobsV1(jobs)
@@ -293,19 +279,13 @@ func (s *JobServerV1) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsReques
 	}, nil
 }
 
-func (s *JobServerV1) EnableJob(ctx context.Context, request *apiv1beta1.EnableJobRequest) (*emptypb.Empty, error) {
+func (s *JobServerV1) EnableJob(ctx context.Context, request *apiv1beta1.EnableJobRequest) (_ *emptypb.Empty, err error) {
 	if s.options.CollectMetrics {
 		enableJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("enable").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("enable", time.Now(), &err)()
 	}
-	err := s.enableJob(ctx, request.GetId())
+	err = s.enableJob(ctx, request.GetId())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("enable").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to enable a v1beta1 recurring run")
 	}
 	return &emptypb.Empty{}, nil
@@ -319,20 +299,14 @@ func (s *BaseJobServer) disableJob(ctx context.Context, jobId string) error {
 	return s.resourceManager.ChangeJobMode(ctx, jobId, false)
 }
 
-func (s *JobServerV1) DisableJob(ctx context.Context, request *apiv1beta1.DisableJobRequest) (*emptypb.Empty, error) {
+func (s *JobServerV1) DisableJob(ctx context.Context, request *apiv1beta1.DisableJobRequest) (_ *emptypb.Empty, err error) {
 	if s.options.CollectMetrics {
 		disableJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("disable").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("disable", time.Now(), &err)()
 	}
 
-	err := s.disableJob(ctx, request.GetId())
+	err = s.disableJob(ctx, request.GetId())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("disable").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to disable a v1beta1 recurring run")
 	}
 	return &emptypb.Empty{}, nil
@@ -347,19 +321,13 @@ func (s *BaseJobServer) deleteJob(ctx context.Context, jobID string, propagation
 	return s.resourceManager.DeleteJob(ctx, jobID, propagationPolicy)
 }
 
-func (s *JobServerV1) DeleteJob(ctx context.Context, request *apiv1beta1.DeleteJobRequest) (*emptypb.Empty, error) {
+func (s *JobServerV1) DeleteJob(ctx context.Context, request *apiv1beta1.DeleteJobRequest) (_ *emptypb.Empty, err error) {
 	if s.options.CollectMetrics {
 		deleteJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("delete").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("delete", time.Now(), &err)()
 	}
-	err := s.deleteJob(ctx, request.GetId(), apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err = s.deleteJob(ctx, request.GetId(), apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("delete").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to disable a recurring run")
 	}
 	if s.options.CollectMetrics {
@@ -376,27 +344,18 @@ func (s *BaseJobServer) enableJob(ctx context.Context, jobId string) error {
 	return s.resourceManager.ChangeJobMode(ctx, jobId, true)
 }
 
-func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.CreateRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
+func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.CreateRecurringRunRequest) (_ *apiv2beta1.RecurringRun, err error) {
 	if s.options.CollectMetrics {
 		createJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("create").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("create", time.Now(), &err)()
 	}
 
 	modelJob, err := toModelJob(request.GetRecurringRun())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("create").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to create a recurring run due to conversion error")
 	}
 	newRecurringRun, err := s.createJob(ctx, modelJob)
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("create").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to create a recurring run")
 	}
 
@@ -411,19 +370,13 @@ func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.
 	return apiRecurringRun, nil
 }
 
-func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.GetRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
+func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.GetRecurringRunRequest) (_ *apiv2beta1.RecurringRun, err error) {
 	if s.options.CollectMetrics {
 		getJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("get").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("get", time.Now(), &err)()
 	}
 	recurringRun, err := s.getJob(ctx, request.GetRecurringRunId())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("get").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to fetch a recurring run")
 	}
 
@@ -435,28 +388,19 @@ func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.Get
 	return apiRecurringRun, nil
 }
 
-func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRecurringRunsRequest) (*apiv2beta1.ListRecurringRunsResponse, error) {
+func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRecurringRunsRequest) (_ *apiv2beta1.ListRecurringRunsResponse, err error) {
 	if s.options.CollectMetrics {
 		listJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("list").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("list", time.Now(), &err)()
 	}
 
 	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v2beta1")
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("list").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to list recurring runs due to error parsing the listing options")
 	}
 
 	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("list").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to list jobs")
 	}
 	apiRecurringRuns := toApiRecurringRuns(jobs)
@@ -470,56 +414,38 @@ func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRec
 	}, nil
 }
 
-func (s *JobServer) EnableRecurringRun(ctx context.Context, request *apiv2beta1.EnableRecurringRunRequest) (*emptypb.Empty, error) {
+func (s *JobServer) EnableRecurringRun(ctx context.Context, request *apiv2beta1.EnableRecurringRunRequest) (_ *emptypb.Empty, err error) {
 	if s.options.CollectMetrics {
 		enableJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("enable").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("enable", time.Now(), &err)()
 	}
-	err := s.enableJob(ctx, request.GetRecurringRunId())
+	err = s.enableJob(ctx, request.GetRecurringRunId())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("enable").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to enable a recurring run")
 	}
 	return &emptypb.Empty{}, nil
 }
 
-func (s *JobServer) DisableRecurringRun(ctx context.Context, request *apiv2beta1.DisableRecurringRunRequest) (*emptypb.Empty, error) {
+func (s *JobServer) DisableRecurringRun(ctx context.Context, request *apiv2beta1.DisableRecurringRunRequest) (_ *emptypb.Empty, err error) {
 	if s.options.CollectMetrics {
 		disableJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("disable").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("disable", time.Now(), &err)()
 	}
 
-	err := s.disableJob(ctx, request.GetRecurringRunId())
+	err = s.disableJob(ctx, request.GetRecurringRunId())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("disable").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to disable a recurring run")
 	}
 	return &emptypb.Empty{}, nil
 }
 
-func (s *JobServer) DeleteRecurringRun(ctx context.Context, request *apiv2beta1.DeleteRecurringRunRequest) (*emptypb.Empty, error) {
+func (s *JobServer) DeleteRecurringRun(ctx context.Context, request *apiv2beta1.DeleteRecurringRunRequest) (_ *emptypb.Empty, err error) {
 	if s.options.CollectMetrics {
 		deleteJobRequests.Inc()
-		start := time.Now()
-		defer func() {
-			jobServerRequestDuration.WithLabelValues("delete").Observe(time.Since(start).Seconds())
-		}()
+		defer s.recordMetrics("delete", time.Now(), &err)()
 	}
-	err := s.deleteJob(ctx, request.GetRecurringRunId(), request.GetPropagationPolicy())
+	err = s.deleteJob(ctx, request.GetRecurringRunId(), request.GetPropagationPolicy())
 	if err != nil {
-		if s.options.CollectMetrics {
-			jobServerRequestErrors.WithLabelValues("delete").Inc()
-		}
 		return nil, util.Wrap(err, "Failed to delete a recurring run")
 	}
 	if s.options.CollectMetrics {
