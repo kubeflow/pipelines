@@ -72,6 +72,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Read frontend Node version
+        id: frontend_node
+        run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
       - name: Create Artifacts Path Directory
         id: configure
         run: |
@@ -97,6 +101,8 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          build-args: |
+            NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
@@ -111,6 +117,8 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          build-args: |
+            NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 

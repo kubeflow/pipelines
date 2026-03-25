@@ -32,6 +32,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Read frontend Node version
+        id: frontend_node
+        run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         if: github.event_name != 'pull_request'
@@ -58,5 +62,6 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             BASE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}
+            NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: |
             ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-release:${{ env.IMAGE_TAG }}
