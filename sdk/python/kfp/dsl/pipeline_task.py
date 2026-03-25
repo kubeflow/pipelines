@@ -303,6 +303,31 @@ class PipelineTask:
         ]
         return container_spec
 
+    def register_pipeline_channels(
+            self,
+            pipeline_channels: List[pipeline_channel.PipelineChannel]) -> None:
+        """Registers additional pipeline channels consumed by the task.
+
+        Args:
+            pipeline_channels: Pipeline channels to add to the task's tracked
+                inputs.
+
+        Channels are deduplicated by their serialized ``pattern`` so the same
+        runtime reference is only registered once.
+        """
+        existing_channel_patterns = {
+            channel.pattern for channel in self._channel_inputs
+        }
+        for channel in pipeline_channels:
+            if channel.pattern not in existing_channel_patterns:
+                self._channel_inputs.append(channel)
+                existing_channel_patterns.add(channel.pattern)
+
+    def _register_pipeline_channels(
+            self,
+            pipeline_channels: List[pipeline_channel.PipelineChannel]) -> None:
+        """Backwards-compatible wrapper for ``register_pipeline_channels``."""
+        self.register_pipeline_channels(pipeline_channels)
     @block_if_final()
     def set_caching_options(self,
                             enable_caching: bool,
@@ -671,13 +696,7 @@ class PipelineTask:
         self.container_spec.image = name
 
         if pipeline_channels:
-            existing_channel_patterns = {
-                channel.pattern for channel in self._channel_inputs
-            }
-            for channel in pipeline_channels:
-                if channel.pattern not in existing_channel_patterns:
-                    self._channel_inputs.append(channel)
-                    existing_channel_patterns.add(channel.pattern)
+            self.register_pipeline_channels(pipeline_channels)
         return self
 
     @block_if_final()
