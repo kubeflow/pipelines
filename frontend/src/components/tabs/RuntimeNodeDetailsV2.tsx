@@ -253,7 +253,16 @@ function getTaskDetailsFields(
       const failedAttempts = taskDetails?.executor_detail?.failed_main_jobs ?? [];
 
       if (failedAttempts.length > 0) {
-        details.push(['Attempts', `${failedAttempts.length + 1} attempts`]);
+        // Compute attempts based on execution state. In some backends, failed_main_jobs
+        // may already include the final failed attempt when the task ultimately fails.
+        // In that case, we should NOT add an extra "+ 1" for the final attempt.
+        let attemptsCount = failedAttempts.length;
+        if (execution.getLastKnownState() !== Execution.State.FAILED) {
+          // For non-terminal-failed executions, failed_main_jobs only covers previous
+          // failed attempts, so the current (successful or running) attempt is +1.
+          attemptsCount += 1;
+        }
+        details.push(['Attempts', `${attemptsCount} attempts`]);
         // failedAttempts[i] is the pod name for the i-th failed main job, which can be used to look up logs.
       }
       const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
