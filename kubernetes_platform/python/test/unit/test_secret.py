@@ -973,29 +973,29 @@ class TestUseSecretAsEnv:
 
 class TestEnsureChannelInputPropagation:
     """Tests that PipelineParameterChannel values used in Kubernetes platform
-    config are correctly registered in task._channel_inputs for sub-DAG
+    config are correctly registered in task.channel_inputs for sub-DAG
     propagation."""
 
     def test_pipeline_param_added_to_channel_inputs(self):
         """When a PipelineParameterChannel is passed as secret_name,
-        it should be appended to the task's _channel_inputs."""
+        it should be appended to the task's channel_inputs."""
 
         @dsl.pipeline
         def my_pipeline(secret_name: str):
             task = comp()
-            initial_count = len(task._channel_inputs)
+            initial_count = len(task.channel_inputs)
             kubernetes.use_secret_as_env(
                 task,
                 secret_name=secret_name,
                 secret_key_to_env={"key": "VAR"},
             )
-            assert len(task._channel_inputs) == initial_count + 1
-            channel_patterns = {ch.pattern for ch in task._channel_inputs}
+            assert len(task.channel_inputs) == initial_count + 1
+            channel_patterns = {ch.pattern for ch in task.channel_inputs}
             assert secret_name.pattern in channel_patterns
 
     def test_duplicate_pipeline_param_not_added_twice(self):
         """When the same PipelineParameterChannel is used in both
-        use_secret_as_env and use_secret_as_volume, _channel_inputs
+        use_secret_as_env and use_secret_as_volume, channel_inputs
         should not contain duplicates."""
 
         @dsl.pipeline
@@ -1006,44 +1006,44 @@ class TestEnsureChannelInputPropagation:
                 secret_name=secret_name,
                 secret_key_to_env={"key1": "VAR1"},
             )
-            count_after_first = len(task._channel_inputs)
+            count_after_first = len(task.channel_inputs)
             kubernetes.use_secret_as_volume(
                 task,
                 secret_name=secret_name,
                 mount_path="/mnt/secret",
             )
-            assert len(task._channel_inputs) == count_after_first
+            assert len(task.channel_inputs) == count_after_first
 
     def test_string_input_does_not_add_channel_inputs(self):
-        """When a literal string is passed, _channel_inputs should not
+        """When a literal string is passed, channel_inputs should not
         be modified."""
 
         @dsl.pipeline
         def my_pipeline():
             task = comp()
-            initial_count = len(task._channel_inputs)
+            initial_count = len(task.channel_inputs)
             kubernetes.use_secret_as_env(
                 task,
                 secret_name="literal-secret",
                 secret_key_to_env={"key": "VAR"},
             )
-            assert len(task._channel_inputs) == initial_count
+            assert len(task.channel_inputs) == initial_count
 
     def test_task_output_added_to_channel_inputs(self):
         """When a task output PipelineChannel is passed as secret_name,
-        it should be appended to _channel_inputs."""
+        it should be appended to channel_inputs."""
 
         @dsl.pipeline
         def my_pipeline():
             name_task = comp_with_output()
             task = comp()
-            initial_count = len(task._channel_inputs)
+            initial_count = len(task.channel_inputs)
             kubernetes.use_secret_as_env(
                 task,
                 secret_name=name_task.output,
                 secret_key_to_env={"key": "VAR"},
             )
-            assert len(task._channel_inputs) == initial_count + 1
+            assert len(task.channel_inputs) == initial_count + 1
 
 
 @dsl.component

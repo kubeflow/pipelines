@@ -13,7 +13,7 @@ from kfp.kubernetes import use_secret_as_env
 def example_component(item: str) -> str:
     import os
     secret_val = os.environ.get("MY_SECRET_KEY", "not-set")
-    print(f"Item: {item}, Secret value: {secret_val}")
+    print(f"Item: {item}, Secret set: {secret_val != 'not-set'}")
     return secret_val
 
 

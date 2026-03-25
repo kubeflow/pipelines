@@ -312,7 +312,7 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 			return fmt.Errorf("failed to write iteration count to file: %w", err)
 		}
 	} else {
-		if driverType == ROOT_DAG {
+		if driverType == ROOT_DAG || driverType == DAG {
 			if err := writeFile(executionPaths.IterationCount, []byte("0")); err != nil {
 				return fmt.Errorf("failed to write iteration count to file: %w", err)
 			}

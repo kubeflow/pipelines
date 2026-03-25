@@ -1,45 +1,52 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: make-and-join-datasets-
+  generateName: pipeline-parallel-for-mount-pvc-
 spec:
   arguments:
     parameters:
-    - name: components-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637
-      value: '{"executorLabel":"exec-make-dataset","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","make_dataset"],"command":["sh","-c","\nif
+    - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
+      value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"AccessModes
+        to request for the provisioned PVC. May\nbe one or more of ``''ReadWriteOnce''``,
+        ``''ReadOnlyMany''``, ``''ReadWriteMany''``, or\n``''ReadWriteOncePod''``.
+        Corresponds to `PersistentVolumeClaim.spec.accessModes \u003chttps://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes\u003e`_.","parameterType":"LIST"},"annotations":{"description":"Annotations
+        for the PVC''s metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations
+        \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.","isOptional":true,"parameterType":"STRUCT"},"pvc_name":{"description":"Name
+        of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim\u003e`_.
+        Only one of ``pvc_name`` and ``pvc_name_suffix`` can\nbe provided.","isOptional":true,"parameterType":"STRING"},"pvc_name_suffix":{"description":"Prefix
+        to use for a dynamically generated name, which\nwill take the form ``\u003cargo-workflow-name\u003e-\u003cpvc_name_suffix\u003e``.
+        Only one\nof ``pvc_name`` and ``pvc_name_suffix`` can be provided.","isOptional":true,"parameterType":"STRING"},"size":{"description":"The
+        size of storage requested by the PVC that will be provisioned. For example,
+        ``''5Gi''``. Corresponds to `PersistentVolumeClaim.spec.resources.requests.storage
+        \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","parameterType":"STRING"},"storage_class_name":{"defaultValue":"","description":"Name
+        of StorageClass from which to provision the PV\nto back the PVC. ``None``
+        indicates to use the cluster''s default\nstorage_class_name. Set to ``''''``
+        for a statically specified PVC.","isOptional":true,"parameterType":"STRING"},"volume_name":{"description":"Pre-existing
+        PersistentVolume that should back the\nprovisioned PersistentVolumeClaim.
+        Used for statically\nspecified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName
+        \u003chttps://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec\u003e`_.","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}}}'
+    - name: implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
+      value: '{"image":"argostub/createpvc"}'
+    - name: kubernetes-comp-example-component
+      value: '{"pvcMount":[{"componentInputParameter":"pipelinechannel--createpvc-name","mountPath":"/data","pvcNameParameter":{"componentInputParameter":"pipelinechannel--createpvc-name"}}]}'
+    - name: components-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913
+      value: '{"executorLabel":"exec-example-component","inputDefinitions":{"parameters":{"item":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","example_component"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        make_dataset(text: str) -\u003e Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),
-        metadata={''length'': len(text)})\n    with open(dataset.path, ''w'') as f:\n        f.write(text)\n    return
-        dataset\n\n"],"image":"python:3.11"}'
-    - name: components-comp-for-loop-1
-      value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--make-dataset-Output":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"make-dataset"}]}}},"tasks":{"make-dataset":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-dataset"},"inputs":{"parameters":{"text":{"componentInputParameter":"pipelinechannel--texts-loop-item"}}},"taskInfo":{"name":"make-dataset"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--texts":{"parameterType":"LIST"},"pipelinechannel--texts-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--make-dataset-Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
-    - name: components-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3
-      value: '{"executorLabel":"exec-join-datasets","inputDefinitions":{"artifacts":{"datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","join_datasets"],"command":["sh","-c","\nif
-        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
-        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
-        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        join_datasets(datasets: List[Dataset]) -\u003e Dataset:\n    texts = []\n    for
-        dataset in datasets:\n        with open(dataset.path, ''r'') as f:\n            texts.append(f.read())\n\n    return
-        ''''.join(texts)\n\n"],"image":"python:3.11"}'
+        example_component(item: str) -\u003e str:\n    print(f\"Item: {item}\")\n    return
+        item\n\n"],"image":"python:3.11"}'
+    - name: components-comp-for-loop-2
+      value: '{"dag":{"tasks":{"example-component":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-example-component"},"inputs":{"parameters":{"item":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"example-component"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--createpvc-name":{"parameterType":"STRING"},"pipelinechannel--loop-item-param-1":{"parameterType":"STRING"}}}}'
     - name: components-root
-      value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"join-datasets"}]}}},"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--texts":{"componentInputParameter":"texts"}}},"parameterIterator":{"itemInput":"pipelinechannel--texts-loop-item","items":{"inputParameter":"pipelinechannel--texts"}},"taskInfo":{"name":"for-loop-1"}},"join-datasets":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-join-datasets"},"dependentTasks":["for-loop-1"],"inputs":{"artifacts":{"datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--make-dataset-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"join-datasets"}}}},"inputDefinitions":{"parameters":{"texts":{"defaultValue":["Hello",",","
-        ","world!"],"isOptional":true,"parameterType":"LIST"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+      value: '{"dag":{"tasks":{"createpvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Mi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["createpvc"],"inputs":{"parameters":{"pipelinechannel--createpvc-name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"a\"]"}},"taskInfo":{"name":"for-loop-2"}}}},"inputDefinitions":{"parameters":{"my_pvc_name_suffix":{"defaultValue":"test-pvc","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -57,7 +64,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - make-and-join-datasets
+      - pipeline-parallel-for-mount-pvc
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -271,39 +278,41 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637}}'
+            value: '{{workflow.parameters.components-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-dataset"},"inputs":{"parameters":{"text":{"componentInputParameter":"pipelinechannel--texts-loop-item"}}},"taskInfo":{"name":"make-dataset"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-example-component"},"inputs":{"parameters":{"item":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"example-component"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637}}'
+            value: '{{workflow.parameters.implementations-1e6d3fc350583cb591281c08420927b09565ea68a8ea52650e820b1ed008f913}}'
           - name: task-name
-            value: make-dataset
+            value: example-component
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: make-dataset-driver
+          - name: kubernetes-config
+            value: '{{workflow.parameters.kubernetes-comp-example-component}}'
+        name: example-component-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.make-dataset-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.example-component-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.make-dataset-driver.outputs.parameters.cached-decision}}'
-        depends: make-dataset-driver.Succeeded
-        name: make-dataset
+            value: '{{tasks.example-component-driver.outputs.parameters.cached-decision}}'
+        depends: example-component-driver.Succeeded
+        name: example-component
         template: system-container-executor
     inputs:
       parameters:
       - name: parent-dag-id
     metadata: {}
-    name: comp-for-loop-1
+    name: comp-for-loop-2
     outputs: {}
   - container:
       args:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - make-and-join-datasets
+      - pipeline-parallel-for-mount-pvc
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -400,15 +409,15 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
           - name: iteration-index
             value: '{{inputs.parameters.iteration-index}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--texts":{"componentInputParameter":"texts"}}},"parameterIterator":{"itemInput":"pipelinechannel--texts-loop-item","items":{"inputParameter":"pipelinechannel--texts"}},"taskInfo":{"name":"for-loop-1"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["createpvc"],"inputs":{"parameters":{"pipelinechannel--createpvc-name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"a\"]"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
-            value: for-loop-1
+            value: for-loop-2
         name: iteration-item-driver
         template: system-dag-driver
       - arguments:
@@ -419,26 +428,26 @@ spec:
             value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
         depends: iteration-item-driver.Succeeded
         name: iteration-item
-        template: comp-for-loop-1
+        template: comp-for-loop-2
     inputs:
       parameters:
       - name: parent-dag-id
       - name: iteration-index
     metadata: {}
-    name: comp-for-loop-1-iteration
+    name: comp-for-loop-2-iteration
     outputs: {}
   - dag:
       tasks:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
-            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--texts":{"componentInputParameter":"texts"}}},"parameterIterator":{"itemInput":"pipelinechannel--texts-loop-item","items":{"inputParameter":"pipelinechannel--texts"}},"taskInfo":{"name":"for-loop-1"}}'
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"dependentTasks":["createpvc"],"inputs":{"parameters":{"pipelinechannel--createpvc-name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[\"a\"]"}},"taskInfo":{"name":"for-loop-2"}}'
           - name: task-name
-            value: for-loop-1
+            value: for-loop-2
         name: iteration-driver
         template: system-dag-driver
       - arguments:
@@ -449,48 +458,38 @@ spec:
             value: '{{item}}'
         depends: iteration-driver.Succeeded
         name: iteration-iterations
-        template: comp-for-loop-1-iteration
+        template: comp-for-loop-2-iteration
         withSequence:
           count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
     inputs:
       parameters:
       - name: parent-dag-id
     metadata: {}
-    name: comp-for-loop-1-for-loop-1-iterator
+    name: comp-for-loop-2-for-loop-2-iterator
     outputs: {}
   - dag:
       tasks:
       - arguments:
           parameters:
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        name: for-loop-1
-        template: comp-for-loop-1-for-loop-1-iterator
-      - arguments:
-          parameters:
           - name: component
-            value: '{{workflow.parameters.components-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3}}'
+            value: '{{workflow.parameters.components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-join-datasets"},"dependentTasks":["for-loop-1"],"inputs":{"artifacts":{"datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--make-dataset-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"join-datasets"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Mi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3}}'
+            value: '{{workflow.parameters.implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
           - name: task-name
-            value: join-datasets
+            value: createpvc
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: for-loop-1.Succeeded
-        name: join-datasets-driver
+        name: createpvc
         template: system-container-driver
       - arguments:
           parameters:
-          - name: pod-spec-patch
-            value: '{{tasks.join-datasets-driver.outputs.parameters.pod-spec-patch}}'
-          - default: "false"
-            name: cached-decision
-            value: '{{tasks.join-datasets-driver.outputs.parameters.cached-decision}}'
-        depends: join-datasets-driver.Succeeded
-        name: join-datasets
-        template: system-container-executor
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: createpvc.Succeeded
+        name: for-loop-2
+        template: comp-for-loop-2-for-loop-2-iterator
     inputs:
       parameters:
       - name: parent-dag-id
@@ -504,7 +503,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{"parameterValues":{"texts":["Hello",","," ","world!"]}}'
+            value: '{"parameterValues":{"my_pvc_name_suffix":"test-pvc"}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver

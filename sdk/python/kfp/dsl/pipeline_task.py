@@ -328,6 +328,7 @@ class PipelineTask:
             pipeline_channels: List[pipeline_channel.PipelineChannel]) -> None:
         """Backwards-compatible wrapper for ``register_pipeline_channels``."""
         self.register_pipeline_channels(pipeline_channels)
+
     @block_if_final()
     def set_caching_options(self,
                             enable_caching: bool,

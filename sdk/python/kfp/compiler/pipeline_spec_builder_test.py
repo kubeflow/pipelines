@@ -24,6 +24,7 @@ import kfp
 from kfp import dsl
 from kfp import kubernetes
 from kfp.compiler import compiler
+from kfp.compiler import compiler_utils
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import TaskConfigField
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -724,6 +725,82 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
         self.assertNotIn('componentInputParameter', secret_name_fields)
         self.assertNotIn('taskOutputParameter', secret_name_fields)
 
+    def test_parallelfor_pipeline_input_mount_pvc(self):
+        """Pipeline pvc_name param inside ParallelFor is correctly surfaced and
+        rewritten for mount_pvc platform config."""
+
+        @dsl.component
+        def my_comp(item: str):
+            print(item)
+
+        @dsl.pipeline
+        def pipe(pvc_name: str):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=1) as item:
+                t = my_comp(item=item)
+                kubernetes.mount_pvc(
+                    t,
+                    pvc_name=pvc_name,
+                    mount_path='/mnt/data',
+                )
+
+        pipeline_spec, platform_spec = self._compile_and_parse(pipe)
+
+        loop_component = pipeline_spec.components['comp-for-loop-2']
+        self.assertIn('pipelinechannel--pvc_name',
+                      loop_component.input_definitions.parameters)
+
+        root_task_params = pipeline_spec.root.dag.tasks[
+            'for-loop-2'].inputs.parameters
+        self.assertEqual(
+            root_task_params['pipelinechannel--pvc_name']
+            .component_input_parameter,
+            'pvc_name',
+        )
+
+        pvc_param = (
+            platform_spec.platforms['kubernetes'].deployment_spec
+            .executors['exec-my-comp'].fields['pvcMount'].list_value.values[0]
+            .struct_value.fields['pvcNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
+        self.assertEqual(pvc_param, 'pipelinechannel--pvc_name')
+
+    def test_exit_handler_platform_config_rewrite_path(self):
+        """Exit handler task platform config uses rewrite path with parent
+        component context."""
+
+        @dsl.component
+        def cleanup():
+            print('cleanup')
+
+        @dsl.component
+        def main_task():
+            print('main')
+
+        @dsl.pipeline
+        def pipe(secret_name: str):
+            exit_task = cleanup()
+            kubernetes.use_secret_as_env(
+                exit_task,
+                secret_name=secret_name,
+                secret_key_to_env={'key': 'VAL'},
+            )
+            with dsl.ExitHandler(exit_task=exit_task):
+                main_task()
+
+        _, platform_spec = self._compile_and_parse(pipe)
+
+        cleanup_executors = [
+            executor for executor in platform_spec.platforms['kubernetes']
+            .deployment_spec.executors.values()
+            if 'secretAsEnv' in executor.fields
+        ]
+        self.assertEqual(len(cleanup_executors), 1)
+        secret_param = (
+            cleanup_executors[0].fields['secretAsEnv'].list_value.values[0]
+            .struct_value.fields['secretNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
+        self.assertEqual(secret_param, 'secret_name')
+
 
 class TestRewritePlatformConfigInputReferences(unittest.TestCase):
     """Unit tests for the _rewrite_platform_config_input_references helper."""
@@ -877,6 +954,29 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
             ['componentInputParameter'],
             'pipelinechannel--pvc_name',
         )
+
+    def test_raises_when_cross_dag_output_missing_surfaced_input(self):
+        platform_config = {
+            'kubernetes': {
+                'secretAsEnv': [{
+                    'secretNameParameter': {
+                        'taskOutputParameter': {
+                            'producerTask': 'emit-secret',
+                            'outputParameterKey': 'Output',
+                        }
+                    },
+                }]
+            }
+        }
+        parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
+
+        with self.assertRaisesRegex(compiler_utils.InvalidTopologyException,
+                                    'Expected surfaced input'):
+            pipeline_spec_builder._rewrite_platform_config_input_references(
+                platform_config,
+                parent_inputs,
+                tasks_in_current_dag=['worker-task'],
+            )
 
 
 def pipeline_spec_from_file(filepath: str) -> str:
