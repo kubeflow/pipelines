@@ -154,10 +154,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   }, [data, flowElements, isSuccess, layers]);
 
   const selectedTaskDetails = useMemo(() => {
-    if (!selectedNode || !run.run_details?.task_details) return null;
-    return run.run_details.task_details.find(t => t.display_name === selectedNode.data?.label) ?? null;
-  }, [selectedNode, run])
+    if (!selectedNode || !run.run_details?.task_details) {
+      return null;
+    }
 
+    return (
+      run.run_details.task_details.find(
+        (t) => t.display_name === selectedNode.data?.label,
+      ) ?? null
+    );
+  }, [selectedNode, run]);
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
     if (data) {
