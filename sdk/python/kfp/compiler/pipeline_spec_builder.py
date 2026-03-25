@@ -1223,7 +1223,7 @@ def _update_platform_config_references_for_task(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str],
-) -> dict:
+) -> Dict[str, Any]:
     """Rewrites platform config inputs to match the current component scope.
 
     Args:

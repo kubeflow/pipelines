@@ -303,7 +303,7 @@ class PipelineTask:
         ]
         return container_spec
 
-    def _register_pipeline_channels(
+    def register_pipeline_channels(
             self,
             pipeline_channels: List[pipeline_channel.PipelineChannel]) -> None:
         """Registers additional pipeline channels consumed by the task.
@@ -322,6 +322,12 @@ class PipelineTask:
             if channel.pattern not in existing_channel_patterns:
                 self._channel_inputs.append(channel)
                 existing_channel_patterns.add(channel.pattern)
+
+    def _register_pipeline_channels(
+            self,
+            pipeline_channels: List[pipeline_channel.PipelineChannel]) -> None:
+        """Backwards-compatible wrapper for ``register_pipeline_channels``."""
+        self.register_pipeline_channels(pipeline_channels)
 
     @block_if_final()
     def set_caching_options(self,
@@ -691,7 +697,7 @@ class PipelineTask:
         self.container_spec.image = name
 
         if pipeline_channels:
-            self._register_pipeline_channels(pipeline_channels)
+            self.register_pipeline_channels(pipeline_channels)
         return self
 
     @block_if_final()
