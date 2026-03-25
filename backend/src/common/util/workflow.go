@@ -819,7 +819,9 @@ func (w *Workflow) PatchTemplateOutputArtifacts() {
 func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
 	for id, node := range w.Status.Nodes {
-		rev[id] = NodeStatus{
+		// check if the node is a retry node
+
+		nodeStatus := NodeStatus{
 			ID:          RetrievePodName(*w.Workflow, node),
 			DisplayName: node.DisplayName,
 			State:       string(node.Phase),
@@ -828,6 +830,26 @@ func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 			FinishTime:  node.FinishedAt.Unix(),
 			Children:    node.Children,
 		}
+		if node.Type == workflowapi.NodeTypeRetry {
+			failedAttempts := make([]string, 0)
+			for _, child := range node.Children {
+				if w.Status.Nodes[child].Phase == workflowapi.NodeFailed {
+					failedAttempts = append(failedAttempts, child)
+				}
+			}
+			nodeStatus.FailedAttempts = failedAttempts
+			for _, templ := range w.Spec.Templates {
+				if templ.Name == node.TemplateName && templ.RetryStrategy != nil && templ.RetryStrategy.Limit != nil {
+					nodeStatus.MaxAttempts = templ.RetryStrategy.Limit.IntValue() + 1
+					break
+				}
+			}
+			// fallback from the initvalue that can be stored as a string
+			if nodeStatus.MaxAttempts == 0 {
+				nodeStatus.MaxAttempts = len(node.Children)
+			}
+		}
+		rev[id] = nodeStatus
 	}
 	return rev
 }

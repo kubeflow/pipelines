@@ -23,13 +23,15 @@ import (
 
 // Data struct to represent Node status
 type NodeStatus struct {
-	ID          string
-	DisplayName string
-	State       string
-	StartTime   int64
-	CreateTime  int64
-	FinishTime  int64
-	Children    []string
+	ID             string
+	DisplayName    string
+	State          string
+	StartTime      int64
+	CreateTime     int64
+	FinishTime     int64
+	Children       []string
+	FailedAttempts []string
+	MaxAttempts    int
 }
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically
