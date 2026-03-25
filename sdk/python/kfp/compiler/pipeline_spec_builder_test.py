@@ -556,8 +556,8 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
 
 
 class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
-    """Tests that platform config input references are correctly rewritten
-    when tasks are inside sub-DAGs (e.g. ParallelFor)."""
+    """Tests that platform config input references are correctly rewritten when
+    tasks are inside sub-DAGs (e.g. ParallelFor)."""
 
     def _compile_and_parse(self, pipeline_func):
         """Compile a pipeline and return (pipeline_spec, platform_spec)."""
@@ -570,8 +570,8 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
             pipeline_spec = json_format.ParseDict(
                 docs[0], pipeline_spec_pb2.PipelineSpec())
             platform_spec = json_format.ParseDict(
-                docs[1], pipeline_spec_pb2.PlatformSpec()
-            ) if len(docs) > 1 else pipeline_spec_pb2.PlatformSpec()
+                docs[1], pipeline_spec_pb2.PlatformSpec()) if len(
+                    docs) > 1 else pipeline_spec_pb2.PlatformSpec()
             return pipeline_spec, platform_spec
 
     def test_simple_secret_no_subdag(self):
@@ -595,16 +595,18 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
         # At root level the param name should NOT be prefixed
         secret_param = (
-            platform_spec.platforms['kubernetes'].deployment_spec.executors[
-                'exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
-            .struct_value.fields['secretNameParameter'].struct_value.fields[
-                'componentInputParameter'].string_value)
+            platform_spec.platforms['kubernetes'].deployment_spec
+            .executors['exec-my-comp'].fields['secretAsEnv'].list_value
+            .values[0].struct_value.fields['secretNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
         self.assertEqual(secret_param, 'secret_name')
 
     def test_parallelfor_pipeline_input_secret(self):
         """Bug scenario: secret_name from pipeline param inside ParallelFor.
+
         The sub-DAG must surface the param, and the platform config must
-        reference the prefixed name."""
+        reference the prefixed name.
+        """
 
         @dsl.component
         def my_comp(item: str):
@@ -631,17 +633,17 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
         root_task_params = pipeline_spec.root.dag.tasks[
             'for-loop-2'].inputs.parameters
         self.assertEqual(
-            root_task_params[
-                'pipelinechannel--secret_name'].component_input_parameter,
+            root_task_params['pipelinechannel--secret_name']
+            .component_input_parameter,
             'secret_name',
         )
 
         # Platform config must reference the prefixed name
         secret_param = (
-            platform_spec.platforms['kubernetes'].deployment_spec.executors[
-                'exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
-            .struct_value.fields['secretNameParameter'].struct_value.fields[
-                'componentInputParameter'].string_value)
+            platform_spec.platforms['kubernetes'].deployment_spec
+            .executors['exec-my-comp'].fields['secretAsEnv'].list_value
+            .values[0].struct_value.fields['secretNameParameter'].struct_value
+            .fields['componentInputParameter'].string_value)
         self.assertEqual(secret_param, 'pipelinechannel--secret_name')
 
     def test_parallelfor_outer_task_output_secret(self):
@@ -679,16 +681,15 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
         root_task_params = pipeline_spec.root.dag.tasks[
             'for-loop-2'].inputs.parameters
         self.assertEqual(
-            root_task_params[
-                'pipelinechannel--emit-secret-name-Output']
+            root_task_params['pipelinechannel--emit-secret-name-Output']
             .task_output_parameter.producer_task,
             'emit-secret-name',
         )
 
         # Platform config must use componentInputParameter (NOT taskOutputParameter)
         secret_name_fields = (
-            platform_spec.platforms['kubernetes'].deployment_spec.executors[
-                'exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
+            platform_spec.platforms['kubernetes'].deployment_spec.
+            executors['exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
             .struct_value.fields['secretNameParameter'].struct_value.fields)
         self.assertEqual(
             secret_name_fields['componentInputParameter'].string_value,
@@ -717,8 +718,8 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
         # Platform config should have the constant value, not a parameter ref
         secret_name_fields = (
-            platform_spec.platforms['kubernetes'].deployment_spec.executors[
-                'exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
+            platform_spec.platforms['kubernetes'].deployment_spec.
+            executors['exec-my-comp'].fields['secretAsEnv'].list_value.values[0]
             .struct_value.fields['secretNameParameter'].struct_value.fields)
         self.assertNotIn('componentInputParameter', secret_name_fields)
         self.assertNotIn('taskOutputParameter', secret_name_fields)
@@ -734,7 +735,10 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
                     'secretNameParameter': {
                         'componentInputParameter': 'secret_name'
                     },
-                    'keyToEnv': [{'secretKey': 'pw', 'envVar': 'PASSWORD'}],
+                    'keyToEnv': [{
+                        'secretKey': 'pw',
+                        'envVar': 'PASSWORD'
+                    }],
                 }]
             }
         }
@@ -794,7 +798,8 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
                 pipeline_spec_pb2.ParameterType.STRING)
 
         result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config, parent_inputs,
+            platform_config,
+            parent_inputs,
             tasks_in_current_dag=['worker-task'])
 
         # taskOutputParameter should be replaced with componentInputParameter
@@ -822,8 +827,7 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
 
         result = pipeline_spec_builder._rewrite_platform_config_input_references(
-            platform_config, parent_inputs,
-            tasks_in_current_dag=['local-task'])
+            platform_config, parent_inputs, tasks_in_current_dag=['local-task'])
 
         # taskOutputParameter should remain since the producer is in the current DAG
         secret_ref = result['kubernetes']['secretAsEnv'][0][
@@ -855,12 +859,10 @@ class TestRewritePlatformConfigInputReferences(unittest.TestCase):
             }
         }
         parent_inputs = pipeline_spec_pb2.ComponentInputsSpec()
-        parent_inputs.parameters[
-            'pipelinechannel--secret1'].parameter_type = (
-                pipeline_spec_pb2.ParameterType.STRING)
-        parent_inputs.parameters[
-            'pipelinechannel--pvc_name'].parameter_type = (
-                pipeline_spec_pb2.ParameterType.STRING)
+        parent_inputs.parameters['pipelinechannel--secret1'].parameter_type = (
+            pipeline_spec_pb2.ParameterType.STRING)
+        parent_inputs.parameters['pipelinechannel--pvc_name'].parameter_type = (
+            pipeline_spec_pb2.ParameterType.STRING)
 
         result = pipeline_spec_builder._rewrite_platform_config_input_references(
             platform_config, parent_inputs, [])

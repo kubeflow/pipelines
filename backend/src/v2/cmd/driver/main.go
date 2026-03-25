@@ -329,7 +329,7 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		}
 	} else {
 		// nil is a valid value for Condition
-		if driverType == ROOT_DAG || driverType == CONTAINER {
+		if driverType == ROOT_DAG || driverType == DAG || driverType == CONTAINER {
 			if err := writeFile(executionPaths.Condition, []byte("nil")); err != nil {
 				return fmt.Errorf("failed to write condition to file: %w", err)
 			}

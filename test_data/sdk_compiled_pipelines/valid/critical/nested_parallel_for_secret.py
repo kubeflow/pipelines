@@ -11,7 +11,7 @@ from kfp.kubernetes import use_secret_as_env
 @dsl.component(base_image="python:3.11")
 def emit_secret_name() -> str:
     """Emits the secret name dynamically."""
-    return "my-dynamic-secret"
+    return "test-secret-1"
 
 
 @dsl.component(base_image="python:3.11")
@@ -32,7 +32,7 @@ def pipeline_nested_parallel_for_secret():
             task,
             secret_name=secret_name_task.output,
             secret_key_to_env={
-                "MY_SECRET_KEY": "MY_SECRET_KEY",
+                "username": "MY_SECRET_KEY",
             },
         )
 
@@ -40,6 +40,6 @@ def pipeline_nested_parallel_for_secret():
 if __name__ == "__main__":
     compiler.Compiler().compile(
         pipeline_func=pipeline_nested_parallel_for_secret,
-        package_path="pipeline_4_nested_parallel_for_secret.yaml",
+        package_path="nested_parallel_for_secret.yaml",
     )
-    print("Compiled pipeline_4_nested_parallel_for_secret.yaml")
+    print("Compiled nested_parallel_for_secret.yaml")

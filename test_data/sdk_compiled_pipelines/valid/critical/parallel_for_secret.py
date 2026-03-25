@@ -18,7 +18,7 @@ def example_component(item: str) -> str:
 
 
 @dsl.pipeline(name="pipeline-2-parallel-for-secret")
-def pipeline_parallel_for_secret(my_secret_name: str):
+def pipeline_parallel_for_secret(my_secret_name: str = "test-secret-1"):
     """Pipeline with 1 component inside ParallelFor using use_secret_as_env."""
     with dsl.ParallelFor(items=["a", "b", "c"], parallelism=1) as item:
         task = example_component(item=item)
@@ -26,7 +26,7 @@ def pipeline_parallel_for_secret(my_secret_name: str):
             task,
             secret_name=my_secret_name,
             secret_key_to_env={
-                "MY_SECRET_KEY": "MY_SECRET_KEY",
+                "username": "MY_SECRET_KEY",
             },
         )
 
@@ -34,6 +34,6 @@ def pipeline_parallel_for_secret(my_secret_name: str):
 if __name__ == "__main__":
     compiler.Compiler().compile(
         pipeline_func=pipeline_parallel_for_secret,
-        package_path="pipeline_2_parallel_for_secret.yaml",
+        package_path="parallel_for_secret.yaml",
     )
-    print("Compiled pipeline_2_parallel_for_secret.yaml")
+    print("Compiled parallel_for_secret.yaml")
