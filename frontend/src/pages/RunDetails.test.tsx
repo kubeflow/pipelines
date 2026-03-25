@@ -1827,7 +1827,7 @@ describe('RunDetails', () => {
       expect(history.location.pathname).toEqual('/experiments');
     });
 
-    it('does not redirect when namespace stays the same', () => {
+    it('does not redirect when namespace stays the same', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1838,18 +1838,24 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await act(async () => {
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
 
-    it('does not redirect when namespace initializes', () => {
+    it('does not redirect when namespace initializes', async () => {
       const history = createMemoryHistory({
         initialEntries: ['/initial-path'],
       });
@@ -1860,14 +1866,20 @@ describe('RunDetails', () => {
           </NamespaceContext.Provider>
         </Router>,
       );
+      await act(async () => {
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
-      rerender(
-        <Router history={history}>
-          <NamespaceContext.Provider value='ns1'>
-            <EnhancedRunDetails {...generateProps()} />
-          </NamespaceContext.Provider>
-        </Router>,
-      );
+      await act(async () => {
+        rerender(
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedRunDetails {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>,
+        );
+        await TestUtils.flushPromises();
+      });
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });

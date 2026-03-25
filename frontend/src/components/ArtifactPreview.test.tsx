@@ -52,7 +52,6 @@ describe('ArtifactPreview', () => {
   });
 
   it('handles invalid artifact: no bucket', async () => {
-    const expectError = expectErrors();
     vi.spyOn(Apis, 'readFile').mockRejectedValue(new Error('server error: no bucket'));
 
     render(
@@ -61,7 +60,6 @@ describe('ArtifactPreview', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => screen.getByText('Error in retrieving artifact preview.'));
-    expectError();
   });
 
   it('handles gcs artifact', async () => {

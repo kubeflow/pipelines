@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -1160,6 +1161,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err := manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1171,6 +1173,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, nTotal)
@@ -1290,6 +1293,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err := manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1301,6 +1305,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1312,6 +1317,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, nTotal)
@@ -1385,6 +1391,103 @@ func TestUpdatePipelineStatus(t *testing.T) {
 	p1retrieved, err = manager.GetPipeline(DefaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineReady, p1retrieved.Status)
+}
+
+// Tests that the go-swagger UpdatePipeline request body correctly serializes
+// empty tags as {"tags":{}} (not omitted), so the server can distinguish
+// "clear all tags" from "don't change tags".
+func TestUpdatePipelineBody_EmptyTagsSerialization(t *testing.T) {
+	type UpdateBody struct {
+		Tags map[string]string `json:"tags"`
+	}
+
+	// Empty map must serialize to {"tags":{}}
+	body := UpdateBody{Tags: map[string]string{}}
+	data, err := json.Marshal(body)
+	assert.Nil(t, err)
+	assert.Contains(t, string(data), `"tags":{}`, "Empty tags map must be present in serialized JSON")
+
+	// Nil map must serialize to {"tags":null}
+	bodyNil := UpdateBody{Tags: nil}
+	dataNil, err := json.Marshal(bodyNil)
+	assert.Nil(t, err)
+	assert.Contains(t, string(dataNil), `"tags":null`, "Nil tags must serialize as null")
+
+	// Verify server-side: unmarshal null back to nil
+	var decoded UpdateBody
+	err = json.Unmarshal(dataNil, &decoded)
+	assert.Nil(t, err)
+	assert.Nil(t, decoded.Tags, "Null tags should unmarshal to nil")
+
+	// Verify server-side: unmarshal {} back to empty (non-nil) map
+	var decodedEmpty UpdateBody
+	err = json.Unmarshal(data, &decodedEmpty)
+	assert.Nil(t, err)
+	assert.NotNil(t, decodedEmpty.Tags, "Empty tags object should unmarshal to non-nil map")
+	assert.Empty(t, decodedEmpty.Tags, "Empty tags object should unmarshal to empty map")
+}
+
+// Tests UpdatePipeline clears tags when an empty map is passed.
+func TestUpdatePipeline_ClearTags(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+
+	// Create a pipeline with tags.
+	p := &model.Pipeline{
+		Name:   "pipeline-with-tags",
+		Status: model.PipelineReady,
+		Tags:   map[string]string{"team": "ml-ops", "env": "prod"},
+	}
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	createdPipeline, err := manager.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Verify tags are set.
+	retrieved, err := manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]string{"team": "ml-ops", "env": "prod"}, retrieved.Tags)
+
+	// Clear tags by passing an empty map (not nil).
+	updated, err := manager.UpdatePipeline(createdPipeline.UUID, "", map[string]string{})
+	assert.Nil(t, err)
+	assert.Empty(t, updated.Tags, "Tags should be empty after clearing with empty map")
+
+	// Verify via GetPipeline.
+	retrieved, err = manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
+	assert.Empty(t, retrieved.Tags, "Tags should be empty after clearing with empty map")
+}
+
+// Tests UpdatePipeline does not modify tags when nil is passed.
+func TestUpdatePipeline_NilTagsNoChange(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+
+	// Create a pipeline with tags.
+	p := &model.Pipeline{
+		Name:   "pipeline-with-tags",
+		Status: model.PipelineReady,
+		Tags:   map[string]string{"team": "ml-ops"},
+	}
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	createdPipeline, err := manager.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Update with nil tags should not change existing tags.
+	updated, err := manager.UpdatePipeline(createdPipeline.UUID, "new-name", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]string{"team": "ml-ops"}, updated.Tags, "Tags should remain unchanged when nil is passed")
+	assert.Equal(t, "new-name", updated.DisplayName)
 }
 
 // Tests UpdatePipelineVersionStatus
@@ -4679,6 +4782,119 @@ func TestCreateRun_LiteralParameterValidation(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateTags(t *testing.T) {
+	tests := []struct {
+		name    string
+		tags    map[string]string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "nil tags",
+			tags:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "empty tags",
+			tags:    map[string]string{},
+			wantErr: false,
+		},
+		{
+			name:    "valid single tag",
+			tags:    map[string]string{"env": "prod"},
+			wantErr: false,
+		},
+		{
+			name: "valid max tags",
+			tags: func() map[string]string {
+				m := make(map[string]string)
+				for i := 0; i < MaxTagsPerEntity; i++ {
+					m[fmt.Sprintf("key%d", i)] = fmt.Sprintf("val%d", i)
+				}
+				return m
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "exceeds max tags",
+			tags: func() map[string]string {
+				m := make(map[string]string)
+				for i := 0; i <= MaxTagsPerEntity; i++ {
+					m[fmt.Sprintf("key%d", i)] = fmt.Sprintf("val%d", i)
+				}
+				return m
+			}(),
+			wantErr: true,
+			errMsg:  "exceeds maximum",
+		},
+		{
+			name:    "empty key",
+			tags:    map[string]string{"": "value"},
+			wantErr: true,
+			errMsg:  "tag key cannot be empty",
+		},
+		{
+			name:    "key with dot",
+			tags:    map[string]string{"team.name": "ml"},
+			wantErr: true,
+			errMsg:  "must not contain '.'",
+		},
+		{
+			name:    "key too long",
+			tags:    map[string]string{strings.Repeat("k", MaxTagKeyLength+1): "v"},
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "key at max length",
+			tags:    map[string]string{strings.Repeat("k", MaxTagKeyLength): "v"},
+			wantErr: false,
+		},
+		{
+			name:    "value too long",
+			tags:    map[string]string{"key": strings.Repeat("v", MaxTagValueLength+1)},
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "value at max length",
+			tags:    map[string]string{"key": strings.Repeat("v", MaxTagValueLength)},
+			wantErr: false,
+		},
+		{
+			name:    "unicode key at max rune length",
+			tags:    map[string]string{strings.Repeat("日", MaxTagKeyLength): "v"},
+			wantErr: false,
+		},
+		{
+			name: "unicode key exceeds max rune length",
+			tags: func() map[string]string {
+				k := strings.Repeat("日", MaxTagKeyLength+1)
+				assert.Greater(t, utf8.RuneCountInString(k), MaxTagKeyLength)
+				return map[string]string{k: "v"}
+			}(),
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "empty value is valid",
+			tags:    map[string]string{"key": ""},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTags(tt.tags)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
 			}
 		})
 	}

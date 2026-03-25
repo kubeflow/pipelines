@@ -47,6 +47,7 @@ const (
 	DisplayNameQueryStringKey = "display_name"
 	DescriptionQueryStringKey = "description"
 	NamespaceStringQuery      = "namespace"
+	TagsQueryStringKey        = "tags"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
 )
@@ -149,6 +150,18 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		DisplayName: displayName,
 		Description: model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
 		Namespace:   pipelineNamespace,
+	}
+
+	// Parse optional tags query parameter (JSON-encoded map, e.g., ?tags={"team":"ml-ops","env":"prod"})
+	tagsParam := r.URL.Query().Get(TagsQueryStringKey)
+	if tagsParam != "" {
+		var tags map[string]string
+		if err := json.Unmarshal([]byte(tagsParam), &tags); err != nil {
+			glog.Errorf("Failed to parse tags query parameter: %v", err)
+			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to parse tags query parameter. Expected JSON object with string keys and values"))
+			return
+		}
+		pipeline.Tags = tags
 	}
 
 	pipelineVersion := &model.PipelineVersion{
@@ -293,6 +306,17 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 		return
 	}
 
+	// Parse optional tags query parameter (JSON-encoded map, e.g., ?tags={"team":"ml-ops","env":"prod"})
+	var versionTags map[string]string
+	tagsParam := r.URL.Query().Get(TagsQueryStringKey)
+	if tagsParam != "" {
+		if err := json.Unmarshal([]byte(tagsParam), &versionTags); err != nil {
+			glog.Errorf("Failed to parse tags query parameter: %v", err)
+			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to parse tags query parameter. Expected JSON object with string keys and values"))
+			return
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
@@ -302,6 +326,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 			Description:  model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
 			PipelineId:   pipelineID,
 			PipelineSpec: model.LargeText(pipelineFile),
+			Tags:         versionTags,
 		},
 	)
 	if err != nil {

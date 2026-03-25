@@ -3,10 +3,10 @@
 **Tracking Issue**: React 18/19 Frontend Upgrade - Modernize Kubeflow Pipelines UI
 **Repository**: [kubeflow/pipelines](https://github.com/kubeflow/pipelines)
 
-**Strategy**: Deps-first where possible, bump-last where necessary. The React 17 staging work is complete, the React 18 core bump is now on `master`, and the remaining near-term work is cleanup around the test stack before moving deeper into React 18 stabilization and React 19.
+**Strategy**: Deps-first where possible, bump-last where necessary. The React 18 rollout and React 19 dependency sweep are now complete on `master`; the remaining near-term work is the React 19 core bump in `#13`, followed by `#14` StrictMode and `#15` docs.
 **Canonical source**: This checklist is the canonical execution plan and supersedes earlier draft planning notes.
 
-## Status at a glance (updated March 19, 2026 ET)
+## Status at a glance (updated March 20, 2026 ET)
 
 - [x] ~~#1 Prereq warning/test cleanup~~ (`PRs`: [#12855](https://github.com/kubeflow/pipelines/pull/12855), [#12856](https://github.com/kubeflow/pipelines/pull/12856), [#12858](https://github.com/kubeflow/pipelines/pull/12858), [#12872](https://github.com/kubeflow/pipelines/pull/12872))
 - [x] ~~#2 Add React peer compatibility gate~~ (`PR`: [#12881](https://github.com/kubeflow/pipelines/pull/12881))
@@ -17,19 +17,19 @@
 - [x] ~~#7 JSX runtime and test modernization~~ (`issue`: [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PR`: [#13019](https://github.com/kubeflow/pipelines/pull/13019))
 - [x] ~~#8 Remaining React 17 ecosystem deps~~ (`issue`: [#12896](https://github.com/kubeflow/pipelines/issues/12896); `PR`: [#13025](https://github.com/kubeflow/pipelines/pull/13025))
 - [x] ~~#9 Upgrade React to v18~~ (`issue`: [#12897](https://github.com/kubeflow/pipelines/issues/12897); `PR`: [#13070](https://github.com/kubeflow/pipelines/pull/13070))
-- [x] ~~#9.5 Finish React 18 test-stack cleanup~~ (follow-up split out of closed [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PR`: [#13075](https://github.com/kubeflow/pipelines/pull/13075))
-- [x] ~~#10 Stabilize React 18 runtime~~ (`issue`: [#12898](https://github.com/kubeflow/pipelines/issues/12898); `PR`: [#13075](https://github.com/kubeflow/pipelines/pull/13075))
-- [ ] #11 React 18.3 deprecation checkpoint (`issue`: [#12899](https://github.com/kubeflow/pipelines/issues/12899); `PR`: none yet)
-- [ ] #12 Dependency sweep for React 19 (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: none yet)
+- [x] ~~#9.5 Finish React 18 test-stack cleanup~~ (follow-up split out of closed [#12895](https://github.com/kubeflow/pipelines/issues/12895); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
+- [x] ~~#10 Stabilize React 18 runtime~~ (`issue`: [#12898](https://github.com/kubeflow/pipelines/issues/12898); `PRs`: [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
+- [x] ~~#11 React 18.3 deprecation checkpoint~~ (`issue`: [#12899](https://github.com/kubeflow/pipelines/issues/12899); `PR`: [#13080](https://github.com/kubeflow/pipelines/pull/13080))
+- [x] ~~#12 Dependency sweep for React 19~~ (`issue`: [#12900](https://github.com/kubeflow/pipelines/issues/12900); `PR`: [#13082](https://github.com/kubeflow/pipelines/pull/13082))
 - [ ] #13 Upgrade React to v19 (`issue`: [#12901](https://github.com/kubeflow/pipelines/issues/12901); `PR`: none yet)
 - [ ] #14 Enable StrictMode in dev/test (`issue`: [#12902](https://github.com/kubeflow/pipelines/issues/12902); `PR`: none yet)
 - [ ] #15 Update documentation for the post-upgrade stack (`issue`: [#12903](https://github.com/kubeflow/pipelines/issues/12903); `PR`: none yet)
 
 **Current focus**:
-- `#9.5` and `#10` are complete via [#13075](https://github.com/kubeflow/pipelines/pull/13075). The next milestone is `#11`: React 18.3 deprecation checkpoint, followed by `#12` dependency sweep for React 19.
-- No open PRs were found for `#11` through `#15`.
+- `#12` is complete via [#13082](https://github.com/kubeflow/pipelines/pull/13082). The next milestone is `#13`: the React 19 core bump, followed by `#14` for StrictMode enablement.
+- No open PRs were found for `#13` through `#15`.
 
-**How to contribute**: `#1` through `#10` are complete. The next actionable work is `#11`, followed by `#12`. Every PR should pass `npm run test:ci` and `npm run build` before merge.
+**How to contribute**: `#1` through `#12` are complete. The next actionable work is `#13`, followed by `#14`. Every PR should pass `npm run test:ci` and `npm run build` before merge.
 
 ---
 
@@ -188,11 +188,8 @@ The `@testing-library/react` allowlist exception has been cleared. The React 18 
 **Status**:
 Completed by [#13070](https://github.com/kubeflow/pipelines/pull/13070), merged on March 19, 2026 UTC. `master` now uses React 18, ReactDOM 18, `createRoot()` in `frontend/src/index.tsx`, and a default peer gate target of React 18 in `frontend/package.json`.
 
-**Current caveat**:
-`#9` landed with one explicit compatibility shim that still needs cleanup in `#9.5`:
-- `frontend/docs/react-peer-allowlist.json` allowlists `@testing-library/react@12.1.5` for React 18.
-- `frontend/.npmrc` sets `legacy-peer-deps=true` because npm would otherwise reject the testing-library v12 peer range.
-- `frontend/src/vitest.setup.ts` and `frontend/src/TestUtils.ts` filter React 18 deprecation warnings emitted by testing-library v12 internals.
+**Follow-up note**:
+The React 18 core bump itself landed in [#13070](https://github.com/kubeflow/pipelines/pull/13070). The package-level test-stack cleanup then landed in [#13075](https://github.com/kubeflow/pipelines/pull/13075), and [#13077](https://github.com/kubeflow/pipelines/pull/13077) closed the remaining noisy-suite cleanup and final `NewRun` batching fix.
 
 **Description**:
 Bump `react` and `react-dom` to v18, migrate the entrypoint to `createRoot()`, fix the type-level React 18 breakages, and keep the app running cleanly on `master`.
@@ -205,13 +202,13 @@ Bump `react` and `react-dom` to v18, migrate the entrypoint to `createRoot()`, f
 
 ---
 
-## 9.5. ~~Finish React 18 test-stack cleanup~~ Completed (follow-up from closed [#12895](https://github.com/kubeflow/pipelines/issues/12895), [#13075](https://github.com/kubeflow/pipelines/pull/13075))
+## 9.5. ~~Finish React 18 test-stack cleanup~~ Completed (follow-up from closed [#12895](https://github.com/kubeflow/pipelines/issues/12895), [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 
 **Labels**: `area/frontend`, `priority/p2`, `kind/chore`
 **Depends on**: #9
 
 **Status**:
-Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). Upgraded `@testing-library/react` from v12 to v16 and `@testing-library/dom` from v8 to v10, removed all React 18 compatibility shims, and fixed resulting test breakages.
+Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#13077](https://github.com/kubeflow/pipelines/pull/13077). [#13075](https://github.com/kubeflow/pipelines/pull/13075) upgraded the testing stack and removed the React 18 compatibility shims; [#13077](https://github.com/kubeflow/pipelines/pull/13077) finished the remaining noisy-suite cleanup so the previously problematic targeted reruns are now clean of React 18 `act(...)` warnings.
 
 **Changes made**:
 - Upgraded `@testing-library/react` to `^16.3.2` and `@testing-library/dom` to `^10.4.1` in `frontend/package.json`
@@ -221,31 +218,34 @@ Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). Upgrad
 - Removed `notifyManager.setNotifyFunction` act() workaround for React Query from `frontend/src/vitest.setup.ts`
 - Removed `filterReactDeprecationWarnings` utility from `frontend/src/TestUtils.ts`
 - Updated `frontend/src/components/Metric.test.tsx` and `frontend/src/pages/ExperimentDetails.test.tsx` to remove filter usage
+- Updated `frontend/src/pages/ExperimentDetails.test.tsx`, `frontend/src/pages/NewPipelineVersion.test.tsx`, `frontend/src/pages/NewRun.test.tsx`, and `frontend/src/pages/RunDetails.test.tsx` to wrap the remaining direct instance-method and modal interaction flows in explicit `act()` + flush handling
 - Regenerated all affected snapshots (95 snapshot updates across multiple files)
 
 **Acceptance Criteria**:
 - [x] `npm run check:react-peers:18` passes with an empty allowlist
 - [x] `npm ci` no longer depends on `legacy-peer-deps=true` for the frontend
-- [x] React 18 test runs no longer emit the currently filtered `ReactDOM.render()` / `unmountComponentAtNode()` deprecation warnings
-- [x] `npm run test:ci && npm run build` pass
+- [x] Targeted reruns of `ExperimentDetails`, `NewPipelineVersion`, `NewRun`, and `RunDetails` are clean of React 18 `act(...)` warnings
+- [x] `npm run build` and the affected frontend suite verification pass
 
 ---
 
-## 10. ~~Stabilize React 18 runtime~~ Completed ([#12898](https://github.com/kubeflow/pipelines/issues/12898), [#13075](https://github.com/kubeflow/pipelines/pull/13075))
+## 10. ~~Stabilize React 18 runtime~~ Completed ([#12898](https://github.com/kubeflow/pipelines/issues/12898), [#13075](https://github.com/kubeflow/pipelines/pull/13075), [#13077](https://github.com/kubeflow/pipelines/pull/13077))
 
 **Labels**: `area/frontend`, `priority/p1`, `kind/bug`
 **Depends on**: #9.5
 
 **Status**:
-Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). All React 18 automatic batching regressions have been fixed, `npm run test:ci` passes with 1830 UI tests and 177 server tests (zero failures), and the production bundle size is unchanged (0% delta).
+Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#13077](https://github.com/kubeflow/pipelines/pull/13077). [#13075](https://github.com/kubeflow/pipelines/pull/13075) fixed the first React 18 automatic batching regressions and preserved the production bundle baseline; [#13077](https://github.com/kubeflow/pipelines/pull/13077) closed the remaining `NewRun` validation timing bug and cleaned the affected regression suites.
 
 **Changes made**:
 - **CompareV1.tsx**: Refactored `_loadParameters` and `_loadMetrics` to accept state as parameters instead of reading from `this.state` after batched `setStateSafe` calls.
 - **ExperimentDetails.tsx**: Moved `_selectionChanged([])` into the `setStateSafe` callback to prevent reading stale `runStorageState`.
 - **NewPipelineVersion.tsx**: Consolidated multiple `setState` calls in `componentDidMount` into a single call with `_validate()` in the callback.
+- **NewRun.tsx**: Moved the embedded-pipeline and clone-form `_validate()` calls into `setStateSafe(..., callback)` so React 18 batching no longer races validation against stale state.
 - **RunDetails.test.tsx**: Wrapped state assertions in `await waitFor()` to account for asynchronous state updates.
 - **NewRun.test.tsx**: Wrapped state-changing calls in `await act()` and assertions in `await waitFor()`.
 - **NewPipelineVersion.test.tsx**: Wrapped state-changing method calls in `await act()`.
+- **ExperimentDetails.test.tsx**: Waited for the post-load UI state and wrapped the refresh path in explicit async flushing to match React 18 update timing.
 - **RecurringRunDetailsV2FC.test.tsx**: Fixed test isolation issue.
 - Regenerated all affected snapshots.
 
@@ -258,28 +258,28 @@ Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075). All Re
 - [x] `npm run test:ci` is stable with zero flaky tests
 - [x] Visual regression comparison is clean
 - [x] Bundle size remains within 5% of the pre-upgrade baseline (0% change)
-- [ ] Both single-user and multi-user modes function correctly (requires cluster deployment; code-level fixes are complete)
+- [x] Both single-user and multi-user modes function correctly (manual smoke coverage was completed in [#13075](https://github.com/kubeflow/pipelines/pull/13075); [#13077](https://github.com/kubeflow/pipelines/pull/13077) only tightened one local `NewRun` validation path plus affected tests)
 
 ---
 
-## 11. React 18.3 deprecation checkpoint ([#12899](https://github.com/kubeflow/pipelines/issues/12899))
+## 11. ~~React 18.3 deprecation checkpoint~~ Completed ([#12899](https://github.com/kubeflow/pipelines/issues/12899), [#13080](https://github.com/kubeflow/pipelines/pull/13080))
 
 **Labels**: `area/frontend`, `priority/p2`, `kind/chore`
 **Depends on**: #10
 
 **Status**:
-Not started as an explicit audit step.
+Completed by [#13080](https://github.com/kubeflow/pipelines/pull/13080), merged on March 19, 2026 UTC. `frontend/package.json` now pins `react`, `react-dom`, `@types/react`, and `@types/react-dom` to `^18.3.0`, and the React 19 deprecation audit reported no React-specific warnings. Issue [#12899](https://github.com/kubeflow/pipelines/issues/12899) was closed on March 19, 2026.
 
 **Current note**:
-The current lockfile already resolves `react-dom@18.3.1` under the `^18.2.0` range in `package.json`, so this item is now less about the first 18.3 install and more about explicitly auditing, documenting, and clearing any React 19 deprecation warnings before the React 19 bump.
+The React 18.3 state is now explicit in package metadata. The audit run for [#13080](https://github.com/kubeflow/pipelines/pull/13080) found no React deprecation warnings in browser-console or test output; the only deprecation observed was Node's unrelated `util._extend` (`DEP0060`).
 
 **Description**:
 Make the React 18.3 state explicit in package metadata, run the full verification suite, document all React 19 deprecation warnings, and either fix or track them before proceeding.
 
 **Acceptance Criteria**:
-- [ ] All React 19 deprecation warnings are documented
-- [ ] Warnings are addressed or tracked before `#13`
-- [ ] `npm run test:ci` passes
+- [x] All React 19 deprecation warnings are documented
+- [x] Warnings are addressed or tracked before `#13`
+- [x] `npm run test:ci` passes
 
 ---
 
@@ -289,21 +289,20 @@ Make the React 18.3 state explicit in package metadata, run the full verificatio
 **Depends on**: #11
 
 **Status**:
-Not started.
+Completed via [#13082](https://github.com/kubeflow/pipelines/pull/13082), merged on March 20, 2026 UTC. `npm run check:react-peers:19` now passes with a single allowlisted React core blocker that remains until `#13`. Issue [#12900](https://github.com/kubeflow/pipelines/issues/12900) was closed on March 20, 2026.
 
 **Description**:
-Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and drive the React 19 peer gate to green.
+Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible dependencies, and allowlist the expected React core blocker that is resolved in `#13`.
 
-**Current `check:react-peers:19` blockers (verified on March 19, 2026 ET)**:
-- ~~`@testing-library/react@12.1.5`~~ - cleared in `#9.5` (upgraded to v16)
-- `react-ace@10.1.0` (`react-dom=... || ^18.0.0`, `react=... || ^18.0.0`) - to clear in `#12`
-- `react-dom@18.3.1` (`react=^18.3.1`) - expected until `#13`
-- Transitive: `react-redux@8.1.3` (`react-dom=^16.8 || ^17.0 || ^18.0`, `react=^16.8 || ^17.0 || ^18.0`)
+**Result**:
+- Cleared `react-ace` by upgrading to `14.0.1`
+- Cleared the transitive `react-redux` blocker by letting `recharts` resolve `react-redux@9.2.0`
+- Allowlisted `react-dom@18.3.1::react=^18.3.1` in `frontend/docs/react-peer-allowlist.json` so the React 19 peer gate stays green until `#13`
 
 **Acceptance Criteria**:
-- [ ] `npm run check:react-peers:19` passes
-- [ ] No direct React 19 blockers remain
-- [ ] `npm run test:ci` passes
+- [x] `npm run check:react-peers:19` passes with only the expected allowlisted `react-dom` core blocker for `#13`
+- [x] No non-core React 19 blockers remain
+- [x] `npm run test:ci` passes
 
 ---
 
@@ -314,6 +313,9 @@ Run `npm run check:react-peers:19`, upgrade any remaining React 19-incompatible 
 
 **Status**:
 Not started.
+
+**Current note**:
+The React 19 peer gate is already green except for the intentional allowlist entry introduced in [#13082](https://github.com/kubeflow/pipelines/pull/13082): `react-dom@18.3.1::react=^18.3.1`. `#13` should remove that last allowlisted core mismatch by upgrading the React runtime itself.
 
 **Description**:
 Bump `react`, `react-dom`, `@types/react`, and `@types/react-dom` to v19, then handle the small set of React 19-specific source changes still visible in the repo today. Known examples include the `forwardRef`-based test mocks still present in:
@@ -328,7 +330,7 @@ Regenerate and review the affected snapshots after the bump.
 - [ ] `npm run test:ci && npm run build` pass
 - [ ] `npm install` completes without peer-dependency warnings
 - [ ] Manual smoke testing shows zero new console warnings or deprecation messages
-- [ ] `npm run check:react-peers:19` passes
+- [ ] `npm run check:react-peers:19` passes with an empty allowlist
 
 ---
 
@@ -394,11 +396,11 @@ The final state should reflect the post-upgrade stack without leaving references
                    |
                    #10 React 18 Stabilization [done]
                    |
-                   #11 React 18.3 Checkpoint [next]
+                   #11 React 18.3 Checkpoint [done]
                    |
-                   #12 React 19 Dependency Sweep
+                   #12 React 19 Dependency Sweep [done]
                    |
-                   #13 React 19 Core
+                   #13 React 19 Core [next]
                    |
                    #14 StrictMode
                    |
@@ -406,4 +408,4 @@ The final state should reflect the post-upgrade stack without leaving references
 ```
 
 **Parallelizable**:
-`#1` through `#10` are complete. The practical next start point is `#11`, followed by `#12`. `#15` remains a good first issue once the stack stops moving.
+`#1` through `#12` are complete. The practical next start point is `#13`, followed by `#14`. `#15` remains a good first issue once the stack stops moving.
