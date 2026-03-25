@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { SpyInstance } from 'vitest';
 import PipelinesDialogV2, { PipelinesDialogV2Props } from './PipelinesDialogV2';

@@ -4,38 +4,38 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
 {
   "asFragment": [Function],
   "baseElement": <body
-    style="padding-right: 0px; overflow: hidden;"
+    style="padding-right: 1024px; overflow: hidden;"
   >
     <div
       aria-hidden="true"
     />
     <div
-      class="MuiDialog-root"
+      class="MuiDialog-root MuiModal-root css-zw3mfo-MuiModal-root-MuiDialog-root"
       role="presentation"
-      style="position: fixed; z-index: 1300; right: 0px; bottom: 0px; top: 0px; left: 0px;"
     >
       <div
         aria-hidden="true"
-        class="MuiBackdrop-root"
+        class="MuiBackdrop-root MuiModal-backdrop css-yiavyu-MuiBackdrop-root-MuiDialog-backdrop"
         style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
       />
       <div
-        data-test="sentinelStart"
+        data-testid="sentinelStart"
         tabindex="0"
       />
       <div
-        class="MuiDialog-container MuiDialog-scrollPaper"
-        role="none presentation"
+        class="MuiDialog-container MuiDialog-scrollPaper css-hz1bth-MuiDialog-container"
+        role="presentation"
         style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
         tabindex="-1"
       >
         <div
-          class="MuiPaper-root MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm MuiPaper-elevation24 MuiPaper-rounded"
+          aria-labelledby=":r0:"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation24 MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm css-1t1j96h-MuiPaper-root-MuiDialog-paper"
           id="pipelineSelectorDialog"
           role="dialog"
         >
           <div
-            class="MuiDialogContent-root"
+            class="MuiDialogContent-root css-ypiqx9-MuiDialogContent-root"
           >
             <div
               class="root_f1vld0bw topLevelToolbar_faeji1w"
@@ -75,37 +75,31 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                   style="display: inline-block; min-width: 20px; width: 20px;"
                 />
                 <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i active_fz0wpsl"
+                  aria-label="Only people who have access to this namespace will be able to view and use these pipelines."
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-mui-internal-clone-element="true"
                   tabindex="0"
-                  title="Only people who have access to this namespace will be able to view and use these pipelines."
                   type="button"
                 >
-                  <span
-                    class="MuiButton-label"
-                  >
-                    <span>
-                      Private
-                    </span>
+                  <span>
+                    Private
                   </span>
                   <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </button>
                 <button
-                  class="MuiButtonBase-root MuiButton-root MuiButton-text button_ff2g68i"
+                  aria-label="Everyone in your organization will be able to view and use these pipelines."
+                  class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                  data-mui-internal-clone-element="true"
                   tabindex="0"
-                  title="Everyone in your organization will be able to view and use these pipelines."
                   type="button"
                 >
-                  <span
-                    class="MuiButton-label"
-                  >
-                    <span>
-                      Shared
-                    </span>
+                  <span>
+                    Shared
                   </span>
                   <span
-                    class="MuiTouchRipple-root"
+                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                   />
                 </button>
               </div>
@@ -114,12 +108,12 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
               >
                 <div>
                   <div
-                    class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                    class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
                     spellcheck="false"
                     style="height: 48px; max-width: 100%; width: 100%;"
                   >
                     <label
-                      class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                      class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                       data-shrink="true"
                       for="tableFilterBox"
                       id="tableFilterBox-label"
@@ -127,36 +121,37 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                       Filter pipelines
                     </label>
                     <div
-                      class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                      class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
                     >
                       <div
-                        class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                        class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
                       >
                         <svg
                           aria-hidden="true"
-                          class="MuiSvgIcon-root"
+                          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                          data-testid="FilterListIcon"
                           focusable="false"
                           style="color: rgb(128, 134, 139); padding-right: 16px;"
                           viewBox="0 0 24 24"
                         >
                           <path
-                            d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                            d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                           />
                         </svg>
                       </div>
                       <input
                         aria-invalid="false"
-                        class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                        class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
                         id="tableFilterBox"
                         type="text"
                         value=""
                       />
                       <fieldset
                         aria-hidden="true"
-                        class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                        class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
                       >
                         <legend
-                          class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                          class="css-sl37lx-MuiNotchedOutlined-root"
                         >
                           <span>
                             Filter pipelines
@@ -182,16 +177,17 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                     title="Pipeline name"
                   >
                     <span
-                      aria-disabled="false"
-                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+                      aria-label="Sort"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                      data-mui-internal-clone-element="true"
                       role="button"
                       tabindex="0"
-                      title="Sort"
                     >
                       Pipeline name
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                        data-testid="ArrowDownwardIcon"
                         focusable="false"
                         viewBox="0 0 24 24"
                       >
@@ -207,11 +203,11 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                     title="Description"
                   >
                     <span
-                      aria-disabled="false"
-                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+                      aria-label="Cannot sort by this column"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                      data-mui-internal-clone-element="true"
                       role="button"
                       tabindex="0"
-                      title="Cannot sort by this column"
                     >
                       Description
                     </span>
@@ -222,16 +218,17 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                     title="Uploaded on"
                   >
                     <span
-                      aria-disabled="false"
-                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+                      aria-label="Sort"
+                      class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                      data-mui-internal-clone-element="true"
                       role="button"
                       tabindex="0"
-                      title="Sort"
                     >
                       Uploaded on
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                        data-testid="ArrowDownwardIcon"
                         focusable="false"
                         viewBox="0 0 24 24"
                       >
@@ -261,44 +258,41 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                         class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          aria-disabled="false"
-                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
+                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
                         >
+                          <input
+                            class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                            type="radio"
+                            value=""
+                          />
                           <span
-                            class="MuiIconButton-label"
+                            class="css-19y5vkv-MuiRadioButtonIcon-root"
                           >
-                            <input
-                              class="PrivateSwitchBase-input-8"
-                              type="radio"
-                              value=""
-                            />
-                            <div
-                              class="PrivateRadioButtonIcon-root-9"
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonUncheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
                             >
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                                />
-                              </svg>
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-10"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                                />
-                              </svg>
-                            </div>
+                              <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                              />
+                            </svg>
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-yve00p-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonCheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                              />
+                            </svg>
                           </span>
                           <span
-                            class="MuiTouchRipple-root"
+                            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                           />
                         </span>
                       </div>
@@ -307,8 +301,9 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                         style="width: 25%;"
                       >
                         <span
+                          aria-label="Name: mock pipeline name"
                           class=""
-                          title="Name: mock pipeline name"
+                          data-mui-internal-clone-element="true"
                         >
                           mock pipeline name
                         </span>
@@ -340,44 +335,41 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                         class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          aria-disabled="false"
-                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
+                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
                         >
+                          <input
+                            class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                            type="radio"
+                            value=""
+                          />
                           <span
-                            class="MuiIconButton-label"
+                            class="css-19y5vkv-MuiRadioButtonIcon-root"
                           >
-                            <input
-                              class="PrivateSwitchBase-input-8"
-                              type="radio"
-                              value=""
-                            />
-                            <div
-                              class="PrivateRadioButtonIcon-root-9"
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonUncheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
                             >
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                                />
-                              </svg>
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-10"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                                />
-                              </svg>
-                            </div>
+                              <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                              />
+                            </svg>
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-yve00p-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonCheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                              />
+                            </svg>
                           </span>
                           <span
-                            class="MuiTouchRipple-root"
+                            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                           />
                         </span>
                       </div>
@@ -386,8 +378,9 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                         style="width: 25%;"
                       >
                         <span
+                          aria-label="Name: mock pipeline name"
                           class=""
-                          title="Name: mock pipeline name"
+                          data-mui-internal-clone-element="true"
                         >
                           mock pipeline name
                         </span>
@@ -414,28 +407,34 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                     Rows per page:
                   </span>
                   <div
-                    class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+                    class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
                   >
                     <div
-                      class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                      class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                     >
                       <div
+                        aria-controls=":r8:"
+                        aria-expanded="false"
                         aria-haspopup="listbox"
-                        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-                        role="button"
+                        aria-labelledby=":r7:"
+                        class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+                        id=":r7:"
+                        role="combobox"
                         tabindex="0"
                       >
                         10
                       </div>
                       <input
                         aria-hidden="true"
-                        class="MuiSelect-nativeInput"
+                        aria-invalid="false"
+                        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         tabindex="-1"
                         value="10"
                       />
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root MuiSelect-icon"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+                        data-testid="ArrowDropDownIcon"
                         focusable="false"
                         viewBox="0 0 24 24"
                       >
@@ -446,87 +445,73 @@ exports[`PipelinesDialog > it renders correctly in multi user mode 1`] = `
                     </div>
                   </div>
                   <button
-                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                    class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
-                    <span
-                      class="MuiIconButton-label"
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                      data-testid="ChevronLeftIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
                     >
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root"
-                        focusable="false"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                        />
-                      </svg>
-                    </span>
+                      <path
+                        d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                      />
+                    </svg>
                   </button>
                   <button
-                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                    class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
-                    <span
-                      class="MuiIconButton-label"
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                      data-testid="ChevronRightIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
                     >
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root"
-                        focusable="false"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                        />
-                      </svg>
-                    </span>
+                      <path
+                        d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
             </div>
           </div>
           <div
-            class="MuiDialogActions-root MuiDialogActions-spacing"
+            class="MuiDialogActions-root MuiDialogActions-spacing css-knqc4i-MuiDialogActions-root"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               id="cancelPipelineSelectionBtn"
               tabindex="0"
               type="button"
             >
+              Cancel
               <span
-                class="MuiButton-label"
-              >
-                Cancel
-              </span>
-              <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="usePipelineBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                Use this pipeline
-              </span>
+              Use this pipeline
             </button>
           </div>
         </div>
       </div>
       <div
-        data-test="sentinelEnd"
+        data-testid="sentinelEnd"
         tabindex="0"
       />
     </div>
@@ -592,38 +577,38 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
 {
   "asFragment": [Function],
   "baseElement": <body
-    style="padding-right: 0px; overflow: hidden;"
+    style="padding-right: 1024px; overflow: hidden;"
   >
     <div
       aria-hidden="true"
     />
     <div
-      class="MuiDialog-root"
+      class="MuiDialog-root MuiModal-root css-zw3mfo-MuiModal-root-MuiDialog-root"
       role="presentation"
-      style="position: fixed; z-index: 1300; right: 0px; bottom: 0px; top: 0px; left: 0px;"
     >
       <div
         aria-hidden="true"
-        class="MuiBackdrop-root"
+        class="MuiBackdrop-root MuiModal-backdrop css-yiavyu-MuiBackdrop-root-MuiDialog-backdrop"
         style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
       />
       <div
-        data-test="sentinelStart"
+        data-testid="sentinelStart"
         tabindex="0"
       />
       <div
-        class="MuiDialog-container MuiDialog-scrollPaper"
-        role="none presentation"
+        class="MuiDialog-container MuiDialog-scrollPaper css-hz1bth-MuiDialog-container"
+        role="presentation"
         style="opacity: 1; transition: opacity 225ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;"
         tabindex="-1"
       >
         <div
-          class="MuiPaper-root MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm MuiPaper-elevation24 MuiPaper-rounded"
+          aria-labelledby=":rb:"
+          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation24 MuiDialog-paper MuiDialog-paperScrollPaper MuiDialog-paperWidthSm css-1t1j96h-MuiPaper-root-MuiDialog-paper"
           id="pipelineSelectorDialog"
           role="dialog"
         >
           <div
-            class="MuiDialogContent-root"
+            class="MuiDialogContent-root css-ypiqx9-MuiDialogContent-root"
           >
             <div
               class="root_f1vld0bw topLevelToolbar_faeji1w"
@@ -657,12 +642,12 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
               >
                 <div>
                   <div
-                    class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+                    class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
                     spellcheck="false"
                     style="height: 48px; max-width: 100%; width: 100%;"
                   >
                     <label
-                      class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+                      class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
                       data-shrink="true"
                       for="tableFilterBox"
                       id="tableFilterBox-label"
@@ -670,36 +655,37 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                       Filter pipelines
                     </label>
                     <div
-                      class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+                      class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
                     >
                       <div
-                        class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+                        class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
                       >
                         <svg
                           aria-hidden="true"
-                          class="MuiSvgIcon-root"
+                          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                          data-testid="FilterListIcon"
                           focusable="false"
                           style="color: rgb(128, 134, 139); padding-right: 16px;"
                           viewBox="0 0 24 24"
                         >
                           <path
-                            d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                            d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                           />
                         </svg>
                       </div>
                       <input
                         aria-invalid="false"
-                        class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+                        class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
                         id="tableFilterBox"
                         type="text"
                         value=""
                       />
                       <fieldset
                         aria-hidden="true"
-                        class="PrivateNotchedOutline-root-12 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+                        class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
                       >
                         <legend
-                          class="PrivateNotchedOutline-legendLabelled-14 PrivateNotchedOutline-legendNotched-15"
+                          class="css-sl37lx-MuiNotchedOutlined-root"
                         >
                           <span>
                             Filter pipelines
@@ -725,16 +711,17 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                     title="Pipeline name"
                   >
                     <span
-                      aria-disabled="false"
-                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+                      aria-label="Sort"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                      data-mui-internal-clone-element="true"
                       role="button"
                       tabindex="0"
-                      title="Sort"
                     >
                       Pipeline name
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                        data-testid="ArrowDownwardIcon"
                         focusable="false"
                         viewBox="0 0 24 24"
                       >
@@ -750,11 +737,11 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                     title="Description"
                   >
                     <span
-                      aria-disabled="false"
-                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+                      aria-label="Cannot sort by this column"
+                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                      data-mui-internal-clone-element="true"
                       role="button"
                       tabindex="0"
-                      title="Cannot sort by this column"
                     >
                       Description
                     </span>
@@ -765,16 +752,17 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                     title="Uploaded on"
                   >
                     <span
-                      aria-disabled="false"
-                      class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+                      aria-label="Sort"
+                      class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                      data-mui-internal-clone-element="true"
                       role="button"
                       tabindex="0"
-                      title="Sort"
                     >
                       Uploaded on
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                        data-testid="ArrowDownwardIcon"
                         focusable="false"
                         viewBox="0 0 24 24"
                       >
@@ -804,44 +792,41 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                         class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          aria-disabled="false"
-                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-16 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
+                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
                         >
+                          <input
+                            class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                            type="radio"
+                            value=""
+                          />
                           <span
-                            class="MuiIconButton-label"
+                            class="css-19y5vkv-MuiRadioButtonIcon-root"
                           >
-                            <input
-                              class="PrivateSwitchBase-input-19"
-                              type="radio"
-                              value=""
-                            />
-                            <div
-                              class="PrivateRadioButtonIcon-root-20"
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonUncheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
                             >
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                                />
-                              </svg>
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-21"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                                />
-                              </svg>
-                            </div>
+                              <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                              />
+                            </svg>
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-yve00p-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonCheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                              />
+                            </svg>
                           </span>
                           <span
-                            class="MuiTouchRipple-root"
+                            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                           />
                         </span>
                       </div>
@@ -850,8 +835,9 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                         style="width: 25%;"
                       >
                         <span
+                          aria-label="Name: mock pipeline name"
                           class=""
-                          title="Name: mock pipeline name"
+                          data-mui-internal-clone-element="true"
                         >
                           mock pipeline name
                         </span>
@@ -883,44 +869,41 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                         class="cell_fy8nr2z selectionToggle_f1ds3nvo"
                       >
                         <span
-                          aria-disabled="false"
-                          class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-16 MuiRadio-root MuiRadio-colorPrimary MuiIconButton-colorPrimary"
+                          class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
                         >
+                          <input
+                            class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                            type="radio"
+                            value=""
+                          />
                           <span
-                            class="MuiIconButton-label"
+                            class="css-19y5vkv-MuiRadioButtonIcon-root"
                           >
-                            <input
-                              class="PrivateSwitchBase-input-19"
-                              type="radio"
-                              value=""
-                            />
-                            <div
-                              class="PrivateRadioButtonIcon-root-20"
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonUncheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
                             >
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-                                />
-                              </svg>
-                              <svg
-                                aria-hidden="true"
-                                class="MuiSvgIcon-root PrivateRadioButtonIcon-layer-21"
-                                focusable="false"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
-                                />
-                              </svg>
-                            </div>
+                              <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+                              />
+                            </svg>
+                            <svg
+                              aria-hidden="true"
+                              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-yve00p-MuiSvgIcon-root-MuiRadioButtonIcon-root"
+                              data-testid="RadioButtonCheckedIcon"
+                              focusable="false"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+                              />
+                            </svg>
                           </span>
                           <span
-                            class="MuiTouchRipple-root"
+                            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                           />
                         </span>
                       </div>
@@ -929,8 +912,9 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                         style="width: 25%;"
                       >
                         <span
+                          aria-label="Name: mock pipeline name"
                           class=""
-                          title="Name: mock pipeline name"
+                          data-mui-internal-clone-element="true"
                         >
                           mock pipeline name
                         </span>
@@ -957,28 +941,34 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                     Rows per page:
                   </span>
                   <div
-                    class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+                    class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
                   >
                     <div
-                      class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+                      class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
                     >
                       <div
+                        aria-controls=":rh:"
+                        aria-expanded="false"
                         aria-haspopup="listbox"
-                        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-                        role="button"
+                        aria-labelledby=":rg:"
+                        class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+                        id=":rg:"
+                        role="combobox"
                         tabindex="0"
                       >
                         10
                       </div>
                       <input
                         aria-hidden="true"
-                        class="MuiSelect-nativeInput"
+                        aria-invalid="false"
+                        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         tabindex="-1"
                         value="10"
                       />
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root MuiSelect-icon"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+                        data-testid="ArrowDropDownIcon"
                         focusable="false"
                         viewBox="0 0 24 24"
                       >
@@ -989,87 +979,73 @@ exports[`PipelinesDialog > it renders correctly in single user mode 1`] = `
                     </div>
                   </div>
                   <button
-                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                    class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
-                    <span
-                      class="MuiIconButton-label"
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                      data-testid="ChevronLeftIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
                     >
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root"
-                        focusable="false"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                        />
-                      </svg>
-                    </span>
+                      <path
+                        d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                      />
+                    </svg>
                   </button>
                   <button
-                    class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+                    class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                     disabled=""
                     tabindex="-1"
                     type="button"
                   >
-                    <span
-                      class="MuiIconButton-label"
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                      data-testid="ChevronRightIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
                     >
-                      <svg
-                        aria-hidden="true"
-                        class="MuiSvgIcon-root"
-                        focusable="false"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                        />
-                      </svg>
-                    </span>
+                      <path
+                        d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
             </div>
           </div>
           <div
-            class="MuiDialogActions-root MuiDialogActions-spacing"
+            class="MuiDialogActions-root MuiDialogActions-spacing css-knqc4i-MuiDialogActions-root"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               id="cancelPipelineSelectionBtn"
               tabindex="0"
               type="button"
             >
+              Cancel
               <span
-                class="MuiButton-label"
-              >
-                Cancel
-              </span>
-              <span
-                class="MuiTouchRipple-root"
+                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
               />
             </button>
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary Mui-disabled Mui-disabled"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
               disabled=""
               id="usePipelineBtn"
               tabindex="-1"
               type="button"
             >
-              <span
-                class="MuiButton-label"
-              >
-                Use this pipeline
-              </span>
+              Use this pipeline
             </button>
           </div>
         </div>
       </div>
       <div
-        data-test="sentinelEnd"
+        data-testid="sentinelEnd"
         tabindex="0"
       />
     </div>

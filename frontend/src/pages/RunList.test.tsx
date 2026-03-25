@@ -104,13 +104,13 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
-    getRunSpy.mockImplementation(id => {
+    getRunSpy.mockImplementation((id) => {
       const pipelineVersionRef = {
         pipeline_id: 'testpipeline' + id,
         pipeline_version_id: 'testversion' + id,
       };
       return Promise.resolve(
-        produce(runTemplate, draft => {
+        produce(runTemplate, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
@@ -122,13 +122,13 @@ describe('RunList', () => {
 
     listRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        runs: range(1, n + 1).map(i => {
+        runs: range(1, n + 1).map((i) => {
           if (runTemplate) {
             const pipelineVersionRef = {
               pipeline_id: 'testpipeline' + i,
               pipeline_version_id: 'testversion' + i,
             };
-            return produce(runTemplate as Partial<V2beta1Run>, draft => {
+            return produce(runTemplate as Partial<V2beta1Run>, (draft) => {
               draft.run_id = 'testrun' + i;
               draft.display_name = 'run with id: testrun' + i;
               draft.pipeline_version_reference = pipelineVersionRef;
@@ -175,7 +175,7 @@ describe('RunList', () => {
     listExperimentsSpy = vi
       .spyOn(Apis.experimentServiceApiV2, 'listExperiments')
       .mockResolvedValue({ experiments: [] } as any);
-    formatDateStringSpy = vi.spyOn(Utils, 'formatDateString').mockImplementation(date => {
+    formatDateStringSpy = vi.spyOn(Utils, 'formatDateString').mockImplementation((date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
   });
@@ -225,7 +225,7 @@ describe('RunList', () => {
             predicates: [
               {
                 key: 'storage_state',
-                operation: V2beta1PredicateOperation.NOTEQUALS,
+                operation: V2beta1PredicateOperation.NOT_EQUALS,
                 string_value: V2beta1RunStorageState.ARCHIVED.toString(),
               },
             ],
@@ -489,7 +489,7 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
           ],
@@ -524,10 +524,10 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.ISSUBSTRING,
+              operation: V2beta1PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
-            { key: 'name', operation: V2beta1PredicateOperation.ISSUBSTRING, string_value: '1' },
+            { key: 'name', operation: V2beta1PredicateOperation.IS_SUBSTRING, string_value: '1' },
           ],
         } as V2beta1Filter),
       ),

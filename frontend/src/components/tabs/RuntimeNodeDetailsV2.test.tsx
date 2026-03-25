@@ -15,7 +15,6 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { Apis } from 'src/lib/Apis';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
@@ -78,7 +77,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -113,7 +112,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -151,7 +150,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -183,7 +182,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           pipelineJobString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
           element={{

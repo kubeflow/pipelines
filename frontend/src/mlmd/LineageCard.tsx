@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { blue, grey } from '@material-ui/core/colors';
+import { blue, grey } from '@mui/material/colors';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { CSSProperties } from 'typestyle/lib/types';

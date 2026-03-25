@@ -15,9 +15,10 @@
  */
 
 import React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { stylesheet } from 'typestyle';
@@ -78,11 +79,11 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     }
   }
 
-  const { isSuccess, isError, data, error } = useQuery<string, Error>(
-    ['artifact_preview', { value, namespace, maxbytes, maxlines }],
-    () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
-    { staleTime: Infinity },
-  );
+  const { isSuccess, isError, data, error } = useQuery<string, Error>({
+    queryKey: queryKeys.artifactPreview(value, namespace, maxbytes, maxlines),
+    queryFn: () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
+    staleTime: Infinity,
+  });
 
   if (!storage) {
     return (
@@ -154,11 +155,7 @@ async function getPreview(
   data = data.slice(0, maxbytes);
   // check num lines
   if (maxlines) {
-    data = data
-      .split('\n')
-      .slice(0, maxlines)
-      .join('\n')
-      .trim();
+    data = data.split('\n').slice(0, maxlines).join('\n').trim();
   }
   return `${data}\n...`;
 }

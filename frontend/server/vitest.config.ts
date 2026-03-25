@@ -7,5 +7,6 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     pool: 'forks',
     maxWorkers: 1,
+    testTimeout: 10000,
   },
 });

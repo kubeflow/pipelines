@@ -598,6 +598,8 @@ func autoMigrate(db *gorm.DB) error {
 		&model.Experiment{},
 		&model.Pipeline{},
 		&model.PipelineVersion{},
+		&model.PipelineTag{},
+		&model.PipelineVersionTag{},
 		&model.Job{},
 		&model.Run{},
 		&model.RunMetric{},

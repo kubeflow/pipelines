@@ -4723,3 +4723,193 @@ func Test_toApiRun(t *testing.T) {
 		})
 	}
 }
+
+func TestToApiRunStorageStateV1(t *testing.T) {
+	tests := []struct {
+		name     string
+		state    model.StorageState
+		expected apiv1beta1.Run_StorageState
+	}{
+		{"empty string defaults to available", model.StorageState(""), apiv1beta1.Run_STORAGESTATE_AVAILABLE},
+		{"archived v2", model.StorageStateArchived, apiv1beta1.Run_STORAGESTATE_ARCHIVED},
+		{"archived v1", model.StorageStateArchived.ToV1(), apiv1beta1.Run_STORAGESTATE_ARCHIVED},
+		{"available v2", model.StorageStateAvailable, apiv1beta1.Run_STORAGESTATE_AVAILABLE},
+		{"available v1", model.StorageStateAvailable.ToV1(), apiv1beta1.Run_STORAGESTATE_AVAILABLE},
+		{"unknown defaults to available", model.StorageState("UNKNOWN"), apiv1beta1.Run_STORAGESTATE_AVAILABLE},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			state := testCase.state
+			result := toApiRunStorageStateV1(&state)
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestToApiExperimentStorageState(t *testing.T) {
+	tests := []struct {
+		name     string
+		state    model.StorageState
+		expected apiv2beta1.Experiment_StorageState
+	}{
+		{"empty string defaults to unspecified", model.StorageState(""), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
+		{"archived v2", model.StorageStateArchived, apiv2beta1.Experiment_ARCHIVED},
+		{"archived v1", model.StorageStateArchived.ToV1(), apiv2beta1.Experiment_ARCHIVED},
+		{"available v2", model.StorageStateAvailable, apiv2beta1.Experiment_AVAILABLE},
+		{"available v1", model.StorageStateAvailable.ToV1(), apiv2beta1.Experiment_AVAILABLE},
+		{"unspecified v2", model.StorageStateUnspecified, apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
+		{"unspecified v1", model.StorageStateUnspecified.ToV1(), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
+		{"unknown defaults to unspecified", model.StorageState("UNKNOWN"), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			state := testCase.state
+			result := toApiExperimentStorageState(&state)
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestToApiExperimentStorageStateV1(t *testing.T) {
+	tests := []struct {
+		name     string
+		state    model.StorageState
+		expected apiv1beta1.Experiment_StorageState
+	}{
+		{"empty string defaults to unspecified", model.StorageState(""), apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
+		{"archived v2", model.StorageStateArchived, apiv1beta1.Experiment_STORAGESTATE_ARCHIVED},
+		{"archived v1", model.StorageStateArchived.ToV1(), apiv1beta1.Experiment_STORAGESTATE_ARCHIVED},
+		{"available v2", model.StorageStateAvailable, apiv1beta1.Experiment_STORAGESTATE_AVAILABLE},
+		{"available v1", model.StorageStateAvailable.ToV1(), apiv1beta1.Experiment_STORAGESTATE_AVAILABLE},
+		{"unspecified v2", model.StorageStateUnspecified, apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
+		{"unspecified v1", model.StorageStateUnspecified.ToV1(), apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
+		{"unknown defaults to unspecified", model.StorageState("UNKNOWN"), apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			state := testCase.state
+			result := toApiExperimentStorageStateV1(&state)
+			assert.Equal(t, testCase.expected, result)
+		})
+	}
+}
+
+func TestToApiPipelineVersionsV1_Empty(t *testing.T) {
+	result := toApiPipelineVersionsV1([]*model.PipelineVersion{})
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestToApiPipelineVersionsV1_SingleVersion(t *testing.T) {
+	versions := []*model.PipelineVersion{
+		{
+			UUID:           "version-1",
+			Name:           "v1",
+			CreatedAtInSec: 100,
+			PipelineId:     "pipeline-1",
+		},
+	}
+	result := toApiPipelineVersionsV1(versions)
+	assert.NotNil(t, result)
+	assert.Equal(t, 1, len(result))
+	assert.Equal(t, "version-1", result[0].Id)
+	assert.Equal(t, "v1", result[0].Name)
+}
+
+func TestToApiPipelineVersionsV1_MultipleVersions(t *testing.T) {
+	versions := []*model.PipelineVersion{
+		{
+			UUID:           "version-1",
+			Name:           "v1",
+			CreatedAtInSec: 100,
+			PipelineId:     "pipeline-1",
+		},
+		{
+			UUID:           "version-2",
+			Name:           "v2",
+			CreatedAtInSec: 200,
+			PipelineId:     "pipeline-1",
+		},
+	}
+	result := toApiPipelineVersionsV1(versions)
+	assert.NotNil(t, result)
+	assert.Equal(t, 2, len(result))
+	assert.Equal(t, "version-1", result[0].Id)
+	assert.Equal(t, "version-2", result[1].Id)
+}
+
+func TestToApiPipelineVersions_Empty(t *testing.T) {
+	result := toApiPipelineVersions([]*model.PipelineVersion{})
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestToApiPipelineVersions_SingleVersion(t *testing.T) {
+	versions := []*model.PipelineVersion{
+		{
+			UUID:           "version-1",
+			Name:           "v1",
+			DisplayName:    "v1",
+			CreatedAtInSec: 100,
+			PipelineId:     "pipeline-1",
+		},
+	}
+	result := toApiPipelineVersions(versions)
+	assert.NotNil(t, result)
+	assert.Equal(t, 1, len(result))
+	assert.Equal(t, "version-1", result[0].PipelineVersionId)
+	assert.Equal(t, "v1", result[0].DisplayName)
+}
+
+func TestToApiPipelineVersions_MultipleVersions(t *testing.T) {
+	versions := []*model.PipelineVersion{
+		{
+			UUID:           "version-1",
+			Name:           "v1",
+			CreatedAtInSec: 100,
+			PipelineId:     "pipeline-1",
+		},
+		{
+			UUID:           "version-2",
+			Name:           "v2",
+			CreatedAtInSec: 200,
+			PipelineId:     "pipeline-1",
+		},
+	}
+	result := toApiPipelineVersions(versions)
+	assert.NotNil(t, result)
+	assert.Equal(t, 2, len(result))
+	assert.Equal(t, "version-1", result[0].PipelineVersionId)
+	assert.Equal(t, "version-2", result[1].PipelineVersionId)
+}
+
+func TestToPipelineSpecRuntimeConfig_Nil(t *testing.T) {
+	result := toPipelineSpecRuntimeConfig(nil)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.ParameterValues)
+	assert.Empty(t, result.GcsOutputDirectory)
+}
+
+func TestToPipelineSpecRuntimeConfig_WithParams(t *testing.T) {
+	serializedParameters := `{"param1":"value1","param2":"value2"}`
+	runtimeConfig := &model.RuntimeConfig{
+		Parameters:   model.LargeText(serializedParameters),
+		PipelineRoot: "gs://my-bucket/pipeline-root",
+	}
+	result := toPipelineSpecRuntimeConfig(runtimeConfig)
+	assert.NotNil(t, result)
+	assert.Equal(t, "gs://my-bucket/pipeline-root", result.GcsOutputDirectory)
+	assert.NotNil(t, result.ParameterValues)
+	assert.Equal(t, 2, len(result.ParameterValues))
+}
+
+func TestToPipelineSpecRuntimeConfig_InvalidJSON(t *testing.T) {
+	runtimeConfig := &model.RuntimeConfig{
+		Parameters:   model.LargeText("not valid json"),
+		PipelineRoot: "gs://my-bucket/pipeline-root",
+	}
+	result := toPipelineSpecRuntimeConfig(runtimeConfig)
+	// toMapProtoStructParameters returns nil on invalid JSON that also fails
+	// v1 parameter parsing, causing toPipelineSpecRuntimeConfig to return nil.
+	assert.Nil(t, result)
+}

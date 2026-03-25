@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
+import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
 import { Redirect, Route, Switch } from 'react-router-dom';
 import Compare from 'src/pages/Compare';
@@ -52,6 +47,8 @@ import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
 import SideNavigation from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from '@mui/material';
 
 export type RouteConfig = {
   path: string;
@@ -217,7 +214,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   ];
 
   if (!buildInfo?.apiServerMultiUser) {
-    routes = routes.filter(r => r.path !== RoutePage.PIPELINES_SHARED);
+    routes = routes.filter((r) => r.path !== RoutePage.PIPELINES_SHARED);
   }
 
   return (
@@ -241,7 +238,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
               key={i}
               exact={!route.notExact}
               path={path}
-              render={props => <RoutedPage key={props.location.key} route={route} />}
+              render={(props) => <RoutedPage key={props.location.key} route={route} />}
             />
           );
         })}
@@ -399,7 +396,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
 export default Router;
 
-const SideNavLayout: React.FC<{}> = ({ children }) => (
+const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className={classes(commonCss.page)}>
     <div className={classes(commonCss.flexGrow)}>
       <Route
