@@ -1693,8 +1693,11 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		createTime = wfStatus.CreateTime
 		finishTime = wfStatus.FinishTime
 		children = wfStatus.Children
-		if payloadBytes, err := json.Marshal(wfStatus.FailedAttempts); err == nil {
-			taskPayload = string(payloadBytes)
+
+		if len(wfStatus.FailedAttempts) > 0 {
+			if payloadBytes, err := json.Marshal(wfStatus.FailedAttempts); err == nil {
+				taskPayload = string(payloadBytes)
+			}
 		}
 	default:
 		return nil, util.NewUnknownApiVersionError("Task", t)
