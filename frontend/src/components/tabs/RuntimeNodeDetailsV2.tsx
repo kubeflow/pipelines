@@ -58,6 +58,7 @@ import RuntimeInputOutputTab, {
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import { V2beta1PipelineTaskDetail } from 'src/apisv2beta1/run';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
@@ -88,6 +89,7 @@ interface RuntimeNodeDetailsV2Props {
   element?: PipelineFlowElement | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
+  taskDetails: V2beta1PipelineTaskDetail | null;
 }
 
 export function RuntimeNodeDetailsV2({
@@ -98,6 +100,7 @@ export function RuntimeNodeDetailsV2({
   element,
   elementMlmdInfo,
   namespace,
+  taskDetails,
 }: RuntimeNodeDetailsV2Props) {
   if (!element) {
     return NODE_INFO_UNKNOWN;
@@ -113,6 +116,7 @@ export function RuntimeNodeDetailsV2({
           execution={elementMlmdInfo?.execution}
           layers={layers}
           namespace={namespace}
+          taskDetails={taskDetails}
         ></TaskNodeDetail>
       );
     } else if (NodeTypeNames.ARTIFACT === element.type) {
@@ -145,6 +149,7 @@ interface TaskNodeDetailProps {
   execution?: Execution;
   layers: string[];
   namespace: string | undefined;
+  taskDetails?: V2beta1PipelineTaskDetail | null;
 }
 
 function TaskNodeDetail({
@@ -154,6 +159,7 @@ function TaskNodeDetail({
   execution,
   layers,
   namespace,
+  taskDetails,
 }: TaskNodeDetailProps) {
   const { data: logsInfo } = useQuery<Map<string, string>, Error>({
     queryKey: queryKeys.executionLogs(execution?.getId(), namespace),
@@ -192,7 +198,7 @@ function TaskNodeDetail({
         {/* Task Details tab */}
         {selectedTab === 1 && (
           <div className={padding(20)}>
-            <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
+            <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution, taskDetails)} />
             <DetailsTable
               title='Volume Mounts'
               fields={getNodeVolumeMounts(layers, pipelineJobString, element)}
@@ -222,6 +228,7 @@ function TaskNodeDetail({
 function getTaskDetailsFields(
   element?: PipelineFlowElement | null,
   execution?: Execution,
+  taskDetails?: V2beta1PipelineTaskDetail | null,
 ): Array<KeyValue<string>> {
   const details: Array<KeyValue<string>> = [];
   if (element) {
@@ -243,7 +250,12 @@ function getTaskDetailsFields(
 
       const createdAt = new Date(execution.getCreateTimeSinceEpoch()).toString();
       details.push(['Created At', createdAt]);
+      const failedAttempts = taskDetails?.executor_detail?.failed_main_jobs ?? [];
 
+      if (failedAttempts.length > 0) {
+        details.push(['Retry Attempts', `${failedAttempts.length + 1} attempts`]);
+        // failed attmepts[i] is a pod name you can in  logs 
+      }
       const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
       let finishedAt = '-';
       if (

@@ -77,7 +77,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => {}}
+          onLayerChange={(layers) => { }}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -112,7 +112,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => {}}
+          onLayerChange={(layers) => { }}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -137,6 +137,62 @@ describe('RuntimeNodeDetailsV2', () => {
 
     screen.getByTestId(TEST_LOG_VIEW_ID);
   });
+  it('shows retry attempts when failed attempts are set', async () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          runId={TEST_RUN_ID}
+          element={{
+            data: { label: 'train-model' },
+            id: 'task.train-model',
+            position: { x: 0, y: 0 },
+            type: 'EXECUTION',
+          }}
+          elementMlmdInfo={TSET_MLMD_INFO}
+          namespace={undefined}
+          taskDetails={{
+            executor_detail: { failed_main_jobs: ['train-model-attempt-0'] },
+          }}
+        />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.click(await screen.findByText('Task Details'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Retry Attempts')).toBeInTheDocument();
+      expect(screen.getByText('2 attempts')).toBeInTheDocument();
+    });
+  });
+
+  it('does not show retry attempts when no failed attempts are set', async () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          runId={TEST_RUN_ID}
+          element={{
+            data: { label: 'train-model' },
+            id: 'task.train-model',
+            position: { x: 0, y: 0 },
+            type: 'EXECUTION',
+          }}
+          elementMlmdInfo={TSET_MLMD_INFO}
+          namespace={undefined}
+          taskDetails={null}
+        />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.click(await screen.findByText('Task Details'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Retry Attempts')).not.toBeInTheDocument();
+    });
+  });
 
   it('shows cached text if the execution is cached', async () => {
     TEST_EXECUTION.getCustomPropertiesMap().set(
@@ -150,7 +206,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => {}}
+          onLayerChange={(layers) => { }}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -182,7 +238,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => {}}
+          onLayerChange={(layers) => { }}
           pipelineJobString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
           element={{
