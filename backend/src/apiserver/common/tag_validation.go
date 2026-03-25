@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package common contains shared validation helpers and constants for API server components.
 package common
 
 import (

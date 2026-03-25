@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//lint:file-ignore ST1003 Keep package name aligned with existing api_server_v2 package files.
+//nolint:staticcheck // ST1003: keep package name aligned with existing api_server_v2 package files.
 package api_server_v2
 
 import (
 	"context"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/go-openapi/runtime"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,12 +84,12 @@ func TestUploadPipelineVersionKubernetesClient_PersistsTags(t *testing.T) {
 	expectedTags := map[string]string{"project": "kfp", "owner": "test"}
 	rawTags := `{"project":"kfp","owner":"test"}`
 	versionName := "tagged-version"
-	params := params.NewUploadPipelineVersionParams()
-	params.Pipelineid = &pipelineID
-	params.SetName(&versionName)
-	params.SetTags(&rawTags)
+	uploadParams := params.NewUploadPipelineVersionParams()
+	uploadParams.Pipelineid = &pipelineID
+	uploadParams.SetName(&versionName)
+	uploadParams.SetTags(&rawTags)
 
-	response, err := client.UploadPipelineVersion(specPath, params)
+	response, err := client.UploadPipelineVersion(specPath, uploadParams)
 	if err != nil {
 		t.Fatalf("UploadPipelineVersion() error = %v", err)
 	}
@@ -125,12 +129,12 @@ func TestUploadPipelineVersionKubernetesClient_InvalidTagsReturnsError(t *testin
 	specPath := writePipelineSpecFile(t)
 	rawTags := "not-valid-json"
 	versionName := "tagged-version"
-	params := params.NewUploadPipelineVersionParams()
-	params.Pipelineid = &pipelineID
-	params.SetName(&versionName)
-	params.SetTags(&rawTags)
+	uploadParams := params.NewUploadPipelineVersionParams()
+	uploadParams.Pipelineid = &pipelineID
+	uploadParams.SetName(&versionName)
+	uploadParams.SetTags(&rawTags)
 
-	_, err := client.UploadPipelineVersion(specPath, params)
+	_, err := client.UploadPipelineVersion(specPath, uploadParams)
 	if err == nil {
 		t.Fatalf("expected UploadPipelineVersion() to fail for invalid tags JSON")
 	}
@@ -164,12 +168,12 @@ func TestUploadPipelineVersionKubernetesClient_InvalidTagValueLengthReturnsError
 	specPath := writePipelineSpecFile(t)
 	rawTags := `{"team":"this-value-is-way-too-long-for-tags-and-exceeds-the-sixty-three-char-limit"}`
 	versionName := "tagged-version"
-	params := params.NewUploadPipelineVersionParams()
-	params.Pipelineid = &pipelineID
-	params.SetName(&versionName)
-	params.SetTags(&rawTags)
+	uploadParams := params.NewUploadPipelineVersionParams()
+	uploadParams.Pipelineid = &pipelineID
+	uploadParams.SetName(&versionName)
+	uploadParams.SetTags(&rawTags)
 
-	_, err := client.UploadPipelineVersion(specPath, params)
+	_, err := client.UploadPipelineVersion(specPath, uploadParams)
 	if err == nil {
 		t.Fatalf("expected UploadPipelineVersion() to fail for tag value longer than 63 characters")
 	}
@@ -192,4 +196,107 @@ func writePipelineSpecFile(t *testing.T) string {
 		t.Fatalf("failed to write temporary pipeline spec file: %v", err)
 	}
 	return specPath
+}
+
+func TestUploadKubernetesClient_PersistsTags(t *testing.T) {
+	namespace := "kubeflow"
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		Build()
+	client := &PipelineUploadClientKubernetes{ctrlClient: fakeClient, namespace: namespace}
+
+	specPath := writePipelineSpecFile(t)
+	specFile, err := os.Open(specPath)
+	if err != nil {
+		t.Fatalf("failed to open temporary pipeline spec file: %v", err)
+	}
+
+	expectedTags := map[string]string{"project": "kfp", "owner": "test"}
+	rawTags := `{"project":"kfp","owner":"test"}`
+	uploadParams := params.NewUploadPipelineParams()
+	uploadParams.Uploadfile = runtime.NamedReader(path.Base(specPath), specFile)
+	uploadParams.SetTags(&rawTags)
+
+	response, err := client.Upload(uploadParams)
+	if err != nil {
+		t.Fatalf("Upload() error = %v", err)
+	}
+	if !reflect.DeepEqual(response.Tags, expectedTags) {
+		t.Fatalf("Upload() tags = %#v, want %#v", response.Tags, expectedTags)
+	}
+
+	var pipelines k8sapi.PipelineList
+	if err := fakeClient.List(context.Background(), &pipelines, &ctrlclient.ListOptions{Namespace: namespace}); err != nil {
+		t.Fatalf("failed to list pipelines: %v", err)
+	}
+	if len(pipelines.Items) != 1 {
+		t.Fatalf("expected 1 pipeline, got %d", len(pipelines.Items))
+	}
+	if !reflect.DeepEqual(pipelines.Items[0].Spec.Tags, expectedTags) {
+		t.Fatalf("stored pipeline tags = %#v, want %#v", pipelines.Items[0].Spec.Tags, expectedTags)
+	}
+}
+
+func TestUploadKubernetesClient_InvalidTagsReturnsError(t *testing.T) {
+	namespace := "kubeflow"
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		Build()
+	client := &PipelineUploadClientKubernetes{ctrlClient: fakeClient, namespace: namespace}
+
+	specPath := writePipelineSpecFile(t)
+	specFile, err := os.Open(specPath)
+	if err != nil {
+		t.Fatalf("failed to open temporary pipeline spec file: %v", err)
+	}
+
+	rawTags := "not-valid-json"
+	uploadParams := params.NewUploadPipelineParams()
+	uploadParams.Uploadfile = runtime.NamedReader(path.Base(specPath), specFile)
+	uploadParams.SetTags(&rawTags)
+
+	_, err = client.Upload(uploadParams)
+	if err == nil {
+		t.Fatalf("expected Upload() to fail for invalid tags JSON")
+	}
+
+	var pipelines k8sapi.PipelineList
+	if err := fakeClient.List(context.Background(), &pipelines, &ctrlclient.ListOptions{Namespace: namespace}); err != nil {
+		t.Fatalf("failed to list pipelines: %v", err)
+	}
+	if len(pipelines.Items) != 0 {
+		t.Fatalf("expected no pipelines on invalid tags, got %d", len(pipelines.Items))
+	}
+}
+
+func TestUploadKubernetesClient_InvalidTagValueLengthReturnsError(t *testing.T) {
+	namespace := "kubeflow"
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		Build()
+	client := &PipelineUploadClientKubernetes{ctrlClient: fakeClient, namespace: namespace}
+
+	specPath := writePipelineSpecFile(t)
+	specFile, err := os.Open(specPath)
+	if err != nil {
+		t.Fatalf("failed to open temporary pipeline spec file: %v", err)
+	}
+
+	rawTags := `{"team":"this-value-is-way-too-long-for-tags-and-exceeds-the-sixty-three-char-limit"}`
+	uploadParams := params.NewUploadPipelineParams()
+	uploadParams.Uploadfile = runtime.NamedReader(path.Base(specPath), specFile)
+	uploadParams.SetTags(&rawTags)
+
+	_, err = client.Upload(uploadParams)
+	if err == nil {
+		t.Fatalf("expected Upload() to fail for tag value longer than 63 characters")
+	}
+
+	var pipelines k8sapi.PipelineList
+	if err := fakeClient.List(context.Background(), &pipelines, &ctrlclient.ListOptions{Namespace: namespace}); err != nil {
+		t.Fatalf("failed to list pipelines: %v", err)
+	}
+	if len(pipelines.Items) != 0 {
+		t.Fatalf("expected no pipelines on invalid tag value length, got %d", len(pipelines.Items))
+	}
 }
