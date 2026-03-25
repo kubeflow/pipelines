@@ -254,7 +254,7 @@ function getTaskDetailsFields(
 
       if (failedAttempts.length > 0) {
         details.push(['Retry Attempts', `${failedAttempts.length + 1} attempts`]);
-        // failed attmepts[i] is a pod name you can in  logs 
+        // failedAttempts[i] is the pod name for the i-th failed main job, which can be used to look up logs.
       }
       const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
       let finishedAt = '-';
