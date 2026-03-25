@@ -35,11 +35,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type executorPayload struct {
-	FailedAttempts []string `json:"failed_attempts,omitempty"`
-	MaxAttempts    int      `json:"max_attempts,omitempty"`
-}
-
 // Converts API experiment to its internal representation.
 // Supports both v1beta1 abd v2beta1 API.
 func toModelExperiment(e interface{}) (*model.Experiment, error) {
@@ -1698,10 +1693,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		createTime = wfStatus.CreateTime
 		finishTime = wfStatus.FinishTime
 		children = wfStatus.Children
-		if payloadBytes, err := json.Marshal(executorPayload{
-			FailedAttempts: wfStatus.FailedAttempts,
-			MaxAttempts:    wfStatus.MaxAttempts,
-		}); err == nil {
+		if payloadBytes, err := json.Marshal(wfStatus.FailedAttempts); err == nil {
 			taskPayload = string(payloadBytes)
 		}
 	default:
@@ -1828,13 +1820,12 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 			ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: c},
 		})
 	}
-	//TODO: MaxAttempts is not populated as the proto is not supported yet
 	var executorDetail *apiv2beta1.PipelineTaskExecutorDetail
 	if t.Payload != "" {
-		var payload executorPayload
-		if err := json.Unmarshal([]byte(t.Payload), &payload); err == nil && len(payload.FailedAttempts) > 0 {
+		var payload []string
+		if err := json.Unmarshal([]byte(t.Payload), &payload); err == nil && len(payload) > 0 {
 			executorDetail = &apiv2beta1.PipelineTaskExecutorDetail{
-				FailedMainJobs: payload.FailedAttempts,
+				FailedMainJobs: payload,
 			}
 		}
 	}

@@ -1334,6 +1334,98 @@ func TestWorkflow_NodeStatuses(t *testing.T) {
 	})
 	statuses = workflow.NodeStatuses()
 	assert.Empty(t, statuses)
+
+	workflow = NewWorkflow(&workflowapi.Workflow{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"retry-node": {
+					ID:           "retry-node",
+					Type:         workflowapi.NodeTypeRetry,
+					DisplayName:  "train",
+					Phase:        workflowapi.NodeSucceeded,
+					StartedAt:    startTime,
+					FinishedAt:   finishTime,
+					Children:     []string{"attempt-0", "attempt-1"},
+					TemplateName: "train-tmpl",
+				},
+				"attempt-0": {
+					ID:         "attempt-0",
+					Type:       workflowapi.NodeTypePod,
+					Phase:      workflowapi.NodeFailed,
+					StartedAt:  startTime,
+					FinishedAt: finishTime,
+				},
+				"attempt-1": {
+					ID:         "attempt-1",
+					Type:       workflowapi.NodeTypePod,
+					Phase:      workflowapi.NodeSucceeded,
+					StartedAt:  startTime,
+					FinishedAt: finishTime,
+				},
+			},
+		},
+	})
+
+	statuses = workflow.NodeStatuses()
+	retryStatus := statuses["retry-node"]
+	assert.Equal(t, []string{"attempt-0"}, retryStatus.FailedAttempts,
+		"only the failed child pod should appear in FailedAttempts")
+
+	attempt0Status := statuses["attempt-0"]
+	assert.Empty(t, attempt0Status.FailedAttempts,
+		"leaf pod nodes should not populate FailedAttempts")
+
+	workflow = NewWorkflow(&workflowapi.Workflow{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"retry-node": {
+					ID:       "retry-node",
+					Type:     workflowapi.NodeTypeRetry,
+					Phase:    workflowapi.NodeFailed,
+					Children: []string{"attempt-0", "attempt-1"},
+				},
+				"attempt-0": {
+					ID:    "attempt-0",
+					Type:  workflowapi.NodeTypePod,
+					Phase: workflowapi.NodeError,
+				},
+				"attempt-1": {
+					ID:    "attempt-1",
+					Type:  workflowapi.NodeTypePod,
+					Phase: workflowapi.NodeFailed,
+				},
+			},
+		},
+	})
+
+	statuses = workflow.NodeStatuses()
+	retryStatus = statuses["retry-node"]
+	assert.ElementsMatch(t, []string{"attempt-0", "attempt-1"}, retryStatus.FailedAttempts,
+		"both Failed and Error children should appear in FailedAttempts")
+
+	workflow = NewWorkflow(&workflowapi.Workflow{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"retry-node": {
+					ID:       "retry-node",
+					Type:     workflowapi.NodeTypeRetry,
+					Phase:    workflowapi.NodeRunning,
+					Children: []string{"missing-child"},
+				},
+			},
+		},
+	})
+
+	statuses = workflow.NodeStatuses()
+	retryStatus = statuses["retry-node"]
+	assert.Empty(t, retryStatus.FailedAttempts,
+		"missing child node should be silently skipped, not panic")
 }
 
 func TestWorkflow_Compare(t *testing.T) {

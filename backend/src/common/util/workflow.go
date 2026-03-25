@@ -833,21 +833,16 @@ func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 		if node.Type == workflowapi.NodeTypeRetry {
 			failedAttempts := make([]string, 0)
 			for _, child := range node.Children {
-				if w.Status.Nodes[child].Phase == workflowapi.NodeFailed {
-					failedAttempts = append(failedAttempts, child)
+				childNode, ok := w.Status.Nodes[child]
+				if !ok {
+					continue
+				}
+				if childNode.Phase == workflowapi.NodeFailed || childNode.Phase == workflowapi.NodeError {
+					failedAttempts = append(failedAttempts, RetrievePodName(*w.Workflow, childNode))
 				}
 			}
 			nodeStatus.FailedAttempts = failedAttempts
-			for _, templ := range w.Spec.Templates {
-				if templ.Name == node.TemplateName && templ.RetryStrategy != nil && templ.RetryStrategy.Limit != nil {
-					nodeStatus.MaxAttempts = templ.RetryStrategy.Limit.IntValue() + 1
-					break
-				}
-			}
-			// fallback from the initvalue that can be stored as a string
-			if nodeStatus.MaxAttempts == 0 {
-				nodeStatus.MaxAttempts = len(node.Children)
-			}
+
 		}
 		rev[id] = nodeStatus
 	}

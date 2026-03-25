@@ -31,7 +31,6 @@ type NodeStatus struct {
 	FinishTime     int64
 	Children       []string
 	FailedAttempts []string
-	MaxAttempts    int
 }
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically
