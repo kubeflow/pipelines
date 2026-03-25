@@ -142,7 +142,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
+          onLayerChange={() => { }}
           runId={TEST_RUN_ID}
           element={{
             data: { label: 'train-model' },
@@ -162,7 +162,7 @@ describe('RuntimeNodeDetailsV2', () => {
     fireEvent.click(await screen.findByText('Task Details'));
 
     await waitFor(() => {
-      expect(screen.getByText('Retry Attempts')).toBeInTheDocument();
+      expect(screen.getByText('Attempts')).toBeInTheDocument();
       expect(screen.getByText('2 attempts')).toBeInTheDocument();
     });
   });
@@ -172,7 +172,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
+          onLayerChange={() => { }}
           runId={TEST_RUN_ID}
           element={{
             data: { label: 'train-model' },
@@ -190,7 +190,7 @@ describe('RuntimeNodeDetailsV2', () => {
     fireEvent.click(await screen.findByText('Task Details'));
 
     await waitFor(() => {
-      expect(screen.queryByText('Retry Attempts')).not.toBeInTheDocument();
+      expect(screen.queryByText('Attempts')).not.toBeInTheDocument();
     });
   });
 

@@ -89,7 +89,7 @@ interface RuntimeNodeDetailsV2Props {
   element?: PipelineFlowElement | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
-  taskDetails: V2beta1PipelineTaskDetail | null;
+  taskDetails?: V2beta1PipelineTaskDetail | null;
 }
 
 export function RuntimeNodeDetailsV2({
@@ -253,7 +253,7 @@ function getTaskDetailsFields(
       const failedAttempts = taskDetails?.executor_detail?.failed_main_jobs ?? [];
 
       if (failedAttempts.length > 0) {
-        details.push(['Retry Attempts', `${failedAttempts.length + 1} attempts`]);
+        details.push(['Attempts', `${failedAttempts.length + 1} attempts`]);
         // failedAttempts[i] is the pod name for the i-th failed main job, which can be used to look up logs.
       }
       const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
