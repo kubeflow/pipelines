@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -207,8 +208,10 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--mlmd_server_address", metadata.DefaultConfig().Address,
-		"--mlmd_server_port", metadata.DefaultConfig().Port,
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
@@ -221,8 +224,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	}
 
 	setCABundle := false
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
-		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to container driver.
+	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
+		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
 		setCABundle = true
 	}
 
@@ -232,8 +236,17 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
 		args = append(args, "--publish_logs", value)
 	}
+	if c.defaultRunAsUser != nil {
+		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+	}
+	if c.defaultRunAsGroup != nil {
+		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+	}
+	if c.defaultRunAsNonRoot != nil {
+		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
+	}
 
-	t := &wfapi.Template{
+	template := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
@@ -258,15 +271,16 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			Env:       append(proxy.GetConfig().GetEnvVars(), commonEnvs...),
 		},
 	}
+	applySecurityContextToTemplate(template)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
 	if setCABundle {
-		ConfigureCustomCABundle(t)
+		ConfigureCustomCABundle(template)
 	}
-	c.templates[name] = t
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
+	c.templates[name] = template
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
 	return name
 }
 
@@ -547,10 +561,11 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			Env:     commonEnvs,
 		},
 	}
-	// If the apiserver is TLS-enabled, add the custom CA bundle to the executor.
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add the custom CA bundle to the executor.
+	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		ConfigureCustomCABundle(executor)
 	}
+	applySecurityContextToExecutorTemplate(executor, c.defaultRunAsUser, c.defaultRunAsGroup, c.defaultRunAsNonRoot)
 
 	// If retry policy is set, add retryStrategy to executor
 	if taskRetrySpec != nil {

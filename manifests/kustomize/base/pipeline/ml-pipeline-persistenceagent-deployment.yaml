@@ -16,6 +16,7 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -48,6 +49,8 @@ spec:
           capabilities:
             drop:
             - ALL
+          seccompProfile:
+            type: RuntimeDefault
       serviceAccountName: ml-pipeline-persistenceagent
       volumes:
         - name: persistenceagent-sa-token

@@ -1,6 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  # NOTE: CI test reporting reads this ConfigMap name to determine whether archiveLogs is enabled.
+  # If you rename it, also update:
+  # backend/test/testutil/archived_workflow_logs.go
   name: workflow-controller-configmap
 data:
   # References:
@@ -13,7 +16,7 @@ data:
   artifactRepository: |
     archiveLogs: true
     s3:
-      endpoint: "minio-service.$(kfp-namespace):9000"
+      endpoint: "seaweedfs.$(kfp-namespace):9000"
       bucket: "$(kfp-artifact-bucket-name)"
       # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
       # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
@@ -36,3 +39,12 @@ data:
         key: secretkey
   executor: |
     imagePullPolicy: IfNotPresent
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault

@@ -18,7 +18,7 @@ import * as React from 'react';
 import { RouteComponentProps } from 'react-router';
 import { ToolbarProps } from '../components/Toolbar';
 import { BannerProps } from '../components/Banner';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { SnackbarProps } from '@mui/material/Snackbar';
 import { DialogProps } from '../components/Router';
 import { errorToMessage } from '../lib/Utils';
 
@@ -32,7 +32,7 @@ export interface PageProps extends RouteComponentProps {
 
 export type PageErrorHandler = (
   message: string,
-  error?: Error,
+  error?: unknown,
   mode?: 'error' | 'warning',
   refresh?: () => Promise<void>,
 ) => Promise<void>;

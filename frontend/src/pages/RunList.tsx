@@ -28,7 +28,7 @@ import { URLParser } from 'src/lib/URLParser';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@mui/material';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -85,6 +85,7 @@ interface RunListState {
 }
 
 class RunList extends React.PureComponent<RunListProps, RunListState> {
+  private _isMounted = true;
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -131,7 +132,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       });
 
       columns.push(
-        ...metricMetadata.map(metadata => {
+        ...metricMetadata.map((metadata) => {
           return {
             customRenderer: this._metricCustomRenderer,
             flex: 0.5,
@@ -141,8 +142,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       );
     }
 
-    const rows: Row[] = this.state.runs.map(r => {
-      const displayMetrics = metricMetadata.map(metadata => {
+    const rows: Row[] = this.state.runs.map((r) => {
+      const displayMetrics = metricMetadata.map((metadata) => {
         const displayMetric: DisplayMetric = { metadata };
         return displayMetric;
       });
@@ -151,7 +152,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         id: r.run.run_id!,
         otherFields: [
           r.run!.display_name,
-          r.run.state || '-',
+          r.run.state,
           getRunDurationV2(r.run),
           r.pipelineVersion,
           r.recurringRun,
@@ -195,13 +196,17 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
               this.props.experimentIdMask
                 ? ' for this experiment'
                 : this.props.namespaceMask
-                ? ' for this namespace'
-                : ''
+                  ? ' for this namespace'
+                  : ''
             }.`
           }
         />
       </div>
     );
+  }
+
+  public componentWillUnmount(): void {
+    this._isMounted = false;
   }
 
   public async refresh(): Promise<void> {
@@ -217,7 +222,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={e => e.stopPropagation()}
+          data-testid='run-name-link'
+          data-run-id={props.id}
+          data-run-name={props.value || ''}
+          onClick={(e) => e.stopPropagation()}
           to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
         >
           {props.value}
@@ -240,18 +248,18 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const url = props.value.usePlaceholder
       ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') +
         search
-      : !!props.value.versionId
-      ? RoutePage.PIPELINE_DETAILS.replace(
-          ':' + RouteParams.pipelineId,
-          props.value.pipelineId || '',
-        ).replace(':' + RouteParams.pipelineVersionId, props.value.versionId || '')
-      : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
-          ':' + RouteParams.pipelineId,
-          props.value.pipelineId || '',
-        );
+      : props.value.versionId
+        ? RoutePage.PIPELINE_DETAILS.replace(
+            ':' + RouteParams.pipelineId,
+            props.value.pipelineId || '',
+          ).replace(':' + RouteParams.pipelineVersionId, props.value.versionId || '')
+        : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
+            ':' + RouteParams.pipelineId,
+            props.value.pipelineId || '',
+          );
     if (props.value.usePlaceholder) {
       return (
-        <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+        <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
           [View pipeline]
         </Link>
       );
@@ -259,7 +267,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // Display name could be too long, so we show the full content in tooltip on hover.
       return (
         <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
-          <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+          <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
             {props.value.displayName}
           </Link>
         </Tooltip>
@@ -279,7 +287,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       props.value.id || '',
     );
     return (
-      <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
       </Link>
     );
@@ -295,7 +303,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return (
       <Link
         className={commonCss.link}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
       >
         {props.value.displayName}
@@ -309,9 +317,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return statusToIcon(props.value);
   };
 
-  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (
-    props: CustomRendererProps<{}>,
-  ) => {
+  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = () => {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
   };
 
@@ -331,7 +337,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     let nextPageToken = '';
 
     if (Array.isArray(this.props.runIdListMask)) {
-      displayRuns = this.props.runIdListMask.map(id => ({ run: { run_id: id } }));
+      displayRuns = this.props.runIdListMask.map((id) => ({ run: { run_id: id } }));
       const filter = JSON.parse(
         decodeURIComponent(request.filter || '{"predicates": []}'),
       ) as V2beta1Filter;
@@ -339,10 +345,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // each run individually.
       await this._getAndSetRuns(displayRuns);
       const predicates = filter.predicates?.filter(
-        p => p.key === 'name' && p.operation === V2beta1PredicateOperation.ISSUBSTRING,
+        (p) => p.key === 'name' && p.operation === V2beta1PredicateOperation.IS_SUBSTRING,
       );
-      const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
-      displayRuns = displayRuns.filter(runDetail => {
+      const substrings = predicates?.map((p) => p.string_value?.toLowerCase() || '') || [];
+      displayRuns = displayRuns.filter((runDetail) => {
         for (const sub of substrings) {
           if (!runDetail?.run?.display_name?.toLowerCase().includes(sub)) {
             return false;
@@ -366,7 +372,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
               operation:
                 this.props.storageState === V2beta1RunStorageState.ARCHIVED
                   ? V2beta1PredicateOperation.EQUALS
-                  : V2beta1PredicateOperation.NOTEQUALS,
+                  : V2beta1PredicateOperation.NOT_EQUALS,
               string_value: V2beta1RunStorageState.ARCHIVED.toString(),
             },
           ]);
@@ -386,7 +392,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.filter,
         );
 
-        displayRuns = (response.runs || []).map(r => ({ run: r }));
+        displayRuns = (response.runs || []).map((r) => ({ run: r }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
@@ -398,11 +404,17 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     await this._setColumns(displayRuns);
 
-    this.setState({
+    this.setStateSafe({
       // metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
+  }
+
+  private setStateSafe(newState: Partial<RunListState>, cb?: () => void): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
   }
 
   private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
@@ -427,7 +439,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
 
     return Promise.all(
-      displayRuns.map(async displayRun => {
+      displayRuns.map(async (displayRun) => {
         this._setRecurringRun(displayRun);
 
         await this._getAndSetPipelineVersionNames(displayRun);
@@ -437,7 +449,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
           if (experimentId) {
             const experiment = experimentsResponse?.experiments?.find(
-              e => e.experiment_id === displayRun.run.experiment_id,
+              (e) => e.experiment_id === displayRun.run.experiment_id,
             );
             // If matching experiment id not found (typically because it has been deleted), set display name to "-".
             const displayName = experiment?.display_name || '-';
@@ -469,7 +481,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    */
   private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
-      displayRuns.map(async displayRun => {
+      displayRuns.map(async (displayRun) => {
         let getRunResponse: V2beta1Run;
         try {
           getRunResponse = await Apis.runServiceApiV2.getRun(displayRun.run!.run_id!);

@@ -418,7 +418,8 @@ class PipelineTask:
         accelerator type is also set via .set_accelerator_type().
 
         Args:
-            limit: Maximum number of accelerators allowed.
+            limit: Maximum number of accelerators allowed. Must be a
+                non-negative integer.
 
         Returns:
             Self return to allow chained setting calls.
@@ -428,11 +429,11 @@ class PipelineTask:
             limit = str(limit)
         else:
             if isinstance(limit, int):
+                if limit < 0:
+                    raise ValueError('limit must be a non-negative integer.')
                 limit = str(limit)
-            if isinstance(limit, str) and re.match(r'^0$|^1$|^2$|^4$|^8$|^16$',
-                                                   limit) is None:
-                raise ValueError(
-                    f'{"limit"!r} must be one of 0, 1, 2, 4, 8, 16.')
+            if isinstance(limit, str) and re.match(r'^\d+$', limit) is None:
+                raise ValueError('limit must be a non-negative integer.')
 
         if self.container_spec.resources is not None:
             self.container_spec.resources.accelerator_count = limit
@@ -567,7 +568,9 @@ class PipelineTask:
 
     @block_if_final()
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
-        """Sets accelerator type to use when executing this task.
+        """Deprecated. Use :meth:`set_accelerator_type` instead.
+
+        Sets accelerator type to use when executing this task.
 
         Args:
             accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
@@ -659,9 +662,22 @@ class PipelineTask:
             Self return to allow chained setting calls.
         """
         self._ensure_container_spec_exists()
+        pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
+            name)
+
         if isinstance(name, pipeline_channel.PipelineChannel):
             name = str(name)
+
         self.container_spec.image = name
+
+        if pipeline_channels:
+            existing_channel_patterns = {
+                channel.pattern for channel in self._channel_inputs
+            }
+            for channel in pipeline_channels:
+                if channel.pattern not in existing_channel_patterns:
+                    self._channel_inputs.append(channel)
+                    existing_channel_patterns.add(channel.pattern)
         return self
 
     @block_if_final()

@@ -18,10 +18,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -73,6 +76,10 @@ func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, f
 
 func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+func (m *FakeBadObjectStore) GetFileReader(context.Context, string) (io.ReadCloser, error) {
+	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
 func createPipelineV1(name string) *model.Pipeline {
@@ -1043,15 +1050,16 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 		UUID:            "1000",
 		PipelineId:      p.UUID,
 		Name:            "new_version",
-		PipelineSpecURI: model.LargeText(p.UUID),
+		PipelineSpecURI: model.LargeText(manager.objectStore.GetPipelineKey(p.UUID)),
 	}
 
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	assert.True(t, ok)
 
-	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey("1000"))
-	pv2, _ := manager.CreatePipelineVersion(pv)
+	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
+	pv2, err := manager.CreatePipelineVersion(pv)
+	require.Nil(t, err, "CreatePipelineVersion failed: %v", err)
 	assert.NotEqual(t, p.UUID, pv2.UUID)
 
 	tmpl, err := manager.GetPipelineLatestTemplate(p.UUID)
@@ -1070,7 +1078,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 	pv := &model.PipelineVersion{
 		PipelineId:      p.UUID,
 		Name:            "new_version",
-		PipelineSpecURI: model.LargeText(p.UUID),
+		PipelineSpecURI: model.LargeText(manager.objectStore.GetPipelineKey(p.UUID)),
 	}
 
 	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
@@ -1078,7 +1086,8 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	pv2, _ := manager.CreatePipelineVersion(pv)
+	pv2, err := manager.CreatePipelineVersion(pv)
+	require.Nil(t, err, "CreatePipelineVersion failed: %v", err)
 	assert.NotEqual(t, p.UUID, pv2.UUID)
 
 	tmpl, err := manager.GetPipelineLatestTemplate(p.UUID)
@@ -1152,6 +1161,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err := manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1163,6 +1173,7 @@ func TestListPipelines(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelines(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, nTotal)
@@ -1282,6 +1293,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err := manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1293,6 +1305,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, nTotal)
@@ -1304,6 +1317,7 @@ func TestListPipelineVersions(t *testing.T) {
 	_, nTotal, _, err = manager.ListPipelineVersions(
 		pnew1.UUID,
 		opts,
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, nTotal)
@@ -1377,6 +1391,103 @@ func TestUpdatePipelineStatus(t *testing.T) {
 	p1retrieved, err = manager.GetPipeline(DefaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(t, model.PipelineReady, p1retrieved.Status)
+}
+
+// Tests that the go-swagger UpdatePipeline request body correctly serializes
+// empty tags as {"tags":{}} (not omitted), so the server can distinguish
+// "clear all tags" from "don't change tags".
+func TestUpdatePipelineBody_EmptyTagsSerialization(t *testing.T) {
+	type UpdateBody struct {
+		Tags map[string]string `json:"tags"`
+	}
+
+	// Empty map must serialize to {"tags":{}}
+	body := UpdateBody{Tags: map[string]string{}}
+	data, err := json.Marshal(body)
+	assert.Nil(t, err)
+	assert.Contains(t, string(data), `"tags":{}`, "Empty tags map must be present in serialized JSON")
+
+	// Nil map must serialize to {"tags":null}
+	bodyNil := UpdateBody{Tags: nil}
+	dataNil, err := json.Marshal(bodyNil)
+	assert.Nil(t, err)
+	assert.Contains(t, string(dataNil), `"tags":null`, "Nil tags must serialize as null")
+
+	// Verify server-side: unmarshal null back to nil
+	var decoded UpdateBody
+	err = json.Unmarshal(dataNil, &decoded)
+	assert.Nil(t, err)
+	assert.Nil(t, decoded.Tags, "Null tags should unmarshal to nil")
+
+	// Verify server-side: unmarshal {} back to empty (non-nil) map
+	var decodedEmpty UpdateBody
+	err = json.Unmarshal(data, &decodedEmpty)
+	assert.Nil(t, err)
+	assert.NotNil(t, decodedEmpty.Tags, "Empty tags object should unmarshal to non-nil map")
+	assert.Empty(t, decodedEmpty.Tags, "Empty tags object should unmarshal to empty map")
+}
+
+// Tests UpdatePipeline clears tags when an empty map is passed.
+func TestUpdatePipeline_ClearTags(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+
+	// Create a pipeline with tags.
+	p := &model.Pipeline{
+		Name:   "pipeline-with-tags",
+		Status: model.PipelineReady,
+		Tags:   map[string]string{"team": "ml-ops", "env": "prod"},
+	}
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	createdPipeline, err := manager.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Verify tags are set.
+	retrieved, err := manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]string{"team": "ml-ops", "env": "prod"}, retrieved.Tags)
+
+	// Clear tags by passing an empty map (not nil).
+	updated, err := manager.UpdatePipeline(createdPipeline.UUID, "", map[string]string{})
+	assert.Nil(t, err)
+	assert.Empty(t, updated.Tags, "Tags should be empty after clearing with empty map")
+
+	// Verify via GetPipeline.
+	retrieved, err = manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
+	assert.Empty(t, retrieved.Tags, "Tags should be empty after clearing with empty map")
+}
+
+// Tests UpdatePipeline does not modify tags when nil is passed.
+func TestUpdatePipeline_NilTagsNoChange(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+
+	// Create a pipeline with tags.
+	p := &model.Pipeline{
+		Name:   "pipeline-with-tags",
+		Status: model.PipelineReady,
+		Tags:   map[string]string{"team": "ml-ops"},
+	}
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	createdPipeline, err := manager.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Update with nil tags should not change existing tags.
+	updated, err := manager.UpdatePipeline(createdPipeline.UUID, "new-name", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]string{"team": "ml-ops"}, updated.Tags, "Tags should remain unchanged when nil is passed")
+	assert.Equal(t, "new-name", updated.DisplayName)
 }
 
 // Tests UpdatePipelineVersionStatus
@@ -1506,7 +1617,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	// Verify the latest version
 	pvLatestTeplate, err := manager.GetPipelineLatestTemplate(DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
+	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
 }
 
 // Tests DeletePipelineVersion (NotFound)
@@ -2762,7 +2873,40 @@ func TestEnableJob_DbFailure(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	assert.Nil(t, err)
+
+	_, err = manager.GetJob(job.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
+}
+
+func TestDeleteJob_WithForegroundPolicy(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_FOREGROUND)
+	assert.Nil(t, err)
+
+	_, err = manager.GetJob(job.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
+}
+
+func TestDeleteJob_WithBackgroundPolicy(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_BACKGROUND)
+	assert.Nil(t, err)
+
+	_, err = manager.GetJob(job.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
+}
+
+func TestDeleteJob_WithOrphanPolicy(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -2774,7 +2918,7 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	err := manager.DeleteJob(context.Background(), "1")
+	err := manager.DeleteJob(context.Background(), "1", apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -2784,7 +2928,7 @@ func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check if the scheduled workflow exists")
 }
@@ -2797,7 +2941,7 @@ func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
 
 	// Now deleting job should still succeed when the swf CR is already deleted.
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
@@ -2812,7 +2956,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteJob(context.Background(), job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -3301,104 +3445,6 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
 }
 
-func TestReadArtifact_Succeed(t *testing.T) {
-	store, manager, job := initWithJob(t)
-	defer store.Close()
-
-	expectedContent := "test"
-	filePath := "test/file.txt"
-	store.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
-
-	// Create a scheduled run
-	// job, _ := manager.CreateJob(model.Job{
-	// 	Name:       "pp1",
-	// 	PipelineId: p.UUID,
-	// 	Enabled:    true,
-	// })
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "MY_NAME",
-			Namespace:         "MY_NAMESPACE",
-			UID:               "run-1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(job.UUID),
-			}},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Nodes: map[string]v1alpha1.NodeStatus{
-				"node-1": {
-					Outputs: &v1alpha1.Outputs{
-						Artifacts: []v1alpha1.Artifact{
-							{
-								Name: "artifact-1",
-								ArtifactLocation: v1alpha1.ArtifactLocation{
-									S3: &v1alpha1.S3Artifact{
-										Key: filePath,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	artifactContent, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
-	assert.Nil(t, err)
-	assert.Equal(t, expectedContent, string(artifactContent))
-}
-
-func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
-	store, manager, job := initWithJob(t)
-	defer store.Close()
-	// report workflow
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "MY_NAME",
-			Namespace:         "MY_NAMESPACE",
-			UID:               "run-1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(job.UUID),
-			}},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	_, err = manager.ReadArtifact("run-1", "node-1", "artifact-1")
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
-}
-
-func TestReadArtifact_NoRun_NotFound(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-
-	_, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
-}
-
 const (
 	v2compatPipeline = `
 apiVersion: argoproj.io/v1alpha1
@@ -3738,7 +3784,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3784,7 +3830,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3830,7 +3876,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -3992,7 +4038,7 @@ spec:
             key: accesskey
             name: mlpipeline-minio-artifact
           bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
+          endpoint: seaweedfs.kubeflow:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
@@ -4162,3 +4208,377 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
+
+// v2SpecWithLiterals is a v2 pipeline spec with literal parameter constraints for testing.
+var v2SpecWithLiterals = `
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        environment:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--env"
+        - "{{$.inputs.parameters['environment']}}"
+        command:
+        - echo
+        image: python:3.11
+pipelineInfo:
+  name: hello-world-with-literals
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            environment:
+              componentInputParameter: environment
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      environment:
+        parameterType: STRING
+        literals:
+        - "dev"
+        - "staging"
+        - "prod"
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithIntLiterals is a v2 pipeline spec with integer literal parameter constraints for testing.
+var v2SpecWithIntLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        replicas:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-int-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            replicas:
+              componentInputParameter: replicas
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      replicas:
+        parameterType: NUMBER_INTEGER
+        literals:
+        - 1
+        - 3
+        - 5
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithFloatLiterals is a v2 pipeline spec with float literal parameter constraints for testing.
+var v2SpecWithFloatLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        threshold:
+          parameterType: NUMBER_DOUBLE
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-float-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            threshold:
+              componentInputParameter: threshold
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      threshold:
+        parameterType: NUMBER_DOUBLE
+        literals:
+        - 0.1
+        - 0.5
+        - 0.9
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+// v2SpecWithBoolLiterals is a v2 pipeline spec with boolean literal parameter constraints for testing.
+var v2SpecWithBoolLiterals = `
+components:
+  comp-test:
+    executorLabel: exec-test
+    inputDefinitions:
+      parameters:
+        enable_feature:
+          parameterType: BOOLEAN
+deploymentSpec:
+  executors:
+    exec-test:
+      container:
+        image: python:3.11
+pipelineInfo:
+  name: test-bool-literals
+root:
+  dag:
+    tasks:
+      test-task:
+        componentRef:
+          name: comp-test
+        inputs:
+          parameters:
+            enable_feature:
+              componentInputParameter: enable_feature
+        taskInfo:
+          name: test-task
+  inputDefinitions:
+    parameters:
+      enable_feature:
+        parameterType: BOOLEAN
+        literals:
+        - true
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5
+`
+
+func TestCreateRun_LiteralParameterValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		pipelineSpec  string
+		runtimeParams string
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:          "valid input - string literal",
+			pipelineSpec:  v2SpecWithLiterals,
+			runtimeParams: `{"environment":"dev"}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - string literal",
+			pipelineSpec:  v2SpecWithLiterals,
+			runtimeParams: `{"environment":"test"}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
+			runtimeParams: `{"replicas":3}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - int literal",
+			pipelineSpec:  v2SpecWithIntLiterals,
+			runtimeParams: `{"replicas":2}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
+			runtimeParams: `{"threshold":0.5}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - float literal",
+			pipelineSpec:  v2SpecWithFloatLiterals,
+			runtimeParams: `{"threshold":0.3}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
+			runtimeParams: `{"enable_feature":true}`,
+			expectError:   false,
+		},
+		{
+			name:          "invalid input - boolean literal",
+			pipelineSpec:  v2SpecWithBoolLiterals,
+			runtimeParams: `{"enable_feature":false}`,
+			expectError:   true,
+			errorContains: "does not match any of the allowed literal values",
+		},
+		{
+			name:          "valid input - nil literals field",
+			pipelineSpec:  v2SpecHelloWorld, // No literals field
+			runtimeParams: `{"text":"any-value-is-fine"}`,
+			expectError:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store, manager, exp := initWithExperiment(t)
+			defer store.Close()
+			apiRun := &model.Run{
+				DisplayName:  "run1",
+				ExperimentId: exp.UUID,
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(tt.pipelineSpec),
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: model.LargeText(tt.runtimeParams),
+					},
+				},
+			}
+			_, err := manager.CreateRun(context.Background(), apiRun)
+
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.errorContains != "" {
+					assert.ErrorContains(t, err, tt.errorContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateTags(t *testing.T) {
+	tests := []struct {
+		name    string
+		tags    map[string]string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "nil tags",
+			tags:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "empty tags",
+			tags:    map[string]string{},
+			wantErr: false,
+		},
+		{
+			name:    "valid single tag",
+			tags:    map[string]string{"env": "prod"},
+			wantErr: false,
+		},
+		{
+			name: "valid max tags",
+			tags: func() map[string]string {
+				m := make(map[string]string)
+				for i := 0; i < MaxTagsPerEntity; i++ {
+					m[fmt.Sprintf("key%d", i)] = fmt.Sprintf("val%d", i)
+				}
+				return m
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "exceeds max tags",
+			tags: func() map[string]string {
+				m := make(map[string]string)
+				for i := 0; i <= MaxTagsPerEntity; i++ {
+					m[fmt.Sprintf("key%d", i)] = fmt.Sprintf("val%d", i)
+				}
+				return m
+			}(),
+			wantErr: true,
+			errMsg:  "exceeds maximum",
+		},
+		{
+			name:    "empty key",
+			tags:    map[string]string{"": "value"},
+			wantErr: true,
+			errMsg:  "tag key cannot be empty",
+		},
+		{
+			name:    "key with dot",
+			tags:    map[string]string{"team.name": "ml"},
+			wantErr: true,
+			errMsg:  "must not contain '.'",
+		},
+		{
+			name:    "key too long",
+			tags:    map[string]string{strings.Repeat("k", MaxTagKeyLength+1): "v"},
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "key at max length",
+			tags:    map[string]string{strings.Repeat("k", MaxTagKeyLength): "v"},
+			wantErr: false,
+		},
+		{
+			name:    "value too long",
+			tags:    map[string]string{"key": strings.Repeat("v", MaxTagValueLength+1)},
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "value at max length",
+			tags:    map[string]string{"key": strings.Repeat("v", MaxTagValueLength)},
+			wantErr: false,
+		},
+		{
+			name:    "unicode key at max rune length",
+			tags:    map[string]string{strings.Repeat("日", MaxTagKeyLength): "v"},
+			wantErr: false,
+		},
+		{
+			name: "unicode key exceeds max rune length",
+			tags: func() map[string]string {
+				k := strings.Repeat("日", MaxTagKeyLength+1)
+				assert.Greater(t, utf8.RuneCountInString(k), MaxTagKeyLength)
+				return map[string]string{k: "v"}
+			}(),
+			wantErr: true,
+			errMsg:  "exceeds maximum length",
+		},
+		{
+			name:    "empty value is valid",
+			tags:    map[string]string{"key": ""},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTags(tt.tags)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}

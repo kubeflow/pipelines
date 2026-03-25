@@ -34,14 +34,14 @@ describe('StatusUtils', () => {
       NodePhase.SKIPPED,
       NodePhase.TERMINATED,
       NodePhase.OMITTED,
-    ].forEach(status => {
+    ].forEach((status) => {
       it(`returns \'true\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(true);
       });
     });
 
     [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN, NodePhase.TERMINATING].forEach(
-      status => {
+      (status) => {
         it(`returns \'false\' if status is: ${status}`, () => {
           expect(hasFinished(status)).toBe(false);
         });
@@ -59,19 +59,19 @@ describe('StatusUtils', () => {
 
   describe('statusToBgColor', () => {
     it('handles an invalid phase', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
       expect(statusToBgColor('bad phase' as any)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
     });
 
     it("handles an 'Unknown' phase", () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
       expect(statusToBgColor(NodePhase.UNKNOWN)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'Unknown');
     });
 
     it("returns color 'not started' if status is undefined", () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
       expect(statusToBgColor(undefined)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
@@ -84,25 +84,25 @@ describe('StatusUtils', () => {
       expect(statusToBgColor(NodePhase.PENDING)).toEqual(statusBgColors.notStarted);
     });
 
-    [NodePhase.ERROR, NodePhase.FAILED].forEach(status => {
+    [NodePhase.ERROR, NodePhase.FAILED].forEach((status) => {
       it(`returns color \'error\' if status is: ${status}`, () => {
         expect(statusToBgColor(status)).toEqual(statusBgColors.error);
       });
     });
 
-    [NodePhase.RUNNING, NodePhase.TERMINATING].forEach(status => {
+    [NodePhase.RUNNING, NodePhase.TERMINATING].forEach((status) => {
       it(`returns color \'running\' if status is: ${status}`, () => {
         expect(statusToBgColor(status)).toEqual(statusBgColors.running);
       });
     });
 
-    [NodePhase.SKIPPED, NodePhase.TERMINATED].forEach(status => {
+    [NodePhase.SKIPPED, NodePhase.TERMINATED].forEach((status) => {
       it(`returns color \'terminated or skipped\' if status is: ${status}`, () => {
         expect(statusToBgColor(status)).toEqual(statusBgColors.terminatedOrSkipped);
       });
     });
 
-    [NodePhase.SUCCEEDED, NodePhase.CACHED].forEach(status => {
+    [NodePhase.SUCCEEDED, NodePhase.CACHED].forEach((status) => {
       it(`returns color 'succeeded' if status is '${status}'`, () => {
         expect(statusToBgColor(status)).toEqual(statusBgColors.succeeded);
       });
@@ -123,7 +123,7 @@ describe('StatusUtils', () => {
       NodePhase.TERMINATING,
       NodePhase.OMITTED,
       NodePhase.UNKNOWN,
-    ].forEach(status => {
+    ].forEach((status) => {
       it(`returns the original status, even if message is 'terminated', if status is: ${status}`, () => {
         expect(checkIfTerminated(status, 'terminated')).toEqual(status);
       });
@@ -143,20 +143,19 @@ describe('StatusUtils', () => {
   });
 
   describe('parseNodePhase', () => {
-    const DEFAULT_NODE_STATUS = ({
+    const DEFAULT_NODE_STATUS = {
       phase: 'Succeeded',
       id: 'file-passing-pipelines-55slt-2894085459',
       outputs: {
         artifacts: [
-          ({
+          {
             s3: {
-              key:
-                'artifacts/file-passing-pipelines-55slt/file-passing-pipelines-55slt-2894085459/sum-numbers-output.tgz',
+              key: 'artifacts/file-passing-pipelines-55slt/file-passing-pipelines-55slt-2894085459/sum-numbers-output.tgz',
             },
-          } as unknown) as Artifact,
+          } as unknown as Artifact,
         ],
       },
-    } as unknown) as NodeStatus;
+    } as unknown as NodeStatus;
 
     it('returns node original phase if not successful', () => {
       expect(
@@ -188,8 +187,7 @@ describe('StatusUtils', () => {
               {
                 s3: {
                   // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
-                  key:
-                    'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
+                  key: 'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
                 },
               } as Artifact,
             ],
@@ -210,8 +208,7 @@ describe('StatusUtils', () => {
               {
                 s3: {
                   // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
-                  key:
-                    'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
+                  key: 'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
                 },
               } as Artifact,
             ],

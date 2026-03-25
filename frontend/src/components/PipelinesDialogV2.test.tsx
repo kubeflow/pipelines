@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import { SpyInstance } from 'vitest';
 import PipelinesDialogV2, { PipelinesDialogV2Props } from './PipelinesDialogV2';
 import { PageProps } from 'src/pages/Page';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
@@ -29,7 +29,7 @@ function generateProps(): PipelinesDialogV2Props {
     ...generatePageProps(),
     open: true,
     selectorDialog: '',
-    onClose: jest.fn(),
+    onClose: vi.fn(),
     namespace: 'ns',
     pipelineSelectorColumns: [
       {
@@ -50,10 +50,10 @@ function generatePageProps(): PageProps {
     location: '' as any,
     match: {} as any,
     toolbarProps: {} as any,
-    updateBanner: jest.fn(),
-    updateDialog: jest.fn(),
-    updateSnackbar: jest.fn(),
-    updateToolbar: jest.fn(),
+    updateBanner: vi.fn(),
+    updateDialog: vi.fn(),
+    updateSnackbar: vi.fn(),
+    updateToolbar: vi.fn(),
   };
 }
 
@@ -70,11 +70,11 @@ const newPipeline: V2beta1Pipeline = {
 };
 
 describe('PipelinesDialog', () => {
-  let listPipelineSpy: jest.SpyInstance<{}>;
+  let listPipelineSpy: SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    listPipelineSpy = jest
+    vi.clearAllMocks();
+    listPipelineSpy = vi
       .spyOn(Apis.pipelineServiceApiV2, 'listPipelines')
       .mockImplementation((...args) => {
         const response: V2beta1ListPipelinesResponse = {
@@ -86,7 +86,7 @@ describe('PipelinesDialog', () => {
   });
 
   afterEach(async () => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('it renders correctly in multi user mode', async () => {

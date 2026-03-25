@@ -14,47 +14,45 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-
-import { mount } from 'enzyme';
+import { render } from '@testing-library/react';
 import { Description } from './Description';
 
 describe('Description', () => {
   describe('When in normal mode', () => {
     it('renders empty string', () => {
-      const tree = mount(<Description description='' />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description='' />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders pure text', () => {
-      const tree = mount(<Description description='this is a line of pure text' />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description='this is a line of pure text' />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders raw link', () => {
       const description = 'https://www.google.com';
-      const tree = mount(<Description description={description} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders markdown link', () => {
       const description = '[google](https://www.google.com)';
-      const tree = mount(<Description description={description} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders paragraphs', () => {
       const description = 'Paragraph 1\n' + '\n' + 'Paragraph 2';
-      const tree = mount(<Description description={description} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders markdown list as list', () => {
       const description = `
 * abc
 * def`;
-      const tree = mount(<Description description={description} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} />);
+      expect(asFragment()).toMatchSnapshot();
     });
   });
 
@@ -65,35 +63,51 @@ Paragraph 1
 
 Paragraph 2
 `;
-      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders pure text', () => {
-      const tree = mount(
+      const { asFragment } = render(
         <Description description='this is a line of pure text' forceInline={true} />,
-      ).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      );
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders raw link', () => {
       const description = 'https://www.google.com';
-      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('renders markdown link', () => {
       const description = '[google](https://www.google.com)';
-      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
     });
 
-    it('renders markdown list as pure text', () => {
+    it('renders markdown list as pure text with visible bullet markers', () => {
       const description = `
 * abc
 * def`;
-      const tree = mount(<Description description={description} forceInline={true} />).getDOMNode();
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(<Description description={description} forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('renders emphasis text as <em>', () => {
+      const { asFragment } = render(<Description description='*abc*' forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('renders strong text as <strong>', () => {
+      const { asFragment } = render(<Description description='**abc**' forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('renders list markers as visible bullets while preserving emphasis', () => {
+      const description = `* item one\n- item two\n+ item three`;
+      const { asFragment } = render(<Description description={description} forceInline={true} />);
+      expect(asFragment()).toMatchSnapshot();
     });
   });
 });

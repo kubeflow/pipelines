@@ -21,8 +21,8 @@ interface ErrorBoundaryState {
   errorInfo: any;
 }
 
-export class ErrorBoundary extends React.Component<Readonly<{}>, ErrorBoundaryState> {
-  constructor(props: Readonly<Readonly<{}>>) {
+export class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBoundaryState> {
+  constructor(props: React.PropsWithChildren) {
     super(props);
     this.state = { error: null, errorInfo: null };
   }

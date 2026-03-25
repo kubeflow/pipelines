@@ -2,14 +2,54 @@
 
 ## Features
 
-* Allow sharing utility functions across components via the `additional_funcs` argument to the `component` decorator;
-  functions are embedded into the generated component code before the main function (#12178).
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+# 2.15.2
+
+## Bug fixes and other changes
+
+* Fixed backwards compatibility issue where pipelines compiled with KFP 2.15 failed on older
+  versions with `"output_metadata.json": proto: (line 1:237): unknown field "custom_path"`.
+
+# 2.15.1
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
+## Features
 
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
+
+* fix(sdk): align sdk versions in reqs (#12489)
+
+## Documentation updates
+
+# 2.15.0
+
+## Features
+
+* Allow sharing utility functions across components via the `additional_funcs` argument to the `component` decorator;
+  functions are embedded into the generated component code before the main function (#12178).
+* feat(backend, sdk): Add custom_path field to RuntimeArtifact (#12248)
+* feat(sdk): Add notebook components and embedded artifacts support (#12294)
+* feat(sdk): add compile-time validation for workspace size
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* fix(sdk): Add support for list and dict parameter type hints (#12410)
+* fix(CI/SDK): Fix tests for pipelines with optional input parameters and an SDK syntax error (#12420)
+* chore: update py image refs to 3.11 (#12383)
 
 ## Documentation updates
 
@@ -324,7 +364,7 @@ The KFP SDK 2.0.0 release contains features present in the KFP SDK v1's v2 names
 * Support for using [pipelines as components](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#pipelines-as-components) (pipeline in pipeline)
 * Various additional [configurations for tasks](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#task-configurations)
 * Compilation to an Argo-independent [pipeline definition](https://www.kubeflow.org/docs/components/pipelines/v2/compile-a-pipeline/#ir-yaml) that enables pipelines to be compiled once and run anywhere
-* Additonal SDK client functionality
+* Additional SDK client functionality
 * An improved [KFP CLI](https://www.kubeflow.org/docs/components/pipelines/v2/cli/)
 * Refreshed [user documentation](https://www.kubeflow.org/docs/components/pipelines/v2/) and [reference documentation](https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0/)
 
@@ -350,7 +390,7 @@ Selected contributions from pre-releases:
 * Support single element `then` and `else_` arguments to `IfPresentPlaceholder` [\#8414](https://github.com/kubeflow/pipelines/pull/8414)
 * Enable use of input and output placeholders in f-strings [\#8494](https://github.com/kubeflow/pipelines/pull/8494)
 * Add comments to IR YAML file [\#8467](https://github.com/kubeflow/pipelines/pull/8467)
-* Support fanning-in parameters [\#8631](https://github.com/kubeflow/pipelines/pull/8631) and artifacts [\#8808](https://github.com/kubeflow/pipelines/pull/8808) from tasks in a `dsl.ParellelFor` context using `dsl.Collected`
+* Support fanning-in parameters [\#8631](https://github.com/kubeflow/pipelines/pull/8631) and artifacts [\#8808](https://github.com/kubeflow/pipelines/pull/8808) from tasks in a `dsl.ParallelFor` context using `dsl.Collected`
 * Support `.ignore_upstream_failure()` on `PipelineTask` [\#8838](https://github.com/kubeflow/pipelines/pull/8838)
 * Support setting cpu/memory requests [\#9121](https://github.com/kubeflow/pipelines/pull/9121)
 * Support additional pipeline placeholders
@@ -503,7 +543,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 # 2.0.0-beta.13
 
 ## Features
-* Support fanning-in artifact outputs from a task in a `dsl.ParellelFor` context using `dsl.Collected` [\#8808](https://github.com/kubeflow/pipelines/pull/8808)
+* Support fanning-in artifact outputs from a task in a `dsl.ParallelFor` context using `dsl.Collected` [\#8808](https://github.com/kubeflow/pipelines/pull/8808)
 * Introduces a new syntax for pipeline tasks to consume outputs from the upstream task while at the same time ignoring if the upstream tasks succeeds or not. [\#8838](https://github.com/kubeflow/pipelines/pull/8838)
 
 ## Breaking changes
@@ -522,7 +562,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 # 2.0.0-beta.12
 
 ## Features
-* Support fanning-in parameter outputs from a task in a `dsl.ParellelFor` context using `dsl.Collected` [\#8631](https://github.com/kubeflow/pipelines/pull/8631)
+* Support fanning-in parameter outputs from a task in a `dsl.ParallelFor` context using `dsl.Collected` [\#8631](https://github.com/kubeflow/pipelines/pull/8631)
 
 ## Breaking changes
 
@@ -554,7 +594,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Deprecations
 
 ## Bug fixes and other changes
-* Fully support optional parameter inputs by witing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
+* Fully support optional parameter inputs by writing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
 * Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
 * Fix bug deserializing v1 component YAML with boolean defaults, struct defaults, and array defaults [\#8639](https://github.com/kubeflow/pipelines/pull/8639)
 
@@ -1036,7 +1076,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 
 ## Bug Fixes and Other Changes
 
-* Fix the the specified 'mlpipeline-ui-metadata','mlpipeline-metrics' path is overrided by default value [\#6796](https://github.com/kubeflow/pipelines/pull/6796)
+* Fix the specified 'mlpipeline-ui-metadata','mlpipeline-metrics' path is overridden by default value [\#6796](https://github.com/kubeflow/pipelines/pull/6796)
 * Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
 * Add `OnTransientError` to allowed retry policies [\#6808](https://github.com/kubeflow/pipelines/pull/6808)
 * Add optional `filter` argument to list methods of KFP client [\#6748](https://github.com/kubeflow/pipelines/pull/6748)

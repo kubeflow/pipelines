@@ -18,6 +18,7 @@ package util
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"os"
 )
 
@@ -33,7 +34,7 @@ func GetTLSConfig(caCertPath string) (*tls.Config, error) {
 			return nil, err
 		}
 		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse certificate from %s", caCertPath)
 		}
 		return &tls.Config{
 			RootCAs: caCertPool,

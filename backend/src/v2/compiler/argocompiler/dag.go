@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -214,6 +215,7 @@ type taskInputs struct {
 	iterationIndex string
 	// if provided, this will be the template the Argo Workflow exit lifecycle hook will execute.
 	exitTemplate string
+	taskName     string
 }
 
 // parentDagID: placeholder for parent DAG execution ID
@@ -245,12 +247,17 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	switch impl := componentSpec.GetImplementation().(type) {
 	case *pipelinespec.ComponentSpec_Dag:
 		driverTaskName := name + "-driver"
+		effectiveTaskName := name
+		if inputs.taskName != "" {
+			effectiveTaskName = inputs.taskName
+		}
+
 		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
 			parentDagID:    inputs.parentDagID,
 			component:      componentSpecPlaceholder,
 			task:           taskSpecJson,
 			iterationIndex: inputs.iterationIndex,
-			taskName:       name,
+			taskName:       effectiveTaskName,
 		})
 		if err != nil {
 			return nil, err
@@ -283,6 +290,11 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				return nil, err
 			}
 			driverTaskName := name + "-driver"
+			effectiveTaskName := name
+			if inputs.taskName != "" {
+				effectiveTaskName = inputs.taskName
+			}
+
 			// The following call will return an empty string for tasks without kubernetes-specific annotation.
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
@@ -292,7 +304,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				parentDagID:      inputs.parentDagID,
 				iterationIndex:   inputs.iterationIndex,
 				kubernetesConfig: kubernetesConfigPlaceholder,
-				taskName:         name,
+				taskName:         effectiveTaskName,
 			})
 			if task.GetTriggerPolicy().GetCondition() == "" {
 				driverOutputs.condition = ""
@@ -327,7 +339,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				// it's impossible to add a when condition based on driver outputs.
 				return nil, fmt.Errorf("triggerPolicy.condition on importer task is not supported")
 			}
-			importer, err := c.importerTask(name, task, taskSpecJson, inputs.parentDagID)
+			importer, err := c.importerTask(name, task, taskSpecJson, inputs.parentDagID, e.Importer.GetDownloadToWorkspace())
 			if err != nil {
 				return nil, err
 			}
@@ -344,7 +356,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	}
 }
 
-func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterator task: %w", err)
@@ -352,7 +364,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	}()
 	componentName := task.GetComponentRef().GetName()
 	// Set up Loop Control Template
-	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJson, parentDagID)
+	iteratorTasks, err := c.iterationItemTask("iteration", task, taskJSON, parentDagID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +406,7 @@ func (c *workflowCompiler) iteratorTask(name string, task *pipelinespec.Pipeline
 	return tasks, nil
 }
 
-func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJson string, parentDagID string) (tasks []wfapi.DAGTask, err error) {
+func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.PipelineTaskSpec, taskJSON string, parentDagID string, parallelForTaskKey string) (tasks []wfapi.DAGTask, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("iterationItem task: %w", err)
@@ -411,7 +423,8 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	driverInputs := dagDriverInputs{
 		component:   componentSpecPlaceholder,
 		parentDagID: parentDagID,
-		task:        taskJson, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
+		task:        taskJSON, // TODO(Bobgy): avoid duplicating task JSON twice in the template.
+		taskName:    parallelForTaskKey,
 	}
 	driver, driverOutputs, err := c.dagDriverTask(driverArgoName, driverInputs)
 	if err != nil {
@@ -425,6 +438,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 		taskInputs{
 			parentDagID:    inputParameter(paramParentDagID),
 			iterationIndex: inputParameter(paramIterationIndex),
+			taskName:       parallelForTaskKey,
 		},
 	)
 	if err != nil {
@@ -527,7 +541,7 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 		})
 	}
 
-	if inputs.taskName != "" && inputs.taskName != "iteration-item" {
+	if inputs.taskName != "" {
 		params = append(params, wfapi.Parameter{
 			Name:  paramTaskName,
 			Value: wfapi.AnyStringPtr(inputs.taskName),
@@ -572,8 +586,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--mlmd_server_address", metadata.DefaultConfig().Address,
-		"--mlmd_server_port", metadata.DefaultConfig().Port,
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
+		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
+		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
@@ -586,8 +602,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	}
 
 	setCABundle := false
-	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
-		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to DAG driver.
+	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
+		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
 		setCABundle = true
 	}
 
@@ -598,7 +615,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		args = append(args, "--publish_logs", value)
 	}
 
-	t := &wfapi.Template{
+	template := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
 			Parameters: []wfapi.Parameter{
@@ -626,12 +643,13 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
+	applySecurityContextToTemplate(template)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {
-		ConfigureCustomCABundle(t)
+		ConfigureCustomCABundle(template)
 	}
-	c.templates[name] = t
-	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
+	c.templates[name] = template
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
 	return name
 }
 

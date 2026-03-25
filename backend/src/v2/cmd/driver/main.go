@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -69,8 +70,10 @@ var (
 	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
-	mlmdServerAddress = flag.String("mlmd_server_address", "", "MLMD server address")
-	mlmdServerPort    = flag.String("mlmd_server_port", "", "MLMD server port")
+	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
+	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
+	mlmdServerAddress       = flag.String("mlmd_server_address", "", "MLMD server address")
+	mlmdServerPort          = flag.String("mlmd_server_port", "", "MLMD server port")
 
 	// output paths
 	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
@@ -90,6 +93,9 @@ var (
 	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
 	metadataTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
 	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
+	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
+	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
+	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -144,6 +150,18 @@ func drive() (err error) {
 		return err
 	}
 
+	// Support reading component spec from a file if value starts with @
+	// This bypasses exec() argument size limits for large workflows
+	if strings.HasPrefix(*componentSpecJson, "@") {
+		filePath := (*componentSpecJson)[1:] // Remove the "@" prefix
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to read component spec from file %s: %w", filePath, err)
+		}
+		*componentSpecJson = string(data)
+		glog.Infof("Read component spec from file: %s (%d bytes)", filePath, len(data))
+	}
+
 	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
@@ -190,30 +208,32 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag, tlsCfg)
+	cacheClient, err := cacheutils.NewClient(*mlPipelineServerAddress, *mlPipelineServerPort, *cacheDisabledFlag, tlsCfg)
 	if err != nil {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:         *pipelineName,
-		RunID:                *runID,
-		RunName:              *runName,
-		RunDisplayName:       *runDisplayName,
-		Namespace:            namespace,
-		Component:            componentSpec,
-		Task:                 taskSpec,
-		DAGExecutionID:       *dagExecutionID,
-		IterationIndex:       *iterationIndex,
-		PipelineLogLevel:     *logLevel,
-		PublishLogs:          *publishLogs,
-		CacheDisabled:        *cacheDisabledFlag,
-		DriverType:           *driverType,
-		TaskName:             *taskName,
-		MLMDServerAddress:    *mlmdServerAddress,
-		MLMDServerPort:       *mlmdServerPort,
-		MLPipelineTLSEnabled: *mlPipelineTLSEnabled,
-		MLMDTLSEnabled:       *metadataTLSEnabled,
-		CaCertPath:           *caCertPath,
+		PipelineName:            *pipelineName,
+		RunID:                   *runID,
+		RunName:                 *runName,
+		RunDisplayName:          *runDisplayName,
+		Namespace:               namespace,
+		Component:               componentSpec,
+		Task:                    taskSpec,
+		DAGExecutionID:          *dagExecutionID,
+		IterationIndex:          *iterationIndex,
+		PipelineLogLevel:        *logLevel,
+		PublishLogs:             *publishLogs,
+		CacheDisabled:           *cacheDisabledFlag,
+		DriverType:              *driverType,
+		TaskName:                *taskName,
+		MLPipelineServerAddress: *mlPipelineServerAddress,
+		MLPipelineServerPort:    *mlPipelineServerPort,
+		MLMDServerAddress:       *mlmdServerAddress,
+		MLMDServerPort:          *mlmdServerPort,
+		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
+		MLMDTLSEnabled:          *metadataTLSEnabled,
+		CaCertPath:              *caCertPath,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -226,6 +246,19 @@ func drive() (err error) {
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
+		// Set admin defaults only when explicitly configured (non-negative).
+		if *defaultRunAsUser >= 0 {
+			options.DefaultRunAsUser = defaultRunAsUser
+		}
+		if *defaultRunAsGroup >= 0 {
+			options.DefaultRunAsGroup = defaultRunAsGroup
+		}
+		if *defaultRunAsNonRoot != "" {
+			v, err := strconv.ParseBool(*defaultRunAsNonRoot)
+			if err == nil {
+				options.DefaultRunAsNonRoot = &v
+			}
+		}
 		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)

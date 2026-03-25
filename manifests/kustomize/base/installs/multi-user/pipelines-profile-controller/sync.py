@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 import base64
+import hashlib
 
 # From awscli installed in alpine/k8s image
 import botocore.session
@@ -23,11 +24,24 @@ import botocore.session
 S3_BUCKET_NAME = 'mlpipeline'
 
 session = botocore.session.get_session()
-# To interact with seaweedfs user management. Region does not matter.
-iam = session.create_client('iam', region_name='foobar')
 # S3 client for lifecycle policy management
 s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
 s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
+
+
+def _normalize_domain(domain):
+    return domain if domain.startswith('.') else '.' + domain
+
+
+def create_iam_client():
+    # To interact with SeaweedFS user management. Region does not matter.
+    endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
+    if endpoint_url:
+        return session.create_client('iam', region_name='foobar', endpoint_url=endpoint_url)
+    return session.create_client('iam', region_name='foobar')
+
+
+iam = create_iam_client()
 
 
 def main():
@@ -41,7 +55,9 @@ def get_settings_from_env(controller_port=None,
                           frontend_tag=None,
                           disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None,
-                          artifact_retention_days=None):
+                          artifact_retention_days=None,
+                          cluster_domain=None,
+                          object_store_host=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -66,10 +82,18 @@ def get_settings_from_env(controller_port=None,
     settings["artifacts_proxy_enabled"] = \
         artifacts_proxy_enabled or \
         os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
-    
+
     settings["artifact_retention_days"] = \
         artifact_retention_days or \
         os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
+
+    settings["cluster_domain"] = \
+        cluster_domain or \
+        os.environ.get("CLUSTER_DOMAIN", ".svc.cluster.local")
+
+    settings["object_store_host"] = \
+        object_store_host or \
+        os.environ.get("OBJECT_STORE_HOST", "seaweedfs")
 
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
@@ -91,6 +115,8 @@ def server_factory(frontend_image,
                    disable_istio_sidecar,
                    artifacts_proxy_enabled,
                    artifact_retention_days,
+                   cluster_domain=".svc.cluster.local",
+                   object_store_host="seaweedfs",
                    url="",
                    controller_port=8080):
     """
@@ -104,7 +130,7 @@ def server_factory(frontend_image,
             except ValueError:
                 print(f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update.")
                 return
-            
+
             # To disable lifecycle policy we need to delete it
             if retention_days <= 0:
                 print(f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.")
@@ -112,7 +138,7 @@ def server_factory(frontend_image,
                     response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
                     # Check if there are any enabled rules
                     has_enabled_rules = any(rule.get('Status') == 'Enabled' for rule in response.get('Rules', []))
-                    
+
                     if has_enabled_rules:
                         s3.delete_bucket_lifecycle(Bucket=bucket_name)
                         print("Successfully deleted lifecycle policy.")
@@ -121,7 +147,7 @@ def server_factory(frontend_image,
                 except Exception:
                     print(f"Warning: No lifecycle policy exists")
                 return
-            
+
             # Create/update lifecycle policy
             life_cycle_policy = {
                 "Rules": [
@@ -134,7 +160,7 @@ def server_factory(frontend_image,
                 ]
             }
             print('upsert_lifecycle_policy:', life_cycle_policy)
-            
+
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
                     Bucket=bucket_name,
@@ -179,6 +205,7 @@ def server_factory(frontend_image,
                     },
                     "data": {
                         "defaultPipelineRoot": f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
+                        "clusterDomain": cluster_domain,
                     },
                 },
                 {
@@ -208,7 +235,7 @@ def server_factory(frontend_image,
                         "default-namespaced": json.dumps({
                             "archiveLogs": True,
                             "s3": {
-                                "endpoint": "minio-service.kubeflow:9000",
+                                "endpoint": f"{object_store_host}.kubeflow{_normalize_domain(cluster_domain)}:9000",
                                 "bucket": S3_BUCKET_NAME,
                                 "keyFormat": f"private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}",
                                 "insecure": True,
@@ -225,7 +252,7 @@ def server_factory(frontend_image,
                     }
                 },
             ]
-            
+
             # Add artifact fetcher related resources if enabled
             if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
@@ -250,9 +277,10 @@ def server_factory(frontend_image,
                                     "labels": {
                                         "app": "ml-pipeline-ui-artifact"
                                     },
-                                    "annotations": disable_istio_sidecar and {
-                                        "sidecar.istio.io/inject": "false"
-                                    } or {},
+                                    "annotations": {
+                                        **({"sidecar.istio.io/inject": "false"} if disable_istio_sidecar else {}),
+                                        "kubeflow-pipelines/image-spec-hash": hashlib.sha256(f"{frontend_image}:{frontend_tag}".encode()).hexdigest()[:16],
+                                    },
                                 },
                                 "spec": {
                                     "containers": [{
@@ -285,7 +313,7 @@ def server_factory(frontend_image,
                                             },
                                             {
                                                 "name": "ML_PIPELINE_SERVICE_HOST",
-                                                "value": "ml-pipeline.kubeflow.svc.cluster.local"
+                                                "value": f"ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}"
                                             },
                                             {
                                                 "name": "ML_PIPELINE_SERVICE_PORT",
@@ -294,6 +322,10 @@ def server_factory(frontend_image,
                                             {
                                                 "name": "FRONTEND_SERVER_NAMESPACE",
                                                 "value": namespace,
+                                            },
+                                            {
+                                                "name": "CLUSTER_DOMAIN",
+                                                "value": cluster_domain,
                                             }
                                         ],
                                         "resources": {
@@ -337,7 +369,7 @@ def server_factory(frontend_image,
                         }
                     },
                 ])
-            
+
             print('Received request:\n', json.dumps(parent, sort_keys=True))
             print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
 
@@ -375,9 +407,9 @@ def server_factory(frontend_image,
                             }]
                         })
                 )
-                
+
                 self.upsert_lifecycle_policy(S3_BUCKET_NAME, artifact_retention_days)
-                
+
                 desired_resources.insert(
                     0,
                     {

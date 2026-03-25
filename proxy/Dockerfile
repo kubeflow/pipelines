@@ -22,8 +22,9 @@ RUN python3 -m pip install -r \
     requirements.txt --quiet --no-cache-dir \
     && rm -f requirements.txt
 
-# Install gcloud SDK
-RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
+# Install gcloud SDK (pinned)
+ARG GCLOUD_VERSION=557.0.0
+RUN curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
 RUN tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
 RUN /usr/local/gcloud/google-cloud-sdk/install.sh

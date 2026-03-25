@@ -26,7 +26,6 @@ const (
 	MaxClientGRPCMessageSize = 100 * 1024 * 1024
 	// The endpoint uses Kubernetes service DNS name with namespace:
 	// https://kubernetes.io/docs/concepts/services-networking/service/#dns
-	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8887"
 )
 
 type Client interface {
@@ -77,7 +76,7 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient creates a Client.
-func NewClient(cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
+func NewClient(mlPipelineServerAddress string, mlPipelineServerPort string, cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
 	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}
@@ -86,9 +85,10 @@ func NewClient(cacheDisabled bool, tlsCfg *tls.Config) (Client, error) {
 	if tlsCfg != nil {
 		creds = credentials.NewTLS(tlsCfg)
 	}
-	glog.Infof("Connecting to cache endpoint %s", defaultKfpApiEndpoint)
+	cacheEndPoint := mlPipelineServerAddress + ":" + mlPipelineServerPort
+	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
 	conn, err := grpc.NewClient(
-		defaultKfpApiEndpoint,
+		cacheEndPoint,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
 		grpc.WithTransportCredentials(creds),
 	)

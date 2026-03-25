@@ -15,19 +15,18 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { Apis } from 'src/lib/Apis';
+import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { Execution, Value } from 'src/third_party/mlmd';
 import TestUtils from 'src/TestUtils';
-import fs from 'fs';
+import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import jsyaml from 'js-yaml';
 
-const V2_PVC_PIPELINESPEC_PATH = 'src/data/test/create_mount_delete_dynamic_pvc.yaml';
-const V2_PVC_YAML_STRING = fs.readFileSync(V2_PVC_PIPELINESPEC_PATH, 'utf8');
+const V2_PVC_YAML_STRING = v2PvcYamlString;
 // The templateStr used in RuntimeNodeDetailsV2 is not directly from yaml file.
 // Instead, it is from BE (already been processed).
 const V2_PVC_TEMPLATE_STRING_OBJ = {
@@ -51,6 +50,8 @@ describe('RuntimeNodeDetailsV2', () => {
   const TEST_LOG_VIEW_ID = 'logs-view-window';
 
   beforeEach(() => {
+    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
+    vi.spyOn(mlmdUtils, 'getLinkedArtifactsByExecution').mockResolvedValue([]);
     TEST_EXECUTION.setId(TEST_EXECUTION_ID);
     TEST_EXECUTION.getCustomPropertiesMap().set(
       'task_name',
@@ -67,13 +68,16 @@ describe('RuntimeNodeDetailsV2', () => {
   });
 
   it('shows error when failing to get logs details', async () => {
-    const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
     TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'Failed to retrieve pod logs');
+    // Also mock MLMD artifact retrieval to fail since it's used as fallback
+    const getLinkedArtifactsSpy = vi.spyOn(mlmdUtils, 'getLinkedArtifactsByExecution');
+    getLinkedArtifactsSpy.mockRejectedValueOnce(new Error('MLMD unavailable'));
     render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -96,17 +100,19 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalled();
     });
 
-    screen.getByText('Failed to retrieve pod logs.');
+    await waitFor(() => {
+      screen.getByText('Failed to retrieve pod logs.');
+    });
   });
 
   it('displays logs details on side panel of execution node', async () => {
-    const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
     getPodLogsSpy.mockImplementation(() => 'test-logs-details');
     render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -137,14 +143,14 @@ describe('RuntimeNodeDetailsV2', () => {
       'cached_execution_id',
       new Value().setStringValue('135'),
     );
-    const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
     getPodLogsSpy.mockImplementation(() => 'test-logs-details');
 
     render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -176,7 +182,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           pipelineJobString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
           element={{

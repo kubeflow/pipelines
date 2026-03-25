@@ -30,10 +30,8 @@ USE_PROXY=false
 CACHE_DISABLED=false
 ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
-STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
-SEAWEEDFS_INIT_TIMEOUT=300s
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -59,10 +57,6 @@ while [ "$#" -gt 0 ]; do
     --artifact-proxy)
       ARTIFACT_PROXY_ENABLED=true
       shift
-      ;;
-    --storage)
-      STORAGE_BACKEND="$2"
-      shift 2
       ;;
     --argo-version)
       shift
@@ -139,20 +133,12 @@ fi
 # Manifests will be deployed according to the flag provided
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
-  if $CACHE_DISABLED; then
+  if $CACHE_DISABLED && $USE_PROXY; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+  elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
-  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED && $USE_PROXY; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
-  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
-  elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
-  elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
   elif $POD_TO_POD_TLS_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
   else
@@ -167,12 +153,8 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+  if $ARTIFACT_PROXY_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
-  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   else
@@ -198,21 +180,9 @@ then
   exit 1
 fi
 
-# Ensure SeaweedFS S3 auth is configured before proceeding
-if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
-  wait_for_seaweedfs_init kubeflow "${SEAWEEDFS_INIT_TIMEOUT}" || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]
-  then
-    echo "SeaweedFS init job did not complete successfully."
-    exit 1
-  fi
-  echo "SeaweedFS init job completed successfully."
-fi
-
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Creating KF Profile..."
   kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
-  sleep 30 # Let the profile controler reconcile the namespace
 
   echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
   kubectl apply -f test_data/kubernetes/seaweedfs/kubeflow-edit-clusterrole.yaml
@@ -221,16 +191,40 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
 fi
 
-# Verify pipeline integration for multi-user mode
+# Wait for profile controller to reconcile and verify pipeline integration
 if [ "${MULTI_USER}" == "true" ]; then
-  echo "Verifying Pipeline Integration..."
   KF_PROFILE=kubeflow-user-example-com
-  if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
-    echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
+  echo "Waiting for profile controller to reconcile namespace ${KF_PROFILE}..."
+
+  TIMEOUT=300
+  INTERVAL=5
+  ELAPSED=0
+  while [ $ELAPSED -lt $TIMEOUT ]; do
+    if kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
+      echo "Secret mlpipeline-minio-artifact found in namespace ${KF_PROFILE} after ${ELAPSED}s"
+      break
+    fi
+    echo "Waiting for secret mlpipeline-minio-artifact in namespace ${KF_PROFILE}... (${ELAPSED}s/${TIMEOUT}s)"
+    sleep $INTERVAL
+    ELAPSED=$((ELAPSED + INTERVAL))
+  done
+
+  if ! kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
+    echo "ERROR: Secret mlpipeline-minio-artifact not found in namespace ${KF_PROFILE} after ${TIMEOUT}s"
+    echo "Checking namespace labels:"
+    kubectl get namespace "$KF_PROFILE" --show-labels 2>&1 || true
+    echo "Checking profile controller logs:"
+    kubectl -n kubeflow logs deploy/kubeflow-pipelines-profile-controller --tail=50 2>&1 || true
+    echo "Checking metacontroller logs:"
+    kubectl -n kubeflow logs -l app.kubernetes.io/name=metacontroller --tail=50 2>&1 || true
+    exit 1
   fi
-  kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
+
+  echo "Verifying Pipeline Integration..."
+  echo "Secret keys present: $(kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys | join(", ")')"
 fi
 
 collect_artifacts kubeflow
 
 echo "Finished KFP deployment."
+exit 0

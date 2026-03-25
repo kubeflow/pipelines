@@ -48,6 +48,14 @@ var DebugMode = flag.Bool("debugMode", false, "Whether to enable debug mode. Deb
 var PodLogLimit = flag.Int64("podLogLimit", 50000000, "Limit the pod logs size to this limit")
 
 var (
-	KubeflowMode  = flag.Bool("kubeflowMode", false, "Runs tests in full Kubeflow mode")
-	UserNamespace = flag.String("userNamespace", "kubeflow-user-example-com", "The namespace that will store the test resources in Kubeflow mode")
+	KubeflowMode            = flag.Bool("kubeflowMode", false, "Runs tests in full Kubeflow mode")
+	UserNamespace           = flag.String("userNamespace", "kubeflow-user-example-com", "The namespace that will store the test resources in Kubeflow mode")
+	PipelineStoreKubernetes = flag.Bool("pipelineStoreKubernetes", false, "Set to true when the API server uses Kubernetes CRD-based pipeline store. Some filter operations (gt, lt) are not supported.")
+)
+
+var (
+	MinioSecretName    = flag.String("minioSecretName", "mlpipeline-minio-artifact", "Name of the secret containing MinIO credentials")
+	MinioBucket        = flag.String("minioBucket", "mlpipeline", "S3 bucket name for archived workflow logs")
+	MinioEndpoint      = flag.String("minioEndpoint", "localhost:9000", "MinIO endpoint (host:port)")
+	MinioLogsPrefixFmt = flag.String("minioLogsPrefixFmt", "private-artifacts/%s", "Format string for logs prefix (use %s for workflow namespace)")
 )

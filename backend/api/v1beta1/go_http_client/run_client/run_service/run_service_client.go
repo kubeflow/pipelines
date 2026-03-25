@@ -64,8 +64,6 @@ type ClientService interface {
 
 	RunServiceListRunsV1(params *RunServiceListRunsV1Params, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceListRunsV1OK, error)
 
-	RunServiceReadArtifactV1(params *RunServiceReadArtifactV1Params, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceReadArtifactV1OK, error)
-
 	RunServiceReportRunMetricsV1(params *RunServiceReportRunMetricsV1Params, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceReportRunMetricsV1OK, error)
 
 	RunServiceRetryRunV1(params *RunServiceRetryRunV1Params, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceRetryRunV1OK, error)
@@ -264,44 +262,6 @@ func (a *Client) RunServiceListRunsV1(params *RunServiceListRunsV1Params, authIn
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*RunServiceListRunsV1Default)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
-}
-
-/*
-RunServiceReadArtifactV1 finds a run s artifact data
-*/
-func (a *Client) RunServiceReadArtifactV1(params *RunServiceReadArtifactV1Params, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceReadArtifactV1OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewRunServiceReadArtifactV1Params()
-	}
-	op := &runtime.ClientOperation{
-		ID:                 "RunService_ReadArtifactV1",
-		Method:             "GET",
-		PathPattern:        "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &RunServiceReadArtifactV1Reader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
-	if err != nil {
-		return nil, err
-	}
-	success, ok := result.(*RunServiceReadArtifactV1OK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*RunServiceReadArtifactV1Default)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

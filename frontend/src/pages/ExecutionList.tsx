@@ -25,7 +25,7 @@ import {
   GetExecutionsRequest,
   GetExecutionTypesRequest,
 } from 'src/third_party/mlmd';
-import { ListOperationOptions } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { classes } from 'typestyle';
 import CustomTable, {
   Column,
@@ -38,8 +38,10 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import {
   CollapsedAndExpandedRows,
+  errorToMessage,
   getExpandedRow,
   groupRows,
+  isServiceError,
   rowFilterFn,
   serviceErrorToString,
 } from 'src/lib/Utils';
@@ -124,7 +126,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    const listOperationOpts = new ListOperationOptions();
+    const listOperationOpts = new metadataStorePb.ListOperationOptions();
     if (request.pageToken) {
       listOperationOpts.setNextPageToken(request.pageToken);
     }
@@ -145,18 +147,27 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
       const flattenedRows = this.getFlattenedRowsFromExecutions(request, executions);
       const groupedRows = this.getGroupedRowsFromExecutions(request, executions);
       // TODO(jlyaoyuli): Consider to support grouped rows with pagination.
-      this.setState({
+      this.setStateSafe({
         executions,
         expandedRows: this.props.isGroupView ? groupedRows.expandedRows : new Map(),
         rows: this.props.isGroupView ? groupedRows.collapsedRows : flattenedRows,
       });
     } catch (err) {
-      this.showPageError(serviceErrorToString(err));
+      if (isServiceError(err)) {
+        this.showPageError(serviceErrorToString(err));
+      } else {
+        const errorMessage = await errorToMessage(err);
+        this.showPageError(
+          errorMessage ? `Error: ${errorMessage}` : 'Error: failed to list executions.',
+        );
+      }
     }
     return listOperationOpts.getNextPageToken();
   }
 
-  private async getExecutions(listOperationOpts?: ListOperationOptions): Promise<Execution[]> {
+  private async getExecutions(
+    listOperationOpts?: metadataStorePb.ListOperationOptions,
+  ): Promise<Execution[]> {
     try {
       const response = await this.api.metadataStoreService.getExecutions(
         new GetExecutionsRequest().setOptions(listOperationOpts),
@@ -166,9 +177,18 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err.code !== 5) {
-        err.message = 'Failed getting executions: ' + err.message;
-        throw err;
+      if (isServiceError(err)) {
+        if (err.code !== 5) {
+          err.message = 'Failed getting executions: ' + err.message;
+          throw err;
+        }
+      } else {
+        const errorMessage = await errorToMessage(err);
+        throw new Error(
+          errorMessage
+            ? `Failed getting executions: ${errorMessage}`
+            : 'Failed getting executions.',
+        );
       }
     }
     return [];
@@ -182,13 +202,20 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
 
       const executionTypesMap = new Map<number, ExecutionType>();
 
-      response.getExecutionTypesList().forEach(executionType => {
+      response.getExecutionTypesList().forEach((executionType) => {
         executionTypesMap.set(executionType.getId(), executionType);
       });
 
       return executionTypesMap;
     } catch (err) {
-      this.showPageError(serviceErrorToString(err));
+      if (isServiceError(err)) {
+        this.showPageError(serviceErrorToString(err));
+      } else {
+        const errorMessage = await errorToMessage(err);
+        this.showPageError(
+          errorMessage ? `Error: ${errorMessage}` : 'Error: failed to list execution types.',
+        );
+      }
     }
     return new Map();
   }
@@ -198,7 +225,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
   ) => {
     return (
       <Link
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className={commonCss.link}
         to={RoutePageFactory.executionDetails(Number(props.id))}
       >
@@ -209,7 +236,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
 
   private getFlattenedRowsFromExecutions(request: ListRequest, executions: Execution[]): Row[] {
     return executions
-      .map(execution => {
+      .map((execution) => {
         const executionType = this.executionTypesMap!.get(execution.getTypeId());
         const type = executionType ? executionType.getName() : execution.getTypeId();
         return {
@@ -254,7 +281,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
       rows[index].expandState === ExpandState.EXPANDED
         ? ExpandState.COLLAPSED
         : ExpandState.EXPANDED;
-    this.setState({ rows });
+    this.setStateSafe({ rows });
   }
 
   private getExpandedExecutionsRow(index: number): React.ReactNode {

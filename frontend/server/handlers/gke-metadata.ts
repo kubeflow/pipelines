@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Handler } from 'express';
-import * as k8sHelper from '../k8s-helper';
-import fetch from 'node-fetch';
-import { GkeMetadataConfigs } from '../configs';
+import { GkeMetadataConfigs } from '../configs.js';
 
 const disabledHandler: Handler = async (_, res) => {
   res.status(500).send('GKE metadata endpoints are disabled.');

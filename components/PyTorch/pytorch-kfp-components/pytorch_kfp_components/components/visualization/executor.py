@@ -106,7 +106,7 @@ class Executor(BaseExecutor):  # pylint: disable=R0903
         folder_name = str(parse_obj.path).lstrip("/")
 
         # TODO:  # pylint: disable=W0511
-        endpoint = "minio-service.kubeflow:9000"
+        endpoint = "seaweedfs.kubeflow:9000"
         MinIO(
             source=confusion_matrix_output_path,
             bucket_name=bucket_name,

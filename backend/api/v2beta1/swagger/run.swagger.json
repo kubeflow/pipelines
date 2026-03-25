@@ -204,59 +204,6 @@
         ]
       }
     },
-    "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
-      "get": {
-        "summary": "Finds artifact data in a run.",
-        "operationId": "RunService_ReadArtifact",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v2beta1ReadArtifactResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googlerpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "run_id",
-            "description": "ID of the run.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "node_id",
-            "description": "ID of the running node.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "artifact_name",
-            "description": "Name of the artifact.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "experiment_id",
-            "description": "The ID of the parent experiment.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      }
-    },
     "/apis/v2beta1/runs/{run_id}:archive": {
       "post": {
         "summary": "Archives a run in an experiment given by run ID and experiment ID.",
@@ -640,16 +587,6 @@
         }
       },
       "description": "Reference to an existing pipeline version."
-    },
-    "v2beta1ReadArtifactResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "string",
-          "format": "byte",
-          "description": "Byte array of the artifact content."
-        }
-      }
     },
     "v2beta1Run": {
       "type": "object",

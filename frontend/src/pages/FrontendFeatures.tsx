@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import { Button, Switch, TableCell } from '@material-ui/core';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
+import { Button, Switch, TableCell, Table, TableBody, TableHead, TableRow } from '@mui/material';
 import * as React from 'react';
 import { commonCss, padding } from 'src/Css';
 import { getFeatureList, initFeatures, saveFeatures } from 'src/features';
@@ -41,7 +37,7 @@ const FrontendFeatures: React.FC<FrontendFeaturesProps> = () => {
   };
 
   const toggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const index = features.findIndex(f => f.name === event.target.name);
+    const index = features.findIndex((f) => f.name === event.target.name);
     if (index < 0) {
       console.log(`unable to find index for feature name: ${event.target.name}`);
       return;
@@ -71,7 +67,7 @@ const FrontendFeatures: React.FC<FrontendFeaturesProps> = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {features.map(f => (
+            {features.map((f) => (
               <TableRow key={f.name}>
                 <TableCell component='th' scope='row'>
                   {f.name}

@@ -39,8 +39,6 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -451,7 +449,7 @@ func TestCreateRunV1Patch(t *testing.T) {
 			},
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"ns1\",\"uid\":\"workflow2\",\"creationTimestamp\":null,\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\",\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"ns1\",\"uid\":\"workflow2\",\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\",\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
 
@@ -1481,219 +1479,6 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 	)
 }
 
-func TestReadArtifactsV1_Succeed(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	expectedContent := "test"
-	filePath := "test/file.txt"
-	resourceManager, manager, run := initWithOneTimeRun(t)
-	resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "workflow-name",
-			Namespace:         "ns1",
-			UID:               "workflow1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "Workflow",
-				Name:       "workflow-name",
-				UID:        types.UID(run.UUID),
-			}},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Nodes: map[string]v1alpha1.NodeStatus{
-				"node-1": {
-					Outputs: &v1alpha1.Outputs{
-						Artifacts: []v1alpha1.Artifact{
-							{
-								Name: "artifact-1",
-								ArtifactLocation: v1alpha1.ArtifactLocation{
-									S3: &v1alpha1.S3Artifact{
-										Key: filePath,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	runServer := createRunServerV1(manager)
-	artifact := &apiv1beta1.ReadArtifactRequest{
-		RunId:        run.UUID,
-		NodeId:       "node-1",
-		ArtifactName: "artifact-1",
-	}
-	response, err := runServer.ReadArtifactV1(ctx, artifact)
-	assert.Nil(t, err)
-
-	expectedResponse := &apiv1beta1.ReadArtifactResponse{
-		Data: []byte(expectedContent),
-	}
-	assert.Equal(t, expectedResponse, response)
-}
-
-func TestReadArtifactsV1_Unauthorized(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-	userIdentity := "user@google.com"
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	clientManager, _, run := initWithOneTimeRun(t)
-
-	// make the following request unauthorized
-	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-
-	runServer := createRunServerV1(resourceManager)
-	artifact := &apiv1beta1.ReadArtifactRequest{
-		RunId:        run.UUID,
-		NodeId:       "node-1",
-		ArtifactName: "artifact-1",
-	}
-	_, err := runServer.ReadArtifactV1(ctx, artifact)
-	assert.NotNil(t, err)
-	assert.Contains(
-		t,
-		err.Error(),
-		"User 'user@google.com' is not authorized with reason: this is not allowed",
-	)
-}
-
-func TestReadArtifactsV1_Run_NotFound(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	runServer := createRunServerV1(manager)
-	artifact := &apiv1beta1.ReadArtifactRequest{
-		RunId:        "Wrong_RUN_UUID",
-		NodeId:       "node-1",
-		ArtifactName: "artifact-1",
-	}
-	_, err := runServer.ReadArtifactV1(context.Background(), artifact)
-	assert.NotNil(t, err)
-	err = err.(*util.UserError)
-
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
-}
-
-func TestReadArtifactsV1_Resource_NotFound(t *testing.T) {
-	_, manager, run := initWithOneTimeRun(t)
-
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "workflow-name",
-			Namespace:         "ns1",
-			UID:               "workflow1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "Workflow",
-				Name:       "workflow-name",
-				UID:        types.UID(run.UUID),
-			}},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	runServer := createRunServerV1(manager)
-	// `artifactRequest` search for node that does not exist
-	artifactRequest := &apiv1beta1.ReadArtifactRequest{
-		RunId:        run.UUID,
-		NodeId:       "node-1",
-		ArtifactName: "artifact-1",
-	}
-	_, err = runServer.ReadArtifactV1(context.Background(), artifactRequest)
-	assert.NotNil(t, err)
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
-}
-
-func TestReadArtifacts_Succeed(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	expectedContent := "test"
-	filePath := "test/file.txt"
-	resourceManager, manager, run := initWithOneTimeRun(t)
-	resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "workflow-name",
-			Namespace:         "ns1",
-			UID:               "workflow1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "Workflow",
-				Name:       "workflow-name",
-				UID:        types.UID(run.UUID),
-			}},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Nodes: map[string]v1alpha1.NodeStatus{
-				"node-1": {
-					Outputs: &v1alpha1.Outputs{
-						Artifacts: []v1alpha1.Artifact{
-							{
-								Name: "artifact-1",
-								ArtifactLocation: v1alpha1.ArtifactLocation{
-									S3: &v1alpha1.S3Artifact{
-										Key: filePath,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	runServer := createRunServer(manager)
-	artifact := &apiv2beta1.ReadArtifactRequest{
-		RunId:        run.UUID,
-		NodeId:       "node-1",
-		ArtifactName: "artifact-1",
-	}
-	response, err := runServer.ReadArtifact(ctx, artifact)
-	assert.Nil(t, err)
-
-	expectedResponse := &apiv2beta1.ReadArtifactResponse{
-		Data: []byte(expectedContent),
-	}
-	assert.Equal(t, expectedResponse, response)
-}
-
 func TestRetryRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
@@ -1727,8 +1512,143 @@ func TestRetryRun(t *testing.T) {
 			PipelineRoot: "model-pipeline-root",
 		},
 	}
-	run, err := server.CreateRun(nil, &apiv2beta1.CreateRunRequest{Run: run})
+	run, err := server.CreateRun(context.Background(), &apiv2beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	_, err = server.RetryRun(nil, &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+	// RetryRun requires the workflow to be in Failed/Error state, so expect an error.
+	_, err = server.RetryRun(context.Background(), &apiv2beta1.RetryRunRequest{RunId: run.RunId})
+	assert.NotNil(t, err)
+}
+
+func TestNewRunServerV1(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServerV1(manager, &RunServerOptions{CollectMetrics: false})
+	assert.NotNil(t, server)
+	assert.NotNil(t, server.BaseRunServer)
+	assert.Equal(t, manager, server.resourceManager)
+}
+
+func TestArchiveRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.ArchiveRunV1(context.Background(), &apiv1beta1.ArchiveRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestArchiveRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.ArchiveRunV1(context.Background(), &apiv1beta1.ArchiveRunRequest{Id: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestArchiveRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	_, err := server.ArchiveRun(context.Background(), &apiv2beta1.ArchiveRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestUnarchiveRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	// Archive first, then unarchive.
+	_, err := server.ArchiveRunV1(context.Background(), &apiv1beta1.ArchiveRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+	_, err = server.UnarchiveRunV1(context.Background(), &apiv1beta1.UnarchiveRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestUnarchiveRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.UnarchiveRunV1(context.Background(), &apiv1beta1.UnarchiveRunRequest{Id: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestUnarchiveRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	// Archive first, then unarchive.
+	_, err := server.ArchiveRun(context.Background(), &apiv2beta1.ArchiveRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+	_, err = server.UnarchiveRun(context.Background(), &apiv2beta1.UnarchiveRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestDeleteRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.DeleteRunV1(context.Background(), &apiv1beta1.DeleteRunRequest{Id: run.UUID})
+	assert.Nil(t, err)
+	// Verify the run is gone.
+	_, err = manager.GetRun(run.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.DeleteRunV1(context.Background(), &apiv1beta1.DeleteRunRequest{Id: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	_, err := server.DeleteRun(context.Background(), &apiv2beta1.DeleteRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+	// Verify the run is gone.
+	_, err = manager.GetRun(run.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestTerminateRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.TerminateRunV1(context.Background(), &apiv1beta1.TerminateRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestTerminateRunV1_NotFound(t *testing.T) {
+	clients, manager, _ := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	_, err := server.TerminateRunV1(context.Background(), &apiv1beta1.TerminateRunRequest{RunId: "nonexistent-run-id"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestTerminateRun(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+	_, err := server.TerminateRun(context.Background(), &apiv2beta1.TerminateRunRequest{RunId: run.UUID})
+	assert.Nil(t, err)
+}
+
+func TestRetryRunV1(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServerV1(manager)
+	// RetryRunV1 requires the workflow to be in Failed/Error state, so expect an error.
+	_, err := server.RetryRunV1(context.Background(), &apiv1beta1.RetryRunRequest{RunId: run.UUID})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Workflow must be Failed/Error to retry")
 }

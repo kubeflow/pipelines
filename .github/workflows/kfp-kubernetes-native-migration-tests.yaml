@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/deploy/**"
       - ".github/resources/**"
       - "tools/k8s-native/**"
       - "test/kfp-kubernetes-native-migration-tests/**"
@@ -19,7 +21,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/image-builds-with-cache.yml
+    uses: ./.github/workflows/image-builds.yml
 
   kfp-kubernetes-native-migration-tests:
     runs-on: ubuntu-24.04
@@ -30,18 +32,13 @@ jobs:
     name: KFP Kubernetes Native Migration Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.9"
-
-      # This is intended to address disk space issues that have surfaced
-      # intermittently during CI -
-      # https://github.com/actions/runner-images/issues/2840#issuecomment-1284059930
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
+          cache: 'pip'
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -58,6 +55,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: 'false'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         if: ${{ steps.deploy.outcome == 'success' }}
@@ -96,7 +94,7 @@ jobs:
         run: |
           echo "Installing cert-manager..."
 
-          # Install cert-manager 
+          # Install cert-manager
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
 
           # Wait for cert-manager to be ready
@@ -111,10 +109,10 @@ jobs:
         if: ${{ steps.install-cert-manager.outcome == 'success' }}
         id: switch-to-k8s-mode
         run: |
-          kubectl delete deployment ml-pipeline -n kubeflow     
+          kubectl delete deployment ml-pipeline -n kubeflow
           # Deploy KFP in K8s mode
           echo "Deploying KFP in K8s mode..."
-          kubectl apply -k "manifests/kustomize/env/cert-manager/platform-agnostic-k8s-native/"
+          kubectl kustomize --load-restrictor LoadRestrictionsNone  ".github/resources/manifests/kubernetes-native/default" | kubectl apply -f -
           # Wait for KFP K8s mode deployment to be ready
           kubectl wait --for=condition=available --timeout=300s deployment/ml-pipeline -n kubeflow
         continue-on-error: true
@@ -183,7 +181,7 @@ jobs:
 
       - name: Collect test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kfp-kubernetes-native-migration-tests-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*

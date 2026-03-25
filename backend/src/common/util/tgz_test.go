@@ -34,3 +34,28 @@ func TestArchiveTgzAndExtractTgz_Roundtrip(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFiles, actualFiles)
 }
+
+func TestArchiveTgz_EmptyFiles(t *testing.T) {
+	tgzContent, err := ArchiveTgz(map[string]string{})
+	assert.Nil(t, err)
+	assert.NotEmpty(t, tgzContent)
+
+	files, err := ExtractTgz(tgzContent)
+	assert.Nil(t, err)
+	assert.Empty(t, files)
+}
+
+func TestExtractTgz_InvalidContent(t *testing.T) {
+	files, err := ExtractTgz("not a valid tgz")
+	assert.NotNil(t, err)
+	assert.Nil(t, files)
+}
+
+func TestArchiveTgz_SingleFile(t *testing.T) {
+	tgzContent, err := ArchiveTgz(map[string]string{"file.txt": "content"})
+	assert.Nil(t, err)
+
+	files, err := ExtractTgz(tgzContent)
+	assert.Nil(t, err)
+	assert.Equal(t, "content", files["file.txt"])
+}

@@ -14,7 +14,6 @@
 import inspect
 import json
 import os
-import re
 from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
 
@@ -23,6 +22,7 @@ from kfp.dsl import task_final_status
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
+from kfp.dsl.types import type_utils
 
 
 class Executor:
@@ -71,10 +71,8 @@ class Executor:
                     type_annotations.is_list_of_artifacts(annotation.__origin__)
                 ) or type_annotations.is_list_of_artifacts(annotation)
                 if is_list_of_artifacts:
-                    # Get the annotation of the inner type of the list
-                    # to use when creating the artifacts
-                    inner_annotation = type_annotations.get_inner_type(
-                        annotation)
+                    inner_annotation = self._resolve_list_artifact_inner_type(
+                        input_name=name, list_annotation=annotation)
 
                     self.input_artifacts[name] = [
                         self.make_artifact(
@@ -104,6 +102,41 @@ class Executor:
                 self.output_artifacts[name] = output_artifact
                 makedirs_recursively(output_artifact.path)
 
+    def _resolve_list_artifact_inner_type(self, input_name: str,
+                                          list_annotation: Any) -> Any:
+        """Unwraps nested list annotations and validates the inner artifact
+        type."""
+        inner_annotation = type_annotations.get_inner_type(list_annotation)
+
+        if inner_annotation is None:
+            raise TypeError(
+                f"Input '{input_name}' expects a list of artifacts, but "
+                f'received {list_annotation!r} without an inner type.')
+
+        while type_annotations.is_list_of_artifacts(inner_annotation):
+            if isinstance(inner_annotation, tuple):
+                raise TypeError(
+                    f"Input '{input_name}' expects a single artifact type but "
+                    f'received a union {inner_annotation!r}.')
+            inner_annotation = type_annotations.get_inner_type(inner_annotation)
+            if inner_annotation is None:
+                raise TypeError(
+                    f"Input '{input_name}' expects a list of artifacts, but "
+                    f'could not determine the inner annotation from '
+                    f'{list_annotation!r}.')
+
+        if isinstance(inner_annotation, tuple):
+            raise TypeError(
+                f"Input '{input_name}' expects a single artifact type but "
+                f'received a union {inner_annotation!r}.')
+        if not type_annotations.is_artifact_class(inner_annotation):
+            raise TypeError(
+                f"Input '{input_name}' expects a list of artifacts, but "
+                f'received {list_annotation!r} whose inner type '
+                f'{inner_annotation!r} is not an artifact.')
+
+        return inner_annotation
+
     def make_artifact(
         self,
         runtime_artifact: Dict,
@@ -113,6 +146,9 @@ class Executor:
     ) -> Any:
         annotation = func.__annotations__.get(
             name) if annotation is None else annotation
+        if type_annotations.is_list_of_artifacts(annotation):
+            annotation = self._resolve_list_artifact_inner_type(
+                input_name=name, list_annotation=annotation)
         if isinstance(annotation, type_annotations.InputPath):
             schema_title, _ = annotation.type.split('@')
             if schema_title in artifact_types._SCHEMA_TITLE_TO_TYPE:
@@ -287,8 +323,10 @@ class Executor:
                 'name': artifact.name,
                 'uri': artifact.uri,
                 'metadata': artifact.metadata,
-                'custom_path': artifact.custom_path
             }
+            if artifact.custom_path:
+                runtime_artifact['custom_path'] = artifact.custom_path
+
             artifacts_list = {'artifacts': [runtime_artifact]}
 
             self.excutor_output['artifacts'][name] = artifacts_list
@@ -436,35 +474,18 @@ def create_artifact_instance(
     )
 
 
-def get_short_type_name(type_name: str) -> str:
-    """Extracts the short form type name.
-
-    This method is used for looking up serializer for a given type.
-
-    For example:
-      typing.List -> List
-      typing.List[int] -> List
-      typing.Dict[str, str] -> Dict
-      List -> List
-      str -> str
-
-    Args:
-      type_name: The original type name.
-
-    Returns:
-      The short form type name or the original name if pattern doesn't match.
-    """
-    match = re.match(r'(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    return match['type'] if match else type_name
-
-
 # TODO: merge with type_utils.is_parameter_type
 def is_parameter(annotation: Any) -> bool:
-    if type(annotation) == type:
-        return annotation in [str, int, float, bool, dict, list]
+    if isinstance(annotation, type):
+        if annotation in [str, int, float, bool, dict, list]:
+            return True
+        annotation_name = getattr(annotation, '__name__', '')
+        if type_utils.is_task_final_status_type(annotation_name):
+            return True
+        if type_utils.is_task_config_type(annotation_name):
+            return True
 
-    # Annotation could be, for instance `typing.Dict[str, str]`, etc.
-    return get_short_type_name(str(annotation)) in ['Dict', 'List']
+    return type_utils.is_parameter_type(str(annotation))
 
 
 def is_artifact(annotation: Any) -> bool:

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -50,11 +51,34 @@ import (
 )
 
 const (
-	pipelineContextTypeName    = "system.Pipeline"
-	pipelineRunContextTypeName = "system.PipelineRun"
-	ImporterExecutionTypeName  = "system.ImporterExecution"
-	mlmdClientSideMaxRetries   = 3
+	pipelineContextTypeName            = "system.Pipeline"
+	pipelineRunContextTypeName         = "system.PipelineRun"
+	ImporterExecutionTypeName          = "system.ImporterExecution"
+	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
+	mlmdClientSideMaxRetries           = 3
+	defaultMaxGRPCMessageSize          = 100 * 1024 * 1024 // 100MB
+	maxGRPCMessageSizeEnv              = "METADATA_GRPC_MESSAGE_SIZE"
 )
+
+// MaxGRPCMessageSize is the max gRPC message size for the metadata client.
+// The default gRPC limit is 4MB which is too small for large artifacts
+// (e.g. classification metrics with many data points).
+// Configurable via the METADATA_GRPC_MESSAGE_SIZE environment variable (in bytes).
+var MaxGRPCMessageSize = defaultMaxGRPCMessageSize
+
+func init() {
+	if v := os.Getenv(maxGRPCMessageSizeEnv); v != "" {
+		size, err := strconv.Atoi(v)
+		if err != nil {
+			glog.Fatalf("%s environment variable must be a valid integer: %v", maxGRPCMessageSizeEnv, err)
+		}
+		if size <= 0 {
+			glog.Fatalf("%s environment variable must be a positive integer, got %d", maxGRPCMessageSizeEnv, size)
+		}
+		MaxGRPCMessageSize = size
+		glog.Infof("MaxGRPCMessageSize set to %d bytes from %s", size, maxGRPCMessageSizeEnv)
+	}
+}
 
 type ExecutionType string
 
@@ -127,6 +151,10 @@ func NewClient(serverAddress, serverPort string, tlsCfg *tls.Config) (*Client, e
 
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
 		grpc.WithTransportCredentials(creds),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(MaxGRPCMessageSize),
+			grpc.MaxCallSendMsgSize(MaxGRPCMessageSize),
+		),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
 	)
@@ -1191,7 +1219,7 @@ func (c *Client) matchedArtifactOrNot(ctx context.Context, target *pb.Artifact, 
 	}
 	res, err := c.svc.GetContextsByArtifact(ctx, &pb.GetContextsByArtifactRequest{ArtifactId: candidate.Id})
 	if err != nil {
-		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%q: %w", candidate.GetId(), err)
+		return false, fmt.Errorf("failed to get contextsByArtifact with artifactID=%d: %w", candidate.GetId(), err)
 	}
 	for _, c := range res.GetContexts() {
 		if c.GetId() == pipelineContextId {
@@ -1295,7 +1323,7 @@ func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*Execut
 		for _, artifact := range artifactList.Artifacts {
 			id, err := strconv.ParseInt(artifact.Name, 10, 64)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse input artifact id from %q: %w", id, err)
+				return nil, fmt.Errorf("unable to parse input artifact id from %q: %w", artifact.Name, err)
 			}
 			ecfg.InputArtifactIDs[name] = append(ecfg.InputArtifactIDs[name], id)
 		}

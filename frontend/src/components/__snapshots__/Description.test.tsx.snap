@@ -1,99 +1,149 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Description When in inline mode renders markdown link 1`] = `
-<a
-  class="link"
-  href="https://www.google.com"
-  rel="noopener"
-  target="_blank"
->
-  google
-</a>
+exports[`Description > When in inline mode > renders emphasis text as <em> 1`] = `
+<DocumentFragment>
+  <em>
+    abc
+  </em>
+</DocumentFragment>
 `;
 
-exports[`Description When in inline mode renders markdown list as pure text 1`] = `
-<span>
-  
-* abc
-* def
-</span>
+exports[`Description > When in inline mode > renders list markers as visible bullets while preserving emphasis 1`] = `
+<DocumentFragment>
+  <span>
+    • item one
+• item two
+• item three
+  </span>
+</DocumentFragment>
 `;
 
-exports[`Description When in inline mode renders paragraphs separated by space 1`] = `
-<span>
-  
+exports[`Description > When in inline mode > renders markdown link 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f1fk43bf"
+    href="https://www.google.com"
+    rel="noopener"
+    target="_blank"
+  >
+    google
+  </a>
+</DocumentFragment>
+`;
+
+exports[`Description > When in inline mode > renders markdown list as pure text with visible bullet markers 1`] = `
+<DocumentFragment>
+  <span>
+    
+• abc
+• def
+  </span>
+</DocumentFragment>
+`;
+
+exports[`Description > When in inline mode > renders paragraphs separated by space 1`] = `
+<DocumentFragment>
+  <span>
+    
 Paragraph 1
 
 Paragraph 2
 
-</span>
+  </span>
+</DocumentFragment>
 `;
 
-exports[`Description When in inline mode renders pure text 1`] = `
-<span>
-  this is a line of pure text
-</span>
+exports[`Description > When in inline mode > renders pure text 1`] = `
+<DocumentFragment>
+  <span>
+    this is a line of pure text
+  </span>
+</DocumentFragment>
 `;
 
-exports[`Description When in inline mode renders raw link 1`] = `
-<a
-  class="link"
-  href="https://www.google.com"
-  rel="noopener"
-  target="_blank"
->
-  https://www.google.com
-</a>
+exports[`Description > When in inline mode > renders raw link 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f1fk43bf"
+    href="https://www.google.com"
+    rel="noopener"
+    target="_blank"
+  >
+    https://www.google.com
+  </a>
+</DocumentFragment>
 `;
 
-exports[`Description When in normal mode renders empty string 1`] = `<span />`;
-
-exports[`Description When in normal mode renders markdown link 1`] = `
-<a
-  class="link"
-  href="https://www.google.com"
-  rel="noopener"
-  target="_blank"
->
-  google
-</a>
-`;
-
-exports[`Description When in normal mode renders markdown list as list 1`] = `
-<ul>
-  <li>
+exports[`Description > When in inline mode > renders strong text as <strong> 1`] = `
+<DocumentFragment>
+  <strong>
     abc
-  </li>
-  <li>
-    def
-  </li>
-</ul>
+  </strong>
+</DocumentFragment>
 `;
 
-exports[`Description When in normal mode renders paragraphs 1`] = `
-<div>
-  <p>
-    Paragraph 1
-  </p>
-  <p>
-    Paragraph 2
-  </p>
-</div>
+exports[`Description > When in normal mode > renders empty string 1`] = `
+<DocumentFragment>
+  <span />
+</DocumentFragment>
 `;
 
-exports[`Description When in normal mode renders pure text 1`] = `
-<span>
-  this is a line of pure text
-</span>
+exports[`Description > When in normal mode > renders markdown link 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f1fk43bf"
+    href="https://www.google.com"
+    rel="noopener"
+    target="_blank"
+  >
+    google
+  </a>
+</DocumentFragment>
 `;
 
-exports[`Description When in normal mode renders raw link 1`] = `
-<a
-  class="link"
-  href="https://www.google.com"
-  rel="noopener"
-  target="_blank"
->
-  https://www.google.com
-</a>
+exports[`Description > When in normal mode > renders markdown list as list 1`] = `
+<DocumentFragment>
+  <ul>
+    <li>
+      abc
+    </li>
+    <li>
+      def
+    </li>
+  </ul>
+</DocumentFragment>
+`;
+
+exports[`Description > When in normal mode > renders paragraphs 1`] = `
+<DocumentFragment>
+  <div>
+    <p>
+      Paragraph 1
+    </p>
+    <p>
+      Paragraph 2
+    </p>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Description > When in normal mode > renders pure text 1`] = `
+<DocumentFragment>
+  <span>
+    this is a line of pure text
+  </span>
+</DocumentFragment>
+`;
+
+exports[`Description > When in normal mode > renders raw link 1`] = `
+<DocumentFragment>
+  <a
+    class="link_f1fk43bf"
+    href="https://www.google.com"
+    rel="noopener"
+    target="_blank"
+  >
+    https://www.google.com
+  </a>
+</DocumentFragment>
 `;

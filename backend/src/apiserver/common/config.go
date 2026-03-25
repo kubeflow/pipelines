@@ -34,8 +34,16 @@ const (
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
 	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
+	CaBundleConfigMapName                   string = "CABUNDLE_CONFIGMAP_NAME"
+	CaBundleKeyName                         string = "CABUNDLE_KEY_NAME"
 	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
 	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
+	MLPipelineServiceName                   string = "ML_PIPELINE_SERVICE_NAME"
+	MetadataServiceName                     string = "METADATA_SERVICE_NAME"
+	ClusterDomain                           string = "CLUSTER_DOMAIN"
+	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
+	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
+	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -112,6 +120,18 @@ func GetPodNamespace() string {
 	return GetStringConfigWithDefault(PodNamespace, DefaultPodNamespace)
 }
 
+func GetMLPipelineServiceName() string {
+	return GetStringConfigWithDefault(MLPipelineServiceName, DefaultMLPipelineServiceName)
+}
+
+func GetMetadataServiceName() string {
+	return GetStringConfigWithDefault(MetadataServiceName, DefaultMetadataServiceName)
+}
+
+func GetClusterDomain() string {
+	return GetStringConfigWithDefault(ClusterDomain, DefaultClusterDomain)
+}
+
 func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
 	boolVal, err := strconv.ParseBool(value)
 	if err != nil {
@@ -144,6 +164,26 @@ func GetCaBundleSecretName() string {
 	return GetStringConfigWithDefault(CaBundleSecretName, "")
 }
 
+func GetCABundleKey() string {
+	return GetStringConfigWithDefault(CaBundleKeyName, "")
+}
+
+func GetCaBundleConfigMapName() string {
+	return GetStringConfigWithDefault(CaBundleConfigMapName, "")
+}
+
 func GetCompiledPipelineSpecPatch() string {
 	return GetStringConfigWithDefault(CompiledPipelineSpecPatch, "{}")
+}
+
+func GetDefaultSecurityContextRunAsUser() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextRunAsUser, "")
+}
+
+func GetDefaultSecurityContextRunAsGroup() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextRunAsGroup, "")
+}
+
+func GetDefaultSecurityContextRunAsNonRoot() string {
+	return GetStringConfigWithDefault(DefaultSecurityContextRunAsNonRoot, "")
 }

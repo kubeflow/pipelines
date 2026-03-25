@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
-import produce from 'immer';
+import immerProduce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
@@ -30,11 +29,12 @@ import { Description } from 'src/components/Description';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
+import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import { formatDateString } from 'src/lib/Utils';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
+import { Tooltip } from '@mui/material';
 
 interface DisplayPipeline extends V2beta1Pipeline {
   expandState?: ExpandState;
@@ -98,7 +98,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
-    const rows: Row[] = this.state.displayPipelines.map(p => {
+    const rows: Row[] = this.state.displayPipelines.map((p) => {
       return {
         expandState: p.expandState,
         id: p.pipeline_id!,
@@ -136,7 +136,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayPipelines = produce(this.state.displayPipelines, draft => {
+    const displayPipelines = immerProduce(this.state.displayPipelines, (draft) => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
@@ -174,10 +174,11 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         request.filter,
       );
       displayPipelines = response.pipelines || [];
-      displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of pipelines.', err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError('Error: failed to retrieve list of pipelines.', error);
     }
 
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
@@ -191,7 +192,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     return (
       <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
         <Link
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           className={commonCss.link}
           to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
         >
@@ -205,7 +206,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   // (1) changes of selected pipeline ids, and will be stored in "this.state.selectedIds" or
   // (2) changes of selected pipeline version ids, and will be stored in "selectedVersionIds" with key "pipelineId"
   private _selectionChanged(pipelineId: string | undefined, selectedIds: string[]): void {
-    if (!!pipelineId) {
+    if (pipelineId) {
       // Update selected pipeline version ids.
       this.setStateSafe({
         selectedVersionIds: {

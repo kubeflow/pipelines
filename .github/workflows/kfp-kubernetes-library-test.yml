@@ -23,12 +23,13 @@ jobs:
         ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: ${{matrix.python.version}}
+          cache: 'pip'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps

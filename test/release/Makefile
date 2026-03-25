@@ -13,17 +13,25 @@
 # limitations under the License.
 
 REMOTE=ghcr.io/kubeflow/kfp-release:master
+NODE_VERSION=$(shell tr -d 'v' < ../../frontend/.nvmrc)
 
 CONTAINER_ENGINE ?= docker
 
 .PHONY: release
 release:
-	# Usage: TAG=<TAG> BRANCH=<BRANCH> make release
+	# Usage: TAG=<TAG> BRANCH=<BRANCH> FORK_REMOTE=<FORK_REMOTE> make release
 	# Example, release in release branch:
-	#   TAG=1.4.0 BRANCH=release-1.4 make release
+	#   TAG=1.4.0 BRANCH=release-1.4 FORK_REMOTE=git@github.com:myuser/pipelines.git make release
 	# Example, release in master branch:
-	#   TAG=2.0.0-rc.1 BRANCH=master make release
-	./release.sh $(TAG) $(BRANCH)
+	#   TAG=2.0.0-rc.1 BRANCH=master FORK_REMOTE=git@github.com:myuser/pipelines.git make release
+	# FORK_REMOTE must NOT point to kubeflow/pipelines org
+	@if [ -z "$(FORK_REMOTE)" ]; then \
+		echo "ERROR: FORK_REMOTE is required"; \
+		echo "Usage: TAG=<TAG> BRANCH=<BRANCH> FORK_REMOTE=<FORK_REMOTE> make release"; \
+		echo "Example: TAG=1.4.0 BRANCH=release-1.4 FORK_REMOTE=git@github.com:myuser/pipelines.git make release"; \
+		exit 1; \
+	fi
+	./release.sh $(TAG) $(BRANCH) $(FORK_REMOTE)
 
 .PHONY: release-in-place
 release-in-place:
@@ -35,7 +43,7 @@ release-in-place:
 # Build a release image locally using docker.
 .PHONY: build
 build:
-	${CONTAINER_ENGINE} build -t $(REMOTE) - < Dockerfile.release
+	${CONTAINER_ENGINE} build --build-arg NODE_VERSION=$(NODE_VERSION) -t $(REMOTE) - < Dockerfile.release
 
 # Push locally built release image to remote container registry,
 # so that others can use the new image next time.

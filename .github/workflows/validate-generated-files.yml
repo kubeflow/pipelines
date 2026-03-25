@@ -29,17 +29,18 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: 3.9
+          cache: 'pip'
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
@@ -87,10 +88,10 @@ jobs:
   validate-backwards-compabitiblity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 

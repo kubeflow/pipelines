@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-import { act, queryByText, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import * as React from 'react';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
@@ -26,23 +25,22 @@ import { Api } from 'src/mlmd/Api';
 import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import {
   Context,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
   GetExecutionsByContextResponse,
 } from 'src/third_party/mlmd';
-import {
-  GetArtifactsByContextResponse,
-  GetEventsByExecutionIDsResponse,
-} from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import * as metadataStoreServicePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
 import { RunDetailsV2 } from './RunDetailsV2';
-import fs from 'fs';
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
+vi.mock('src/components/Editor', () => ({
+  default: ({ value }: { value?: string }) => <pre data-testid='Editor'>{value}</pre>,
+}));
 
 testBestPractices();
 describe('RunDetailsV2', () => {
@@ -101,8 +99,26 @@ describe('RunDetailsV2', () => {
   beforeEach(() => {
     mockResizeObserver();
 
-    updateBannerSpy = jest.fn();
-    updateToolbarSpy = jest.fn();
+    updateBannerSpy = vi.fn();
+    updateToolbarSpy = vi.fn();
+
+    const contextResponse = new GetContextByTypeAndNameResponse();
+    contextResponse.setContext(new Context());
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockResolvedValue(
+      contextResponse,
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
+      new GetExecutionsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
+      new metadataStoreServicePb.GetArtifactsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes').mockResolvedValue(
+      new metadataStoreServicePb.GetArtifactTypesResponse(),
+    );
   });
 
   it('Render detail page with reactflow', async () => {
@@ -118,10 +134,33 @@ describe('RunDetailsV2', () => {
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
   });
 
+  it('keeps runtime flow elements stable across same-props rerenders', async () => {
+    const updateFlowElementsStateSpy = vi.spyOn(DynamicFlow, 'updateFlowElementsState');
+    const props = generateProps();
+
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props}></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(updateFlowElementsStateSpy).toHaveBeenCalled());
+    const callCountAfterLoad = updateFlowElementsStateSpy.mock.calls.length;
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props}></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await act(async () => {});
+    expect(updateFlowElementsStateSpy).toHaveBeenCalledTimes(callCountAfterLoad);
+  });
+
   it('Shows error banner when disconnected from MLMD', async () => {
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
-      .mockRejectedValue(new Error('Not connected to MLMD'));
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
+      new Error('Not connected to MLMD'),
+    );
 
     render(
       <CommonTestWrapper>
@@ -146,9 +185,8 @@ describe('RunDetailsV2', () => {
   });
 
   it('Shows no banner when connected from MLMD', async () => {
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
-      .mockImplementation((request: GetContextByTypeAndNameRequest) => {
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
+      (request: GetContextByTypeAndNameRequest) => {
         const response = new GetContextByTypeAndNameResponse();
         if (
           request.getTypeName() === KFP_V2_RUN_CONTEXT_TYPE &&
@@ -157,16 +195,17 @@ describe('RunDetailsV2', () => {
           response.setContext(new Context());
         }
         return response;
-      });
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext')
-      .mockResolvedValue(new GetExecutionsByContextResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext')
-      .mockResolvedValue(new GetArtifactsByContextResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+      },
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
+      new GetExecutionsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
+      new metadataStoreServicePb.GetArtifactsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
+    );
 
     render(
       <CommonTestWrapper>
@@ -182,25 +221,27 @@ describe('RunDetailsV2', () => {
   });
 
   it("shows run title and experiments' links", async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
-    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+    const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
-      .mockImplementation((request: GetContextByTypeAndNameRequest) => {
-        return new GetContextByTypeAndNameResponse();
-      });
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext')
-      .mockResolvedValue(new GetExecutionsByContextResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext')
-      .mockResolvedValue(new GetArtifactsByContextResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
+      (request: GetContextByTypeAndNameRequest) => {
+        const response = new GetContextByTypeAndNameResponse();
+        response.setContext(new Context());
+        return response;
+      },
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
+      new GetExecutionsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
+      new metadataStoreServicePb.GetArtifactsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
+    );
 
     await act(async () => {
       render(
@@ -237,23 +278,27 @@ describe('RunDetailsV2', () => {
   });
 
   it('shows top bar buttons', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+    const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
-    const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+    const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
-      .mockResolvedValue(new GetContextByTypeAndNameResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext')
-      .mockResolvedValue(new GetExecutionsByContextResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext')
-      .mockResolvedValue(new GetArtifactsByContextResponse());
-    jest
-      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
-      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
+      () => {
+        const response = new GetContextByTypeAndNameResponse();
+        response.setContext(new Context());
+        return response;
+      },
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
+      new GetExecutionsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
+      new metadataStoreServicePb.GetArtifactsByContextResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
+    );
 
     await act(async () => {
       render(
@@ -293,7 +338,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText('Run details');
       screen.getByText('Run ID');
@@ -317,7 +362,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText('test-run-id'); // 'Run ID'
       screen.getByText('test run'); // 'Workflow name'
@@ -349,7 +394,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // create time and duration are empty.
     });
@@ -375,12 +420,12 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
     });
 
-    it('shows run parameters', () => {
+    it('shows run parameters', async () => {
       render(
         <CommonTestWrapper>
           <RunDetailsV2
@@ -391,7 +436,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByText('Detail'));
 
       screen.getByText('param1'); // 'Parameter name'
       screen.getByText('value1'); // 'Parameter value'
@@ -408,14 +453,14 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Pipeline Spec'));
-      screen.findByTestId('spec-ir');
+      await userEvent.click(screen.getByText('Pipeline Spec'));
+      await screen.findByTestId('spec-ir');
     });
 
     it('shows Execution Sidepanel', async () => {
-      const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+      const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
       getRunSpy.mockResolvedValue(TEST_RUN);
-      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+      const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
       getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
       render(
@@ -433,20 +478,22 @@ describe('RunDetailsV2', () => {
       expect(screen.queryByText('Task Details')).toBeNull();
 
       // Select execution to open side panel.
-      userEvent.click(screen.getByText('preprocess'));
+      // Use fireEvent: user-event v14 creates events with non-configurable view, which breaks
+      // d3-drag (@xyflow/react) when event.view is null in jsdom.
+      fireEvent.click(screen.getByText('preprocess'));
       screen.getByText('Input/Output');
       screen.getByText('Task Details');
 
       // Close side panel.
-      userEvent.click(screen.getByLabelText('close'));
+      fireEvent.click(screen.getByLabelText('close'));
       expect(screen.queryByText('Input/Output')).toBeNull();
       expect(screen.queryByText('Task Details')).toBeNull();
     });
 
     it('shows Artifact Sidepanel', async () => {
-      const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
+      const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
       getRunSpy.mockResolvedValue(TEST_RUN);
-      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+      const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
       getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
 
       render(
@@ -464,12 +511,14 @@ describe('RunDetailsV2', () => {
       expect(screen.queryByText('Visualization')).toBeNull();
 
       // Select artifact to open side panel.
-      userEvent.click(screen.getByText('model'));
+      // Use fireEvent: user-event v14 creates events with non-configurable view, which breaks
+      // d3-drag (@xyflow/react) when event.view is null in jsdom.
+      fireEvent.click(screen.getByText('model'));
       screen.getByText('Artifact Info');
       screen.getByText('Visualization');
 
       // Close side panel.
-      userEvent.click(screen.getByLabelText('close'));
+      fireEvent.click(screen.getByLabelText('close'));
       expect(screen.queryByText('Artifact Info')).toBeNull();
       expect(screen.queryByText('Visualization')).toBeNull();
     });

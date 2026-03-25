@@ -16,11 +16,10 @@
 
 import * as React from 'react';
 import { classes } from 'typestyle';
-import Radio from '@material-ui/core/Radio';
-import Tooltip from '@material-ui/core/Tooltip';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
 import { commonCss, padding } from '../Css';
 import { PipelineTabsHeaders } from '../pages/PrivateAndSharedPipelines';
+
+import { Radio, Tooltip, FormControlLabel } from '@mui/material';
 
 export interface PrivateSharedSelectorProps {
   onChange: (isPrivate: boolean) => void;
@@ -34,10 +33,10 @@ export enum PipelineButtonTooltips {
 const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (props): JSX.Element | null => {
   const [namespacedPipeline, setNamespacedPipeline] = React.useState(true);
 
-  React.useEffect(() => {
-    props.onChange(namespacedPipeline);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespacedPipeline]);
+  const updateSelection = (isPrivate: boolean) => {
+    setNamespacedPipeline(isPrivate);
+    props.onChange(isPrivate);
+  };
 
   return (
     <React.Fragment>
@@ -49,9 +48,7 @@ const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (props): JSX
             label={PipelineTabsHeaders.PRIVATE}
             checked={namespacedPipeline === true}
             control={<Radio color='primary' />}
-            onChange={() => {
-              setNamespacedPipeline(true);
-            }}
+            onChange={() => updateSelection(true)}
           />
         </Tooltip>
         <Tooltip title={PipelineButtonTooltips.SHARED} placement='top-start'>
@@ -60,9 +57,7 @@ const PrivateSharedSelector: React.FC<PrivateSharedSelectorProps> = (props): JSX
             label={PipelineTabsHeaders.SHARED}
             checked={namespacedPipeline === false}
             control={<Radio color='primary' />}
-            onChange={() => {
-              setNamespacedPipeline(false);
-            }}
+            onChange={() => updateSelection(false)}
           />
         </Tooltip>
       </div>

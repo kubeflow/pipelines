@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
@@ -21,18 +22,18 @@ import {
   getObjectStream,
   MinioClientOptionsWithOptionalSecrets,
   Credentials,
-} from './minio-helper';
-const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
+} from './minio-helper.js';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
-jest.mock('minio');
-jest.mock('@aws-sdk/credential-providers');
+vi.mock('minio');
+vi.mock('@aws-sdk/credential-providers');
 
 describe('minio-helper', () => {
-  const MockedMinioClient: jest.Mock = MinioClient as any;
-  const MockedAuthorizeFn: jest.Mock = jest.fn(x => undefined);
+  const MockedMinioClient: Mock = MinioClient as any;
+  const MockedAuthorizeFn: Mock = vi.fn((x) => undefined);
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('createMinioClient', () => {
@@ -97,12 +98,13 @@ describe('minio-helper', () => {
     });
 
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
-      (fromNodeProviderChain as jest.Mock).mockImplementation(() => () =>
-        Promise.resolve({
-          accessKeyId: 'AccessKeyId',
-          secretAccessKey: 'SecretAccessKey',
-          sessionToken: 'SessionToken',
-        }),
+      (fromNodeProviderChain as Mock).mockImplementation(
+        () => () =>
+          Promise.resolve({
+            accessKeyId: 'AccessKeyId',
+            secretAccessKey: 'SecretAccessKey',
+            sessionToken: 'SessionToken',
+          }),
       );
       const client = await createMinioClient({ endPoint: 's3.amazonaws.com' }, 's3');
       expect(client).toBeInstanceOf(MinioClient);
@@ -144,23 +146,27 @@ describe('minio-helper', () => {
     const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
     const tarBuffer = zlib.gunzipSync(tarGzBuffer);
 
-    it('return the content for the 1st file inside a tarball', done => {
+    it('return the content for the 1st file inside a tarball', async () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end(tarBuffer);
-      stream.on('end', () => {
-        expect(maybeTar.read().toString()).toBe('hello world\n');
-        done();
+      await new Promise<void>((resolve) => {
+        stream.on('end', () => {
+          expect(maybeTar.read().toString()).toBe('hello world\n');
+          resolve();
+        });
       });
     });
 
-    it('return the content normal if is not a tarball', done => {
+    it('return the content normal if is not a tarball', async () => {
       const stream = new PassThrough();
       const maybeTar = stream.pipe(maybeTarball());
       stream.end('hello world');
-      stream.on('end', () => {
-        expect(maybeTar.read().toString()).toBe('hello world');
-        done();
+      await new Promise<void>((resolve) => {
+        stream.on('end', () => {
+          expect(maybeTar.read().toString()).toBe('hello world');
+          resolve();
+        });
       });
     });
   });
@@ -172,10 +178,10 @@ describe('minio-helper', () => {
     const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
     const tarBuffer = zlib.gunzipSync(tarGzBuffer);
     let minioClient: MinioClient;
-    let mockedMinioGetObject: jest.Mock;
+    let mockedMinioGetObject: Mock;
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       minioClient = new MinioClient({
         endPoint: 's3.amazonaws.com',
         accessKey: '',
@@ -192,12 +198,7 @@ describe('minio-helper', () => {
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
       stream.on('finish', () => {
-        expect(
-          stream
-            .read()
-            .toString()
-            .trim(),
-        ).toBe('hello world');
+        expect(stream.read().toString().trim()).toBe('hello world');
       });
     });
 
@@ -209,12 +210,7 @@ describe('minio-helper', () => {
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
       stream.on('finish', () => {
-        expect(
-          stream
-            .read()
-            .toString()
-            .trim(),
-        ).toBe('hello world');
+        expect(stream.read().toString().trim()).toBe('hello world');
       });
     });
 
@@ -226,12 +222,7 @@ describe('minio-helper', () => {
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
       stream.on('finish', () => {
-        expect(
-          stream
-            .read()
-            .toString()
-            .trim(),
-        ).toBe('hello world');
+        expect(stream.read().toString().trim()).toBe('hello world');
       });
     });
   });

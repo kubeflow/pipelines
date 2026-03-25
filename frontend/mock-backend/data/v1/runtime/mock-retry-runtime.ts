@@ -193,10 +193,9 @@ export default {
                   name: 'mlpipeline-minio-artifact',
                 },
                 bucket: 'mlpipeline',
-                endpoint: 'minio-service.kubeflow:9000',
+                endpoint: 'seaweedfs.kubeflow:9000',
                 insecure: true,
-                key:
-                  'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-1189960944/main.log',
+                key: 'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-1189960944/main.log',
                 secretKeySecret: {
                   key: 'secretkey',
                   name: 'mlpipeline-minio-artifact',
@@ -228,10 +227,9 @@ export default {
                   name: 'mlpipeline-minio-artifact',
                 },
                 bucket: 'mlpipeline',
-                endpoint: 'minio-service.kubeflow:9000',
+                endpoint: 'seaweedfs.kubeflow:9000',
                 insecure: true,
-                key:
-                  'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-310421839/main.log',
+                key: 'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-310421839/main.log',
                 secretKeySecret: {
                   key: 'secretkey',
                   name: 'mlpipeline-minio-artifact',
@@ -263,10 +261,9 @@ export default {
                   name: 'mlpipeline-minio-artifact',
                 },
                 bucket: 'mlpipeline',
-                endpoint: 'minio-service.kubeflow:9000',
+                endpoint: 'seaweedfs.kubeflow:9000',
                 insecure: true,
-                key:
-                  'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-310421839/main.log',
+                key: 'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-310421839/main.log',
                 secretKeySecret: {
                   key: 'secretkey',
                   name: 'mlpipeline-minio-artifact',
@@ -298,10 +295,9 @@ export default {
                   name: 'mlpipeline-minio-artifact',
                 },
                 bucket: 'mlpipeline',
-                endpoint: 'minio-service.kubeflow:9000',
+                endpoint: 'seaweedfs.kubeflow:9000',
                 insecure: true,
-                key:
-                  'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-3292940923/main.log',
+                key: 'artifacts/retry-random-failures-p9snt/retry-random-failures-p9snt-3292940923/main.log',
                 secretKeySecret: {
                   key: 'secretkey',
                   name: 'mlpipeline-minio-artifact',

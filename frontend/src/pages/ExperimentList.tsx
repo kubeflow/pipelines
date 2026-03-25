@@ -23,7 +23,7 @@ import CustomTable, {
   CustomRendererProps,
 } from 'src/components/CustomTable';
 import RunList from './RunList';
-import produce from 'immer';
+import immerProduce from 'immer';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -38,10 +38,10 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from 'src/Css';
-import { logger } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
-import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { Tooltip } from '@mui/material';
 
 interface DisplayExperiment extends V2beta1Experiment {
   last5Runs?: V2beta1Run[];
@@ -79,7 +79,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
           'run',
           () => this.state.selectedIds,
           false,
-          ids => this._selectionChanged(ids),
+          (ids) => this._selectionChanged(ids),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
@@ -108,7 +108,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       },
     ];
 
-    const rows: Row[] = this.state.displayExperiments.map(exp => {
+    const rows: Row[] = this.state.displayExperiments.map((exp) => {
       return {
         error: exp.error,
         expandState: exp.expandState,
@@ -150,10 +150,13 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value} enterDelay={300} placement='top-start'>
+      <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={e => e.stopPropagation()}
+          data-testid='experiment-name-link'
+          data-experiment-id={props.id}
+          data-experiment-name={props.value || ''}
+          onClick={(e) => e.stopPropagation()}
           to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
         >
           {props.value}
@@ -190,7 +193,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       filter.predicates = (filter.predicates || []).concat([
         {
           key: 'storage_state',
-          operation: V2beta1PredicateOperation.NOTEQUALS,
+          operation: V2beta1PredicateOperation.NOT_EQUALS,
           string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
         },
       ]);
@@ -203,16 +206,17 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         this.props.namespace || undefined,
       );
       displayExperiments = response.experiments || [];
-      displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
+      displayExperiments.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of experiments.', err);
+      const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      await this.showPageError('Error: failed to retrieve list of experiments.', error);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
     }
 
     // Fetch and set last 5 runs' statuses for each experiment
     await Promise.all(
-      displayExperiments.map(async experiment => {
+      displayExperiments.map(async (experiment) => {
         // TODO: should we aggregate errors here? What if they fail for different reasons?
         try {
           const listRunsResponse = await Apis.runServiceApiV2.listRuns(
@@ -226,7 +230,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
                 predicates: [
                   {
                     key: 'storage_state',
-                    operation: V2beta1PredicateOperation.NOTEQUALS,
+                    operation: V2beta1PredicateOperation.NOT_EQUALS,
                     string_value: V2beta1RunStorageState.ARCHIVED.toString(),
                   },
                 ],
@@ -258,7 +262,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 
   private _toggleRowExpand(rowIndex: number): void {
-    const displayExperiments = produce(this.state.displayExperiments, draft => {
+    const displayExperiments = immerProduce(this.state.displayExperiments, (draft) => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED
           ? ExpandState.EXPANDED
@@ -287,7 +291,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 }
 
-const EnhancedExperimentList: React.FC<PageProps> = props => {
+const EnhancedExperimentList: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
   return <ExperimentList key={namespace} {...props} namespace={namespace} />;
 };

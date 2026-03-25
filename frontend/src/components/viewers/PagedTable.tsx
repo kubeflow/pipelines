@@ -15,17 +15,20 @@
  */
 
 import * as React from 'react';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableHead from '@material-ui/core/TableHead';
-import TablePagination from '@material-ui/core/TablePagination';
-import TableRow from '@material-ui/core/TableRow';
-import TableSortLabel from '@material-ui/core/TableSortLabel';
-import Tooltip from '@material-ui/core/Tooltip';
 import Viewer, { ViewerConfig, PlotType } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TableSortLabel,
+  Tooltip,
+} from '@mui/material';
 
 enum SortOrder {
   ASC = 'asc',
@@ -152,8 +155,8 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
           count={data.length}
           rowsPerPage={rowsPerPage}
           page={page}
-          onChangePage={this._handleChangePage}
-          onChangeRowsPerPage={this._handleChangeRowsPerPage}
+          onPageChange={this._handleChangePage}
+          onRowsPerPageChange={this._handleChangeRowsPerPage}
         />
       </div>
     );
@@ -170,12 +173,12 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     this.setState({ order, orderBy });
   };
 
-  private _handleChangePage = (event: any, page: number) => {
+  private _handleChangePage = (_event: any, page: number) => {
     this.setState({ page });
   };
 
-  private _handleChangeRowsPerPage = (event: any) => {
-    this.setState({ rowsPerPage: event.target.value });
+  private _handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ rowsPerPage: Number(event.target.value), page: 0 });
   };
 
   private _isSmall(): boolean {

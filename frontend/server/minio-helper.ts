@@ -1,4 +1,3 @@
-import { Stream } from 'stream';
 // Copyright 2019-2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +17,11 @@ import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
-import { isAWSS3Endpoint } from './aws-helper';
-import { S3ProviderInfo } from './handlers/artifacts';
-import { getK8sSecret } from './k8s-helper';
-import { parseJSONString } from './utils';
-const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
+import { isAWSS3Endpoint } from './aws-helper.js';
+import { S3ProviderInfo } from './handlers/artifacts.js';
+import { getK8sSecret } from './k8s-helper.js';
+import { parseJSONString } from './utils.js';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
   bucket: string;
@@ -268,7 +267,7 @@ function extractFirstTarRecordAsStream() {
       extract.write(chunk, callback);
     },
   });
-  extract.once('entry', function(_header, stream, next) {
+  extract.once('entry', function (_header, stream, next) {
     stream.on('data', (buffer: any) => transformStream.push(buffer));
     stream.on('end', () => {
       transformStream.emit('end');
@@ -276,7 +275,7 @@ function extractFirstTarRecordAsStream() {
     });
     stream.resume(); // just auto drain the stream
   });
-  extract.on('error', error => transformStream.emit('error', error));
+  extract.on('error', (error) => transformStream.emit('error', error));
   return transformStream;
 }
 

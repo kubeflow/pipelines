@@ -15,16 +15,11 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { StaticNodeDetailsV2 } from './StaticNodeDetailsV2';
-import fs from 'fs';
-
-const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
-const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
-const V2_SUBDAG_PIPELINE_PATH = 'src/data/test/pipeline_with_loops_and_conditions.yaml';
-const v2YamlSubDagTemplateString = fs.readFileSync(V2_SUBDAG_PIPELINE_PATH, 'utf8');
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import v2YamlSubDagTemplateString from 'src/data/test/pipeline_with_loops_and_conditions.yaml?raw';
 
 testBestPractices();
 
@@ -35,7 +30,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={''}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'train',
@@ -55,7 +50,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'preprocess',
@@ -107,7 +102,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'train',
@@ -147,7 +142,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlSubDagTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'DAG: condition-1',
@@ -170,7 +165,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlSubDagTemplateString}
           layers={['root', 'condition-1']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'DAG: for-loop-2',
@@ -193,7 +188,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'system.Model: model',

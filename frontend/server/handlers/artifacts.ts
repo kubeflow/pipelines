@@ -11,28 +11,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import fetch from 'node-fetch';
-import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs';
+import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs.js';
 import { Client as MinioClient } from 'minio';
 import {
   PreviewStream,
   findFileOnPodVolume,
   parseJSONString,
   isAllowedResourceName,
-} from '../utils';
-import { createMinioClient, getObjectStream } from '../minio-helper';
-import * as serverInfo from '../helpers/server-info';
+} from '../utils.js';
+import { createMinioClient, getObjectStream } from '../minio-helper.js';
+import * as serverInfo from '../helpers/server-info.js';
 import { Handler, Request, Response } from 'express';
-import { Storage } from '@google-cloud/storage';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
+import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
+import type { GCSClient } from '../gcs-helper.js';
 
 import * as fs from 'fs';
-import { isAllowedDomain } from './domain-checker';
-import { getK8sSecret } from '../k8s-helper';
-import { StorageOptions } from '@google-cloud/storage/build/src/storage';
-import { CredentialBody } from 'google-auth-library/build/src/auth/credentials';
+import { isAllowedDomain } from './domain-checker.js';
+import { getK8sSecret } from '../k8s-helper.js';
+import { CredentialBody } from 'google-auth-library';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -122,6 +121,10 @@ export function getArtifactsHandler({
     }
     if (!key) {
       res.status(500).send('Storage key is missing from artifact request');
+      return;
+    }
+    if (key.length > 1024) {
+      res.status(500).send('Object key too long');
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
@@ -225,8 +228,14 @@ function getHttpArtifactsHandler(
       return;
     }
     const response = await fetch(url, { headers });
-    response.body
-      .on('error', err => res.status(500).send(`Unable to retrieve artifact: ${err}`))
+    if (!response.body) {
+      res.status(500).send('Unable to retrieve artifact: empty response body');
+      return;
+    }
+    const { Readable } = await import('stream');
+    const nodeStream = Readable.fromWeb(response.body as any);
+    nodeStream
+      .on('error', (err: Error) => res.status(500).send(`Unable to retrieve artifact: ${err}`))
       .pipe(new PreviewStream({ peek }))
       .pipe(res);
   };
@@ -240,7 +249,7 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
+        .on('error', (err) => res.status(500).send(`Failed to get object in bucket: ${err}`))
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
@@ -253,13 +262,12 @@ function getMinioArtifactHandler(
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,
   namespace: string,
-): Promise<StorageOptions> {
+): Promise<CredentialBody> {
   if (!providerInfo.Params.tokenKey || !providerInfo.Params.secretName) {
     throw new Error(
       'Provider info with fromEnv:false supplied with incomplete secret credential info.',
     );
   }
-  let configGCS: StorageOptions;
   try {
     const tokenString = await getK8sSecret(
       providerInfo.Params.secretName,
@@ -267,12 +275,27 @@ async function parseGCSProviderInfo(
       namespace,
     );
     const credentials = parseJSONString<CredentialBody>(tokenString);
-    configGCS = { credentials };
-    configGCS.scopes = 'https://www.googleapis.com/auth/devstorage.read_write';
-    return configGCS;
+    if (!credentials) {
+      throw new Error('Provider info token is not valid JSON.');
+    }
+    return credentials;
   } catch (err) {
     throw new Error('Failed to parse GCS Provider config. Error: ' + err);
   }
+}
+
+async function readGCSObjectText(
+  bucket: string,
+  objectName: string,
+  client: GCSClient,
+  credentials?: CredentialBody,
+): Promise<string> {
+  const stream = await downloadGCSObjectStream({ bucket, objectName, credentials, client });
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString();
 }
 
 function getGCSArtifactHandler(
@@ -284,14 +307,15 @@ function getGCSArtifactHandler(
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
-      let storageOptions: StorageOptions | undefined;
+      let credentials: CredentialBody | undefined;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
         if (providerInfo && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
             res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
+            return;
           } else {
-            storageOptions = await parseGCSProviderInfo(providerInfo, namespace);
+            credentials = await parseGCSProviderInfo(providerInfo, namespace);
           }
         }
       }
@@ -300,23 +324,22 @@ function getGCSArtifactHandler(
       // of the pattern until the first wildcard, then we create a regular
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
-      const storage = new Storage(storageOptions);
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const files = await storage.bucket(bucket).getFiles({ prefix });
-      const matchingFiles = files[0].filter(f => {
+      const client = await getGCSClient(credentials);
+      const matchingFiles = (
+        await listGCSObjectNames({
+          bucket,
+          client,
+          credentials,
+          prefix,
+        })
+      ).filter((name) => {
         // Escape regex characters
         const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
         // Build a RegExp object that only recognizes asterisks ('*'), and
         // escapes everything else.
-        const regex = new RegExp(
-          '^' +
-            key
-              .split(/\*+/)
-              .map(escapeRegexChars)
-              .join('.*') +
-            '$',
-        );
-        return regex.test(f.name);
+        const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
+        return regex.test(name);
       });
 
       if (!matchingFiles.length) {
@@ -324,36 +347,25 @@ function getGCSArtifactHandler(
         res.send();
         return;
       }
-      console.log(
-        `Found ${matchingFiles.length} matching files: `,
-        matchingFiles.map(file => file.name).join(','),
-      );
+      console.log(`Found ${matchingFiles.length} matching files: `, matchingFiles.join(','));
       let contents = '';
       // TODO: support peek for concatenated matching files
       if (peek) {
-        matchingFiles[0]
-          .createReadStream()
-          .pipe(new PreviewStream({ peek }))
-          .pipe(res);
+        const stream = await downloadGCSObjectStream({
+          bucket,
+          client,
+          credentials,
+          objectName: matchingFiles[0],
+        });
+        stream.pipe(new PreviewStream({ peek })).pipe(res);
         return;
       }
 
       // if not peeking, iterate and append all the files
-      matchingFiles.forEach((f, i) => {
-        const buffer: Buffer[] = [];
-        f.createReadStream()
-          .on('data', data => buffer.push(Buffer.from(data)))
-          .on('end', () => {
-            contents +=
-              Buffer.concat(buffer)
-                .toString()
-                .trim() + '\n';
-            if (i === matchingFiles.length - 1) {
-              res.send(contents);
-            }
-          })
-          .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
-      });
+      for (const fileName of matchingFiles) {
+        contents += (await readGCSObjectText(bucket, fileName, client, credentials)).trim() + '\n';
+      }
+      res.send(contents);
     } catch (err) {
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
     }
@@ -397,9 +409,7 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         return;
       }
 
-      fs.createReadStream(filePath)
-        .pipe(new PreviewStream({ peek }))
-        .pipe(res);
+      fs.createReadStream(filePath).pipe(new PreviewStream({ peek })).pipe(res);
     } catch (err) {
       console.log(`Failed to open volume: ${err}`);
       res.status(500).send(`Failed to open volume.`);
@@ -444,7 +454,7 @@ export function getArtifactsProxyHandler({
   namespacedServiceGetter: NamespacedServiceGetter;
 }): Handler {
   if (!enabled) {
-    return (req, res, next) => next();
+    return (_req, _res, next) => next();
   }
   return createProxyMiddleware(
     (_pathname, req) => {
@@ -453,15 +463,15 @@ export function getArtifactsProxyHandler({
     },
     {
       changeOrigin: true,
-      onProxyReq: proxyReq => {
+      onProxyReq: (proxyReq) => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
-      pathRewrite: (pathStr, req) => {
+      pathRewrite: (pathStr, _req) => {
         const url = new URL(pathStr || '', DUMMY_BASE_PATH);
         url.searchParams.delete(QUERIES.NAMESPACE);
         return url.pathname + url.search;
       },
-      router: req => {
+      router: (req) => {
         const namespace = getNamespaceFromUrl(req.url || '');
         if (!namespace) {
           console.log(`namespace query param expected in ${req.url}.`);

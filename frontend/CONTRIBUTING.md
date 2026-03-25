@@ -11,15 +11,15 @@ are available at their corresponding GitHub repositories.
 ### fnm
 
 ```bash
-fnm install 22.19.0
-fnm use 22.19.0
+fnm install "$(cat .nvmrc)"
+fnm use "$(cat .nvmrc)"
 ```
 
 ### nvm
 
 ```bash
-nvm install 22.19.0
-nvm use 22.19.0
+nvm install "$(cat .nvmrc)"
+nvm use "$(cat .nvmrc)"
 ```
 
 ## Manage dev environment with npm
@@ -62,13 +62,13 @@ You can learn more about npm in https://docs.npmjs.com/about-npm/.
 
 ## Start frontend development server
 
-You can then do `npm start` to run a webpack dev server at port 3000 that
+You can then do `npm start` to run a Vite dev server at port 3000 that
 watches the source files. It also redirects api requests to localhost:3001. For
 example, requesting the pipelines page sends a fetch request to
 http://localhost:3000/apis/v1beta1/pipelines, which is proxied by the
 webserver to http://localhost:3001/apis/v1beta1/pipelines,
-which should return the list of pipelines. To override the port used by webpack,
-you can set the `PORT` environment variable.
+which should return the list of pipelines. To override the port, run
+`npm run start -- --port 3002` or update `frontend/vite.config.mts`.
 
 Follow the next section to start an API server (mock or proxy) to let localhost:3001
 respond to API requests.
@@ -96,7 +96,7 @@ deployment running on a remote or local Kubernetes cluster. This dramatically
 improves iteration time, especially since the docker build can take 20+ minutes.
 
 KFP can be deployed in single-user or multi-user mode. Since there's a delta in
-logic between between the two modes, automated tests and manual validation
+logic between the two modes, automated tests and manual validation
 against a single-user cluster can still fail when deployed to a multi-user
 cluster.
 
@@ -118,19 +118,19 @@ make kind-cluster-agnostic
 
 #### Multi-user
 
-1. Install Kubernetes and deploy KFP to it on your your local machine by
+1. Install Kubernetes and deploy KFP to it on your local machine by
    following the [multi-user Kubeflow installation instructions](https://github.com/kubeflow/manifests?tab=readme-ov-file#installation).
 2. Run `cd frontend`.
 3. Run the following code block.
 
     ```bash
-    export REACT_APP_NAMESPACE=kubeflow-user-example-com
+    export VITE_NAMESPACE=kubeflow-user-example-com
     npm run build
     ```
 
    If you're targeting the cluster installed in step 1, the target namespace
    defaults to `kubeflow-user-example-com`. If you're targeting a different
-   cluster / namespace, make sure to update the `REACT_APP_NAMESPACE`
+   cluster / namespace, make sure to update the `VITE_NAMESPACE`
    environment variable.
 4. Install
    [mod-header](https://chromewebstore.google.com/detail/modheader-modify-http-hea/idgpnmonknjnojddfkpgkljpfnnfcklj?hl=en)
@@ -148,7 +148,7 @@ make kind-cluster-agnostic
     you'll need to run the following first:
 
     ```bash
-    unset REACT_APP_NAMESPACE
+    unset VITE_NAMESPACE
     npm run build
     ```
 
@@ -158,12 +158,18 @@ There are a few types of tests during pre-submit:
 
 * formatting, refer to [Code Style Section](#code-style)
 * linting, you can also run locally with `npm run lint`
-* client UI unit tests, you can run locally with `npm test`
-* UI node server unit tests, you can run locally with `cd server && npm test`
+  (`npm run lint:ui` and `npm run lint:server` are available for narrower checks)
+* TypeScript typecheck (no emit), run locally with `npm run typecheck`
+* client UI unit tests (Vitest), you can run locally with `npm run test:ui`
+  (uncapped workers) or `npm run test:ui:coverage:loop` for stability loops
+  (coverage + `--maxWorkers 4`). `npm test` is an alias for `vitest run`.
+* UI node server unit tests (Jest), you can run locally with
+  `npm run test:server:coverage` or `cd server && npm test -- --coverage`
 
 There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
-snapshot tests are failing, you can update them automatically with `npm test -u` and run all tests. Then commit
-the snapshot changes.
+snapshot tests are failing, you can update them automatically with `npm test -u` or
+`npm run test:ui -- -u` (Vitest) and run all tests. For server test snapshots (if any),
+use `cd server && npm test -- -u`. Then commit the snapshot changes.
 
 ## Production Build
 
@@ -223,17 +229,21 @@ guide [here](https://prettier.io/docs/en/ignore.html). (Most likely you don't ne
 ## Api client code generation
 
 If you made any changes to protos (see backend/README), you'll need to
-regenerate the Typescript client library from swagger. We use
-swagger-codegen-cli@2.4.7, which you can get
-[here](https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/).
-Make sure to add the jar file to $PATH with the name swagger-codegen-cli.jar, then run `npm run apis` for
-v1 api or `npm run apis:v2beta1` for v2 api.
+regenerate the Typescript client library from swagger. The frontend uses
+OpenAPI Generator via Docker (`openapitools/openapi-generator-cli:v7.19.0`).
+Make sure Docker is running, then run `npm run apis` for v1 api,
+`npm run apis:v2beta1` for v2 api, or `npm run apis:all` to regenerate every
+frontend and server surface in one pass.
+
+You can also generate individual surfaces, for example:
+
+```bash
+npm run apis:run
+npm run apis:v2beta1:run
+# or invoke the generator directly from the repo root:
+node frontend/scripts/generate_openapi_typescript_fetch.js v1:run
 ```
-// add jar file to $PATH
-JAR_PATH=<folder-path-to-jar-file>
-export PATH="$JAR_PATH:$PATH"
-```
-After code generation, you should run `npm run format` to format the output and avoid creating a large PR.
+Code generation formats the generated files automatically.
 
 ## MLMD components
 
@@ -274,21 +284,12 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
   chmod +x /usr/local/bin/protoc-gen-grpc-web
   ```
 
-* Replace `metadata_store.proto` and `metadata_store_service.proto` proto files with target mlmd version by running
-
-  ```bash
-  npm run build:replace -- {mlmd_versions}
-  // example:
-  // npm run build:replace -- 1.0.0
-  ```
-
 * Generate new protos by running
 
   ```bash
   npm run build:protos
   ```
 
-The script run by `npm run build:replace` can be found at `scripts/replace_protos.js`.
 The script run by `npm run build:protos` can be found at `scripts/gen_grpc_web_protos.js`.
 
 The current TypeScript proto library was generated with `protoc-gen-grpc-web` version 1.2.1 with
@@ -315,7 +316,7 @@ Prerequisite: Add `protoc` ([download](https://github.com/protocolbuffers/protob
 Compile pipeline_spec.proto to Typed classes in TypeScript,
 so it can convert a payload stream to a PipelineSpec object during runtime.
 
-You can check out the result like `pipeline_spec_pb.js`, `pipeline_spec_pb.d.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
+You can check out the generated TypeScript outputs like `pipeline_spec.ts` and `google/rpc/status.ts` in [frontend/src/generated/pipeline_spec](/frontend/src/generated/pipeline_spec).
 
 The plugin tool for conversion we currently use is [ts-proto](https://github.com/stephenh/ts-proto). We previously use
 [protobuf.js](https://github.com/protobufjs/protobuf.js) but it doesn't natively support Protobuf.Value processing.

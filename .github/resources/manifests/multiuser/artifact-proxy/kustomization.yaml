@@ -21,8 +21,27 @@ images:
   - name: ghcr.io/kubeflow/kfp-metadata-writer
     newName: kind-registry:5000/metadata-writer
     newTag: latest
+  - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
+    newName: kind-registry:5000/viewer-crd-controller
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-visualization-server
+    newName: kind-registry:5000/visualization-server
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-cache-deployer
+    newName: kind-registry:5000/cache-deployer
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-cache-server
+    newName: kind-registry:5000/cache-server
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-metadata-envoy
+    newName: kind-registry:5000/metadata-envoy
+    newTag: latest
 
 patches:
+  - path: ../pipeline-crd-rbac.yaml
+    target:
+      kind: ClusterRole
+      name: ml-pipeline
   - path: ../../base/apiserver-env.yaml
     target:
       kind: Deployment
@@ -35,6 +54,10 @@ patches:
     target:
       kind: Deployment
       name: cache-server
+  - path: env.yaml
+    target:
+      kind: Deployment
+      name: kubeflow-pipelines-profile-controller
   - target:
       kind: ConfigMap
       name: pipeline-install-config

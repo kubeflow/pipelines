@@ -15,11 +15,9 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import fs from 'fs';
-import 'jest';
+import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
-import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
@@ -42,6 +40,7 @@ import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import NewRunV2 from 'src/pages/NewRunV2';
 import NewRunSwitcher from 'src/pages/NewRunSwitcher';
 import { PageProps } from 'src/Page';
+import { vi } from 'vitest';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
 const v2XGYamlTemplateString = fs.readFileSync(V2_XG_PIPELINESPEC_PATH, 'utf8');
@@ -82,6 +81,12 @@ describe('NewRunV2', () => {
     pipeline_version_id: OTHER_TEST_PIPELINE_VERSION_ID,
     pipeline_spec: v2LWPipelineSpec,
   };
+  const V1_PIPELINE_VERSION = {
+    id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+    name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
+    parameters: [],
+    resource_references: [{ key: { id: ORIGINAL_TEST_PIPELINE_ID, type: 'PIPELINE' } }],
+  } as any;
 
   const NEW_TEST_PIPELINE_ID = 'new-test-pipeline-id';
   const NEW_TEST_PIPELINE_NAME = 'new-test-pipeline';
@@ -232,12 +237,14 @@ describe('NewRunV2', () => {
     storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
 
-  const historyPushSpy = jest.fn();
-  const historyReplaceSpy = jest.fn();
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const updateToolbarSpy = jest.fn();
+  const historyPushSpy = vi.fn();
+  const historyReplaceSpy = vi.fn();
+  const updateBannerSpy = vi.fn();
+  const updateDialogSpy = vi.fn();
+  const updateSnackbarSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
+  let getPipelineV1Spy: ReturnType<typeof vi.spyOn>;
+  let getPipelineVersionTemplateSpy: ReturnType<typeof vi.spyOn>;
 
   // For creating new run with no pipeline is selected (enter from run list)
   function generatePropsNoPipelineDef(eid: string | null): PageProps {
@@ -293,17 +300,23 @@ describe('NewRunV2', () => {
     };
   }
 
-  beforeEach(() => {});
+  beforeEach(() => {
+    getPipelineV1Spy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+    getPipelineV1Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+    vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);
+    getPipelineVersionTemplateSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersionTemplate');
+    getPipelineVersionTemplateSpy.mockResolvedValue({ template: v2XGYamlTemplateString });
+  });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('Fulfill default run value (start a new run)', async () => {
-    const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+    const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
     getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+    const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
     render(
@@ -315,9 +328,9 @@ describe('NewRunV2', () => {
           existingRecurringRunId={null}
           existingRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={jest.fn()}
+          handlePipelineIdChange={vi.fn()}
           existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={jest.fn()}
+          handlePipelineVersionIdChange={vi.fn()}
           templateString={v2XGYamlTemplateString}
           chosenExperiment={undefined}
         />
@@ -332,9 +345,9 @@ describe('NewRunV2', () => {
   });
 
   it('Submit run ', async () => {
-    const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+    const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
     getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+    const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
     render(
@@ -346,9 +359,9 @@ describe('NewRunV2', () => {
           existingRecurringRunId={null}
           existingRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={jest.fn()}
+          handlePipelineIdChange={vi.fn()}
           existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={jest.fn()}
+          handlePipelineVersionIdChange={vi.fn()}
           templateString={v2XGYamlTemplateString}
           chosenExperiment={undefined}
         />
@@ -361,9 +374,9 @@ describe('NewRunV2', () => {
 
   it('allows updating the run name (start a new run)', async () => {
     // TODO(jlyaoyuli): create a new test file for NewRunSwitcher and move the following test to it.
-    const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+    const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
     getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+    const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
     render(
@@ -375,9 +388,9 @@ describe('NewRunV2', () => {
           existingRecurringRunId={null}
           existingRecurringRun={undefined}
           existingPipeline={ORIGINAL_TEST_PIPELINE}
-          handlePipelineIdChange={jest.fn()}
+          handlePipelineIdChange={vi.fn()}
           existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-          handlePipelineVersionIdChange={jest.fn()}
+          handlePipelineVersionIdChange={vi.fn()}
           templateString={v2XGYamlTemplateString}
           chosenExperiment={undefined}
         />
@@ -411,8 +424,8 @@ describe('NewRunV2', () => {
       'shows experiment name in new run v2 if experiment is selected' +
         '(enter from experiment details)',
       async () => {
-        const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
+        const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+        getExperimentSpy.mockResolvedValue(NEW_EXPERIMENT);
 
         render(
           <CommonTestWrapper>
@@ -424,18 +437,18 @@ describe('NewRunV2', () => {
           expect(getExperimentSpy).toHaveBeenCalled();
         });
 
-        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name)).toBeInTheDocument();
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
 
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
-      jest
-        .spyOn(features, 'isFeatureEnabled')
-        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
       render(
@@ -449,7 +462,7 @@ describe('NewRunV2', () => {
         expect(getPipelineVersionSpy).toHaveBeenCalled();
       });
 
-      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
     });
 
     it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
@@ -461,13 +474,12 @@ describe('NewRunV2', () => {
         pipeline_spec: { spec: { arguments: { parameters: [{ name: 'output' }] } } },
       };
 
-      jest
-        .spyOn(features, 'isFeatureEnabled')
-        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
-      const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-      const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_NOT_V2SPEC);
 
       render(
@@ -483,7 +495,10 @@ describe('NewRunV2', () => {
         expect(getPipelineVersionSpy).toHaveBeenCalled();
       });
 
-      expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+      await waitFor(() => {
+        // calling v1 getPipeline() -> direct to new run v1 page
+        expect(getPipelineV1Spy).toHaveBeenCalled();
+      });
     });
 
     it(
@@ -498,19 +513,14 @@ describe('NewRunV2', () => {
           pipeline_spec: undefined,
         };
 
-        jest
-          .spyOn(features, 'isFeatureEnabled')
-          .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
-        const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-        const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        const getV1PipelineVersionTemplateSpy = jest.spyOn(
-          Apis.pipelineServiceApi,
-          'getPipelineVersionTemplate',
+        vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
-        getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: 'test template' });
+        const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+        const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
+        getPipelineVersionTemplateSpy.mockResolvedValueOnce({ template: 'test template' });
 
         render(
           <CommonTestWrapper>
@@ -525,7 +535,9 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        await waitFor(() => {
+          expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        });
       },
     );
 
@@ -541,19 +553,16 @@ describe('NewRunV2', () => {
           pipeline_spec: undefined,
         };
 
-        jest
-          .spyOn(features, 'isFeatureEnabled')
-          .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
-        const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-        const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        const getV1PipelineVersionTemplateSpy = jest.spyOn(
-          Apis.pipelineServiceApi,
-          'getPipelineVersionTemplate',
+        vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
-        getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: v2XGYamlTemplateString });
+        const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+        const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
+        getPipelineVersionTemplateSpy.mockResolvedValueOnce({
+          template: v2XGYamlTemplateString,
+        });
 
         render(
           <CommonTestWrapper>
@@ -568,16 +577,16 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
   });
 
   describe('starting a new run', () => {
     it('disable start button if no run name (start a new run)', async () => {
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
       render(
@@ -589,9 +598,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -609,11 +618,11 @@ describe('NewRunV2', () => {
     });
 
     it('submit a new run without parameter (create new run)', async () => {
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
-      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
+      const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
 
       render(
@@ -625,9 +634,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -650,12 +659,12 @@ describe('NewRunV2', () => {
           }),
         );
       });
-    });
+    }, 20000);
   });
 
   describe('choose a pipeline', () => {
     it('sets the pipeline from the selector modal when confirmed', async () => {
-      const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
+      const listPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
       listPipelineSpy.mockImplementation(() => {
         const response: V2beta1ListPipelinesResponse = {
           pipelines: [ORIGINAL_TEST_PIPELINE, NEW_TEST_PIPELINE],
@@ -663,10 +672,10 @@ describe('NewRunV2', () => {
         };
         return response;
       });
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockImplementation(() => NEW_TEST_PIPELINE);
 
-      const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+      const listPipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
       listPipelineVersionsSpy.mockImplementation(() => {
         const response: V2beta1ListPipelinesResponse = {
           pipeline_versions: [NEW_TEST_PIPELINE_VERSION],
@@ -685,9 +694,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -728,7 +737,7 @@ describe('NewRunV2', () => {
 
   describe('choose a pipeline version', () => {
     it('sets the pipeline version from the selector modal when confirmed', async () => {
-      const listPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
+      const listPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
       listPipelineVersionSpy.mockImplementation(() => {
         const response: V2beta1ListPipelineVersionsResponse = {
           pipeline_versions: [ORIGINAL_TEST_PIPELINE_VERSION, OTHER_TEST_PIPELINE_VERSION],
@@ -736,7 +745,7 @@ describe('NewRunV2', () => {
         };
         return response;
       });
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockImplementation(() => OTHER_TEST_PIPELINE_VERSION);
 
       render(
@@ -749,9 +758,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -777,7 +786,7 @@ describe('NewRunV2', () => {
 
   describe('choose an experiment', () => {
     it('lists available experiments by namespace if available', async () => {
-      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
+      const listExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
       listExperimentSpy.mockImplementation(() => {
         const response: V2beta1ListPipelinesResponse = {
           experiments: [DEFAULT_EXPERIMENT, NEW_EXPERIMENT],
@@ -796,9 +805,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -818,7 +827,7 @@ describe('NewRunV2', () => {
               predicates: [
                 {
                   key: 'storage_state',
-                  operation: V2beta1PredicateOperation.NOTEQUALS,
+                  operation: V2beta1PredicateOperation.NOT_EQUALS,
                   string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                 },
               ],
@@ -830,7 +839,7 @@ describe('NewRunV2', () => {
     });
 
     it('sets the experiment from the selector modal when confirmed', async () => {
-      const listExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
+      const listExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
       listExperimentSpy.mockImplementation(() => {
         const response: V2beta1ListExperimentsResponse = {
           experiments: [DEFAULT_EXPERIMENT, NEW_EXPERIMENT],
@@ -838,7 +847,7 @@ describe('NewRunV2', () => {
         };
         return response;
       });
-      const getExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+      const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
       getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
 
       render(
@@ -850,9 +859,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -878,7 +887,7 @@ describe('NewRunV2', () => {
 
   describe('creating a recurring run', () => {
     it('submits a new recurring run', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
       render(
@@ -890,9 +899,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -930,10 +939,11 @@ describe('NewRunV2', () => {
           open: true,
         });
       });
-    });
+    }, 20000);
 
     it('enables to change the trigger parameters.', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
       render(
         <CommonTestWrapper>
@@ -944,9 +954,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -962,9 +972,14 @@ describe('NewRunV2', () => {
       const timeCountParam = screen.getByDisplayValue('1');
       fireEvent.change(timeCountParam, { target: { value: '5' } });
 
-      const timeUnitDropdown = screen.getAllByText('Hours')[0];
-      fireEvent.click(timeUnitDropdown);
-      const minutesItem = await screen.findByText('Minutes');
+      const timeUnitDropdown = screen
+        .getAllByRole('combobox')
+        .find((combobox) => combobox.textContent === 'Hours');
+      if (!timeUnitDropdown) {
+        throw new Error('Unable to find the interval unit dropdown');
+      }
+      fireEvent.mouseDown(timeUnitDropdown);
+      const minutesItem = await screen.findByRole('option', { name: 'Minutes' });
       fireEvent.click(minutesItem);
 
       const startButton = await screen.findByText('Start');
@@ -999,9 +1014,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -1015,7 +1030,9 @@ describe('NewRunV2', () => {
       fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
 
       const startButton = await screen.findByText('Start');
-      expect(startButton.closest('button')?.disabled).toEqual(true);
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(true);
+      });
     });
 
     it('disables the start button if max concurrent run is invalid input (negative integer)', async () => {
@@ -1028,9 +1045,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={DEFAULT_EXPERIMENT}
           />
@@ -1044,7 +1061,9 @@ describe('NewRunV2', () => {
       fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
 
       const startButton = await screen.findByText('Start');
-      expect(startButton.closest('button')?.disabled).toEqual(true);
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(true);
+      });
     });
   });
 
@@ -1059,9 +1078,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1071,7 +1090,7 @@ describe('NewRunV2', () => {
     });
 
     it('submits a run (clone UI-created run)', async () => {
-      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
+      const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RUN_DETAILS);
 
       render(
@@ -1083,9 +1102,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1119,7 +1138,7 @@ describe('NewRunV2', () => {
     });
 
     it('submits a run (clone SDK-created run)', async () => {
-      const createRunSpy = jest.spyOn(Apis.runServiceApiV2, 'createRun');
+      const createRunSpy = vi.spyOn(Apis.runServiceApiV2, 'createRun');
       createRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RUN_DETAILS);
 
       render(
@@ -1131,9 +1150,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1166,7 +1185,7 @@ describe('NewRunV2', () => {
 
   describe('clone an existing recurring run', () => {
     it('submits a recurring run with same runtimeConfig and trigger from clone UI-created recurring run', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
       render(
@@ -1178,9 +1197,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={TEST_RECURRING_RUN_ID}
             existingRecurringRun={API_UI_CREATED_NEW_RECURRING_RUN_DETAILS}
             existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1224,7 +1243,7 @@ describe('NewRunV2', () => {
     });
 
     it('submits a recurring run with same runtimeConfig and trigger from clone SDK-created recurring run', async () => {
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RECURRING_RUN_DETAILS);
 
       render(
@@ -1236,9 +1255,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={TEST_RECURRING_RUN_ID}
             existingRecurringRun={API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS}
             existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1279,6 +1298,64 @@ describe('NewRunV2', () => {
     });
   });
 
+  describe('error dialog uses the submitted run type', () => {
+    it('shows "Recurring run creation failed" even if user flips radio to one-off before rejection', async () => {
+      let rejectRecurringRun!: (reason: unknown) => void;
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockReturnValue(
+        new Promise((_resolve, reject) => {
+          rejectRecurringRun = reject;
+        }),
+      );
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const startButton = await screen.findByText('Start');
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+      fireEvent.click(startButton);
+
+      await waitFor(() => {
+        expect(createRecurringRunSpy).toHaveBeenCalled();
+      });
+
+      // Flip to one-off while the recurring run request is still in flight
+      const oneOffSwitcher = screen.getByLabelText('One-off');
+      fireEvent.click(oneOffSwitcher);
+
+      // Now reject the in-flight recurring run request
+      rejectRecurringRun(new Error('simulated failure'));
+
+      await waitFor(() => {
+        expect(updateDialogSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Recurring run creation failed',
+          }),
+        );
+      });
+    });
+  });
+
   describe('"Always Use Latest" checkbox functionality', () => {
     it('should be disabled when no pipeline is selected', async () => {
       render(
@@ -1290,9 +1367,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={undefined}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={undefined}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1316,9 +1393,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1347,9 +1424,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1380,9 +1457,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1413,9 +1490,9 @@ describe('NewRunV2', () => {
 
     it('should clear version selection and disable version selector when checked', async () => {
       // Mock API calls
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
 
       render(
@@ -1427,9 +1504,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1449,7 +1526,7 @@ describe('NewRunV2', () => {
       fireEvent.click(alwaysUseLatestCheckbox);
 
       // Verify version selection is cleared
-      const versionSelectorInput = screen.getByText('Pipeline Version');
+      const versionSelectorInput = screen.getByTestId('pipeline-version-input-field');
       expect(versionSelectorInput).toBeTruthy();
       await waitFor(() => {
         expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
@@ -1462,11 +1539,11 @@ describe('NewRunV2', () => {
 
     it('should submit correct payload with only pipeline_id when checked', async () => {
       // Mock API calls
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
       render(
@@ -1478,9 +1555,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
@@ -1522,13 +1599,13 @@ describe('NewRunV2', () => {
     });
 
     it('should submit full version info when unchecked', async () => {
-      jest.resetAllMocks();
+      vi.resetAllMocks();
       // Mock API calls
-      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+      const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE_VERSION);
-      const createRecurringRunSpy = jest.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
 
       render(
@@ -1540,9 +1617,9 @@ describe('NewRunV2', () => {
             existingRecurringRunId={null}
             existingRecurringRun={undefined}
             existingPipeline={ORIGINAL_TEST_PIPELINE}
-            handlePipelineIdChange={jest.fn()}
+            handlePipelineIdChange={vi.fn()}
             existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
-            handlePipelineVersionIdChange={jest.fn()}
+            handlePipelineVersionIdChange={vi.fn()}
             templateString={v2XGYamlTemplateString}
             chosenExperiment={undefined}
           />
