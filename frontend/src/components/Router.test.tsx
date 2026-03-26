@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from 'react-router';
 import { MemoryRouter } from 'react-router-dom';

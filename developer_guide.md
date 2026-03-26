@@ -93,7 +93,7 @@ To build the frontend image and upload it to GCR:
 
 ```bash
 # Run in the repository root directory
-$ docker build -t gcr.io/<your-gcp-project>/frontend:latest -f frontend/Dockerfile .
+$ docker build --build-arg NODE_VERSION=$(tr -d 'v' < frontend/.nvmrc) -t gcr.io/<your-gcp-project>/frontend:latest -f frontend/Dockerfile .
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/frontend:latest
@@ -114,7 +114,7 @@ $ docker build -t ml-pipeline-api-server -f backend/Dockerfile .
 Python based visualizations are a new method to visualize results within the
 Kubeflow Pipelines UI. For more information about Python based visualizations
 please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
-To create predefine visualizations please check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/README.md).
+To create predefined visualizations please check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/README.md).
 
 ## Unit test
 

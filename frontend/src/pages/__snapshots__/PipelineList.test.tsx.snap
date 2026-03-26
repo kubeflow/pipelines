@@ -10,12 +10,12 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -23,36 +23,37 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
             Filter pipelines
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-9 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-11 PrivateNotchedOutline-legendNotched-12"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter pipelines
@@ -69,31 +70,26 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
           class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-13 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-16"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
@@ -106,16 +102,17 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
           title="Pipeline name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Pipeline name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -131,11 +128,11 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -146,16 +143,17 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
           title="Uploaded on"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Uploaded on
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -184,55 +182,47 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
               class="cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
-                aria-disabled="false"
-                class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-13 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
               >
-                <span
-                  class="MuiIconButton-label"
+                <input
+                  class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                  data-indeterminate="false"
+                  type="checkbox"
+                />
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="CheckBoxOutlineBlankIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <input
-                    class="PrivateSwitchBase-input-16"
-                    data-indeterminate="false"
-                    type="checkbox"
-                    value=""
+                  <path
+                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                   />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                    />
-                  </svg>
-                </span>
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </span>
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -241,9 +231,10 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
               style="width: 20%;"
             >
               <a
+                aria-label="Name: pipeline1"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/pipelines/details/undefined"
-                title="Name: pipeline1"
               >
                 pipeline1
               </a>
@@ -274,28 +265,34 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls=":rb:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby=":ra:"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id=":ra:"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -306,46 +303,40 @@ exports[`PipelineList > renders a list of one pipeline 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -363,12 +354,12 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -376,36 +367,37 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
             Filter pipelines
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-25 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-27 PrivateNotchedOutline-legendNotched-28"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter pipelines
@@ -422,31 +414,26 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
           class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-29 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-32"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
@@ -459,16 +446,17 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
           title="Pipeline name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Pipeline name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -484,11 +472,11 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -499,16 +487,17 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
           title="Uploaded on"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Uploaded on
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -537,55 +526,47 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
               class="cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
-                aria-disabled="false"
-                class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-29 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
               >
-                <span
-                  class="MuiIconButton-label"
+                <input
+                  class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                  data-indeterminate="false"
+                  type="checkbox"
+                />
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="CheckBoxOutlineBlankIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <input
-                    class="PrivateSwitchBase-input-32"
-                    data-indeterminate="false"
-                    type="checkbox"
-                    value=""
+                  <path
+                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                   />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                    />
-                  </svg>
-                </span>
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </span>
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -594,9 +575,10 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
               style="width: 20%;"
             >
               <a
+                aria-label="Name: pipeline1"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/pipelines/details/undefined"
-                title="Name: pipeline1"
               >
                 Pipeline One
               </a>
@@ -625,28 +607,34 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls=":rp:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby=":ro:"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id=":ro:"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -657,46 +645,40 @@ exports[`PipelineList > renders a list of one pipeline with a display name that 
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -714,12 +696,12 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -727,36 +709,37 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
             Filter pipelines
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-33 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-35 PrivateNotchedOutline-legendNotched-36"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter pipelines
@@ -773,31 +756,26 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
           class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-37 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-40"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
@@ -810,16 +788,17 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
           title="Pipeline name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Pipeline name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -835,11 +814,11 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -850,16 +829,17 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
           title="Uploaded on"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Uploaded on
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -888,55 +868,47 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
               class="cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
-                aria-disabled="false"
-                class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-37 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
               >
-                <span
-                  class="MuiIconButton-label"
+                <input
+                  class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                  data-indeterminate="false"
+                  type="checkbox"
+                />
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="CheckBoxOutlineBlankIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <input
-                    class="PrivateSwitchBase-input-40"
-                    data-indeterminate="false"
-                    type="checkbox"
-                    value=""
+                  <path
+                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                   />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                    />
-                  </svg>
-                </span>
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </span>
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -945,9 +917,10 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
               style="width: 20%;"
             >
               <a
+                aria-label="Name: pipeline1"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/pipelines/details/undefined"
-                title="Name: pipeline1"
               >
                 pipeline1
               </a>
@@ -978,28 +951,34 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls=":r10:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby=":rv:"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id=":rv:"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1010,46 +989,40 @@ exports[`PipelineList > renders a list of one pipeline with error 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -1067,12 +1040,12 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -1080,36 +1053,37 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
             Filter pipelines
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-17 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-19 PrivateNotchedOutline-legendNotched-20"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter pipelines
@@ -1126,31 +1100,26 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
           class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-21 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-24"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
@@ -1163,16 +1132,17 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
           title="Pipeline name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Pipeline name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1188,11 +1158,11 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -1203,16 +1173,17 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
           title="Uploaded on"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Uploaded on
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1241,55 +1212,47 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
               class="cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
-                aria-disabled="false"
-                class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-21 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
               >
-                <span
-                  class="MuiIconButton-label"
+                <input
+                  class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                  data-indeterminate="false"
+                  type="checkbox"
+                />
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="CheckBoxOutlineBlankIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <input
-                    class="PrivateSwitchBase-input-24"
-                    data-indeterminate="false"
-                    type="checkbox"
-                    value=""
+                  <path
+                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                   />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                    />
-                  </svg>
-                </span>
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </span>
               <button
                 aria-label="Expand"
-                class="MuiButtonBase-root MuiIconButton-root expandButton_fcy5tjm"
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge expandButton_fcy5tjm css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
               >
-                <span
-                  class="MuiIconButton-label"
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="ArrowRightIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M10 17l5-5-5-5v10z"
-                    />
-                  </svg>
-                </span>
+                  <path
+                    d="m10 17 5-5-5-5z"
+                  />
+                </svg>
                 <span
-                  class="MuiTouchRipple-root"
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />
               </button>
             </div>
@@ -1298,9 +1261,10 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
               style="width: 20%;"
             >
               <a
+                aria-label="Name: pipeline1"
                 class="link_f3dwag7"
+                data-mui-internal-clone-element="true"
                 href="/pipelines/details/undefined"
-                title="Name: pipeline1"
               >
                 pipeline1
               </a>
@@ -1329,28 +1293,34 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls=":ri:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby=":rh:"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id=":rh:"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1361,46 +1331,40 @@ exports[`PipelineList > renders a list of one pipeline with no description or cr
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -1418,12 +1382,12 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
     >
       <div>
         <div
-          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2"
+          class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 48px; max-width: 100%; width: 100%;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined"
+            class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
             for="tableFilterBox"
             id="tableFilterBox-label"
@@ -1431,36 +1395,37 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
             Filter pipelines
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-formControl MuiInputBase-adornedStart MuiOutlinedInput-adornedStart"
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
-              class="MuiInputAdornment-root MuiInputAdornment-positionEnd"
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
                 focusable="false"
                 style="color: rgb(128, 134, 139); padding-right: 16px;"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
                 />
               </svg>
             </div>
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart MuiOutlinedInput-inputAdornedStart"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
               id="tableFilterBox"
               type="text"
               value=""
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Filter pipelines
@@ -1477,31 +1442,26 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
           class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-8"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
@@ -1514,16 +1474,17 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
           title="Pipeline name"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Pipeline name
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1539,11 +1500,11 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
           title="Description"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x"
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Cannot sort by this column"
           >
             Description
           </span>
@@ -1554,16 +1515,17 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
           title="Uploaded on"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x MuiTableSortLabel-active"
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
             role="button"
             tabindex="0"
-            title="Sort"
           >
             Uploaded on
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1593,28 +1555,34 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
           Rows per page:
         </span>
         <div
-          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp"
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         >
           <div
-            class="MuiInputBase-root MuiInput-root MuiInputBase-formControl MuiInput-formControl"
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
           >
             <div
+              aria-controls=":r5:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-              role="button"
+              aria-labelledby=":r4:"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id=":r4:"
+              role="combobox"
               tabindex="0"
             >
               10
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               tabindex="-1"
               value="10"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1625,46 +1593,40 @@ exports[`PipelineList > renders an empty list with empty state message 1`] = `
           </div>
         </div>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
         </button>
         <button
-          class="MuiButtonBase-root MuiIconButton-root Mui-disabled Mui-disabled"
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
           disabled=""
           tabindex="-1"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
         </button>
       </div>
     </div>

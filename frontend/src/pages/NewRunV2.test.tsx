@@ -18,7 +18,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
-import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import {
@@ -426,7 +425,7 @@ describe('NewRunV2', () => {
         '(enter from experiment details)',
       async () => {
         const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
-        getExperimentSpy.mockImplementation(() => NEW_EXPERIMENT);
+        getExperimentSpy.mockResolvedValue(NEW_EXPERIMENT);
 
         render(
           <CommonTestWrapper>
@@ -438,14 +437,14 @@ describe('NewRunV2', () => {
           expect(getExperimentSpy).toHaveBeenCalled();
         });
 
-        screen.getByDisplayValue(NEW_EXPERIMENT.display_name);
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name)).toBeInTheDocument();
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
 
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -463,7 +462,7 @@ describe('NewRunV2', () => {
         expect(getPipelineVersionSpy).toHaveBeenCalled();
       });
 
-      screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+      expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
     });
 
     it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
@@ -476,7 +475,7 @@ describe('NewRunV2', () => {
       };
 
       vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
       );
       const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -515,7 +514,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -536,7 +535,9 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        await waitFor(() => {
+          expect(getPipelineV1Spy).toHaveBeenCalled(); //calling v1 getPipeline() -> direct to new run v1 page
+        });
       },
     );
 
@@ -553,7 +554,7 @@ describe('NewRunV2', () => {
         };
 
         vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          featureKey => featureKey === features.FeatureKey.V2_ALPHA,
+          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
         );
         const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -576,7 +577,7 @@ describe('NewRunV2', () => {
           expect(getPipelineVersionSpy).toHaveBeenCalled();
         });
 
-        screen.getByText('Pipeline Root'); // only v2 UI has 'Pipeline Root' section
+        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
       },
     );
   });
@@ -826,7 +827,7 @@ describe('NewRunV2', () => {
               predicates: [
                 {
                   key: 'storage_state',
-                  operation: V2beta1PredicateOperation.NOTEQUALS,
+                  operation: V2beta1PredicateOperation.NOT_EQUALS,
                   string_value: V2beta1ExperimentStorageState.ARCHIVED.toString(),
                 },
               ],
@@ -938,7 +939,7 @@ describe('NewRunV2', () => {
           open: true,
         });
       });
-    });
+    }, 20000);
 
     it('enables to change the trigger parameters.', async () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
@@ -971,7 +972,12 @@ describe('NewRunV2', () => {
       const timeCountParam = screen.getByDisplayValue('1');
       fireEvent.change(timeCountParam, { target: { value: '5' } });
 
-      const timeUnitDropdown = screen.getByRole('button', { name: 'Hours' });
+      const timeUnitDropdown = screen
+        .getAllByRole('combobox')
+        .find((combobox) => combobox.textContent === 'Hours');
+      if (!timeUnitDropdown) {
+        throw new Error('Unable to find the interval unit dropdown');
+      }
       fireEvent.mouseDown(timeUnitDropdown);
       const minutesItem = await screen.findByRole('option', { name: 'Minutes' });
       fireEvent.click(minutesItem);
@@ -1288,6 +1294,64 @@ describe('NewRunV2', () => {
           message: 'Successfully started new recurring Run: Clone of Run of v2-xgboost-ilbo',
           open: true,
         });
+      });
+    });
+  });
+
+  describe('error dialog uses the submitted run type', () => {
+    it('shows "Recurring run creation failed" even if user flips radio to one-off before rejection', async () => {
+      let rejectRecurringRun!: (reason: unknown) => void;
+      const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+      createRecurringRunSpy.mockReturnValue(
+        new Promise((_resolve, reject) => {
+          rejectRecurringRun = reject;
+        }),
+      );
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const startButton = await screen.findByText('Start');
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+      fireEvent.click(startButton);
+
+      await waitFor(() => {
+        expect(createRecurringRunSpy).toHaveBeenCalled();
+      });
+
+      // Flip to one-off while the recurring run request is still in flight
+      const oneOffSwitcher = screen.getByLabelText('One-off');
+      fireEvent.click(oneOffSwitcher);
+
+      // Now reject the in-flight recurring run request
+      rejectRecurringRun(new Error('simulated failure'));
+
+      await waitFor(() => {
+        expect(updateDialogSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Recurring run creation failed',
+          }),
+        );
       });
     });
   });

@@ -203,3 +203,175 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 
 	assert.Equal(t, "", result)
 }
+
+func TestScheduledWorkflow_MaxConcurrencyOr0(t *testing.T) {
+	testCases := []struct {
+		name           string
+		maxConcurrency *int64
+		expected       int64
+	}{
+		{
+			name:           "MaxConcurrency set returns value",
+			maxConcurrency: Int64Pointer(5),
+			expected:       5,
+		},
+		{
+			name:           "MaxConcurrency nil returns 0",
+			maxConcurrency: nil,
+			expected:       0,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+				Spec: swfapi.ScheduledWorkflowSpec{
+					MaxConcurrency: testCase.maxConcurrency,
+				},
+			})
+			assert.Equal(t, testCase.expected, workflow.MaxConcurrencyOr0())
+		})
+	}
+}
+
+func TestScheduledWorkflow_NoCatchupOrFalse(t *testing.T) {
+	testCases := []struct {
+		name      string
+		noCatchup *bool
+		expected  bool
+	}{
+		{
+			name:      "NoCatchup true returns true",
+			noCatchup: BoolPointer(true),
+			expected:  true,
+		},
+		{
+			name:      "NoCatchup false returns false",
+			noCatchup: BoolPointer(false),
+			expected:  false,
+		},
+		{
+			name:      "NoCatchup nil returns false",
+			noCatchup: nil,
+			expected:  false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+				Spec: swfapi.ScheduledWorkflowSpec{
+					NoCatchup: testCase.noCatchup,
+				},
+			})
+			assert.Equal(t, testCase.expected, workflow.NoCatchupOrFalse())
+		})
+	}
+}
+
+func TestScheduledWorkflow_ToStringForStore(t *testing.T) {
+	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-schedule",
+			Namespace: "default",
+		},
+	})
+	result := workflow.ToStringForStore()
+	assert.Contains(t, result, "my-schedule")
+	assert.Contains(t, result, "default")
+}
+
+func TestScheduledWorkflow_ParametersAsString_Legacy(t *testing.T) {
+	// Legacy (empty type metadata) → error
+	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "",
+			Kind:       "",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "PARAM1", Value: "VALUE1"},
+				},
+			},
+		},
+	})
+	result, err := workflow.ParametersAsString()
+	assert.NotNil(t, err)
+	assert.Empty(t, result)
+	assert.Contains(t, err.Error(), "empty type metadata")
+}
+
+func TestScheduledWorkflow_ParametersAsString_Unknown(t *testing.T) {
+	// Unknown type → error
+	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "something.else/v1",
+			Kind:       "SomethingElse",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "PARAM1", Value: "VALUE1"},
+				},
+			},
+		},
+	})
+	result, err := workflow.ParametersAsString()
+	assert.NotNil(t, err)
+	assert.Empty(t, result)
+}
+
+func TestScheduledWorkflow_Get(t *testing.T) {
+	swf := &swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-schedule"},
+	}
+	workflow := NewScheduledWorkflow(swf)
+	assert.Equal(t, swf, workflow.Get())
+}
+
+func TestScheduledWorkflow_GetVersion(t *testing.T) {
+	testCases := []struct {
+		name       string
+		apiVersion string
+		kind       string
+		expected   ScheduledWorkflowType
+	}{
+		{
+			name:       "v1beta1 returns SWFv1",
+			apiVersion: "kubeflow.org/v1beta1",
+			kind:       "ScheduledWorkflow",
+			expected:   SWFv1,
+		},
+		{
+			name:       "v2beta1 returns SWFv2",
+			apiVersion: "kubeflow.org/v2beta1",
+			kind:       "ScheduledWorkflow",
+			expected:   SWFv2,
+		},
+		{
+			name:       "empty returns SWFlegacy",
+			apiVersion: "",
+			kind:       "",
+			expected:   SWFlegacy,
+		},
+		{
+			name:       "unknown returns SWFunknown",
+			apiVersion: "something.else/v1",
+			kind:       "SomethingElse",
+			expected:   SWFunknown,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: testCase.apiVersion,
+					Kind:       testCase.kind,
+				},
+			})
+			assert.Equal(t, testCase.expected, workflow.GetVersion())
+		})
+	}
+}

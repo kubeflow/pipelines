@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import TextField, { OutlinedTextFieldProps } from '@material-ui/core/TextField';
+import { OutlinedTextFieldProps } from '@mui/material/TextField';
 import { commonCss } from '../Css';
+
+import { TextField } from '@mui/material';
 
 interface InputProps extends OutlinedTextFieldProps {
   height?: number | string;

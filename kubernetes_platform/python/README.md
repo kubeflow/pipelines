@@ -203,7 +203,7 @@ def make_data():
 @dsl.pipeline
 def my_pipeline():
     task1 = make_data()
-    # note that the created pvc will be autoamatically cleaned up once pod disappeared and cannot be shared between pods
+    # note that the created pvc will be automatically cleaned up once pod disappeared and cannot be shared between pods
     kubernetes.add_ephemeral_volume(
         task1,
         volume_name="my-pvc",
@@ -239,7 +239,7 @@ def my_pipeline():
     )
 ```
 
-### Kubernetes Field: Use Kubernetes Field Path as enviornment variable
+### Kubernetes Field: Use Kubernetes Field Path as environment variable
 ```python
 from kfp import dsl
 from kfp import kubernetes

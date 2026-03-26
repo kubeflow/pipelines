@@ -15,17 +15,11 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import Paper from '@material-ui/core/Paper';
-import PopOutIcon from '@material-ui/icons/Launch';
+import PopOutIcon from '@mui/icons-material/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
 import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
 import Toolbar, { ToolbarProps } from 'src/components/Toolbar';
-import Tooltip from '@material-ui/core/Tooltip';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from './Page';
@@ -37,6 +31,8 @@ import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+
+import { Button, Dialog, DialogActions, DialogContent, Paper, Tooltip } from '@mui/material';
 
 const css = stylesheet({
   card: {
@@ -332,7 +328,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           experimentId,
         );
         activeRecurringRunsCount = (recurringRuns.recurringRuns || []).filter(
-          rr => rr.status === V2beta1RecurringRunStatus.ENABLED,
+          (rr) => rr.status === V2beta1RecurringRunStatus.ENABLED,
         ).length;
       } catch (err) {
         const error = err instanceof Error ? err : new Error(await errorToMessage(err));
@@ -344,13 +340,17 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       }
 
       let runlistRefreshCount = this.state.runlistRefreshCount + 1;
-      this.setStateSafe({
-        activeRecurringRunsCount,
-        experiment,
-        runStorageState,
-        runlistRefreshCount,
-      });
-      this._selectionChanged([]);
+      this.setStateSafe(
+        {
+          activeRecurringRunsCount,
+          experiment,
+          runStorageState,
+          runlistRefreshCount,
+        },
+        () => {
+          this._selectionChanged([]);
+        },
+      );
     } catch (err) {
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, error);
@@ -364,7 +364,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
    * @param tab selected by user for run storage state
    */
   _onRunTabSwitch = (tab: RunListsGroupTab) => {
-    let runStorageState = V2beta1RunStorageState.AVAILABLE;
+    let runStorageState: V2beta1RunStorageState = V2beta1RunStorageState.AVAILABLE;
     if (tab === RunListsGroupTab.ARCHIVE) {
       runStorageState = V2beta1RunStorageState.ARCHIVED;
     }
@@ -391,14 +391,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         'run',
         () => this.state.selectedIds,
         false,
-        ids => this._selectionChanged(ids),
+        (ids) => this._selectionChanged(ids),
       );
     } else {
       toolbarButtons.restore(
         'run',
         () => this.state.selectedIds,
         false,
-        ids => this._selectionChanged(ids),
+        (ids) => this._selectionChanged(ids),
       );
     }
     const toolbarActions = toolbarButtons.getToolbarActionMap();
@@ -431,7 +431,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 }
 
-const EnhancedExperimentDetails: React.FC<PageProps> = props => {
+const EnhancedExperimentDetails: React.FC<PageProps> = (props) => {
   // When namespace changes, this experiment no longer belongs to new namespace.
   // So we redirect to experiment list page instead.
   const namespaceChanged = useNamespaceChangeEvent();

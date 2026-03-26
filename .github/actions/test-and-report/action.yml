@@ -243,6 +243,10 @@ runs:
           API_SCHEME='http'
           CA_CERT_PATH=''  # Force empty when TLS is disabled
         fi
+        pipelineStoreKubernetes='false'
+        if [ "$PIPELINE_STORE" == "kubernetes" ]; then
+          pipelineStoreKubernetes='true'
+        fi
         PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
         REPO_NAME="${{ github.repository }}"
         API_URL="${{ steps.configure-api.outputs.API_URL }}"
@@ -260,7 +264,7 @@ runs:
           DISABLE_TLS_CHECK='false'
         fi
 
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" $BASE_IMAGE_FLAG
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} --label-filter=${{ inputs.test_label }} --silence-skips=true -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}} -pipelineStoreKubernetes=$pipelineStoreKubernetes -disableTlsCheck=$DISABLE_TLS_CHECK -apiScheme=$API_SCHEME -tlsEnabled=$TLS_ENABLED -caCertPath=$CA_CERT_PATH -pullNumber=$PULL_NUMBER -repoName=$REPO_NAME -apiUrl="$API_URL" -authToken="$AUTH_TOKEN" -serviceAccountName="$SERVICE_ACCOUNT_NAME" $BASE_IMAGE_FLAG
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
@@ -310,7 +314,7 @@ runs:
 
     - name: Upload HTML Report
       id: upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}

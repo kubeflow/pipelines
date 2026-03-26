@@ -33,7 +33,7 @@ export interface PrivateAndSharedProps extends PageProps {
   view: PrivateAndSharedTab;
 }
 
-const PrivatePipelineList: React.FC<PageProps> = props => {
+const PrivatePipelineList: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
   return <PipelineList {...props} namespace={namespace} />;
 };
@@ -48,7 +48,7 @@ export enum PipelineTabsTooltips {
   SHARED = 'Everyone in your organization will be able to view and use these pipelines.',
 }
 
-const PrivateAndSharedPipelines: React.FC<PrivateAndSharedProps> = props => {
+const PrivateAndSharedPipelines: React.FC<PrivateAndSharedProps> = (props) => {
   const buildInfo = React.useContext(BuildInfoContext);
 
   const tabSwitched = (newTab: PrivateAndSharedTab): void => {

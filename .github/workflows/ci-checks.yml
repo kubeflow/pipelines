@@ -16,7 +16,7 @@ jobs:
       checks: read
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
         id: label_check
@@ -38,6 +38,11 @@ jobs:
           delay: '5'
           retries: '10'
           polling_interval: '5'
+          # Exclude checks dynamically created by the GitHub Copilot pull request reviewer.
+          # These checks fail with HTTP 403 on fork PRs due to permission limitations,
+          # causing false negatives in the status gate. If the Copilot reviewer adds or
+          # renames checks, update this list accordingly.
+          checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Save PR payload
@@ -46,7 +51,7 @@ jobs:
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} >> ./pr/pr_number          
           echo ${{ github.event.action }} >> ./pr/event_action
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pr
           path: pr/

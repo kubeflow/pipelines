@@ -4,43 +4,51 @@ exports[`Trigger > enables a single day on click 1`] = `
 <DocumentFragment>
   <div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
+        for=":r1f:"
+        id=":r1f:-label"
       >
         Trigger type
         <span
           aria-hidden="true"
-          class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
         >
            *
         </span>
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
+          aria-controls=":r1g:"
+          aria-expanded="false"
           aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-          role="button"
+          aria-labelledby=":r1f:-label :r1f:"
+          class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+          id=":r1f:"
+          role="combobox"
           tabindex="0"
         >
           Cron
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           required=""
           tabindex="-1"
           value="1"
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -50,13 +58,13 @@ exports[`Trigger > enables a single day on click 1`] = `
         </svg>
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-39 PrivateNotchedOutline-legendNotched-40"
+            class="css-sl37lx-MuiNotchedOutlined-root"
           >
             <span>
-              Trigger type *
+              Trigger type *
             </span>
           </legend>
         </fieldset>
@@ -64,41 +72,44 @@ exports[`Trigger > enables a single day on click 1`] = `
     </div>
     <div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":r1h:"
+          id=":r1h:-label"
         >
           Maximum concurrent runs
           <span
             aria-hidden="true"
-            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r1h:"
             required=""
             type="text"
             value="10"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-39 PrivateNotchedOutline-legendNotched-40"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
-                Maximum concurrent runs *
+                Maximum concurrent runs *
               </span>
             </legend>
           </fieldset>
@@ -108,68 +119,66 @@ exports[`Trigger > enables a single day on click 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-41 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-44"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has start date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r1i:"
+            id=":r1i:-label"
           >
             Start date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r1i:"
               type="date"
               value="2018-12-21"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-39 PrivateNotchedOutline-legendNotched-40"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start date
@@ -182,31 +191,34 @@ exports[`Trigger > enables a single day on click 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r1j:"
+            id=":r1j:-label"
           >
             Start time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r1j:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-39 PrivateNotchedOutline-legendNotched-40"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start time
@@ -225,68 +237,66 @@ exports[`Trigger > enables a single day on click 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-41 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-44"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has end date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r1k:"
+            id=":r1k:-label"
           >
             End date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r1k:"
               type="date"
               value="2018-12-28"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-39 PrivateNotchedOutline-legendNotched-40"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End date
@@ -299,31 +309,34 @@ exports[`Trigger > enables a single day on click 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r1l:"
+            id=":r1l:-label"
           >
             End time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r1l:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-39 PrivateNotchedOutline-legendNotched-40"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End time
@@ -342,64 +355,57 @@ exports[`Trigger > enables a single day on click 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-41 MuiCheckbox-root MuiCheckbox-colorPrimary PrivateSwitchBase-checked-42 Mui-checked MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-44"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Catchup
           </span>
         </label>
         <button
-          class="MuiButtonBase-root MuiIconButton-root"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+          data-mui-internal-clone-element="true"
           tabindex="0"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="HelpIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
+            />
+          </svg>
           <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </span>
@@ -411,31 +417,37 @@ exports[`Trigger > enables a single day on click 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
+              aria-controls=":r1p:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-              role="button"
+              aria-labelledby=":r1o:"
+              class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r1o:"
+              role="combobox"
               tabindex="0"
             >
               Week
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               required=""
               tabindex="-1"
               value="Week"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -445,14 +457,14 @@ exports[`Trigger > enables a single day on click 1`] = `
             </svg>
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
-              style="padding-left: 8px;"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legend-38"
-                style="width: 0.01px;"
+                class="css-1whs34k-MuiNotchedOutlined-root"
               >
-                <span>
+                <span
+                  class="notranslate"
+                >
                   ​
                 </span>
               </legend>
@@ -467,39 +479,34 @@ exports[`Trigger > enables a single day on click 1`] = `
           On:
         </span>
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-41 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-44"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             All
           </span>
@@ -508,101 +515,73 @@ exports[`Trigger > enables a single day on click 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          S
           <span
-            class="MuiFab-label"
-          >
-            S
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          M
           <span
-            class="MuiFab-label"
-          >
-            M
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          T
           <span
-            class="MuiFab-label"
-          >
-            T
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          W
           <span
-            class="MuiFab-label"
-          >
-            W
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          T
           <span
-            class="MuiFab-label"
-          >
-            T
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          F
           <span
-            class="MuiFab-label"
-          >
-            F
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          S
           <span
-            class="MuiFab-label"
-          >
-            S
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -610,38 +589,33 @@ exports[`Trigger > enables a single day on click 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-41 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-44"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             <span>
               Allow editing cron expression. (format is specified 
@@ -659,32 +633,35 @@ exports[`Trigger > enables a single day on click 1`] = `
         </label>
       </div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 300px;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-disabled Mui-disabled MuiFormLabel-filled"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":r1q:"
+          id=":r1q:-label"
         >
           cron expression
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root Mui-disabled Mui-disabled MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled Mui-disabled"
+            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
+            id=":r1q:"
             type="text"
             value="0 0 0 ? * 0,2,4,5,6"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-37 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-39 PrivateNotchedOutline-legendNotched-40"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
                 cron expression
@@ -705,43 +682,51 @@ exports[`Trigger > renders all week days enabled 1`] = `
 <DocumentFragment>
   <div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
+        for=":r13:"
+        id=":r13:-label"
       >
         Trigger type
         <span
           aria-hidden="true"
-          class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
         >
            *
         </span>
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
+          aria-controls=":r14:"
+          aria-expanded="false"
           aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-          role="button"
+          aria-labelledby=":r13:-label :r13:"
+          class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+          id=":r13:"
+          role="combobox"
           tabindex="0"
         >
           Cron
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           required=""
           tabindex="-1"
           value="1"
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -751,13 +736,13 @@ exports[`Trigger > renders all week days enabled 1`] = `
         </svg>
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-30 PrivateNotchedOutline-legendNotched-31"
+            class="css-sl37lx-MuiNotchedOutlined-root"
           >
             <span>
-              Trigger type *
+              Trigger type *
             </span>
           </legend>
         </fieldset>
@@ -765,41 +750,44 @@ exports[`Trigger > renders all week days enabled 1`] = `
     </div>
     <div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":r15:"
+          id=":r15:-label"
         >
           Maximum concurrent runs
           <span
             aria-hidden="true"
-            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r15:"
             required=""
             type="text"
             value="10"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-30 PrivateNotchedOutline-legendNotched-31"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
-                Maximum concurrent runs *
+                Maximum concurrent runs *
               </span>
             </legend>
           </fieldset>
@@ -809,68 +797,66 @@ exports[`Trigger > renders all week days enabled 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-32 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-35"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has start date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r16:"
+            id=":r16:-label"
           >
             Start date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r16:"
               type="date"
               value="2018-12-21"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-30 PrivateNotchedOutline-legendNotched-31"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start date
@@ -883,31 +869,34 @@ exports[`Trigger > renders all week days enabled 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r17:"
+            id=":r17:-label"
           >
             Start time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r17:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-30 PrivateNotchedOutline-legendNotched-31"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start time
@@ -926,68 +915,66 @@ exports[`Trigger > renders all week days enabled 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-32 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-35"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has end date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r18:"
+            id=":r18:-label"
           >
             End date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r18:"
               type="date"
               value="2018-12-28"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-30 PrivateNotchedOutline-legendNotched-31"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End date
@@ -1000,31 +987,34 @@ exports[`Trigger > renders all week days enabled 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r19:"
+            id=":r19:-label"
           >
             End time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r19:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-30 PrivateNotchedOutline-legendNotched-31"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End time
@@ -1043,64 +1033,57 @@ exports[`Trigger > renders all week days enabled 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-32 MuiCheckbox-root MuiCheckbox-colorPrimary PrivateSwitchBase-checked-33 Mui-checked MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-35"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Catchup
           </span>
         </label>
         <button
-          class="MuiButtonBase-root MuiIconButton-root"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+          data-mui-internal-clone-element="true"
           tabindex="0"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="HelpIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
+            />
+          </svg>
           <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </span>
@@ -1112,31 +1095,37 @@ exports[`Trigger > renders all week days enabled 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
+              aria-controls=":r1d:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-              role="button"
+              aria-labelledby=":r1c:"
+              class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r1c:"
+              role="combobox"
               tabindex="0"
             >
               Week
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               required=""
               tabindex="-1"
               value="Week"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1146,14 +1135,14 @@ exports[`Trigger > renders all week days enabled 1`] = `
             </svg>
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
-              style="padding-left: 8px;"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legend-29"
-                style="width: 0.01px;"
+                class="css-1whs34k-MuiNotchedOutlined-root"
               >
-                <span>
+                <span
+                  class="notranslate"
+                >
                   ​
                 </span>
               </legend>
@@ -1168,39 +1157,34 @@ exports[`Trigger > renders all week days enabled 1`] = `
           On:
         </span>
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-32 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-35"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             All
           </span>
@@ -1209,101 +1193,73 @@ exports[`Trigger > renders all week days enabled 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          S
           <span
-            class="MuiFab-label"
-          >
-            S
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          M
           <span
-            class="MuiFab-label"
-          >
-            M
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          T
           <span
-            class="MuiFab-label"
-          >
-            T
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          W
           <span
-            class="MuiFab-label"
-          >
-            W
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          T
           <span
-            class="MuiFab-label"
-          >
-            T
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          F
           <span
-            class="MuiFab-label"
-          >
-            F
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-secondary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-secondary css-9rrh7h-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          S
           <span
-            class="MuiFab-label"
-          >
-            S
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -1311,38 +1267,33 @@ exports[`Trigger > renders all week days enabled 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-32 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-35"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             <span>
               Allow editing cron expression. (format is specified 
@@ -1360,32 +1311,35 @@ exports[`Trigger > renders all week days enabled 1`] = `
         </label>
       </div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 300px;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-disabled Mui-disabled MuiFormLabel-filled"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":r1e:"
+          id=":r1e:-label"
         >
           cron expression
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root Mui-disabled Mui-disabled MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled Mui-disabled"
+            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
+            id=":r1e:"
             type="text"
             value="0 0 0 ? *"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-28 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-30 PrivateNotchedOutline-legendNotched-31"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
                 cron expression
@@ -1406,43 +1360,51 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
 <DocumentFragment>
   <div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
+        for=":r0:"
+        id=":r0:-label"
       >
         Trigger type
         <span
           aria-hidden="true"
-          class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
         >
            *
         </span>
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
+          aria-controls=":r1:"
+          aria-expanded="false"
           aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-          role="button"
+          aria-labelledby=":r0:-label :r0:"
+          class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+          id=":r0:"
+          role="combobox"
           tabindex="0"
         >
           Periodic
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           required=""
           tabindex="-1"
           value="0"
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -1452,13 +1414,13 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         </svg>
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+            class="css-sl37lx-MuiNotchedOutlined-root"
           >
             <span>
-              Trigger type *
+              Trigger type *
             </span>
           </legend>
         </fieldset>
@@ -1466,41 +1428,44 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
     </div>
     <div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":r2:"
+          id=":r2:-label"
         >
           Maximum concurrent runs
           <span
             aria-hidden="true"
-            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r2:"
             required=""
             type="text"
             value="10"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
-                Maximum concurrent runs *
+                Maximum concurrent runs *
               </span>
             </legend>
           </fieldset>
@@ -1510,68 +1475,66 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-8"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has start date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r3:"
+            id=":r3:-label"
           >
             Start date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r3:"
               type="date"
               value="2018-12-21"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start date
@@ -1584,31 +1547,34 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r4:"
+            id=":r4:-label"
           >
             Start time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r4:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start time
@@ -1627,68 +1593,66 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-8"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has end date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r5:"
+            id=":r5:-label"
           >
             End date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r5:"
               type="date"
               value="2018-12-28"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End date
@@ -1701,31 +1665,34 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":r6:"
+            id=":r6:-label"
           >
             End time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r6:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-3 PrivateNotchedOutline-legendNotched-4"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End time
@@ -1744,64 +1711,57 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-5 MuiCheckbox-root MuiCheckbox-colorPrimary PrivateSwitchBase-checked-6 Mui-checked MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-8"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Catchup
           </span>
         </label>
         <button
-          class="MuiButtonBase-root MuiIconButton-root"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+          data-mui-internal-clone-element="true"
           tabindex="0"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="HelpIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
+            />
+          </svg>
           <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </span>
@@ -1816,16 +1776,17 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             style="display: inline-block; min-width: 10px; width: 10px;"
           />
           <div
-            class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+            class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
             spellcheck="false"
             style="height: 30px; max-width: 600px; width: 65px;"
           >
             <div
-              class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+              class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
             >
               <input
                 aria-invalid="false"
-                class="MuiInputBase-input MuiOutlinedInput-input"
+                class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+                id=":r8:"
                 min="1"
                 required=""
                 type="number"
@@ -1833,14 +1794,14 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
               />
               <fieldset
                 aria-hidden="true"
-                class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
-                style="padding-left: 8px;"
+                class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
               >
                 <legend
-                  class="PrivateNotchedOutline-legend-2"
-                  style="width: 0.01px;"
+                  class="css-1whs34k-MuiNotchedOutlined-root"
                 >
-                  <span>
+                  <span
+                    class="notranslate"
+                  >
                     ​
                   </span>
                 </legend>
@@ -1852,31 +1813,37 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
+              aria-controls=":ra:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-              role="button"
+              aria-labelledby=":r9:"
+              class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r9:"
+              role="combobox"
               tabindex="0"
             >
               Hours
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               required=""
               tabindex="-1"
               value="Hour"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -1886,14 +1853,14 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             </svg>
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-1 MuiOutlinedInput-notchedOutline"
-              style="padding-left: 8px;"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legend-2"
-                style="width: 0.01px;"
+                class="css-1whs34k-MuiNotchedOutlined-root"
               >
-                <span>
+                <span
+                  class="notranslate"
+                >
                   ​
                 </span>
               </legend>
@@ -1910,43 +1877,51 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
 <DocumentFragment>
   <div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
+        for=":rb:"
+        id=":rb:-label"
       >
         Trigger type
         <span
           aria-hidden="true"
-          class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
         >
            *
         </span>
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
+          aria-controls=":rc:"
+          aria-expanded="false"
           aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-          role="button"
+          aria-labelledby=":rb:-label :rb:"
+          class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+          id=":rb:"
+          role="combobox"
           tabindex="0"
         >
           Cron
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           required=""
           tabindex="-1"
           value="1"
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -1956,13 +1931,13 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         </svg>
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-12 PrivateNotchedOutline-legendNotched-13"
+            class="css-sl37lx-MuiNotchedOutlined-root"
           >
             <span>
-              Trigger type *
+              Trigger type *
             </span>
           </legend>
         </fieldset>
@@ -1970,41 +1945,44 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
     </div>
     <div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":rd:"
+          id=":rd:-label"
         >
           Maximum concurrent runs
           <span
             aria-hidden="true"
-            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":rd:"
             required=""
             type="text"
             value="10"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-12 PrivateNotchedOutline-legendNotched-13"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
-                Maximum concurrent runs *
+                Maximum concurrent runs *
               </span>
             </legend>
           </fieldset>
@@ -2014,68 +1992,66 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-14 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-17"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has start date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":re:"
+            id=":re:-label"
           >
             Start date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":re:"
               type="date"
               value="2018-12-21"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-12 PrivateNotchedOutline-legendNotched-13"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start date
@@ -2088,31 +2064,34 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":rf:"
+            id=":rf:-label"
           >
             Start time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rf:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-12 PrivateNotchedOutline-legendNotched-13"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start time
@@ -2131,68 +2110,66 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-14 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-17"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has end date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":rg:"
+            id=":rg:-label"
           >
             End date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rg:"
               type="date"
               value="2018-12-28"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-12 PrivateNotchedOutline-legendNotched-13"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End date
@@ -2205,31 +2182,34 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":rh:"
+            id=":rh:-label"
           >
             End time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rh:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-12 PrivateNotchedOutline-legendNotched-13"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End time
@@ -2248,64 +2228,57 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-14 MuiCheckbox-root MuiCheckbox-colorPrimary PrivateSwitchBase-checked-15 Mui-checked MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-17"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Catchup
           </span>
         </label>
         <button
-          class="MuiButtonBase-root MuiIconButton-root"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+          data-mui-internal-clone-element="true"
           tabindex="0"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="HelpIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
+            />
+          </svg>
           <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </span>
@@ -2317,31 +2290,37 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
+              aria-controls=":rl:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-              role="button"
+              aria-labelledby=":rk:"
+              class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rk:"
+              role="combobox"
               tabindex="0"
             >
               Hour
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               required=""
               tabindex="-1"
               value="Hour"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -2351,14 +2330,14 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             </svg>
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
-              style="padding-left: 8px;"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legend-11"
-                style="width: 0.01px;"
+                class="css-1whs34k-MuiNotchedOutlined-root"
               >
-                <span>
+                <span
+                  class="notranslate"
+                >
                   ​
                 </span>
               </legend>
@@ -2372,38 +2351,33 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-14 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-17"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             <span>
               Allow editing cron expression. (format is specified 
@@ -2421,32 +2395,35 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         </label>
       </div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 300px;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-disabled Mui-disabled MuiFormLabel-filled"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":rm:"
+          id=":rm:-label"
         >
           cron expression
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root Mui-disabled Mui-disabled MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled Mui-disabled"
+            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
+            id=":rm:"
             type="text"
             value="0 0 * * * ?"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-10 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-12 PrivateNotchedOutline-legendNotched-13"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
                 cron expression
@@ -2467,43 +2444,51 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
 <DocumentFragment>
   <div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="true"
+        for=":rn:"
+        id=":rn:-label"
       >
         Trigger type
         <span
           aria-hidden="true"
-          class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+          class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
         >
            *
         </span>
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <div
+          aria-controls=":ro:"
+          aria-expanded="false"
           aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-          role="button"
+          aria-labelledby=":rn:-label :rn:"
+          class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+          id=":rn:"
+          role="combobox"
           tabindex="0"
         >
           Cron
         </div>
         <input
           aria-hidden="true"
-          class="MuiSelect-nativeInput"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
           required=""
           tabindex="-1"
           value="1"
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -2513,13 +2498,13 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         </svg>
         <fieldset
           aria-hidden="true"
-          class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="PrivateNotchedOutline-legendLabelled-21 PrivateNotchedOutline-legendNotched-22"
+            class="css-sl37lx-MuiNotchedOutlined-root"
           >
             <span>
-              Trigger type *
+              Trigger type *
             </span>
           </legend>
         </fieldset>
@@ -2527,41 +2512,44 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
     </div>
     <div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 100%;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-filled Mui-required Mui-required"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":rp:"
+          id=":rp:-label"
         >
           Maximum concurrent runs
           <span
             aria-hidden="true"
-            class="MuiFormLabel-asterisk MuiInputLabel-asterisk"
+            class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
           >
              *
           </span>
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":rp:"
             required=""
             type="text"
             value="10"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-21 PrivateNotchedOutline-legendNotched-22"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
-                Maximum concurrent runs *
+                Maximum concurrent runs *
               </span>
             </legend>
           </fieldset>
@@ -2571,68 +2559,66 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-23 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-26"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has start date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":rq:"
+            id=":rq:-label"
           >
             Start date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rq:"
               type="date"
               value="2018-12-21"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-21 PrivateNotchedOutline-legendNotched-22"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start date
@@ -2645,31 +2631,34 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":rr:"
+            id=":rr:-label"
           >
             Start time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rr:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-21 PrivateNotchedOutline-legendNotched-22"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   Start time
@@ -2688,68 +2677,66 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-23 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-26"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Has end date
           </span>
         </label>
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":rs:"
+            id=":rs:-label"
           >
             End date
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rs:"
               type="date"
               value="2018-12-28"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-21 PrivateNotchedOutline-legendNotched-22"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End date
@@ -2762,31 +2749,34 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="visibility: hidden;"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-filled"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin_fl8qkup css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
+            for=":rt:"
+            id=":rt:-label"
           >
             End time
           </label>
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <input
               aria-invalid="false"
-              class="MuiInputBase-input MuiOutlinedInput-input"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":rt:"
               type="time"
               value="07:53"
             />
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legendLabelled-21 PrivateNotchedOutline-legendNotched-22"
+                class="css-sl37lx-MuiNotchedOutlined-root"
               >
                 <span>
                   End time
@@ -2805,64 +2795,57 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-23 MuiCheckbox-root MuiCheckbox-colorPrimary PrivateSwitchBase-checked-24 Mui-checked MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-26"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             Catchup
           </span>
         </label>
         <button
-          class="MuiButtonBase-root MuiIconButton-root"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+          data-mui-internal-clone-element="true"
           tabindex="0"
           type="button"
         >
-          <span
-            class="MuiIconButton-label"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="HelpIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
-              />
-            </svg>
-          </span>
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
+            />
+          </svg>
           <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </span>
@@ -2874,31 +2857,37 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <div
-          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+          class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
           spellcheck="false"
           style="height: 30px; max-width: 600px; width: 95px;"
         >
           <div
-            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-formControl"
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
           >
             <div
+              aria-controls=":r11:"
+              aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input"
-              role="button"
+              aria-labelledby=":r10:"
+              class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r10:"
+              role="combobox"
               tabindex="0"
             >
               Week
             </div>
             <input
               aria-hidden="true"
-              class="MuiSelect-nativeInput"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               required=""
               tabindex="-1"
               value="Week"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSelect-icon MuiSelect-iconOutlined"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
             >
@@ -2908,14 +2897,14 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             </svg>
             <fieldset
               aria-hidden="true"
-              class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
-              style="padding-left: 8px;"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="PrivateNotchedOutline-legend-20"
-                style="width: 0.01px;"
+                class="css-1whs34k-MuiNotchedOutlined-root"
               >
-                <span>
+                <span
+                  class="notranslate"
+                >
                   ​
                 </span>
               </legend>
@@ -2930,39 +2919,34 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           On:
         </span>
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-23 MuiCheckbox-root MuiCheckbox-colorPrimary PrivateSwitchBase-checked-24 Mui-checked MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              checked=""
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                checked=""
-                class="PrivateSwitchBase-input-26"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             All
           </span>
@@ -2971,101 +2955,73 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           style="display: inline-block; min-width: 10px; width: 10px;"
         />
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          S
           <span
-            class="MuiFab-label"
-          >
-            S
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          M
           <span
-            class="MuiFab-label"
-          >
-            M
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          T
           <span
-            class="MuiFab-label"
-          >
-            T
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          W
           <span
-            class="MuiFab-label"
-          >
-            W
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          T
           <span
-            class="MuiFab-label"
-          >
-            T
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          F
           <span
-            class="MuiFab-label"
-          >
-            F
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
         <button
-          class="MuiButtonBase-root MuiFab-root MuiFab-sizeSmall MuiFab-primary"
+          class="MuiButtonBase-root MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary MuiFab-root MuiFab-circular MuiFab-sizeSmall MuiFab-primary css-qize55-MuiButtonBase-root-MuiFab-root"
           tabindex="0"
           type="button"
         >
+          S
           <span
-            class="MuiFab-label"
-          >
-            S
-          </span>
-          <span
-            class="MuiTouchRipple-root"
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
           />
         </button>
       </div>
@@ -3073,38 +3029,33 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         class="flex_f16jawj4"
       >
         <label
-          class="MuiFormControlLabel-root"
+          class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
         >
           <span
-            aria-disabled="false"
-            class="MuiButtonBase-root MuiIconButton-root PrivateSwitchBase-root-23 MuiCheckbox-root MuiCheckbox-colorPrimary MuiIconButton-colorPrimary"
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
           >
-            <span
-              class="MuiIconButton-label"
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <input
-                class="PrivateSwitchBase-input-26"
-                data-indeterminate="false"
-                type="checkbox"
-                value=""
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
               />
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                />
-              </svg>
-            </span>
+            </svg>
             <span
-              class="MuiTouchRipple-root"
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </span>
           <span
-            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+            class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
           >
             <span>
               Allow editing cron expression. (format is specified 
@@ -3122,32 +3073,35 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         </label>
       </div>
       <div
-        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6"
+        class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
         spellcheck="false"
         style="height: 40px; max-width: 600px; width: 300px;"
       >
         <label
-          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined Mui-disabled Mui-disabled MuiFormLabel-filled"
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
           data-shrink="true"
+          for=":r12:"
+          id=":r12:-label"
         >
           cron expression
         </label>
         <div
-          class="MuiInputBase-root MuiOutlinedInput-root Mui-disabled Mui-disabled MuiInputBase-formControl"
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
           <input
             aria-invalid="false"
-            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled Mui-disabled"
+            class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
             disabled=""
+            id=":r12:"
             type="text"
             value="0 0 0 ? * *"
           />
           <fieldset
             aria-hidden="true"
-            class="PrivateNotchedOutline-root-19 MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="PrivateNotchedOutline-legendLabelled-21 PrivateNotchedOutline-legendNotched-22"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
                 cron expression

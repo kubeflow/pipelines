@@ -298,9 +298,8 @@ describe('RecurringRunDetails', () => {
 
   it('calls disable API when disable button is clicked, refreshes the page', async () => {
     await renderRecurringRunDetails();
-    const disableBtn = getInstance().getInitialToolbarState().actions[
-      ButtonKeys.DISABLE_RECURRING_RUN
-    ];
+    const disableBtn =
+      getInstance().getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await act(async () => {
       await disableBtn!.action();
     });
@@ -313,9 +312,8 @@ describe('RecurringRunDetails', () => {
   it('shows error dialog if disable fails', async () => {
     TestUtils.makeErrorResponseOnce(disableRecurringRunSpy as any, 'could not disable');
     await renderRecurringRunDetails();
-    const disableBtn = getInstance().getInitialToolbarState().actions[
-      ButtonKeys.DISABLE_RECURRING_RUN
-    ];
+    const disableBtn =
+      getInstance().getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await act(async () => {
       await disableBtn!.action();
     });
@@ -332,9 +330,8 @@ describe('RecurringRunDetails', () => {
     fullTestJob.enabled = false;
     TestUtils.makeErrorResponseOnce(enableRecurringRunSpy as any, 'could not enable');
     await renderRecurringRunDetails();
-    const enableBtn = getInstance().getInitialToolbarState().actions[
-      ButtonKeys.ENABLE_RECURRING_RUN
-    ];
+    const enableBtn =
+      getInstance().getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await act(async () => {
       await enableBtn!.action();
     });
@@ -350,9 +347,8 @@ describe('RecurringRunDetails', () => {
   it('calls enable API when enable button is clicked, refreshes the page', async () => {
     fullTestJob.enabled = false;
     await renderRecurringRunDetails();
-    const enableBtn = getInstance().getInitialToolbarState().actions[
-      ButtonKeys.ENABLE_RECURRING_RUN
-    ];
+    const enableBtn =
+      getInstance().getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await act(async () => {
       await enableBtn!.action();
     });

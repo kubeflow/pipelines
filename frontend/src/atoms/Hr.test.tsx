@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import Hr from './Hr';
-import { create } from 'react-test-renderer';
+import { render } from '@testing-library/react';
 
 describe('Hr', () => {
   it('renders with the right styles', () => {
-    const tree = create(<Hr fields={[]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<Hr />);
+    expect(asFragment()).toMatchSnapshot();
   });
 });

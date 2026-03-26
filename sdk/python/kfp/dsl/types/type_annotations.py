@@ -222,7 +222,7 @@ def maybe_strip_optional_from_annotation(annotation: T) -> T:
 
 def maybe_strip_optional_from_annotation_string(annotation: str) -> str:
     if annotation.startswith('Optional[') and annotation.endswith(']'):
-        return annotation.lstrip('Optional[').rstrip(']')
+        return annotation.removeprefix('Optional[').removesuffix(']')
     return annotation
 
 
