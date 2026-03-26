@@ -1,0 +1,51 @@
+// Copyright 2021 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
+package kubeflow.pipelines.backend.api.v2beta1;
+
+import "backend/api/v2beta1/run.proto";
+import "google/api/annotations.proto";
+service TaskService {
+    rpc GetPipelineTask(GetPipelineTaskRequest) returns (PipelineTaskDetail) {
+      option (google.api.http) = {
+        get: "/apis/v2beta1/tasks/{task_id}"
+      };
+    }
+
+    rpc ListPipelineTasks(ListPipelineTasksRequest) returns (ListPipelineTasksResponse) {
+      option (google.api.http) = {
+        get: "/apis/v2beta1/tasks"
+      };
+    }
+}
+message GetPipelineTaskRequest {
+    string task_id = 1;
+}
+
+message ListPipelineTasksRequest {
+    string run_id = 1;
+    string page_token = 2;
+    int32 page_size = 3;
+    string sort_by = 4;
+    string filter = 5;
+}
+
+message ListPipelineTasksResponse {
+    repeated PipelineTaskDetail tasks = 1;
+    string next_page_token = 2;
+    int32 total_size = 3;
+}

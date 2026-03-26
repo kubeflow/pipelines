@@ -228,3 +228,94 @@ func TestListTasksV1_AfterCreate(t *testing.T) {
 	assert.Equal(t, int32(1), response.TotalSize)
 	assert.Equal(t, "pipeline/my-pipeline", response.Tasks[0].PipelineName)
 }
+
+func TestNewTaskServer(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewTaskServer(manager)
+	assert.NotNil(t, server)
+	assert.Equal(t, manager, server.resourceManager)
+}
+
+func TestGetPipelineTask_NotFound(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewTaskServer(manager)
+	_, err := server.GetPipelineTask(context.Background(), &apiv2beta1.GetPipelineTaskRequest{
+		TaskId: "non-existent-id",
+	})
+	assert.NotNil(t, err)
+}
+
+func TestGetPipelineTask(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
+
+	// seed through V1
+	serverV1 := NewTaskServerV1(manager)
+	createdAt := timestamppb.New(time.Unix(1, 0))
+	createdTask, err := serverV1.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
+		Task: &api.Task{
+			PipelineName:    "pipeline/my-pipeline",
+			RunId:           run.UUID,
+			MlmdExecutionID: "exec-1",
+			Fingerprint:     "abc123",
+			CreatedAt:       createdAt,
+		},
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, createdTask)
+
+	// get via V2.
+	serverV2 := NewTaskServer(manager)
+	taskDetail, err := serverV2.GetPipelineTask(context.Background(), &apiv2beta1.GetPipelineTaskRequest{
+		TaskId: createdTask.Id,
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, taskDetail)
+	assert.Equal(t, createdTask.Id, taskDetail.TaskId)
+	assert.Equal(t, run.UUID, taskDetail.RunId)
+}
+
+func TestListPipelineTasks_Empty(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewTaskServer(manager)
+	response, err := server.ListPipelineTasks(context.Background(), &apiv2beta1.ListPipelineTasksRequest{})
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+	assert.Empty(t, response.Tasks)
+	assert.Equal(t, int32(0), response.TotalSize)
+}
+
+func TestListPipelineTasks_AfterCreate(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
+
+	// seed a task via V1.
+	serverV1 := NewTaskServerV1(manager)
+	createdAt := timestamppb.New(time.Unix(1, 0))
+	_, err := serverV1.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
+		Task: &api.Task{
+			PipelineName:    "pipeline/my-pipeline",
+			RunId:           run.UUID,
+			MlmdExecutionID: "exec-1",
+			Fingerprint:     "abc123",
+			CreatedAt:       createdAt,
+		},
+	})
+	assert.Nil(t, err)
+
+	// list via V2, filtering by run_id.
+	serverV2 := NewTaskServer(manager)
+	response, err := serverV2.ListPipelineTasks(context.Background(), &apiv2beta1.ListPipelineTasksRequest{
+		RunId: run.UUID,
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, 1, len(response.Tasks))
+	assert.Equal(t, int32(1), response.TotalSize)
+	assert.Equal(t, run.UUID, response.Tasks[0].RunId)
+}
