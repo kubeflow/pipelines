@@ -512,6 +512,55 @@ func TestCreateK8sPipeline_InvalidName(t *testing.T) {
 	assert.Contains(t, err.Error(), "display_name")
 }
 
+func TestCreateK8sPipelineVersion_InvalidName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	k8sPipeline := &model.Pipeline{
+		Name: "test-pipeline",
+	}
+	k8sPipelineVersion := &model.PipelineVersion{
+		Name:         "My-Pipeline-Version",
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	}
+
+	_, _, err := store.CreatePipelineAndPipelineVersion(k8sPipeline, k8sPipelineVersion)
+	require.NotNil(t, err, "Expected error for invalid pipeline version name")
+	assert.Contains(t, err.Error(), "Invalid pipeline version name")
+	assert.Contains(t, err.Error(), "display_name")
+}
+
+func TestCreateK8sPipelineVersion_InvalidName_Standalone(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	k8sPipeline := &model.Pipeline{
+		Name: "test-pipeline",
+	}
+	k8sPipelineVersion := &model.PipelineVersion{
+		Name:         "test-pipeline",
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	}
+	pipeline, _, err := store.CreatePipelineAndPipelineVersion(k8sPipeline, k8sPipelineVersion)
+	require.NoError(t, err)
+
+	invalidVersion := &model.PipelineVersion{
+		Name:         "Invalid-Version-Name",
+		PipelineId:   pipeline.UUID,
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
+	}
+	_, err = store.CreatePipelineVersion(invalidVersion)
+	require.NotNil(t, err, "Expected error for invalid pipeline version name")
+	assert.Contains(t, err.Error(), "Invalid pipeline version name")
+	assert.Contains(t, err.Error(), "display_name")
+}
+
 // getBasicPipelineSpec returns a basic PipelineSpec for testing purposes
 func getBasicPipelineSpec() v2beta1.IRSpec {
 	return v2beta1.IRSpec{

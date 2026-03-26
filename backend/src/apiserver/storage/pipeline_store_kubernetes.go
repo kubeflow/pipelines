@@ -205,6 +205,14 @@ func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *mod
 	pipeline.UUID = ""
 	pipelineVersion.UUID = ""
 
+	// Validate the pipeline version name before creating either resource to ensure atomicity.
+	if errs := validation.IsDNS1123Subdomain(pipelineVersion.Name); len(errs) > 0 {
+		return nil, nil, util.NewInvalidInputError(
+			"Invalid pipeline version name %q: %s. Use 'display_name' for human-readable labels",
+			pipelineVersion.Name, strings.Join(errs, "; "),
+		)
+	}
+
 	var err error
 
 	pipeline, err = k.CreatePipeline(pipeline)
@@ -657,6 +665,14 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersion(ctx context.Context, pip
 }
 
 func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.Context, pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error) {
+	// Validate the pipeline version name is a valid Kubernetes resource name before sending to the API.
+	if errs := validation.IsDNS1123Subdomain(pipelineVersion.Name); len(errs) > 0 {
+		return nil, util.NewInvalidInputError(
+			"Invalid pipeline version name %q: %s. Use 'display_name' for human-readable labels",
+			pipelineVersion.Name, strings.Join(errs, "; "),
+		)
+	}
+
 	k8sPipelineVersion, err := v2beta1.FromPipelineVersionModel(*pipeline, *pipelineVersion)
 	if err != nil {
 		return nil, util.NewBadRequestError(err, "Invalid pipeline spec")

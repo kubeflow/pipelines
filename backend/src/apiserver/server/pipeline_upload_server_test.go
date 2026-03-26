@@ -235,19 +235,19 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 			name:    "invalid - capitalized",
 			spec:    []byte(invalidV2specCapitalized),
 			wantErr: true,
-			errMsg:  "Failed to create a pipeline and a pipeline version",
+			errMsg:  "pipeline's name must contain only lowercase",
 		},
 		{
 			name:    "invalid - dot",
 			spec:    []byte(invalidV2specDot),
 			wantErr: true,
-			errMsg:  "Failed to create a pipeline and a pipeline version",
+			errMsg:  "pipeline's name must contain only lowercase",
 		},
 		{
 			name:    "invalid - too long",
 			spec:    []byte(invalidV2specLong),
 			wantErr: true,
-			errMsg:  "Failed to create a pipeline and a pipeline version",
+			errMsg:  "pipeline's name must contain no more than 128 characters",
 		},
 	}
 	for _, test := range tt {
@@ -596,6 +596,33 @@ func TestUploadPipelineVersion_NameTooLong(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Contains(t, resp.Body.String(), "PipelineVersion.Name length cannot exceed")
+}
+
+func TestUploadPipelineVersion_InvalidName(t *testing.T) {
+	clientManager, server := setupClientManagerAndServer()
+	// First create a valid pipeline
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, 200, response.Code)
+
+	// Set a new UUID to avoid collision with the default version
+	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+
+	// Upload a version with a v2 spec that has an invalid pipeline name (uppercase)
+	v2Template, _ := template.New([]byte(v2SpecHelloWorldCapitalized), template.TemplateOptions{CacheDisabled: true})
+	invalidSpec := string(v2Template.Bytes())
+
+	bytesBuffer2, writer2 := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello.yaml", invalidSpec, writer2)
+	endpoint := fmt.Sprintf("/apis/v1beta1/pipelines/upload_version?pipelineid=%s",
+		DefaultFakeUUID)
+	resp := uploadPipeline(endpoint,
+		bytes.NewReader(bytesBuffer2.Bytes()), writer2, server.UploadPipelineVersion)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), "pipeline's name must contain only lowercase")
 }
 
 func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
