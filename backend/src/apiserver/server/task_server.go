@@ -163,7 +163,7 @@ func (s *TaskServerV2) ListPipelineTasks(ctx context.Context, request *apiv2beta
 	}
 	if common.IsMultiUserMode() {
 		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Verb: common.RbacResourceVerbList,
+			Verb: common.RbacResourceVerbGet,
 		}
 		run, err := s.resourceManager.GetRun(runID)
 		if err != nil {
