@@ -136,14 +136,33 @@ func (s *TaskServerV2) GetPipelineTask(ctx context.Context, request *apiv2beta1.
 		return nil, util.Wrap(err, "Failed to get a task")
 	}
 	if common.IsMultiUserMode() {
-		if err := s.resourceManager.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
-			Verb:      common.RbacResourceVerbGet,
-			Resource:  common.RbacResourceTypeRuns,
-			Namespace: task.Namespace,
-			Group:     common.RbacPipelinesGroup,
-			Version:   common.RbacPipelinesVersion,
-		}); err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request")
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Verb: common.RbacResourceVerbGet,
+		}
+		run, err := s.resourceManager.GetRun(task.RunID)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to authorize with the run ID %v", task.RunID)
+		}
+		if s.resourceManager.IsEmptyNamespace(run.Namespace) {
+			experiment, err := s.resourceManager.GetExperiment(run.ExperimentId)
+			if err != nil {
+				return nil, util.NewInvalidInputError("run %v has an empty namespace and the parent experiment %v could not be fetched: %s", task.RunID, run.ExperimentId, err.Error())
+			}
+			resourceAttributes.Namespace = experiment.Namespace
+		} else {
+			resourceAttributes.Namespace = run.Namespace
+		}
+		if resourceAttributes.Name == "" {
+			resourceAttributes.Name = run.K8SName
+		}
+		if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+			return nil, util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
+		}
+		resourceAttributes.Group = common.RbacPipelinesGroup
+		resourceAttributes.Version = common.RbacPipelinesVersion
+		resourceAttributes.Resource = common.RbacResourceTypeRuns
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrapf(err, "Failed to access task %s for run %s. Check if you have access to namespace %s", taskID, task.RunID, resourceAttributes.Namespace)
 		}
 	}
 	return toApiPipelineTaskDetail(task), nil
