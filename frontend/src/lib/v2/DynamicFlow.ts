@@ -21,6 +21,8 @@ import {
   SubDagFlowElementData,
 } from 'src/components/graph/Constants';
 import { PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
+import type { V2beta1PipelineTaskDetail } from 'src/apisv2beta1/run/models/V2beta1PipelineTaskDetail';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run/models/V2beta1RuntimeState';
 import {
   buildDag,
   buildGraphLayout,
@@ -41,6 +43,91 @@ export const TASK_NAME_KEY = 'task_name';
 export const PARENT_DAG_ID_KEY = 'parent_dag_id';
 export const ITERATION_COUNT_KEY = 'iteration_count';
 export const ITERATION_INDEX_KEY = 'iteration_index';
+
+type TaskDetailsFailedOverlay = {
+  displayNames: Set<string>;
+  /** MLMD execution ids from the API, stored as decimal strings (avoids Number precision loss). */
+  executionIds: Set<string>;
+};
+
+function isTaskDetailsFailedOverlayEmpty(overlay: TaskDetailsFailedOverlay): boolean {
+  return overlay.displayNames.size === 0 && overlay.executionIds.size === 0;
+}
+
+// JSON may send execution_id as string or number; normalize without floating-point coercion.
+function normalizeTaskDetailExecutionId(raw: unknown): string | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  const s = String(raw).trim();
+  return s === '' ? undefined : s;
+}
+
+function buildTaskDetailsFailedOverlay(
+  taskDetails: V2beta1PipelineTaskDetail[] | undefined,
+): TaskDetailsFailedOverlay {
+  const displayNames = new Set<string>();
+  const executionIds = new Set<string>();
+  if (!taskDetails?.length) {
+    return { displayNames, executionIds };
+  }
+  for (const detail of taskDetails) {
+    if (detail.state !== V2beta1RuntimeState.FAILED) {
+      continue;
+    }
+    if (detail.display_name) {
+      displayNames.add(detail.display_name);
+    }
+    const idStr = normalizeTaskDetailExecutionId(detail.execution_id);
+    if (idStr !== undefined) {
+      executionIds.add(idStr);
+    }
+  }
+  return { displayNames, executionIds };
+}
+
+function applyFailedOverlayFromTaskDetails(
+  elem: PipelineFlowElement,
+  overlay: TaskDetailsFailedOverlay,
+): void {
+  if (
+    isTaskDetailsFailedOverlayEmpty(overlay) ||
+    (elem.type !== NodeTypeNames.EXECUTION && elem.type !== NodeTypeNames.SUB_DAG)
+  ) {
+    return;
+  }
+  const data = elem.data as ExecutionFlowElementData | SubDagFlowElementData;
+  const mlmdId = data?.mlmdId;
+  if (mlmdId !== undefined && overlay.executionIds.has(String(mlmdId))) {
+    if (elem.type === NodeTypeNames.EXECUTION) {
+      (elem.data as ExecutionFlowElementData).state = Execution.State.FAILED;
+    } else {
+      (elem.data as SubDagFlowElementData).state = Execution.State.FAILED;
+    }
+    return;
+  }
+  let taskKey: string;
+  try {
+    taskKey = getTaskKeyFromNodeKey(elem.id);
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('applyFailedOverlayFromTaskDetails: skip node', elem.id, err);
+    }
+    return;
+  }
+  const label = data?.label;
+  if (
+    !overlay.displayNames.has(taskKey) &&
+    !(label && overlay.displayNames.has(label))
+  ) {
+    return;
+  }
+  if (elem.type === NodeTypeNames.EXECUTION) {
+    (elem.data as ExecutionFlowElementData).state = Execution.State.FAILED;
+  } else {
+    (elem.data as SubDagFlowElementData).state = Execution.State.FAILED;
+  }
+}
 
 export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
@@ -221,11 +308,23 @@ export function updateFlowElementsState(
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],
+  taskDetails?: V2beta1PipelineTaskDetail[],
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
+  const failedFromApi = buildTaskDetailsFailedOverlay(taskDetails);
+
   if (executionLayers.length < layers.length) {
-    // This Sub DAG is not executed yet. There is no runtime information to update.
-    return elems;
+    // Sub-DAG layer not fully matched in MLMD yet; still apply API task_details overlay for failures.
+    if (isTaskDetailsFailedOverlayEmpty(failedFromApi)) {
+      return elems;
+    }
+    const overlayGraph: PipelineFlowElement[] = [];
+    for (const elem of elems) {
+      const updatedElem = cloneFlowElement(elem);
+      applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi);
+      overlayGraph.push(updatedElem);
+    }
+    return overlayGraph;
   }
 
   const taskNameToExecution = getTaskNameToExecution(executions);
@@ -257,7 +356,9 @@ export function updateFlowElementsState(
       });
       if (matchedExecs && matchedExecs.length > 0) {
         (updatedElem.data as SubDagFlowElementData).state = matchedExecs[0].getLastKnownState();
+        (updatedElem.data as SubDagFlowElementData).mlmdId = matchedExecs[0].getId();
       }
+      applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi);
       flowGraph.push(updatedElem);
     }
     return flowGraph;
@@ -306,6 +407,7 @@ export function updateFlowElementsState(
         (updatedElem.data as SubDagFlowElementData).mlmdId = executions[0]?.getId();
       }
     }
+    applyFailedOverlayFromTaskDetails(updatedElem, failedFromApi);
     flowGraph.push(updatedElem);
   }
   return flowGraph;

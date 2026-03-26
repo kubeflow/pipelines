@@ -1336,6 +1336,172 @@ func TestWorkflow_NodeStatuses(t *testing.T) {
 	assert.Empty(t, statuses)
 }
 
+func TestWorkflow_NodeStatuses_PodMessageInfersFailed(t *testing.T) {
+	startTime := metav1.NewTime(time.Unix(100, 0).UTC())
+	tests := []struct {
+		name      string
+		node      workflowapi.NodeStatus
+		wantState string
+	}{
+		{
+			// Typical v2 Kubernetes secretAsEnv + missing Secret: task stays Pending while Message
+			// carries CreateContainerConfigError (frontend must not treat this as success).
+			name: "pending pod CreateContainerConfigError",
+			node: workflowapi.NodeStatus{
+				ID:          "n1",
+				DisplayName: "print-envvar",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodePending,
+				Message:     `containers with unready status: [main] (Message: secret "my-secret-that-doesnt-exist" not found: CreateContainerConfigError)`,
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+		{
+			name: "running pod CreateContainerError",
+			node: workflowapi.NodeStatus{
+				ID:          "n2",
+				DisplayName: "step",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodeRunning,
+				Message:     "failed to create container: CreateContainerError",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+		{
+			name: "pending pod ImagePullBackOff",
+			node: workflowapi.NodeStatus{
+				ID:          "n2b",
+				DisplayName: "pull",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodePending,
+				Message:     "Back-off pulling image \"x\": ImagePullBackOff",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+		{
+			name: "running pod ErrImagePull",
+			node: workflowapi.NodeStatus{
+				ID:          "n2c",
+				DisplayName: "pull2",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodeRunning,
+				Message:     "Failed to pull image: ErrImagePull",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+		{
+			name: "pending pod InvalidImageName",
+			node: workflowapi.NodeStatus{
+				ID:          "n2d",
+				DisplayName: "badimg",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodePending,
+				Message:     "InvalidImageName: invalid reference format",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+		{
+			name: "running pod CrashLoopBackOff",
+			node: workflowapi.NodeStatus{
+				ID:          "n2e",
+				DisplayName: "crash",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodeRunning,
+				Message:     "Back-off restarting failed container: CrashLoopBackOff",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+		{
+			name: "pending pod RunContainerError",
+			node: workflowapi.NodeStatus{
+				ID:          "n2f",
+				DisplayName: "runerr",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodePending,
+				Message:     "failed to start container: RunContainerError",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+		{
+			name: "pending pod without fatal message",
+			node: workflowapi.NodeStatus{
+				ID:          "n3",
+				DisplayName: "ok",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodePending,
+				Message:     "ContainerCreating",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodePending),
+		},
+		{
+			name: "dag node with CreateContainerConfigError text ignored",
+			node: workflowapi.NodeStatus{
+				ID:          "n4",
+				DisplayName: "root",
+				Type:        workflowapi.NodeTypeDAG,
+				Phase:       workflowapi.NodeRunning,
+				Message:     "child has CreateContainerConfigError",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeRunning),
+		},
+		{
+			name: "pod already failed unchanged",
+			node: workflowapi.NodeStatus{
+				ID:          "n5",
+				DisplayName: "x",
+				Type:        workflowapi.NodeTypePod,
+				Phase:       workflowapi.NodeFailed,
+				Message:     "CreateContainerConfigError: ...",
+				StartedAt:   startTime,
+			},
+			wantState: string(workflowapi.NodeFailed),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf := NewWorkflow(&workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{Name: "wf"},
+				Status: workflowapi.WorkflowStatus{
+					Nodes: map[string]workflowapi.NodeStatus{"x": tt.node},
+				},
+			})
+			ns := wf.NodeStatuses()["x"]
+			assert.Equal(t, tt.wantState, ns.State)
+		})
+	}
+}
+
+func TestWorkflow_NodeStatuses_InferredFailureFinishTimeUsesStartedAt(t *testing.T) {
+	startTime := metav1.NewTime(time.Unix(100, 0).UTC())
+	node := workflowapi.NodeStatus{
+		ID:          "p1",
+		DisplayName: "task",
+		Type:        workflowapi.NodeTypePod,
+		Phase:       workflowapi.NodePending,
+		Message:     "CreateContainerConfigError: mount failed",
+		StartedAt:   startTime,
+		// FinishedAt zero
+	}
+	wf := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "wf"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{"x": node},
+		},
+	})
+	ns := wf.NodeStatuses()["x"]
+	assert.Equal(t, string(workflowapi.NodeFailed), ns.State)
+	assert.Equal(t, startTime.Unix(), ns.FinishTime)
+}
+
 func TestWorkflow_Compare(t *testing.T) {
 	client := &WorkflowClient{}
 

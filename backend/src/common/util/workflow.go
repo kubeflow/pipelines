@@ -816,16 +816,59 @@ func (w *Workflow) PatchTemplateOutputArtifacts() {
 	}
 }
 
+// fatalPodStartupReasonSubstrings matches Argo/Kubernetes node Message text when the workload
+// is failing to run correctly while Phase may stay Pending or Running (substring heuristic; only
+// applied to NodeTypePod in Pending/Running to limit false positives on DAG aggregate messages).
+var fatalPodStartupReasonSubstrings = []string{
+	"CreateContainerConfigError",
+	"CreateContainerError",
+	"ImagePullBackOff",
+	"ErrImagePull",
+	"InvalidImageName",
+	"CrashLoopBackOff",
+	"RunContainerError",
+}
+
+// taskStateFromNodeStatus maps an Argo node to the task state string stored by the API server.
+// Pod nodes may report kubelet errors only in Message while Phase is still non-terminal.
+// Non-Pod nodes keep Phase as State (Argo sets Type for workflow nodes; empty Type is not treated as Pod).
+func taskStateFromNodeStatus(node workflowapi.NodeStatus) string {
+	if node.Type == workflowapi.NodeTypePod &&
+		(node.Phase == workflowapi.NodePending || node.Phase == workflowapi.NodeRunning) {
+		for _, sub := range fatalPodStartupReasonSubstrings {
+			if strings.Contains(node.Message, sub) {
+				return string(workflowapi.NodeFailed)
+			}
+		}
+	}
+	return string(node.Phase)
+}
+
+// taskFinishTimeUnix returns Unix finish time for persisted task details. When we infer Failed from
+// Message while Phase is still non-terminal, FinishedAt is often unset; use StartedAt so UIs can show duration.
+// Zero metav1.Time encodes as Unix -62135596800, not 0; treat IsZero as unset.
+func taskFinishTimeUnix(node workflowapi.NodeStatus, state string) int64 {
+	if !node.FinishedAt.IsZero() {
+		return node.FinishedAt.Unix()
+	}
+	if state == string(workflowapi.NodeFailed) && node.Phase != workflowapi.NodeFailed &&
+		!node.StartedAt.IsZero() {
+		return node.StartedAt.Unix()
+	}
+	return 0
+}
+
 func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 	rev := make(map[string]NodeStatus, len(w.Status.Nodes))
 	for id, node := range w.Status.Nodes {
+		state := taskStateFromNodeStatus(node)
 		rev[id] = NodeStatus{
 			ID:          RetrievePodName(*w.Workflow, node),
 			DisplayName: node.DisplayName,
-			State:       string(node.Phase),
+			State:       state,
 			StartTime:   node.StartedAt.Unix(),
 			CreateTime:  node.StartedAt.Unix(),
-			FinishTime:  node.FinishedAt.Unix(),
+			FinishTime:  taskFinishTimeUnix(node, state),
 			Children:    node.Children,
 		}
 	}

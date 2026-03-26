@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -3358,6 +3359,53 @@ func Test_toModelTasks_wf(t *testing.T) {
 	if !cmp.Equal(expectedWf, gotWf) {
 		t.Errorf("toModelTasks() diff: %v", cmp.Diff(gotWf, expectedWf))
 	}
+}
+
+// Test_toModelTasks_wf_pending_pod_create_container_config_error ensures v2 run task details derived
+// from an Argo Workflow surface FAILED when the pod is still Pending but the node Message contains
+// CreateContainerConfigError (e.g. missing Secret for secretAsEnv), matching frontend expectations.
+func Test_toModelTasks_wf_pending_pod_create_container_config_error(t *testing.T) {
+	startedAt := v1.NewTime(time.Date(2023, 2, 7, 1, 56, 55, 0, time.UTC))
+	createdAt := v1.NewTime(time.Date(2023, 2, 7, 1, 55, 19, 0, time.UTC))
+
+	argWf := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "wf1",
+			Namespace:         "kubeflow",
+			UID:               "wf1_uid",
+			CreationTimestamp: createdAt,
+			Labels:            map[string]string{"pipeline/runid": "wf1_run_id"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"wf1-print-envvar-0": {
+					ID:           "wf1-print-envvar-0",
+					Name:         "wf1.print-envvar",
+					DisplayName:  "print-envvar",
+					Type:         v1alpha1.NodeTypePod,
+					TemplateName: "print-envvar",
+					Phase:        v1alpha1.NodePending,
+					Message:      `containers with unready status: [main] (Message: secret "my-secret-that-doesnt-exist" not found: CreateContainerConfigError)`,
+					StartedAt:    startedAt,
+				},
+			},
+		},
+	})
+
+	tasks, err := toModelTasks(argWf)
+	require.NoError(t, err)
+	require.Len(t, tasks, 1)
+
+	printTask := tasks[0]
+	assert.Equal(t, "print-envvar", printTask.Name)
+	assert.Equal(t, model.RuntimeStateFailed, printTask.State)
+	assert.Equal(t, "kubeflow", printTask.Namespace)
+	assert.Equal(t, "wf1_run_id", printTask.RunID)
+	assert.Equal(t, "wf1-print-envvar-0", printTask.PodName)
+	assert.Equal(t, startedAt.Unix(), printTask.StartedTimestamp)
+	assert.Equal(t, startedAt.Unix(), printTask.FinishedTimestamp, "inferred failure uses StartedAt when FinishedAt is unset")
+	assert.Equal(t, createdAt.Unix(), printTask.CreatedTimestamp)
 }
 
 func Test_toApiTaskV1(t *testing.T) {

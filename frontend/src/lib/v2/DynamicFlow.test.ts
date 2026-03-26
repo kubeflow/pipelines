@@ -15,14 +15,23 @@
 import { Node } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run/models/V2beta1RuntimeState';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import {
   getNodeMlmdInfo,
+  ITERATION_COUNT_KEY,
+  ITERATION_INDEX_KEY,
   PARENT_DAG_ID_KEY,
   TASK_NAME_KEY,
   updateFlowElementsState,
 } from './DynamicFlow';
-import { convertFlowElements, getTaskKeyFromNodeKey, NodeTypeNames } from './StaticFlow';
+import {
+  convertFlowElements,
+  getTaskKeyFromNodeKey,
+  getTaskNodeKey,
+  NodeTypeNames,
+  TaskType,
+} from './StaticFlow';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import jsyaml from 'js-yaml';
 
@@ -142,6 +151,202 @@ describe('DynamicFlow', () => {
       expect(updatedPreprocessNode.hidden).toBeUndefined();
       expect(updatedPreprocessNode.measured).toEqual({ width: 123, height: 45 });
       expect(updatedPreprocessNode.data?.state).toEqual(preprocessExecution.getLastKnownState());
+    });
+
+    it('overlays FAILED from run task_details when MLMD is still RUNNING', () => {
+      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+      const EXECUTION_TRAIN = new Execution()
+        .setId(4)
+        .setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_TRAIN.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('train'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+
+      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
+      const graph = convertFlowElements(pipelineSpec);
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        [EXECUTION_ROOT, EXECUTION_TRAIN],
+        [],
+        [],
+        [{ display_name: 'train', state: V2beta1RuntimeState.FAILED }],
+      );
+      const trainNode = runtimeGraph.find((e) => e.id === 'task.train');
+      expect(trainNode?.data?.state).toEqual(Execution.State.FAILED);
+    });
+
+    it('overlays FAILED for hyphenated executor task when MLMD is RUNNING (secretAsEnv / print-envvar shape)', () => {
+      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+      const EXECUTION_PRINT = new Execution()
+        .setId(11)
+        .setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_PRINT.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('print-envvar'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+
+      const singleTaskGraph: Node<FlowElementDataBase>[] = [
+        {
+          id: 'task.print-envvar',
+          type: NodeTypeNames.EXECUTION,
+          position: { x: 0, y: 0 },
+          data: { label: 'print-envvar', taskType: TaskType.EXECUTOR },
+        },
+      ];
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        singleTaskGraph,
+        [EXECUTION_ROOT, EXECUTION_PRINT],
+        [],
+        [],
+        [{ display_name: 'print-envvar', state: V2beta1RuntimeState.FAILED }],
+      );
+      const printNode = runtimeGraph.find((e) => e.id === 'task.print-envvar');
+      expect(printNode?.data?.state).toEqual(Execution.State.FAILED);
+    });
+
+    it('overlays FAILED from execution_id when display_name does not match task key', () => {
+      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+      const EXECUTION_TRAIN = new Execution()
+        .setId(4)
+        .setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_TRAIN.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('train'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+
+      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
+      const graph = convertFlowElements(pipelineSpec);
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        [EXECUTION_ROOT, EXECUTION_TRAIN],
+        [],
+        [],
+        [{ display_name: 'different-ui-label', execution_id: '4', state: V2beta1RuntimeState.FAILED }],
+      );
+      const trainNode = runtimeGraph.find((e) => e.id === 'task.train');
+      expect(trainNode?.data?.state).toEqual(Execution.State.FAILED);
+    });
+
+    it('overlays FAILED on parallel-for iteration node via execution_id when display_name mismatches', () => {
+      const expandNoop = (): void => {};
+      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+
+      const EXECUTION_PAR = new Execution().setId(10).setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_PAR.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('par'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2))
+        .set(ITERATION_COUNT_KEY, new Value().setIntValue(2));
+
+      const EXECUTION_PAR_ITER0 = new Execution().setId(99).setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_PAR_ITER0.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('par'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(10))
+        .set(ITERATION_INDEX_KEY, new Value().setIntValue(0));
+
+      const parallelForElems: Node<FlowElementDataBase>[] = [
+        {
+          id: getTaskNodeKey('par.0'),
+          type: NodeTypeNames.SUB_DAG,
+          position: { x: 0, y: 0 },
+          data: { label: 'par.0', taskType: TaskType.DAG, expand: expandNoop },
+        },
+      ];
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root', 'par'],
+        parallelForElems,
+        [EXECUTION_ROOT, EXECUTION_PAR, EXECUTION_PAR_ITER0],
+        [],
+        [],
+        [
+          {
+            display_name: 'iteration-0-api-label',
+            execution_id: '99',
+            state: V2beta1RuntimeState.FAILED,
+          },
+        ],
+      );
+      const iterNode = runtimeGraph.find((e) => e.id === getTaskNodeKey('par.0'));
+      expect(iterNode?.data?.state).toEqual(Execution.State.FAILED);
+    });
+
+    it('overlays FAILED from execution_id only (no display_name)', () => {
+      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+      const EXECUTION_TRAIN = new Execution()
+        .setId(4)
+        .setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_TRAIN.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('train'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+
+      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
+      const graph = convertFlowElements(pipelineSpec);
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        [EXECUTION_ROOT, EXECUTION_TRAIN],
+        [],
+        [],
+        [{ execution_id: '4', state: V2beta1RuntimeState.FAILED }],
+      );
+      const trainNode = runtimeGraph.find((e) => e.id === 'task.train');
+      expect(trainNode?.data?.state).toEqual(Execution.State.FAILED);
+    });
+
+    it('accepts numeric execution_id from JSON-shaped task details', () => {
+      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+      const EXECUTION_TRAIN = new Execution()
+        .setId(4)
+        .setLastKnownState(Execution.State.RUNNING);
+      EXECUTION_TRAIN.getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('train'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+
+      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
+      const graph = convertFlowElements(pipelineSpec);
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        [EXECUTION_ROOT, EXECUTION_TRAIN],
+        [],
+        [],
+        [{ execution_id: 4 as unknown as string, state: V2beta1RuntimeState.FAILED }],
+      );
+      const trainNode = runtimeGraph.find((e) => e.id === 'task.train');
+      expect(trainNode?.data?.state).toEqual(Execution.State.FAILED);
+    });
+
+    it('applies task_details FAILED when MLMD execution layers are incomplete', () => {
+      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
+      const graph = convertFlowElements(pipelineSpec);
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        [],
+        [],
+        [],
+        [{ display_name: 'train', state: V2beta1RuntimeState.FAILED }],
+      );
+      const trainNode = runtimeGraph.find((e) => e.id === 'task.train');
+      expect(trainNode?.data?.state).toEqual(Execution.State.FAILED);
     });
   });
 
