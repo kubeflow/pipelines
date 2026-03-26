@@ -338,6 +338,93 @@ describe('NewRunSwitcher', () => {
       expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
     });
 
+    it('prefers inline pipeline_spec over version-derived template when cloning a run', async () => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue({
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: {
+          apiVersion: 'argoproj.io/v1alpha1',
+          kind: 'Workflow',
+          metadata: { name: 'from-version' },
+          spec: { arguments: { parameters: [{ name: 'output' }] } },
+        },
+      } as V2beta1PipelineVersion);
+      const sdkRun: V2beta1Run = {
+        run_id: TEST_RUN_ID,
+        display_name: 'SDK run',
+        pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+        pipeline_version_reference: {
+          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+          pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        },
+        state: V2beta1RuntimeState.SUCCEEDED,
+      };
+      vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue(sdkRun);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...generatePropsCloneRun()} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith(TEST_RUN_ID);
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        );
+        expect(screen.getByText('Pipeline Root')).toBeInTheDocument();
+      });
+    });
+
+    it('prefers inline recurring_run.pipeline_spec over version-derived template when cloning', async () => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue({
+        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+        pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        pipeline_spec: {
+          apiVersion: 'argoproj.io/v1alpha1',
+          kind: 'Workflow',
+          metadata: { name: 'from-version' },
+          spec: { arguments: { parameters: [{ name: 'output' }] } },
+        },
+      } as V2beta1PipelineVersion);
+      const sdkRecurringRun: V2beta1RecurringRun = {
+        recurring_run_id: TEST_RECURRING_RUN_ID,
+        display_name: 'SDK recurring run',
+        pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+        pipeline_version_reference: {
+          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+          pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        },
+      };
+      vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun').mockResolvedValue(sdkRecurringRun);
+
+      render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...generatePropsCloneRecurringRun()} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(Apis.recurringRunServiceApi.getRecurringRun).toHaveBeenCalledWith(
+          TEST_RECURRING_RUN_ID,
+        );
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          ORIGINAL_TEST_PIPELINE_VERSION_ID,
+        );
+        expect(screen.getByText('Pipeline Root')).toBeInTheDocument();
+      });
+    });
+
     it('throws when both run and recurring run are non-null', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
