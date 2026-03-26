@@ -141,8 +141,12 @@ func (s *TaskServerV2) ListPipelineTasks(ctx context.Context, request *apiv2beta
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
-	filterContext := &model.FilterContext{
-		ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: request.GetRunId()},
+	runID := request.GetRunId()
+	var filterContext *model.FilterContext
+	if runID != "" {
+		filterContext = &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runID},
+		}
 	}
 	tasks, totalSize, nextPageToken, err := s.resourceManager.ListTasks(filterContext, opts)
 	if err != nil {
