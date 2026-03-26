@@ -229,7 +229,7 @@ func TestListTasksV1_AfterCreate(t *testing.T) {
 	assert.Equal(t, "pipeline/my-pipeline", response.Tasks[0].PipelineName)
 }
 
-func TestNewTaskServer(t *testing.T) {
+func TestNewTaskServerV2(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewTaskServer(manager)
@@ -237,7 +237,7 @@ func TestNewTaskServer(t *testing.T) {
 	assert.Equal(t, manager, server.resourceManager)
 }
 
-func TestGetPipelineTask_NotFound(t *testing.T) {
+func TestGetPipelineTaskV2_NotFound(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewTaskServer(manager)
@@ -247,7 +247,7 @@ func TestGetPipelineTask_NotFound(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestGetPipelineTask(t *testing.T) {
+func TestGetPipelineTaskV2(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
@@ -278,7 +278,7 @@ func TestGetPipelineTask(t *testing.T) {
 	assert.Equal(t, run.UUID, taskDetail.RunId)
 }
 
-func TestListPipelineTasks_AfterCreate(t *testing.T) {
+func TestListPipelineTasksV2_AfterCreate(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
@@ -310,7 +310,7 @@ func TestListPipelineTasks_AfterCreate(t *testing.T) {
 	assert.Equal(t, run.UUID, response.Tasks[0].RunId)
 }
 
-func TestListPipelineTasks_Empty(t *testing.T) {
+func TestListPipelineTasksV2_InvalidRequest(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
@@ -329,7 +329,7 @@ func TestListPipelineTasks_Empty(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	// list via V2, filtering by run_id.
+	// list via V2
 	serverV2 := NewTaskServer(manager)
 	response, err := serverV2.ListPipelineTasks(context.Background(), &apiv2beta1.ListPipelineTasksRequest{})
 	// the error should be there and the response should be nil

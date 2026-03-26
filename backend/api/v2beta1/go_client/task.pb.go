@@ -21,6 +21,7 @@
 package go_client
 
 import (
+	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -220,24 +221,32 @@ var File_backend_api_v2beta1_task_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2beta1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x1ebackend/api/v2beta1/task.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1dbackend/api/v2beta1/run.proto\x1a\x1cgoogle/api/annotations.proto\"1\n" +
+	"\x1ebackend/api/v2beta1/task.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1dbackend/api/v2beta1/run.proto\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"1\n" +
 	"\x16GetPipelineTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x9e\x01\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xae\x01\n" +
 	"\x18ListPipelineTasksRequest\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x17\n" +
 	"\asort_by\x18\x04 \x01(\tR\x06sortBy\x12\x16\n" +
-	"\x06filter\x18\x05 \x01(\tR\x06filter\"\xb4\x01\n" +
+	"\x06filter\x18\x05 \x01(\tR\x06filter:\x0e\x92A\v\n" +
+	"\t\xd2\x01\x06run_id\"\xb4\x01\n" +
 	"\x19ListPipelineTasksResponse\x12P\n" +
 	"\x05tasks\x18\x01 \x03(\v2:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetailR\x05tasks\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\ttotalSize2\xfc\x02\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize2\x8a\x03\n" +
 	"\vTaskService\x12\xb4\x01\n" +
-	"\x0fGetPipelineTask\x12>.kubeflow.pipelines.backend.api.v2beta1.GetPipelineTaskRequest\x1a:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetail\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/apis/v2beta1/tasks/{task_id}\x12\xb5\x01\n" +
-	"\x11ListPipelineTasks\x12@.kubeflow.pipelines.backend.api.v2beta1.ListPipelineTasksRequest\x1aA.kubeflow.pipelines.backend.api.v2beta1.ListPipelineTasksResponse\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/apis/v2beta1/tasksB=Z;github.com/kubeflow/pipelines/backend/api/v2beta1/go_clientb\x06proto3"
+	"\x0fGetPipelineTask\x12>.kubeflow.pipelines.backend.api.v2beta1.GetPipelineTaskRequest\x1a:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetail\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/apis/v2beta1/tasks/{task_id}\x12\xc3\x01\n" +
+	"\x11ListPipelineTasks\x12@.kubeflow.pipelines.backend.api.v2beta1.ListPipelineTasksRequest\x1aA.kubeflow.pipelines.backend.api.v2beta1.ListPipelineTasksResponse\")\x82\xd3\xe4\x93\x02#\x12!/apis/v2beta1/runs/{run_id}/tasksB\x98\x01\x92AX*\x02\x01\x02R#\n" +
+	"\adefault\x12\x18\x12\x16\n" +
+	"\x14\x1a\x12.google.rpc.StatusZ\x1f\n" +
+	"\x1d\n" +
+	"\x06Bearer\x12\x13\b\x02\x1a\rauthorization \x02b\f\n" +
+	"\n" +
+	"\n" +
+	"\x06Bearer\x12\x00Z;github.com/kubeflow/pipelines/backend/api/v2beta1/go_clientb\x06proto3"
 
 var (
 	file_backend_api_v2beta1_task_proto_rawDescOnce sync.Once

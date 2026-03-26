@@ -47,7 +47,7 @@ service TaskService {
 
     rpc ListPipelineTasks(ListPipelineTasksRequest) returns (ListPipelineTasksResponse) {
       option (google.api.http) = {
-        get: "/apis/v2beta1/tasks"
+        get: "/apis/v2beta1/runs/{run_id}/tasks"
       };
     }
 }
@@ -56,6 +56,11 @@ message GetPipelineTaskRequest {
 }
 
 message ListPipelineTasksRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            required: ["run_id"]
+        }
+    };
     string run_id = 1;
     string page_token = 2;
     int32 page_size = 3;

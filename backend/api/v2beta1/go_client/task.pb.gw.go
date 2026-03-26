@@ -74,15 +74,24 @@ func local_request_TaskService_GetPipelineTask_0(ctx context.Context, marshaler 
 	return msg, metadata, err
 }
 
-var filter_TaskService_ListPipelineTasks_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+var filter_TaskService_ListPipelineTasks_0 = &utilities.DoubleArray{Encoding: map[string]int{"run_id": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 
 func request_TaskService_ListPipelineTasks_0(ctx context.Context, marshaler runtime.Marshaler, client TaskServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var (
 		protoReq ListPipelineTasksRequest
 		metadata runtime.ServerMetadata
+		err      error
 	)
 	if req.Body != nil {
 		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	val, ok := pathParams["run_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "run_id")
+	}
+	protoReq.RunId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "run_id", err)
 	}
 	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
@@ -98,7 +107,16 @@ func local_request_TaskService_ListPipelineTasks_0(ctx context.Context, marshale
 	var (
 		protoReq ListPipelineTasksRequest
 		metadata runtime.ServerMetadata
+		err      error
 	)
+	val, ok := pathParams["run_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "run_id")
+	}
+	protoReq.RunId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "run_id", err)
+	}
 	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
@@ -141,7 +159,7 @@ func RegisterTaskServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/kubeflow.pipelines.backend.api.v2beta1.TaskService/ListPipelineTasks", runtime.WithHTTPPathPattern("/apis/v2beta1/tasks"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/kubeflow.pipelines.backend.api.v2beta1.TaskService/ListPipelineTasks", runtime.WithHTTPPathPattern("/apis/v2beta1/runs/{run_id}/tasks"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -216,7 +234,7 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/kubeflow.pipelines.backend.api.v2beta1.TaskService/ListPipelineTasks", runtime.WithHTTPPathPattern("/apis/v2beta1/tasks"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/kubeflow.pipelines.backend.api.v2beta1.TaskService/ListPipelineTasks", runtime.WithHTTPPathPattern("/apis/v2beta1/runs/{run_id}/tasks"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -234,7 +252,7 @@ func RegisterTaskServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux
 
 var (
 	pattern_TaskService_GetPipelineTask_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "tasks", "task_id"}, ""))
-	pattern_TaskService_ListPipelineTasks_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "tasks"}, ""))
+	pattern_TaskService_ListPipelineTasks_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"apis", "v2beta1", "runs", "run_id", "tasks"}, ""))
 )
 
 var (

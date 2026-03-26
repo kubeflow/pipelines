@@ -168,6 +168,9 @@ func (s *TaskServerV2) GetPipelineTask(ctx context.Context, request *apiv2beta1.
 	return toApiPipelineTaskDetail(task), nil
 }
 func (s *TaskServerV2) ListPipelineTasks(ctx context.Context, request *apiv2beta1.ListPipelineTasksRequest) (*apiv2beta1.ListPipelineTasksResponse, error) {
+	if request == nil {
+		return nil, util.NewInvalidInputError("ListPipelineTasksRequest is nil")
+	}
 	opts, err := validatedListOptions(&model.Task{}, request.GetPageToken(), int(request.GetPageSize()), request.GetSortBy(), request.GetFilter(),
 		"v2beta1")
 	if err != nil {
