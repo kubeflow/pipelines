@@ -20,20 +20,16 @@ import (
 	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func createTaskServer(resourceManager *resource.ResourceManager) *TaskServer {
-	return &TaskServer{resourceManager: resourceManager}
-}
-
-func TestNewTaskServer(t *testing.T) {
+func TestNewTaskServerV1(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	assert.NotNil(t, server)
 	assert.Equal(t, manager, server.resourceManager)
 }
@@ -41,7 +37,7 @@ func TestNewTaskServer(t *testing.T) {
 func TestCreateTaskV1_NilRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := createTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	_, err := server.CreateTaskV1(context.Background(), nil)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "CreateTaskRequest is nil")
@@ -50,7 +46,7 @@ func TestCreateTaskV1_NilRequest(t *testing.T) {
 func TestCreateTaskV1_IdSet(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := createTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
 		Task: &api.Task{
 			Id:              "some-id",
@@ -128,7 +124,7 @@ func TestCreateTaskV1_MissingRequiredFields(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			clients, manager, _ := initWithExperiment(t)
 			defer clients.Close()
-			server := createTaskServer(manager)
+			server := NewTaskServerV1(manager)
 			_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
 				Task: testCase.task,
 			})
@@ -141,7 +137,7 @@ func TestCreateTaskV1_MissingRequiredFields(t *testing.T) {
 func TestCreateTaskV1_NamespacedPipeline_Invalid(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := createTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
 		Task: &api.Task{
 			PipelineName:    "namespace/ns1",
@@ -158,7 +154,7 @@ func TestCreateTaskV1_NamespacedPipeline_Invalid(t *testing.T) {
 func TestCreateTaskV1_NamespacedPipeline_ConflictingNamespace(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := createTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
 		Task: &api.Task{
 			Namespace:       "other-ns",
@@ -176,7 +172,7 @@ func TestCreateTaskV1_NamespacedPipeline_ConflictingNamespace(t *testing.T) {
 func TestCreateTaskV1(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
-	server := createTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	createdAt := timestamppb.New(time.Unix(1, 0))
 	task, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
 		Task: &api.Task{
@@ -199,7 +195,7 @@ func TestCreateTaskV1(t *testing.T) {
 func TestListTasksV1_Empty(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := createTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	response, err := server.ListTasksV1(context.Background(), &api.ListTasksRequest{})
 	assert.Nil(t, err)
 	assert.NotNil(t, response)
@@ -212,7 +208,7 @@ func TestListTasksV1_AfterCreate(t *testing.T) {
 	defer clients.Close()
 	// Reset UUID generator so the task gets a fresh UUID.
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
-	server := createTaskServer(manager)
+	server := NewTaskServerV1(manager)
 	createdAt := timestamppb.New(time.Unix(1, 0))
 	_, err := server.CreateTaskV1(context.Background(), &api.CreateTaskRequest{
 		Task: &api.Task{
