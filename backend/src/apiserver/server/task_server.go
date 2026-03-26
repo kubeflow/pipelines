@@ -122,7 +122,14 @@ func (s *TaskServerV1) ListTasksV1(ctx context.Context, request *apiv1beta1.List
 		nil
 }
 func (s *TaskServerV2) GetPipelineTask(ctx context.Context, request *apiv2beta1.GetPipelineTaskRequest) (*apiv2beta1.PipelineTaskDetail, error) {
-	task, err := s.resourceManager.GetTask(request.GetTaskId())
+	if request == nil {
+		return nil, util.NewInvalidInputError("GetPipelineTaskRequest is nil")
+	}
+	taskID := request.GetTaskId()
+	if taskID == "" {
+		return nil, util.NewInvalidInputError("task_id must be provided")
+	}
+	task, err := s.resourceManager.GetTask(taskID)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get a task")
 	}
