@@ -162,7 +162,7 @@ function getRunValidationErrorMessage(
   isTemplatePullSuccess?: boolean,
 ) {
   if (isTemplatePullSuccess) {
-    return runName ? '' : 'Run name can not be empty.';
+    return runName ? '' : 'Run name cannot be empty.';
   }
   if (!existingPipeline) {
     return 'A pipeline must be selected';
@@ -305,7 +305,9 @@ function NewRunV2(props: NewRunV2Props) {
     if (existingPipeline?.display_name) {
       setPipelineName(existingPipeline.display_name);
     }
-    if (existingPipelineVersion?.display_name) {
+    if (useLatestVersion) {
+      setPipelineVersionName('');
+    } else if (existingPipelineVersion?.display_name) {
       setPipelineVersionName(existingPipelineVersion.display_name);
     }
     if (experiment?.display_name) {
@@ -314,7 +316,7 @@ function NewRunV2(props: NewRunV2Props) {
     if (experiment?.experiment_id) {
       setExperimentId(experiment.experiment_id);
     }
-  }, [existingPipeline, existingPipelineVersion, experiment]);
+  }, [existingPipeline, existingPipelineVersion, experiment, useLatestVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
