@@ -199,8 +199,8 @@ func GetDurationConfigWithDefault(configName string, value time.Duration) time.D
 	if raw == "" {
 		return value
 	}
-	parsedDuration := viper.GetDuration(configName)
-	if parsedDuration <= 0 {
+	parsedDuration, err := time.ParseDuration(raw)
+	if err != nil || parsedDuration <= 0 {
 		glog.Warningf("Config %s has invalid duration value %q, using default %v", configName, raw, value)
 		return value
 	}
