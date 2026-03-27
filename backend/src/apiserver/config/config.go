@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,6 +30,31 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/grpc/codes"
 )
+
+const managedPipelinesUploadTagsEnv = "MANAGED_PIPELINES_UPLOAD_TAGS"
+
+// parseManagedPipelinesTags reads MANAGED_PIPELINES_UPLOAD_TAGS from the
+// environment and returns the parsed key=value pairs. Returns nil when the
+// variable is unset or empty (backward-compatible no-op).
+func parseManagedPipelinesTags() (map[string]string, error) {
+	raw := os.Getenv(managedPipelinesUploadTagsEnv)
+	if raw == "" {
+		return nil, nil
+	}
+	tags := make(map[string]string)
+	for _, entry := range strings.Split(raw, ",") {
+		idx := strings.Index(entry, "=")
+		if idx < 0 {
+			return nil, fmt.Errorf("malformed %s entry %q: missing '='", managedPipelinesUploadTagsEnv, entry)
+		}
+		key := entry[:idx]
+		if key == "" {
+			return nil, fmt.Errorf("malformed %s entry %q: empty key", managedPipelinesUploadTagsEnv, entry)
+		}
+		tags[key] = entry[idx+1:]
+	}
+	return tags, nil
+}
 
 // deprecated
 type deprecatedConfig struct {
@@ -78,6 +104,14 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 	if !pathExists {
 		glog.Infof("No samples path provided, skipping loading samples..")
 		return nil
+	}
+
+	tags, err := parseManagedPipelinesTags()
+	if err != nil {
+		return err
+	}
+	if len(tags) > 0 {
+		glog.Infof("Parsed %d managed pipeline upload tag(s) from %s", len(tags), managedPipelinesUploadTagsEnv)
 	}
 
 	configBytes, err := os.ReadFile(sampleConfigPath)
@@ -142,6 +176,7 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 					Name:        cfg.Name,
 					DisplayName: pipelineDisplayName,
 					Description: model.LargeText(cfg.Description),
+					Tags:        tags,
 				})
 				if configErr != nil {
 					// Log the error but not fail. The API Server pod can restart and it could potentially cause
