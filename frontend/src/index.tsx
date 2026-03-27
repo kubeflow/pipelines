@@ -72,7 +72,7 @@ const app = (
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element not found');
 const root = createRoot(container);
-const isDevOrTest = process.env.NODE_ENV !== 'production';
+const isDevOrTest = import.meta.env.DEV;
 
 const appWithNamespace =
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
