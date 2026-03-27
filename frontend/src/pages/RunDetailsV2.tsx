@@ -159,9 +159,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     }
 
     return (
-      run.run_details.task_details.find(
-        (t) => t.display_name === selectedNode.data?.label,
-      ) ?? null
+      run.run_details.task_details.find((t) => t.display_name === selectedNode.data?.label) ?? null
     );
   }, [selectedNode, run]);
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {

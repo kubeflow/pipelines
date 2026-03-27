@@ -77,7 +77,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => { }}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -112,7 +112,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => { }}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -142,7 +142,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => { }}
+          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={{
             data: { label: 'train-model' },
@@ -172,7 +172,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => { }}
+          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={{
             data: { label: 'train-model' },
@@ -206,7 +206,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => { }}
+          onLayerChange={(layers) => {}}
           runId={TEST_RUN_ID}
           element={{
             data: {
@@ -238,7 +238,7 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => { }}
+          onLayerChange={(layers) => {}}
           pipelineJobString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
           element={{

@@ -198,7 +198,10 @@ function TaskNodeDetail({
         {/* Task Details tab */}
         {selectedTab === 1 && (
           <div className={padding(20)}>
-            <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution, taskDetails)} />
+            <DetailsTable
+              title='Task Details'
+              fields={getTaskDetailsFields(element, execution, taskDetails)}
+            />
             <DetailsTable
               title='Volume Mounts'
               fields={getNodeVolumeMounts(layers, pipelineJobString, element)}

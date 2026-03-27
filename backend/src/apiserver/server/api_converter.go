@@ -1632,7 +1632,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		return &model.Task{}, nil
 	}
 	var taskId, nodeId, namespace, pipelineName, runId, mlmdExecId, fingerprint string
-	var name, parentTaskId, state, inputs, outputs, taskPayload string
+	var name, parentTaskID, state, inputs, outputs, taskPayload string
 	var createTime, startTime, finishTime int64
 	var stateHistory []*model.RuntimeStatus
 	var children []string
@@ -1649,7 +1649,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		startTime = createTime
 		finishTime = apiTaskV1.GetFinishedAt().GetSeconds()
 		name = ""
-		parentTaskId = ""
+		parentTaskID = ""
 		state = ""
 		inputs = ""
 		outputs = ""
@@ -1665,7 +1665,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		startTime = apiTaskDetailV2.GetStartTime().GetSeconds()
 		finishTime = apiTaskDetailV2.GetEndTime().GetSeconds()
 		name = apiTaskDetailV2.GetDisplayName()
-		parentTaskId = apiTaskDetailV2.GetParentTaskId()
+		parentTaskID = apiTaskDetailV2.GetParentTaskId()
 		state = apiTaskDetailV2.GetState().String()
 		if hist, err := toModelRuntimeStatuses(apiTaskDetailV2.GetStateHistory()); err == nil {
 			stateHistory = hist
@@ -1714,7 +1714,7 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		FinishedTimestamp: finishTime,
 		Fingerprint:       fingerprint,
 		Name:              name,
-		ParentTaskId:      parentTaskId,
+		ParentTaskId:      parentTaskID,
 		State:             model.RuntimeState(state).ToV2(),
 		StateHistory:      stateHistory,
 		MLMDInputs:        model.LargeText(inputs),
