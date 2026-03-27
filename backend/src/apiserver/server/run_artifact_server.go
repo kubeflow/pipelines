@@ -52,8 +52,9 @@ type RunArtifactServer struct {
 //     HTTP 200 with body: {"data": "<base64-encoded content>"}
 //
 //   - Flag on + backend supports presigned URLs (S3, GCS): returns HTTP 307 with
-//     a Location header pointing directly to the object in storage. The response
-//     body is empty — there is no JSON wrapper. Clients must follow the redirect.
+//     a Location header pointing directly to the object in storage. No JSON wrapper
+//     is returned in this mode; clients must follow the redirect and should ignore
+//     the response body content.
 //
 //   - Flag on + backend does not support presigned URLs (e.g. local FS):
 //     falls back to the proxied JSON response above.
