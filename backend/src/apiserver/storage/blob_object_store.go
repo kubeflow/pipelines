@@ -122,6 +122,9 @@ func (b *BlobObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, fi
 }
 
 func (b *BlobObjectStore) SignedURL(ctx context.Context, filePath string, ttl time.Duration) (string, error) {
+	if b.bucket == nil {
+		return "", util.NewInternalServerError(nil, "Bucket is not configured")
+	}
 	url, err := b.bucket.SignedURL(ctx, filePath, &blob.SignedURLOptions{Expiry: ttl})
 	if err != nil {
 		if gcerrors.Code(err) == gcerrors.Unimplemented {
