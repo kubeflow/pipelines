@@ -7,7 +7,7 @@ process.env.TZ = 'UTC';
 // Pin toLocaleString to en-US so tests pass on any locale/machine
 const _originalToLocaleString = Date.prototype.toLocaleString;
 Date.prototype.toLocaleString = function(
-  locale?: string | string[],
+  _locale?: string | string[],
   options?: Intl.DateTimeFormatOptions,
 ) {
   return _originalToLocaleString.call(this, 'en-US', options);
@@ -15,7 +15,7 @@ Date.prototype.toLocaleString = function(
 
 const _originalToLocaleDateString = Date.prototype.toLocaleDateString;
 Date.prototype.toLocaleDateString = function(
-  locale?: string | string[],
+  _locale?: string | string[],
   options?: Intl.DateTimeFormatOptions,
 ) {
   return _originalToLocaleDateString.call(this, 'en-US', options);
