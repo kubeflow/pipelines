@@ -100,6 +100,10 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 				return
 			}
 			if url != "" {
+				// Prevent caching of redirect responses that contain time-limited bearer URLs
+				response.Header().Set("Cache-Control", "no-store, private")
+				response.Header().Set("Pragma", "no-cache")
+				response.Header().Set("Expires", "0")
 				http.Redirect(response, r, url, http.StatusTemporaryRedirect)
 				return
 			}
