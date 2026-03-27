@@ -44,6 +44,7 @@ const (
 	DefaultSecurityContextRunAsUser         string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_USER"
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
+	ArtifactPresignedURLEnabled             string = "ARTIFACT_PRESIGNED_URL_ENABLED"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -114,6 +115,9 @@ func IsMultiUserMode() bool {
 
 func IsMultiUserSharedReadMode() bool {
 	return GetBoolConfigWithDefault(MultiUserModeSharedReadAccess, false)
+}
+func IsArtifactPresignedURLEnabled() bool {
+	return GetBoolConfigWithDefault(ArtifactPresignedURLEnabled, false)
 }
 
 func GetPodNamespace() string {

@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"io"
+	"time"
 )
 
 // ObjectStore is the interface for object store operations.
@@ -30,4 +31,11 @@ type ObjectStore interface {
 	AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
+}
+
+// PresignableStore is an optional capability interface implemented by
+// ObjectStore backends that support time-limited pre-signed URLs (e.g. S3, GCS).
+// Returns an empty string (no error) if the backend does not support presigned URLs.
+type PresignableStore interface {
+	SignedURL(ctx context.Context, filePath string, ttl time.Duration) (string, error)
 }

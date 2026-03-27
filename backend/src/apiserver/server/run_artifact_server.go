@@ -22,12 +22,14 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
@@ -35,6 +37,7 @@ import (
 const (
 	ArtifactNameKey          = "artifact_name"
 	missingParamErrorMessage = "missing path parameter: '%s'"
+	ArtifactURLDuration      = 15 * time.Minute
 )
 
 type RunArtifactServer struct {
@@ -88,8 +91,22 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
 		return
 	}
+	objectStore := s.resourceManager.ObjectStore()
+	if common.IsArtifactPresignedURLEnabled() {
+		if ps, ok := objectStore.(storage.PresignableStore); ok {
+			url, err := ps.SignedURL(r.Context(), artifactPath, ArtifactURLDuration)
+			if err != nil {
+				s.writeErrorToResponse(response, http.StatusInternalServerError, err)
+				return
+			}
+			if url != "" {
+				http.Redirect(response, r, url, http.StatusTemporaryRedirect)
+				return
+			}
+		}
+	}
 
-	reader, err := s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
+	reader, err := objectStore.GetFileReader(r.Context(), artifactPath)
 	if err != nil {
 		s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
 		return

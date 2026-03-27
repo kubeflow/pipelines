@@ -322,6 +322,11 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			expected: false,
 		},
 		{
+			name:     "IsArtifactPresignedURLEnabled defaults to false",
+			getter:   func() interface{} { return IsArtifactPresignedURLEnabled() },
+			expected: false,
+		},
+		{
 			name:     "GetPodNamespace defaults to kubeflow",
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: DefaultPodNamespace,
@@ -432,6 +437,13 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envKey:   MultiUserModeSharedReadAccess,
 			envValue: "true",
 			getter:   func() interface{} { return IsMultiUserSharedReadMode() },
+			expected: true,
+		},
+		{
+			name:     "IsArtifactPresignedURLEnabled with custom true",
+			envKey:   ArtifactPresignedURLEnabled,
+			envValue: "true",
+			getter:   func() interface{} { return IsArtifactPresignedURLEnabled() },
 			expected: true,
 		},
 		{

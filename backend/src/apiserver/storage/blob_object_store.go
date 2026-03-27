@@ -20,9 +20,11 @@ import (
 	"context"
 	"io"
 	"path"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
+	"gocloud.dev/gcerrors"
 	"sigs.k8s.io/yaml"
 )
 
@@ -117,6 +119,17 @@ func (b *BlobObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, fi
 		return util.NewInternalServerError(err, "Failed to unmarshal file %v: %v", filePath, err.Error())
 	}
 	return nil
+}
+
+func (b *BlobObjectStore) SignedURL(ctx context.Context, filePath string, ttl time.Duration) (string, error) {
+	url, err := b.bucket.SignedURL(ctx, filePath, &blob.SignedURLOptions{Expiry: ttl})
+	if err != nil {
+		if gcerrors.Code(err) == gcerrors.Unimplemented {
+			return "", nil
+		}
+		return "", util.NewInternalServerError(err, "Failed to get signed URL for file %v", filePath)
+	}
+	return url, nil
 }
 
 func NewBlobObjectStore(bucket *blob.Bucket, baseFolder string) *BlobObjectStore {
