@@ -404,6 +404,99 @@ describe('NewRunV2', () => {
     expect(runNameInput.closest('input')?.value).toBe('Run with custom name');
   });
 
+  it('updates the default run name when the selected pipeline version changes', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByDisplayValue((content, _) =>
+      content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
+    );
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2LWYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(
+      await screen.findByDisplayValue((content, _) =>
+        content.startsWith(`Run of ${OTHER_TEST_PIPELINE_VERSION_NAME}`),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('preserves a custom run name when the selected pipeline version changes', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2XGYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    const runNameInput = await screen.findByDisplayValue((content, _) =>
+      content.startsWith(`Run of ${ORIGINAL_TEST_PIPELINE_VERSION_NAME}`),
+    );
+    fireEvent.change(runNameInput, { target: { value: 'Run with custom name' } });
+
+    rerender(
+      <CommonTestWrapper>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          existingRunId={null}
+          existingRun={undefined}
+          existingRecurringRunId={null}
+          existingRecurringRun={undefined}
+          existingPipeline={ORIGINAL_TEST_PIPELINE}
+          handlePipelineIdChange={vi.fn()}
+          existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={vi.fn()}
+          templateString={v2LWYamlTemplateString}
+          chosenExperiment={undefined}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByDisplayValue('Run with custom name')).toBeInTheDocument();
+  });
+
   describe('redirect to different new run page', () => {
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(
@@ -614,7 +707,7 @@ describe('NewRunV2', () => {
 
       const startButton = await screen.findByText('Start');
       expect(startButton.closest('button')?.disabled).toEqual(true);
-      expect(await screen.findByText('Run name can not be empty.'));
+      expect(await screen.findByText('Run name cannot be empty.'));
     });
 
     it('submit a new run without parameter (create new run)', async () => {
@@ -1535,6 +1628,55 @@ describe('NewRunV2', () => {
       // Verify choose button is disabled
       const chooseBtn = document.getElementById('choosePipelineVersionBtn');
       expect(chooseBtn.disabled).toBe(true);
+    });
+
+    it('should keep the version selection blank while latest-version mode is enabled', async () => {
+      const { rerender } = render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2XGYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      fireEvent.click(screen.getByLabelText('Recurring'));
+      fireEvent.click(screen.getByLabelText('Always use the latest pipeline version'));
+
+      await waitFor(() => {
+        expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
+      });
+
+      rerender(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            existingRun={undefined}
+            existingRecurringRunId={null}
+            existingRecurringRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={vi.fn()}
+            existingPipelineVersion={OTHER_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={vi.fn()}
+            templateString={v2LWYamlTemplateString}
+            chosenExperiment={undefined}
+          />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByDisplayValue(OTHER_TEST_PIPELINE_VERSION_NAME)).toBeNull();
+      });
     });
 
     it('should submit correct payload with only pipeline_id when checked', async () => {
