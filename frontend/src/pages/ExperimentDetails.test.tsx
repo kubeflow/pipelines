@@ -380,9 +380,13 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    });
     const closeButton = await screen.findByRole('button', { name: 'Close' });
-    fireEvent.click(closeButton);
+    await invokeAndFlush(() => {
+      fireEvent.click(closeButton);
+    });
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
