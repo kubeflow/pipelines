@@ -88,15 +88,6 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 		return
 	}
 
-	artifactFileExists, err := s.artifactFileExists(r.Context(), runID, nodeID, artifactName)
-	if err != nil {
-		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
-		return
-	} else if !artifactFileExists {
-		s.writeErrorToResponse(response, http.StatusNotFound, fmt.Errorf("artifact not found: %v", err))
-		return
-	}
-
 	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
 		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
@@ -120,7 +111,14 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 			}
 		}
 	}
-
+	artifactFileExists, err := s.artifactFileExists(r.Context(), runID, nodeID, artifactName)
+	if err != nil {
+		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
+		return
+	} else if !artifactFileExists {
+		s.writeErrorToResponse(response, http.StatusNotFound, fmt.Errorf("artifact not found: %v", err))
+		return
+	}
 	reader, err := objectStore.GetFileReader(r.Context(), artifactPath)
 	if err != nil {
 		s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
