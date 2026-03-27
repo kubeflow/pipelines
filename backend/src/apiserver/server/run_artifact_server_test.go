@@ -456,7 +456,7 @@ func TestReadArtifact_PresignedURLRedirect(t *testing.T) {
 
 	assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
 	assert.Equal(t, presignedURL, rr.Header().Get("Location"))
-	// check empty data filed in the body
+	// check empty data field in the body
 	assert.NotContains(t, rr.Body.String(), `"data"`)
 }
 
