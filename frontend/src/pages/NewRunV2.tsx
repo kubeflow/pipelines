@@ -305,18 +305,21 @@ function NewRunV2(props: NewRunV2Props) {
     if (existingPipeline?.display_name) {
       setPipelineName(existingPipeline.display_name);
     }
-    if (useLatestVersion) {
-      setPipelineVersionName('');
-    } else if (existingPipelineVersion?.display_name) {
-      setPipelineVersionName(existingPipelineVersion.display_name);
-    }
     if (experiment?.display_name) {
       setExperimentName(experiment.display_name);
     }
     if (experiment?.experiment_id) {
       setExperimentId(experiment.experiment_id);
     }
-  }, [existingPipeline, existingPipelineVersion, experiment, useLatestVersion]);
+  }, [existingPipeline, experiment]);
+
+  useEffect(() => {
+    if (useLatestVersion) {
+      setPipelineVersionName('');
+    } else if (existingPipelineVersion?.display_name) {
+      setPipelineVersionName(existingPipelineVersion.display_name);
+    }
+  }, [existingPipelineVersion, useLatestVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
